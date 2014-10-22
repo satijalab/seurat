@@ -1074,7 +1074,7 @@ setMethod("show", "seurat",
           }
 )
 
-plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,cols.use=NULL) {
+plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL) {
   data$gene=as.character(rownames(data))
   data.use=data.frame(data[gene,])
   if (length(gene)==1) {
@@ -1090,11 +1090,11 @@ plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,siz
     data.melt$stat=factor(data.melt$stat,levels=names(rev(sort(tapply(data.melt$value,data.melt$stat,mean)))))
   }
   p=ggplot(data.melt,aes(factor(stat),value))
-  p2=p + geom_violin(scale="width",adjust=0.75,aes(fill=factor(stat))) + ylab("Expression level (log TPM)")
+  p2=p + geom_violin(scale="width",adjust=adjust.use,aes(fill=factor(stat))) + ylab("Expression level (log TPM)")
   if (!is.null(cols.use)) {
     p2=p2+scale_fill_manual(values=cols.use)
   }
-  p3=p2+theme(legend.position="top")+guides(fill=guide_legend(title=NULL))+geom_jitter(height=0)+xlab("Cell Type")
+  p3=p2+theme(legend.position="top")+guides(fill=guide_legend(title=NULL))+geom_jitter(height=0,size=size.use)+xlab("Cell Type")
   p4=p3+ theme(axis.title.x = element_text(face="bold", colour="#990000", size=size.x.use), axis.text.x  = element_text(angle=90, vjust=0.5, size=12))+theme_bw()+nogrid
   p5=(p4+theme(axis.title.y = element_text(face="bold", colour="#990000", size=size.y.use), axis.text.y  = element_text(angle=90, vjust=0.5, size=12))+ggtitle(gene)+theme(plot.title = element_text(size=size.title.use, face="bold")))
   if(do.ret==TRUE) {
@@ -1106,9 +1106,10 @@ plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,siz
 }
 
 setGeneric("vlnPlot", function(object,genes.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
-                               size.x.use=16,size.y.use=16,size.title.use=20, by.k=FALSE,use.imputed=FALSE,cols.use=NULL,...)  standardGeneric("vlnPlot"))
+                               size.x.use=16,size.y.use=16,size.title.use=20, by.k=FALSE,use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,...)  standardGeneric("vlnPlot"))
 setMethod("vlnPlot","seurat",
-          function(object,genes.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,by.k=FALSE,use.imputed=FALSE,cols.use=NULL,...) {
+          function(object,genes.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,by.k=FALSE,use.imputed=FALSE,adjust.use=1,
+                   size.use=1,cols.use=NULL,...) {
             if (is.null(nCol)) {
               nCol=2
               if (length(genes.plot)>6) nCol=3
@@ -1131,9 +1132,15 @@ setMethod("vlnPlot","seurat",
             }
             stat.use=object@data.stat
             if (by.k) stat.use=retreiveCluster(object)
-            pList=lapply(genes.plot,function(x) plot.Vln(x,data.use[x,],stat.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,cols.use))
-            multiplotList(pList,cols = nCol)
-            rp()
+            pList=lapply(genes.plot,function(x) plot.Vln(x,data.use[x,],stat.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
+  
+            if(do.ret) {
+              return(pList)
+            }
+            else {
+              multiplotList(pList,cols = nCol)
+              rp()
+            }
           }
 )  
 
