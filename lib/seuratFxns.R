@@ -14,9 +14,17 @@ require(fastICA)
 require(tsne)
 require(fpc)
 require(Rtsne)
+require(ape)
 
 nmf.options(grid.patch=TRUE)
 nogrid=theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+
+tsplot=function(object,x=1,cex.use=0.6) {
+  cols.use=rainbow(max(object@data.stat)); cols.use[x]="lightgrey"
+  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.numeric(object@data.stat)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
+  k.centers=t(sapply(1:max(object@data.stat),function(x) apply(object@tsne.rot[names(which(object@data.stat==x)),],2,mean)))
+  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],1:nrow(k.centers),cex=1)
+}
 
 getLeftDecendants=function(tree,node) {
   daughters<-tree$edge[which(tree$edge[,1]==node),2]

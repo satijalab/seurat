@@ -1,4 +1,4 @@
-#install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc"))
+#install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape"))
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -15,6 +15,36 @@ calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
 
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
+setMethod("find_all_markers","seurat",
+    function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) {
+      stat.use=object@data.stat
+      if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
+      if (by.k) stat.use=as.factor(retreiveCluster(object))
+      stats.all=sort(unique(object@data.stat))
+      genes.de=list()
+      for(i in 1:length(stats.all)) {
+        genes.de[[i]]=find.markers(object,stats.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
+        if (do.print) print(paste("Calculating cluster", stats.all[i]))
+      }
+      gde.all=data.frame()
+      for(i in 1:length(stats.all)) {
+        gde=genes.de[[i]]
+        if (nrow(gde)>0) {
+          if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+          if (test.use=="bimod") {
+            gde=gde[order(gde$myP,-gde$myDiff),]
+            gde=subset(gde,myP<return.thresh)
+          }
+          if (nrow(gde)>0) gde$cluster=stats.all[i]; gde$gene=rownames(gde)
+          if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+        }
+      }
+      return(gde.all)
+    }
+)
+    
+    
 setGeneric("plotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("plotNoiseModel"))
 setMethod("plotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
@@ -226,19 +256,38 @@ setMethod("pca", "seurat",
           }
 )
 
+setGeneric("cluster.alpha", function(object,by.k=FALSE,thresh.min=0) standardGeneric("cluster.alpha"))
+setMethod("cluster.alpha", "seurat", 
+          function(object,by.k=FALSE,thresh.min=0) {
+            stat.use=object@data.stat
+            if (by.k) stat.use=retreiveCluster(object)
+            data.all=data.frame(row.names = rownames(object@data))
+            for(i in sort(unique(stat.use))) {
+              temp.cells=names(which(stat.use==i))
+              data.temp=apply(object@data[,temp.cells],1,function(x)return(length(x[x>thresh.min])/length(x)))
+              data.all=cbind(data.all,data.temp)
+              colnames(data.all)[ncol(data.all)]=i
+            }
+            colnames(data.all)=sort(unique(stat.use))
+            return(data.all)
+          }
+)
+
+
+
 setGeneric("average.expression", function(object,by.k=FALSE) standardGeneric("average.expression"))
 setMethod("average.expression", "seurat", 
           function(object,by.k=FALSE) {
             stat.use=object@data.stat
             if (by.k) stat.use=retreiveCluster(object)
-            data.all=c()
+            data.all=data.frame(row.names = rownames(object@data))
             for(i in sort(unique(stat.use))) {
               temp.cells=names(which(stat.use==i))
               data.temp=apply(object@data[,temp.cells],1,expMean)
               data.all=cbind(data.all,data.temp)
               colnames(data.all)[ncol(data.all)]=i
-              #print(i)
             }
+            colnames(data.all)=sort(unique(stat.use))
             return(data.all)
           }
 )
@@ -729,12 +778,22 @@ setMethod("calcNoiseModels","seurat",
           }
 )  
 
-setGeneric("feature.plot", function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,reduction.use="pca") standardGeneric("feature.plot"))
+setGeneric("feature.plot", function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,pch.use=16,reduction.use="pca",nCol=NULL) standardGeneric("feature.plot"))
 setMethod("feature.plot", "seurat", 
-          function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,reduction.use="tsne") {
+          function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,pch.use=16,reduction.use="tsne",nCol=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
-            if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
+            if (is.null(nCol)) {
+              nCol=2
+              if (length(genes.plot)>6) nCol=3
+              if (length(genes.plot)>9) nCol=4
+            }         
+            num.row=floor(length(genes.plot)/nCol-1e-5)+1
+            par(mfrow=c(num.row,nCol))
+            if (reduction.use=="pca") {
+              data.plot=object@pca.rot[cells.use,]
+              dim.code="PC"
+            }
             if (reduction.use=="tsne") {
               data.plot=object@tsne.rot[cells.use,]
               dim.code="TSNE_"
@@ -750,8 +809,8 @@ setMethod("feature.plot", "seurat",
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            
-            data.use=object@data
+            print(head(data.plot))
+            data.use=object@data[,cells.use]
             if (length(which(!(genes.plot%in%rownames(data.use))))>0) {
               if (ncol(object@pca.rot)>=2) {
                 data.use=data.frame(t(object@pca.rot))
@@ -761,12 +820,14 @@ setMethod("feature.plot", "seurat",
                 rownames(data.use)[nrow(data.use)]="nGene"
               }
             }
-            data.use=na.omit(data.frame(data.use[genes.plot,]))
             
-            
-            data.cut=as.numeric(as.factor(cut(as.numeric(data.use),breaks = 10)))
-            data.col=rev(heat.colors(10))[data.cut]
-            plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size)
+            for(i in genes.plot) {
+              data.gene=na.omit(data.frame(data.use[i,]))
+              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = 10)))
+              data.col=rev(heat.colors(10))[data.cut]
+              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab=x1,ylab=x2)
+            }
+            rp()
           }
 )
 
@@ -847,7 +908,6 @@ setMethod("Mclust_dimension", "seurat",
             }
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            
             set.seed(seed.use); data.mclust=ds <- dbscan(data.plot[,c("x","y")],eps = G.use,...)
             if (set.k) {
               to.set=as.numeric(data.mclust$cluster+1)
@@ -1090,7 +1150,7 @@ plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,siz
     data.melt$stat=factor(data.melt$stat,levels=names(rev(sort(tapply(data.melt$value,data.melt$stat,mean)))))
   }
   p=ggplot(data.melt,aes(factor(stat),value))
-  p2=p + geom_violin(scale="width",adjust=adjust.use,aes(fill=factor(stat))) + ylab("Expression level (log TPM)")
+  p2=p + geom_violin(scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(stat))) + ylab("Expression level (log TPM)")
   if (!is.null(cols.use)) {
     p2=p2+scale_fill_manual(values=cols.use)
   }
@@ -1104,6 +1164,28 @@ plot.Vln=function(gene,data,cell.stat,ylab.max=12,do.ret=FALSE,do.sort=FALSE,siz
     print(p5)
   }
 }
+
+setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05)  standardGeneric("dot.plot"))
+setMethod("dot.plot","seurat",
+          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05) {
+            genes.plot=ainb(genes.plot,rownames(object@data))
+            object@data=object@data[genes.plot,]
+            avg.exp=average.expression(object)
+            avg.alpha=cluster.alpha(object)
+            cols.use=set.ifnull(cols.use,myPalette(low = "red",high="green"))
+            exp.scale=t(scale(t(avg.exp)))
+            exp.scale=minmax(exp.scale,max=thresh.col,min=(-1)*thresh.col)
+            n.col=length(cols.use)
+            data.y=rep(1:ncol(avg.exp),nrow(avg.exp))
+            data.x=unlist(lapply(1:nrow(avg.exp),rep,ncol(avg.exp)))
+            data.avg=unlist(lapply(1:length(data.y),function(x) exp.scale[data.x[x],data.y[x]]))
+            exp.col=cols.use[floor(n.col*(data.avg+thresh.col)/(2*thresh.col)+.5)]
+            data.cex=unlist(lapply(1:length(data.y),function(x) avg.alpha[data.x[x],data.y[x]]))*cex.use+dot.min
+            plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="Cluster")
+            axis(1,at = 1:length(genes.plot),genes.plot)
+          }
+
+) 
 
 setGeneric("vlnPlot", function(object,genes.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
                                size.x.use=16,size.y.use=16,size.title.use=20, by.k=FALSE,use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,...)  standardGeneric("vlnPlot"))
