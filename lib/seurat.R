@@ -5,7 +5,7 @@ seurat <- setClass("seurat", slots =
                        stat.fxn="function",data.stat="vector",data.ngene="vector",pca.x="data.frame",pca.rot="data.frame",
                        real.fval="data.frame",fake.fval="data.frame",emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
                        calinski.best="numeric", gene.scores="data.frame", k.num = "numeric", drop.coefs="data.frame",
-                       wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.metrics="data.frame",
+                       wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",
                        project.name="character",project.dir="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", pc.x.full="data.frame",
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.mu="data.frame",mix.sigma="data.frame",mu.alpha="data.frame",mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
@@ -75,9 +75,12 @@ setMethod("setup","seurat",
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
             object@data.ngene=num.genes[cells.use]
             object@gene.scores=data.frame(object@data.ngene); colnames(object@gene.scores)[1]="nGene"
-            object@data.metrics=data.frame(object@data.ngene); colnames(object@data.metrics)[1]="nGene"
+            object@data.info=data.frame(object@data.ngene); colnames(object@data.info)[1]="nGene"
             object@mix.probs=data.frame(object@data.ngene); colnames(object@mix.probs)[1]="nGene"
             rownames(object@gene.scores)=colnames(object@data)
+            
+            object@data.info[names(object@data.stat),"stat"]=object@data.stat
+            
             object@project.name=project
             object@project.dir=set.ifnull(proj.dir,paste("~/big/",project,"/",sep=""))
             if(calc.noise) {
@@ -95,7 +98,7 @@ setMethod("subsetData","seurat",
             if (is.null(cells.use)) {
               if (subset.name%in%rownames(object@data)) data.use=object@data
               if (subset.name%in%colnames(object@gene.scores)) data.use=data.frame(t(object@gene.scores))
-              if (subset.name%in%colnames(object@data.metrics)) data.use=data.frame(t(object@data.metrics))
+              if (subset.name%in%colnames(object@data.info)) data.use=data.frame(t(object@data.info))
               if (is.null(data.use)) {
                 print(paste("ERROR ", subset.name, " not found", sep=""))
                 return(object)
@@ -113,7 +116,7 @@ setMethod("subsetData","seurat",
             object@pca.rot=object@pca.rot[cells.use,]
             
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)
-            object@data.metrics=data.frame(object@data.metrics[cells.use,])
+            object@data.info=data.frame(object@data.info[cells.use,])
             object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
             
             return(object)
@@ -128,7 +131,7 @@ setMethod("loadMetrics","seurat",
             metrics.data=read.table(metrics.file,sep=sep.use,row.names="V1",...)
             colnames(metrics.data)=col.names
             rownames(metrics.data)=paste(sub.string(rownames(metrics.data),"-","_"),row.add,sep="")
-            object@data.metrics=cbind(object@data.metrics,metrics.data[rownames(object@data.metrics),])
+            object@data.info=cbind(object@data.info,metrics.data[rownames(object@data.info),])
             return(object)
           }
 )
@@ -460,6 +463,59 @@ setMethod("retreiveScore", "seurat",
             return(my.score)
           } 
 )
+
+setGeneric("which.cells", function(object,value=1, id=NULL) standardGeneric("which.cells"))
+setMethod("which.cells", "seurat",
+          function(object, value=1,id=NULL) {
+            id=set.ifnull(id,"data.stat")
+            if (id=="data.stat") {
+              data.use=object@data.stat
+            }
+            if (id %in% colnames(object@data.info)) {
+              data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
+            }
+            return(names(which(data.use==value)))
+          } 
+)
+
+setGeneric("set.all.stat", function(object,id=NULL) standardGeneric("set.all.stat"))
+setMethod("set.all.stat", "seurat",
+          function(object, id=NULL) {
+            id=set.ifnull(id,"stat")
+            if (id %in% colnames(object@data.info)) {
+              object@data.stat[rownames(object@data.info)]=object@data.info[,id]
+            }
+            return(object)
+          } 
+)
+
+setGeneric("set.stat", function(object,cells.use=NULL,stat.use=NULL) standardGeneric("set.stat"))
+setMethod("set.stat", "seurat",
+          function(object, cells.use=NULL,stat.use=NULL) {
+            id=set.ifnull(id,"stat")
+            if (id %in% colnames(object@data.info)) {
+              object@data.stat[rownames(object@data.info)]=object@data.info[,id]
+            }
+            return(object)
+          } 
+)
+
+
+setGeneric("retreiveCellInfo", function(object, cells.use=NULL,id=NULL) standardGeneric("retreiveCellInfo"))
+setMethod("retreiveCellInfo", "seurat",
+          function(object, cells.use=NULL,id=NULL) {
+            cells.use=set.ifnull(cells.use,colnames(object@data))
+            id=set.ifnull(id,"data.stat")
+            if (id=="data.stat") {
+              data.use=object@data.stat
+            }
+            if (id %in% colnames(object@data.info)) {
+              data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
+            }
+            return(data.use[cells.use])
+          } 
+)
+
 
 setGeneric("retreiveCluster", function(object, names=NULL) standardGeneric("retreiveCluster"))
 setMethod("retreiveCluster", "seurat",
@@ -892,9 +948,9 @@ setMethod("spatial.de", "seurat",
 )
     
 
-setGeneric("Mclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.k=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
+setGeneric("Mclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.stat=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
 setMethod("Mclust_dimension", "seurat", 
-          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.k=FALSE,seed.use=1,...) {
+          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.stat=FALSE,seed.use=1,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
@@ -909,11 +965,14 @@ setMethod("Mclust_dimension", "seurat",
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             set.seed(seed.use); data.mclust=ds <- dbscan(data.plot[,c("x","y")],eps = G.use,...)
-            if (set.k) {
-              to.set=as.numeric(data.mclust$cluster+1)
-              data.names=names(object@data.stat)
-              object@data.stat=to.set; names(object@data.stat)=data.names
+
+            to.set=as.numeric(data.mclust$cluster+1)
+            data.names=names(object@data.stat)
+            object@data.info[data.names,"m"]=to.set
+            if (set.stat) {
+              object@data.stat=to.set; names(object@data.stat)=data.names              
             }
+            
             return(object)
           }
 )
