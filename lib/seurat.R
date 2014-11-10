@@ -235,12 +235,21 @@ setMethod("pca", "seurat",
             pc.genes = pc.genes[pc.genes%in%rownames(data.use)]
             pc.genes.var = apply(data.use[pc.genes,],1,var)
             pc.data = data.use[pc.genes[pc.genes.var>0],]
-            pca.obj = (prcomp(pc.data))
-            object@pca.obj=list(pca.obj)
+            #pca.obj = (prcomp(pc.data))
+            #object@pca.obj=list(pca.obj)
+            
+            pca.svd=svd(cov(pc.data))
+            
             pcs.store=min(pcs.store,ncol(pc.data))
             pcs.print=min(pcs.print,ncol(pc.data))
-            object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
-            object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
+            #object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
+            #object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
+            
+            object@pca.x=data.frame((pc.data)%*%pca.svd$u[,1:pcs.store])
+            object@pca.rot=data.frame(pca.svd$u[,1:pcs.store])
+            colnames(object@pca.x)=paste("PC",1:pcs.store,sep=""); colnames(object@pca.rot)=paste("PC",1:pcs.store,sep="")
+            rownames(object@pca.rot)=colnames(pc.data)
+            
             if (do.print) {
               pc_scores=object@pca.x
               for(i in 1:pcs.print) {
@@ -865,7 +874,6 @@ setMethod("feature.plot", "seurat",
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            print(head(data.plot))
             data.use=object@data[,cells.use]
             if (length(which(!(genes.plot%in%rownames(data.use))))>0) {
               if (ncol(object@pca.rot)>=2) {
@@ -948,9 +956,9 @@ setMethod("spatial.de", "seurat",
 )
     
 
-setGeneric("Mclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.stat=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
+setGeneric("Mclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",G.use=NULL,set.stat=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
 setMethod("Mclust_dimension", "seurat", 
-          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="pca",G.use=NULL,set.stat=FALSE,seed.use=1,...) {
+          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",G.use=NULL,set.stat=FALSE,seed.use=1,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
@@ -1285,9 +1293,9 @@ setMethod("vlnPlot","seurat",
           }
 )  
 
-setGeneric("jackStrawPlot", function(object,plot.lim=0.4,num.pc=5,score.thresh=1e-5,...)  standardGeneric("jackStrawPlot"))
+setGeneric("jackStrawPlot", function(object,plot.lim=0.8,num.pc=5,score.thresh=1e-5,...)  standardGeneric("jackStrawPlot"))
 setMethod("jackStrawPlot","seurat",
-          function(object,plot.lim=0.4,num.pc=5,score.thresh=0.01,...) {
+          function(object,plot.lim=0.8,num.pc=5,score.thresh=0.01,...) {
             pAll=object@jackStraw.empP
             nCol=2
             if (num.pc>6) nCol=3
