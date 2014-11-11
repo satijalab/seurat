@@ -9,7 +9,7 @@ seurat <- setClass("seurat", slots =
                        project.name="character",project.dir="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", pc.x.full="data.frame",
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.mu="data.frame",mix.sigma="data.frame",mu.alpha="data.frame",mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
-                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame",ica.obj="list"))
+                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame",ica.obj="list",cell.names="vector"))
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
@@ -72,6 +72,7 @@ setMethod("setup","seurat",
             
             object@data.stat=unlist(lapply(colnames(object@data),object@stat.fxn))
             names(object@data.stat)=colnames(object@data)
+            object@cell.names=names(object@data.stat)
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
             object@data.ngene=num.genes[cells.use]
             object@gene.scores=data.frame(object@data.ngene); colnames(object@gene.scores)[1]="nGene"
@@ -114,6 +115,7 @@ setMethod("subsetData","seurat",
             object@data.stat=object@data.stat[cells.use]
             object@tsne.rot=object@tsne.rot[cells.use,]
             object@pca.rot=object@pca.rot[cells.use,]
+            object@cell.names=cells.use
             
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)
             object@data.info=data.frame(object@data.info[cells.use,])
