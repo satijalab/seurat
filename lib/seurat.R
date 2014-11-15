@@ -17,34 +17,34 @@ calc.drop.prob=function(x,a,b) {
 
 setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
 setMethod("find_all_markers","seurat",
-    function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) {
-      stat.use=object@data.stat
-      if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
-      if (by.k) stat.use=as.factor(retreiveCluster(object))
-      stats.all=sort(unique(object@data.stat))
-      genes.de=list()
-      for(i in 1:length(stats.all)) {
-        genes.de[[i]]=find.markers(object,stats.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
-        if (do.print) print(paste("Calculating cluster", stats.all[i]))
-      }
-      gde.all=data.frame()
-      for(i in 1:length(stats.all)) {
-        gde=genes.de[[i]]
-        if (nrow(gde)>0) {
-          if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-          if (test.use=="bimod") {
-            gde=gde[order(gde$myP,-gde$myDiff),]
-            gde=subset(gde,myP<return.thresh)
+          function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) {
+            stat.use=object@data.stat
+            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
+            if (by.k) stat.use=as.factor(retreiveCluster(object))
+            stats.all=sort(unique(object@data.stat))
+            genes.de=list()
+            for(i in 1:length(stats.all)) {
+              genes.de[[i]]=find.markers(object,stats.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
+              if (do.print) print(paste("Calculating cluster", stats.all[i]))
+            }
+            gde.all=data.frame()
+            for(i in 1:length(stats.all)) {
+              gde=genes.de[[i]]
+              if (nrow(gde)>0) {
+                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+                if (test.use=="bimod") {
+                  gde=gde[order(gde$myP,-gde$myDiff),]
+                  gde=subset(gde,myP<return.thresh)
+                }
+                if (nrow(gde)>0) gde$cluster=stats.all[i]; gde$gene=rownames(gde)
+                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+              }
+            }
+            return(gde.all)
           }
-          if (nrow(gde)>0) gde$cluster=stats.all[i]; gde$gene=rownames(gde)
-          if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
-        }
-      }
-      return(gde.all)
-    }
 )
-    
-    
+
+
 setGeneric("plotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("plotNoiseModel"))
 setMethod("plotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
@@ -312,16 +312,16 @@ setMethod("print.pca", "seurat",
             pc_scores=object@pca.x
             if (use.full==TRUE) pc_scores = object@pca.x.full
             for(i in pcs.print) {
-                code=paste("PC",i,sep="")
-                sx=pc_scores[order(pc_scores[,code]),]
-                print(code)
-                print(rownames(sx[1:genes.print,]))
-                print ("")
-                
-                print(rev(rownames(sx[(nrow(sx)-genes.print):nrow(sx),])))
-                print ("")
-                print ("")      
-              }
+              code=paste("PC",i,sep="")
+              sx=pc_scores[order(pc_scores[,code]),]
+              print(code)
+              print(rownames(sx[1:genes.print,]))
+              print ("")
+              
+              print(rev(rownames(sx[(nrow(sx)-genes.print):nrow(sx),])))
+              print ("")
+              print ("")      
+            }
           }
 )
 
@@ -681,19 +681,19 @@ setMethod("fit.gene.k", "seurat",
             cell.ident=order(tapply(as.numeric(data.use),cell.ident,mean))[cell.ident]
             #cell.ident=sample(cell.ident)
             ident.table=table(cell.ident)
-#            if (do.plot) {
-#              par(mfrow=c(2,2))
-#              hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-#              for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-#            }
+            #            if (do.plot) {
+            #              par(mfrow=c(2,2))
+            #              hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
+            #              for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
+            #            }
             if (num.iter > 0) {
               for(i2 in 1:num.iter) {
                 cell.ident=iter.k.fit(scale.data,cell.ident,data.use)
                 ident.table=table(cell.ident)
-#                if (do.plot) {
-#                  hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-#                  for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-#                }
+                #                if (do.plot) {
+                #                  hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
+                #                  for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
+                #                }
               }
             }
             ident.table=table(cell.ident)
@@ -956,7 +956,7 @@ setMethod("spatial.de", "seurat",
             return(diff.genes)
           }
 )
-    
+
 
 setGeneric("Mclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",G.use=NULL,set.stat=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
 setMethod("Mclust_dimension", "seurat", 
@@ -975,7 +975,7 @@ setMethod("Mclust_dimension", "seurat",
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             set.seed(seed.use); data.mclust=ds <- dbscan(data.plot[,c("x","y")],eps = G.use,...)
-
+            
             to.set=as.numeric(data.mclust$cluster+1)
             data.names=names(object@data.stat)
             object@data.info[data.names,"m"]=to.set
@@ -1008,6 +1008,30 @@ setMethod("pca.sig.genes", "seurat",
 
 
 same=function(x) return(x)
+
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.cut=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) standardGeneric("doHeatMap"))
+
+setMethod("doHeatMap","seurat",
+          function(object,cells.use=NULL,genes.use=NULL,disp.cut=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) {
+            cells.use=set.ifnull(cells.use,object@cell.names)
+            genes.use=ainb(genes.use,rownames(object@scale.data))
+            cells.use=ainb(cells.use,object@cell.names)
+            if (order.by.stat) {
+              cells.stat=object@data.stat[cells.use]
+              cells.use=cells.use[order(cells.stat)]
+            }
+            data.use=object@scale.data[genes.use,cells.use]
+            data.use=minmax(data.use,min=disp.cut*(-1),max=disp.cut)
+            vline.use=NULL;
+            if (draw.line) {
+              colsep.use=cumsum(table(cells.stat))
+            }
+            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use)
+            if (do.return) {
+              return(data.use)
+            }
+          }
+)
 
 setGeneric("doKMeans", function(object,pcs.use=1,pval.cut=0.1,k.num=NULL,k.seed=1,do.plot=TRUE,clust.cut=2.5,disp.cut=2.5,k.cols=pyCols,do.one=FALSE,do.k.col=FALSE,
                                 k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, cluster.zoom=0, use.full=FALSE,clust.col=TRUE,do.annot=FALSE,
@@ -1114,7 +1138,7 @@ setMethod("genes.in.cluster", signature = "seurat",
 setGeneric("cells.in.cluster", function(object, cluster.num)  standardGeneric("cells.in.cluster"))
 setMethod("cells.in.cluster", signature = "seurat",
           function(object, cluster.num) {
-#            print(sort(names(which(object@kmeans.col[[1]]$cluster==cluster.num))))
+            #            print(sort(names(which(object@kmeans.col[[1]]$cluster==cluster.num))))
             return(sort(unlist(lapply(cluster.num,function(x) names(which(object@kmeans.col[[1]]$cluster==x))))))
           }    
 )
@@ -1253,7 +1277,7 @@ setMethod("dot.plot","seurat",
             plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="Cluster")
             axis(1,at = 1:length(genes.plot),genes.plot)
           }
-
+          
 ) 
 
 setGeneric("vlnPlot", function(object,genes.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
@@ -1284,7 +1308,7 @@ setMethod("vlnPlot","seurat",
             stat.use=object@data.stat
             if (by.k) stat.use=retreiveCluster(object)
             pList=lapply(genes.plot,function(x) plot.Vln(x,data.use[x,],stat.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
-  
+            
             if(do.ret) {
               return(pList)
             }
@@ -1309,10 +1333,10 @@ setMethod("jackStrawPlot","seurat",
             pc.score=unlist(lapply(1:num.pc, function(x) mean(qq.y[which(qq.x[,x]<=score.thresh),x])))
             pc.score=unlist(lapply(1:num.pc, function(x) prop.test(c(length(which(pAll[,x]<=score.thresh)),floor(nrow(pAll)*score.thresh)),c(nrow(pAll),nrow(pAll)))$p.val))
             
-           unlist(lapply(1:num.pc,function(x) {qqplot(pAll[,x],runif(1000),,xlim=c(0,plot.lim),ylim=c(0,plot.lim),xlab=colnames(pAll)[x],pch=16,main=round(pc.score[x],4)); 
+            unlist(lapply(1:num.pc,function(x) {qqplot(pAll[,x],runif(1000),,xlim=c(0,plot.lim),ylim=c(0,plot.lim),xlab=colnames(pAll)[x],pch=16,main=round(pc.score[x],4)); 
                                                 lines(seq(0,1,0.01),seq(0,1,0.01),lty=2,lwd=2)}))
-#            unlist(lapply(1:num.pc,function(x) {qqplot(pAll[,x],runif(1000),,xlim=c(0,plot.lim),ylim=c(0,plot.lim),xlab=colnames(pAll)[x],pch=16); 
-#                                                lines(seq(0,1,0.01),seq(0,1,0.01),lty=2,lwd=2)}))
+            #            unlist(lapply(1:num.pc,function(x) {qqplot(pAll[,x],runif(1000),,xlim=c(0,plot.lim),ylim=c(0,plot.lim),xlab=colnames(pAll)[x],pch=16); 
+            #                                                lines(seq(0,1,0.01),seq(0,1,0.01),lty=2,lwd=2)}))
             rp()
           }
 )
@@ -1492,7 +1516,7 @@ setMethod("mean.var.plot", signature = "seurat",
               if (!set.var.genes) return(pass.cutoff)
             }
           }
-            
+          
 )
 
 
