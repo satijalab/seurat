@@ -259,10 +259,10 @@ ainb=function(a,b) {
   a2=a[a%in%b]
   return(a2)
 }
-meanNormFunction=function(data,myfuncX,myfuncY) {
+meanNormFunction=function(data,myfuncX,myfuncY,nBin=20) {
   data_x=apply(data,1,myfuncX)
   data_y=apply(data,1,myfuncY)
-  data_x_bin=cut(data_x,20)
+  data_x_bin=cut(data_x,nBin)
   names(data_x_bin)=names(data_x)
   mean_y=tapply(data_y,data_x_bin,mean)
   sd_y=tapply(data_y,data_x_bin,sd)

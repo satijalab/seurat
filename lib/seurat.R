@@ -184,7 +184,7 @@ setMethod("run_tsne", "seurat",
               set.seed(k.seed); data.tsne=data.frame(tsne(data.use,...))
             }
             print(head(data.tsne))
-            colnames(data.tsne)=paste("TSNE_",1:ncol(data.tsne),sep="")
+            colnames(data.tsne)=paste("Seurat_",1:ncol(data.tsne),sep="")
             rownames(data.tsne)=cells.use
             object@tsne.rot=data.tsne
             return(object)
@@ -485,7 +485,7 @@ setMethod("which.cells", "seurat",
             if (id %in% colnames(object@data.info)) {
               data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
             }
-            return(names(which(data.use==value)))
+            return(names(data.use[which(data.use%in%value)]))
           } 
 )
 
@@ -863,7 +863,7 @@ setMethod("feature.plot", "seurat",
             }
             if (reduction.use=="tsne") {
               data.plot=object@tsne.rot[cells.use,]
-              dim.code="TSNE_"
+              dim.code="Seurat_"
             }
             if (reduction.use=="ica") {
               data.plot=object@ica.rot[cells.use,]
@@ -905,7 +905,7 @@ setMethod("pca.plot", "seurat",
             if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
             if (reduction.use=="tsne") {
               data.plot=object@tsne.rot[cells.use,]
-              dim.code="TSNE_"
+              dim.code="Seurat_"
             }
             if (reduction.use=="ica") {
               data.plot=object@ica.rot[cells.use,]
@@ -966,7 +966,7 @@ setMethod("Mclust_dimension", "seurat",
             if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
             if (reduction.use=="tsne") {
               data.plot=object@tsne.rot[cells.use,]
-              dim.code="TSNE_"
+              dim.code="Seurat_"
             }
             if (reduction.use=="ica") {
               data.plot=object@ica.rot[cells.use,]
@@ -1009,10 +1009,10 @@ setMethod("pca.sig.genes", "seurat",
 
 same=function(x) return(x)
 
-setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.cut=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) standardGeneric("doHeatMap"))
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) standardGeneric("doHeatMap"))
 
 setMethod("doHeatMap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.cut=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.stat=TRUE,col.use=pyCols,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
@@ -1021,7 +1021,7 @@ setMethod("doHeatMap","seurat",
               cells.use=cells.use[order(cells.stat)]
             }
             data.use=object@scale.data[genes.use,cells.use]
-            data.use=minmax(data.use,min=disp.cut*(-1),max=disp.cut)
+            data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
             if (draw.line) {
               colsep.use=cumsum(table(cells.stat))
@@ -1366,7 +1366,7 @@ setMethod("genePlot","seurat",
               if (ncol(object@pca.rot>=2)) {
                 data.use=rbind(data.use,t(object@pca.rot))
               }
-              if (length(ainb(genes.plot,"nGene")>0)) {
+              if (length(ainb(c(gene1,gene2),"nGene")>0)) {
                 data.use=rbind(data.use,object@data.ngene)
                 rownames(data.use)[nrow(data.use)]="nGene"
               }
@@ -1474,15 +1474,15 @@ setMethod("jackStrawFull","seurat",
 setGeneric("mean.var.plot", function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                                      x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
                                      pch.use=16, col.use="black", spike.col.use="red",use.imputed=FALSE,plot.both=FALSE,do.contour=TRUE,
-                                     contour.lwd=3, contour.col="white", contour.lty=2) standardGeneric("mean.var.plot"))
+                                     contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("mean.var.plot"))
 setMethod("mean.var.plot", signature = "seurat",
           function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                    x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
                    pch.use=16, col.use="black", spike.col.use="red",use.imputed=FALSE,plot.both=FALSE,do.contour=TRUE,
-                   contour.lwd=3, contour.col="white", contour.lty=2) {
+                   contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) {
             data=object@data
             data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y)
-            data.norm.y=meanNormFunction(data,fxn.x,fxn.y)
+            data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
             data.norm.y[is.na(data.norm.y)]=0
             names(data.norm.y)=names(data.x)
             pass.cutoff=names(data.x)[which(((data.x>x.low.cutoff) & (data.x<x.high.cutoff)) & (data.norm.y>y.cutoff) & (data.norm.y < y.high.cutoff))]
