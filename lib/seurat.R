@@ -326,6 +326,32 @@ setMethod("print.pca", "seurat",
 )
 
 
+setGeneric("viz.pca", function(object,pcs.print=1:5,genes.print=15,use.full=FALSE,font.size=0.5,nCol=NULL) standardGeneric("viz.pca"))
+setMethod("viz.pca", "seurat", 
+          function(object,pcs.print=1:5,genes.print=15,use.full=FALSE,font.size=0.5,nCol=NULL) {
+            pc_scores=object@pca.x
+            if (use.full==TRUE) pc_scores = object@pca.x.full
+            
+            if (is.null(nCol)) {
+              nCol=2
+              if (length(pcs.print)>6) nCol=3
+              if (length(pcs.print)>9) nCol=4
+            }         
+            num.row=floor(length(pcs.print)/nCol-1e-5)+1
+            par(mfrow=c(num.row,nCol))
+            
+            for(i in pcs.print) {
+              code=paste("PC",i,sep="")
+              sx=pc_scores[order(pc_scores[,code]),]
+              subset.use=sx[c(1:genes.print,(nrow(sx)-genes.print):nrow(sx)),]
+              plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
+              axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)   
+            }
+            rp()
+          }
+)
+
+
 set.ifnull=function(x,y) {
   if(is.null(x)) x=y
   return(x)
@@ -845,9 +871,9 @@ setMethod("calcNoiseModels","seurat",
           }
 )  
 
-setGeneric("feature.plot", function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,pch.use=16,reduction.use="pca",nCol=NULL) standardGeneric("feature.plot"))
+setGeneric("feature.plot", function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) standardGeneric("feature.plot"))
 setMethod("feature.plot", "seurat", 
-          function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,pch.use=16,reduction.use="tsne",nCol=NULL) {
+          function(object,genes.plot,pc.1=1,pc.2=2,cells.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (is.null(nCol)) {
@@ -871,7 +897,6 @@ setMethod("feature.plot", "seurat",
             }
             
             stat.use=as.factor(object@data.stat[cells.use])
-            if (by.k) stat.use=as.factor(retreiveCluster(object))
             data.plot$stat=stat.use
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
@@ -889,13 +914,62 @@ setMethod("feature.plot", "seurat",
             
             for(i in genes.plot) {
               data.gene=na.omit(data.frame(data.use[i,]))
-              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = 10)))
-              data.col=rev(heat.colors(10))[data.cut]
+              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
+              data.col=rev(cols.use)[data.cut]
               plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab=x1,ylab=x2)
             }
             rp()
           }
 )
+
+
+setGeneric("feature.heatmap", function(object,genes.plot,pc.1=1,pc.2=2,stats.use=NULL,pt.size=2,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=heat.colors(9),pch.use=16,reduction.use="tsne",margin.dist=5,font.size=0.7) standardGeneric("feature.heatmap"))
+setMethod("feature.heatmap", "seurat", 
+          function(object,genes.plot,pc.1=1,pc.2=2,stats.use=NULL,pt.size=1,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=heat.colors(9),pch.use=16,reduction.use="tsne",margin.dist=5,font.size=0.7) {
+            stats.use=set.ifnull(stats.use,sort(unique(object@data.stat)))
+            dim.code="PC"
+            par(mfrow=c(length(genes.plot),length(stats.use)))
+            if (reduction.use=="pca") {
+              data.plot=object@pca.rot
+              dim.code="PC"
+            }
+            if (reduction.use=="tsne") {
+              data.plot=object@tsne.rot
+              dim.code="Seurat_"
+            }
+            if (reduction.use=="ica") {
+              data.plot=object@ica.rot
+              dim.code="IC"
+            }
+            
+
+            stat.use=as.factor(object@data.stat)
+            data.plot$stat=stat.use
+            x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
+            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
+            data.plot$pt.size=pt.size
+            data.use=object@data
+            if (length(which(!(genes.plot%in%rownames(data.use))))>0) {
+              if (ncol(object@pca.rot)>=2) {
+                data.use[colnames(object@pca.rot),]=data.frame(t(object@pca.rot))
+              }
+              if (length(ainb(genes.plot,"nGene")>0)) {
+                data.use=rbind(data.use,object@data.ngene)
+                rownames(data.use)[nrow(data.use)]="nGene"
+              }
+            }
+            
+            data.scale=apply(t(data.use[genes.plot,]),2,function(x)(factor(cut(x,breaks=length(cols.use),labels=1:length(cols.use),ordered=TRUE))))
+            data.plot.all=cbind(data.plot,data.scale)
+            print(head(data.plot.all))
+            data.reshape=melt(data.plot.all,id = colnames(data.plot))
+            p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
+            p=p + facet_grid(variable~stat)
+            p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
+            print(p2)
+          }
+)
+
 
 setGeneric("pca.plot", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,do.return=FALSE,do.bare=FALSE,by.k=FALSE,cols.use=NULL,reduction.use="pca") standardGeneric("pca.plot"))
 setMethod("pca.plot", "seurat", 
@@ -1026,7 +1100,7 @@ setMethod("doHeatMap","seurat",
             if (draw.line) {
               colsep.use=cumsum(table(cells.stat))
             }
-            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use)
+            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
             if (do.return) {
               return(data.use)
             }
@@ -1293,13 +1367,10 @@ setMethod("vlnPlot","seurat",
             data.use=object@data
             if (use.imputed) data.use = object@imputed
             if (length(which(!(genes.plot%in%rownames(data.use))))>0) {
-              if (ncol(object@pca.rot)>=2) {
-                data.use=data.frame(t(object@pca.rot))
-              }
-              if (length(ainb(genes.plot,"nGene")>0)) {
-                data.use=rbind(data.use,object@data.ngene)
-                rownames(data.use)[nrow(data.use)]="nGene"
-              }
+              if (ncol(object@pca.rot)>=2) data.use[colnames(object@pca.rot),]=data.frame(t(object@pca.rot))
+                
+                nums <- sapply(object@data.info, is.numeric)
+                data.use[colnames(object@data.info)[nums],]=data.frame(t(object@data.info[,nums]))
             }
             data.use=na.omit(data.frame(data.use[genes.plot,]))
             if (length(which(!(genes.plot%in%rownames(data.use))))>0) {
@@ -1341,6 +1412,14 @@ setMethod("jackStrawPlot","seurat",
           }
 )
 
+setGeneric("addMetaData", function(object,metadata)  standardGeneric("addMetaData"))
+setMethod("addMetaData","seurat",
+          function(object,metadata) {
+            cols.add=colnames(metadata)
+            object@data.info[,cols.add]=metadata[rownames(object@data.info),]
+            return(object)
+          }
+)
 
 setGeneric("jackStrawPlot2", function(object,plot.lim=0.4,num.pc=5,...)  standardGeneric("jackStrawPlot2"))
 setMethod("jackStrawPlot2","seurat",
@@ -1363,13 +1442,9 @@ setMethod("genePlot","seurat",
             data.use=object@data
             if (use.imputed) data.use= object@imputed
             if (length(which(!(c(gene1,gene2)%in%rownames(data.use))))>0) {
-              if (ncol(object@pca.rot>=2)) {
-                data.use=rbind(data.use,t(object@pca.rot))
-              }
-              if (length(ainb(c(gene1,gene2),"nGene")>0)) {
-                data.use=rbind(data.use,object@data.ngene)
-                rownames(data.use)[nrow(data.use)]="nGene"
-              }
+                data.use[colnames(object@pca.rot),]=data.frame(t(object@pca.rot))
+                nums <- sapply(object@data.info, is.numeric)
+                data.use[colnames(object@data.info)[nums],]=data.frame(t(object@data.info[,nums]))
             }
             
             cell.ids=set.ifnull(cell.ids,colnames(data.use))
@@ -1518,7 +1593,3 @@ setMethod("mean.var.plot", signature = "seurat",
           }
           
 )
-
-
-
-
