@@ -15,15 +15,16 @@ require(tsne)
 require(fpc)
 require(Rtsne)
 require(ape)
+require(VGAM)
 
 nmf.options(grid.patch=TRUE)
 nogrid=theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 tsplot=function(object,x=1,cex.use=0.6) {
-  cols.use=rainbow(max(object@data.stat)); cols.use[x]="lightgrey"
-  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.numeric(object@data.stat)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
-  k.centers=t(sapply(1:max(object@data.stat),function(x) apply(object@tsne.rot[names(which(object@data.stat==x)),],2,mean)))
-  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],1:nrow(k.centers),cex=1)
+  cols.use=rainbow(length(levels(object@data.stat))); cols.use[x]="lightgrey"
+  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@data.stat)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
+  k.centers=t(sapply(levels(object@data.stat),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
+  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@data.stat),cex=1)
 }
 
 getLeftDecendants=function(tree,node) {
@@ -428,7 +429,45 @@ marker.auc.test=function(data1,data2,mygenes) {
   toRet=toRet[rev(order(toRet$myAUC)),]
   return(toRet)
 }  
-  
+
+#credit to Cole Trapnell for this
+tobit_fitter <- function(x, modelFormulaStr, lower=1, upper=Inf){
+  tryCatch({
+    FM_fit <-  suppressWarnings(vgam(as.formula(modelFormulaStr), family=tobit(Lower=lower, Upper=upper),data = x))
+    FM_fit
+  }, 
+  #warning = function(w) { FM_fit },
+  error = function(e) { NULL }
+  )
+}
+
+anotinb=function(x,y) {
+  x2=x[!x%in%y]
+  return(x2)
+}
+diffTobit=function(x1,x2,lower=1,upper=Inf) {
+  my.df=data.frame(c(x1,x2),c(rep(0,length(x1)),rep(1,length(x2))))
+  colnames(my.df)=c("Expression","Stat")
+  #model.v1=vgam(Expression~1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v1=tobit_fitter(my.df,"Expression~1",lower,upper)
+  #model.v2=vgam(Expression~Stat+1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v2=tobit_fitter(my.df,"Expression~Stat+1",lower,upper)
+  p=1
+  if (is.null(model.v1) == FALSE && is.null(model.v2) == FALSE) {
+      (p <- pchisq(2 * (logLik(model.v2) - logLik(model.v1)), df = 1, lower.tail = FALSE))
+  }
+  return(p)
+}
+
+tobit.diffExp.test=function(data1,data2,mygenes) {
+  myP=unlist(lapply(mygenes,function(x)diffTobit(as.numeric(data1[x,]),as.numeric(data2[x,]))))
+  myP[is.na(myP)]=1
+  myDiff=unlist(lapply(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
+  toRet=data.frame(cbind(myP,myDiff),row.names=mygenes)
+  toRet=toRet[order(toRet$myP),]
+  return(toRet)
+}
+
 bimod.diffExp.test=function(data1,data2,mygenes) {
   myP=unlist(lapply(mygenes,function(x)diffLRT(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   myP[is.na(myP)]=1

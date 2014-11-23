@@ -1,4 +1,4 @@
-#install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape"))
+#install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape","VGAM))
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -9,7 +9,7 @@ seurat <- setClass("seurat", slots =
                        project.name="character",project.dir="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", pc.x.full="data.frame",
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.mu="data.frame",mix.sigma="data.frame",mu.alpha="data.frame",mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
-                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame",ica.obj="list",cell.names="vector"))
+                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame",ica.obj="list",cell.names="vector",cluster.tree="list"))
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
@@ -44,6 +44,42 @@ setMethod("find_all_markers","seurat",
           }
 )
 
+setGeneric("buildClusterTree", function(object, genes.use=NULL,...) standardGeneric("buildClusterTree"))
+setMethod("buildClusterTree","seurat",
+          function(object,genes.use=NULL,...) {
+            genes.use=set.ifnull(genes.use,object@var.genes)
+            stat.names=as.character(unique(object@data.stat))
+            data.avg=average.expression(object)
+            genes.use=ainb(genes.use,rownames(data.avg))
+            data.dist=dist(t(data.avg[genes.use,]))
+            data.tree=as.phylo(hclust(data.dist))
+            object@cluster.tree[[1]]=data.tree
+            plot(data.tree,direction="downwards")
+            return(object)
+          }
+)
+
+setGeneric("reorder.by.tree", function(object, genes.use=NULL,do.numeric=FALSE,...) standardGeneric("reorder.by.tree"))
+setMethod("reorder.by.tree","seurat",
+          function(object,genes.use=NULL,do.numeric=FALSE...) {
+            old.stat.order=sort(unique(object@data.stat))
+            data.tree=object@cluster.tree[[1]]
+            all.desc=getDescendants(data.tree,data.tree$Nnode+2); all.desc=old.stat.order[all.desc[all.desc<=(data.tree$Nnode+1)]]
+            if (!(do.numeric)) {
+             object@data.stat=factor(object@data.stat,levels = all.desc,ordered = TRUE) 
+             return(object)
+            }
+            
+            #otherwise we reorder with numberic 
+            #new.stat=order(all.desc)[old.stat]
+            #p14.nr@data.stat[names(p14.nr@data.stat)]=new.stat
+            #v3avg@data=v3avg@data[,rank(all.desc)]
+            #data.dist=dist(t(v3avg@data[genes.use,]))
+            #data.tree=as.phylo(hclust(data.dist))
+            
+            return(object)
+          }
+)
 
 setGeneric("plotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("plotNoiseModel"))
 setMethod("plotNoiseModel","seurat",
@@ -70,7 +106,7 @@ setMethod("setup","seurat",
             genes.use=names(num.cells[which(num.cells>min.cells)])
             object@data=object@data[genes.use,]
             
-            object@data.stat=unlist(lapply(colnames(object@data),object@stat.fxn))
+            object@data.stat=factor(unlist(lapply(colnames(object@data),object@stat.fxn)))
             names(object@data.stat)=colnames(object@data)
             object@cell.names=names(object@data.stat)
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
@@ -293,15 +329,14 @@ setGeneric("average.expression", function(object,by.k=FALSE) standardGeneric("av
 setMethod("average.expression", "seurat", 
           function(object,by.k=FALSE) {
             stat.use=object@data.stat
-            if (by.k) stat.use=retreiveCluster(object)
             data.all=data.frame(row.names = rownames(object@data))
-            for(i in sort(unique(stat.use))) {
-              temp.cells=names(which(stat.use==i))
+            for(i in levels(stat.use)) {
+              temp.cells=which.cells(object,i)
               data.temp=apply(object@data[,temp.cells],1,expMean)
               data.all=cbind(data.all,data.temp)
               colnames(data.all)[ncol(data.all)]=i
             }
-            colnames(data.all)=sort(unique(stat.use))
+            colnames(data.all)=levels(stat.use)
             return(data.all)
           }
 )
@@ -439,6 +474,9 @@ setMethod("find.markers", "seurat",
             }
             if (test.use=="bimod") to.return=diffExp.test(object,cells.1,cells.2,genes.use,thresh.use) 
             if (test.use=="roc") to.return=marker.test(object,cells.1,cells.2,genes.use,thresh.use) 
+            if (test.use=="t") to.return=diff.t.test(object,cells.1,cells.2,genes.use,thresh.use) 
+            if (test.use=="tobit") to.return=tobit.test(object,cells.1,cells.2,genes.use,thresh.use) 
+            
             return(to.return)
           } 
 )
@@ -453,7 +491,22 @@ setMethod("diffExp.test", "seurat",
             genes.diff = names(which(total.diff>thresh.use))
             #print(genes.diff)
             to.return=bimod.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff)
-            to.return=to.return[order(to.return$myP,-to.return$myDiff),]
+            to.return=to.return[order(to.return$myP,-abs(to.return$myDiff)),]
+            return(to.return)
+          } 
+)
+
+setGeneric("tobit.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("tobit.test"))
+setMethod("tobit.test", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+            genes.use=set.ifnull(genes.use,object@var.genes)
+            data.1=apply(object@data[genes.use,cells.1],1,expMean)
+            data.2=apply(object@data[genes.use,cells.2],1,expMean)
+            total.diff=abs(data.1-data.2)
+            genes.diff = names(which(total.diff>thresh.use))
+            #print(genes.diff)
+            to.return=tobit.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff)
+            to.return=to.return[order(to.return$myP,-abs(to.return$myDiff)),]
             return(to.return)
           } 
 )
@@ -492,6 +545,24 @@ setMethod("marker.test", "seurat",
           } 
 )
 
+setGeneric("diff.t.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diff.t.test"))
+setMethod("diff.t.test", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+            genes.use=set.ifnull(genes.use,object@var.genes)
+            data.use=object@data
+            data.1=apply(object@data[genes.use,cells.1],1,expMean)
+            data.2=apply(object@data[genes.use,cells.2],1,expMean)
+            total.diff=abs(data.1-data.2)
+            genes.diff = names(which(total.diff>thresh.use))
+            genes.use=ainb(genes.diff,rownames(data.use))
+            myP=unlist(lapply(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
+            myDiff=total.diff[genes.use]
+            to.return=data.frame(myP,myDiff,row.names = genes.use)
+            to.return=to.return[with(to.return, order(myP, -abs(myDiff))), ]
+            return(to.return)
+          } 
+)
+
 setGeneric("retreiveScore", function(object, score.name) standardGeneric("retreiveScore"))
 setMethod("retreiveScore", "seurat",
           function(object, score.name) {
@@ -520,7 +591,9 @@ setMethod("set.all.stat", "seurat",
           function(object, id=NULL) {
             id=set.ifnull(id,"stat")
             if (id %in% colnames(object@data.info)) {
-              object@data.stat[rownames(object@data.info)]=object@data.info[,id]
+              cells.use=rownames(object@data.info)
+              stat.use=object@data.info[,id]
+              object=set.stat(object,cells.use,stat.use)
             }
             return(object)
           } 
@@ -529,10 +602,13 @@ setMethod("set.all.stat", "seurat",
 setGeneric("set.stat", function(object,cells.use=NULL,stat.use=NULL) standardGeneric("set.stat"))
 setMethod("set.stat", "seurat",
           function(object, cells.use=NULL,stat.use=NULL) {
-            id=set.ifnull(id,"stat")
-            if (id %in% colnames(object@data.info)) {
-              object@data.stat[rownames(object@data.info)]=object@data.info[,id]
+            if (length(anotinb(cells.use,object@cell.names)>0)) {
+              print(paste("ERROR : Cannot find cells ",anotinb(cells.use,object@cell.names)))
             }
+            stat.new=anotinb(stat.use,levels(object@data.stat))
+            object@data.stat=factor(object@data.stat,levels = unique(c(object@data.stat,stat.new)))
+            object@data.stat[cells.use]=stat.use
+            object@data.stat=drop.levels(object@data.stat)
             return(object)
           } 
 )
@@ -1054,7 +1130,7 @@ setMethod("Mclust_dimension", "seurat",
             data.names=names(object@data.stat)
             object@data.info[data.names,"m"]=to.set
             if (set.stat) {
-              object@data.stat=to.set; names(object@data.stat)=data.names              
+              object@data.stat=factor(to.set); names(object@data.stat)=data.names;               
             }
             
             return(object)
