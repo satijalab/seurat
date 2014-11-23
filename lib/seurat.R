@@ -448,11 +448,15 @@ setMethod("regulatorScore", "seurat",
           }
 )
 
-setGeneric("find.markers.node", function(object,tree,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") standardGeneric("find.markers.node"))
+setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") standardGeneric("find.markers.node"))
 setMethod("find.markers.node", "seurat",
-          function(object,tree,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") {
-            nodes.1=getLeftDecendants(tree,node)
-            nodes.2=getRightDecendants(tree,node)
+          function(object,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") {
+            tree=object@cluster.tree[[1]]
+            stat.order=sort(unique(object@data.stat))
+            nodes.1=stat.order[getLeftDecendants(tree,node)]
+            nodes.2=stat.order[getRightDecendants(tree,node)]
+            print(nodes.1)
+            print(nodes.2)
             to.return=find.markers(object,nodes.1,nodes.2,genes.use,thresh.use,by.k,test.use)
             return(to.return)
           } 
@@ -606,7 +610,7 @@ setMethod("set.stat", "seurat",
               print(paste("ERROR : Cannot find cells ",anotinb(cells.use,object@cell.names)))
             }
             stat.new=anotinb(stat.use,levels(object@data.stat))
-            object@data.stat=factor(object@data.stat,levels = unique(c(object@data.stat,stat.new)))
+            object@data.stat=factor(object@data.stat,levels = unique(c(as.character(object@data.stat),stat.new)))
             object@data.stat[cells.use]=stat.use
             object@data.stat=drop.levels(object@data.stat)
             return(object)
