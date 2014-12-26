@@ -1,22 +1,3 @@
-require(ROCR)
-require(ggplot2)
-require(Hmisc)
-require(reshape)
-require(gplots)
-require(stringr)
-require(NMF)
-require(mixtools)
-require(lars)
-require(XLConnect)
-require(reshape2)
-require(vioplot)
-require(fastICA)
-require(tsne)
-require(fpc)
-require(Rtsne)
-require(ape)
-require(VGAM)
-
 nmf.options(grid.patch=TRUE)
 nogrid=theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
@@ -704,6 +685,8 @@ myPalette=
     }
     rgb(r, g, b)
   }
+
+bwCols=myPalette(low = "white",high="black",k = 50)
 
 
 comparePCA = function(a, b) {

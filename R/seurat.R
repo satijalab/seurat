@@ -1,5 +1,26 @@
 #install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape","VGAM","gdata","knitr","useful"))
 
+require(ROCR)
+require(ggplot2)
+require(Hmisc)
+require(reshape)
+require(gplots)
+require(stringr)
+require(NMF)
+require(mixtools)
+require(lars)
+require(XLConnect)
+require(reshape2)
+require(vioplot)
+require(fastICA)
+require(tsne)
+require(fpc)
+require(Rtsne)
+require(ape)
+require(VGAM)
+require(gdata)
+require(useful)
+
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
                        stat.fxn="function",data.stat="vector",data.ngene="vector",pca.x="data.frame",pca.rot="data.frame",
@@ -148,14 +169,6 @@ setMethod("reorder.by.tree","seurat",
             }
             return(object)
             
-            #otherwise we reorder with numberic 
-            #new.stat=order(all.desc)[old.stat]
-            #p14.nr@data.stat[names(p14.nr@data.stat)]=new.stat
-            #v3avg@data=v3avg@data[,rank(all.desc)]
-            #data.dist=dist(t(v3avg@data[genes.use,]))
-            #data.tree=as.phylo(hclust(data.dist))
-            
-            return(object)
           }
 )
 
@@ -172,6 +185,7 @@ setMethod("plotNoiseModel","seurat",
           }
 )
 
+#needs mod and Rd
 setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,calc.noise=FALSE,meta.data=NULL,...) standardGeneric("setup"))
 setMethod("setup","seurat",
           function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,calc.noise=TRUE,meta.data=NULL,...) {
@@ -210,6 +224,7 @@ setMethod("setup","seurat",
           }         
 )
 
+#needs mod and RD
 setGeneric("subsetData",  function(object, subset.name=NULL, cells.use=NULL,accept.low=0, accept.high=Inf,do.center=TRUE,do.scale=TRUE) standardGeneric("subsetData"))
 setMethod("subsetData","seurat",
           function(object, subset.name=NULL, cells.use=NULL,accept.low=0, accept.high=Inf,do.center=TRUE,do.scale=TRUE) {
@@ -243,6 +258,7 @@ setMethod("subsetData","seurat",
           }         
 )
 
+#needs mod and RD, probably remove
 setGeneric("loadMetrics", function(object, metrics.file=NULL, col.names=NULL,sep.use="\t",row.add="_rsem",...) standardGeneric("loadMetrics"))
 setMethod("loadMetrics","seurat",
           function(object, metrics.file=NULL, col.names=NULL,sep.use="\t",row.add="_rsem",...) {
@@ -256,9 +272,9 @@ setMethod("loadMetrics","seurat",
           }
 )
 
-setGeneric("project.pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=20,genes.print=30,replace.pc=FALSE) standardGeneric("project.pca"))
+setGeneric("project.pca", function(object,do.print=TRUE,pcs.print=5,pcs.store=20,genes.print=30,replace.pc=FALSE) standardGeneric("project.pca"))
 setMethod("project.pca", "seurat", 
-          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=20,genes.print=30,replace.pc=FALSE) {
+          function(object,do.print=TRUE,pcs.print=5,pcs.store=20,genes.print=30,replace.pc=FALSE) {
             object@pca.x.full=data.frame(as.matrix(object@scale.data)%*%as.matrix(object@pca.rot))
             if (ncol(object@jackStraw.fakePC)>0) {
               object@jackStraw.empP.full=data.frame(sapply(1:ncol(object@jackStraw.fakePC),function(x)unlist(lapply(abs(object@pca.x.full[,x]),empP,abs(object@jackStraw.fakePC[,x])))))
@@ -289,9 +305,9 @@ setMethod("project.pca", "seurat",
           }
 )
 
-setGeneric("run_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,by.k=FALSE,col.use=NULL,k.seed=1,do.fast=FALSE,...) standardGeneric("run_tsne"))
+setGeneric("run_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,do.fast=FALSE,...) standardGeneric("run_tsne"))
 setMethod("run_tsne", "seurat", 
-          function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,by.k=FALSE,col.use=NULL,k.seed=1,do.fast=FALSE,...) {
+          function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,do.fast=FALSE,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             data.use=object@pca.rot[cells.use,pcs.use]
             #data.dist=as.dist(mahalanobis.dist(data.use))
@@ -310,16 +326,16 @@ setMethod("run_tsne", "seurat",
           }
 )
 
-setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=10,genes.print=30,use.imputed=FALSE) standardGeneric("ica"))
+setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=10,genes.print=30,use.imputed=FALSE,...) standardGeneric("ica"))
 setMethod("ica", "seurat", 
-          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=10,genes.print=30,use.imputed=FALSE) {
+          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=10,genes.print=30,use.imputed=FALSE,...) {
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
             ic.genes = ic.genes[ic.genes%in%rownames(data.use)]
             ic.genes.var = apply(data.use[ic.genes,],1,var)
             ic.data = data.use[ic.genes[ic.genes.var>0],]
-            ica.obj = (fastICA(t(ic.data),n.comp=ics.store))
+            ica.obj = fastICA(t(ic.data),n.comp=ics.store,...)
             object@ica.obj=list(ica.obj)
             ics.store=min(ics.store,ncol(ic.data))
             ics.print=min(ics.print,ncol(ic.data))
@@ -347,16 +363,16 @@ setMethod("ica", "seurat",
           }
 )
 
-setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE) standardGeneric("pca"))
+setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) standardGeneric("pca"))
 setMethod("pca", "seurat", 
-          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE) {
+          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) {
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             pc.genes=set.ifnull(pc.genes,object@var.genes)
             pc.genes = pc.genes[pc.genes%in%rownames(data.use)]
             pc.genes.var = apply(data.use[pc.genes,],1,var)
             pc.data = data.use[pc.genes[pc.genes.var>0],]
-            pca.obj = (prcomp(pc.data))
+            pca.obj = prcomp(pc.data,...)
             object@pca.obj=list(pca.obj)
             
               
@@ -389,9 +405,9 @@ setMethod("pca", "seurat",
           }
 )
 
-setGeneric("cluster.alpha", function(object,by.k=FALSE,thresh.min=0) standardGeneric("cluster.alpha"))
+setGeneric("cluster.alpha", function(object,thresh.min=0) standardGeneric("cluster.alpha"))
 setMethod("cluster.alpha", "seurat", 
-          function(object,by.k=FALSE,thresh.min=0) {
+          function(object,thresh.min=0) {
             stat.use=object@data.stat
             if (by.k) stat.use=retreiveCluster(object)
             data.all=data.frame(row.names = rownames(object@data))
@@ -406,9 +422,9 @@ setMethod("cluster.alpha", "seurat",
           }
 )
 
-setGeneric("average.pca", function(object,by.k=FALSE) standardGeneric("average.pca"))
+setGeneric("average.pca", function(object) standardGeneric("average.pca"))
 setMethod("average.pca", "seurat", 
-          function(object,by.k=FALSE) {
+          function(object) {
             stat.use=object@data.stat
             data.all=data.frame(row.names = colnames(object@pca.rot))
             for(i in levels(stat.use)) {
@@ -423,9 +439,9 @@ setMethod("average.pca", "seurat",
           }
 )
 
-setGeneric("average.expression", function(object,by.k=FALSE,genes.use=NULL) standardGeneric("average.expression"))
+setGeneric("average.expression", function(object,genes.use=NULL) standardGeneric("average.expression"))
 setMethod("average.expression", "seurat", 
-          function(object,by.k=FALSE,genes.use=NULL) {
+          function(object,genes.use=NULL) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             genes.use=ainb(genes.use,rownames(object@data))
             stat.use=object@data.stat
@@ -497,24 +513,24 @@ setMethod("fetch.data","seurat",
 )
 
 
-setGeneric("viz.pca", function(object,pcs.print=1:5,genes.print=15,use.full=FALSE,font.size=0.5,nCol=NULL) standardGeneric("viz.pca"))
+setGeneric("viz.pca", function(object,pcs.use=1:5,num.genes=15,use.full=FALSE,font.size=0.5,nCol=NULL) standardGeneric("viz.pca"))
 setMethod("viz.pca", "seurat", 
-          function(object,pcs.print=1:5,genes.print=15,use.full=FALSE,font.size=0.5,nCol=NULL) {
+          function(object,pcs.use=1:5,num.genes=15,use.full=FALSE,font.size=0.5,nCol=NULL) {
             pc_scores=object@pca.x
             if (use.full==TRUE) pc_scores = object@pca.x.full
             
             if (is.null(nCol)) {
               nCol=2
-              if (length(pcs.print)>6) nCol=3
-              if (length(pcs.print)>9) nCol=4
+              if (length(pcs.use)>6) nCol=3
+              if (length(pcs.use)>9) nCol=4
             }         
-            num.row=floor(length(pcs.print)/nCol-1e-5)+1
+            num.row=floor(length(pcs.use)/nCol-1e-5)+1
             par(mfrow=c(num.row,nCol))
             
-            for(i in pcs.print) {
+            for(i in pcs.use) {
               code=paste("PC",i,sep="")
               sx=pc_scores[order(pc_scores[,code]),]
-              subset.use=sx[c(1:genes.print,(nrow(sx)-genes.print):nrow(sx)),]
+              subset.use=sx[c(1:num.genes,(nrow(sx)-num.genes):nrow(sx)),]
               plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
               axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)   
             }
@@ -862,8 +878,6 @@ setMethod("initial.mapping", "seurat",
             return(object)
           } 
 )
-
-bwCols=myPalette(low = "white",high="black",k = 50)
 
 setGeneric("calc.insitu", function(object,gene,do.plot=TRUE,do.write=FALSE,write.dir="~/window/insitu/",col.use=bwCols,do.norm=FALSE,cells.use=NULL,do.return=FALSE,probs.min=0,do.log=FALSE, use.imputed=FALSE, bleach.use=0) standardGeneric("calc.insitu"))
 setMethod("calc.insitu", "seurat",
