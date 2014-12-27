@@ -477,10 +477,9 @@ setMethod("print.pca", "seurat",
           }
 )
 
-setGeneric("fetch.data",  function(object, vars.all=NULL,genes.use=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE, return.numeric=TRUE) standardGeneric("fetch.data"))
+setGeneric("fetch.data",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) standardGeneric("fetch.data"))
 setMethod("fetch.data","seurat",
-          function(object, vars.all=NULL,genes.use=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE, return.numeric=TRUE) {
-            genes.use=set.ifnull(genes.use,rownames(object@data))
+          function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.return=data.frame(row.names = cells.use)
             data.expression=object@data; if (use.imputed) data.expression=object@imputed; if (use.scaled) data.expression=object@scale.data
@@ -511,6 +510,7 @@ setMethod("fetch.data","seurat",
             return(data.return)
           }
 )
+
 
 
 setGeneric("viz.pca", function(object,pcs.use=1:5,num.genes=15,use.full=FALSE,font.size=0.5,nCol=NULL) standardGeneric("viz.pca"))
@@ -614,12 +614,11 @@ setMethod("find.markers.node", "seurat",
           } 
 )
 
-setGeneric("find.markers", function(object, stat.1,stat.2=NULL,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") standardGeneric("find.markers"))
+setGeneric("find.markers", function(object, stat.1,stat.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers"))
 setMethod("find.markers", "seurat",
-          function(object, stat.1,stat.2=NULL,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") {
+          function(object, stat.1,stat.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod") {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             stat.use=object@data.stat
-            if (by.k) stat.use=retreiveCluster(object)
             cells.1=names(stat.use[which(stat.use%in%stat.1)])
             if (is.null(stat.2)) {
               cells.2=names(stat.use)
