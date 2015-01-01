@@ -89,7 +89,7 @@ Objects can be created by calls of the form \code{seurat(...)}.
     \item{\code{var.genes}:}{Object of class \code{"vector"} ~~ }
     \item{\code{is.expr}:}{Object of class \code{"numeric"} ~~ }
     \item{\code{stat.fxn}:}{Object of class \code{"function"} ~~ }
-    \item{\code{data.stat}:}{Object of class \code{"vector"} ~~ }
+    \item{\code{ident}:}{Object of class \code{"vector"} ~~ }
     \item{\code{data.ngene}:}{Object of class \code{"vector"} ~~ }
     \item{\code{pca.x}:}{Object of class \code{"data.frame"} ~~ }
     \item{\code{pca.rot}:}{Object of class \code{"data.frame"} ~~ }

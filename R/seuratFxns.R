@@ -2,10 +2,10 @@ nmf.options(grid.patch=TRUE)
 nogrid=theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
 tsplot=function(object,x=1,cex.use=0.6) {
-  cols.use=rainbow(length(levels(object@data.stat))); cols.use[x]="lightgrey"
-  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@data.stat)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
-  k.centers=t(sapply(levels(object@data.stat),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
-  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@data.stat),cex=1)
+  cols.use=rainbow(length(levels(object@ident))); cols.use[x]="lightgrey"
+  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
+  k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
+  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
 }
 
 getLeftDecendants=function(tree,node) {

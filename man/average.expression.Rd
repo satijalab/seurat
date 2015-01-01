@@ -42,5 +42,6 @@ Returns a matrix with genes as rows, identity classes as columns.
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
+}
 \keyword{ ~kwd1 }
 \keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

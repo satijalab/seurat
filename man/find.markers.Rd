@@ -8,17 +8,17 @@ Gene expression markers of identity classes
 Finds markers (differentially expressed genes) for identity classes
 }
 \usage{
-find.markers(object, stat.1, stat.2 = NULL, genes.use = NULL, thresh.use = log(2), test.use = "bimod")
+find.markers(object, ident.1, ident.2 = NULL, genes.use = NULL, thresh.use = log(2), test.use = "bimod")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
 Seurat object
 }
-  \item{stat.1}{
+  \item{ident.1}{
 Identity class to define markers for
 }
-  \item{stat.2}{
+  \item{ident.2}{
 A second identity class for comparison. If NULL (default) - use all other cells for comparison.
 }
   \item{genes.use}{
@@ -36,7 +36,7 @@ Denotes which test to use. Seurat currently implements "bimod" (likelihood-ratio
 \details{
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
+Matrix containing a ranked list of putative markers, and associated identistics (p-values, ROC score, etc.)
 }
 \references{
 %% ~put references to the literature/web site here ~

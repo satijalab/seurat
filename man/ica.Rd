@@ -33,8 +33,8 @@ Number of genes to print for each IC
   \item{use.imputed}{
 Run ICA on imputed values (FALSE by default)
 }
-  \item{\dots} {
-Additional arguments to be passed to fastICA  
+  \item{\dots}{
+  Additional arguments to be passed to fastICA  
 }
 }
 \details{
