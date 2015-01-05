@@ -1,6 +1,10 @@
 nmf.options(grid.patch=TRUE)
 nogrid=theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
 
+sort.column=function(x, col) {
+  return(x[order(x[,col]),])
+}
+
 tsplot=function(object,x=1,cex.use=0.6) {
   cols.use=rainbow(length(levels(object@ident))); cols.use[x]="lightgrey"
   plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)

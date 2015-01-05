@@ -33,7 +33,7 @@ Number of genes to print for each PC
   \item{use.imputed}{
 Run PCA on imputed values (FALSE by default)
 }
-  \item{\dots} {
+\item{\dots}{
 Additional arguments to be passed to prcomp
 }
 }

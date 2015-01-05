@@ -409,10 +409,9 @@ setGeneric("cluster.alpha", function(object,thresh.min=0) standardGeneric("clust
 setMethod("cluster.alpha", "seurat", 
           function(object,thresh.min=0) {
             ident.use=object@ident
-            if (by.k) ident.use=retreiveCluster(object)
             data.all=data.frame(row.names = rownames(object@data))
             for(i in sort(unique(ident.use))) {
-              temp.cells=names(which(ident.use==i))
+              temp.cells=which.cells(object,i)
               data.temp=apply(object@data[,temp.cells],1,function(x)return(length(x[x>thresh.min])/length(x)))
               data.all=cbind(data.all,data.temp)
               colnames(data.all)[ncol(data.all)]=i
@@ -1111,10 +1110,10 @@ setMethod("feature.plot", "seurat",
             dim.code="PC"
             if (is.null(nCol)) {
               nCol=2
-              if (length(genes.plot)>6) nCol=3
-              if (length(genes.plot)>9) nCol=4
+              if (length(features.plot)>6) nCol=3
+              if (length(features.plot)>9) nCol=4
             }         
-            num.row=floor(length(genes.plot)/nCol-1e-5)+1
+            num.row=floor(length(features.plot)/nCol-1e-5)+1
             par(mfrow=c(num.row,nCol))
             if (reduction.use=="pca") {
               data.plot=object@pca.rot[cells.use,]
@@ -1146,9 +1145,9 @@ setMethod("feature.plot", "seurat",
 )
 
 
-setGeneric("feature.heatmap", function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=2,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",margin.dist=5,font.size=0.7) standardGeneric("feature.heatmap"))
+setGeneric("feature.heatmap", function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=2,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne") standardGeneric("feature.heatmap"))
 setMethod("feature.heatmap", "seurat", 
-          function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",margin.dist=5,font.size=0.7) {
+          function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne") {
             idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
             dim.code="PC"
             par(mfrow=c(length(features.plot),length(idents.use)))
@@ -1566,8 +1565,9 @@ setMethod("dot.plot","seurat",
             data.avg=unlist(lapply(1:length(data.y),function(x) exp.scale[data.x[x],data.y[x]]))
             exp.col=cols.use[floor(n.col*(data.avg+thresh.col)/(2*thresh.col)+.5)]
             data.cex=unlist(lapply(1:length(data.y),function(x) avg.alpha[data.x[x],data.y[x]]))*cex.use+dot.min
-            plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="Cluster")
+            plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="",yaxt="n")
             axis(1,at = 1:length(genes.plot),genes.plot)
+            axis(2,at=1:ncol(avg.alpha),colnames(avg.alpha),las=1)
           }
           
 ) 
