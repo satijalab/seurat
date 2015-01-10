@@ -305,9 +305,9 @@ setMethod("project.pca", "seurat",
           }
 )
 
-setGeneric("run_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,do.fast=FALSE,...) standardGeneric("run_tsne"))
+setGeneric("run_tsne", function(object,cells.use=NULL,pcs.use=1:10,k.seed=1,do.fast=FALSE,add.iter=0,...) standardGeneric("run_tsne"))
 setMethod("run_tsne", "seurat", 
-          function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,do.fast=FALSE,...) {
+          function(object,cells.use=NULL,pcs.use=1:10,k.seed=1,do.fast=FALSE,add.iter=0,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             data.use=object@pca.rot[cells.use,pcs.use]
             #data.dist=as.dist(mahalanobis.dist(data.use))
@@ -318,6 +318,7 @@ setMethod("run_tsne", "seurat",
             if (!(do.fast)) {
               set.seed(k.seed); data.tsne=data.frame(tsne(data.use,...))
             }
+            if (add.iter > 0)
             print(head(data.tsne))
             colnames(data.tsne)=paste("Seurat_",1:ncol(data.tsne),sep="")
             rownames(data.tsne)=cells.use
@@ -325,6 +326,23 @@ setMethod("run_tsne", "seurat",
             return(object)
           }
 )
+
+
+setGeneric("add_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,add.iter=1000,...) standardGeneric("add_tsne"))
+setMethod("add_tsne", "seurat", 
+          function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,add.iter=1000,...) {
+            cells.use=set.ifnull(cells.use,colnames(object@data))
+            data.use=object@pca.rot[cells.use,pcs.use]
+            #data.dist=as.dist(mahalanobis.dist(data.use))
+            set.seed(k.seed); data.tsne=data.frame(tsne(data.use,initial_config = as.matrix(object@tsne.rot[cells.use,]),max_iter = add.iter,...))
+            print(head(data.tsne))
+            colnames(data.tsne)=paste("Seurat_",1:ncol(data.tsne),sep="")
+            rownames(data.tsne)=cells.use
+            object@tsne.rot=data.tsne
+            return(object)
+          }
+)
+
 
 setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=10,genes.print=30,use.imputed=FALSE,...) standardGeneric("ica"))
 setMethod("ica", "seurat", 
