@@ -36,9 +36,9 @@ calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
 
-setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
+setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
 setMethod("find_all_markers_node","seurat",
-          function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) {
+          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
             ident.use=object@ident
             tree.use=object@cluster.tree[[1]]
             
@@ -67,12 +67,11 @@ setMethod("find_all_markers_node","seurat",
 )
 
 
-setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
 setMethod("find_all_markers","seurat",
-          function(object, thresh.test=1,test.use="bimod",by.k=FALSE,return.thresh=1e-2,do.print=FALSE) {
+          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
-            if (by.k) ident.use=as.factor(retreiveCluster(object))
             idents.all=sort(unique(object@ident))
             genes.de=list()
             for(i in 1:length(idents.all)) {
@@ -140,6 +139,7 @@ setMethod("buildClusterTree","seurat",
               object@ident=factor(object@ident,levels = all.desc,ordered = TRUE) 
               if (reorder.numeric) {
                 object=set.ident(object,object@cell.names,as.integer(object@ident))
+                object@data.info[object@cell.names,"tree"]=as.integer(object@ident)
               }
               object=buildClusterTree(object,genes.use,pcs.use,do.plot=FALSE,do.reorder=FALSE)
             }
@@ -212,7 +212,7 @@ setMethod("setup","seurat",
             object@mix.probs=data.frame(object@data.ngene); colnames(object@mix.probs)[1]="nGene"
             rownames(object@gene.scores)=colnames(object@data)
             
-            object@data.info[names(object@ident),"ident"]=object@ident
+            object@data.info[names(object@ident),"orig"]=object@ident
             
             object@project.name=project
             object@project.dir=set.ifnull(proj.dir,paste("~/big/",project,"/",sep=""))
@@ -318,8 +318,9 @@ setMethod("run_tsne", "seurat",
             if (!(do.fast)) {
               set.seed(k.seed); data.tsne=data.frame(tsne(data.use,...))
             }
-            if (add.iter > 0)
-            print(head(data.tsne))
+            if (add.iter > 0) {
+              data.tsne=data.frame(tsne(data.use,initial_config = as.matrix(data.tsne),max_iter = add.iter,...))
+            }
             colnames(data.tsne)=paste("Seurat_",1:ncol(data.tsne),sep="")
             rownames(data.tsne)=cells.use
             object@tsne.rot=data.tsne
@@ -335,7 +336,6 @@ setMethod("add_tsne", "seurat",
             data.use=object@pca.rot[cells.use,pcs.use]
             #data.dist=as.dist(mahalanobis.dist(data.use))
             set.seed(k.seed); data.tsne=data.frame(tsne(data.use,initial_config = as.matrix(object@tsne.rot[cells.use,]),max_iter = add.iter,...))
-            print(head(data.tsne))
             colnames(data.tsne)=paste("Seurat_",1:ncol(data.tsne),sep="")
             rownames(data.tsne)=cells.use
             object@tsne.rot=data.tsne
@@ -513,7 +513,7 @@ setMethod("fetch.data","seurat",
                     break;
                   }
                 }
-              }
+              }              
               if (nrow(data.use)==0) {
                 print(paste("Error : ", my.var, " not found", sep=""))
                 return(0);
@@ -617,16 +617,17 @@ setMethod("regulatorScore", "seurat",
           }
 )
 
-setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") standardGeneric("find.markers.node"))
+setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers.node"))
 setMethod("find.markers.node", "seurat",
-          function(object,node,genes.use=NULL,thresh.use=log(2),by.k=FALSE,test.use="bimod") {
+          function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") {
+            genes.use=set.ifnull(genes.use,rownames(object@data))
             tree=object@cluster.tree[[1]]
             ident.order=tree$tip.label
             nodes.1=ident.order[getLeftDecendants(tree,node)]
             nodes.2=ident.order[getRightDecendants(tree,node)]
             #print(nodes.1)
             #print(nodes.2)
-            to.return=find.markers(object,nodes.1,nodes.2,genes.use,thresh.use,by.k,test.use)
+            to.return=find.markers(object,nodes.1,nodes.2,genes.use,thresh.use,test.use)
             return(to.return)
           } 
 )
@@ -729,7 +730,7 @@ setMethod("diff.t.test", "seurat",
             genes.diff = names(which(total.diff>thresh.use))
             genes.use=ainb(genes.diff,rownames(data.use))
             myP=unlist(lapply(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
-            myDiff=total.diff[genes.use]
+            myDiff=(data.1-data.2)[genes.use]
             to.return=data.frame(myP,myDiff,row.names = genes.use)
             to.return=to.return[with(to.return, order(myP, -abs(myDiff))), ]
             return(to.return)
@@ -764,7 +765,7 @@ setMethod("which.cells", "seurat",
 setGeneric("set.all.ident", function(object,id=NULL) standardGeneric("set.all.ident"))
 setMethod("set.all.ident", "seurat",
           function(object, id=NULL) {
-            id=set.ifnull(id,"ident")
+            id=set.ifnull(id,"orig")
             if (id %in% colnames(object@data.info)) {
               cells.use=rownames(object@data.info)
               ident.use=object@data.info[,id]
@@ -1163,9 +1164,9 @@ setMethod("feature.plot", "seurat",
 )
 
 
-setGeneric("feature.heatmap", function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=2,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne") standardGeneric("feature.heatmap"))
+setGeneric("feature.heatmap", function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") standardGeneric("feature.heatmap"))
 setMethod("feature.heatmap", "seurat", 
-          function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne") {
+          function(object,features.plot,pc.1=1,pc.2=2,idents.use=NULL,pt.size=1,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") {
             idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
             dim.code="PC"
             par(mfrow=c(length(features.plot),length(idents.use)))
@@ -1194,7 +1195,7 @@ setMethod("feature.heatmap", "seurat",
             data.reshape=melt(data.plot.all,id = colnames(data.plot))
             data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
             p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
-            p=p + facet_grid(variable~ident)
+            p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
             p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
             print(p2)
           }
