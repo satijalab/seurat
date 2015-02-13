@@ -5,7 +5,7 @@ Description: Seurat, a toolkit for single cell analysis
 Title: Seurat : Machine learning for single cell analysis
 Author: Rahul Satija, with contributions from Jeff Farrell and Evan Macosko
 Maintainer: Rahul Satija <rsatija@nygenome.org>
-Depends: R (>= 3.0.0), ROCR, ggplot2, Hmisc, reshape, gplots, stringr, NMF, mixtools, lars, reshape2, vioplot, fastICA, tsne, Rtsne, fpc, ape, VGAM, gdata, knitr, useful 
+Depends: R (>= 3.0.0), ROCR, ggplot2, Hmisc, reshape, gplots, stringr, NMF, mixtools, lars, reshape2, vioplot, fastICA, tsne, Rtsne, fpc, ape, VGAM, gdata, knitr, useful, jackstraw 
 Suggests: XLConnect
 License: GPL (>= 2)
 
