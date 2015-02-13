@@ -5,13 +5,6 @@ sort.column=function(x, col) {
   return(x[order(x[,col]),])
 }
 
-tsplot=function(object,x=1,cex.use=0.6) {
-  cols.use=rainbow(length(levels(object@ident))); cols.use[x]="lightgrey"
-  plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=cex.use)
-  k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
-  points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
-}
-
 getLeftDecendants=function(tree,node) {
   daughters<-tree$edge[which(tree$edge[,1]==node),2]
   if (daughters[1] <= (tree$Nnode+1)) return(daughters[1])
@@ -548,6 +541,8 @@ plotVln=function(gene,data=dc2,code="rsem",mmax=12,getStat=getStat1,doRet=FALSE,
     print(p5)
   }
 }
+
+extract.field=function(string,field=1,delim="_") return(strsplit(string,delim)[[1]][field])
 
 getStat1=function(x)return(strsplit(x,"_")[[1]][1])
 

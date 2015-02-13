@@ -186,9 +186,9 @@ setMethod("plotNoiseModel","seurat",
 )
 
 #needs mod and Rd
-setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,calc.noise=FALSE,meta.data=NULL,...) standardGeneric("setup"))
+setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,names.field=1,names.delim="_",meta.data=NULL,...) standardGeneric("setup"))
 setMethod("setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,calc.noise=TRUE,meta.data=NULL,...) {
+          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,names.field=1,names.delim="_",meta.data=NULL,...) {
             object@is.expr = is.expr
             num.genes=findNGene(object@raw.data,object@is.expr)
             cells.use=names(num.genes[which(num.genes>min.genes)]) 
@@ -198,7 +198,7 @@ setMethod("setup","seurat",
             genes.use=names(num.cells[which(num.cells>min.cells)])
             object@data=object@data[genes.use,]
             
-            object@ident=factor(unlist(lapply(colnames(object@data),object@ident.fxn)))
+            object@ident=factor(unlist(lapply(colnames(object@data),extract.field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
@@ -216,10 +216,10 @@ setMethod("setup","seurat",
             
             object@project.name=project
             object@project.dir=set.ifnull(proj.dir,paste("~/big/",project,"/",sep=""))
-            if(calc.noise) {
-              object=calcNoiseModels(object,...)
-              object=getWeightMatrix(object)
-            }
+            #if(calc.noise) {
+            #  object=calcNoiseModels(object,...)
+            #  object=getWeightMatrix(object)
+            #}
             return(object)
           }         
 )
@@ -350,7 +350,7 @@ setMethod("ica", "seurat",
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
-            ic.genes = ic.genes[ic.genes%in%rownames(data.use)]
+            ic.genes = unique(ic.genes[ic.genes%in%rownames(data.use)])
             ic.genes.var = apply(data.use[ic.genes,],1,var)
             ic.data = data.use[ic.genes[ic.genes.var>0],]
             ica.obj = fastICA(t(ic.data),n.comp=ics.store,...)
@@ -387,7 +387,7 @@ setMethod("pca", "seurat",
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             pc.genes=set.ifnull(pc.genes,object@var.genes)
-            pc.genes = pc.genes[pc.genes%in%rownames(data.use)]
+            pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
             pc.data = data.use[pc.genes[pc.genes.var>0],]
             pca.obj = prcomp(pc.data,...)
@@ -1202,6 +1202,21 @@ setMethod("feature.heatmap", "seurat",
 )
 
 
+setGeneric("tsne.plot", function(object,do.label=FALSE,pt.size=4,...) standardGeneric("tsne.plot"))
+setMethod("tsne.plot", "seurat", 
+          function(object,do.label=FALSE,pt.size=4,...) {
+            if (do.label==TRUE) {
+              cols.use=rainbow(length(levels(object@ident))); cols.use[1]="lightgrey"
+              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=pt.size/4)
+              k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
+              points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
+            }
+            else {
+              return(pca.plot(object,pc.1 = 1,pc.2 = 2,reduction.use = "tsne",...))
+            }
+          }
+)
+
 
 setGeneric("pca.plot", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca") standardGeneric("pca.plot"))
 setMethod("pca.plot", "seurat", 
@@ -1292,6 +1307,36 @@ setMethod("Mclust_dimension", "seurat",
             return(object)
           }
 )
+
+
+setGeneric("Kclust_dimension", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",k.use=5,set.ident=FALSE,seed.use=1,...) standardGeneric("Kclust_dimension"))
+setMethod("Kclust_dimension", "seurat", 
+          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",k.use=5,set.ident=FALSE,seed.use=1,...) {
+            cells.use=set.ifnull(cells.use,colnames(object@data))
+            dim.code="PC"
+            if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
+            if (reduction.use=="tsne") {
+              data.plot=object@tsne.rot[cells.use,]
+              dim.code="Seurat_"
+            }
+            if (reduction.use=="ica") {
+              data.plot=object@ica.rot[cells.use,]
+              dim.code="IC"
+            }
+            x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
+            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
+            set.seed(seed.use); data.mclust=ds <- kmeans(data.plot[,c("x","y")], k.use)            
+            to.set=as.numeric(data.mclust$cluster)
+            data.names=names(object@ident)
+            object@data.info[data.names,"k"]=to.set
+            if (set.ident) {
+              object@ident=factor(to.set); names(object@ident)=data.names;               
+            }
+            
+            return(object)
+          }
+)
+
 
 setGeneric("pca.sig.genes", function(object,pcs.use,pval.cut=0.1,use.full=TRUE) standardGeneric("pca.sig.genes"))
 setMethod("pca.sig.genes", "seurat", 
@@ -1710,6 +1755,20 @@ setMethod("cellPlot","seurat",
             if (do.ident) {
               identify(c1,c2,labels = gene.ids)
             }
+          }
+)
+
+setGeneric("jackStraw.permutation.test", function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1)  standardGeneric("jackStraw.permutation.test"))
+setMethod("jackStraw.permutation.test","seurat",
+          function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1) {
+            genes.use=set.ifnull(genes.use,rownames(object@pca.x))
+            genes.use=ainb(genes.use,rownames(object@scale.data))
+            data.use=t(as.matrix(object@scale.data[genes.use,]))
+            if (do.print) print(paste("Running ", num.iter, " iterations",sep=""))
+            pa.object=permutationPA(data.use,B = num.iter,threshold = thresh.use,verbose = do.print,seed = k.seed)
+            if (do.print) cat("\n\n")
+            if (do.print) print(paste("JackStraw returns ", pa.object$r, " significant components", sep=""))
+            return(pa.object)
           }
 )
 

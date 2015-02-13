@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 0.5-2
-Date: 01/11/2015
+Version: 0.5-3
+Date: 02/13/2015
 Description: Seurat, a toolkit for single cell analysis
 Title: Seurat : Machine learning for single cell analysis
 Author: Rahul Satija, with contributions from Jeff Farrell and Evan Macosko
