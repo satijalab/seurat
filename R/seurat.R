@@ -1384,6 +1384,28 @@ setMethod("doHeatMap","seurat",
           }
 )
 
+
+setGeneric("pcHeatmap", function(object,cells.use=NULL,pc.use=1,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,...) standardGeneric("pcHeatmap"))
+
+setMethod("pcHeatmap","seurat",
+          function(object,cells.use=NULL,pc.use=1,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,...) {
+            cells.use=set.ifnull(cells.use,object@cell.names)
+            data.pc=object@pca.x; if (use.full) data.pc=object@pca.x.full
+            data.pc=data.pc[order(data.pc[,pc.use]),]
+            genes.1=head(rownames(data.pc),num.genes); genes.2=rev(tail(rownames(data.pc),num.genes))
+            genes.use=unique(c(genes.1,genes.2))
+            cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
+            data.use=object@scale.data[genes.use,cells.ordered]
+            data.use=minmax(data.use,min=disp.min,max=disp.max)
+            vline.use=NULL;
+            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use)
+            if (do.return) {
+              return(data.use)
+            }
+          }
+)
+
+
 setGeneric("doKMeans", function(object,pcs.use=1,pval.cut=0.1,k.num=NULL,k.seed=1,do.plot=TRUE,clust.cut=2.5,disp.cut=2.5,k.cols=pyCols,do.one=FALSE,do.k.col=FALSE,
                                 k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, cluster.zoom=0, use.full=FALSE,clust.col=TRUE,do.annot=FALSE,
                                 only.k.annot=FALSE,do.recalc=TRUE,use.imputed=FALSE,col.annot.show=NULL,genes.use=NULL,print.genes=FALSE) standardGeneric("doKMeans"))
@@ -1835,7 +1857,7 @@ setMethod("mean.var.plot", signature = "seurat",
                    pch.use=16, col.use="black", spike.col.use="red",use.imputed=FALSE,plot.both=FALSE,do.contour=TRUE,
                    contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) {
             data=object@data
-            data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y)
+            data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
             data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
             data.norm.y[is.na(data.norm.y)]=0
             names(data.norm.y)=names(data.x)
