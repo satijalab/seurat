@@ -1367,8 +1367,8 @@ setMethod("doHeatMap","seurat",
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
+            cells.ident=object@ident[cells.use]
             if (order.by.ident) {
-              cells.ident=object@ident[cells.use]
               cells.use=cells.use[order(cells.ident)]
             }
             data.use=object@scale.data[genes.use,cells.use]
