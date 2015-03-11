@@ -1392,7 +1392,7 @@ setMethod("pcHeatmap","seurat",
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.pc=object@pca.x; if (use.full) data.pc=object@pca.x.full
             data.pc=data.pc[order(data.pc[,pc.use]),]
-            genes.1=head(rownames(data.pc),num.genes); genes.2=rev(tail(rownames(data.pc),num.genes))
+            genes.1=head(rownames(data.pc),num.genes); genes.2=(tail(rownames(data.pc),num.genes))
             genes.use=unique(c(genes.1,genes.2))
             cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
             data.use=object@scale.data[genes.use,cells.ordered]
