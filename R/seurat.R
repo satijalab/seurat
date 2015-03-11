@@ -1367,8 +1367,8 @@ setMethod("doHeatMap","seurat",
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
+            cells.ident=object@ident[cells.use]
             if (order.by.ident) {
-              cells.ident=object@ident[cells.use]
               cells.use=cells.use[order(cells.ident)]
             }
             data.use=object@scale.data[genes.use,cells.use]
@@ -1398,7 +1398,7 @@ setMethod("pcHeatmap","seurat",
             data.use=object@scale.data[genes.use,cells.ordered]
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
-            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
+            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use)
             if (do.return) {
               return(data.use)
             }
