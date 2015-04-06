@@ -9,7 +9,6 @@ require(stringr)
 require(NMF)
 require(mixtools)
 require(lars)
-require(XLConnect)
 require(reshape2)
 require(vioplot)
 require(fastICA)
@@ -474,6 +473,21 @@ setMethod("average.expression", "seurat",
             return(data.all)
           }
 )
+
+setGeneric("pcTopGenes", function(object,pc.use=1,num.genes=30,use.full=FALSE) standardGeneric("pcTopGenes"))
+setMethod("pcTopGenes", "seurat", 
+          function(object,pc.use=1,num.genes=30,use.full=FALSE) {
+            pc_scores=object@pca.x
+            i=pc.use
+            if (use.full==TRUE) pc_scores = object@pca.x.full
+              code=paste("PC",i,sep="")
+              sx=pc_scores[order(pc_scores[,code]),]
+              genes.1=(rownames(sx[1:num.genes,]))
+              genes.2=rev(rownames(sx[(nrow(sx)-num.genes):nrow(sx),]))
+              return(c(genes.1,genes.2))      
+            }
+)
+
 
 setGeneric("print.pca", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("print.pca"))
 setMethod("print.pca", "seurat", 
@@ -1325,7 +1339,12 @@ setMethod("Kclust_dimension", "seurat",
             }
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            set.seed(seed.use); data.mclust=ds <- kmeans(data.plot[,c("x","y")], k.use)            
+            if (reduction.use!="pca") {
+              set.seed(seed.use); data.mclust=ds <- kmeans(data.plot[,c("x","y")], k.use)   
+            }
+            if (reduction.use=="pca") {
+              set.seed(seed.use); data.mclust=ds <- kmeans(object@pca.rot[cells.use,pc.1], k.use)   
+            }
             to.set=as.numeric(data.mclust$cluster)
             data.names=names(object@ident)
             object@data.info[data.names,"k"]=to.set
@@ -1385,10 +1404,10 @@ setMethod("doHeatMap","seurat",
 )
 
 
-setGeneric("pcHeatmap", function(object,cells.use=NULL,pc.use=1,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,...) standardGeneric("pcHeatmap"))
+setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,...) standardGeneric("pcHeatmap"))
 
 setMethod("pcHeatmap","seurat",
-          function(object,cells.use=NULL,pc.use=1,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,...) {
+          function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.pc=object@pca.x; if (use.full) data.pc=object@pca.x.full
             data.pc=data.pc[order(data.pc[,pc.use]),]
@@ -1397,6 +1416,7 @@ setMethod("pcHeatmap","seurat",
             cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
             data.use=object@scale.data[genes.use,cells.ordered]
             data.use=minmax(data.use,min=disp.min,max=disp.max)
+            if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
             vline.use=NULL;
             heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use)
             if (do.return) {
@@ -1408,12 +1428,12 @@ setMethod("pcHeatmap","seurat",
 
 setGeneric("doKMeans", function(object,pcs.use=1,pval.cut=0.1,k.num=NULL,k.seed=1,do.plot=TRUE,clust.cut=2.5,disp.cut=2.5,k.cols=pyCols,do.one=FALSE,do.k.col=FALSE,
                                 k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, cluster.zoom=0, use.full=FALSE,clust.col=TRUE,do.annot=FALSE,
-                                only.k.annot=FALSE,do.recalc=TRUE,use.imputed=FALSE,col.annot.show=NULL,genes.use=NULL,print.genes=FALSE) standardGeneric("doKMeans"))
+                                only.k.annot=FALSE,do.recalc=TRUE,use.imputed=FALSE,col.annot.show=NULL,genes.use=NULL,print.genes=FALSE,set.ident=TRUE) standardGeneric("doKMeans"))
 
 setMethod("doKMeans","seurat",
           function(object,pcs.use=1,pval.cut=0.1,k.num=NULL,k.seed=1,do.plot=TRUE,clust.cut=2.5,disp.cut=2.5,k.cols=pyCols,do.one=FALSE,do.k.col=FALSE,
                    k.col=NULL,pc.row.order=NULL,pc.col.order=NULL,rev.pc.order=FALSE, cluster.zoom=0,use.full=FALSE,clust.col=TRUE,do.annot=FALSE,
-                   only.k.annot=FALSE,do.recalc=TRUE,use.imputed=FALSE,col.annot.show=NULL,genes.use=NULL,print.genes=FALSE) {
+                   only.k.annot=FALSE,do.recalc=TRUE,use.imputed=FALSE,col.annot.show=NULL,genes.use=NULL,print.genes=FALSE,set.ident=TRUE) {
             require(gplots)
             require(NMF)
             
@@ -1454,7 +1474,9 @@ setMethod("doKMeans","seurat",
             }    
             kmeans.obj=object@kmeans.obj[[1]]
             kmeans.col=object@kmeans.col[[1]]
-            
+            if ((set.ident) && (do.k.col)) {
+              object=set.ident(object,cells.use=names(kmeans.col$cluster),ident.use = kmeans.col$cluster)
+            }
             if (do.plot) {       
               disp.data=minmax(kmeans.data[order(kmeans.obj$cluster[genes.use]),],min=disp.cut*(-1),max=disp.cut)
               if (do.one)  {
@@ -1509,13 +1531,7 @@ setMethod("genes.in.cluster", signature = "seurat",
           }    
 )
 
-setGeneric("cells.in.cluster", function(object, cluster.num)  standardGeneric("cells.in.cluster"))
-setMethod("cells.in.cluster", signature = "seurat",
-          function(object, cluster.num) {
-            #            print(sort(names(which(object@kmeans.col[[1]]$cluster==cluster.num))))
-            return(sort(unlist(lapply(cluster.num,function(x) names(which(object@kmeans.col[[1]]$cluster==x))))))
-          }    
-)
+
 
 setGeneric("cell.cor.matrix", function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols)  standardGeneric("cell.cor.matrix"))
 setMethod("cell.cor.matrix", signature = "seurat",

@@ -6,9 +6,9 @@ zf.cells.render <- function(seuratObject, cells.use, do.rotate=TRUE,label=TRUE,c
   DVBins <- 64 # 1 bin every 5.625 degrees; compatible with our current 8-bin system.
   phiPerTier <- pi/(-2*tierBins)
   thetaPerDV <- 2*pi/DVBins
-if (length(col.use)==1) col.use=rep(col.use,length(cells.use))
+  if (length(col.use)==1) col.use=rep(col.use,length(cells.use))
   # Reformat that probability into an expression matrix as expected by the plotting function
-   if (col.prob) prob.matrix <- data.frame(matrix(apply(seuratObject@final.prob[,cells.use],1,sum), nrow=8, ncol=8))
+  if (col.prob) prob.matrix <- data.frame(matrix(apply(seuratObject@final.prob[,cells.use],1,sum), nrow=8, ncol=8))
   if (!(col.prob)) prob.matrix <- data.frame(matrix(0, nrow=8, ncol=8))
   
   rownames(prob.matrix) <- c("24-30", "17-23", "13-16", "9-12", "7-8", "5-6", "3-4", "1-2")
@@ -20,12 +20,13 @@ if (length(col.use)==1) col.use=rep(col.use,length(cells.use))
   for(cell.use in cells.use) {
     #add the centroid
     anchor.centroid=exact.cell.centroid(seuratObject@final.prob[,cell.use])
-    tiers.min=c(30,24,16,12,8,6,2,1)
+    tiers.min=c(30,24,16,12,8,6,4,2,0)
     tiers.size=diff(tiers.min)
     anchor.dorsality=DVBins - ((anchor.centroid[2]-1)/7)*DVBins/2
     anchor.tier.bin=anchor.centroid[1]
     anchor.tier.bin=anchor.centroid[1]
-    anchor.tier.floor=floor(anchor.tier.bin); anchor.tier.left=anchor.tier.bin-anchor.tier.floor
+    anchor.tier.floor=floor(anchor.tier.bin);
+    anchor.tier.left=anchor.tier.bin-anchor.tier.floor
     anchor.tier=tiers.min[anchor.tier.bin]+tiers.size[anchor.tier.floor]*anchor.tier.left
     
     
@@ -33,15 +34,15 @@ if (length(col.use)==1) col.use=rep(col.use,length(cells.use))
     x1 <- cos(pi-thetaPerDV*anchor.dorsality) * sin(0.5*pi+phiPerTier*anchor.tier)
     y1 <- sin(pi-thetaPerDV*anchor.dorsality) * sin(0.5*pi+phiPerTier*anchor.tier)
     z1 <- cos(0.5*pi+phiPerTier*anchor.tier)
-    spheres3d(x=x1, y=y1, z=z1, radius=radius.use, color=col.use[i], alpha=.65, lit=FALSE); i=i+1; 
+    spheres3d(x=x1, y=y1, z=z1, radius=radius.use, color=col.use[i], alpha=.65, lit=FALSE); i=i+1;
   }
   view3d(zoom=.75, theta=0, phi=-90, fov=0)
-
+  
   # Format the plot
- if (do.new) {
-   
-      if (label) {
-     # text3d(x=0, y=0, z=1.5, text=paste(this.anchor, anchor.distance),cex=3)
+  if (do.new) {
+    
+    if (label) {
+      # text3d(x=0, y=0, z=1.5, text=paste(this.anchor, anchor.distance),cex=3)
       text3d(x=1.4, y=0, z=-0.3, cex=2.25, text="Dor")
       text3d(x=-1.4, y=0, z=-0.3, cex=2.25, text="Ven")
       text3d(x=0, y=0, z=1.2, cex=2.25, text="An")
