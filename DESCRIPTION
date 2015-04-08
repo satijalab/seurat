@@ -1,11 +1,10 @@
 Package: Seurat
-Version: 0.5-3
-Date: 02/13/2015
-Description: Seurat, a toolkit for single cell analysis
-Title: Seurat : Machine learning for single cell analysis
-Author: Rahul Satija, with contributions from Jeff Farrell and Evan Macosko
-Maintainer: Rahul Satija <rsatija@nygenome.org>
-Depends: R (>= 3.0.0), ROCR, ggplot2, Hmisc, reshape, gplots, stringr, NMF, mixtools, lars, reshape2, vioplot, fastICA, tsne, Rtsne, fpc, ape, VGAM, gdata, knitr, useful, jackstraw 
-Suggests: XLConnect
-License: GPL (>= 2)
+Version: 1.1
+Date: 04/13/2015
+Title: Seurat : R toolkit for single cell genomics
+Author: Rahul Satija
+Maintainer: Satija Lab <seuratpackage@gmail.com>
+URL: http://www.satijalab.org/seurat
+Depends: R (>= 3.1.0), ROCR, ggplot2, Hmisc, reshape, gplots, stringr, NMF, mixtools, lars, reshape2, vioplot, fastICA, tsne, Rtsne, fpc, ape, VGAM, gdata, knitr, useful, jackstraw, XLConnect, gridExtra 
+License: GPL 3.0
 
