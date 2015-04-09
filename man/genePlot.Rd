@@ -65,26 +65,4 @@ No return, only graphical output
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-structure(function (object, gene1, gene2, cell.ids = NULL, col.use = NULL, 
-    pch.use = 16, cex.use = 2, no.col = FALSE, inc.first = FALSE, 
-    use.imputed = FALSE, by.k = FALSE, do.ident = FALSE, ...) 
-standardGeneric("genePlot"), generic = structure("genePlot", package = "Seurat"), package = "Seurat", group = list(), valueClass = character(0), signature = c("object", 
-"gene1", "gene2", "cell.ids", "col.use", "pch.use", "cex.use", 
-"no.col", "inc.first", "use.imputed", "by.k", "do.ident"), default = `\001NULL\001`, skeleton = (function (object, 
-    gene1, gene2, cell.ids = NULL, col.use = NULL, pch.use = 16, 
-    cex.use = 2, no.col = FALSE, inc.first = FALSE, use.imputed = FALSE, 
-    by.k = FALSE, do.ident = FALSE, ...) 
-stop("invalid call in method dispatch to 'genePlot' (no default method)", 
-    domain = NA))(object, gene1, gene2, cell.ids, col.use, pch.use, 
-    cex.use, no.col, inc.first, use.imputed, by.k, do.ident, 
-    ...), class = structure("standardGeneric", package = "methods"))
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

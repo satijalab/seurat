@@ -9,6 +9,7 @@ require(stringr)
 require(NMF)
 require(mixtools)
 require(lars)
+require(XLConnect)
 require(reshape2)
 require(vioplot)
 require(fastICA)
@@ -1467,11 +1468,11 @@ setMethod("pcHeatmap","seurat",
 
 
 setGeneric("doKMeans", function(object,genes.use=NULL,k.genes=NULL,k.cells=NULL,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                                k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE) standardGeneric("doKMeans"))
+                                k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("doKMeans"))
 
 setMethod("doKMeans","seurat",
           function(object,genes.use=NULL,k.genes=NULL,k.cells=0,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                   k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE) {
+                   k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) {
             
             data.use.orig=object@scale.data
             if (use.imputed) data.use.orig=data.frame(t(scale(t(object@imputed))))
@@ -1510,11 +1511,10 @@ setMethod("doKMeans","seurat",
             
             if ((set.ident) && (k.cells > 0)) {
               object=set.ident(object,cells.use=names(kmeans.col$cluster),ident.use = kmeans.col$cluster)
-              object.temp=object
             }
             if (do.plot) {       
               disp.data=minmax(kmeans.data[order(kmeans.obj$cluster[genes.use]),],min=data.cut*(-1),max=data.cut)
-              doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut)
+              doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,...)
             }
             return(object)
           }
