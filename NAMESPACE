@@ -37,7 +37,6 @@ exportMethods(
     "jackStraw",
     "jackStrawFull",
     "jackStrawPlot",
-    "loadMetrics",
     "map.cell",
     "marker.test",
     "Mclust_dimension",

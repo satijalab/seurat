@@ -38,11 +38,7 @@ Re-order identity classes according to position on the tree, assigning a numeric
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+A Seurat object where the cluster tree is stored in object@cluster.tree[[1]]
 }
 \references{
 %% ~put references to the literature/web site here ~
@@ -59,23 +55,3 @@ Re-order identity classes according to position on the tree, assigning a numeric
 \seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-structure(function (object, genes.use = NULL, pcs.use = NULL, 
-    do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE) 
-standardGeneric("buildClusterTree"), generic = structure("buildClusterTree", package = "Seurat"), package = "Seurat", group = list(), valueClass = character(0), signature = c("object", 
-"genes.use", "pcs.use", "do.plot", "do.reorder", "reorder.numeric"
-), default = `\001NULL\001`, skeleton = (function (object, genes.use = NULL, 
-    pcs.use = NULL, do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE) 
-stop("invalid call in method dispatch to 'buildClusterTree' (no default method)", 
-    domain = NA))(object, genes.use, pcs.use, do.plot, do.reorder, 
-    reorder.numeric), class = structure("standardGeneric", package = "methods"))
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

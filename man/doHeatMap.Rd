@@ -2,10 +2,10 @@
 \alias{doHeatMap}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-To add
+Gene expression heatmap
 }
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+Draws a heatmap of single cell gene expression using the heatmap.2 function.
 }
 \usage{
 doHeatMap(object, cells.use = NULL, genes.use = NULL, disp.min = -2.5, disp.max = 2.5, draw.line = TRUE, do.return = FALSE, order.by.ident = TRUE, col.use = pyCols, ...)
@@ -13,81 +13,38 @@ doHeatMap(object, cells.use = NULL, genes.use = NULL, disp.min = -2.5, disp.max 
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{
-%%     ~~Describe \code{object} here~~
+  Seurat object
 }
   \item{cells.use}{
-%%     ~~Describe \code{cells.use} here~~
+  Cells to include in the heatmap (default is all cells)
 }
   \item{genes.use}{
-%%     ~~Describe \code{genes.use} here~~
+  Genes to include in the heatmap (ordered)
 }
   \item{disp.min}{
-%%     ~~Describe \code{disp.min} here~~
+  Minimum display value (all values below are clipped)
 }
   \item{disp.max}{
-%%     ~~Describe \code{disp.max} here~~
+  Maximum display value (all values above are clipped)
 }
   \item{draw.line}{
-%%     ~~Describe \code{draw.line} here~~
+  Draw vertical lines delineating cells in different identity classes.
 }
   \item{do.return}{
-%%     ~~Describe \code{do.return} here~~
+Default is FALSE. If TRUE, return a matrix of scaled values which would be passed to heatmap.2
 }
   \item{order.by.ident}{
-%%     ~~Describe \code{order.by.ident} here~~
+Order cells in the heatmap by identity class (default is TRUE). If FALSE, cells are ordered based on their order in cells.use
 }
   \item{col.use}{
-%%     ~~Describe \code{col.use} here~~
+Color palette to use
 }
   \item{\dots}{
-%%     ~~Describe \code{\dots} here~~
-}
+Additional parameters to heatmap.2. Common examples are cexRow and cexCol, which set row and column text sizes}
 }
 \details{
 %%  ~~ If necessary, more details than the description above ~~
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+If do.return==TRUE, a matrix of scaled values which would be passed to heatmap.2. Otherwise, no return value, only a graphical output
 }
-\references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
-\seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
-}
-\examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-structure(function (object, cells.use = NULL, genes.use = NULL, 
-    disp.min = -2.5, disp.max = 2.5, draw.line = TRUE, do.return = FALSE, 
-    order.by.ident = TRUE, col.use = pyCols, ...) 
-standardGeneric("doHeatMap"), generic = structure("doHeatMap", package = "Seurat"), package = "Seurat", group = list(), valueClass = character(0), signature = c("object", 
-"cells.use", "genes.use", "disp.min", "disp.max", "draw.line", 
-"do.return", "order.by.ident", "col.use"), default = `\001NULL\001`, skeleton = (function (object, 
-    cells.use = NULL, genes.use = NULL, disp.min = -2.5, disp.max = 2.5, 
-    draw.line = TRUE, do.return = FALSE, order.by.ident = TRUE, 
-    col.use = pyCols, ...) 
-stop("invalid call in method dispatch to 'doHeatMap' (no default method)", 
-    domain = NA))(object, cells.use, genes.use, disp.min, disp.max, 
-    draw.line, do.return, order.by.ident, col.use, ...), class = structure("standardGeneric", package = "methods"))
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line

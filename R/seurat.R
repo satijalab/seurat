@@ -25,13 +25,13 @@ require(rgl)
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
-                       ident.fxn="function",ident="vector",data.ngene="vector",pca.x="data.frame",pca.rot="data.frame",
-                       real.fval="data.frame",fake.fval="data.frame",emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
-                       calinski.best="numeric", gene.scores="data.frame", k.num = "numeric", drop.coefs="data.frame",
+                       ident="vector",data.ngene="vector",pca.x="data.frame",pca.rot="data.frame",
+                       emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
+                       gene.scores="data.frame", drop.coefs="data.frame",
                        wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",
-                       project.name="character",project.dir="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", pc.x.full="data.frame",
+                       project.name="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", 
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
-                       mix.mu="data.frame",mix.sigma="data.frame",mu.alpha="data.frame",mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
+                       mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame",ica.obj="list",cell.names="vector",cluster.tree="list"))
 
 calc.drop.prob=function(x,a,b) {
@@ -188,9 +188,9 @@ setMethod("plotNoiseModel","seurat",
 )
 
 #needs mod and Rd
-setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,names.field=1,names.delim="_",meta.data=NULL,...) standardGeneric("setup"))
+setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,...) standardGeneric("setup"))
 setMethod("setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,proj.dir=NULL,names.field=1,names.delim="_",meta.data=NULL,...) {
+          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,...) {
             object@is.expr = is.expr
             num.genes=findNGene(object@raw.data,object@is.expr)
             cells.use=names(num.genes[which(num.genes>min.genes)]) 
@@ -208,8 +208,7 @@ setMethod("setup","seurat",
             object@gene.scores=data.frame(object@data.ngene); colnames(object@gene.scores)[1]="nGene"
             object@data.info=data.frame(object@data.ngene); colnames(object@data.info)[1]="nGene"
             if (!is.null(meta.data)) {
-              object@data.info=cbind(object@data.info,meta.data[rownames(object@data.info),])
-              colnames(object@data.info)[2:ncol(object@data.info)]=colnames(meta.data)
+              object=addMetaData(object,metadata = meta.data)
             }
             object@mix.probs=data.frame(object@data.ngene); colnames(object@mix.probs)[1]="nGene"
             rownames(object@gene.scores)=colnames(object@data)
@@ -217,7 +216,6 @@ setMethod("setup","seurat",
             object@data.info[names(object@ident),"orig"]=object@ident
             
             object@project.name=project
-            object@project.dir=set.ifnull(proj.dir,paste("~/big/",project,"/",sep=""))
             #if(calc.noise) {
             #  object=calcNoiseModels(object,...)
             #  object=getWeightMatrix(object)
@@ -227,9 +225,9 @@ setMethod("setup","seurat",
 )
 
 #needs mod and RD
-setGeneric("subsetData",  function(object, subset.name=NULL, cells.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("subsetData"))
+setGeneric("subsetData",  function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("subsetData"))
 setMethod("subsetData","seurat",
-          function(object, subset.name=NULL, cells.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
+          function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
             data.use=NULL
             if (is.null(cells.use)) {
               data.use=fetch.data(object,subset.name,...)
@@ -253,20 +251,6 @@ setMethod("subsetData","seurat",
             
             return(object)
           }         
-)
-
-#needs mod and RD, probably remove
-setGeneric("loadMetrics", function(object, metrics.file=NULL, col.names=NULL,sep.use="\t",row.add="_rsem",...) standardGeneric("loadMetrics"))
-setMethod("loadMetrics","seurat",
-          function(object, metrics.file=NULL, col.names=NULL,sep.use="\t",row.add="_rsem",...) {
-            metrics.file=set.ifnull(metrics.file,paste(object@project.dir,"summary/",object@project.name,".all.aln.metrics.txt",sep=""))
-            col.names=set.ifnull(col.names,c("n.read","n.aln.read","pct.aln.rsem","pct.aln.ribo","pct.aln.spike","pct.aln.coli"))
-            metrics.data=read.table(metrics.file,sep=sep.use,row.names="V1",...)
-            colnames(metrics.data)=col.names
-            rownames(metrics.data)=paste(sub.string(rownames(metrics.data),"-","_"),row.add,sep="")
-            object@data.info=cbind(object@data.info,metrics.data[rownames(object@data.info),])
-            return(object)
-          }
 )
 
 setGeneric("project.pca", function(object,do.print=TRUE,pcs.print=5,pcs.store=20,genes.print=30,replace.pc=FALSE) standardGeneric("project.pca"))
@@ -721,9 +705,9 @@ setMethod("tobit.test", "seurat",
           } 
 )
 
-setGeneric("batch.gene", function(object, idents.use,genes.use=NULL,use.imputed=FALSE,auc.cutoff=0.6,thresh.use=0) standardGeneric("batch.gene"))
+setGeneric("batch.gene", function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) standardGeneric("batch.gene"))
 setMethod("batch.gene", "seurat",
-          function(object, idents.use,genes.use=NULL,use.imputed=FALSE,auc.cutoff=0.6,thresh.use=0) {
+          function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) {
             batch.genes=c()
             genes.use=set.ifnull(genes.use,rownames(object@data))
             for(ident in idents.use ) {
@@ -993,9 +977,9 @@ setMethod("calc.insitu", "seurat",
           } 
 )
 
-setGeneric("fit.gene.k", function(object, gene, do.k=3,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
+setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
 setMethod("fit.gene.k", "seurat",
-          function(object, gene, do.k=3,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) {
+          function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) {
             data=object@imputed            
             data.use=data[gene,]
             names(data.use)=colnames(data.use)
@@ -1003,8 +987,7 @@ setMethod("fit.gene.k", "seurat",
             genes.use=set.ifnull(genes.use,rownames(scale.data))
             genes.use=genes.use[genes.use%in%rownames(scale.data)]
             scale.data=scale.data[genes.use,]
-            #print(genes.use)
-            #seed the k-means based on the 0'th component
+
             data.cut=as.numeric(data.use[gene,])
             cell.ident=as.numeric(cut(data.cut,do.k))
             if (!(is.null(start.pct))) {
@@ -1012,25 +995,14 @@ setMethod("fit.gene.k", "seurat",
               cell.ident[data.cut>quantile(data.cut,1-start.pct)]=2
             }
             cell.ident=order(tapply(as.numeric(data.use),cell.ident,mean))[cell.ident]
-            #cell.ident=sample(cell.ident)
             ident.table=table(cell.ident)
-            #            if (do.plot) {
-            #              par(mfrow=c(2,2))
-            #              hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-            #              for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-            #            }
             if (num.iter > 0) {
               for(i2 in 1:num.iter) {
                 cell.ident=iter.k.fit(scale.data,cell.ident,data.use)
                 ident.table=table(cell.ident)
-                #                if (do.plot) {
-                #                  hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-                #                  for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-                #                }
               }
             }
             ident.table=table(cell.ident)
-            #for(i in 2:do.k) ident.table[i]=ident.table[1]
             raw.probs=t(sapply(data.use,function(y) unlist(lapply(1:do.k,function(x) ((ident.table[x]/sum(ident.table))*dnorm(y,mean(as.numeric(data.use[cell.ident==x])),sd(as.numeric(data.use[cell.ident==x]))))))))
             norm.probs=raw.probs/apply(raw.probs,1,sum)
             colnames(norm.probs)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"post",sep=".")))
@@ -1040,14 +1012,9 @@ setMethod("fit.gene.k", "seurat",
             
             if (do.plot) {
               nCol=2
-              #vlnPlot(object,gene,by.k=TRUE,use.imputed=TRUE)
               num.row=floor((do.k+1)/nCol-1e-5)+1
-              #par(mfrow=c(num.row,nCol))         
-              #par(mfrow=c(1,1))
               hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
               for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-              #unlist(lapply(1:do.k,function(x) plot(as.numeric(data.use),norm.probs[,x],ylab=paste("Posterior for Component ",x-1,sep=""),main=gene)))     
-              #barplot(ident.table,main=round(ident.table[2]/sum(ident.table),3))
             }
             return(object)
           }
@@ -1468,11 +1435,11 @@ setMethod("pcHeatmap","seurat",
 
 
 setGeneric("doKMeans", function(object,genes.use=NULL,k.genes=NULL,k.cells=NULL,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                                k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("doKMeans"))
+                                pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("doKMeans"))
 
 setMethod("doKMeans","seurat",
           function(object,genes.use=NULL,k.genes=NULL,k.cells=0,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                   k.col=NULL,pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) {
+                   pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) {
             
             data.use.orig=object@scale.data
             if (use.imputed) data.use.orig=data.frame(t(scale(t(object@imputed))))
@@ -1514,7 +1481,7 @@ setMethod("doKMeans","seurat",
             }
             if (do.plot) {       
               disp.data=minmax(kmeans.data[order(kmeans.obj$cluster[genes.use]),],min=data.cut*(-1),max=data.cut)
-              doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,...)
+              doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,col.use = k.cols,...)
             }
             return(object)
           }
@@ -1726,9 +1693,9 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 
 
 #Contributed by Omri Wuertzel
-setGeneric("jackStrawPlot", function(object,plot.lim=0.8,PCs=1:5, nCol=3, score.thresh=1e-5,...)  standardGeneric("jackStrawPlot"))
+setGeneric("jackStrawPlot", function(object,plot.lim=0.8,PCs=1:5, nCol=3, score.thresh=1e-5)  standardGeneric("jackStrawPlot"))
 setMethod("jackStrawPlot","seurat",
-          function(object,plot.lim=0.8,PCs=1:4, score.thresh=0.01,...) {
+          function(object,plot.lim=0.8,PCs=1:5, nCol=3, score.thresh=1e-5) {
             pAll=object@jackStraw.empP
             pAll <- pAll[,PCs, drop=F]
             pAll$Contig <- rownames(pAll)
@@ -1882,12 +1849,12 @@ setMethod("jackStrawFull","seurat",
 
 setGeneric("mean.var.plot", function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                                      x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
-                                     pch.use=16, col.use="black", spike.col.use="red",use.imputed=FALSE,plot.both=FALSE,do.contour=TRUE,
+                                     pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                                      contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("mean.var.plot"))
 setMethod("mean.var.plot", signature = "seurat",
           function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                    x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
-                   pch.use=16, col.use="black", spike.col.use="red",use.imputed=FALSE,plot.both=FALSE,do.contour=TRUE,
+                   pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                    contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) {
             data=object@data
             data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
