@@ -1401,6 +1401,7 @@ setMethod("doHeatMap","seurat",
             data.use=object@scale.data[genes.use,cells.use]
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
+            colsep.use=NULL
             if (draw.line) {
               colsep.use=cumsum(table(cells.ident))
             }
