@@ -649,7 +649,7 @@ setMethod("find.markers", "seurat",
               cells.2=object@cell.names
             }
             else {
-              cells.2=which.cells(object,ident.1)
+              cells.2=which.cells(object,ident.2)
             }
             if (length(ident.2>1)&&any(ident.2%in%object@cell.names)) {
               cells.2=ainb(ident.2,object@cell.names)
@@ -1729,10 +1729,10 @@ setMethod("jackStrawPlot","seurat",
           })
 
 setGeneric("genePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=2,use.imputed=FALSE,do.ident=FALSE,...)  standardGeneric("genePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...)  standardGeneric("genePlot"))
 setMethod("genePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                   pch.use=16,cex.use=2,use.imputed=FALSE,do.ident=FALSE,...) {
+                   pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
             data.use=data.frame(t(fetch.data(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
             corner(data.use)
@@ -1747,6 +1747,10 @@ setMethod("genePlot","seurat",
             }
             gene.cor=round(cor(g1,g2),2)
             plot(g1,g2,xlab=gene1,ylab=gene2,col=col.use,cex=cex.use,main=gene.cor,pch=pch.use,...)
+            if (do.spline) {
+              spline.fit=smooth.spline(g1,g2,df = 4)$y
+              lines(g1[order(g1)],spline.fit,lwd=3)
+            }
             if (do.ident) {
               return(identify(g1,g2,labels = cell.ids))
             }
