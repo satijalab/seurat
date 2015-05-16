@@ -1,0 +1,230 @@
+---
+title: "Seurat Tutorial - based on NBT Fluidigm Data (Pollen et al. 2014)"
+output: html_document
+---
+
+#setup Seurat
+```{r}
+library(Seurat)
+```
+
+#load in data and setup object
+```{r}
+nbt.data=read.table("~/Downloads//HiSeq301-RSEM-linear values.txt",sep="\t",header=TRUE)
+rownames(nbt.data)=nbt.data[,1]
+
+#transform data to log scale
+nbt.data=log(nbt.data[,2:ncol(nbt.data)]+1)
+
+#look at the transformed data matrix
+corner(nbt.data)
+dim(nbt.data)
+
+nbt=seurat(raw.data=nbt.data)
+
+#take all genes in > 3 cells, all cells with > 1k genes, use an expression threshold of 1
+#cell type is encoded in the second _ field 
+nbt=setup(nbt,project="Seurat",min.cells = 3,names.field = 2,names.delim = "_",min.genes = 1000,calc.noise=FALSE,is.expr=1) 
+```
+
+Explore data a bit 
+```{r}
+
+#see how many genes detected per cell (note the differences)
+vlnPlot(nbt,"nGene")
+
+#look at some canonical marker genes
+vlnPlot(nbt,"TDGF1")
+vlnPlot(nbt,"MPO")
+vlnPlot(nbt,"CCL3")
+vlnPlot(nbt,"MAGEA3")
+
+#plot cells against each other 
+#Note - to find outliers set do.ident=TRUE, click on outlier data points and then hit escape
+cellPlot(nbt,nbt@cell.names[1],nbt@cell.names[100],do.ident = FALSE)
+
+```
+
+
+do first PCA 
+```{r}
+#select genes solely on the basis of most variable AND highly expressed
+#X cutoff specifies minimum expresison level, y.cutoff specifies dispersion. 
+#These are parameters to play with, goal is to find a small set of 'outlier' genes
+#Running this sets object@var.genes by default
+nbt=mean.var.plot(nbt,y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
+
+#examine these genes (note that there aren't many!)
+print(nbt@var.genes)
+
+#perform a PCA on these variable genes
+#note that the default is to perform the PCA on object@var.genes
+nbt=pca(nbt,pcs.store = 40,pcs.print = 5,genes.print = 5)
+
+#lets look at the PCA
+pca.plot(nbt,1,2)
+pca.plot(nbt,1,3)
+vlnPlot(nbt,"PC1")
+
+#check genes which define a PCA
+print.pca(nbt,1)
+viz.pca(nbt,1:2)
+
+#find exact PCA loadings
+head(nbt@pca.x[,1:5])
+head(nbt@pca.rot[,1:5])
+
+#do 1k random samplings to find significant genes, each time randomly permute 5% of genes, test 15 PCs
+#This returns a 'p-value' for each gene in each PC, based on how likely the gene/PC score woud have been observed by chance
+nbt=jackStraw(nbt,num.pc = 15,num.replicate = 100,do.print = TRUE,prop.freq = 0.05) 
+
+#view significant PCs, note that only 1-4 qualify at this stage. 
+#'Significant' PCs will have a larger number of genes at low p-values than would be expected by chance
+#Thus, we are testing the distribution of p-values vs a uniform distribution, for each PC
+jackStrawPlot(nbt,PCs = 1:12)
+
+#set the variable genes to any 'significant' genes in the first 4 PCs, end up with 3,970 genes
+nbt=project.pca(nbt,do.print = TRUE,pcs.print = 3,genes.print=5)
+nbt.sig.genes=pca.sig.genes(nbt,1:9,pval.cut = 1e-5,max.per.pc = 500)
+length(nbt.sig.genes)
+
+```
+
+Second PCA analysis
+
+```{r}
+#redo PCA on larger gene set
+nbt=pca(nbt,pc.genes=nbt.sig.genes,genes.print = 5,pcs.print = 5)
+
+#note that PCA is much stronger now (we're using > 4k genes!)
+pca.plot(nbt,1,2)
+vlnPlot(nbt,"PC1")
+
+#redo sampling 
+nbt=jackStraw(nbt,num.pc = 15,num.replicate = 100,do.print = TRUE)
+nbt=project.pca(nbt,do.print = FALSE)
+
+#assess significance, note that signal is mostly gone by PC9.
+jackStrawPlot(nbt,PCs = 1:12)
+
+```
+
+Cluster NBT data
+```{r}
+#run tSNE with default settings (assume perplexity=30, note that perplexity is the number of 'expected' neighbor cells)
+nbt=run_tsne(nbt,dims.use=1:10,max_iter=1000,reduction.use = "pca")
+tsne.plot(nbt)
+
+
+#an alternative (faster) workflow. First run C++ approx, then refine 
+nbt=run_tsne(nbt,pcs.use = 1:8,do.fast=TRUE)
+nbt=add_tsne(nbt,pcs.use=1:8,add.iter = 100)
+pca.plot(nbt,1,2,reduction.use = "tsne")
+
+#Density cluster the tSNE map - note that the G.use parameter is the density parameter for the clustering - lower G.use to get finer settings
+#note that cells which are 'unassigned' are put in cluster 1 - though in this case there are none
+nbt2=Mclust_dimension(nbt,1,2,reduction.use = "tsne",G.use = 1.8,set.ident = TRUE)
+tsne.plot(nbt2)
+
+#view density plot another way
+tsne.plot(nbt,do.label = TRUE)
+
+#build a phylogenetic tree, and reorder cluster names according to their position on the tree
+nbt=buildClusterTree(nbt,do.reorder = TRUE,reorder.numeric = TRUE,genes.use = nbt.sig.genes)
+```
+
+Do some biology!
+
+```{r, fig.width = 9, fig.height = 9}
+#Find that iPS cells are in cluster 7
+ips.cells=which.cells(nbt,"iPS",id = "orig")
+fetch.data(nbt,"m",ips.cells)
+
+#note that fetch.data is a useful way to pull data for any cell attribute
+fetch.data(nbt,"ACTB",ips.cells[1:5])
+fetch.data(nbt,"nGene",ips.cells[1:5])
+fetch.data(nbt,"PC1",ips.cells[1:5])
+
+
+#find all markers of cluster 7
+#thresh.use speeds things up (increase value to increase speed) but might miss more subtle differences 
+#Note that Seurat finds both positive and negative markers (myDiff either >0 or <0)
+ips.markers=find.markers(nbt,7,thresh.use = 4,test.use = "roc")
+print(head(ips.markers,10))
+
+#note that Seurat has four marker tests:
+#ROC test ("roc"), t-test ("t"), LRT test based on zero-inflated data ("bimod"), LRT test based on tobit-censoring models ("tobit")
+ips.markers=find.markers(nbt,7,thresh.use = 4,test.use = "t")
+
+#verify markers
+vlnPlot(nbt,c("ESRG","TDGF1"))
+
+#plots a correlation analysis of gene/gene (ie. 'FACS' plot - cells colored by cluster number)
+genePlot(nbt,"ESRG","TDGF1")
+
+#note that the neurons (GW represent gestational week) cluster into three groups. The in vitro differentiated (GW21.2) are the most distinct from the phylogenetic tree. What genes separate them? 
+which.cells(nbt,1)
+which.cells(nbt,2)
+which.cells(nbt,3)
+
+#find markers of C1 vs C2
+neuro.markers=find.markers(nbt,1,2,thresh.use = 3,test.use = "roc")
+print(head(neuro.markers,20))
+
+
+
+#visualize markers in a few different ways
+feature.plot(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"),pt.size = 1)
+feature.heatmap(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"),pt.size = 1.5)
+vlnPlot(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"))
+
+#switch the identity class definition back to the original cell ID ('orig')
+nbt=set.all.ident(nbt,"orig")
+
+#note that these markers are highly variable based on the original groupings
+vlnPlot(nbt,c("SOX9","BHLHE22"))
+
+#switch the plotting status back to the density clustering ID ('m'), or the identity after tree re-ordering ('tree')
+nbt=set.all.ident(nbt,"m")
+nbt=set.all.ident(nbt,"tree")
+
+```
+
+A few more tricks
+```{r}
+#Finally, now that we have binned cells, reduce noise by calculating and plotting cluster averages
+nbt.avg=average.expression(nbt)
+colnames(nbt.avg)=paste("c",colnames(nbt.avg),sep="")
+plot(nbt.avg[,"c8"],nbt.avg[,"c7"],pch=16,cex=0.8)
+
+# uncomment the next line to identify individual genes
+#identify(nbt.avg[,"c8"],nbt.avg[,"c7"],labels = rownames(nbt.avg))
+
+#what if we want to define markers of a clade? to refresh - plot the tree
+plotClusterTree(nbt)
+
+#find markers of the largest split (defined by node 12)
+#markers with a myDiff>0 mark the left branch, myDiff<0 mark the right branch 
+markers.12=find.markers.node(nbt,12,thresh.use = 3,test.use = "roc")
+head(markers.12,5)
+vlnPlot(nbt,c("NNAT"))
+
+#find markers of a middle split (node 14)
+markers.14=find.markers.node(nbt,14,thresh.use = 3,test.use = "roc")
+head(markers.14,5)
+vlnPlot(nbt,c("NGFRAP1"))
+
+#One more visualization. Size of the dot is percent of expressing cells. Color represents expression level
+#Very useful for looking at lots of markers in one plot
+dot.plot(nbt,c("NGFRAP1","NNAT","LCP1","ESRG","ACTB"))
+
+#find markers for all clusters
+markers.all=find_all_markers(nbt,thresh.test = 3,test.use = "roc")
+markers.use=subset(markers.all,myAUC>0.9)$gene
+
+#last visualization! A heatmap to display markers which are highly specific for each cluster.
+#Takes in ... additional argument that would be passed to heatmap.2
+doHeatMap(nbt,genes.use = markers.use, labRow="")
+
+
+```
