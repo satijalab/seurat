@@ -1240,9 +1240,9 @@ setMethod("tsne.plot", "seurat",
 )
 
 
-setGeneric("pca.plot", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca") standardGeneric("pca.plot"))
+setGeneric("pca.plot", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",pt.shape=NULL) standardGeneric("pca.plot"))
 setMethod("pca.plot", "seurat", 
-          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca") {
+          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",pt.shape=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (reduction.use=="pca") data.plot=object@pca.rot[cells.use,]
@@ -1260,12 +1260,22 @@ setMethod("pca.plot", "seurat",
             x1=paste(dim.code,pc.1,sep=""); x2=paste(dim.code,pc.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident),size=pt.size))
+            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size)
+            if (!is.null(pt.shape)) {
+              shape.val=fetch.data(object,pt.shape)[cells.use,1]
+              if (is.numeric(shape.val)) {
+                shape.val=cut(shape.val,breaks = 5)
+              }
+              data.plot[,"pt.shape"]=shape.val
+              p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident),shape=factor(pt.shape)),size=pt.size)
+              
+            }
             if (!is.null(cols.use)) {
               p=p+scale_colour_manual(values=cols.use)
             }
             p2=p+xlab(x1)+ylab(x2)+scale_size(range = c(pt.size, pt.size))
             p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid
+            p3=p3+theme(legend.title=element_blank())
             if (do.return) {
               if (do.bare) return(p)
               return(p3)
