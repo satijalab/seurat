@@ -460,12 +460,12 @@ setMethod("average.expression", "seurat",
           }
 )
 
-atopGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {
+topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {
   code=paste(translate.dim.code(reduction.use),i,sep="")
   if (do.balanced) {
     num.genes=round(num.genes/2)
     sx=dim_scores[order(dim_scores[,code]),]
-    print(corner(sx))
+    print(dim(sx))
     print("hi")
     genes.1=(rownames(sx[1:num.genes,]))
     genes.2=(rownames(sx[(nrow(sx)-num.genes):nrow(sx),]))
@@ -500,16 +500,6 @@ setMethod("pcTopGenes", "seurat",
           }
 )
 
-setGeneric("pcTopGenes", function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) standardGeneric("pcTopGenes"))
-setMethod("pcTopGenes", "seurat", 
-        function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) {
-            pc_scores=object@pca.x
-            i=pc.use
-            if (use.full==TRUE) pc_scores = object@pca.x.full
-            pc.top.genes=unique(unlist(lapply(i,topGenesForPC,pc_scores,do.balanced,num.genes)))
-            return(pc.top.genes)
-          }
-)
 
 
 setGeneric("print.pca", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("print.pca"))
@@ -1320,7 +1310,7 @@ setMethod("ica.plot", "seurat",
 
 setGeneric("pca.plot", function(object,...) standardGeneric("pca.plot"))
 setMethod("pca.plot", "seurat", 
-          function(object,do.label=FALSE,pt.size=4,...) {
+          function(object,...) {
               return(dim.plot(object,reduction.use = "pca",...))
           }
 )
@@ -1333,9 +1323,9 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-setGeneric("dim.plot", function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",color.by="ident") standardGeneric("dim.plot"))
+setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,color.by="ident") standardGeneric("dim.plot"))
 setMethod("dim.plot", "seurat", 
-          function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",color.by="ident") {
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,color.by="ident") {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
