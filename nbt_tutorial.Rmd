@@ -12,6 +12,8 @@ library(Seurat)
 ```{r}
 nbt.data=read.table("~/Downloads//HiSeq301-RSEM-linear values.txt",sep="\t",header=TRUE)
 rownames(nbt.data)=nbt.data[,1]
+#spike.rows=grep("Spike",rownames(nbt.data))
+#nbt.data=nbt.data[-spike.rows,]
 
 #transform data to log scale
 nbt.data=log(nbt.data[,2:ncol(nbt.data)]+1)
@@ -24,7 +26,7 @@ nbt=seurat(raw.data=nbt.data)
 
 #take all genes in > 3 cells, all cells with > 1k genes, use an expression threshold of 1
 #cell type is encoded in the second _ field 
-nbt=setup(nbt,project="Seurat",min.cells = 3,names.field = 2,names.delim = "_",min.genes = 1000,calc.noise=FALSE,is.expr=1) 
+nbt=setup(nbt,project="Seurat",min.cells = 3,names.field = 2,names.delim = "_",min.genes = 1000,calc.noise=FALSE,is.expr=1,save.raw=FALSE) 
 ```
 
 Explore data a bit 
@@ -84,8 +86,8 @@ nbt=jackStraw(nbt,num.pc = 15,num.replicate = 100,do.print = TRUE,prop.freq = 0.
 jackStrawPlot(nbt,PCs = 1:12)
 
 #set the variable genes to any 'significant' genes in the first 4 PCs, end up with 3,970 genes
-nbt=project.pca(nbt,do.print = TRUE,pcs.print = 3,genes.print=5)
-nbt.sig.genes=pca.sig.genes(nbt,1:9,pval.cut = 1e-5,max.per.pc = 500)
+nbt=project.pca(nbt,do.print = TRUE,pcs.print = 3,genes.print=10)
+nbt.sig.genes=pca.sig.genes(nbt,1:9,pval.cut = 1e-5,max.per.pc = 200)
 length(nbt.sig.genes)
 
 ```
@@ -105,56 +107,59 @@ nbt=jackStraw(nbt,num.pc = 15,num.replicate = 100,do.print = TRUE)
 nbt=project.pca(nbt,do.print = FALSE)
 
 #assess significance, note that signal is mostly gone by PC9.
-jackStrawPlot(nbt,PCs = 1:12)
+jackStrawPlot(nbt,PCs = 1:15)
 
 ```
 
 Cluster NBT data
 ```{r}
-#run tSNE with default settings (assume perplexity=30, note that perplexity is the number of 'expected' neighbor cells)
-nbt=run_tsne(nbt,dims.use=1:10,max_iter=1000,reduction.use = "pca")
+#run tSNE with default settings (default perplexity=30, note that perplexity is the number of 'expected' neighbor cells)
+nbt=run_tsne(nbt,dims.use=c(1:11),max_iter=200)
 tsne.plot(nbt)
-
-
-#an alternative (faster) workflow. First run C++ approx, then refine 
-nbt=run_tsne(nbt,pcs.use = 1:8,do.fast=TRUE)
-nbt=add_tsne(nbt,pcs.use=1:8,add.iter = 100)
-pca.plot(nbt,1,2,reduction.use = "tsne")
 
 #Density cluster the tSNE map - note that the G.use parameter is the density parameter for the clustering - lower G.use to get finer settings
 #note that cells which are 'unassigned' are put in cluster 1 - though in this case there are none
-nbt2=Mclust_dimension(nbt,1,2,reduction.use = "tsne",G.use = 1.8,set.ident = TRUE)
-tsne.plot(nbt2)
+nbt=Mclust_dimension(nbt,1,2,reduction.use = "tsne",G.use = 3,set.ident = TRUE)
+tsne.plot(nbt)
+
+#remove the 1 unassigned cell
+nbt=subsetData(nbt,cells.use = which.cells(nbt,2:12))
 
 #view density plot another way
 tsne.plot(nbt,do.label = TRUE)
 
 #build a phylogenetic tree, and reorder cluster names according to their position on the tree
-nbt=buildClusterTree(nbt,do.reorder = TRUE,reorder.numeric = TRUE,genes.use = nbt.sig.genes)
+nbt=buildClusterTree(nbt,do.reorder = TRUE,reorder.numeric = TRUE,pcs.use = 1:11)
 ```
 
 Do some biology!
 
 ```{r, fig.width = 9, fig.height = 9}
-#Find that iPS cells are in cluster 7
+#Find that iPS cells are in cluster 9
 ips.cells=which.cells(nbt,"iPS",id = "orig")
-fetch.data(nbt,"m",ips.cells)
+nbt@ident[ips.cells]
+
+# or alternately
+fetch.data(nbt,"tree",ips.cells)
 
 #note that fetch.data is a useful way to pull data for any cell attribute
 fetch.data(nbt,"ACTB",ips.cells[1:5])
 fetch.data(nbt,"nGene",ips.cells[1:5])
 fetch.data(nbt,"PC1",ips.cells[1:5])
+```
 
-
-#find all markers of cluster 7
-#thresh.use speeds things up (increase value to increase speed) but might miss more subtle differences 
-#Note that Seurat finds both positive and negative markers (myDiff either >0 or <0)
-ips.markers=find.markers(nbt,7,thresh.use = 4,test.use = "roc")
+Finding differentially expressed genes
+```{r}
+#find all markers of cluster 8
+#thresh.use speeds things up (increase value to increase speed) by only testing genes whose average expression is > thresh.use between cluster 
+#Note that Seurat finds both positive and negative markers (avg_diff either >0 or <0)
+ips.markers=find.markers(nbt,8,thresh.use = 2)
 print(head(ips.markers,10))
 
-#note that Seurat has four marker tests:
-#ROC test ("roc"), t-test ("t"), LRT test based on zero-inflated data ("bimod"), LRT test based on tobit-censoring models ("tobit")
-ips.markers=find.markers(nbt,7,thresh.use = 4,test.use = "t")
+# note that Seurat has four tests for differential expression:
+# ROC test ("roc"), t-test ("t"), LRT test based on zero-inflated data ("bimod", default), LRT test based on tobit-censoring models ("tobit")
+# The ROC test returns the 'classification power' for any individual marker (ranging from 0 - random, to 1 - perfect). Though not a statistical test, it is often very useful for finding clean markers.
+ips.markers=find.markers(nbt,8,thresh.use = 2,test.use = "roc")
 
 #verify markers
 vlnPlot(nbt,c("ESRG","TDGF1"))
@@ -168,26 +173,22 @@ which.cells(nbt,2)
 which.cells(nbt,3)
 
 #find markers of C1 vs C2
-neuro.markers=find.markers(nbt,1,2,thresh.use = 3,test.use = "roc")
-print(head(neuro.markers,20))
-
-
+neuro.markers=find.markers(nbt,2,3,thresh.use = 2,test.use = "roc")
+print(head(neuro.markers,10))
 
 #visualize markers in a few different ways
-feature.plot(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"),pt.size = 1)
-feature.heatmap(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"),pt.size = 1.5)
-vlnPlot(nbt,c("BHLHE22","NEUROD2","GLI3","VIM"))
-
-#switch the identity class definition back to the original cell ID ('orig')
-nbt=set.all.ident(nbt,"orig")
+genes.viz=c("DLX6-AS1","STMN2","GAD2","VIM")
+feature.plot(nbt,genes.viz,pt.size = 1)
+feature.heatmap(nbt,genes.viz,pt.size = 1.5)
+vlnPlot(nbt,genes.viz)
 
 #note that these markers are highly variable based on the original groupings
-vlnPlot(nbt,c("SOX9","BHLHE22"))
+vlnPlot(nbt,c("SOX9","BHLHE22"),color.by = "orig")
 
 #switch the plotting status back to the density clustering ID ('m'), or the identity after tree re-ordering ('tree')
 nbt=set.all.ident(nbt,"m")
 nbt=set.all.ident(nbt,"tree")
-
+dot.plot(nbt,genes.viz)
 ```
 
 A few more tricks
@@ -195,10 +196,10 @@ A few more tricks
 #Finally, now that we have binned cells, reduce noise by calculating and plotting cluster averages
 nbt.avg=average.expression(nbt)
 colnames(nbt.avg)=paste("c",colnames(nbt.avg),sep="")
-plot(nbt.avg[,"c8"],nbt.avg[,"c7"],pch=16,cex=0.8)
+plot(nbt.avg[,"c4"],nbt.avg[,"c5"],pch=16,cex=0.8)
 
 # uncomment the next line to identify individual genes
-#identify(nbt.avg[,"c8"],nbt.avg[,"c7"],labels = rownames(nbt.avg))
+identify(nbt.avg[,"c4"],nbt.avg[,"c5"],labels = rownames(nbt.avg))
 
 #what if we want to define markers of a clade? to refresh - plot the tree
 plotClusterTree(nbt)

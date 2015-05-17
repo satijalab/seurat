@@ -201,7 +201,7 @@ setMethod("setup","seurat",
             object@data=object@raw.data[,cells.use]
             
             #to save memory downstream, especially for large object
-            if (!(save.raw)) object@raw.data=NULL;
+            if (!(save.raw)) object@raw.data=data.frame();
             num.cells=apply(object@data,1,humpCt,min=object@is.expr)
             genes.use=names(num.cells[which(num.cells>min.cells)])
             object@data=object@data[genes.use,]
@@ -297,7 +297,7 @@ setMethod("run_tsne", "seurat",
             
             #data.dist=as.dist(mahalanobis.dist(data.use))
             if (do.fast) {
-              set.seed(k.seed); data.tsne=Rtsne(as.matrix(data.use),dims=dim_embed...)
+              set.seed(k.seed); data.tsne=Rtsne(as.matrix(data.use),dims=dim_embed,...)
               data.tsne=data.frame(data.tsne$Y)
             }
             if (!(do.fast)) {
@@ -431,12 +431,14 @@ setMethod("average.pca", "seurat",
             data.all=data.frame(row.names = colnames(object@pca.rot))
             for(i in levels(ident.use)) {
               temp.cells=which.cells(object,i)
-              if (length(temp.cells)==1) data.temp=(object@pca.rot[temp.cells,])
+              if (length(temp.cells)==1) {
+                data.temp=apply(data.frame((object@pca.rot[c(temp.cells,temp.cells),])),2,mean)
+              }
               if (length(temp.cells)>1) data.temp=apply(object@pca.rot[temp.cells,],2,mean)
               data.all=cbind(data.all,data.temp)
               colnames(data.all)[ncol(data.all)]=i
             }
-            colnames(data.all)=levels(ident.use)
+            #colnames(data.all)=levels(ident.use)
             return((data.all))
           }
 )
@@ -465,8 +467,6 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
   if (do.balanced) {
     num.genes=round(num.genes/2)
     sx=dim_scores[order(dim_scores[,code]),]
-    print(dim(sx))
-    print("hi")
     genes.1=(rownames(sx[1:num.genes,]))
     genes.2=(rownames(sx[(nrow(sx)-num.genes):nrow(sx),]))
     return(c(genes.1,genes.2)) 
@@ -508,7 +508,6 @@ setMethod("print.pca", "seurat",
             genes.print.use=round(genes.print/2)
             for(i in pcs.print) {
               code=paste("PC",i,sep="")
-              print(use.full)
               sx=pcTopGenes(object,i,genes.print.use*2,use.full,TRUE)
               print(code)
               print((sx[1:genes.print.use]))
@@ -818,7 +817,7 @@ setMethod("marker.test", "seurat",
             genes.use=ainb(genes.diff,rownames(data.use))
             to.return=marker.auc.test(object@data[,cells.1],object@data[,cells.2],genes.use)
             to.return=to.return[rev(order(abs(to.return$myAUC-0.5))),]
-            to.return$power=abs(to.return$myAUC-0.5)
+            to.return$power=abs(to.return$myAUC-0.5)*2
             return(to.return)
           } 
 )
@@ -1264,7 +1263,7 @@ setMethod("feature.heatmap", "seurat",
             dim.code="PC"
             par(mfrow=c(length(features.plot),length(idents.use)))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=fetch.data(object,dim.codes)
+            data.plot=data.frame(fetch.data(object,dim.codes))
             
             
             
@@ -1275,8 +1274,8 @@ setMethod("feature.heatmap", "seurat",
             data.plot$pt.size=pt.size
             data.use=data.frame(t(fetch.data(object,features.plot)))
             data.scale=apply(t(data.use),2,function(x)(factor(cut(x,breaks=length(cols.use),labels=1:length(cols.use),ordered=TRUE))))
-            data.plot.all=cbind(data.plot,data.scale)
-            data.reshape=melt(data.plot.all,id = colnames(data.plot))
+            data.plot.all=data.frame(cbind(data.plot,data.scale))
+            data.reshape=melt((data.plot.all),id = colnames(data.plot))
             data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
             p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
             p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
@@ -1308,11 +1307,7 @@ setMethod("ica.plot", "seurat",
           }
 )
 
-<<<<<<< .merge_file_83U8k4
-setGeneric("pca.plot", function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=4,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",pt.shape=NULL) standardGeneric("pca.plot"))
-setMethod("pca.plot", "seurat", 
-          function(object,pc.1=1,pc.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,reduction.use="pca",pt.shape=NULL) {
-=======
+
 setGeneric("pca.plot", function(object,...) standardGeneric("pca.plot"))
 setMethod("pca.plot", "seurat", 
           function(object,...) {
@@ -1328,10 +1323,9 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,color.by="ident") standardGeneric("dim.plot"))
+setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,color.by="ident") standardGeneric("dim.plot"))
 setMethod("dim.plot", "seurat", 
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,color.by="ident") {
->>>>>>> .merge_file_1s2YIY
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,color.by="ident") {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
@@ -1529,7 +1523,7 @@ setMethod("pcHeatmap","seurat",
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
             vline.use=NULL;
-            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use)
+            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,...)
             if (do.return) {
               return(data.use)
             }
