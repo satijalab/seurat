@@ -39,7 +39,7 @@ exportMethods(
     "jackStrawPlot",
     "map.cell",
     "marker.test",
-    "Mclust_dimension",
+    "DBclust_dimension",
     "mean.var.plot",
     "pca",
     "pca.plot",

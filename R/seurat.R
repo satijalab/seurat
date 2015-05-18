@@ -75,7 +75,7 @@ setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",r
 setMethod("find_all_markers","seurat",
           function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
             ident.use=object@ident
-            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
+            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
             genes.de=list()
             for(i in 1:length(idents.all)) {
@@ -1285,12 +1285,12 @@ setMethod("feature.heatmap", "seurat",
 )
 
 
-setGeneric("tsne.plot", function(object,do.label=FALSE,pt.size=4,...) standardGeneric("tsne.plot"))
+setGeneric("tsne.plot", function(object,do.label=FALSE,label.pt.size=1,...) standardGeneric("tsne.plot"))
 setMethod("tsne.plot", "seurat", 
-          function(object,do.label=FALSE,pt.size=4,...) {
+          function(object,do.label=FALSE,label.pt.size=1,...) {
             if (do.label==TRUE) {
               cols.use=rainbow(length(levels(object@ident))); cols.use[1]="lightgrey"
-              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=pt.size/4)
+              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=label.pt.size)
               k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
               points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
             }
@@ -1387,9 +1387,9 @@ setMethod("spatial.de", "seurat",
 )
 
 
-setGeneric("Mclust_dimension", function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) standardGeneric("Mclust_dimension"))
-setMethod("Mclust_dimension", "seurat", 
-          function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) {
+setGeneric("DBclust_dimension", function(object,dim.1=1,dim.2=2,cells.use=NULL,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) standardGeneric("DBclust_dimension"))
+setMethod("DBclust_dimension", "seurat", 
+          function(object,dim.1=1,dim.2=2,cells.use=NULL,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
@@ -1399,7 +1399,7 @@ setMethod("Mclust_dimension", "seurat",
             
             to.set=as.numeric(data.mclust$cluster+1)
             data.names=names(object@ident)
-            object@data.info[data.names,"m"]=to.set
+            object@data.info[data.names,"DBclust"]=to.set
             if (set.ident) {
               object@ident=factor(to.set); names(object@ident)=data.names;               
             }
@@ -1468,14 +1468,15 @@ setMethod("pca.sig.genes", "seurat",
 
 same=function(x) return(x)
 
-setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,...) standardGeneric("doHeatMap"))
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,...) standardGeneric("doHeatMap"))
 
 setMethod("doHeatMap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
             cells.ident=object@ident[cells.use]
+            cells.ident=factor(cells.ident,labels = ainb(levels(cells.ident),cells.ident))
             if (order.by.ident) {
               cells.use=cells.use[order(cells.ident)]
             }
@@ -1486,7 +1487,14 @@ setMethod("doHeatMap","seurat",
             if (draw.line) {
               colsep.use=cumsum(table(cells.ident))
             }
-            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
+            if(slim.col.label && order.by.ident) {
+              col.lab=rep("",length(cells.use))
+              col.lab[round(cumsum(table(cells.ident))-table(cells.ident)/2)+1]=levels(cells.ident)
+              heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=0.2+1/log10(length(unique(cells.ident))),...)
+            }
+            else {
+              heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
+            }
             if (do.return) {
               return(data.use)
             }
@@ -1791,9 +1799,9 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 
 
 #Contributed by Omri Wuertzel
-setGeneric("jackStrawPlot", function(object,plot.lim=0.8,PCs=1:5, nCol=3, score.thresh=1e-5)  standardGeneric("jackStrawPlot"))
+setGeneric("jackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("jackStrawPlot"))
 setMethod("jackStrawPlot","seurat",
-          function(object,plot.lim=0.8,PCs=1:5, nCol=3, score.thresh=1e-5) {
+          function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3) {
             pAll=object@jackStraw.empP
             pAll <- pAll[,PCs, drop=F]
             pAll$Contig <- rownames(pAll)
@@ -1807,7 +1815,7 @@ setMethod("jackStrawPlot","seurat",
               
               #pc.score=mean(q$y[which(q$x <=score.thresh)])
               pc.score=prop.test(c(length(which(pAll[, i] <= score.thresh)), floor(nrow(pAll) * score.thresh)), c(nrow(pAll), nrow(pAll)))$p.val
-              
+              if (length(which(pAll[, i] <= score.thresh))==0) pc.score=1
               
               if(is.null(score.df))
                 score.df <- data.frame(PC=paste("PC",i, sep=""), Score=pc.score)
@@ -1821,7 +1829,7 @@ setMethod("jackStrawPlot","seurat",
                 qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep="")))
             }
             
-            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,0.8) + ylim(0,0.8) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
+            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
             gpp <- facet_wrap_labeller(gp, labels = paste(score.df$PC, sprintf("%1.3g", score.df$Score))) 
             return(gpp)
           })
@@ -1932,9 +1940,9 @@ setMethod("jackStrawMC","seurat",
           }
 )
 
-setGeneric("jackStraw", function(object,num.pc=10,num.replicate=100,prop.freq=0.01,do.print=FALSE)  standardGeneric("jackStraw"))
+setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE)  standardGeneric("jackStraw"))
 setMethod("jackStraw","seurat",
-          function(object,num.pc=10,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
+          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
             md.x=as.matrix(object@pca.x)
