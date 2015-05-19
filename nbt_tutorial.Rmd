@@ -5,6 +5,7 @@ output: html_document
 
 ```{r setup, include=FALSE,cache=FALSE}
 library(Seurat)
+load_all("~/seurat/")
 ```
 
 ### Setup Seurat Object
@@ -68,6 +69,7 @@ length(nbt@var.genes)
 ```{r,fig.height=5,fig.width=7,cache=TRUE}
 
 # Run a PCA using the variable genes as input (to change the input gene set, use the pc.genes argument)
+# For example, try running PCA on all genes - i.e. , nbt=pca(nbt,pc.genes=rownames(nbt@data)) - which does not perform as well
 nbt=pca(nbt,do.print=FALSE)
 pca.plot(nbt,1,2,pt.size = 2)
 
@@ -108,7 +110,7 @@ jackStrawPlot(nbt,PCs = 1:12)
 nbt=project.pca(nbt,do.print=FALSE)
 
 # Visualize the full projected PCA, which now includes new genes which were not previously included (use.full=TRUE)
-pcHeatmap(nbt,pc.use = 1,use.full = TRUE,do.balanced = TRUE)
+pcHeatmap(nbt,pc.use = 1,use.full = TRUE,do.balanced = TRUE,remove.key = TRUE)
 
 # Choose significant genes for PC1-9, allow each PC to contribute a max of 200 genes (to avoid one PC swamping the analysis)
 nbt.sig.genes=pca.sig.genes(nbt,1:9,pval.cut = 1e-5,max.per.pc = 200)
@@ -128,15 +130,13 @@ jackStrawPlot(nbt,PCs = 1:15)
 ###Run Non-linear dimensional reduction (tSNE)
 
 ```{r,fig.height=5,fig.width=7,cache=TRUE}
-# As a demonstration, we first run the tSNE using the input of our significant gene set, and get poor separation
-nbt=run_tsne(nbt,genes.use = nbt.sig.genes,max_iter=2000)
-tsne.plot(nbt,pt.size = 1)
-
-# Instead if we run tSNE using our 11 significant PCs as input (spectral tSNE), we get distinct point clouds 
+# When we run tSNE using our 11 significant PCs as input (spectral tSNE), we get distinct point clouds 
 # All cell types cluster togther, with the exception of GW16/21 (gestational week 16/21 neurons)
 # These cluster separately by maturation state and subtype (see part 2) 
 nbt=run_tsne(nbt,dims.use = 1:11,max_iter=2000)
 tsne.plot(nbt,pt.size = 1)
+
+# You can also run tSNE at the gene level (set genes.use instead of dims.use), but this fails to acheive clean separation between cell types
 ```
 
 ***

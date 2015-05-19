@@ -117,6 +117,30 @@ custom.dist <- function(my.mat, my.function,...) {
 }
 
 
+#' Phylogenetic Analysis of Identity Classes
+#'
+#' Constructs a phylogenetic tree relating the 'average' cell from each
+#' identity class. Tree is estimated based on a distance matrix constructed in
+#' either gene expression space or PCA space.
+#'
+#' Note that the tree is calculated for an 'average' cell, so gene expression
+#' or PC scores are averaged across all cells in an identity class before the
+#' tree is constructed.
+#' 
+#' @param object Seurat object
+#' @param genes.use Genes to use for the analysis. Default is the set of
+#' variable genes (object@@var.genes). Assumes pcs.use=NULL (tree calculated in
+#' gene expression space)
+#' @param pcs.use If set, tree is calculated in PCA space, using the
+#' eigenvalue-weighted euclidean distance across these PC scores.
+#' @param do.plot Plot the resulting phylogenetic tree
+#' @param do.reorder Re-order identity classes (factor ordering), according to
+#' position on the tree. This groups similar classes together which can be
+#' helpful, for example, when drawing violin plots.
+#' @param reorder.numeric Re-order identity classes according to position on
+#' the tree, assigning a numeric value ('1' is the leftmost node)
+#' @return A Seurat object where the cluster tree is stored in
+#' object@@cluster.tree[[1]]
 setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
 setMethod("buildClusterTree","seurat",
           function(object,genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
@@ -153,6 +177,12 @@ setMethod("buildClusterTree","seurat",
           }
 )
 
+#' Plot phylogenetic tree
+#'
+#' Plots previously computed phylogenetic tree (from buildClusterTree)
+#'
+#' @param object Seurat object
+#' @return Plots dendogram (must be precomputed using buildClusterTree), returns no value
 setGeneric("plotClusterTree", function(object) standardGeneric("plotClusterTree"))
 setMethod("plotClusterTree","seurat",
           function(object) {
@@ -177,6 +207,23 @@ setMethod("reorder.by.tree","seurat",
           }
 )
 
+#' Visualize expression/dropout curve
+#'
+#' Plot the probability of detection vs average expression of a gene.
+#'
+#' Assumes that this 'noise' model has been precomputed with calcNoiseModels
+#'
+#'
+#' @param object Seurat object
+#' @param cell.ids Cells to use
+#' @param col.use Color code or name
+#' @param lwd.use Line width for curve
+#' @param do.new Create a new plot (default) or add to existing
+#' @param x.lim Maximum value for X axis
+#' @param \dots Additional arguments to pass to lines function
+#' @return
+#'
+#' Returns no value, displays a plot
 setGeneric("plotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("plotNoiseModel"))
 setMethod("plotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
@@ -258,6 +305,26 @@ setMethod("subsetData","seurat",
           }         
 )
 
+#' Project Principal Components Analysis onto full dataset
+#'
+#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
+#' projects this onto the entire dataset (all genes). Note that the cell
+#' loadings (PCA rotation matrices) remains unchanged, but now there are gene
+#' scores for all genes.
+#'
+#' %% ~~ If necessary, more details than the description above ~~
+#'
+#' @param object Seurat object
+#' @param do.print Print top genes associated with the projected PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store (default is 30)
+#' @param genes.print Number of genes with highest/lowest loadings to print for
+#' each PC
+#' @param replace.pc Replace the existing PCA (overwite object@@pca.x), not done
+#' by default.
+#' @param do.center Center the dataset prior to projection (should be set to TRUE)
+#' @return Returns Seurat object with the projected PCA values in
+#' object@@pca.x.full
 setGeneric("project.pca", function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) standardGeneric("project.pca"))
 setMethod("project.pca", "seurat", 
           function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) {
@@ -328,7 +395,24 @@ setMethod("add_tsne", "seurat",
           }
 )
 
-
+#' Run Independent Component Analysis on gene expression
+#'
+#' Run fastICA algorithm for ICA dimensionality reduction
+#'
+#'
+#' @param object Seurat object
+#' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the ICs
+#' @param ics.print Number of ICs to print genes for
+#' @param ics.store Number of ICs to store
+#' @param genes.print Number of genes to print for each IC
+#' @param use.imputed Run ICA on imputed values (FALSE by default)
+#' @param seed.use Random seed to use for fastICA
+#' @param \dots Additional arguments to be passed to fastICA
+#' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
+#' gene projection matrix (object@@ica.x). The ICA object itself is stored in
+#' object@@ica.obj[[1]]
 setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) standardGeneric("ica"))
 setMethod("ica", "seurat", 
           function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
@@ -366,6 +450,22 @@ setMethod("ica", "seurat",
           }
 )
 
+#' Run Principal Component Analysis on gene expression
+#' 
+#' Run prcomp for PCA dimensionality reduction
+#' 
+#' @param object Seurat object
+#' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store
+#' @param genes.print Number of genes to print for each PC
+#' @param use.imputed Run PCA on imputed values (FALSE by default)
+#' @param \dots Additional arguments to be passed to prcomp
+#' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
+#' gene projection matrix (object@@pca.x). The PCA object itself is stored in
+#' object@@pca.obj[[1]]
 setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) standardGeneric("pca"))
 setMethod("pca", "seurat", 
           function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) {
@@ -383,12 +483,7 @@ setMethod("pca", "seurat",
             pcs.print=min(pcs.print,ncol(pc.data))
             object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
             object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
-            
-            #pca.svd=svd(cov(pc.data))
-            #object@pca.x=data.frame((pc.data)%*%pca.svd$u[,1:pcs.store])
-            #object@pca.rot=data.frame(pca.svd$u[,1:pcs.store])
-            #colnames(object@pca.x)=paste("PC",1:pcs.store,sep=""); colnames(object@pca.rot)=paste("PC",1:pcs.store,sep="")
-            #rownames(object@pca.rot)=colnames(pc.data)
+
             
             if (do.print) {
               pc_scores=object@pca.x
@@ -408,6 +503,15 @@ setMethod("pca", "seurat",
           }
 )
 
+#' Probability of detection by identity class
+#'
+#' For each gene, calculates the probability of detection for each identity
+#' class.
+#'
+#'
+#' @param object Seurat object
+#' @param thresh.min Minimum threshold to define 'detected' (log-scale)
+#' @return Returns a matrix with genes as rows, identity classes as columns.
 setGeneric("cluster.alpha", function(object,thresh.min=0) standardGeneric("cluster.alpha"))
 setMethod("cluster.alpha", "seurat", 
           function(object,thresh.min=0) {
@@ -424,6 +528,12 @@ setMethod("cluster.alpha", "seurat",
           }
 )
 
+#' Average PCA scores by identity class
+#' 
+#' Returns the PCA scores for an 'average' single cell in each identity class
+#' 
+#' @param object Seurat object
+#' @return Returns a matrix with genes as rows, identity classes as columns 
 setGeneric("average.pca", function(object) standardGeneric("average.pca"))
 setMethod("average.pca", "seurat", 
           function(object) {
@@ -443,6 +553,15 @@ setMethod("average.pca", "seurat",
           }
 )
 
+#' Averaged gene expression by identity class
+#'
+#' Returns gene expression for an 'average' single cell in each identity class
+#'
+#' Output is in log-space, but averaging is done in non-log space.
+#'
+#' @param object Seurat object
+#' @param genes.use Genes to analyze. Default is all genes.
+#' @return Returns a matrix with genes as rows, identity classes as columns.
 setGeneric("average.expression", function(object,genes.use=NULL) standardGeneric("average.expression"))
 setMethod("average.expression", "seurat", 
           function(object,genes.use=NULL) {
@@ -520,6 +639,18 @@ setMethod("print.pca", "seurat",
           }
 )
 
+#' Access cellular data
+#'
+#' Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
+#' of cells in a Seurat object
+#'
+#' 
+#' @param object Seurat object
+#' @param vars.all List of all variables to fetch
+#' @param cells.use Cells to collect data for (default is all cells)
+#' @param use.imputed For gene expression, use imputed values
+#' @param use.scaled For gene expression, use scaled values
+#' @return A data frame with cells as rows and cellular data as columns
 setGeneric("fetch.data",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) standardGeneric("fetch.data"))
 setMethod("fetch.data","seurat",
           function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
@@ -722,6 +853,27 @@ setMethod("find.markers.node", "seurat",
           } 
 )
 
+#' Gene expression markers of identity classes
+#' 
+#' Finds markers (differentially expressed genes) for identity classes
+#' 
+#' 
+#' @param object Seurat object
+#' @param ident.1 Identity class to define markers for
+#' @param ident.2 A second identity class for comparison. If NULL (default) -
+#' use all other cells for comparison.
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#' 
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @param test.use Denotes which test to use. Seurat currently implements
+#' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
+#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
+#' as in Trapnell et al., Nature Biotech, 2014)
+#' @return Matrix containing a ranked list of putative markers, and associated
+#' identistics (p-values, ROC score, etc.)
 setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers"))
 setMethod("find.markers", "seurat",
           function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod") {
@@ -764,6 +916,21 @@ setMethod("find.markers", "seurat",
           } 
 )
 
+#' Likelihood ratio test for zero-inflated data
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' the LRT model proposed in Mcdavid et al, Bioinformatics, 2011
+#' 
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#' 
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
 setGeneric("diffExp.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diffExp.test"))
 setMethod("diffExp.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
@@ -794,6 +961,20 @@ setMethod("tobit.test", "seurat",
           } 
 )
 
+#' Identify potential genes associated with batch effects
+#' 
+#' Test for genes whose expression value is strongly predictive of batch (based
+#' on ROC classification). Important note: Assumes that the 'batch' of each
+#' cell is assigned to the cell's identity class (will be improved in a future
+#' release)
+#' 
+#' @param object Seurat object
+#' @param idents.use Batch names to test
+#' @param genes.use Gene list to test
+#' @param auc.cutoff Minimum AUC needed to qualify as a 'batch gene'
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) in any one batch
+#' @return Returns a list of genes that are strongly correlated with batch.
 setGeneric("batch.gene", function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) standardGeneric("batch.gene"))
 setMethod("batch.gene", "seurat",
           function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) {
@@ -812,6 +993,29 @@ setMethod("batch.gene", "seurat",
           } 
 )
 
+#' ROC-based marker discovery
+#'
+#' Identifies 'markers' of gene expression using ROC analysis. For each gene,
+#' evaluates (using AUC) a classifier built on that gene alone, to classify
+#' between two groups of cells.
+#'
+#' An AUC value of 1 means that expression values for this gene alone can
+#' perfectly classify the two groupings (i.e. Each of the cells in cells.1
+#' exhibit a higher level than each of the cells in cells.2). An AUC value of 0
+#' also means there is perfect classification, but in the other direction. A
+#' value of 0.5 implies that the gene has no predictive power to classify the
+#' two groups.
+#'
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#'
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
+#' putative differentially expressed genes.
 setGeneric("marker.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("marker.test"))
 setMethod("marker.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
@@ -829,6 +1033,21 @@ setMethod("marker.test", "seurat",
           } 
 )
 
+#' Differential expression testing using Student's t-test
+#'
+#' Identify differentially expressed genes between two groups of cells using
+#' the Student's t-test
+#' 
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#' 
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
 setGeneric("diff.t.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diff.t.test"))
 setMethod("diff.t.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
@@ -984,6 +1203,20 @@ setMethod("map.cell", "seurat",
           } 
 )
 
+#' Get cell centroids
+#'
+#' Calculate the spatial mapping centroids for each cell, based on previously
+#' calculated mapping probabilities for each bin.
+#'
+#' Currently, Seurat assumes that the tissue of interest has an 8x8 bin
+#' structure. This will be broadened in a future release.
+#' 
+#' @param object Seurat object
+#' @param cells.use Cells to calculate centroids for (default is all cells)
+#' @param get.exact Get exact centroid (Default is TRUE). If FALSE, identify
+#' the single closest bin.
+#' @return Data frame containing the x and y coordinates for each cell
+#' centroid.
 setGeneric("get.centroids", function(object, cells.use=NULL,get.exact=TRUE) standardGeneric("get.centroids")) 
 setMethod("get.centroids", "seurat",
           function(object, cells.use=NULL,get.exact=TRUE) {            
@@ -1003,6 +1236,18 @@ setMethod("get.centroids", "seurat",
           }
 )
 
+#' Quantitative refinement of spatial inferences
+#'
+#' Refines the initial mapping with more complex models that allow gene
+#' expression to vary quantitatively across bins (instead of 'on' or 'off'),
+#' and that also considers the covariance structure between genes.
+#'
+#' Full details given in spatial mapping manuscript.
+#'
+#' @param object Seurat object
+#' @param genes.use Genes to use to drive the refinement procedure.
+#' @return Seurat object, where mapping probabilities for each bin are stored
+#' in object@@final.prob
 setGeneric("refined.mapping",  function(object,genes.use) standardGeneric("refined.mapping"))
 setMethod("refined.mapping", "seurat",
           function(object,genes.use) {
@@ -1019,12 +1264,21 @@ setMethod("refined.mapping", "seurat",
           } 
 )
 
-
-setGeneric("initial.mapping", function(object,cells.use=NULL,do.plot=FALSE,safe=FALSE) standardGeneric("initial.mapping"))
+#' Infer spatial origins for single cells
+#'
+#' Probabilistically maps single cells based on (imputed) gene expression
+#' estimates, a set of mixture models, and an in situ spatial reference map.
+#'
+#'
+#' @param object Seurat object
+#' @param cells.use Which cells to map
+#' @return Seurat object, where mapping probabilities for each bin are stored
+#' in object@@final.prob
+setGeneric("initial.mapping", function(object,cells.use=NULL) standardGeneric("initial.mapping"))
 setMethod("initial.mapping", "seurat",
-          function(object,cells.use=NULL,do.plot=FALSE,safe=FALSE) {
+          function(object,cells.use=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
-            every.prob=sapply(cells.use,function(x)map.cell(object,x,do.plot=FALSE,safe.use=safe))
+            every.prob=sapply(cells.use,function(x)map.cell(object,x,FALSE,FALSE))
             object@final.prob=data.frame(every.prob)
             rownames(object@final.prob)=paste("bin.",rownames(object@final.prob),sep="")
             return(object)
@@ -1070,6 +1324,24 @@ setMethod("calc.insitu", "seurat",
           } 
 )
 
+#' Build mixture models of gene expression
+#'
+#' Models the imputed gene expression values as a mixture of gaussian
+#' distributions. For a two-state model, estimates the probability that a given
+#' cell is in the 'on' or 'off' state for any gene. Followed by a greedy
+#' k-means step where cells are allowed to flip states based on the overall
+#' structure of the data (see Manuscript for details)
+#' 
+#' 
+#' @param object Seurat object
+#' @param gene Gene to fit
+#' @param do.k Number of modes for the mixture model (default is 2)
+#' @param num.iter Number of 'greedy k-means' iterations (default is 1)
+#' @param do.plot Plot mixture model results
+#' @param start.pct Initial estimates of the percentage of cells in the 'on'
+#' state (usually estimated from the in situ map)
+#' @return A Seurat object, where the posterior of each cell being in the 'on'
+#' or 'off' state for each gene is stored in object@@mix.probs
 setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
 setMethod("fit.gene.k", "seurat",
           function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) {
@@ -1165,6 +1437,23 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
   return(lasso.fits)  
 }
 
+#' Calculate imputed expression values
+#'
+#' Uses L1-constrained linear models (LASSO) to impute single cell gene
+#' expression values.
+#'
+#'
+#' @param object Seurat object
+#' @param genes.use A vector of genes (predictors) that can be used for
+#' building the LASSO models.
+#' @param genes.fit A vector of genes to impute values for
+#' @param s.use Maximum number of steps taken by the algorithm (lower values
+#' indicate a greater degree of smoothing)
+#' @param do.print Print progress (output the name of each gene after it has
+#' been imputed).
+#' @param gram The use.gram argument passed to lars
+#' @return Returns a Seurat object where the imputed values have been added to
+#' object@@data
 setGeneric("addImputedScore", function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) standardGeneric("addImputedScore"))
 setMethod("addImputedScore", "seurat",
           function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) {
@@ -1237,6 +1526,28 @@ setMethod("calcNoiseModels","seurat",
           }
 )  
 
+#' Visualize 'features' on a dimensional reduction plot
+#' 
+#' Colors single cells on a dimensional reduction plot according to a 'feature'
+#' (i.e. gene expression, PC scores, number of genes detected, etc.)
+#' 
+#' To determine the color, the feature values across all cells are placed into
+#' discrete bins, and then assigned a color based on cols.use. The number of
+#' bins is determined by the number of colors in cols.use
+#' 
+#' @param object Seurat object
+#' @param features.plot Vector of features to plot
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+#' @param cols.use Ordered vector of colors to use for plotting. Default is
+#' heat.colors(10).
+#' @param pch.use Pch for plotting
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param nCol Number of columns to use when plotting multiple features.
+#' @return No return value, only a graphical output
 setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) standardGeneric("feature.plot"))
 setMethod("feature.plot", "seurat", 
           function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) {
@@ -1266,7 +1577,29 @@ setMethod("feature.plot", "seurat",
           }
 )
 
-
+#' Vizualization of multiple features
+#'
+#' Similar to feature.plot, however, also splits the plot by visualizing each
+#' identity class separately.
+#'
+#' Particularly useful for seeing if the same groups of cells co-exhibit a
+#' common feature (i.e. co-express a gene), even within an identity class. Best
+#' understood by example.
+#'
+#'
+#' @param object Seurat object
+#' @param features.plot Vector of features to plot
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param idents.use Which identity classes to display (default is all identity
+#' classes)
+#' @param pt.size Adjust point size for plotting
+#' @param cols.use Ordered vector of colors to use for plotting. Default is
+#' heat.colors(10).
+#' @param pch.use Pch for plotting
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @return No return value, only a graphical output
 setGeneric("feature.heatmap", function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") standardGeneric("feature.heatmap"))
 setMethod("feature.heatmap", "seurat", 
           function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=1,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") {
@@ -1334,9 +1667,32 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,group.by="ident") standardGeneric("dim.plot"))
+#' Dimensional reduction plot
+#'
+#' Graphs the output of a dimensional reduction technique (PCA by default).
+#' Cells are colored by their identity class.
+#'
+#' %% ~~ If necessary, more details than the description above ~~
+#' 
+#' @param object Seurat object
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+#' @param do.return Return a ggplot2 object (default : FALSE)
+#' @param do.bare Do only minimal formatting (default : FALSE)
+#' @param cols.use Vector of colors, each color corresponds to an identity
+#' class. By default, ggplot assigns colors.
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param pt.shape If NULL, all points are circles (default). You can specify any 
+#' cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.
+#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
+#' graphical output.
+setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) standardGeneric("dim.plot"))
 setMethod("dim.plot", "seurat", 
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,group.by="ident") {
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
@@ -1453,7 +1809,20 @@ setMethod("Kclust_dimension", "seurat",
           }
 )
 
-
+#' Significant genes from a PCA
+#'
+#' Returns a set of genes, based on the jackStraw analysis, that have
+#' statistically significant associations with a set of PCs.
+#'
+#'
+#' @param object Seurat object
+#' @param pcs.use PCS to use.
+#' @param pval.cut P-value cutoff
+#' @param use.full Use the full list of genes (from the projected PCA). Assumes
+#' that project.pca has been run. Default is TRUE
+#' @param max.per.pc Maximum number of genes to return per PC. Used to avoid genes from one PC dominating the entire analysis.
+#' @return A vector of genes whose p-values are statistically significant for
+#' at least one of the given PCs.
 setGeneric("pca.sig.genes", function(object,pcs.use,pval.cut=0.1,use.full=TRUE,max.per.pc=NULL) standardGeneric("pca.sig.genes"))
 setMethod("pca.sig.genes", "seurat", 
           function(object,pcs.use,pval.cut=0.1,use.full=TRUE,max.per.pc=NULL) {
@@ -1479,6 +1848,32 @@ setMethod("pca.sig.genes", "seurat",
 
 same=function(x) return(x)
 
+#' Gene expression heatmap
+#'
+#' Draws a heatmap of single cell gene expression using the heatmap.2 function.
+#' 
+#' @param object Seurat object
+#' @param cells.use Cells to include in the heatmap (default is all cells)
+#' @param genes.use Genes to include in the heatmap (ordered)
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param draw.line Draw vertical lines delineating cells in different identity
+#' classes.
+#' @param do.return Default is FALSE. If TRUE, return a matrix of scaled values
+#' which would be passed to heatmap.2
+#' @param order.by.ident Order cells in the heatmap by identity class (default
+#' is TRUE). If FALSE, cells are ordered based on their order in cells.use
+#' @param col.use Color palette to use
+#' @param slim.col.label if (order.by.ident==TRUE) then instead of displaying 
+#' every cell name on the heatmap, display only the identity class name once 
+#' for each group
+#' @param group.by If (order.by.ident==TRUE) default,  you can group cells in 
+#' different ways (for example, orig.ident)
+#' @param remove.key Removes the color key from the plot.
+#' @param \dots Additional parameters to heatmap.2. Common examples are cexRow
+#' and cexCol, which set row and column text sizes
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
 setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
 
 setMethod("doHeatMap","seurat",
@@ -1554,6 +1949,36 @@ setMethod("pcHeatmap","seurat",
 )
 
 
+#' K-Means Clustering
+#' 
+#' Perform k=means clustering on both genes and single cells
+#' 
+#' K-means and heatmap are calculated on object@@scale.data
+#' 
+#' @param object Seurat object
+#' @param genes.use Genes to use for clustering
+#' @param k.genes K value to use for clustering genes
+#' @param k.cells K value to use for clustering cells (default is NULL, cells
+#' are not clustered)
+#' @param k.seed Random seed
+#' @param do.plot Draw heatmap of clustered genes/cells (default is TRUE)
+#' @param data.cut Clip all z-scores to have an absolute value below this.
+#' Reduces the effect of huge outliers in the data.
+#' @param k.cols Color palette for heatmap
+#' @param pc.row.order Order gene clusters based on the average PC score within
+#' a cluster. Can be useful if you want to visualize clusters, for example,
+#' based on their average score for PC1.
+#' @param pc.col.order Order cell clusters based on the average PC score within
+#' a cluster
+#' @param rev.pc.order Use the reverse PC ordering for gene and cell clusters
+#' (since the sign of a PC is arbitrary)
+#' @param use.imputed Cluster imputed values (default is FALSE)
+#' @param set.ident If clustering cells (so k.cells>0), set the cell identity
+#' class to its K-means cluster (default is TRUE)
+#' @param \dots Additional parameters passed to doHeatMap for plotting
+#' @return Seurat object where the k-means results for genes is stored in
+#' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
+#' object@@kmeans.col[[1]]
 setGeneric("doKMeans", function(object,genes.use=NULL,k.genes=NULL,k.cells=NULL,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
                                 pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("doKMeans"))
 
@@ -1784,7 +2209,21 @@ setMethod("vlnPlot","seurat",
           }
 )  
 
-
+#' Add Metadata
+#'
+#' Adds additional data for single cells to the Seurat object. Can be any piece
+#' of information associated with a cell (examples include read depth,
+#' alignment rate, experimental batch, or subpopulation identity). The
+#' advantage of adding it to the Seurat object is so that it can be
+#' analyzed/visualized using fetch.data, vlnPlot, genePlot, subsetData, etc.
+#'
+#'
+#' @param object Seurat object
+#' @param metadata Data frame where the row names are cell names (note : these
+#' must correspond exactly to the items in object@@cell.names), and the columns
+#' are additional metadata items.
+#' @return Seurat object where the additional metadata has been added as
+#' columns in object@@data.info
 setGeneric("addMetaData", function(object,metadata)  standardGeneric("addMetaData"))
 setMethod("addMetaData","seurat",
           function(object,metadata) {
@@ -1814,7 +2253,29 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 }
 
 
-#Contributed by Omri Wuertzel
+
+#' JackStraw Plot
+#'
+#' Plots the results of the JackStraw analysis for PCA significance. For each
+#' PC, plots a QQ-plot comparing the distribution of p-values for all genes
+#' across each PC, compared with a uniform distribution. Also determines a
+#' p-value for the overall significance of each PC (see Details).
+#'
+#' Significant PCs should show a p-value distribution (black curve) that is 
+#' strongly skewed to the left compared to the null distribution (dashed line)
+#' The p-value for each PC is based on a proportion test comparing the number
+#' of genes with a p-value below a particular threshold (score.thresh), compared with the
+#' proportion of genes expected under a uniform distribution of p-values. 
+#'
+#' @param object Seurat plot
+#' @param plot.lim Y-axis maximum on each QQ plot.
+#' @param PCs Which PCs to examine
+#' @param nCol Number of columns
+#' @param score.thresh Threshold to use for the proportion test of PC
+#' significance (see Details)
+#' @return No value returned, just the PC plots.
+#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#' 
 setGeneric("jackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("jackStrawPlot"))
 setMethod("jackStrawPlot","seurat",
           function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3) {
@@ -1850,6 +2311,24 @@ setMethod("jackStrawPlot","seurat",
             return(gpp)
           })
 
+#' Scatter plot of single cell data
+#'
+#' Creates a scatter plot of two features (typically gene expression), across a
+#' set of single cells. Cells are colored by their identity class.
+#' 
+#' @param object Seurat object
+#' @param gene1 First feature to plot. Typically gene expression but can also
+#' be metrics, PC scores, etc. - anything that can be retreived with fetch.data
+#' @param gene2 Second feature to plot.
+#' @param cell.ids Cells to include on the scatter plot.
+#' @param col.use Colors to use for identity class plotting.
+#' @param pch.use Pch argument for plotting
+#' @param cex.use Cex argument for plotting
+#' @param use.imputed Use imputed values for gene expression (Default is FALSE)
+#' @param do.ident False by default. If TRUE,
+#' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
+#' @param \dots Additional arguments to be passed to plot.
+#' @return No return, only graphical output
 setGeneric("genePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
                                 pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...)  standardGeneric("genePlot"))
 setMethod("genePlot","seurat",
@@ -1907,6 +2386,24 @@ setMethod("geneScorePlot","seurat",
           }
 )
 
+#' Cell-cell scatter plot
+#'
+#' Creates a plot of scatter plot of genes across two single cells
+#' 
+#' @param object Seurat object
+#' @param cell1 Cell 1 name (can also be a number, representing the position in
+#' object@@cell.names)
+#' @param cell2 Cell 2 name (can also be a number, representing the position in
+#' object@@cell.names)
+#' @param gene.ids Genes to plot (default, all genes)
+#' @param col.use Colors to use for the points
+#' @param nrpoints.use Parameter for smoothScatter
+#' @param pch.use Point symbol to use
+#' @param cex.use Point size
+#' @param do.ident FALSE by default. If TRUE, allows you to click on individual
+#' points to reveal gene names (hit ESC to stop)
+#' @param \dots Additional arguments to pass to smoothScatter
+#' @return No return value (plots a scatter plot)
 setGeneric("cellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...)  standardGeneric("cellPlot"))
 setMethod("cellPlot","seurat",
           function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...) {
@@ -1956,6 +2453,24 @@ setMethod("jackStrawMC","seurat",
           }
 )
 
+#' Determine statistical significance of PCA scores.
+#'
+#' Randomly permutes a subset of data, and calculates projected PCA scores for
+#' these 'random' genes. Then compares the PCA scores for the 'random' genes
+#' with the observed PCA scores to determine statistical signifance. End result
+#' is a p-value for each gene's association with each principal component.
+#'
+#'
+#' @param object Seurat object
+#' @param num.pc Number of PCs to compute significance for
+#' @param num.replicate Number of replicate samplings to perform
+#' @param prop.freq Proportion of the data to randomly permute for each
+#' replicate
+#' @param do.print Print the number of replicates that have been processed.
+#' @return Returns a Seurat object where object@@jackStraw.empP represents
+#' p-values for each gene in the PCA analysis. If project.pca is subsequently
+#' run, object@@jackStraw.empP.full then represents p-values for all genes.
+#' @references Inspired by Chung et al, Bioinformatics (2014)
 setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE)  standardGeneric("jackStraw"))
 setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
@@ -2009,7 +2524,50 @@ setMethod("jackStrawFull","seurat",
 )
 
 
-setGeneric("mean.var.plot", function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
+#' Identify variable genes
+#'
+#' Identifies genes that are outliers on a 'mean variability plot'. First, uses
+#' a function to calculate average expression (fxn.x) and dispersion (fxn.y)
+#' for each gene. Next, divides genes into num.bin (deafult 20) bins based on
+#' their average expression, and calculates z-scores for dispersion within each
+#' bin. The purpose of this is to identify variable genes while controlling for
+#' the strong relationship between variability and average expression.
+#'
+#' Exact parameter settings may vary empirically from dataset to dataset, and
+#' based on visual inspection of the plot. 
+#' Setting the y.cutoff parameter to 2 identifies genes that are more than two standard
+#' deviations away from the average dispersion within a bin. The default X-axis function
+#' is the mean expression level, and for Y-axis it is the log(Variance/mean). All mean/variance
+#' calculations are not performed in log-space, but the results are reported in log-space - 
+#' see relevant functions for exact details.
+#'
+#' @param object Seurat object
+#' @param fxn.x Function to compute x-axis value (average expression). Default
+#' is to take the mean of the detected (i.e. non-zero) values
+#' @param fxn.y Function to compute y-axis value (dispersion). Default is to
+#' take the standard deviation of all values/
+#' @param do.plot Plot the average/dispersion relationship
+#' @param set.var.genes Set object@@var.genes to the identified variable genes
+#' (default is TRUE)
+#' @param do.text Add text names of variable genes to plot (default is TRUE)
+#' @param x.low.cutoff Bottom cutoff on x-axis for identifying variable genes
+#' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
+#' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
+#' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
+#' @param cex.use Point size
+#' @param cex.text.use Text size
+#' @param pch.use Pch value for points
+#' @param col.use Color to use
+#' @param plot.both Plot both the scaled and non-scaled graphs.
+#' @param do.contour Draw contour lines calculated based on all genes
+#' @param contour.lwd Contour line width
+#' @param contour.col Contour line color
+#' @param contour.lty Contour line type
+#' @param num.bin Total number of bins to use in the scaled analysis (default
+#' is 20)
+#' @return Returns a Seurat object, placing variable genes in object@@var.genes.
+#' The result of all analysis is stored in object@@mean.var
+setGeneric("mean.var.plot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                                      x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
                                      pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                                      contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("mean.var.plot"))
