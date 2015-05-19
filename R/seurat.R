@@ -144,7 +144,7 @@ setMethod("buildClusterTree","seurat",
               object@ident=factor(object@ident,levels = all.desc,ordered = TRUE) 
               if (reorder.numeric) {
                 object=set.ident(object,object@cell.names,as.integer(object@ident))
-                object@data.info[object@cell.names,"tree"]=as.integer(object@ident)
+                object@data.info[object@cell.names,"tree.ident"]=as.integer(object@ident)
               }
               object=buildClusterTree(object,genes.use,pcs.use,do.plot=FALSE,do.reorder=FALSE)
             }
@@ -219,7 +219,7 @@ setMethod("setup","seurat",
             object@mix.probs=data.frame(object@data.ngene); colnames(object@mix.probs)[1]="nGene"
             rownames(object@gene.scores)=colnames(object@data)
             
-            object@data.info[names(object@ident),"orig"]=object@ident
+            object@data.info[names(object@ident),"orig.ident"]=object@ident
             
             object@project.name=project
             #if(calc.noise) {
@@ -528,6 +528,8 @@ setMethod("fetch.data","seurat",
             data.expression=object@data; if (use.imputed) data.expression=object@imputed; if (use.scaled) data.expression=object@scale.data
             var.options=c("data.info","pca.rot","ica.rot","tsne.rot","mix.probs","gene.scores")
             data.expression=t(data.expression)
+            object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
+            print(head(object@data.info))
             for (my.var in vars.all) {
               data.use=data.frame()
               if (my.var %in% colnames(data.expression)) {
@@ -562,6 +564,7 @@ setMethod("fetch.data","seurat",
             data.expression=object@data; if (use.imputed) data.expression=object@imputed; if (use.scaled) data.expression=object@scale.data
             var.options=c("data.info","pca.rot","ica.rot","tsne.rot","mix.probs","gene.scores")
             data.expression=t(data.expression)
+            object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
             for (my.var in vars.all) {
               data.use=data.frame()
               if (my.var %in% colnames(data.expression)) {
@@ -580,6 +583,10 @@ setMethod("fetch.data","seurat",
               }
               cells.use=ainb(cells.use,rownames(data.use))
               data.add=data.use[cells.use,my.var]
+              if (is.null(data.add)) {
+                print(paste("Error : ", my.var, " not found", sep=""))
+                return(0);
+              }
               data.return=cbind(data.return,data.add)  
             }
             colnames(data.return)=vars.all
@@ -854,12 +861,16 @@ setGeneric("which.cells", function(object,value=1, id=NULL) standardGeneric("whi
 setMethod("which.cells", "seurat",
           function(object, value=1,id=NULL) {
             id=set.ifnull(id,"ident")
+            data.use=NULL;
             if (id=="ident") {
               data.use=object@ident
             } else {
               if (id %in% colnames(object@data.info)) {
                 data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
               }
+            }
+            if (is.null(data.use)) {
+              print(paste("Error : ", id, " not found"))
             }
             return(names(data.use[which(data.use%in%value)]))
           } 
@@ -868,7 +879,7 @@ setMethod("which.cells", "seurat",
 setGeneric("set.all.ident", function(object,id=NULL) standardGeneric("set.all.ident"))
 setMethod("set.all.ident", "seurat",
           function(object, id=NULL) {
-            id=set.ifnull(id,"orig")
+            id=set.ifnull(id,"orig.ident")
             if (id %in% colnames(object@data.info)) {
               cells.use=rownames(object@data.info)
               ident.use=object@data.info[,id]
@@ -1323,15 +1334,15 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,color.by="ident") standardGeneric("dim.plot"))
+setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,group.by="ident") standardGeneric("dim.plot"))
 setMethod("dim.plot", "seurat", 
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,color.by="ident") {
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,pt.shape=NULL,group.by="ident") {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
             
             ident.use=as.factor(object@ident[cells.use])
-            if (color.by != "ident") ident.use=as.factor(fetch.data(object,color.by)[,1])
+            if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
             data.plot$ident=ident.use
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
@@ -1399,7 +1410,7 @@ setMethod("DBclust_dimension", "seurat",
             
             to.set=as.numeric(data.mclust$cluster+1)
             data.names=names(object@ident)
-            object@data.info[data.names,"DBclust"]=to.set
+            object@data.info[data.names,"DBclust.ident"]=to.set
             if (set.ident) {
               object@ident=factor(to.set); names(object@ident)=data.names;               
             }
@@ -1468,14 +1479,15 @@ setMethod("pca.sig.genes", "seurat",
 
 same=function(x) return(x)
 
-setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,...) standardGeneric("doHeatMap"))
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
 
 setMethod("doHeatMap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
             cells.ident=object@ident[cells.use]
+            if (!is.null(group.by)) cells.ident=factor(fetch.data(object,group.by)[,1])
             cells.ident=factor(cells.ident,labels = ainb(levels(cells.ident),cells.ident))
             if (order.by.ident) {
               cells.use=cells.use[order(cells.ident)]
@@ -1484,16 +1496,18 @@ setMethod("doHeatMap","seurat",
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
             colsep.use=NULL
+            hmFunction=heatmap.2
+            if (remove.key) hmFunction=heatmap2NoKey
             if (draw.line) {
               colsep.use=cumsum(table(cells.ident))
             }
             if(slim.col.label && order.by.ident) {
               col.lab=rep("",length(cells.use))
               col.lab[round(cumsum(table(cells.ident))-table(cells.ident)/2)+1]=levels(cells.ident)
-              heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=0.2+1/log10(length(unique(cells.ident))),...)
+              hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=0.2+1/log10(length(unique(cells.ident))),...)
             }
             else {
-              heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
+              hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
             }
             if (do.return) {
               return(data.use)
@@ -1520,10 +1534,10 @@ setMethod("icHeatmap","seurat",
           }
 )
 
-setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,...) standardGeneric("pcHeatmap"))
+setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) standardGeneric("pcHeatmap"))
 
 setMethod("pcHeatmap","seurat",
-          function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,...) {
+          function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=rev(pcTopGenes(object,pc.use,num.genes,use.full,do.balanced))
             cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
@@ -1531,7 +1545,8 @@ setMethod("pcHeatmap","seurat",
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
             vline.use=NULL;
-            heatmap.2(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,...)
+            hmFunction=heatmap.2; if (remove.key) hmFunction=heatmap2NoKey
+            hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,...)
             if (do.return) {
               return(data.use)
             }
@@ -1719,10 +1734,11 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
   }
 }
 
-setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05)  standardGeneric("dot.plot"))
+setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL)  standardGeneric("dot.plot"))
 setMethod("dot.plot","seurat",
-          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05) {
+          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL) {
             genes.plot=ainb(genes.plot,rownames(object@data))
+            if (!(is.null(group.by))) object=set.all.ident(object,id = group.by)
             object@data=object@data[genes.plot,]
             avg.exp=average.expression(object)
             avg.alpha=cluster.alpha(object)
@@ -1743,10 +1759,10 @@ setMethod("dot.plot","seurat",
 ) 
 
 setGeneric("vlnPlot", function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
-                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,color.by="ident",...)  standardGeneric("vlnPlot"))
+                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident",...)  standardGeneric("vlnPlot"))
 setMethod("vlnPlot","seurat",
           function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,use.imputed=FALSE,adjust.use=1,
-                   size.use=1,cols.use=NULL,color.by="ident",...) {
+                   size.use=1,cols.use=NULL,group.by="ident",...) {
             if (is.null(nCol)) {
               nCol=2
               if (length(features.plot)>6) nCol=3
@@ -1755,7 +1771,7 @@ setMethod("vlnPlot","seurat",
             data.use=data.frame(t(fetch.data(object,features.plot,use.imputed=use.imputed)))
             #print(head(data.use))
             ident.use=object@ident
-            if (color.by != "ident") ident.use=as.factor(fetch.data(object,color.by)[,1])
+            if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
             pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
             
             if(do.ret) {
@@ -1922,9 +1938,9 @@ setMethod("jackStraw.permutation.test","seurat",
 
 #multicore version of jackstraw
 #DOES NOT WORK WITH WINDOWS
-setGeneric("jackStrawMC", function(object,num.pc=8,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8)  standardGeneric("jackStrawMC"))
+setGeneric("jackStrawMC", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8)  standardGeneric("jackStrawMC"))
 setMethod("jackStrawMC","seurat",
-          function(object,num.pc=5,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8) {
+          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8) {
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
             md.x=as.matrix(object@pca.x)
@@ -2041,69 +2057,3 @@ setMethod("mean.var.plot", signature = "seurat",
           
 )
 
-
-setGeneric("doGOseq", function(object,bg.genes=NULL,fg.genes=NULL, genome=NULL, id = NULL, geneLengths=NULL, p.adj.method="BH", pval.thres=1e-4,... ) standardGeneric("doGOseq"))
-setMethod("doGOseq", "seurat", 
-          function(object,bg.genes=NULL,fg.genes=NULL, genome=NULL, id = NULL, geneLengths=NULL,p.adj.method="BH", pval.thres=1e-4,... ) {
-            bg.genes = set.ifnull(bg.genes, rownames(object@data))
-            fg.genes = set.ifnull(fg.genes, object@var.genes)
-            kill.ifnull(genome, "Error: Need to specify Genome")
-            kill.ifnull(id, "Error: Need to specify gene identifier")
-            
-            gene.vector <- as.integer(bg.genes%in%fg.genes)
-            names(gene.vector) <- bg.genes
-            
-            pwf <- nullp(gene.vector, genome,id,bias.data=geneLengths) #Empirical null distribution with length correction
-            GO.wall=goseq(pwf,genome,id,...)
-            enriched.GO = GO.wall[p.adjust(GO.wall$over_represented_pvalue, method=p.adj.method) < pval.thres, 
-                                  c("category","over_represented_pvalue", "term","ontology", "numDEInCat", "numInCat")]
-            rownames(enriched.GO) = enriched.GO$category
-            enriched.GO = enriched.GO[,-1]
-            
-            return(enriched.GO)
-            
-          }
-)
-
-setGeneric("doSaturationPlots", function(object,ident.use=NULL,id =NULL, cells.use=NULL,size.x.use=16,size.y.use=16,size.title.use=20,...) standardGeneric("doSaturationPlots"))
-setMethod("doSaturationPlots", "seurat", 
-          function(object,ident.use=NULL, id=NULL, cells.use=NULL,size.x.use=16,size.y.use=16,size.title.use=20,...) {
-            
-            cells.use = set.ifnull(cells.use, colnames(object@data))
-            ident.use = set.ifnull(ident.use, levels(object@ident)[1])
-            id = set.ifnull(id, "ident")
-            if (!is.null(ident.use)) cells.use = which.cells(object, ident.use)
-            
-            pList=list()
-            
-            #Reads
-            pList[[1]] = geneSaturationPlot(object, ident.use=ident.use, id=id, cells.use=cells.use, use.data="reads",size.x.use=size.x.use,
-                                            size.y.use=size.y.use,size.title.use=size.title.use)
-            pList[[2]] = geneSaturationPlot(object, ident.use=ident.use, id=id, cells.use=cells.use, use.data="UMIs",size.x.use=size.x.use,
-                                            size.y.use=size.y.use,size.title.use=size.title.use)
-            
-            #Reads vs. Transcripts
-            reads = as.numeric(as.matrix(object@reads.data[,cells.use]))
-            names(reads) = rep(rownames(object@reads.data), ncol(object@reads.data[,cells.use]))
-            UMIs = as.numeric(as.matrix(object@count.data[,cells.use]))
-            names(UMIs) = rep(rownames(object@count.data), ncol(object@count.data[,cells.use]))
-            ind = (reads != 0); 
-            reads = reads[ind]; UMIs = UMIs[ind]
-            
-            high_genes = which(reads/UMIs > 100)
-            df = data.frame(reads=reads, UMIs=UMIs)
-            samp_size = min(5e5, nrow(df))
-            p = ggplot(df[sample(nrow(df), samp_size),], aes(reads,UMIs)) + geom_point() + scale_x_log10() + scale_y_log10()
-            p <- p + theme(axis.title.x = element_text(face="bold", colour="#990000", size=size.x.use), axis.text.x  = element_text(angle=0, vjust=0.5, size=12))
-            p <- p+theme(axis.title.y = element_text(face="bold", colour="#990000", size=size.y.use), axis.text.y  = element_text(angle=0, vjust=0.5, size=12)) 
-            p <- p+ ggtitle(ident.use)+ theme(plot.title = element_text(size=size.title.use, face="bold"), legend.position="none")
-            p <- p + xlab("# Reads") + ylab("# Transcripts (UMIs)") + annotate("text", x=reads[high_genes],y=UMIs[high_genes],
-                                                                               label=names(high_genes), size=3)
-            pList[[3]] = p
-            
-            multiplotList(pList, cols=3)
-            rp()
-            
-            
-          }
-)

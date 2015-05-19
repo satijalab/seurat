@@ -22,7 +22,7 @@ dim(nbt.data)
 nbt=seurat(raw.data=nbt.data)
   
 # Take all genes in > 3 cells, all cells with > 1k genes, use an expression threshold of 1
-# Cell type is encoded in the second _ field 
+# Cell type is encoded in the second _ field, will be stored in nbt@ident and a backup placed in the "orig" field of object@data.info 
 nbt=setup(nbt,project="NBT",min.cells = 3,names.field = 2,names.delim = "_",min.genes = 1000,is.expr=1) 
 
 nbt
@@ -146,11 +146,13 @@ tsne.plot(nbt,pt.size = 1)
 ```{r,fig.height=5,fig.width=7,cache=TRUE}
 # Density cluster the tSNE map - note that the G.use parameter is the density parameter for the clustering - lower G.use to get finer settings
 # Cells which are 'unassigned' are put in cluster 1 - though in this case there are none
+# Assigned cluster will be placed in the 'DBClust' field of nbt@data.info. Putting set.ident=TRUE means that the assigned clusters will also be stored in nbt@ident
 nbt=DBclust_dimension(nbt,1,2,reduction.use = "tsne",G.use = 8,set.ident = TRUE)
 tsne.plot(nbt,pt.size = 1)
 
 # Build a phylogenetic tree, and rename/reorder cluster names according to their position on the tree
 # This gives closely related clusters similar cluster IDs, which is occasionally useful for visualization later on
+# Assigned cluster will be placed in the 'tree' field of nbt@data.info, and also stored in nbt@ident
 nbt=buildClusterTree(nbt,do.reorder = TRUE,reorder.numeric = TRUE,pcs.use = 1:11)
 
 # View the t-SNE plot with the new labels, in a slightly different format
