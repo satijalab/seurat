@@ -48,7 +48,8 @@ class to its K-means cluster (default is TRUE)}
 \value{
 Seurat object where the k-means results for genes is stored in
 object@kmeans.obj[[1]], and the k-means results for cells is stored in
-object@kmeans.col[[1]]
+object@kmeans.col[[1]]. The cluster for each cell is stored in object@data.info[,"kmeans.ident"]
+and also object@ident (if set.ident=TRUE)
 }
 \description{
 Perform k=means clustering on both genes and single cells

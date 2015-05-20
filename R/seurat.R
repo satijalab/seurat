@@ -70,35 +70,6 @@ setMethod("find_all_markers_node","seurat",
           }
 )
 
-
-setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
-setMethod("find_all_markers","seurat",
-          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
-            ident.use=object@ident
-            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
-            idents.all=sort(unique(object@ident))
-            genes.de=list()
-            for(i in 1:length(idents.all)) {
-              genes.de[[i]]=find.markers(object,idents.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
-              if (do.print) print(paste("Calculating cluster", idents.all[i]))
-            }
-            gde.all=data.frame()
-            for(i in 1:length(idents.all)) {
-              gde=genes.de[[i]]
-              if (nrow(gde)>0) {
-                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-                if (test.use=="bimod") {
-                  gde=gde[order(gde$p_val,-gde$avg_diff),]
-                  gde=subset(gde,p_val<return.thresh)
-                }
-                if (nrow(gde)>0) gde$cluster=idents.all[i]; gde$gene=rownames(gde)
-                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
-              }
-            }
-            return(gde.all)
-          }
-)
-
 weighted.euclidean=function(x,y,w) {
   v.dist=sum(sqrt(w*(x-y)^2))
   return(v.dist)
@@ -141,7 +112,9 @@ custom.dist <- function(my.mat, my.function,...) {
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @return A Seurat object where the cluster tree is stored in
 #' object@@cluster.tree[[1]]
+#' @export
 setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
+#' @export
 setMethod("buildClusterTree","seurat",
           function(object,genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -183,7 +156,9 @@ setMethod("buildClusterTree","seurat",
 #'
 #' @param object Seurat object
 #' @return Plots dendogram (must be precomputed using buildClusterTree), returns no value
+#' @export
 setGeneric("plotClusterTree", function(object) standardGeneric("plotClusterTree"))
+#' @export
 setMethod("plotClusterTree","seurat",
           function(object) {
             data.tree=object@cluster.tree[[1]]
@@ -192,20 +167,6 @@ setMethod("plotClusterTree","seurat",
           }
 )
 
-setGeneric("reorder.by.tree", function(object, genes.use=NULL,do.numeric=FALSE,...) standardGeneric("reorder.by.tree"))
-setMethod("reorder.by.tree","seurat",
-          function(object,genes.use=NULL,do.numeric=FALSE...) {
-            old.ident.order=sort(unique(object@ident))
-            data.tree=object@cluster.tree[[1]]
-            all.desc=getDescendants(data.tree,data.tree$Nnode+2); all.desc=old.ident.order[all.desc[all.desc<=(data.tree$Nnode+1)]]
-            object@ident=factor(object@ident,levels = all.desc,ordered = TRUE) 
-            if (do.numeric) {
-              set.ident(object,object@cell.names,as.integer(object@ident))
-            }
-            return(object)
-            
-          }
-)
 
 #' Visualize expression/dropout curve
 #'
@@ -221,10 +182,10 @@ setMethod("reorder.by.tree","seurat",
 #' @param do.new Create a new plot (default) or add to existing
 #' @param x.lim Maximum value for X axis
 #' @param \dots Additional arguments to pass to lines function
-#' @return
-#'
-#' Returns no value, displays a plot
+#' @return Returns no value, displays a plot
+#' @export
 setGeneric("plotNoiseModel", function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) standardGeneric("plotNoiseModel"))
+#' @export
 setMethod("plotNoiseModel","seurat",
           function(object, cell.ids=c(1,2), col.use="black",lwd.use=2,do.new=TRUE,x.lim=10,...) {
             cell.coefs=object@drop.coefs[cell.ids,]
@@ -237,8 +198,36 @@ setMethod("plotNoiseModel","seurat",
           }
 )
 
-#needs mod and Rd
+#' Setup Seurat object
+#'
+#' Setup and initialize basic parameters of the Seurat object
+#'
+#'
+#' @param object Seurat object
+#' @param project Project name (string)
+#' @param min.cells Include genes with detected expression in at least this
+#' many cells
+#' @param min.genes Include cells where at least this many genes are detected
+#' @param is.expr Expression threshold for 'detected' gene
+#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
+#' z-score)
+#' @param do.center In object@@scale.data, perform row-centering (gene-based
+#' centering)
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name
+#' @param meta.data Additional metadata to add to the Seurat object. Should be
+#' a data frame where the rows are cell names, and the columns are additional
+#' metadata fields
+#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data 
+#' which will save memory downstream for large datasets
+#' @param \dots Additional arguments, not currently used.
+#' @return Seurat object. Fields modified include object@@data,
+#' object@@scale.data, object@@data.info, object@@data.ngene, object@@ident
+#' @export
 setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("setup"))
+#' @export
 setMethod("setup","seurat",
           function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
             object@is.expr = is.expr
@@ -249,6 +238,7 @@ setMethod("setup","seurat",
             
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data=data.frame();
+            
             num.cells=apply(object@data,1,humpCt,min=object@is.expr)
             genes.use=names(num.cells[which(num.cells>min.cells)])
             object@data=object@data[genes.use,]
@@ -277,7 +267,29 @@ setMethod("setup","seurat",
           }         
 )
 
+#' Return a subset of the Seurat object
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Takes either a list of cells to use as a subset, or a
+#' parameter (for example, a gene), to subset on.
+#'
+#' @param object Seurat object
+#' @param cells.use A vector of cell names to use as a subset. If NULL
+#' (default), then this list will be computed based on the next three
+#' arguments. Otherwise, will return an object consissting only of these cells
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@data.info, etc. Any argument that can be retreived
+#' using fetch.data
+#' @param accept.low Low cutoff for the parameter (default is -Inf)
+#' @param accept.high High cutoff for the parameter (default is Inf)
+#' @param do.center Recenter the new object@@scale.data
+#' @param do.scale Rescale the new object@@scale.data
+#' @param \dots Additional arguments to be passed to fetch.data (for example,
+#' use.imputed=TRUE)
+#' @return Returns a Seurat object containing only the relevant subset of cells
+#' @export
 setGeneric("subsetData",  function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("subsetData"))
+#' @export
 setMethod("subsetData","seurat",
           function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
             data.use=NULL
@@ -325,7 +337,9 @@ setMethod("subsetData","seurat",
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #' @return Returns Seurat object with the projected PCA values in
 #' object@@pca.x.full
+#' @export
 setGeneric("project.pca", function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) standardGeneric("project.pca"))
+#' @export
 setMethod("project.pca", "seurat", 
           function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) {
             if (!(do.center)) object@pca.x.full=data.frame(as.matrix(object@scale.data)%*%as.matrix(object@pca.rot))
@@ -348,7 +362,31 @@ setMethod("project.pca", "seurat",
           }
 )
 
+#' Run t-distributed Stochastic Neighbor Embedding
+#'
+#' Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced 
+#' dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
+#' 
+#'
+#' @param object Seurat object
+#' @param cells.use Which cells to analyze (default, all cells)
+#' @param dims.use Which dimensions to use as input features 
+#' @param k.seed Random seed for the t-SNE
+#' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
+#' faster, but is less flexible
+#' @param add.iter If an existing tSNE has already been computed, uses the 
+#' current tSNE to seed the algorithm and then adds additional iterations on top of this
+#' @param genes.use If set, run the tSNE on this subset of genes 
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+#' @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
+#' For example, set to 3 for a 3d tSNE
+#' @param \dots Additional arguments to the tSNE call. Most commonly used is
+#' perplexity (expected number of neighbors default is 30)
+#' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
+#' @export
 setGeneric("run_tsne", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) standardGeneric("run_tsne"))
+#' @export
 setMethod("run_tsne", "seurat", 
           function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
@@ -380,7 +418,7 @@ setMethod("run_tsne", "seurat",
           }
 )
 
-
+#Not currently supported
 setGeneric("add_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,add.iter=1000,...) standardGeneric("add_tsne"))
 setMethod("add_tsne", "seurat", 
           function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,add.iter=1000,...) {
@@ -413,7 +451,9 @@ setMethod("add_tsne", "seurat",
 #' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
 #' gene projection matrix (object@@ica.x). The ICA object itself is stored in
 #' object@@ica.obj[[1]]
+#' @export
 setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) standardGeneric("ica"))
+#' @export
 setMethod("ica", "seurat", 
           function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
             data.use=object@scale.data
@@ -466,7 +506,9 @@ setMethod("ica", "seurat",
 #' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
 #' object@@pca.obj[[1]]
+#' @export
 setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) standardGeneric("pca"))
+#' @export
 setMethod("pca", "seurat", 
           function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) {
             data.use=object@scale.data
@@ -512,7 +554,9 @@ setMethod("pca", "seurat",
 #' @param object Seurat object
 #' @param thresh.min Minimum threshold to define 'detected' (log-scale)
 #' @return Returns a matrix with genes as rows, identity classes as columns.
+#' @export
 setGeneric("cluster.alpha", function(object,thresh.min=0) standardGeneric("cluster.alpha"))
+#' @export
 setMethod("cluster.alpha", "seurat", 
           function(object,thresh.min=0) {
             ident.use=object@ident
@@ -534,7 +578,9 @@ setMethod("cluster.alpha", "seurat",
 #' 
 #' @param object Seurat object
 #' @return Returns a matrix with genes as rows, identity classes as columns 
+#' @export
 setGeneric("average.pca", function(object) standardGeneric("average.pca"))
+#' @export
 setMethod("average.pca", "seurat", 
           function(object) {
             ident.use=object@ident
@@ -562,7 +608,9 @@ setMethod("average.pca", "seurat",
 #' @param object Seurat object
 #' @param genes.use Genes to analyze. Default is all genes.
 #' @return Returns a matrix with genes as rows, identity classes as columns.
+#' @export
 setGeneric("average.expression", function(object,genes.use=NULL) standardGeneric("average.expression"))
+#' @export
 setMethod("average.expression", "seurat", 
           function(object,genes.use=NULL) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
@@ -581,6 +629,7 @@ setMethod("average.expression", "seurat",
           }
 )
 
+#Internal, not documented for now
 topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {
   code=paste(translate.dim.code(reduction.use),i,sep="")
   if (do.balanced) {
@@ -598,7 +647,18 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
   }
 }
 
+#' Find genes with highest ICA scores
+#'
+#' Return a list of genes with the strongest contribution to a set of indepdendent components
+#'
+#' @param object Seurat object
+#' @param pc.use Independent components to use
+#' @param num.genes Number of genes to return
+#' @param do.balanced Return an equal number of genes with both + and - IC scores. 
+#' @return Returns a vector of genes
+#' @export
 setGeneric("icTopGenes", function(object,ic.use=1,num.genes=30,do.balanced=FALSE) standardGeneric("icTopGenes"))
+#' @export
 setMethod("icTopGenes", "seurat", 
           function(object,ic.use=1,num.genes=30,do.balanced=FALSE) {
             ic_scores=object@ica.x
@@ -608,7 +668,19 @@ setMethod("icTopGenes", "seurat",
           }
 )
 
+#' Find genes with highest PCA scores
+#'
+#' Return a list of genes with the strongest contribution to a set of principal components
+#'
+#' @param object Seurat object
+#' @param pc.use Principal components to use
+#' @param num.genes Number of genes to return
+#' @param use.full Use the full PCA (projected PCA). Default i s FALSE
+#' @param do.balanced Return an equal number of genes with both + and - PC scores. 
+#' @return Returns a vector of genes
+#' @export
 setGeneric("pcTopGenes", function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) standardGeneric("pcTopGenes"))
+#' @export
 setMethod("pcTopGenes", "seurat", 
           function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) {
             pc_scores=object@pca.x
@@ -619,9 +691,17 @@ setMethod("pcTopGenes", "seurat",
           }
 )
 
-
-
+#' Print the results of a PCA analysis
+#'
+#' Prints a set of genes that most strongly define a set of principal components
+#'
+#' @inheritParams viz.pca
+#' @param pcs.print Set of PCs to print genes for
+#' @param genes.print Number of genes to print for each PC
+#' @return Only text output
+#' @export
 setGeneric("print.pca", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("print.pca"))
+#' @export
 setMethod("print.pca", "seurat", 
           function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
             genes.print.use=round(genes.print/2)
@@ -651,43 +731,9 @@ setMethod("print.pca", "seurat",
 #' @param use.imputed For gene expression, use imputed values
 #' @param use.scaled For gene expression, use scaled values
 #' @return A data frame with cells as rows and cellular data as columns
+#' @export
 setGeneric("fetch.data",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) standardGeneric("fetch.data"))
-setMethod("fetch.data","seurat",
-          function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
-            cells.use=set.ifnull(cells.use,object@cell.names)
-            data.return=data.frame(row.names = cells.use)
-            data.expression=object@data; if (use.imputed) data.expression=object@imputed; if (use.scaled) data.expression=object@scale.data
-            var.options=c("data.info","pca.rot","ica.rot","tsne.rot","mix.probs","gene.scores")
-            data.expression=t(data.expression)
-            object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
-            print(head(object@data.info))
-            for (my.var in vars.all) {
-              data.use=data.frame()
-              if (my.var %in% colnames(data.expression)) {
-                data.use=data.expression
-              } else {
-                for(i in var.options) {
-                  eval(parse(text=paste("data.use = object@",i,sep="")))
-                  if (my.var %in% colnames(data.use)) {
-                    break;
-                  }
-                }
-              }              
-              if (ncol(data.use)==0) {
-                print(paste("Error : ", my.var, " not found", sep=""))
-                return(0);
-              }
-              cells.use=ainb(cells.use,rownames(data.use))
-              data.add=data.use[cells.use,my.var]
-              data.return=cbind(data.return,data.add)  
-            }
-            colnames(data.return)=vars.all
-            rownames(data.return)=cells.use
-            return(data.return)
-          }
-)
-
-setGeneric("fetch.data",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) standardGeneric("fetch.data"))
+#' @export
 setMethod("fetch.data","seurat",
           function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
             cells.use=set.ifnull(cells.use,object@cell.names)
@@ -726,7 +772,22 @@ setMethod("fetch.data","seurat",
           }
 )
 
+#' Visualize ICA genes
+#' 
+#' Visualize top genes associated with principal components
+#' 
+#' 
+#' @param object Seurat object
+#' @param pcs.use Number of ICs to display
+#' @param num.genes Number of genes to display
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - IC scores. 
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values 
+#' @return Graphical, no return value
+#' @export
 setGeneric("viz.ica", function(object,ics.use=1:5,num.genes=30,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("viz.ica"))
+#' @export
 setMethod("viz.ica", "seurat", 
           function(object,ics.use=1:5,num.genes=30,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
             ic_scores=object@ica.x            
@@ -748,7 +809,24 @@ setMethod("viz.ica", "seurat",
           }
 )
 
+
+#' Visualize PCA genes
+#' 
+#' Visualize top genes associated with principal components
+#' 
+#' 
+#' @param object Seurat object
+#' @param pcs.use Number of PCs to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - PC scores. 
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values 
+#' @return Graphical, no return value
+#' @export
 setGeneric("viz.pca", function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("viz.pca"))
+#' @export
 setMethod("viz.pca", "seurat", 
           function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
             pc_scores=object@pca.x
@@ -838,7 +916,19 @@ setMethod("regulatorScore", "seurat",
           }
 )
 
+#' Gene expression markers of identity classes defined by a phylogenetic clade
+#' 
+#' Finds markers (differentially expressed genes) based on a branching point (node) in
+#' the phylogenetic tree. Markers that define clusters in the left branch are positive markers.
+#' Markers that define the right branch are negative markers.
+#' 
+#' @inheritParams find.markers
+#' @param node The node in the phylogenetic tree to use as a branch point 
+#' @return Matrix containing a ranked list of putative markers, and associated
+#' identistics (p-values, ROC score, etc.)
+#' @export
 setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers.node"))
+#' @export
 setMethod("find.markers.node", "seurat",
           function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") {
             genes.use=set.ifnull(genes.use,rownames(object@data))
@@ -874,7 +964,9 @@ setMethod("find.markers.node", "seurat",
 #' as in Trapnell et al., Nature Biotech, 2014)
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' identistics (p-values, ROC score, etc.)
+#' @export
 setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers"))
+#' @export
 setMethod("find.markers", "seurat",
           function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod") {
             genes.use=set.ifnull(genes.use,rownames(object@data))
@@ -916,6 +1008,49 @@ setMethod("find.markers", "seurat",
           } 
 )
 
+
+#' Gene expression markers for all identity classes
+#' 
+#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
+#' 
+#' 
+#' @inheritParams find.markers
+#' @param thresh.test Limit testing to genes which show, on average, at least X-fold difference (log-scale) between cells in an identity class, and all other cells.
+#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @param do.print FALSE by default. If TRUE, outputs updates on progress.
+#' @return Matrix containing a ranked list of putative markers, and associated
+#' identistics (p-values, ROC score, etc.)
+#' @export
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
+#' @export
+setMethod("find_all_markers","seurat",
+          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
+            ident.use=object@ident
+            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
+            idents.all=sort(unique(object@ident))
+            genes.de=list()
+            for(i in 1:length(idents.all)) {
+              genes.de[[i]]=find.markers(object,idents.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
+              if (do.print) print(paste("Calculating cluster", idents.all[i]))
+            }
+            gde.all=data.frame()
+            for(i in 1:length(idents.all)) {
+              gde=genes.de[[i]]
+              if (nrow(gde)>0) {
+                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+                if (test.use=="bimod") {
+                  gde=gde[order(gde$p_val,-gde$avg_diff),]
+                  gde=subset(gde,p_val<return.thresh)
+                }
+                if (nrow(gde)>0) gde$cluster=idents.all[i]; gde$gene=rownames(gde)
+                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+              }
+            }
+            return(gde.all)
+          }
+)
+
+
 #' Likelihood ratio test for zero-inflated data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -931,7 +1066,9 @@ setMethod("find.markers", "seurat",
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
+#' @export
 setGeneric("diffExp.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diffExp.test"))
+#' @export
 setMethod("diffExp.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -946,7 +1083,24 @@ setMethod("diffExp.test", "seurat",
           } 
 )
 
+#' Differential expression testing using Tobit models
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
+#'
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#'
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
+#' @export
 setGeneric("tobit.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("tobit.test"))
+#' @export
 setMethod("tobit.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -975,7 +1129,9 @@ setMethod("tobit.test", "seurat",
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) in any one batch
 #' @return Returns a list of genes that are strongly correlated with batch.
+#' @export
 setGeneric("batch.gene", function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) standardGeneric("batch.gene"))
+#' @export
 setMethod("batch.gene", "seurat",
           function(object, idents.use,genes.use=NULL,auc.cutoff=0.6,thresh.use=0) {
             batch.genes=c()
@@ -1016,7 +1172,9 @@ setMethod("batch.gene", "seurat",
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
 #' putative differentially expressed genes.
+#' @export
 setGeneric("marker.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("marker.test"))
+#' @export
 setMethod("marker.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -1048,7 +1206,9 @@ setMethod("marker.test", "seurat",
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
+#' @export
 setGeneric("diff.t.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diff.t.test"))
+#' @export
 setMethod("diff.t.test", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -1066,17 +1226,18 @@ setMethod("diff.t.test", "seurat",
           } 
 )
 
-#to remove
-setGeneric("retreiveScore", function(object, score.name) standardGeneric("retreiveScore"))
-setMethod("retreiveScore", "seurat",
-          function(object, score.name) {
-            my.score=object@gene.scores[,score.name]
-            names(my.score)=rownames(object@gene.scores)
-            return(my.score)
-          } 
-)
-
+#' Identify matching cells
+#'
+#' Returns a list of cells that match a particular query (usually, query is
+#' based on identity class). For example, to find the names of all cells in cluster 1.
+#'
+#' @param object Seurat object
+#' @param value Query value to match
+#' @param id Variable to query (by default, identity class)
+#' @return A vector of cell names
+#' @export
 setGeneric("which.cells", function(object,value=1, id=NULL) standardGeneric("which.cells"))
+#' @export
 setMethod("which.cells", "seurat",
           function(object, value=1,id=NULL) {
             id=set.ifnull(id,"ident")
@@ -1089,13 +1250,23 @@ setMethod("which.cells", "seurat",
               }
             }
             if (is.null(data.use)) {
-              print(paste("Error : ", id, " not found"))
+              stop(paste("Error : ", id, " not found"))
             }
             return(names(data.use[which(data.use%in%value)]))
           } 
 )
 
+
+#' Switch identity class definition to another variable
+#'
+#'
+#' @param object Seurat object
+#' @param id Variable to switch identity class to (for example, 'DBclust.ident', the output
+#' of density clustering) Default is orig.ident - the original annotation pulled from the cell name.
+#' @return A Seurat object where object@@ident has been appropriately modified
+#' @export
 setGeneric("set.all.ident", function(object,id=NULL) standardGeneric("set.all.ident"))
+#' @export
 setMethod("set.all.ident", "seurat",
           function(object, id=NULL) {
             id=set.ifnull(id,"orig.ident")
@@ -1108,13 +1279,54 @@ setMethod("set.all.ident", "seurat",
           } 
 )
 
+#' Rename one identity class to another
+#'
+#' Can also be used to join identity classes together (for example, to merge clusters).
+#'
+#' @param object Seurat object
+#' @param old.ident.name The old identity class (to be renamed)
+#' @param new.ident.name The new name to apply
+#' @return A Seurat object where object@@ident has been appropriately modified
+#' @export
+setGeneric("rename.ident", function(object,old.ident.name=NULL,new.ident.name=NULL) standardGeneric("rename.ident"))
+#' @export
+setMethod("rename.ident", "seurat",
+          function(object,old.ident.name=NULL,new.ident.name=NULL) {
+            if (!old.ident.name%in%object@ident) {
+              stop(paste("Error : ", old.ident.name, " is not a current identity class"))
+            }
+            old.levels=levels(object@ident); new.levels=old.levels
+            if(new.ident.name%in%old.levels) {
+              new.levels=new.levels[new.levels!=old.ident.name]
+            }
+            if(!(new.ident.name%in%old.levels)) {
+              new.levels[new.levels==old.ident.name]=new.ident.name
+            }
+            ident.vector=as.character(object@ident); names(ident.vector)=names(object@ident)
+            ident.vector[which.cells(object,old.ident.name)]=new.ident.name            
+            object@ident=factor(ident.vector,levels = new.levels)
+            return(object)
+          } 
+)
+
+#' Set identity class information
+#'
+#' Sets the identity class value for a subset (or all) cells
+#'
+#' @param object Seurat object
+#' @param cells.use Vector of cells to set identity class info for (default is
+#' all cells)
+#' @param ident.use Vector of identity class values to assign (character
+#' vector)
+#' @return A Seurat object where object@@ident has been appropriately modified
+#' @export
 setGeneric("set.ident", function(object,cells.use=NULL,ident.use=NULL) standardGeneric("set.ident"))
+#' @export
 setMethod("set.ident", "seurat",
           function(object, cells.use=NULL,ident.use=NULL) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             if (length(anotinb(cells.use,object@cell.names)>0)) {
-              print(paste("ERROR : Cannot find cells ",anotinb(cells.use,object@cell.names)))
-              return(object)
+              stop(paste("ERROR : Cannot find cells ",anotinb(cells.use,object@cell.names)))
             }
             ident.new=anotinb(ident.use,levels(object@ident))
             object@ident=factor(object@ident,levels = unique(c(as.character(object@ident),as.character(ident.new))))
@@ -1124,33 +1336,10 @@ setMethod("set.ident", "seurat",
           } 
 )
 
-#likely delete
-setGeneric("retreiveCellInfo", function(object, cells.use=NULL,id=NULL) standardGeneric("retreiveCellInfo"))
-setMethod("retreiveCellInfo", "seurat",
-          function(object, cells.use=NULL,id=NULL) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            id=set.ifnull(id,"ident")
-            if (id=="ident") {
-              data.use=object@ident
-            }
-            if (id %in% colnames(object@data.info)) {
-              data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
-            }
-            return(data.use[cells.use])
-          } 
-)
-
-#likely delete
-setGeneric("retreiveCluster", function(object, names=NULL) standardGeneric("retreiveCluster"))
-setMethod("retreiveCluster", "seurat",
-          function(object, names=NULL) {
-            names=set.ifnull(names,colnames(object@data))
-            if (names[1] %in% rownames(object@data)) return(object@kmeans.obj[[1]]$cluster[names])
-            if (names[1] %in% colnames(object@data)) return(object@kmeans.col[[1]]$cluster[names])
-          } 
-)
-
+#Internal, not documented for now
+#' @export
 setGeneric("posterior.plot", function(object, name) standardGeneric("posterior.plot"))
+#' @export
 setMethod("posterior.plot", "seurat",
           function(object, name) {
             post.names=colnames(subc(object@mix.probs,name))
@@ -1160,6 +1349,7 @@ setMethod("posterior.plot", "seurat",
           } 
 )
 
+#Internal, not documented for now
 map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
   code.1=paste(gene,insitu.bin,sep=".")
   mu.use=mu[paste(code.1,"mu",sep="."),1]
@@ -1169,7 +1359,10 @@ map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
   return(bin.prob)
 }
 
+#Internal, not documented for now
+#' @export
 setGeneric("map.cell",  function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) standardGeneric("map.cell"))
+#' @export
 setMethod("map.cell", "seurat",
           function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) {
             insitu.matrix=object@insitu.matrix
@@ -1182,7 +1375,7 @@ setMethod("map.cell", "seurat",
             
             all.needed.cols=unique(unlist(lapply(insitu.genes,function(x) paste(x,insitu.use[,x],"post",sep="."))))
             missing.cols=which(!(all.needed.cols%in%colnames(object@mix.probs)))
-            if (length(missing.cols)>0) print(paste("Error : ", all.needed.cols[missing.cols], " is missing from the mixture fits",sep=""))
+            if (length(missing.cols)>0) stop(paste("Error : ", all.needed.cols[missing.cols], " is missing from the mixture fits",sep=""))
             all.probs=data.frame(sapply(insitu.genes,function(x) log(as.numeric(object@mix.probs[cell.name,paste(x,insitu.use[,x],"post",sep=".")]))))
             scale.probs=t(t(all.probs)-apply(t(all.probs),1,log_add))
             scale.probs[scale.probs<(-9.2)]=(-9.2)
@@ -1217,7 +1410,9 @@ setMethod("map.cell", "seurat",
 #' the single closest bin.
 #' @return Data frame containing the x and y coordinates for each cell
 #' centroid.
+#' @export
 setGeneric("get.centroids", function(object, cells.use=NULL,get.exact=TRUE) standardGeneric("get.centroids")) 
+#' @export
 setMethod("get.centroids", "seurat",
           function(object, cells.use=NULL,get.exact=TRUE) {            
             cells.use=set.ifnull(cells.use,colnames(object@final.prob))
@@ -1248,7 +1443,9 @@ setMethod("get.centroids", "seurat",
 #' @param genes.use Genes to use to drive the refinement procedure.
 #' @return Seurat object, where mapping probabilities for each bin are stored
 #' in object@@final.prob
+#' @export
 setGeneric("refined.mapping",  function(object,genes.use) standardGeneric("refined.mapping"))
+#' @export
 setMethod("refined.mapping", "seurat",
           function(object,genes.use) {
             
@@ -1274,7 +1471,9 @@ setMethod("refined.mapping", "seurat",
 #' @param cells.use Which cells to map
 #' @return Seurat object, where mapping probabilities for each bin are stored
 #' in object@@final.prob
+#' @export
 setGeneric("initial.mapping", function(object,cells.use=NULL) standardGeneric("initial.mapping"))
+#' @export
 setMethod("initial.mapping", "seurat",
           function(object,cells.use=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
@@ -1285,6 +1484,7 @@ setMethod("initial.mapping", "seurat",
           } 
 )
 
+#Internal, not documented for now
 setGeneric("calc.insitu", function(object,gene,do.plot=TRUE,do.write=FALSE,write.dir="~/window/insitu/",col.use=bwCols,do.norm=FALSE,cells.use=NULL,do.return=FALSE,probs.min=0,do.log=FALSE, use.imputed=FALSE, bleach.use=0) standardGeneric("calc.insitu"))
 setMethod("calc.insitu", "seurat",
           function(object,gene,do.plot=TRUE,do.write=FALSE,write.dir="~/window/insitu/",col.use=bwCols,do.norm=FALSE,cells.use=NULL,do.return=FALSE,probs.min=0,do.log=FALSE,use.imputed=FALSE,bleach.use=0) {
@@ -1342,7 +1542,9 @@ setMethod("calc.insitu", "seurat",
 #' state (usually estimated from the in situ map)
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@mix.probs
+#' @export
 setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
+#' @export
 setMethod("fit.gene.k", "seurat",
           function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) {
             data=object@imputed            
@@ -1385,6 +1587,7 @@ setMethod("fit.gene.k", "seurat",
           }
 )
 
+#Internal, not documented for now
 iter.k.fit=function(scale.data,cell.ident,data.use) {
   means.all=sapply(sort(unique(cell.ident)),function(x)apply(scale.data[,cell.ident==x],1,mean))
   all.dist=data.frame(t(sapply(1:ncol(scale.data),function(x) unlist(lapply(sort(unique(cell.ident)),function(y)dist(rbind(scale.data[,x],means.all[,y])))))))
@@ -1393,8 +1596,10 @@ iter.k.fit=function(scale.data,cell.ident,data.use) {
   return(cell.ident)
 }
 
-
+#Internal, not documented for now
+#' @export
 setGeneric("fit.gene.mix", function(object, gene, do.k=3,use.mixtools=TRUE,do.plot=FALSE,plot.with.imputed=TRUE,min.bin.size=10) standardGeneric("fit.gene.mix"))
+#' @export
 setMethod("fit.gene.mix", "seurat",
           function(object, gene, do.k=3,use.mixtools=TRUE,do.plot=FALSE,plot.with.imputed=TRUE,min.bin.size=10) {
             require(mixtools)
@@ -1429,6 +1634,7 @@ setMethod("fit.gene.mix", "seurat",
           } 
 )
 
+#Internal, not documented for now
 lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALSE,gram=TRUE) {
   lasso.model=lars(lasso.input,as.numeric(genes.obs),type="lasso",max.steps = s.use*2,use.Gram=gram)
   #lasso.fits=predict.lars(lasso.model,lasso.input,type="fit",s=min(s.use,max(lasso.model$df)))$fit
@@ -1454,7 +1660,9 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
 #' @param gram The use.gram argument passed to lars
 #' @return Returns a Seurat object where the imputed values have been added to
 #' object@@data
+#' @export
 setGeneric("addImputedScore", function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) standardGeneric("addImputedScore"))
+#' @export
 setMethod("addImputedScore", "seurat",
           function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
@@ -1474,7 +1682,7 @@ setMethod("addImputedScore", "seurat",
 )    
 
 
-
+# Not currently supported, but a cool scoring function
 setGeneric("getNewScore", function(object, score.name,score.genes, cell.ids=NULL, score.func=weighted.mean,scramble=FALSE, no.tech.wt=FALSE, biol.wts=NULL,use.scaled=FALSE) standardGeneric("getNewScore"))
 setMethod("getNewScore", "seurat",
           function(object, score.name,score.genes, cell.ids=NULL, score.func=weighted.mean,scramble=FALSE, no.tech.wt=FALSE, biol.wts=NULL,use.scaled=FALSE) {
@@ -1499,7 +1707,10 @@ setMethod("getNewScore", "seurat",
           }
 )
 
+# Not currently supported, but a cool function for QC
+#' @export
 setGeneric("calcNoiseModels", function(object, cell.ids=NULL, trusted.genes=NULL,n.bin=20,drop.expr=1) standardGeneric("calcNoiseModels"))
+#' @export
 setMethod("calcNoiseModels","seurat",
           function(object, cell.ids=NULL, trusted.genes=NULL,n.bin=20,drop.expr=1) {
             object@drop.expr=drop.expr
@@ -1548,7 +1759,9 @@ setMethod("calcNoiseModels","seurat",
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @return No return value, only a graphical output
+#' @export
 setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) standardGeneric("feature.plot"))
+#' @export
 setMethod("feature.plot", "seurat", 
           function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
@@ -1600,7 +1813,9 @@ setMethod("feature.plot", "seurat",
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @return No return value, only a graphical output
+#' @export
 setGeneric("feature.heatmap", function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") standardGeneric("feature.heatmap"))
+#' @export
 setMethod("feature.heatmap", "seurat", 
           function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") {
             idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
@@ -1614,20 +1829,38 @@ setMethod("feature.heatmap", "seurat",
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            data.use=data.frame(t(fetch.data(object,features.plot)))
-            data.scale=apply(t(data.use),2,function(x)(factor(cut(x,breaks=length(cols.use),labels=1:length(cols.use),ordered=TRUE))))
+            data.use=data.frame(t(data.frame(fetch.data(object,features.plot))))
+            data.scale=apply(t(data.use),2,function(x)(factor(cut(x,breaks=length(cols.use),labels = FALSE),levels=1:length(cols.use),ordered=TRUE)))
             data.plot.all=data.frame(cbind(data.plot,data.scale))
             data.reshape=melt((data.plot.all),id = colnames(data.plot))
             data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
-            p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
+            data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
+            #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
+            p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
+            
             p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
             p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
             print(p2)
           }
 )
 
-
+#' Plot tSNE map
+#'
+#' Graphs the output of a tSNE analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for dim.plot. See ?dim.plot for a full list of possible
+#' arguments which can be passed in here.
+#' 
+#' @param object Seurat object
+#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
+#' cluster is lebeled
+#' @param label.pt.size If do.label is set, the point size
+#' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
+#' @seealso dim.plot
+#' @export
 setGeneric("tsne.plot", function(object,do.label=FALSE,label.pt.size=1,...) standardGeneric("tsne.plot"))
+#' @export
 setMethod("tsne.plot", "seurat", 
           function(object,do.label=FALSE,label.pt.size=1,...) {
             if (do.label==TRUE) {
@@ -1642,15 +1875,44 @@ setMethod("tsne.plot", "seurat",
           }
 )
 
+#' Plot ICA map
+#'
+#' Graphs the output of a ICA analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for dim.plot. See ?dim.plot for a full list of possible
+#' arguments which can be passed in here.
+#' 
+#' @param object Seurat object
+#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
+#' cluster is lebeled
+#' @param label.pt.size If do.label is set, the point size
+#' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
+#' @export
 setGeneric("ica.plot", function(object,...) standardGeneric("ica.plot"))
+#' @export
 setMethod("ica.plot", "seurat", 
           function(object,...) {
             return(dim.plot(object,reduction.use = "ica",...))
           }
 )
 
-
+#' Plot PCA map
+#'
+#' Graphs the output of a PCA analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for dim.plot. See ?dim.plot for a full list of possible
+#' arguments which can be passed in here.
+#' 
+#' @param object Seurat object
+#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
+#' cluster is lebeled
+#' @param label.pt.size If do.label is set, the point size
+#' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
+#' @export
 setGeneric("pca.plot", function(object,...) standardGeneric("pca.plot"))
+#' @export
 setMethod("pca.plot", "seurat", 
           function(object,...) {
               return(dim.plot(object,reduction.use = "pca",...))
@@ -1670,7 +1932,6 @@ translate.dim.code=function(reduction.use) {
 #' Graphs the output of a dimensional reduction technique (PCA by default).
 #' Cells are colored by their identity class.
 #'
-#' %% ~~ If necessary, more details than the description above ~~
 #' 
 #' @param object Seurat object
 #' @param reduction.use Which dimensionality reduction to use. Default is
@@ -1688,7 +1949,9 @@ translate.dim.code=function(reduction.use) {
 #' cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
+#' @export
 setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) standardGeneric("dim.plot"))
+#' @export
 setMethod("dim.plot", "seurat", 
           function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
@@ -1726,6 +1989,7 @@ setMethod("dim.plot", "seurat",
           }
 )
 
+#Cool, but not supported right now
 setGeneric("spatial.de", function(object,marker.cells,genes.use=NULL,...) standardGeneric("spatial.de"))
 setMethod("spatial.de", "seurat", 
           function(object,marker.cells,genes.use=NULL) {
@@ -1751,11 +2015,25 @@ setMethod("spatial.de", "seurat",
           }
 )
 
-
-setGeneric("DBclust_dimension", function(object,dim.1=1,dim.2=2,cells.use=NULL,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) standardGeneric("DBclust_dimension"))
+#' Perform spectral density clustering on single cells
+#'
+#' Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN). 
+#'
+#'
+#' @param object Seurat object
+#' @param dim.1 First dimension to use
+#' @param dim.2 second dimension to use
+#' @param reduction.use Which dimensional reduction to use (either 'pca' or 'ica')
+#' @param G.use Parameter for the density clustering. Lower value to get more fine-scale clustering
+#' @param set.ident TRUE by default. Set identity class to the results of the density clustering. 
+#' Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.
+#' @param seed.use Random seed for the dbscan function
+#' @param \dots Additional arguments to be passed to the dbscan function
+#' @export
+setGeneric("DBclust_dimension", function(object,dim.1=1,dim.2=2,reduction.use="tsne",G.use=NULL,set.ident=TRUE,seed.use=1,...) standardGeneric("DBclust_dimension"))
+#' @export
 setMethod("DBclust_dimension", "seurat", 
-          function(object,dim.1=1,dim.2=2,cells.use=NULL,reduction.use="tsne",G.use=NULL,set.ident=FALSE,seed.use=1,...) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
+          function(object,dim.1=1,dim.2=2,reduction.use="tsne",G.use=NULL,set.ident=TRUE,seed.use=1,...) {
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes)
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
@@ -1773,8 +2051,14 @@ setMethod("DBclust_dimension", "seurat",
           }
 )
 
-
+#' Perform spectral k-means clustering on single cells
+#'
+#' Find point clounds single cells in a low-dimensional space using k-means clustering. 
+#'
+#' CAn be useful for smaller datasets, not documented here yet
+#' @export
 setGeneric("Kclust_dimension", function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",k.use=5,set.ident=FALSE,seed.use=1,...) standardGeneric("Kclust_dimension"))
+#' @export
 setMethod("Kclust_dimension", "seurat", 
           function(object,dim.1=1,dim.2=2,cells.use=NULL,pt.size=4,reduction.use="tsne",k.use=5,set.ident=FALSE,seed.use=1,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
@@ -1798,7 +2082,7 @@ setMethod("Kclust_dimension", "seurat",
             }
             to.set=as.numeric(data.mclust$cluster)
             data.names=names(object@ident)
-            object@data.info[data.names,"k"]=to.set
+            object@data.info[data.names,"kdimension.ident"]=to.set
             if (set.ident) {
               object@ident=factor(to.set); names(object@ident)=data.names;               
             }
@@ -1821,7 +2105,9 @@ setMethod("Kclust_dimension", "seurat",
 #' @param max.per.pc Maximum number of genes to return per PC. Used to avoid genes from one PC dominating the entire analysis.
 #' @return A vector of genes whose p-values are statistically significant for
 #' at least one of the given PCs.
+#' @export
 setGeneric("pca.sig.genes", function(object,pcs.use,pval.cut=0.1,use.full=TRUE,max.per.pc=NULL) standardGeneric("pca.sig.genes"))
+#' @export
 setMethod("pca.sig.genes", "seurat", 
           function(object,pcs.use,pval.cut=0.1,use.full=TRUE,max.per.pc=NULL) {
             pvals.use=object@jackStraw.empP
@@ -1872,8 +2158,9 @@ same=function(x) return(x)
 #' and cexCol, which set row and column text sizes
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
 setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
-
+#' @export
 setMethod("doHeatMap","seurat",
           function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
@@ -1908,9 +2195,19 @@ setMethod("doHeatMap","seurat",
           }
 )
 
-
+#' Independent component heatmap
+#' 
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+#' 
+#' @inheritParams doHeatMap
+#' @inheritParams icTopGenes
+#' @inheritParams viz.ica
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
 setGeneric("icHeatmap", function(object,ic.use=1,cells.use=NULL,num.genes=30, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,...) standardGeneric("icHeatmap"))
-
+#' @export
 setMethod("icHeatmap","seurat",
           function(object,ic.use=1,cells.use=NULL,num.genes=30,disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
@@ -1927,8 +2224,19 @@ setMethod("icHeatmap","seurat",
           }
 )
 
+#' Principal component heatmap
+#' 
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+#' 
+#' @inheritParams doHeatMap
+#' @inheritParams pcTopGenes
+#' @inheritParams viz.pca
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
 setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) standardGeneric("pcHeatmap"))
-
+#' @export
 setMethod("pcHeatmap","seurat",
           function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
@@ -1976,10 +2284,12 @@ setMethod("pcHeatmap","seurat",
 #' @param \dots Additional parameters passed to doHeatMap for plotting
 #' @return Seurat object where the k-means results for genes is stored in
 #' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
-#' object@@kmeans.col[[1]]
+#' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@data.info[,"kmeans.ident"]
+#' and also object@@ident (if set.ident=TRUE)
+#' @export
 setGeneric("doKMeans", function(object,genes.use=NULL,k.genes=NULL,k.cells=NULL,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
                                 pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("doKMeans"))
-
+#' @export
 setMethod("doKMeans","seurat",
           function(object,genes.use=NULL,k.genes=NULL,k.cells=0,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
                    pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) {
@@ -2018,6 +2328,7 @@ setMethod("doKMeans","seurat",
           
             kmeans.obj=object@kmeans.obj[[1]]
             kmeans.col=object@kmeans.col[[1]]
+            object@data.info[names(kmeans.col$cluster),"kmeans.ident"]=kmeans.col$cluster
             
             if ((set.ident) && (k.cells > 0)) {
               object=set.ident(object,cells.use=names(kmeans.col$cluster),ident.use = kmeans.col$cluster)
@@ -2030,7 +2341,9 @@ setMethod("doKMeans","seurat",
           }
 )
 
+#' @export
 setGeneric("genes.in.cluster", function(object, cluster.num)  standardGeneric("genes.in.cluster"))
+#' @export
 setMethod("genes.in.cluster", signature = "seurat",
           function(object, cluster.num) {
             print(unlist(lapply(cluster.num,function(x)sort(names(which(object@kmeans.obj[[1]]$cluster==x))))))
@@ -2039,7 +2352,9 @@ setMethod("genes.in.cluster", signature = "seurat",
 
 
 
+#' @export
 setGeneric("cell.cor.matrix", function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols)  standardGeneric("cell.cor.matrix"))
+#' @export
 setMethod("cell.cor.matrix", signature = "seurat",
           function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols) {
             cor.genes=set.ifnull(cor.genes,object@var.genes)
@@ -2061,7 +2376,9 @@ setMethod("cell.cor.matrix", signature = "seurat",
           }    
 )
 
+#' @export
 setGeneric("gene.cor.matrix", function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols)  standardGeneric("gene.cor.matrix"))
+#' @export
 setMethod("gene.cor.matrix", signature = "seurat",
           function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols) {
             cor.genes=set.ifnull(cor.genes,object@var.genes)
@@ -2083,7 +2400,9 @@ setMethod("gene.cor.matrix", signature = "seurat",
           }    
 )
 
+#' @export
 setGeneric("calinskiPlot", function(object,pcs.use,pval.cut=0.1,gene.max=15,col.max=25,use.full=TRUE)  standardGeneric("calinskiPlot"))
+#' @export
 setMethod("calinskiPlot","seurat",
           function(object,pcs.use,pval.cut=0.1,gene.max=15,col.max=25,use.full=TRUE) {
             require(vegan)
@@ -2114,6 +2433,7 @@ setMethod("calinskiPlot","seurat",
           }
 )
 
+#' @export
 setMethod("show", "seurat",
           function(object) {
             cat("An object of class ", class(object), " in project ", object@project.name, "\n", sep = "")
@@ -2123,6 +2443,7 @@ setMethod("show", "seurat",
           }
 )
 
+#' @export
 plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL) {
   data$gene=as.character(rownames(data))
   data.use=data.frame(data[gene,])
@@ -2157,7 +2478,21 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
   }
 }
 
+#' Dot plot visualization
+#' 
+#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters). 
+#' The size of the dot encodes the percentage of cells within a class, while the color encodes the 
+#' average expression level of 'expressing' cells (green is high).
+#' 
+#' @param genes.plot Input vector of genes
+#' @param cex.use Scaling factor for the dots (scales all dot sizes)
+#' @param thresh.col The raw data value which corresponds to a red dot (lowest expression)
+#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05)
+#' @inheritParams vlnPlot
+#' @return Only graphical output
+#' @export
 setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL)  standardGeneric("dot.plot"))
+#' @export
 setMethod("dot.plot","seurat",
           function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL) {
             genes.plot=ainb(genes.plot,rownames(object@data))
@@ -2181,8 +2516,33 @@ setMethod("dot.plot","seurat",
           
 ) 
 
+#' Single cell violin plot
+#' 
+#' Draws a violin plot of single cell data (gene expression, metrics, PC
+#' scores, etc.)
+#' 
+#' @param object Seurat object
+#' @param features.plot Features to plot (gene expression, metrics, PC scores,
+#' anything that can be retreived by fetch.data)
+#' @param nCol Number of columns if multiple plots are displayed
+#' @param ylab.max Maximum ylab value
+#' @param do.ret FALSE by default. If TRUE, returns a list of ggplot objects.
+#' @param do.sort Sort identity classes (on the x-axis) by the average
+#' expression of the attribute being potted
+#' @param size.x.use X axis font size
+#' @param size.y.use Y axis font size
+#' @param size.title.use Title font size
+#' @param use.imputed Use imputed values for gene expression (default is FALSE)
+#' @param adjust.use Adjust parameter for geom_violin
+#' @param size.use Point size for geom_violin
+#' @param cols.use Colors to use for plotting
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @return By default, no return, only graphical output. If do.return=TRUE,
+#' returns a list of ggplot objects.
+#' @export
 setGeneric("vlnPlot", function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
                                size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident",...)  standardGeneric("vlnPlot"))
+#' @export
 setMethod("vlnPlot","seurat",
           function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,use.imputed=FALSE,adjust.use=1,
                    size.use=1,cols.use=NULL,group.by="ident",...) {
@@ -2222,7 +2582,9 @@ setMethod("vlnPlot","seurat",
 #' are additional metadata items.
 #' @return Seurat object where the additional metadata has been added as
 #' columns in object@@data.info
+#' @export
 setGeneric("addMetaData", function(object,metadata)  standardGeneric("addMetaData"))
+#' @export
 setMethod("addMetaData","seurat",
           function(object,metadata) {
             cols.add=colnames(metadata)
@@ -2274,7 +2636,9 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 #' @return No value returned, just the PC plots.
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #' 
+#' @export
 setGeneric("jackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("jackStrawPlot"))
+#' @export
 setMethod("jackStrawPlot","seurat",
           function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3) {
             pAll=object@jackStraw.empP
@@ -2327,8 +2691,10 @@ setMethod("jackStrawPlot","seurat",
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
 #' @param \dots Additional arguments to be passed to plot.
 #' @return No return, only graphical output
+#' @export
 setGeneric("genePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
                                 pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...)  standardGeneric("genePlot"))
+#' @export
 setMethod("genePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
                    pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...) {
@@ -2356,7 +2722,9 @@ setMethod("genePlot","seurat",
           }
 )
 
+#' @export
 setGeneric("removePC", function(object, pcs.remove,...)  standardGeneric("removePC"))
+#' @export
 setMethod("removePC","seurat",
           function(object, pcs.remove,...) {
             data.old=object@data
@@ -2402,7 +2770,9 @@ setMethod("geneScorePlot","seurat",
 #' points to reveal gene names (hit ESC to stop)
 #' @param \dots Additional arguments to pass to smoothScatter
 #' @return No return value (plots a scatter plot)
+#' @export
 setGeneric("cellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...)  standardGeneric("cellPlot"))
+#' @export
 setMethod("cellPlot","seurat",
           function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...) {
             gene.ids=set.ifnull(gene.ids,rownames(object@data))
@@ -2416,7 +2786,9 @@ setMethod("cellPlot","seurat",
           }
 )
 
+#' @export
 setGeneric("jackStraw.permutation.test", function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1)  standardGeneric("jackStraw.permutation.test"))
+#' @export
 setMethod("jackStraw.permutation.test","seurat",
           function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1) {
             genes.use=set.ifnull(genes.use,rownames(object@pca.x))
@@ -2433,7 +2805,9 @@ setMethod("jackStraw.permutation.test","seurat",
 
 #multicore version of jackstraw
 #DOES NOT WORK WITH WINDOWS
+#' @export
 setGeneric("jackStrawMC", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8)  standardGeneric("jackStrawMC"))
+#' @export
 setMethod("jackStrawMC","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, num.cores=8) {
             pc.genes=rownames(object@pca.x)
@@ -2469,7 +2843,9 @@ setMethod("jackStrawMC","seurat",
 #' p-values for each gene in the PCA analysis. If project.pca is subsequently
 #' run, object@@jackStraw.empP.full then represents p-values for all genes.
 #' @references Inspired by Chung et al, Bioinformatics (2014)
+#' @export
 setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE)  standardGeneric("jackStraw"))
+#' @export
 setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
             pc.genes=rownames(object@pca.x)
@@ -2487,6 +2863,7 @@ setMethod("jackStraw","seurat",
           }
 )
 
+#' @export
 jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1) {
   set.seed(seed.use); rand.genes=sample(rownames(scaled.data),nrow(scaled.data)*prop.use)
   data.mod=scaled.data
@@ -2565,10 +2942,12 @@ setMethod("jackStrawFull","seurat",
 #' is 20)
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
 #' The result of all analysis is stored in object@@mean.var
+#' @export
 setGeneric("mean.var.plot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                                      x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 
                                      pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                                      contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("mean.var.plot"))
+#' @export
 setMethod("mean.var.plot", signature = "seurat",
           function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                    x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE, 

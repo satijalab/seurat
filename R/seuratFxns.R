@@ -60,10 +60,12 @@ aucFxn=function(preds,truth,do.plot=FALSE,lab.main="",...) {
   return(auc.use)
 }
 
+#' @export
 humpMean=function(x, min=0) {
   return(mean(x[x>min]))
 }
 
+#' @export
 humpVar=function(x, min=0) {
   return(var(x[x>min]))
 } 
@@ -121,22 +123,26 @@ compareBins=function(object,cell.use,bin.1,bin.2,bins.mu,bins.cov) {
   #rp()
 }
 
+#' @export
 subr=function(data,code) {
   return(data[grep(code,rownames(data)),])
 }
 
+#' @export
 cv=function(x)sd(x)/mean(x)
 
+#' @export
 humpCt=function(x, min=0) {
   return(length(x[x>min]))
 }
 
-
+#' @export
 log_add=function(x) {
   mpi=max(x)
   return(mpi+log(sum(exp(x-mpi))))
 }
 
+#' @export
 minusr=function(data,code) {
   matchCode=rownames(data)[grep(code,rownames(data))]
   toIgnore=which(rownames(data) %in% matchCode)
@@ -147,6 +153,7 @@ minusr=function(data,code) {
   return(toRet)                   
 }
 
+#' @export
 minusc=function(data,code) {
   matchCode=colnames(data)[grep(code,colnames(data))]
   toIgnore=which(colnames(data) %in% matchCode)
@@ -155,10 +162,13 @@ minusc=function(data,code) {
 }
 
 
+#' @export
 ainb=function(a,b) {
   a2=a[a%in%b]
   return(a2)
 }
+
+#' @export
 meanNormFunction=function(data,myfuncX,myfuncY,nBin=20) {
   data_x=apply(data,1,myfuncX)
   data_y=apply(data,1,myfuncY)
@@ -191,17 +201,24 @@ all.neighbor.cells=function(bin,dist=1) {
   return(unique(unlist(lapply(1:nrow(all.comb),function(x)shift.cell(bin,all.comb[x,1],all.comb[x,2])))))
 }
 
+#' @export
 no.legend.title=theme(legend.title=element_blank())
+#' @export
 ggplot.legend.text=function(x=12,y="bold") return(theme(legend.text = element_text(size = x, face = y)))
+#' @export
 gg.legend.pts=function(x=6) guides(colour = guide_legend(override.aes = list(size=x)))
+#' @export
 gg.xax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.x = element_text(face=z, colour=y, size=x), 
                                                               axis.text.x  = element_text(angle=90, vjust=0.5, size=x2)))
 
+#' @export
 gg.yax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.y = element_text(face=z, colour=y, size=x), 
                                                               axis.text.y  = element_text(angle=90, vjust=0.5, size=x2)))
 
+#' @export
 sub.string=function(x,s1,s2) return(unlist(lapply(x,function(y)gsub(s1,s2,y))))
 
+#' @export
 jackStrawF=function(prop=0.1,myR1,myR2=3,data=smD) {
   randGenes=sample(rownames(data),nrow(data)*prop)
   smD.mod=data
@@ -212,6 +229,7 @@ jackStrawF=function(prop=0.1,myR1,myR2=3,data=smD) {
   fakeF=unlist(lapply(randGenes,jackF,r1=myR1,r2=myR2,x=fmd.x,rot=fmd.rot))
 }
 
+#' @export
 jackF=function(gene,r1=1,r2=2,x=md.x,rot=md.rot) {
   if (r2==1) { #assuming r1, r2=1
     mod.x=x[,r1]
@@ -223,6 +241,7 @@ jackF=function(gene,r1=1,r2=2,x=md.x,rot=md.rot) {
   return(var.test((x[,1:r2]%*%t(rot[,1:r2])),(mod.x[,1:r2]%*%t(rot[,1:r2])))$statistic)
 }
 
+#' @export
 shuffleMatRow=function(x) {
   x2=x
   x2 <- t(x)
@@ -234,9 +253,12 @@ shuffleMatRow=function(x) {
 
 
 
+#' @export
 logMeanMinus= function(x)log(mean(exp(as.numeric(x))-1)+1)
+#' @export
 logVarMinus= function(x)(mean(var(as.numeric(x))-1)+1)
 
+#' @export
 logVarMinus2= function(x)(var(exp(as.numeric(x))-1)+1)
 
 quickRNAHuman=function(x) {
@@ -246,18 +268,22 @@ quickRNAHuman=function(x) {
   return(data)
 }
 
+#' @export
 expVar=function(x) {
   return(log(var(exp(x)-1)+1))
 }
 
+#' @export
 expSD=function(x) {
   return(log(sd(exp(x)-1)+1))
 }
 
+#' @export
 expMean=function(x) {
   return(log(mean(exp(x)-1)+1))
 }
 
+#' @export
 normal.sample=function(x) {
   return(rnorm(10000,mean(x),sd(x)))
   
@@ -321,6 +347,7 @@ tobit_fitter <- function(x, modelFormulaStr, lower=1, upper=Inf){
   )
 }
 
+#' @export
 anotinb=function(x,y) {
   x2=x[!x%in%y]
   return(x2)
@@ -401,10 +428,12 @@ meanVarPlot=function(x,...) {
   plot(myMean,myVar)
 }
 
+#' @export
 vsubc=function(data,code) {
   return(data[grep(code,names(data))])
 }
 
+#' @export
 vminusc=function(data,code) {
   matchCode=names(data)[grep(code,names(data))]
   toIgnore=which(names(data) %in% matchCode)
@@ -412,6 +441,7 @@ vminusc=function(data,code) {
   return(data[-toIgnore])
 }
 
+#' @export
 plotVln=function(gene,data=dc2,code="rsem",mmax=12,getStat=getStat1,doRet=FALSE,doSort=FALSE) {
   data$GENE=as.character(rownames(data))
   a1=data[gene,c(colnames(data)[grep(code,colnames(data))],"GENE")]
@@ -435,15 +465,22 @@ plotVln=function(gene,data=dc2,code="rsem",mmax=12,getStat=getStat1,doRet=FALSE,
   }
 }
 
+#' @export
 extract.field=function(string,field=1,delim="_") return(strsplit(string,delim)[[1]][field])
 
+#' @export
 getStat1=function(x)return(strsplit(x,"_")[[1]][1])
 
+#' @export
 getStat=function(x,y=1) return(strsplit(x,"_")[[1]][y])
+
+#' @export
 getStat2=function(x,y=2) return(strsplit(x,"_")[[1]][y])
+
+#' @export
 getStat3=function(x,y=3) return(strsplit(x,"_")[[1]][y])
 
-
+#' @export
 multiplotList <- function(plots, file, cols=1, layout=NULL) {
   require(grid)
   
@@ -480,10 +517,12 @@ multiplotList <- function(plots, file, cols=1, layout=NULL) {
   }
 }
 
+#' @export
 subc=function(data,code) {
   return(data[,grep(code,colnames(data))])
 }
 
+#' @export
 minmax=function(data,min,max) {
   data2=data
   data2[data2>max]=max
@@ -491,7 +530,10 @@ minmax=function(data,min,max) {
   return(data2)
 }
 
+#' @export
 vp.layout <- function(x, y) viewport(layout.pos.row=x, layout.pos.col=y)
+
+#' @export
 arrange <- function(..., nrow=NULL, ncol=NULL, as.table=FALSE) {
   dots <- list(...)
   n <- length(dots)
@@ -532,6 +574,7 @@ calcMedians = function(p, start, end) {
   return(medians)
 }
 
+#' @export
 myPalette=
   function (low = "white", high = c("green", "red"), mid = NULL,
             k = 50)
@@ -556,6 +599,7 @@ myPalette=
     rgb(r, g, b)
   }
 
+#' @export
 bwCols=myPalette(low = "white",high="black",k = 50)
 
 
@@ -605,6 +649,7 @@ init = function() {
   lwid=2
 }
 
+#' @export
 writ.table=function(a, b) {
   write.table(a,b,quote=FALSE,row.names=FALSE,col.names=FALSE,sep="\t")
 }
@@ -633,6 +678,7 @@ auc=function(data,score,real,n=20) {
   return(list(c(1,fp),c(1,tp)))
 }
 
+#' @export
 pyCols=myPalette(low = "magenta",high = "yellow",mid = "black")
 
 rp=function() {par(mfrow=c(1,1))}
@@ -661,6 +707,7 @@ calcResid=function(x1,y1,mcut=30,toAdd=1) {
   return(myResid)
 }
 
+#' @export
 findNGene=function(data,is.expr=1) {
   toRet=unlist(lapply(1:ncol(data),function(x)gtCut(data[,x],cutoff=is.expr)))  
   names(toRet)=colnames(data)
@@ -748,6 +795,7 @@ setWt1=function(x,wts,min=1) {
   return(wts)
 }
 
+#' @export
 gtCut=function(x, cutoff=1) {
   return(length(which(x>cutoff)))
 }
@@ -807,6 +855,7 @@ sensitivityCurve=function(cellName,scData,bulkData,mycut=1,mycex=1,mynew=TRUE,..
   lines(x_vals,y_vals,lwd=2,...)
 }
 
+#' @export
 heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE, 
               distfun = dist, hclustfun = hclust, dendrogram = c("both", 
                                                                  "row", "column", "none"), symm = FALSE, scale = c("none", 
@@ -1029,7 +1078,8 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     par(mar = c(0.5, 0, 0, margins[2]))
     image(cbind(1:nc), col = ColSideColors[colInd], axes = FALSE)
   }
-  par(mar = c(margins[1], 0, 0, margins[2]))
+  oldMar=par()$mar
+  par(mar = c(margins[1], margins[2], margins[1], margins[2]))
   
   x <- t(x)
   cellnote <- t(cellnote)
@@ -1177,4 +1227,5 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   retval$colorTable <- data.frame(low = retval$breaks[-length(retval$breaks)], 
                                   high = retval$breaks[-1], color = retval$col)
   invisible(retval)
+  par(mar=oldMar)
 }

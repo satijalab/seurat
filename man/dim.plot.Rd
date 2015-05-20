@@ -42,7 +42,4 @@ graphical output.
 Graphs the output of a dimensional reduction technique (PCA by default).
 Cells are colored by their identity class.
 }
-\details{
-%% ~~ If necessary, more details than the description above ~~
-}
 
