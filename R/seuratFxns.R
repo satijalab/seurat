@@ -305,6 +305,7 @@ fetch.mincells=function(bin,cells.max,min.cells) {
   return(my.names)
 }
 
+#' @export
 cell.centroid=function(cell.probs) {
   centroid.x=round(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
   centroid.y=round(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs))
@@ -312,21 +313,24 @@ cell.centroid=function(cell.probs) {
   return(centroid.bin)
 }
 
+#' @export
 cell.centroid.x=function(cell.probs) {
   return(centroid.x=round(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs)))
 }
 
+#' @export
 cell.centroid.y=function(cell.probs) {
   return(centroid.y=round(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs)))
 }
 
+#' @export
 exact.cell.centroid=function(cell.probs) {
   centroid.x=(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
   centroid.y=(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs))
   return(c(centroid.x,centroid.y))
 }
 
-
+#' @export
 marker.auc.test=function(data1,data2,mygenes) {
   myAUC=unlist(lapply(mygenes,function(x)diffAUC(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   myAUC[is.na(myAUC)]=0

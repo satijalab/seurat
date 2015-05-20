@@ -12,7 +12,6 @@ require(lars)
 require(XLConnect)
 require(reshape2)
 require(vioplot)
-require(fastICA)
 require(tsne)
 require(fpc)
 require(Rtsne)
@@ -45,6 +44,7 @@ calc.drop.prob=function(x,a,b) {
 #' Setup a new Seurat object, pass in the raw data for downstream analysis
 #' 
 #' @export
+
 seurat <- function(...) new("seurat",...)
 
 setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
@@ -463,6 +463,8 @@ setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.st
 #' @export
 setMethod("ica", "seurat", 
           function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
+            require(fastICA)
+            
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
