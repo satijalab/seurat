@@ -40,6 +40,13 @@ calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
 
+#' Constructor function
+#' 
+#' Setup a new Seurat object, pass in the raw data for downstream analysis
+#' 
+#' @export
+seurat <- function(...) new("seurat",...)
+
 setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
 setMethod("find_all_markers_node","seurat",
           function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {

@@ -694,6 +694,7 @@ calcResidLog=function(x1,y1,mcut=30,toAdd=1) {
   return(myResid)
 }
 
+#' @export
 logVarDivMean=function(x) return(log(var(exp(x)-1)/mean(exp(x)-1)))
 
 calcResid=function(x1,y1,mcut=30,toAdd=1) {
