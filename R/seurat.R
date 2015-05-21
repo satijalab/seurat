@@ -663,7 +663,7 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
     num.genes=round(num.genes/2)
     sx=dim_scores[order(dim_scores[,code]),]
     genes.1=(rownames(sx[1:num.genes,]))
-    genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),]))
+    genes.2=(rownames(sx[(nrow(sx)-num.genes):nrow(sx),]))
     return(c(genes.1,genes.2)) 
   }
   if (!(do.balanced)) {
