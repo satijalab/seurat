@@ -1,27 +1,66 @@
 
+
+################################################################################
+### Seurat
+
+#' The Seurat Class
+#'
+#' The Seurat object is the center of each single cell analysis. It stores all information 
+#' associated with the dataset, including data, annotations, analyes, etc. All that is needed 
+#' to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
+#' should be log-scale
+#' 
+#' Each Seurat object has a number of slots which store information. Key slots to access
+#' are listed below.
+#'
+#'
+#'@section Slots:
+#'  \describe{
+#'    \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
+#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring 
+#'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
+#'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
+#'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
+#'    \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
+#'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
+#'    the original identity class (orig.ident), user-provided information (through addMetaData), etc.  }
+#'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
+#'    \item{\code{pca.x}:}{\code{"data.frame"}, Gene projection scores for the PCA analysis  }
+#'    \item{\code{pca.x.full}:}{\code{"data.frame"}, Gene projection scores for the projected PCA  (contains all genes)  }
+#'    \item{\code{pca.rot}:}{\code{"data.frame"}, The rotation matrix (eigenvectors) of the PCA   }
+#'    \item{\code{ica.x}:}{\code{"data.frame"}, Gene projection scores for ICA   }
+#'    \item{\code{ica.rot}:}{\code{"data.frame"}, The estimated source matrix from ICA }
+#'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
+#'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
+#'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
+#'    \item{\code{final.prob}:}{\code{"data.frame"}, For spatial inference, posterior probability of each cell mapping to each bin }
+#'    \item{\code{insitu.matrix}:}{\code{"data.frame"}, For spatial inference, the discretized spatial reference map }
+#'    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
+#'    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the 
+#'    phylogenetic tree relating different identity classes }
+#'      
+#'}
+#' @name seurat
+#' @rdname seurat
+#' @aliases seurat-class
+#' @exportClass seurat
+#' @importFrom useful corner
+
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
-                       ident="vector",data.ngene="vector",pca.x="data.frame",pca.rot="data.frame",
+                       ident="vector",pca.x="data.frame",pca.rot="data.frame",
                        emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
                        wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",
                        project.name="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", 
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
-                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.x.full="data.frame",ica.obj="list",cell.names="vector",cluster.tree="list"))
+                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list"))
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
 
-#' Constructor function
-#' 
-#' Setup a new Seurat object, pass in the raw data for downstream analysis
-#' @param \dots parameters to pass into the Seurat object. Usually will pass in raw.data (data frame with rows as genes, columns as cell names)
-#' @import useful
-#' @import knitr
-#' @export
-seurat <- function(...) new("seurat",...)
 
 setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
 setMethod("find_all_markers_node","seurat",
@@ -95,7 +134,7 @@ custom.dist <- function(my.mat, my.function,...) {
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @return A Seurat object where the cluster tree is stored in
 #' object@@cluster.tree[[1]]
-#' @import ape
+#' @importFrom ape as.phylo
 #' @export
 setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
 #' @export
@@ -140,13 +179,16 @@ setMethod("buildClusterTree","seurat",
 #'
 #' @param object Seurat object
 #' @return Plots dendogram (must be precomputed using buildClusterTree), returns no value
+#' @importFrom ape plot.phylo
+#' @importFrom ape nodelabels
 #' @export
 setGeneric("plotClusterTree", function(object) standardGeneric("plotClusterTree"))
 #' @export
 setMethod("plotClusterTree","seurat",
           function(object) {
+            if (length(object@cluster.tree)==0) stop("Phylogenetic tree does not exist, build using buildClusterTree")
             data.tree=object@cluster.tree[[1]]
-            plot(data.tree,direction="downwards")
+            plot.phylo(data.tree,direction="downwards")
             nodelabels()
           }
 )
@@ -208,7 +250,7 @@ setMethod("plotNoiseModel","seurat",
 #' which will save memory downstream for large datasets
 #' @param \dots Additional arguments, not currently used.
 #' @return Seurat object. Fields modified include object@@data,
-#' object@@scale.data, object@@data.info, object@@data.ngene, object@@ident
+#' object@@scale.data, object@@data.info, object@@ident
 #' @import stringr
 #' @export
 setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("setup"))
@@ -232,13 +274,13 @@ setMethod("setup","seurat",
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
-            object@data.ngene=num.genes[cells.use]
-            object@gene.scores=data.frame(object@data.ngene); colnames(object@gene.scores)[1]="nGene"
-            object@data.info=data.frame(object@data.ngene); colnames(object@data.info)[1]="nGene"
+            data.ngene=num.genes[cells.use]
+            object@gene.scores=data.frame(data.ngene); colnames(object@gene.scores)[1]="nGene"
+            object@data.info=data.frame(data.ngene); colnames(object@data.info)[1]="nGene"
             if (!is.null(meta.data)) {
               object=addMetaData(object,metadata = meta.data)
             }
-            object@mix.probs=data.frame(object@data.ngene); colnames(object@mix.probs)[1]="nGene"
+            object@mix.probs=data.frame(data.ngene); colnames(object@mix.probs)[1]="nGene"
             rownames(object@gene.scores)=colnames(object@data)
             
             object@data.info[names(object@ident),"orig.ident"]=object@ident
@@ -288,7 +330,6 @@ setMethod("subsetData","seurat",
             object@data=object@data[,cells.use]
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
             object@scale.data=object@scale.data[complete.cases(object@scale.data),]
-            object@data.ngene=object@data.ngene[cells.use]
             object@ident=drop.levels(object@ident[cells.use])
             object@tsne.rot=object@tsne.rot[cells.use,]
             object@pca.rot=object@pca.rot[cells.use,]
@@ -1307,7 +1348,7 @@ setMethod("rename.ident", "seurat",
 #' @param ident.use Vector of identity class values to assign (character
 #' vector)
 #' @return A Seurat object where object@@ident has been appropriately modified
-#' @import gdata
+#' @importFrom gdata drop.levels
 #' @export
 setGeneric("set.ident", function(object,cells.use=NULL,ident.use=NULL) standardGeneric("set.ident"))
 #' @export
@@ -1349,7 +1390,6 @@ map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
 }
 
 #Internal, not documented for now
-#' @import XLConnect
 #' @export
 setGeneric("map.cell",  function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) standardGeneric("map.cell"))
 #' @export
@@ -1534,7 +1574,7 @@ setMethod("calc.insitu", "seurat",
 #' state (usually estimated from the in situ map)
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@mix.probs
-#' @import mixtools
+#' @importFrom mixtools normalmixEM
 #' @export
 setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
 #' @export
@@ -2145,8 +2185,7 @@ same=function(x) return(x)
 #' and cexCol, which set row and column text sizes
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
-#' @import gplots
-#' @import Hmisc
+#' @importFrom gplots heatmap.2
 #' @export
 setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
 #' @export
@@ -2527,7 +2566,6 @@ setMethod("dot.plot","seurat",
 #' @import grid
 #' @import gridExtra
 #' @import ggplot2
-#' @import reshape
 #' @import reshape2
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
@@ -2628,7 +2666,7 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 #' significance (see Details)
 #' @return No value returned, just the PC plots.
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
-#' 
+#' @import gridExtra
 #' @export
 setGeneric("jackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3)  standardGeneric("jackStrawPlot"))
 #' @export
@@ -2937,6 +2975,7 @@ setMethod("jackStrawFull","seurat",
 #' @param contour.lty Contour line type
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
+#' @importFrom MASS kde2d
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
 #' The result of all analysis is stored in object@@mean.var
 #' @export

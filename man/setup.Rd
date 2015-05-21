@@ -43,7 +43,7 @@ which will save memory downstream for large datasets}
 }
 \value{
 Seurat object. Fields modified include object@data,
-object@scale.data, object@data.info, object@data.ngene, object@ident
+object@scale.data, object@data.info, object@ident
 }
 \description{
 Setup and initialize basic parameters of the Seurat object
