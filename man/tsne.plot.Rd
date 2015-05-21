@@ -4,7 +4,8 @@
 \alias{tsne.plot}
 \title{Plot tSNE map}
 \usage{
-tsne.plot(object, do.label = FALSE, label.pt.size = 1, ...)
+tsne.plot(object, do.label = FALSE, label.pt.size = 1, label.cex.text = 1,
+  label.cols.use = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -13,6 +14,10 @@ tsne.plot(object, do.label = FALSE, label.pt.size = 1, ...)
 cluster is lebeled}
 
 \item{label.pt.size}{If do.label is set, the point size}
+
+\item{label.cex.text}{If label.cex.text is set, the size of the text labels}
+
+\item{label.cols.use}{If do.label is set, the color palette to use for the points}
 
 \item{\dots}{Additional parameters to dim.plot, for example, which dimensions to plot.}
 }

@@ -1889,18 +1889,20 @@ setMethod("feature.heatmap", "seurat",
 #' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
 #' cluster is lebeled
 #' @param label.pt.size If do.label is set, the point size
+#' @param label.cex.text If label.cex.text is set, the size of the text labels
+#' @param label.cols.use If do.label is set, the color palette to use for the points
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @seealso dim.plot
 #' @export
-setGeneric("tsne.plot", function(object,do.label=FALSE,label.pt.size=1,...) standardGeneric("tsne.plot"))
+setGeneric("tsne.plot", function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,...) standardGeneric("tsne.plot"))
 #' @export
 setMethod("tsne.plot", "seurat", 
-          function(object,do.label=FALSE,label.pt.size=1,...) {
+          function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,...) {
             if (do.label==TRUE) {
-              cols.use=rainbow(length(levels(object@ident))); cols.use[1]="lightgrey"
-              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
+              label.cols.use=set.ifnull(label.cols.use,rainbow(length(levels(object@ident)))); 
+              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=label.cols.use[as.integer(object@ident)],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
               k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
-              points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
+              points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=label.cex.text)
             }
             else {
               return(dim.plot(object,reduction.use = "tsne",...))
