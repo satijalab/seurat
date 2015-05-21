@@ -10,6 +10,8 @@ viz.ica(object, ics.use = 1:5, num.genes = 30, font.size = 0.5,
 \arguments{
 \item{object}{Seurat object}
 
+\item{ics.use}{Number of ICs to display}
+
 \item{num.genes}{Number of genes to display}
 
 \item{font.size}{Font size}
@@ -18,8 +20,6 @@ viz.ica(object, ics.use = 1:5, num.genes = 30, font.size = 0.5,
 
 \item{do.balanced}{Return an equal number of genes with both + and - IC scores.
 If FALSE (by default), returns the top genes ranked by the score's absolute values}
-
-\item{pcs.use}{Number of ICs to display}
 }
 \value{
 Graphical, no return value

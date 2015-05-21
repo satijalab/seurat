@@ -18,6 +18,8 @@ fit.gene.k(object, gene, do.k = 2, num.iter = 1, do.plot = FALSE,
 
 \item{do.plot}{Plot mixture model results}
 
+\item{genes.use}{Genes to use in the greedy k-means step (See manuscript for details)}
+
 \item{start.pct}{Initial estimates of the percentage of cells in the 'on'
 state (usually estimated from the in situ map)}
 }

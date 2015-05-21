@@ -1,28 +1,3 @@
-#install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape","VGAM","gdata","knitr","useful","XLConnect","gridExtra"))
-
-require(ROCR)
-require(ggplot2)
-require(Hmisc)
-require(reshape)
-require(gplots)
-require(stringr)
-require(NMF)
-require(mixtools)
-require(lars)
-require(XLConnect)
-require(reshape2)
-require(vioplot)
-require(tsne)
-require(fpc)
-require(Rtsne)
-require(ape)
-require(VGAM)
-require(gdata)
-require(useful)
-require(rgl)
-require(gridExtra)
-require(parallel)
-
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -42,9 +17,10 @@ calc.drop.prob=function(x,a,b) {
 #' Constructor function
 #' 
 #' Setup a new Seurat object, pass in the raw data for downstream analysis
-#' 
+#' @param \dots parameters to pass into the Seurat object. Usually will pass in raw.data (data frame with rows as genes, columns as cell names)
+#' @import useful
+#' @import knitr
 #' @export
-
 seurat <- function(...) new("seurat",...)
 
 setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
@@ -119,6 +95,7 @@ custom.dist <- function(my.mat, my.function,...) {
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @return A Seurat object where the cluster tree is stored in
 #' object@@cluster.tree[[1]]
+#' @import ape
 #' @export
 setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
 #' @export
@@ -232,6 +209,7 @@ setMethod("plotNoiseModel","seurat",
 #' @param \dots Additional arguments, not currently used.
 #' @return Seurat object. Fields modified include object@@data,
 #' object@@scale.data, object@@data.info, object@@data.ngene, object@@ident
+#' @import stringr
 #' @export
 setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("setup"))
 #' @export
@@ -331,7 +309,6 @@ setMethod("subsetData","seurat",
 #' loadings (PCA rotation matrices) remains unchanged, but now there are gene
 #' scores for all genes.
 #'
-#' %% ~~ If necessary, more details than the description above ~~
 #'
 #' @param object Seurat object
 #' @param do.print Print top genes associated with the projected PCs
@@ -391,6 +368,8 @@ setMethod("project.pca", "seurat",
 #' @param \dots Additional arguments to the tSNE call. Most commonly used is
 #' perplexity (expected number of neighbors default is 30)
 #' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
+#' @import Rtsne
+#' @import tsne
 #' @export
 setGeneric("run_tsne", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) standardGeneric("run_tsne"))
 #' @export
@@ -458,13 +437,12 @@ setMethod("add_tsne", "seurat",
 #' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
 #' gene projection matrix (object@@ica.x). The ICA object itself is stored in
 #' object@@ica.obj[[1]]
+#' @import fastICA
 #' @export
 setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) standardGeneric("ica"))
 #' @export
 setMethod("ica", "seurat", 
-          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
-            require(fastICA)
-            
+          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {            
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
@@ -480,7 +458,6 @@ setMethod("ica", "seurat",
             object@ica.x=ic_scores
             object@ica.rot=data.frame(ica.obj$S[,1:ics.store])
             colnames(object@ica.rot)=paste("IC",1:ncol(object@ica.rot),sep="")
-            print(head(object@ica.rot))
             rownames(object@ica.rot)=colnames(ic.data)
             if (do.print) {
               for(i in 1:ics.print) {
@@ -661,7 +638,7 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
 #' Return a list of genes with the strongest contribution to a set of indepdendent components
 #'
 #' @param object Seurat object
-#' @param pc.use Independent components to use
+#' @param ic.use Independent components to use
 #' @param num.genes Number of genes to return
 #' @param do.balanced Return an equal number of genes with both + and - IC scores. 
 #' @return Returns a vector of genes
@@ -787,7 +764,7 @@ setMethod("fetch.data","seurat",
 #' 
 #' 
 #' @param object Seurat object
-#' @param pcs.use Number of ICs to display
+#' @param ics.use Number of ICs to display
 #' @param num.genes Number of genes to display
 #' @param font.size Font size
 #' @param nCol Number of columns to display
@@ -973,6 +950,7 @@ setMethod("find.markers.node", "seurat",
 #' as in Trapnell et al., Nature Biotech, 2014)
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' identistics (p-values, ROC score, etc.)
+#' @import VGAM
 #' @export
 setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers"))
 #' @export
@@ -1181,6 +1159,7 @@ setMethod("batch.gene", "seurat",
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
 #' putative differentially expressed genes.
+#' @import ROCR
 #' @export
 setGeneric("marker.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("marker.test"))
 #' @export
@@ -1328,6 +1307,7 @@ setMethod("rename.ident", "seurat",
 #' @param ident.use Vector of identity class values to assign (character
 #' vector)
 #' @return A Seurat object where object@@ident has been appropriately modified
+#' @import gdata
 #' @export
 setGeneric("set.ident", function(object,cells.use=NULL,ident.use=NULL) standardGeneric("set.ident"))
 #' @export
@@ -1345,7 +1325,7 @@ setMethod("set.ident", "seurat",
           } 
 )
 
-#Internal, not documented for now
+#Not documented for now
 #' @export
 setGeneric("posterior.plot", function(object, name) standardGeneric("posterior.plot"))
 #' @export
@@ -1369,6 +1349,7 @@ map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
 }
 
 #Internal, not documented for now
+#' @import XLConnect
 #' @export
 setGeneric("map.cell",  function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) standardGeneric("map.cell"))
 #' @export
@@ -1452,6 +1433,7 @@ setMethod("get.centroids", "seurat",
 #' @param genes.use Genes to use to drive the refinement procedure.
 #' @return Seurat object, where mapping probabilities for each bin are stored
 #' in object@@final.prob
+#' @import fpc
 #' @export
 setGeneric("refined.mapping",  function(object,genes.use) standardGeneric("refined.mapping"))
 #' @export
@@ -1547,10 +1529,12 @@ setMethod("calc.insitu", "seurat",
 #' @param do.k Number of modes for the mixture model (default is 2)
 #' @param num.iter Number of 'greedy k-means' iterations (default is 1)
 #' @param do.plot Plot mixture model results
+#' @param genes.use Genes to use in the greedy k-means step (See manuscript for details)
 #' @param start.pct Initial estimates of the percentage of cells in the 'on'
 #' state (usually estimated from the in situ map)
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@mix.probs
+#' @import mixtools
 #' @export
 setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
 #' @export
@@ -1611,7 +1595,6 @@ setGeneric("fit.gene.mix", function(object, gene, do.k=3,use.mixtools=TRUE,do.pl
 #' @export
 setMethod("fit.gene.mix", "seurat",
           function(object, gene, do.k=3,use.mixtools=TRUE,do.plot=FALSE,plot.with.imputed=TRUE,min.bin.size=10) {
-            require(mixtools)
             data.fit=as.numeric(object@imputed[gene,])
             mixtools.fit=normalmixEM(data.fit,k=do.k)
             comp.order=order(mixtools.fit$mu)
@@ -1669,6 +1652,7 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
 #' @param gram The use.gram argument passed to lars
 #' @return Returns a Seurat object where the imputed values have been added to
 #' object@@data
+#' @import lars
 #' @export
 setGeneric("addImputedScore", function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) standardGeneric("addImputedScore"))
 #' @export
@@ -1848,7 +1832,7 @@ setMethod("feature.heatmap", "seurat",
             p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
             
             p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
-            p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
+            p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
             print(p2)
           }
 )
@@ -1874,7 +1858,7 @@ setMethod("tsne.plot", "seurat",
           function(object,do.label=FALSE,label.pt.size=1,...) {
             if (do.label==TRUE) {
               cols.use=rainbow(length(levels(object@ident))); cols.use[1]="lightgrey"
-              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=label.pt.size)
+              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
               k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
               points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
             }
@@ -1893,9 +1877,6 @@ setMethod("tsne.plot", "seurat",
 #' arguments which can be passed in here.
 #' 
 #' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is lebeled
-#' @param label.pt.size If do.label is set, the point size
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @export
 setGeneric("ica.plot", function(object,...) standardGeneric("ica.plot"))
@@ -1915,9 +1896,6 @@ setMethod("ica.plot", "seurat",
 #' arguments which can be passed in here.
 #' 
 #' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is lebeled
-#' @param label.pt.size If do.label is set, the point size
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @export
 setGeneric("pca.plot", function(object,...) standardGeneric("pca.plot"))
@@ -1965,7 +1943,7 @@ setMethod("dim.plot", "seurat",
           function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=fetch.data(object,dim.codes)
+            data.plot=fetch.data(object,dim.codes,cells.use)
             
             ident.use=as.factor(object@ident[cells.use])
             if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
@@ -1987,7 +1965,7 @@ setMethod("dim.plot", "seurat",
               p=p+scale_colour_manual(values=cols.use)
             }
             p2=p+xlab(x1)+ylab(x2)+scale_size(range = c(pt.size, pt.size))
-            p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+ggplot.legend.text(12)+no.legend.title+theme_bw()+nogrid
+            p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid
             p3=p3+theme(legend.title=element_blank())
             if (do.return) {
               if (do.bare) return(p)
@@ -2167,6 +2145,8 @@ same=function(x) return(x)
 #' and cexCol, which set row and column text sizes
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @import gplots
+#' @import Hmisc
 #' @export
 setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
 #' @export
@@ -2414,7 +2394,6 @@ setGeneric("calinskiPlot", function(object,pcs.use,pval.cut=0.1,gene.max=15,col.
 #' @export
 setMethod("calinskiPlot","seurat",
           function(object,pcs.use,pval.cut=0.1,gene.max=15,col.max=25,use.full=TRUE) {
-            require(vegan)
             if (length(pcs.use)==1) pvals.min=object@jackStraw.empP.full[,pcs.use]
             if (length(pcs.use)>1) pvals.min=apply(object@jackStraw.empP.full[,pcs.use],1,min)
             names(pvals.min)=rownames(object@jackStraw.empP.full)
@@ -2452,7 +2431,6 @@ setMethod("show", "seurat",
           }
 )
 
-#' @export
 plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL) {
   data$gene=as.character(rownames(data))
   data.use=data.frame(data[gene,])
@@ -2546,15 +2524,20 @@ setMethod("dot.plot","seurat",
 #' @param size.use Point size for geom_violin
 #' @param cols.use Colors to use for plotting
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @import grid
+#' @import gridExtra
+#' @import ggplot2
+#' @import reshape
+#' @import reshape2
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
 #' @export
 setGeneric("vlnPlot", function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
-                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident",...)  standardGeneric("vlnPlot"))
+                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident")  standardGeneric("vlnPlot"))
 #' @export
 setMethod("vlnPlot","seurat",
           function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,use.imputed=FALSE,adjust.use=1,
-                   size.use=1,cols.use=NULL,group.by="ident",...) {
+                   size.use=1,cols.use=NULL,group.by=NULL) {
             if (is.null(nCol)) {
               nCol=2
               if (length(features.plot)>6) nCol=3
@@ -2563,7 +2546,7 @@ setMethod("vlnPlot","seurat",
             data.use=data.frame(t(fetch.data(object,features.plot,use.imputed=use.imputed)))
             #print(head(data.use))
             ident.use=object@ident
-            if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
+            if (!is.null(group.by)) ident.use=as.factor(fetch.data(object,group.by)[,1])
             pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
             
             if(do.ret) {
@@ -2637,7 +2620,8 @@ facet_wrap_labeller <- function(gg.plot,labels=NULL) {
 #' proportion of genes expected under a uniform distribution of p-values. 
 #'
 #' @param object Seurat plot
-#' @param plot.lim Y-axis maximum on each QQ plot.
+#' @param plot.x.lim X-axis maximum on each QQ plot.
+#' @param plot.y.lim Y-axis maximum on each QQ plot.
 #' @param PCs Which PCs to examine
 #' @param nCol Number of columns
 #' @param score.thresh Threshold to use for the proportion test of PC
@@ -2796,6 +2780,7 @@ setMethod("cellPlot","seurat",
 )
 
 #' @export
+#' @import jackstraw
 setGeneric("jackStraw.permutation.test", function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1)  standardGeneric("jackStraw.permutation.test"))
 #' @export
 setMethod("jackStraw.permutation.test","seurat",
@@ -2857,6 +2842,7 @@ setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.
 #' @export
 setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
+            #num.pc=min(num.pc,length(object@cell.names))
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
             md.x=as.matrix(object@pca.x)
@@ -2940,8 +2926,10 @@ setMethod("jackStrawFull","seurat",
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
 #' @param cex.use Point size
 #' @param cex.text.use Text size
+#' @param do.spike FALSE by default. If TRUE, color all genes starting with ^ERCC a different color
 #' @param pch.use Pch value for points
 #' @param col.use Color to use
+#' @param spike.col.use if do.spike, color for spike-in genes
 #' @param plot.both Plot both the scaled and non-scaled graphs.
 #' @param do.contour Draw contour lines calculated based on all genes
 #' @param contour.lwd Contour line width

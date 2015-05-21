@@ -9,11 +9,11 @@ icTopGenes(object, ic.use = 1, num.genes = 30, do.balanced = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
+\item{ic.use}{Independent components to use}
+
 \item{num.genes}{Number of genes to return}
 
 \item{do.balanced}{Return an equal number of genes with both + and - IC scores.}
-
-\item{pc.use}{Independent components to use}
 }
 \value{
 Returns a vector of genes

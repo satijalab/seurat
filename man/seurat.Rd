@@ -6,6 +6,9 @@
 \usage{
 seurat(...)
 }
+\arguments{
+\item{\dots}{parameters to pass into the Seurat object. Usually will pass in raw.data (data frame with rows as genes, columns as cell names)}
+}
 \description{
 Setup a new Seurat object, pass in the raw data for downstream analysis
 }

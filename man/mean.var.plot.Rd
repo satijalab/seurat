@@ -40,9 +40,13 @@ take the standard deviation of all values/}
 
 \item{cex.text.use}{Text size}
 
+\item{do.spike}{FALSE by default. If TRUE, color all genes starting with ^ERCC a different color}
+
 \item{pch.use}{Pch value for points}
 
 \item{col.use}{Color to use}
+
+\item{spike.col.use}{if do.spike, color for spike-in genes}
 
 \item{plot.both}{Plot both the scaled and non-scaled graphs.}
 
