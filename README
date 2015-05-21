@@ -18,10 +18,10 @@ Version History
 May 21, 2015:
     Drop-Seq manuscript published. Version 1.2 released
     Changes :
-	- Added support for spectral t-SNE (non-linear dimensional reduction), and density clustering
+	- Added support for spectral t-SNE and density clustering
 	- New visualizations - including pcHeatmap, dot.plot, and feature.plot
 	- Expanded package documentation, reduced import package burden
-	- Seurat code is now hosted on GitHub, enables easy install through devtools package 
+	- Seurat code is now hosted on GitHub, enables easy install through devtools  
 	- Small bug fixes 	
 
 April 13, 2015:
