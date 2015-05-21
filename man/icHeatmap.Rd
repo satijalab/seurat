@@ -11,6 +11,8 @@ icHeatmap(object, ic.use = 1, cells.use = NULL, num.genes = 30,
 \arguments{
 \item{object}{Seurat object}
 
+\item{ic.use}{Independent components to use}
+
 \item{cells.use}{Cells to include in the heatmap (default is all cells)}
 
 \item{num.genes}{Number of genes to return}

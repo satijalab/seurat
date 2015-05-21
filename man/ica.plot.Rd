@@ -9,11 +9,6 @@ ica.plot(object, ...)
 \arguments{
 \item{object}{Seurat object}
 
-\item{do.label}{FALSE by default. If TRUE, plots an alternate view where the center of each
-cluster is lebeled}
-
-\item{label.pt.size}{If do.label is set, the point size}
-
 \item{\dots}{Additional parameters to dim.plot, for example, which dimensions to plot.}
 }
 \description{

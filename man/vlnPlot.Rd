@@ -7,7 +7,7 @@
 vlnPlot(object, features.plot, nCol = NULL, ylab.max = 12, do.ret = TRUE,
   do.sort = FALSE, size.x.use = 16, size.y.use = 16,
   size.title.use = 20, use.imputed = FALSE, adjust.use = 1,
-  size.use = 1, cols.use = NULL, group.by = "ident", ...)
+  size.use = 1, cols.use = NULL, group.by = "ident")
 }
 \arguments{
 \item{object}{Seurat object}

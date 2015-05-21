@@ -1,4 +1,4 @@
-
+#' @export
 zf.cells.render <- function(seuratObject, cells.use, do.rotate=TRUE,label=TRUE,calc.new=FALSE,col.use="red",radius.use=0.05,col.prob=FALSE,do.new=TRUE,...) {
   require(rgl)
   tierBins <- 30 # 1 bin per cell tier.
@@ -55,6 +55,7 @@ zf.cells.render <- function(seuratObject, cells.use, do.rotate=TRUE,label=TRUE,c
   }
 }
 
+#' @export
 zf.anchor.render <- function(seuratObject, this.anchor, anchors, label=TRUE, do.rotate=TRUE,calc.new=FALSE,...) {
   require(rgl)
   
@@ -139,7 +140,7 @@ zf.anchor.map <- function(seuratObject, this.anchor, anchors, calc.new=FALSE,...
   # Reformat that probability into an expression matrix as expected by the plotting function
 }
 
-
+#' @export
 zf.insitu.vec.lateral <- function(expression.vector, label=TRUE, title=NULL, ...) {
   require(rgl)
   
@@ -163,6 +164,8 @@ zf.insitu.vec.lateral <- function(expression.vector, label=TRUE, title=NULL, ...
     }
     view3d(zoom=.75, theta=0, phi=-90, fov=0)
 }
+
+#' @export
 zf.insitu.lateral <- function(seuratObject, gene, label=TRUE, ...) {
   require(rgl)
   
@@ -189,6 +192,7 @@ zf.insitu.lateral <- function(seuratObject, gene, label=TRUE, ...) {
     view3d(zoom=.75, theta=0, phi=-90, fov=0)
 }
 
+#' @export
 zf.insitu.dorsal <- function(seuratObject, gene, label=TRUE, ...) {
   require(rgl)
   
@@ -216,6 +220,7 @@ zf.insitu.dorsal <- function(seuratObject, gene, label=TRUE, ...) {
     view3d(zoom=.75, userMatrix=rotMat, fov=0)
 }
 
+#' @export
 zf.insitu.ventral <- function(seuratObject, gene, label=TRUE, ...) {
   require(rgl)
   
@@ -243,6 +248,7 @@ zf.insitu.ventral <- function(seuratObject, gene, label=TRUE, ...) {
     view3d(zoom=.75, userMatrix=rotMat, fov=0)
 }
 
+#' @export
 zf.insitu.side <- function(expressionMatrix, nonmirror=TRUE, mirror=TRUE) {
   require(rgl)
   

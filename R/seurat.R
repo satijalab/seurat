@@ -1,28 +1,27 @@
 #install.packages(c("ROCR","ggplot2","Hmisc","reshape","gplots","stringr","NMF","mixtools","lars","XLConnect","reshape2","vioplot","fastICA","tsne","Rtsne","fpc","ape","VGAM","gdata","knitr","useful","XLConnect","gridExtra"))
 
-require(ROCR)
-require(ggplot2)
-require(Hmisc)
-require(reshape)
-require(gplots)
-require(stringr)
-require(NMF)
-require(mixtools)
-require(lars)
-require(XLConnect)
-require(reshape2)
-require(vioplot)
-require(fastICA)
-require(tsne)
-require(fpc)
-require(Rtsne)
-require(ape)
-require(VGAM)
-require(gdata)
-require(useful)
-require(rgl)
-require(gridExtra)
-require(parallel)
+#require(ROCR)
+#library(ggplot2)
+#require(Hmisc)
+#require(reshape)
+#require(gplots)
+#require(stringr)
+#require(NMF)
+#require(mixtools)
+#require(lars)
+#require(XLConnect)
+#require(reshape2)
+#require(vioplot)
+#require(tsne)
+#require(fpc)
+#require(Rtsne)
+#require(ape)
+#require(VGAM)
+#require(gdata)
+#require(useful)
+#require(rgl)
+#require(gridExtra)
+#require(parallel)
 
 
 seurat <- setClass("seurat", slots = 
@@ -45,6 +44,7 @@ calc.drop.prob=function(x,a,b) {
 #' Setup a new Seurat object, pass in the raw data for downstream analysis
 #' 
 #' @export
+
 seurat <- function(...) new("seurat",...)
 
 setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
@@ -462,7 +462,7 @@ setMethod("add_tsne", "seurat",
 setGeneric("ica", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) standardGeneric("ica"))
 #' @export
 setMethod("ica", "seurat", 
-          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
+          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {            
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
@@ -659,7 +659,7 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
 #' Return a list of genes with the strongest contribution to a set of indepdendent components
 #'
 #' @param object Seurat object
-#' @param pc.use Independent components to use
+#' @param ic.use Independent components to use
 #' @param num.genes Number of genes to return
 #' @param do.balanced Return an equal number of genes with both + and - IC scores. 
 #' @return Returns a vector of genes
@@ -785,7 +785,7 @@ setMethod("fetch.data","seurat",
 #' 
 #' 
 #' @param object Seurat object
-#' @param pcs.use Number of ICs to display
+#' @param ics.use Number of ICs to display
 #' @param num.genes Number of genes to display
 #' @param font.size Font size
 #' @param nCol Number of columns to display
@@ -1872,7 +1872,7 @@ setMethod("tsne.plot", "seurat",
           function(object,do.label=FALSE,label.pt.size=1,...) {
             if (do.label==TRUE) {
               cols.use=rainbow(length(levels(object@ident))); cols.use[1]="lightgrey"
-              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="TSNE_1",ylab="TSNE_2",cex=label.pt.size)
+              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=cols.use[as.integer(object@ident)],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
               k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
               points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=1)
             }
@@ -1891,9 +1891,6 @@ setMethod("tsne.plot", "seurat",
 #' arguments which can be passed in here.
 #' 
 #' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is lebeled
-#' @param label.pt.size If do.label is set, the point size
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @export
 setGeneric("ica.plot", function(object,...) standardGeneric("ica.plot"))
@@ -1913,9 +1910,6 @@ setMethod("ica.plot", "seurat",
 #' arguments which can be passed in here.
 #' 
 #' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is lebeled
-#' @param label.pt.size If do.label is set, the point size
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @export
 setGeneric("pca.plot", function(object,...) standardGeneric("pca.plot"))
@@ -1963,7 +1957,7 @@ setMethod("dim.plot", "seurat",
           function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=fetch.data(object,dim.codes)
+            data.plot=fetch.data(object,dim.codes,cells.use)
             
             ident.use=as.factor(object@ident[cells.use])
             if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
@@ -2412,7 +2406,6 @@ setGeneric("calinskiPlot", function(object,pcs.use,pval.cut=0.1,gene.max=15,col.
 #' @export
 setMethod("calinskiPlot","seurat",
           function(object,pcs.use,pval.cut=0.1,gene.max=15,col.max=25,use.full=TRUE) {
-            require(vegan)
             if (length(pcs.use)==1) pvals.min=object@jackStraw.empP.full[,pcs.use]
             if (length(pcs.use)>1) pvals.min=apply(object@jackStraw.empP.full[,pcs.use],1,min)
             names(pvals.min)=rownames(object@jackStraw.empP.full)
@@ -2548,11 +2541,11 @@ setMethod("dot.plot","seurat",
 #' returns a list of ggplot objects.
 #' @export
 setGeneric("vlnPlot", function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
-                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident",...)  standardGeneric("vlnPlot"))
+                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident")  standardGeneric("vlnPlot"))
 #' @export
 setMethod("vlnPlot","seurat",
           function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,use.imputed=FALSE,adjust.use=1,
-                   size.use=1,cols.use=NULL,group.by="ident",...) {
+                   size.use=1,cols.use=NULL,group.by=NULL) {
             if (is.null(nCol)) {
               nCol=2
               if (length(features.plot)>6) nCol=3
@@ -2561,7 +2554,7 @@ setMethod("vlnPlot","seurat",
             data.use=data.frame(t(fetch.data(object,features.plot,use.imputed=use.imputed)))
             #print(head(data.use))
             ident.use=object@ident
-            if (group.by != "ident") ident.use=as.factor(fetch.data(object,group.by)[,1])
+            if (!is.null(group.by)) ident.use=as.factor(fetch.data(object,group.by)[,1])
             pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
             
             if(do.ret) {
@@ -2855,6 +2848,7 @@ setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.
 #' @export
 setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
+            #num.pc=min(num.pc,length(object@cell.names))
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
             md.x=as.matrix(object@pca.x)
@@ -2938,8 +2932,10 @@ setMethod("jackStrawFull","seurat",
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
 #' @param cex.use Point size
 #' @param cex.text.use Text size
+#' @param do.spike FALSE by default. If TRUE, color all genes starting with ^ERCC a different color
 #' @param pch.use Pch value for points
 #' @param col.use Color to use
+#' @param spike.col.use if do.spike, color for spike-in genes
 #' @param plot.both Plot both the scaled and non-scaled graphs.
 #' @param do.contour Draw contour lines calculated based on all genes
 #' @param contour.lwd Contour line width
