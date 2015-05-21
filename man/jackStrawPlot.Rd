@@ -17,7 +17,9 @@ jackStrawPlot(object, PCs = 1:5, nCol = 3, score.thresh = 1e-05,
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
 
-\item{plot.lim}{Y-axis maximum on each QQ plot.}
+\item{plot.x.lim}{X-axis maximum on each QQ plot.}
+
+\item{plot.y.lim}{Y-axis maximum on each QQ plot.}
 }
 \value{
 No value returned, just the PC plots.

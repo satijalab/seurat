@@ -46,7 +46,7 @@ take the standard deviation of all values/}
 
 \item{col.use}{Color to use}
 
-\item{spike.col.use}{if do.spike, color for spike-in genes.}
+\item{spike.col.use}{if do.spike, color for spike-in genes}
 
 \item{plot.both}{Plot both the scaled and non-scaled graphs.}
 

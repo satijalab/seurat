@@ -203,7 +203,7 @@ all.neighbor.cells=function(bin,dist=1) {
 #' @export
 no.legend.title=theme(legend.title=element_blank())
 #' @export
-ggplot.legend.text=function(x=12,y="bold") return(theme(legend.text = element_text(size = x, face = y)))
+gg.legend.text=function(x=12,y="bold") return(theme(legend.text = element_text(size = x, face = y)))
 #' @export
 gg.legend.pts=function(x=6) guides(colour = guide_legend(override.aes = list(size=x)))
 #' @export
@@ -485,7 +485,6 @@ getStat3=function(x,y=3) return(strsplit(x,"_")[[1]][y])
 
 #' @export
 multiplotList <- function(plots, file, cols=1, layout=NULL) {
-  require(grid)
   
   # Make a list from the ... arguments and plotlist
   #plots <- c(list(...), plotlist)
@@ -634,10 +633,7 @@ genCols=function(al=50) {
   return(tcols)
 }
 
-init = function() {
-  library(ggplot2)
-  
-  
+init = function() {  
   opt <-  opts(legend.title = theme_blank(), # switch off the legend title
                legend.text = theme_text(size=12,face="bold"),        
                legend.key.size = unit(2.5, "lines"),
