@@ -294,6 +294,42 @@ setMethod("setup","seurat",
           }         
 )
 
+
+#' @export
+setGeneric("add_samples", function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") standardGeneric("add_samples"))
+#' @export
+setMethod("add_samples","seurat",
+          function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") {
+            geneMeans.old = apply(object@data, 1, mean)
+            geneSd.old = apply(object@data, 1, sd)
+            levels.old=levels(object@ident)
+            num.genes=findNGene(new.data,object@is.expr)
+            cells.use=names(num.genes[which(num.genes>min.genes)]) 
+            genes.use=rownames(object@data)
+            new.data=new.data[genes.use,cells.use]; new.data[is.na(new.data)]=0
+            object@data=data.frame(cbind(object@data),new.data)
+            data.new.scale = t(scale(t(new.data),center=geneMeans.old,scale=geneSd.old))
+            object@scale.data = cbind(object@scale.data, data.new.scale)
+            
+            new.ident=(unlist(lapply(colnames(new.data),extract.field,names.field,names.delim)))
+            names(new.ident)=colnames(new.data)
+            object@ident=factor(c(as.character(object@ident),as.character(new.ident)))
+            names(object@ident)=colnames(object@data)
+            object@cell.names=names(object@ident)
+            
+            info.rows=ncol(new.data); info.cols=ncol(object@data.info)
+            new.names=colnames(new.data)
+            new.data.info=data.frame(matrix(rep(0,info.rows*info.cols),nrow = info.rows),row.names = new.names)
+            colnames(new.data.info)=colnames(object@data.info)
+            new.data.info[new.names,"nGene"]=num.genes[new.names]
+            new.data.info[new.names,"orig.ident"]=as.character(object@ident[new.names])
+            object@data.info=rbind(object@data.info,new.data.info)
+            object=project.samples(object,new.data)
+            #NOT SUPPORTED - adding mix.probs, gene.scores, etc.
+            return(object)
+          }         
+)
+
 #' Return a subset of the Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
@@ -343,6 +379,24 @@ setMethod("subsetData","seurat",
           }         
 )
 
+
+
+#' @export
+setGeneric("project.samples", function(object,new.samples) standardGeneric("project.samples"))
+#' @export
+setMethod("project.samples", "seurat", 
+          function(object,new.samples) {
+            genes.use = rownames(object@data) 
+            genes.pca = rownames(object@pca.x)
+            data.project = object@scale.data[genes.pca,]; data.project[is.na(data.project)]=0;
+            new.rot = t(data.project) %*% as.matrix(object@pca.x)
+            scale.vec = apply(new.rot,2, function(x) sqrt(sum(x^2)))
+            new.rot.scale = scale(new.rot, center=FALSE, scale=scale.vec)
+            object@pca.rot = as.data.frame(new.rot.scale)
+            return(object)
+          }
+)
+          
 #' Project Principal Components Analysis onto full dataset
 #'
 #' Takes a pre-computed PCA (typically calculated on a subset of genes) and
@@ -674,6 +728,7 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
   }
 }
 
+
 #' Find genes with highest ICA scores
 #'
 #' Return a list of genes with the strongest contribution to a set of indepdendent components
@@ -715,6 +770,30 @@ setMethod("pcTopGenes", "seurat",
             if (use.full==TRUE) pc_scores = object@pca.x.full
             pc.top.genes=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.genes,"pca")))
             return(pc.top.genes)
+          }
+)
+
+#' Find cells with highest PCA scores
+#'
+#' Return a list of genes with the strongest contribution to a set of principal components
+#'
+#' @param object Seurat object
+#' @param pc.use Principal component to use
+#' @param num.genes Number of cells to return
+#' @param do.balanced Return an equal number of cells with both + and - PC scores. 
+#' @return Returns a vector of cells
+#' @export
+setGeneric("pcTopCells",  function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) standardGeneric("pcTopCells"))
+#' @export
+setMethod("pcTopCells", "seurat", 
+          function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) {
+            
+            #note that we use topGenesForDim, but it still works
+            num.cells=set.ifnull(num.cells,length(object@cell.names))
+            pc_scores=object@pca.rot
+            i=pc.use
+            pc.top.cells=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.cells,"pca")))
+            return(pc.top.cells)
           }
 )
 
@@ -993,10 +1072,10 @@ setMethod("find.markers.node", "seurat",
 #' identistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @export
-setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers"))
+setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0) standardGeneric("find.markers"))
 #' @export
 setMethod("find.markers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod") {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             
             cells.1=which.cells(object,ident.1)
@@ -1026,12 +1105,17 @@ setMethod("find.markers", "seurat",
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
               return(NULL)
             }
+            thresh.min=object@is.expr
+            data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
+            alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
             
             if (test.use=="bimod") to.return=diffExp.test(object,cells.1,cells.2,genes.use,thresh.use) 
             if (test.use=="roc") to.return=marker.test(object,cells.1,cells.2,genes.use,thresh.use) 
             if (test.use=="t") to.return=diff.t.test(object,cells.1,cells.2,genes.use,thresh.use) 
             if (test.use=="tobit") to.return=tobit.test(object,cells.1,cells.2,genes.use,thresh.use) 
-            
+            to.return=cbind(to.return,data.alpha[rownames(to.return),])
             return(to.return)
           } 
 )
@@ -2358,7 +2442,7 @@ setMethod("doKMeans","seurat",
           
             kmeans.obj=object@kmeans.obj[[1]]
             kmeans.col=object@kmeans.col[[1]]
-            object@data.info[names(kmeans.col$cluster),"kmeans.ident"]=kmeans.col$cluster
+            if (k.cells>0) object@data.info[names(kmeans.col$cluster),"kmeans.ident"]=kmeans.col$cluster
             
             if ((set.ident) && (k.cells > 0)) {
               object=set.ident(object,cells.use=names(kmeans.col$cluster),ident.use = kmeans.col$cluster)
@@ -2756,18 +2840,22 @@ setMethod("genePlot","seurat",
 )
 
 #' @export
-setGeneric("removePC", function(object, pcs.remove,...)  standardGeneric("removePC"))
+setGeneric("removePC", function(object, pcs.remove,use.full=FALSE,...)  standardGeneric("removePC"))
 #' @export
 setMethod("removePC","seurat",
-          function(object, pcs.remove,...) {
+          function(object, pcs.remove,use.full=FALSE,...) {
             data.old=object@data
             pcs.use=anotinb(1:ncol(object@pca.obj[[1]]$rotation),pcs.remove)
-            data.1=as.matrix(object@pca.obj[[1]]$x[,pcs.use])%*%t(as.matrix(object@pca.obj[[1]]$rotation[,pcs.use]))
+            data.x=as.matrix(object@pca.obj[[1]]$x[,pcs.use])
+            if (use.full) data.x=object@as.matrix(object@pca.x.$x[,pcs.use])
+            data.1=data.x%*%t(as.matrix(object@pca.obj[[1]]$rotation[,pcs.use]))
             data.2=sweep(data.1,2,colMeans(object@scale.data),"+")
-            data.3=sweep(data.2,MARGIN = 1,apply(object@data,1,sd),"*")         
-            data.3=sweep(data.3,MARGIN = 1,apply(object@data,1,mean),"+")         
-            object@scale.data=(data.2); object@data=data.frame(data.3)
-            object@data[data.old==0]=0; object@data[object@data<0]=0
+            data.3=sweep(data.2,MARGIN = 1,apply(object@data[rownames(data.2),],1,sd),"*")         
+            data.3=sweep(data.3,MARGIN = 1,apply(object@data[rownames(data.2),],1,mean),"+")         
+            object@scale.data=(data.2); 
+            data.old=data.old[rownames(data.3),]
+            data.4=data.3; data.4[data.old==0]=0; data.4[data.4<0]=0
+            object@data[rownames(data.4),]=data.frame(data.4)
             return(object)
           }
 )
