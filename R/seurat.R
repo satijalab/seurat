@@ -1,5 +1,3 @@
-
-
 ################################################################################
 ### Seurat
 
@@ -785,7 +783,7 @@ setMethod("pcTopGenes", "seurat",
 #' @export
 setGeneric("pcTopCells",  function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) standardGeneric("pcTopCells"))
 #' @export
-setMethod("pcTopCells", "seurat", 
+setMethod("pcTopCells", "seurat",
           function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) {
             
             #note that we use topGenesForDim, but it still works
