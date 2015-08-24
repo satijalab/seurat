@@ -330,10 +330,11 @@ exact.cell.centroid=function(cell.probs) {
 }
 
 #' @export
-marker.auc.test=function(data1,data2,mygenes) {
+marker.auc.test=function(data1,data2,mygenes,print.bar=TRUE) {
   myAUC=unlist(lapply(mygenes,function(x)diffAUC(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   myAUC[is.na(myAUC)]=0
-  avg_diff=unlist(lapply(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
+  iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+  avg_diff=unlist(iterate.fxn(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
   toRet=data.frame(cbind(myAUC,avg_diff),row.names=mygenes)
   toRet=toRet[rev(order(toRet$myAUC)),]
   return(toRet)
@@ -369,19 +370,21 @@ diffTobit=function(x1,x2,lower=1,upper=Inf) {
   return(p)
 }
 
-tobit.diffExp.test=function(data1,data2,mygenes) {
+tobit.diffExp.test=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffTobit(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
-  avg_diff=unlist(lapply(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
+  iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+  avg_diff=unlist(iterate.fxn(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
   toRet=data.frame(cbind(p_val,avg_diff),row.names=mygenes)
   toRet=toRet[order(toRet$p_val),]
   return(toRet)
 }
 
-bimod.diffExp.test=function(data1,data2,mygenes) {
+bimod.diffExp.test=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffLRT(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
-  avg_diff=unlist(lapply(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
+  iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+  avg_diff=unlist(iterate.fxn(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
   toRet=data.frame(cbind(p_val,avg_diff),row.names=mygenes)
   toRet=toRet[order(toRet$p_val),]
   return(toRet)

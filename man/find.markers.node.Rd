@@ -27,7 +27,7 @@ as in Trapnell et al., Nature Biotech, 2014)}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
-identistics (p-values, ROC score, etc.)
+statistics (p-values, ROC score, etc.)
 }
 \description{
 Finds markers (differentially expressed genes) based on a branching point (node) in

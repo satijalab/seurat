@@ -1029,7 +1029,7 @@ setMethod("regulatorScore", "seurat",
 #' @inheritParams find.markers
 #' @param node The node in the phylogenetic tree to use as a branch point 
 #' @return Matrix containing a ranked list of putative markers, and associated
-#' identistics (p-values, ROC score, etc.)
+#' statistics (p-values, ROC score, etc.)
 #' @export
 setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers.node"))
 #' @export
@@ -1066,11 +1066,14 @@ setMethod("find.markers.node", "seurat",
 #' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 #' as in Trapnell et al., Nature Biotech, 2014)
-#' @return Matrix containing a ranked list of putative markers, and associated
-#' identistics (p-values, ROC score, etc.)
+#' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells 
+#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
+#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @import VGAM
+#' @import pbapply
 #' @export
-setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0) standardGeneric("find.markers"))
+setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0,print.bar=TRUE) standardGeneric("find.markers"))
 #' @export
 setMethod("find.markers", "seurat",
           function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0) {
@@ -1109,10 +1112,10 @@ setMethod("find.markers", "seurat",
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
             
-            if (test.use=="bimod") to.return=diffExp.test(object,cells.1,cells.2,genes.use,thresh.use) 
-            if (test.use=="roc") to.return=marker.test(object,cells.1,cells.2,genes.use,thresh.use) 
-            if (test.use=="t") to.return=diff.t.test(object,cells.1,cells.2,genes.use,thresh.use) 
-            if (test.use=="tobit") to.return=tobit.test(object,cells.1,cells.2,genes.use,thresh.use) 
+            if (test.use=="bimod") to.return=diffExp.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
+            if (test.use=="roc") to.return=marker.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
+            if (test.use=="t") to.return=diff.t.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
+            if (test.use=="tobit") to.return=tobit.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
             to.return=cbind(to.return,data.alpha[rownames(to.return),])
             return(to.return)
           } 
@@ -1129,9 +1132,9 @@ setMethod("find.markers", "seurat",
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @return Matrix containing a ranked list of putative markers, and associated
-#' identistics (p-values, ROC score, etc.)
+#' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers"))
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,print.bar=TRUE) standardGeneric("find_all_markers"))
 #' @export
 setMethod("find_all_markers","seurat",
           function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
@@ -1140,7 +1143,7 @@ setMethod("find_all_markers","seurat",
             idents.all=sort(unique(object@ident))
             genes.de=list()
             for(i in 1:length(idents.all)) {
-              genes.de[[i]]=find.markers(object,idents.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
+              genes.de[[i]]=find.markers(object,idents.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,print.bar=print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -1166,28 +1169,25 @@ setMethod("find_all_markers","seurat",
 #' Identifies differentially expressed genes between two groups of cells using
 #' the LRT model proposed in Mcdavid et al, Bioinformatics, 2011
 #' 
+#' 
+#' @inheritParams find.markers
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
-#' @param genes.use Genes to test. Default is to use all genes.
-#' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#' 
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("diffExp.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diffExp.test"))
+setGeneric("diffExp.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("diffExp.test"))
 #' @export
 setMethod("diffExp.test", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
             total.diff=abs(data.1-data.2)
             genes.diff = names(which(total.diff>thresh.use))
             #print(genes.diff)
-            to.return=bimod.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff)
+            to.return=bimod.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff,print.bar)
             to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
             return(to.return)
           } 
@@ -1198,28 +1198,22 @@ setMethod("diffExp.test", "seurat",
 #' Identifies differentially expressed genes between two groups of cells using
 #' Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
 #'
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to test. Default is to use all genes.
-#' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#'
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @inheritParams find.markers
+#' @inheritParams diffExp.test
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("tobit.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("tobit.test"))
+setGeneric("tobit.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("tobit.test"))
 #' @export
 setMethod("tobit.test", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
             total.diff=abs(data.1-data.2)
             genes.diff = names(which(total.diff>thresh.use))
             #print(genes.diff)
-            to.return=tobit.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff)
+            to.return=tobit.diffExp.test(object@data[,cells.1],object@data[,cells.2],genes.diff,print.bar)
             to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
             return(to.return)
           } 
@@ -1271,23 +1265,18 @@ setMethod("batch.gene", "seurat",
 #' also means there is perfect classification, but in the other direction. A
 #' value of 0.5 implies that the gene has no predictive power to classify the
 #' two groups.
-#'
+#' 
+#' @inheritParams find.markers
+#' @inheritParams diffExp.test
 #' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to test. Default is to use all genes.
-#' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#'
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
 #' putative differentially expressed genes.
 #' @import ROCR
 #' @export
-setGeneric("marker.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("marker.test"))
+setGeneric("marker.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("marker.test"))
 #' @export
 setMethod("marker.test", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             data.use=object@data
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
@@ -1295,7 +1284,7 @@ setMethod("marker.test", "seurat",
             total.diff=abs(data.1-data.2)
             genes.diff = names(which(total.diff>thresh.use))
             genes.use=ainb(genes.diff,rownames(data.use))
-            to.return=marker.auc.test(object@data[,cells.1],object@data[,cells.2],genes.use)
+            to.return=marker.auc.test(object@data[,cells.1],object@data[,cells.2],genes.use,print.bar=TRUE)
             to.return=to.return[rev(order(abs(to.return$myAUC-0.5))),]
             to.return$power=abs(to.return$myAUC-0.5)*2
             return(to.return)
@@ -1307,21 +1296,15 @@ setMethod("marker.test", "seurat",
 #' Identify differentially expressed genes between two groups of cells using
 #' the Student's t-test
 #' 
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to test. Default is to use all genes.
-#' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#' 
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @inheritParams find.markers
+#' @inheritParams diffExp.test
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("diff.t.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) standardGeneric("diff.t.test"))
+setGeneric("diff.t.test", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("diff.t.test"))
 #' @export
 setMethod("diff.t.test", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2)) {
+          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             data.use=object@data
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
@@ -1329,7 +1312,8 @@ setMethod("diff.t.test", "seurat",
             total.diff=abs(data.1-data.2)
             genes.diff = names(which(total.diff>thresh.use))
             genes.use=ainb(genes.diff,rownames(data.use))
-            p_val=unlist(lapply(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
+            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+            p_val=unlist(iterate.fxn(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
             avg_diff=(data.1-data.2)[genes.use]
             to.return=data.frame(p_val,avg_diff,row.names = genes.use)
             to.return=to.return[with(to.return, order(p_val, -abs(avg_diff))), ]
@@ -1798,7 +1782,9 @@ setMethod("addImputedScore", "seurat",
 
 
 # Not currently supported, but a cool scoring function
+#' @export
 setGeneric("getNewScore", function(object, score.name,score.genes, cell.ids=NULL, score.func=weighted.mean,scramble=FALSE, no.tech.wt=FALSE, biol.wts=NULL,use.scaled=FALSE) standardGeneric("getNewScore"))
+#' @export
 setMethod("getNewScore", "seurat",
           function(object, score.name,score.genes, cell.ids=NULL, score.func=weighted.mean,scramble=FALSE, no.tech.wt=FALSE, biol.wts=NULL,use.scaled=FALSE) {
             data.use=object@data; if (use.scaled) data.use=minmax(object@scale.data,min = -2,max=2)

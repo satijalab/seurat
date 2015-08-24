@@ -4,7 +4,8 @@
 \alias{marker.test}
 \title{ROC-based marker discovery}
 \usage{
-marker.test(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2))
+marker.test(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2),
+  print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +20,8 @@ marker.test(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2))
 X-fold difference (log-scale) between the two groups of cells.
 
 Increasing thresh.use speeds up the function, but can miss weaker signals.}
+
+\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }
 \value{
 Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of

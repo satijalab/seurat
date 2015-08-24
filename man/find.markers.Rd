@@ -5,7 +5,8 @@
 \title{Gene expression markers of identity classes}
 \usage{
 find.markers(object, ident.1, ident.2 = NULL, genes.use = NULL,
-  thresh.use = log(2), test.use = "bimod", min.pct = 0)
+  thresh.use = log(2), test.use = "bimod", min.pct = 0,
+  print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,10 +28,14 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 as in Trapnell et al., Nature Biotech, 2014)}
+
+\item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells
+in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
+
+\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated
-identistics (p-values, ROC score, etc.)
+Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 }
 \description{
 Finds markers (differentially expressed genes) for identity classes

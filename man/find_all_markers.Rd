@@ -5,7 +5,7 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 find_all_markers(object, thresh.test = 1, test.use = "bimod",
-  return.thresh = 0.01, do.print = FALSE)
+  return.thresh = 0.01, do.print = FALSE, print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,10 +21,12 @@ as in Trapnell et al., Nature Biotech, 2014)}
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
 \item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
+
+\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
-identistics (p-values, ROC score, etc.)
+statistics (p-values, ROC score, etc.)
 }
 \description{
 Finds markers (differentially expressed genes) for each of the identity classes in a dataset
