@@ -472,10 +472,25 @@ plotVln=function(gene,data=dc2,code="rsem",mmax=12,getStat=getStat1,doRet=FALSE,
 }
 
 #' @export
-extract.field=function(string,field=1,delim="_") return(strsplit(string,delim)[[1]][field])
+extract.field=function(string,field=1,delim="_") {
+  fields=as.numeric(unlist(strsplit(as.character(field),",")))
+  if (length(fields)==1)  return(strsplit(string,delim)[[1]][field])
+  return(paste(strsplit(string,delim)[[1]][fields],collapse = delim))
+}
 
 #' @export
 getStat1=function(x)return(strsplit(x,"_")[[1]][1])
+
+#' @export
+genes.ca.range=function(object,my.min,my.max) {
+  ca=cluster.alpha(object)
+  ca.min=apply(ca,1,min)
+  ca.max=apply(ca,1,max)
+  genes.1=names(ca.min[ca.min>my.min])
+  genes.2=names(ca.max[ca.max<my.max])
+  return(ainb(genes.1,genes.2))
+}
+
 
 #' @export
 getStat=function(x,y=1) return(strsplit(x,"_")[[1]][y])

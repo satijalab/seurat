@@ -5,7 +5,7 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 find_all_markers(object, thresh.test = 1, test.use = "bimod",
-  return.thresh = 0.01, do.print = FALSE, print.bar = TRUE)
+  return.thresh = 0.01, do.print = FALSE, min.pct = 0, print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,6 +21,9 @@ as in Trapnell et al., Nature Biotech, 2014)}
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
 \item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
+
+\item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells
+in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }

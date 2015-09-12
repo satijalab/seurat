@@ -299,6 +299,7 @@ setGeneric("add_samples", function(object,new.data, min.genes=2500 ,names.field=
 setMethod("add_samples","seurat",
           function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") {
             geneMeans.old = apply(object@data, 1, mean)
+            #print("hi")
             geneSd.old = apply(object@data, 1, sd)
             levels.old=levels(object@ident)
             num.genes=findNGene(new.data,object@is.expr)
@@ -307,6 +308,9 @@ setMethod("add_samples","seurat",
             new.data=new.data[genes.use,cells.use]; new.data[is.na(new.data)]=0
             object@data=data.frame(cbind(object@data),new.data)
             data.new.scale = t(scale(t(new.data),center=geneMeans.old,scale=geneSd.old))
+            data.new.scale=data.new.scale[rownames(object@scale.data),]; data.new.scale[is.na(data.new.scale)]=-10
+            genes.diff=anotinb(rownames(object@scale.data),rownames(data.new.scale))
+            #print(genes.diff)
             object@scale.data = cbind(object@scale.data, data.new.scale)
             
             new.ident=(unlist(lapply(colnames(new.data),extract.field,names.field,names.delim)))
@@ -371,7 +375,7 @@ setMethod("subsetData","seurat",
             
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)
             object@data.info=data.frame(object@data.info[cells.use,])
-            object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
+            #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
             
             return(object)
           }         
@@ -1076,7 +1080,7 @@ setMethod("find.markers.node", "seurat",
 setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0,print.bar=TRUE) standardGeneric("find.markers"))
 #' @export
 setMethod("find.markers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             
             cells.1=which.cells(object,ident.1)
@@ -1134,16 +1138,16 @@ setMethod("find.markers", "seurat",
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,print.bar=TRUE) standardGeneric("find_all_markers"))
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE) standardGeneric("find_all_markers"))
 #' @export
 setMethod("find_all_markers","seurat",
-          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
+      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
             genes.de=list()
             for(i in 1:length(idents.all)) {
-              genes.de[[i]]=find.markers(object,idents.all[i],genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,print.bar=print.bar)
+              genes.de[[i]]=find.markers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,min.pct,print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -1959,21 +1963,26 @@ setMethod("feature.heatmap", "seurat",
 #' @param label.pt.size If do.label is set, the point size
 #' @param label.cex.text If label.cex.text is set, the size of the text labels
 #' @param label.cols.use If do.label is set, the color palette to use for the points
+#' @param color.scramble If do.label is set, scramble the color palette (can help to distinguish adjacent clusters)
 #' @param \dots Additional parameters to dim.plot, for example, which dimensions to plot. 
 #' @seealso dim.plot
 #' @export
 setGeneric("tsne.plot", function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,...) standardGeneric("tsne.plot"))
 #' @export
 setMethod("tsne.plot", "seurat", 
-          function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,...) {
+          function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,cells.use=NULL,...) {
+            cells.use=set.ifnull(cells.use,object@cell.names)
+            #print(head(cells.use))
+            cells.use=ainb(cells.use,object@cell.names)
             if (do.label==TRUE) {
-              label.cols.use=set.ifnull(label.cols.use,rainbow(length(levels(object@ident)))); 
-              plot(object@tsne.rot[,1],object@tsne.rot[,2],col=label.cols.use[as.integer(object@ident)],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
-              k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,mean)))
+              label.cols.use=set.ifnull(label.cols.use,rainbow(length(levels(object@ident[cells.use])))); 
+              set.seed(1); label.cols.use=sample(label.cols.use)
+              plot(object@tsne.rot[cells.use,1],object@tsne.rot[cells.use,2],col=label.cols.use[as.integer(object@ident[cells.use])],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
+              k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[which.cells(object,x),],2,median)))
               points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=label.cex.text)
             }
             else {
-              return(dim.plot(object,reduction.use = "tsne",...))
+              return(dim.plot(object,reduction.use = "tsne",cells.use = cells.use,...))
             }
           }
 )
@@ -2257,10 +2266,10 @@ same=function(x) return(x)
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @importFrom gplots heatmap.2
 #' @export
-setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) standardGeneric("doHeatMap"))
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,...) standardGeneric("doHeatMap"))
 #' @export
 setMethod("doHeatMap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
@@ -2282,7 +2291,8 @@ setMethod("doHeatMap","seurat",
             if(slim.col.label && order.by.ident) {
               col.lab=rep("",length(cells.use))
               col.lab[round(cumsum(table(cells.ident))-table(cells.ident)/2)+1]=levels(cells.ident)
-              hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=0.2+1/log10(length(unique(cells.ident))),...)
+              cex.col=set.ifnull(cex.col,0.2+1/log10(length(unique(cells.ident))))
+              hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=cex.col,...)
             }
             else {
               hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
