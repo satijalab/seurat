@@ -486,8 +486,8 @@ genes.ca.range=function(object,my.min,my.max) {
   ca=cluster.alpha(object)
   ca.min=apply(ca,1,min)
   ca.max=apply(ca,1,max)
-  genes.1=names(ca.min[ca.min>my.min])
-  genes.2=names(ca.max[ca.max<my.max])
+  genes.1=names(ca.min[ca.min<my.max])
+  genes.2=names(ca.max[ca.max>my.min])
   return(ainb(genes.1,genes.2))
 }
 

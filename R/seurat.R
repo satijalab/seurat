@@ -382,6 +382,41 @@ setMethod("subsetData","seurat",
 )
 
 
+#' Return a subset of the Seurat object
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Takes either a list of cells to use as a subset, or a
+#' parameter (for example, a gene), to subset on.
+#'
+#' @param object Seurat object
+#' @param cells.use A vector of cell names to use as a subset. If NULL
+#' (default), then this list will be computed based on the next three
+#' arguments. Otherwise, will return an object consissting only of these cells
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@data.info, etc. Any argument that can be retreived
+#' using fetch.data
+#' @param accept.low Low cutoff for the parameter (default is -Inf)
+#' @param accept.high High cutoff for the parameter (default is Inf)
+#' @param do.center Recenter the new object@@scale.data
+#' @param do.scale Rescale the new object@@scale.data
+#' @param \dots Additional arguments to be passed to fetch.data (for example,
+#' use.imputed=TRUE)
+#' @return Returns a Seurat object containing only the relevant subset of cells
+#' @export
+setGeneric("subsetCells",  function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("subsetCells"))
+#' @export
+setMethod("subsetCells","seurat",
+          function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
+            data.use=NULL
+              data.use=fetch.data(object,subset.name,cells.use,...)
+              if (length(data.use)==0) return(object)
+              subset.data=data.use[,subset.name]
+              pass.inds=which((subset.data>accept.low) & (subset.data<accept.high))
+              cells.use=rownames(data.use)[pass.inds]
+            return(cells.use)
+          }         
+)
+
 
 #' @export
 setGeneric("project.samples", function(object,new.samples) standardGeneric("project.samples"))
@@ -2450,16 +2485,27 @@ setMethod("doKMeans","seurat",
 )
 
 #' @export
-setGeneric("genes.in.cluster", function(object, cluster.num)  standardGeneric("genes.in.cluster"))
+setGeneric("genes.in.cluster", function(object, cluster.num,max.genes=1e6)  standardGeneric("genes.in.cluster"))
 #' @export
 setMethod("genes.in.cluster", signature = "seurat",
-          function(object, cluster.num) {
-            print(unlist(lapply(cluster.num,function(x)sort(names(which(object@kmeans.obj[[1]]$cluster==x))))))
+          function(object, cluster.num,max.genes=1e6) {
+            toReturn=(unlist(lapply(cluster.num,function(x)head(sort(names(which(object@kmeans.obj[[1]]$cluster==x))),max.genes))))
+            return(toReturn)
           }    
 )
 
-
-
+#Needs comments
+#' @export
+setGeneric("kMeansHeatmap", function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,...)  standardGeneric("kMeansHeatmap"))
+#' @export
+setMethod("kMeansHeatmap", signature = "seurat",
+          function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,...) {
+            genes.cluster=set.ifnull(genes.cluster,unique(object@kmeans.obj[[1]]$cluster))
+            genes.use=genes.in.cluster(object,genes.cluster,max.genes)
+            doHeatMap(object,cells.use = cells.use,genes.use = genes.use,slim.col.label=slim.col.label,remove.key=remove.key,...)
+          }
+)
+            
 #' @export
 setGeneric("cell.cor.matrix", function(object, cor.genes=NULL,cell.inds=NULL, do.k=FALSE,k.seed=1,k.num=4,vis.low=(-1),vis.high=1,vis.one=0.8,pcs.use=1:3,col.use=pyCols)  standardGeneric("cell.cor.matrix"))
 #' @export
