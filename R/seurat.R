@@ -1107,15 +1107,16 @@ setMethod("find.markers.node", "seurat",
 #' as in Trapnell et al., Nature Biotech, 2014)
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells 
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @param only.pos Only return positive markers (FALSE by default)
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0,print.bar=TRUE) standardGeneric("find.markers"))
+setGeneric("find.markers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0,print.bar=TRUE,only.pos=FALSE) standardGeneric("find.markers"))
 #' @export
 setMethod("find.markers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0,print.bar=TRUE) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0,print.bar=TRUE,only.pos=FALSE) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             
             cells.1=which.cells(object,ident.1)
@@ -1156,6 +1157,7 @@ setMethod("find.markers", "seurat",
             if (test.use=="t") to.return=diff.t.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
             if (test.use=="tobit") to.return=tobit.test(object,cells.1,cells.2,genes.use,thresh.use,print.bar) 
             to.return=cbind(to.return,data.alpha[rownames(to.return),])
+            if(only.pos) to.return=subset(to.return,avg_diff>0)
             return(to.return)
           } 
 )
@@ -1173,10 +1175,10 @@ setMethod("find.markers", "seurat",
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE) standardGeneric("find_all_markers"))
+setGeneric("find_all_markers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE,only.pos=FALSE) standardGeneric("find_all_markers"))
 #' @export
 setMethod("find_all_markers","seurat",
-      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE) {
+      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE,only.pos=FALSE) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -1198,6 +1200,7 @@ setMethod("find_all_markers","seurat",
                 if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
               }
             }
+            if(only.pos) return(subset(gde.all,avg_diff>0))
             return(gde.all)
           }
 )
