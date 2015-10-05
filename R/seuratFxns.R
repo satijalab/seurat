@@ -1269,7 +1269,7 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update){
   n_cell=nrow(data.use)
   
   #find the k-nearest neighbors for each single cell
-  my.knn=get.knn(as.matrix(data.use), k=10*k_param)
+  my.knn=get.knn(as.matrix(data.use), k=min(10*k_param,n_cell))
   nn.ranked=cbind(1:n_cell,my.knn$nn.index[,1:(k_param-1)])
   nn.large=my.knn$nn.index
   

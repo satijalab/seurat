@@ -4,14 +4,16 @@
 \alias{find.clusters}
 \title{Cluster Determination}
 \usage{
-find.clusters(object, genes.use = NULL, pc.use = NULL, k_param = 10,
-  plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE, r_param = 0.7,
-  m_param = 0.5, q = 0.1, qup = 0.1, update = 0.25)
+find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
+  k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
+  r_param = 0.7, m_param = 0.5, q = 0.1, qup = 0.1, update = 0.25)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{pc.use}{Which PCs to use for construction of the SNN graph}
+
+\item{SNN}{Allows use of existing SNN matrix}
 
 \item{k_param}{Defines k for the k-nearest neighbor algorithm}
 

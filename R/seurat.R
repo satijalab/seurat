@@ -3193,6 +3193,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param object Seurat object
 #' @param gene.use Gene expression data
 #' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param SNN Allows use of existing SNN matrix
 #' @param k_param Defines k for the k-nearest neighbor algorithm
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Prune the SNN graph
@@ -3207,13 +3208,13 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @importFrom igraph plot.igraph graph_from_adj_list
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
+setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
                                     save.SNN = FALSE, r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
-          function(object, genes.use=NULL, pc.use=NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
+          function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
                    r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 ){
-            SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update)
+            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update) }
             clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
             clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
             cells.use = object@cell.names[unlist(clusters[[1]])]
