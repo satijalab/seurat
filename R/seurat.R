@@ -303,16 +303,34 @@ setMethod("add_samples","seurat",
             geneSd.old = apply(object@data, 1, sd)
             levels.old=levels(object@ident)
             num.genes=findNGene(new.data,object@is.expr)
-            cells.use=names(num.genes[which(num.genes>min.genes)]) 
-            genes.use=rownames(object@data)
-            new.data=new.data[genes.use,cells.use]; new.data[is.na(new.data)]=0
-            object@data=data.frame(cbind(object@data),new.data)
-            data.new.scale = t(scale(t(new.data),center=geneMeans.old,scale=geneSd.old))
-            data.new.scale=data.new.scale[rownames(object@scale.data),]; data.new.scale[is.na(data.new.scale)]=-10
-            genes.diff=anotinb(rownames(object@scale.data),rownames(data.new.scale))
-            #print(genes.diff)
-            object@scale.data = cbind(object@scale.data, data.new.scale)
+            cells.use=names(num.genes[which(num.genes>min.genes)]); new.data=new.data[,cells.use] 
+            genes.old=rownames(object@data); genes.new=rownames(new.data)
+            genes.same.1=which(genes.old%in%genes.new); genes.same.2=which(genes.new%in%genes.old)
+            genes.diff.1=which(!(genes.old%in%genes.new)); genes.diff.2=which(!(genes.new%in%genes.old))
             
+            data.bind.new.1=matrix(rep(0,length(genes.diff.1)*ncol(new.data)),nrow = length(genes.diff.1)); colnames(data.bind.new.1)=colnames(new.data); new.data.1=rbind(new.data,data.bind.new.1)
+            rownames(new.data.1)[(nrow(new.data)+1):nrow(new.data.1)]=genes.old[genes.diff.1]; new.data.1=new.data.1[sort(rownames(new.data.1)),]
+            
+            data.bind.new.2=matrix(rep(0,length(genes.diff.2)*ncol(object@data)),nrow = length(genes.diff.2)); colnames(data.bind.new.2)=colnames(object@data); new.data.2=rbind(object@data,data.bind.new.2)
+            rownames(new.data.2)[(nrow(object@data)+1):nrow(new.data.2)]=genes.new[genes.diff.2]; new.data.2=new.data.2[sort(rownames(new.data.2)),]
+            
+            #genes.new=setdiff(rownames(new.data),rownames(object@data))
+            #new.data=new.data[genes.use,cells.use]; new.data[is.na(new.data)]=0; rownames(new.data)=genes.use
+            object@data=data.frame(cbind(new.data.2,new.data.1))
+            
+            new.means=apply(object@data[genes.new[genes.diff.2],],1,mean)
+            new.sd=apply(object@data[genes.new[genes.diff.2],],1,sd)
+
+            new.means=c(geneMeans.old,new.means); new.means=new.means[rownames(object@data)]
+            new.sd=c(geneSd.old,new.sd); new.sd=new.sd[rownames(object@data)]
+            
+            data.new.scale = t(scale(t(object@data),center=new.means,scale=new.sd))
+            #data.new.scale=data.new.scale[rownames(object@scale.data),]; data.new.scale[is.na(data.new.scale)]=-10
+            #genes.diff=anotinb(rownames(object@scale.data),rownames(data.new.scale))
+            #print(genes.diff)
+            #object@scale.data = cbind(object@scale.data, data.new.scale)
+            
+            object@scale.data=data.new.scale
             new.ident=(unlist(lapply(colnames(new.data),extract.field,names.field,names.delim)))
             names(new.ident)=colnames(new.data)
             object@ident=factor(c(as.character(object@ident),as.character(new.ident)))
@@ -1070,10 +1088,10 @@ setMethod("regulatorScore", "seurat",
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") standardGeneric("find.markers.node"))
+setGeneric("find.markers.node", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod",...) standardGeneric("find.markers.node"))
 #' @export
 setMethod("find.markers.node", "seurat",
-          function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod") {
+          function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod",...) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             tree=object@cluster.tree[[1]]
             ident.order=tree$tip.label
@@ -1081,7 +1099,7 @@ setMethod("find.markers.node", "seurat",
             nodes.2=ident.order[getRightDecendants(tree,node)]
             #print(nodes.1)
             #print(nodes.2)
-            to.return=find.markers(object,nodes.1,nodes.2,genes.use,thresh.use,test.use)
+            to.return=find.markers(object,nodes.1,nodes.2,genes.use,thresh.use,test.use,...)
             return(to.return)
           } 
 )
@@ -2646,13 +2664,13 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
 #' @inheritParams vlnPlot
 #' @return Only graphical output
 #' @export
-setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL)  standardGeneric("dot.plot"))
+setGeneric("dot.plot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL,...)  standardGeneric("dot.plot"))
 #' @export
 setMethod("dot.plot","seurat",
-          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL) {
-            genes.plot=ainb(genes.plot,rownames(object@data))
+          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL,...) {
             if (!(is.null(group.by))) object=set.all.ident(object,id = group.by)
-            object@data=object@data[genes.plot,]
+            #object@data=object@data[genes.plot,]
+            object@data=data.frame(t(fetch.data(object,genes.plot)))
             avg.exp=average.expression(object)
             avg.alpha=cluster.alpha(object)
             cols.use=set.ifnull(cols.use,myPalette(low = "red",high="green"))
@@ -2827,10 +2845,11 @@ setMethod("jackStrawPlot","seurat",
               else
                 qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep="")))
             }
-            
-            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
-            gpp <- facet_wrap_labeller(gp, labels = paste(score.df$PC, sprintf("%1.3g", score.df$Score))) 
-            return(gpp)
+
+            # create new dataframe column to wrap on that includes the PC number and score
+            pAll.l$PC.Score <- paste(score.df$PC, sprintf("%1.3g", score.df$Score))
+            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC.Score", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
+            return(gp)
           })
 
 #' Scatter plot of single cell data
