@@ -5,7 +5,8 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 find_all_markers(object, thresh.test = 1, test.use = "bimod",
-  return.thresh = 0.01, do.print = FALSE, min.pct = 0, print.bar = TRUE)
+  return.thresh = 0.01, do.print = FALSE, min.pct = 0, print.bar = TRUE,
+  only.pos = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +27,8 @@ as in Trapnell et al., Nature Biotech, 2014)}
 in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+
+\item{only.pos}{Only return positive markers (FALSE by default)}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

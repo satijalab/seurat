@@ -19,6 +19,8 @@ cluster is lebeled}
 
 \item{label.cols.use}{If do.label is set, the color palette to use for the points}
 
+\item{color.scramble}{If do.label is set, scramble the color palette (can help to distinguish adjacent clusters)}
+
 \item{\dots}{Additional parameters to dim.plot, for example, which dimensions to plot.}
 }
 \description{

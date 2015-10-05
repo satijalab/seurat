@@ -7,7 +7,7 @@
 doHeatMap(object, cells.use = NULL, genes.use = NULL, disp.min = -2.5,
   disp.max = 2.5, draw.line = TRUE, do.return = FALSE,
   order.by.ident = TRUE, col.use = pyCols, slim.col.label = FALSE,
-  group.by = NULL, remove.key = FALSE, ...)
+  group.by = NULL, remove.key = FALSE, cex.col = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -15,7 +15,7 @@
 #'@section Slots:
 #'  \describe{
 #'    \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring 
+#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring f
 #'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
 #'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
 #'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
@@ -2828,9 +2828,10 @@ setMethod("jackStrawPlot","seurat",
                 qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep="")))
             }
             
-            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
-            gpp <- facet_wrap_labeller(gp, labels = paste(score.df$PC, sprintf("%1.3g", score.df$Score))) 
-            return(gpp)
+            # create new dataframe column to wrap on that includes the PC number and score
+            pAll.l$PC.Score <- paste(score.df$PC, sprintf("%1.3g", score.df$Score))
+            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC.Score", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
+            return(gp)
           })
 
 #' Scatter plot of single cell data
@@ -3161,3 +3162,50 @@ setMethod("mean.var.plot", signature = "seurat",
           
 )
 
+
+#' Cluster Determination
+#'
+#' Identifies clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+#' based clustering algorithm. First calculates k-nearest neighbors and constructs 
+#' the SNN graph. Then determines quasi-cliques associated with each cell. Finally, 
+#' merges the quasi-cliques into clusters.
+#' 
+#'
+#' @param object Seurat object
+#' @param gene.use Gene expression data
+#' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param k_param Defines k for the k-nearest neighbor algorithm
+#' @param plot.SNN Plot the SNN graph
+#' @param prune.SNN Prune the SNN graph
+#' @param save.SNN Whether to return the SNN matrix or not. If true, returns a list with the object as the first item
+#' and the SNN matrix as the second item.
+#' @param r_param r defines the connectivity for the quasi-cliques. Higher r gives a more compact subgraph
+#' @param m_param m is the threshold for merging two quasi-cliques. Higher m results in less merging
+#' @param q Defines the percentage of quasi-cliques to examine for merging each iteration
+#' @param qup Determines how to change q once all possible merges have been made
+#' @param update Adjust how verbose the output is
+#' @importFrom FNN get.knn
+#' @importFrom igraph plot.igraph graph_from_adj_list
+#' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
+#' @export
+setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
+                                    save.SNN = FALSE, r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 )  standardGeneric("find.clusters"))
+#' @export
+setMethod("find.clusters", signature = "seurat",
+          function(object, genes.use=NULL, pc.use=NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
+                   r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 ){
+            SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update)
+            clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
+            clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
+            cells.use = object@cell.names[unlist(clusters[[1]])]
+            ident.use = clusters.list
+            object=set.ident(object, cells.use, ident.use)
+            if(save.SNN){
+              output<-list();output[[1]]=object; output[[2]]=SNN
+              return(output)
+            }
+            else{
+              return(object)
+            }
+          }
+)
