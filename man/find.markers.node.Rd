@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
 find.markers.node(object, node, genes.use = NULL, thresh.use = log(2),
-  test.use = "bimod")
+  test.use = "bimod", ...)
 }
 \arguments{
 \item{object}{Seurat object}

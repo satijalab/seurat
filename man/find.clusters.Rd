@@ -6,7 +6,7 @@
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
-  r_param = 0.7, m_param = 0.5, q = 0.1, qup = 0.1, update = 0.25)
+  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25)
 }
 \arguments{
 \item{object}{Seurat object}

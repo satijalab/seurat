@@ -5,7 +5,7 @@
 \title{Dot plot visualization}
 \usage{
 dot.plot(object, genes.plot, cex.use = 2, cols.use = NULL,
-  thresh.col = 2.5, dot.min = 0.05, group.by = NULL)
+  thresh.col = 2.5, dot.min = 0.05, group.by = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}

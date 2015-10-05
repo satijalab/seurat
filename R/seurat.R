@@ -15,8 +15,7 @@
 #'@section Slots:
 #'  \describe{
 #'    \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring 
-#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring f
+#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring
 #'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
 #'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
 #'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
@@ -3209,13 +3208,14 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
-                                    save.SNN = FALSE, r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 )  standardGeneric("find.clusters"))
+                                    save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25 )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
           function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
-                   r_param=0.7, m_param=0.5, q=0.1, qup=0.1, update=0.25 ){
+                   r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25 ){
             if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update) }
-            clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
+            if(is.null(m_param)) clusters = r_wrapper(SNN, r_param, m_param = r_param, q, qup, update )
+            else clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
             clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
             cells.use = object@cell.names[unlist(clusters[[1]])]
             ident.use = clusters.list
