@@ -6,7 +6,7 @@
 \usage{
 find.markers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   thresh.use = log(2), test.use = "bimod", min.pct = 0,
-  print.bar = TRUE)
+  print.bar = TRUE, only.pos = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +33,8 @@ as in Trapnell et al., Nature Biotech, 2014)}
 in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+
+\item{only.pos}{Only return positive markers (FALSE by default)}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)

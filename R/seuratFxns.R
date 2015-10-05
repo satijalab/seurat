@@ -1248,3 +1248,53 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   invisible(retval)
   par(mar=oldMar)
 }
+
+
+#' @export
+doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update){
+  counter=1;
+  if (is.null(genes.use)&&is.null(pc.use)){
+    genes.use=object@var.genes;data.use=t(as.matrix(object@data[genes.use,]))
+  } 
+  else if (!is.null(pc.use)){
+    data.use=as.matrix(object@pca.rot[,pc.use])
+  }
+  else if (!is.null(genes.use)&&is.null(pc.use)){
+    data.use=t(as.matrix(object@data[genes.use,]))
+  }
+  else{
+    stop("Data error!")
+  }
+  
+  n_cell=nrow(data.use)
+  
+  #find the k-nearest neighbors for each single cell
+  my.knn=get.knn(as.matrix(data.use), k=10*k_param)
+  nn.ranked=cbind(1:n_cell,my.knn$nn.index[,1:(k_param-1)])
+  nn.large=my.knn$nn.index
+  
+  w=matrix(0,n_cell,n_cell)
+  rownames(w)=object@cell.names;colnames(w)=object@cell.names
+  diag(w)=1
+  #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
+  #speed things up (don't have to calculate all pairwise distances)
+  for (i in 1:n_cell){
+    for (j in 1:ncol(nn.large)){
+      s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      w[i,nn.large[i,j]]=length(s)/length(u)
+    }
+    if (i==round(counter*n_cell*update)) {
+      print(paste("SNN : processed ", i, " cells", sep=""))
+      counter= counter+1;
+    }
+  }
+  #define the edge weights with Jaccard distance
+  
+  if (prune.SNN==TRUE) w[w<median(w[w>0])]=0
+  if (plot.SNN==TRUE) {
+    net=graph.adjacency(w,mode="undirected",weighted=TRUE,diag=FALSE)
+    plot.igraph(net,layout=as.matrix(object@tsne.rot),edge.width=E(net)$weight,vertex.label=NA,vertex.size=0)
+  }
+  return (w)
+}

@@ -19,7 +19,7 @@ are listed below.
 
  \describe{
    \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-   \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring
+   \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring f
    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }

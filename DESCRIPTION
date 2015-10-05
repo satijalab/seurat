@@ -7,6 +7,7 @@ Author: Rahul Satija
 Maintainer: Satija Lab <seuratpackage@gmail.com>
 URL: http://www.satijalab.org/seurat
 Depends: R (>= 3.1.0), ggplot2, reshape2, useful, gridExtra, gplots, gdata
-Imports: ROCR, stringr, mixtools, lars, fastICA, tsne, Rtsne, fpc, ape, VGAM, jackstraw, XLConnect, pbapply
+Imports: ROCR, stringr, mixtools, lars, fastICA, tsne, Rtsne, fpc, ape, VGAM, jackstraw, XLConnect, pbapply, igraph, FNN, Rcpp (>= 0.11.3)
+LinkingTo: Rcpp
 License: GPL 3.0
 
