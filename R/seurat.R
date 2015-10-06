@@ -3204,7 +3204,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param qup Determines how to change q once all possible merges have been made
 #' @param update Adjust how verbose the output is
 #' @importFrom FNN get.knn
-#' @importFrom igraph plot.igraph graph_from_adj_list
+#' @importFrom igraph plot.igraph, graph.adjlist
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
