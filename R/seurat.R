@@ -3229,3 +3229,23 @@ setMethod("find.clusters", signature = "seurat",
             }
           }
 )
+
+#' @export 
+setGeneric("get.clusters", function(object) standardGeneric("get.clusters"))
+setMethod("get.clusters", signature="seurat",
+          function(object){
+            return(data.frame(object@ident))
+          }
+)
+
+#' @export 
+setGeneric("set.clusters", function(object, clusters=NULL) standardGeneric("set.clusters"))
+setMethod("set.clusters", signature="seurat",
+          function(object, clusters = NULL){
+            cells.use = rownames(clusters)
+            ident.use = as.numeric(clusters[,1])
+            object =set.ident(object, cells.use, ident.use)
+            return(object)
+          }
+)
+

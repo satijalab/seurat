@@ -3,3 +3,4 @@
 .RData
 src/*.o
 src/*.so
+.DS_Store
