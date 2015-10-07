@@ -1,4 +1,4 @@
-Seurat v1.2
+Seurat v1.2.1
 ============
 
 Seurat is an R toolkit for single cell genomics, created and maintained by the Satija Lab at NYGC.
@@ -14,6 +14,9 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
 Version History
+
+October 6, 2015:
+    Fixed small bug in the jackStrawPlot function that affects new versions of ggplot2
 
 May 21, 2015:
     Drop-Seq manuscript published. Version 1.2 released
