@@ -2,6 +2,11 @@
 using namespace std;
 using namespace Rcpp;
 
+Clique::Clique(IntegerVector m, int i){
+  members = m;
+  idx = i;
+}
+
 
 Clique::Clique(IntegerVector m){
   members = m;
@@ -170,12 +175,15 @@ List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, 
   cliqueList = mergeCliques(adj_mat, cliqueList, m_param, q, qup, update);
   list<IntegerVector > cliqueListFinal;
   list<int> cliqueSizesFinal;
+  list<bool> unassigned;
   for(int i =0; i<cliqueList.size(); ++i){
     cliqueListFinal.push_back(cliqueList[i]->getMembers()+1);
     cliqueSizesFinal.push_back(cliqueList[i]->getSize());
   }
-  
-  return List::create(cliqueListFinal, cliqueSizesFinal);
+  if(cliqueList[cliqueList.size()]->getIdx()==-1){
+    unassigned.push_back(true);
+  }
+  return List::create(cliqueListFinal, cliqueSizesFinal, unassigned);
 }
 
 double scoreCluster(IntegerVector cluster, int cell, NumericMatrix adj_mat){
@@ -211,8 +219,6 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
       sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
     }
     else{
-      IntegerVector m = IntegerVector::create(i);
-      cliqueList.push_back(new Clique(m));
       in_clique = true;
     }
     while(!in_clique){
@@ -341,7 +347,7 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
       ignore.push_back(i);
     }
   }
-  if(ignore.size()>0) cliqueList.push_back(new Clique(ignore));
+  if(ignore.size()>0) cliqueList.push_back(new Clique(ignore,-1));
   if(update>0) Rcout << "Merge Quasi-Cliques :  " << cliqueList.size() << " cliques remain" <<endl;
   return cliqueList;
 }

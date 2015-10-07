@@ -3217,6 +3217,9 @@ setMethod("find.clusters", signature = "seurat",
             if(is.null(m_param)) clusters = r_wrapper(SNN, r_param, m_param = r_param, q, qup, update )
             else clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
             clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
+            if(!is.null(clusters[[3]])){
+              clusters.list = replace(clusters.list, seq(length(clusters.list)-tail(clusters[[2]],1),length(clusters.list)), 0)
+            }
             cells.use = object@cell.names[unlist(clusters[[1]])]
             ident.use = clusters.list
             object=set.ident(object, cells.use, ident.use)

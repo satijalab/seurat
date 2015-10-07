@@ -12,7 +12,8 @@
 //----------------------------------------------------
 class Clique{
 public:
-  Clique(Rcpp::IntegerVector members);
+  Clique(Rcpp::IntegerVector m, int i);
+  Clique(Rcpp::IntegerVector m);
   Clique();
   Rcpp::IntegerVector getMembers() const;
   int getSize() const;
