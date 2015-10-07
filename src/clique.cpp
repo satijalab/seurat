@@ -170,9 +170,9 @@ NumericMatrix delRowCol(NumericMatrix m, int i){
 
 //' @export 
 // [[Rcpp::export]]
-List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update){
+List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update, int min_cluster_size){
   vector<Clique*> cliqueList = findQuasiCliques(adj_mat, r_param, update);
-  cliqueList = mergeCliques(adj_mat, cliqueList, m_param, q, qup, update);
+  cliqueList = mergeCliques(adj_mat, cliqueList, m_param, q, qup, update, min_cluster_size);
   list<IntegerVector > cliqueListFinal;
   list<int> cliqueSizesFinal;
   list<bool> unassigned;
@@ -247,7 +247,7 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
   /* cmpI is a custom comparator for Clique objects - sorts in increasing order */
   sort(cliqueList.begin(), cliqueList.end(), cmpI); 
   for(int i = 0; i<cliqueList.size(); ++i){ 
-    for(int j = i+1; j<cliqueList.size(); ++j){ 
+    for(int j = i+1; j<cliqueList.size(); ++j){
       if (removeRedundantClique(cliqueList[i]->getMembers(), cliqueList[j]->getMembers())){ 
         cliqueList.erase(cliqueList.begin()+j);
         --j;
@@ -262,7 +262,7 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
  *based on clique overlap
  */
 
-vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, double m_param, double q, double qup, double update){
+vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size){
   int num_cells = adj_mat.nrow();
   /* count singletons */
   int num_singletons = 0;
@@ -323,6 +323,14 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
     q=q+qup;
   }
 
+  /* remove clusters that are smaller than minimum requirement*/
+  for(int i=0; i<cliqueList.size(); ++i){
+    if(cliqueList[i]->getSize() < min_cluster_size){
+      cliqueList.erase(cliqueList.begin()+i);
+      --i;
+    }
+  }
+  
   /* ensure cells are only assigned to one cluster 
    * It is possible cells to belong to no cluster, 
    * assign all of those to a separate 'ignore' cluster

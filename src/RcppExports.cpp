@@ -104,8 +104,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // r_wrapper
-List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update);
-RcppExport SEXP Seurat_r_wrapper(SEXP adj_matSEXP, SEXP r_paramSEXP, SEXP m_paramSEXP, SEXP qSEXP, SEXP qupSEXP, SEXP updateSEXP) {
+List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update, int min_cluster_size);
+RcppExport SEXP Seurat_r_wrapper(SEXP adj_matSEXP, SEXP r_paramSEXP, SEXP m_paramSEXP, SEXP qSEXP, SEXP qupSEXP, SEXP updateSEXP, SEXP min_cluster_sizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -115,7 +115,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type q(qSEXP);
     Rcpp::traits::input_parameter< double >::type qup(qupSEXP);
     Rcpp::traits::input_parameter< double >::type update(updateSEXP);
-    __result = Rcpp::wrap(r_wrapper(adj_mat, r_param, m_param, q, qup, update));
+    Rcpp::traits::input_parameter< int >::type min_cluster_size(min_cluster_sizeSEXP);
+    __result = Rcpp::wrap(r_wrapper(adj_mat, r_param, m_param, q, qup, update, min_cluster_size));
     return __result;
 END_RCPP
 }

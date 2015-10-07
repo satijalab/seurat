@@ -38,11 +38,11 @@ std::string labelClique(int cell);
 Rcpp::IntegerVector whichNotZero(Rcpp::NumericVector x);
 Rcpp::IntegerVector removeNode(Rcpp::IntegerVector x, int y);
 bool removeRedundantClique(Rcpp::IntegerVector x, Rcpp::IntegerVector y);
-std::vector<Clique*> mergeCliques(Rcpp::NumericMatrix adj_mat, std::vector<Clique*> cliqueList, double m_param=0.5, double q=0.01, double qup=0.1, double update=0.1);
+std::vector<Clique*> mergeCliques(Rcpp::NumericMatrix adj_mat, std::vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size);
 std::string intToString (int Number );
 
 
-Rcpp::List r_wrapper(Rcpp::NumericMatrix adj_mat, double r_param, double m_param=0.5, double q=0.1, double qup=0.1, double update=0.1 );
+Rcpp::List r_wrapper(Rcpp::NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update, int min_cluster_size);
 int sizeCliqueIntersection(Rcpp::IntegerVector x, Rcpp::IntegerVector y);
 Rcpp::IntegerVector cliqueUnion(Rcpp::IntegerVector x, Rcpp::IntegerVector y);
 double scoreCluster(Rcpp::IntegerVector, int, Rcpp::NumericMatrix );

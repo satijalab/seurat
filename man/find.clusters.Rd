@@ -6,7 +6,8 @@
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
-  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25)
+  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25,
+  min_cluster_size = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +34,8 @@ and the SNN matrix as the second item.}
 \item{qup}{Determines how to change q once all possible merges have been made}
 
 \item{update}{Adjust how verbose the output is}
+
+\item{min_cluster_size}{Smallest allowed size for a cluster}
 
 \item{gene.use}{Gene expression data}
 }

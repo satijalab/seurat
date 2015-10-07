@@ -34,7 +34,7 @@ delRowCol <- function(m, i) {
 }
 
 #' @export 
-r_wrapper <- function(adj_mat, r_param, m_param, q, qup, update) {
-    .Call('Seurat_r_wrapper', PACKAGE = 'Seurat', adj_mat, r_param, m_param, q, qup, update)
+r_wrapper <- function(adj_mat, r_param, m_param, q, qup, update, min_cluster_size) {
+    .Call('Seurat_r_wrapper', PACKAGE = 'Seurat', adj_mat, r_param, m_param, q, qup, update, min_cluster_size)
 }
 
