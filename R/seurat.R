@@ -3183,14 +3183,16 @@ setMethod("mean.var.plot", signature = "seurat",
 
 #' Cluster Determination
 #'
-#' Identifies clusters of cells by a shared nearest neighbor (SNN) quasi-clique
-#' based clustering algorithm. First calculates k-nearest neighbors and constructs 
-#' the SNN graph. Then determines quasi-cliques associated with each cell. Finally, 
-#' merges the quasi-cliques into clusters.
+#' Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+#' based clustering algorithm. First calculate k-nearest neighbors and construct 
+#' the SNN graph. Then determine the quasi-cliques associated with each cell. Finally, 
+#' merge the quasi-cliques into clusters. For a full description of the algorithm, see 
+#' Xu and Su (2015) \emph{Bioinformatics}. 
 #' 
 #'
+#'
 #' @param object Seurat object
-#' @param gene.use Gene expression data
+#' @param genes.use Gene expression data
 #' @param pc.use Which PCs to use for construction of the SNN graph
 #' @param SNN Allows use of existing SNN matrix
 #' @param k_param Defines k for the k-nearest neighbor algorithm

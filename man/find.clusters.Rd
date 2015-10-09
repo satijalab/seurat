@@ -12,6 +12,8 @@ find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
 \arguments{
 \item{object}{Seurat object}
 
+\item{genes.use}{Gene expression data}
+
 \item{pc.use}{Which PCs to use for construction of the SNN graph}
 
 \item{SNN}{Allows use of existing SNN matrix}
@@ -36,16 +38,15 @@ and the SNN matrix as the second item.}
 \item{update}{Adjust how verbose the output is}
 
 \item{min_cluster_size}{Smallest allowed size for a cluster}
-
-\item{gene.use}{Gene expression data}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info
 }
 \description{
-Identifies clusters of cells by a shared nearest neighbor (SNN) quasi-clique
-based clustering algorithm. First calculates k-nearest neighbors and constructs
-the SNN graph. Then determines quasi-cliques associated with each cell. Finally,
-merges the quasi-cliques into clusters.
+Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+based clustering algorithm. First calculate k-nearest neighbors and construct
+the SNN graph. Then determine the quasi-cliques associated with each cell. Finally,
+merge the quasi-cliques into clusters. For a full description of the algorithm, see
+Xu and Su (2015) \emph{Bioinformatics}.
 }
 

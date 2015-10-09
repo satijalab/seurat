@@ -75,12 +75,32 @@ bool cmpCP(cp pair1, cp pair2)
   return pair1.combined_size < pair2.combined_size;
 }
 
-void constructIndex(vector<Clique*> cliqueList){
-  for(int i=0;i<cliqueList.size();++i){
-    cliqueList[i]->setIdx(i);
-  }
+// [[Rcpp::export]]
+
+IntegerVector whichNotZero(NumericVector x) {
+  IntegerVector v = Rcpp::seq(0, x.size()-1);
+  return v[x!=0];
 }
 
+// [[Rcpp::export]]
+
+NumericMatrix subsetMatrix(NumericMatrix m, IntegerVector rows, IntegerVector cols){
+  NumericMatrix subMat(rows.size(),cols.size());
+  for(int r=0; r<rows.size(); ++r){
+    for(int c=0; c<cols.size(); ++c){
+      subMat(r,c)= m(rows(r),cols(c));
+    }
+  }
+  return subMat;
+}
+
+// [[Rcpp::export]]
+
+IntegerVector removeNode(IntegerVector x, int y){
+  as<std::vector<int> >(x);
+  x.erase(y);
+  return wrap(x);
+}
 
 // [[Rcpp::export]]
 bool removeRedundantClique(IntegerVector x, IntegerVector y){
@@ -91,6 +111,21 @@ bool removeRedundantClique(IntegerVector x, IntegerVector y){
   vector<int> z;
   set_intersection(x.begin(),x.end(),y.begin(),y.end(),back_inserter(z));
   return z.size() == x.size();
+}
+
+void constructIndex(vector<Clique*> cliqueList){
+  for(int i=0;i<cliqueList.size();++i){
+    cliqueList[i]->setIdx(i);
+  }
+}
+
+std::vector<Clique*> findLargestCliques(vector<Clique*> cliqueList, int n ){
+  vector<Clique*> sortedCliques = cliqueList;
+  vector<Clique*> largestCliques(n);
+  /*only need to sort the largest n cliques*/
+  nth_element(sortedCliques.begin(), sortedCliques.begin()+n, sortedCliques.end(), cmpD );
+  partial_sort_copy(sortedCliques.begin(), sortedCliques.begin()+n, largestCliques.begin(), largestCliques.end(), cmpD);
+  return largestCliques;
 }
 
 // [[Rcpp::export]]
@@ -114,33 +149,6 @@ IntegerVector cliqueUnion(IntegerVector x, IntegerVector y){
   return wrap(z);
 }
 
-// [[Rcpp::export]]
-
-IntegerVector removeNode(IntegerVector x, int y){
-  as<std::vector<int> >(x);
-  x.erase(y);
-  return wrap(x);
-}
-
-// [[Rcpp::export]]
-
-IntegerVector whichNotZero(NumericVector x) {
-  IntegerVector v = Rcpp::seq(0, x.size()-1);
-  return v[x!=0];
-}
-
-// [[Rcpp::export]]
-
-NumericMatrix subsetMatrix(NumericMatrix m, IntegerVector rows, IntegerVector cols){
-  NumericMatrix subMat(rows.size(),cols.size());
-  for(int r=0; r<rows.size(); ++r){
-    for(int c=0; c<cols.size(); ++c){
-      subMat(r,c)= m(rows(r),cols(c));
-    }
-  }
-  return subMat;
-}
-
 
 // [[Rcpp::export]]
 
@@ -159,14 +167,6 @@ NumericMatrix setCol(NumericMatrix m, int c, int n){
   return m;
 }
 
-// [[Rcpp::export]]
-NumericMatrix delRowCol(NumericMatrix m, int i){
-  IntegerVector rows = Rcpp::seq(0, m.nrow()-1);
-  rows.erase(i);
-  IntegerVector cols = Rcpp::seq(0, m.ncol()-1);
-  cols.erase(i);
-  return subsetMatrix(m,rows,cols);
-}
 
 //' @export 
 // [[Rcpp::export]]
@@ -358,13 +358,4 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
   if(ignore.size()>0) cliqueList.push_back(new Clique(ignore,-1));
   if(update>0) Rcout << "Merge Quasi-Cliques :  " << cliqueList.size() << " cliques remain" <<endl;
   return cliqueList;
-}
-
-std::vector<Clique*> findLargestCliques(vector<Clique*> cliqueList, int n ){
-  vector<Clique*> sortedCliques = cliqueList;
-  vector<Clique*> largestCliques(n);
-  /*only need to sort the largest n cliques*/
-  nth_element(sortedCliques.begin(), sortedCliques.begin()+n, sortedCliques.end(), cmpD );
-  partial_sort_copy(sortedCliques.begin(), sortedCliques.begin()+n, largestCliques.begin(), largestCliques.end(), cmpD);
-  return largestCliques;
 }

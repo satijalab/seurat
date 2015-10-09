@@ -5,42 +5,6 @@
 
 using namespace Rcpp;
 
-// removeRedundantClique
-bool removeRedundantClique(IntegerVector x, IntegerVector y);
-RcppExport SEXP Seurat_removeRedundantClique(SEXP xSEXP, SEXP ySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    __result = Rcpp::wrap(removeRedundantClique(x, y));
-    return __result;
-END_RCPP
-}
-// sizeCliqueIntersection
-int sizeCliqueIntersection(IntegerVector x, IntegerVector y);
-RcppExport SEXP Seurat_sizeCliqueIntersection(SEXP xSEXP, SEXP ySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
-    __result = Rcpp::wrap(sizeCliqueIntersection(x, y));
-    return __result;
-END_RCPP
-}
-// removeNode
-IntegerVector removeNode(IntegerVector x, int y);
-RcppExport SEXP Seurat_removeNode(SEXP xSEXP, SEXP ySEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type y(ySEXP);
-    __result = Rcpp::wrap(removeNode(x, y));
-    return __result;
-END_RCPP
-}
 // whichNotZero
 IntegerVector whichNotZero(NumericVector x);
 RcppExport SEXP Seurat_whichNotZero(SEXP xSEXP) {
@@ -62,6 +26,42 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< IntegerVector >::type rows(rowsSEXP);
     Rcpp::traits::input_parameter< IntegerVector >::type cols(colsSEXP);
     __result = Rcpp::wrap(subsetMatrix(m, rows, cols));
+    return __result;
+END_RCPP
+}
+// removeNode
+IntegerVector removeNode(IntegerVector x, int y);
+RcppExport SEXP Seurat_removeNode(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< int >::type y(ySEXP);
+    __result = Rcpp::wrap(removeNode(x, y));
+    return __result;
+END_RCPP
+}
+// removeRedundantClique
+bool removeRedundantClique(IntegerVector x, IntegerVector y);
+RcppExport SEXP Seurat_removeRedundantClique(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    __result = Rcpp::wrap(removeRedundantClique(x, y));
+    return __result;
+END_RCPP
+}
+// sizeCliqueIntersection
+int sizeCliqueIntersection(IntegerVector x, IntegerVector y);
+RcppExport SEXP Seurat_sizeCliqueIntersection(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< IntegerVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< IntegerVector >::type y(ySEXP);
+    __result = Rcpp::wrap(sizeCliqueIntersection(x, y));
     return __result;
 END_RCPP
 }
@@ -88,18 +88,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type c(cSEXP);
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
     __result = Rcpp::wrap(setCol(m, c, n));
-    return __result;
-END_RCPP
-}
-// delRowCol
-NumericMatrix delRowCol(NumericMatrix m, int i);
-RcppExport SEXP Seurat_delRowCol(SEXP mSEXP, SEXP iSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< NumericMatrix >::type m(mSEXP);
-    Rcpp::traits::input_parameter< int >::type i(iSEXP);
-    __result = Rcpp::wrap(delRowCol(m, i));
     return __result;
 END_RCPP
 }
