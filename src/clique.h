@@ -7,7 +7,7 @@
 #include <queue>
 #include <iostream>
 #include <algorithm>
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 
 //----------------------------------------------------
 class Clique{
@@ -30,9 +30,9 @@ private:
   int idx;
 };
 
-Rcpp::List r_wrapper(Rcpp::NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update, int min_cluster_size);
-std::vector<Clique*> findQuasiCliques(Rcpp::NumericMatrix adj_mat, double r_param,double update);
-std::vector<Clique*> mergeCliques(Rcpp::NumericMatrix adj_mat, std::vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size);
+Rcpp::List r_wrapper(Rcpp::NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse);
+std::vector<Clique*> findQuasiCliques(Rcpp::NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param,double update, bool do_sparse);
+std::vector<Clique*> mergeCliques(Rcpp::NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, std::vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse);
 
 Rcpp::IntegerVector whichNotZero(Rcpp::NumericVector x);
 Rcpp::NumericMatrix subsetMatrix(Rcpp::NumericMatrix m, Rcpp::IntegerVector rows, Rcpp::IntegerVector cols);

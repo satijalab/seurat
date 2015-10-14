@@ -7,7 +7,7 @@
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
   r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25,
-  min_cluster_size = 1)
+  min_cluster_size = 1, do_sparse = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,6 +38,8 @@ and the SNN matrix as the second item.}
 \item{update}{Adjust how verbose the output is}
 
 \item{min_cluster_size}{Smallest allowed size for a cluster}
+
+\item{do_sparse}{Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info

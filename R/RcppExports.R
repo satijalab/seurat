@@ -30,7 +30,7 @@ setCol <- function(m, c, n) {
 }
 
 #' @export 
-r_wrapper <- function(adj_mat, r_param, m_param, q, qup, update, min_cluster_size) {
-    .Call('Seurat_r_wrapper', PACKAGE = 'Seurat', adj_mat, r_param, m_param, q, qup, update, min_cluster_size)
+r_wrapper <- function(adj_mat, adj_mat_sp, r_param, m_param, q, qup, update, min_cluster_size, do_sparse) {
+    .Call('Seurat_r_wrapper', PACKAGE = 'Seurat', adj_mat, adj_mat_sp, r_param, m_param, q, qup, update, min_cluster_size, do_sparse)
 }
 

@@ -1,6 +1,9 @@
 #include "clique.h"
 using namespace std;
+
+// [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
+using namespace arma;
 
 Clique::Clique(IntegerVector m, int i){
   members = m;
@@ -167,12 +170,48 @@ NumericMatrix setCol(NumericMatrix m, int c, int n){
   return m;
 }
 
+double scoreCluster(IntegerVector cluster, int cell, NumericMatrix adj_mat){
+  double score;
+  for(int i=0;i<cluster.size(); ++i){
+    score = score + adj_mat(cell, cluster[i]);
+  }
+  score = (score - 1)/cluster.size(); 
+  return score;
+}
+
+/*Functions for dealing with sparse matrix*/
+NumericVector subviewToVec(arma::SpSubview<double> sbv, int n){
+  NumericVector v(n);
+  for(int i=0; i<n; ++i){
+    v[i] = sbv[i];
+  }
+  return v;
+}
+
+NumericMatrix subsetMatrix(sp_mat m, IntegerVector rows, IntegerVector cols){
+  NumericMatrix subMat(rows.size(),cols.size());
+  for(int r=0; r<rows.size(); ++r){
+    for(int c=0; c<cols.size(); ++c){
+      subMat(r,c)= m(rows(r),cols(c));
+    }
+  }
+  return subMat;
+}
+
+double scoreCluster(IntegerVector cluster, int cell, sp_mat adj_mat){
+  double score;
+  for(int i=0;i<cluster.size(); ++i){
+    score = score + adj_mat(cell, cluster[i]);
+  }
+  score = (score - 1)/cluster.size(); 
+  return score;
+}
 
 //' @export 
 // [[Rcpp::export]]
-List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update, int min_cluster_size){
-  vector<Clique*> cliqueList = findQuasiCliques(adj_mat, r_param, update);
-  cliqueList = mergeCliques(adj_mat, cliqueList, m_param, q, qup, update, min_cluster_size);
+List r_wrapper(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse){
+  vector<Clique*> cliqueList = findQuasiCliques(adj_mat, adj_mat_sp, r_param, update, do_sparse);
+  cliqueList = mergeCliques(adj_mat, adj_mat_sp, cliqueList, m_param, q, qup, update, min_cluster_size, do_sparse);
   list<IntegerVector > cliqueListFinal;
   list<int> cliqueSizesFinal;
   list<bool> unassigned;
@@ -186,20 +225,12 @@ List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, 
   return List::create(cliqueListFinal, cliqueSizesFinal, unassigned);
 }
 
-double scoreCluster(IntegerVector cluster, int cell, NumericMatrix adj_mat){
-  double score;
-  for(int i=0;i<cluster.size(); ++i){
-    score = score + adj_mat(cell, cluster[i]);
-  }
-  score = (score - 1)/cluster.size(); 
-  return score;
-}
 
-
-vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double update){
-  int num_cells = adj_mat.nrow();
+vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param, double update, bool do_sparse){
+  int num_cells;
+  if(do_sparse)  num_cells = adj_mat_sp.n_rows;
+  else num_cells = adj_mat.nrow();
   if(num_cells==0) Rcpp::stop("error: adjacency matrix required");
-  
   /*Creates a vector to hold all the Clique objects,  
   storing as a vector of pointers prevents object slicing*/
   vector<Clique*> cliqueList;
@@ -210,13 +241,20 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
       counter++;
     }
     bool in_clique = false;
-    NumericVector r = adj_mat.row(i);
+    
+    NumericVector r;
+    if(do_sparse){
+      SpSubview<double> spr = adj_mat_sp.row(i);
+       r = subviewToVec(spr, num_cells);
+    }
+    else  r = adj_mat.row(i);
     /* possible improvement here is to limit the number of nodes to compare to only the nearest X */
     IntegerVector nodes = whichNotZero(r);
     NumericMatrix sub_adj_mat(nodes.size(), nodes.size()); 
     if(nodes.size()>1){   
       /* Subsetting matrices isn't well supported. */
-      sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
+      if(do_sparse) sub_adj_mat = subsetMatrix(adj_mat_sp, nodes, nodes);
+      else sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
     }
     else{
       in_clique = true;
@@ -232,7 +270,8 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
         int least_connected = which_min(rsums);
         if(rsums(least_connected)/sub_adj_mat.nrow() < r_param){
           nodes = removeNode(nodes, least_connected);
-          sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
+          if(do_sparse) sub_adj_mat = subsetMatrix(adj_mat_sp, nodes, nodes);
+          else sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
         }
         else {
           in_clique = true;
@@ -262,8 +301,10 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
  *based on clique overlap
  */
 
-vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size){
-  int num_cells = adj_mat.nrow();
+vector<Clique*> mergeCliques(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse){
+  int num_cells;
+  if(do_sparse)  num_cells = adj_mat_sp.n_rows;
+  else num_cells = adj_mat.nrow();
   /* count singletons */
   int num_singletons = 0;
   int counter=1;
@@ -342,7 +383,8 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
     MapType clusterRepeats;
     for(int j=0;j<cliqueList.size();++j){
       if(sizeCliqueIntersection(IntegerVector::create(i),cliqueList[j]->getMembers()) == 1){
-        clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat),j));
+        if(do_sparse) clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat_sp),j));
+        else clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat),j));
       }
     }
     if(clusterRepeats.size()>1){
