@@ -1276,7 +1276,7 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_s
   if(do_sparse){
     idx1 = vector(mode="integer", length = n_cell^2/k_param)
     idx2 = vector(mode="integer", length = n_cell^2/k_param)
-    edge_weight = vector(mode="double", length = n_cell^2/k_param)
+    edge_weight = vector(mode="double", length = n_cell^2	/k_param)
     id = 1
     
     #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
