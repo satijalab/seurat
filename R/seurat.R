@@ -3234,8 +3234,14 @@ setMethod("find.clusters", signature = "seurat",
             ident.use = clusters.list
             object=set.ident(object, cells.use, ident.use)
             if(save.SNN){
-              output<-list();output[[1]]=object; output[[2]]=SNN
-              return(output)
+              if(do_sparse){
+                output<-list();output[[1]]=object; output[[2]]=SNN_sp
+                return(output)
+              }
+              else{
+                output<-list();output[[1]]=object; output[[2]]=SNN
+                return(output)
+              }
             }
             else{
               return(object)
