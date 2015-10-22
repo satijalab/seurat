@@ -6,10 +6,13 @@
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
-  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25)
+  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25,
+  min_cluster_size = 1, do_sparse = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{genes.use}{Gene expression data}
 
 \item{pc.use}{Which PCs to use for construction of the SNN graph}
 
@@ -34,15 +37,18 @@ and the SNN matrix as the second item.}
 
 \item{update}{Adjust how verbose the output is}
 
-\item{gene.use}{Gene expression data}
+\item{min_cluster_size}{Smallest allowed size for a cluster}
+
+\item{do_sparse}{Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info
 }
 \description{
-Identifies clusters of cells by a shared nearest neighbor (SNN) quasi-clique
-based clustering algorithm. First calculates k-nearest neighbors and constructs
-the SNN graph. Then determines quasi-cliques associated with each cell. Finally,
-merges the quasi-cliques into clusters.
+Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+based clustering algorithm. First calculate k-nearest neighbors and construct
+the SNN graph. Then determine the quasi-cliques associated with each cell. Finally,
+merge the quasi-cliques into clusters. For a full description of the algorithm, see
+Xu and Su (2015) \emph{Bioinformatics}.
 }
 

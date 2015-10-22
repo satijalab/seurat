@@ -1,6 +1,14 @@
 #include "clique.h"
 using namespace std;
+
+// [[Rcpp::depends(RcppArmadillo)]]
 using namespace Rcpp;
+using namespace arma;
+
+Clique::Clique(IntegerVector m, int i){
+  members = m;
+  idx = i;
+}
 
 
 Clique::Clique(IntegerVector m){
@@ -70,12 +78,32 @@ bool cmpCP(cp pair1, cp pair2)
   return pair1.combined_size < pair2.combined_size;
 }
 
-void constructIndex(vector<Clique*> cliqueList){
-  for(int i=0;i<cliqueList.size();++i){
-    cliqueList[i]->setIdx(i);
-  }
+// [[Rcpp::export]]
+
+IntegerVector whichNotZero(NumericVector x) {
+  IntegerVector v = Rcpp::seq(0, x.size()-1);
+  return v[x!=0];
 }
 
+// [[Rcpp::export]]
+
+NumericMatrix subsetMatrix(NumericMatrix m, IntegerVector rows, IntegerVector cols){
+  NumericMatrix subMat(rows.size(),cols.size());
+  for(int r=0; r<rows.size(); ++r){
+    for(int c=0; c<cols.size(); ++c){
+      subMat(r,c)= m(rows(r),cols(c));
+    }
+  }
+  return subMat;
+}
+
+// [[Rcpp::export]]
+
+IntegerVector removeNode(IntegerVector x, int y){
+  as<std::vector<int> >(x);
+  x.erase(y);
+  return wrap(x);
+}
 
 // [[Rcpp::export]]
 bool removeRedundantClique(IntegerVector x, IntegerVector y){
@@ -86,6 +114,21 @@ bool removeRedundantClique(IntegerVector x, IntegerVector y){
   vector<int> z;
   set_intersection(x.begin(),x.end(),y.begin(),y.end(),back_inserter(z));
   return z.size() == x.size();
+}
+
+void constructIndex(vector<Clique*> cliqueList){
+  for(int i=0;i<cliqueList.size();++i){
+    cliqueList[i]->setIdx(i);
+  }
+}
+
+std::vector<Clique*> findLargestCliques(vector<Clique*> cliqueList, int n ){
+  vector<Clique*> sortedCliques = cliqueList;
+  vector<Clique*> largestCliques(n);
+  /*only need to sort the largest n cliques*/
+  nth_element(sortedCliques.begin(), sortedCliques.begin()+n, sortedCliques.end(), cmpD );
+  partial_sort_copy(sortedCliques.begin(), sortedCliques.begin()+n, largestCliques.begin(), largestCliques.end(), cmpD);
+  return largestCliques;
 }
 
 // [[Rcpp::export]]
@@ -109,33 +152,6 @@ IntegerVector cliqueUnion(IntegerVector x, IntegerVector y){
   return wrap(z);
 }
 
-// [[Rcpp::export]]
-
-IntegerVector removeNode(IntegerVector x, int y){
-  as<std::vector<int> >(x);
-  x.erase(y);
-  return wrap(x);
-}
-
-// [[Rcpp::export]]
-
-IntegerVector whichNotZero(NumericVector x) {
-  IntegerVector v = Rcpp::seq(0, x.size()-1);
-  return v[x!=0];
-}
-
-// [[Rcpp::export]]
-
-NumericMatrix subsetMatrix(NumericMatrix m, IntegerVector rows, IntegerVector cols){
-  NumericMatrix subMat(rows.size(),cols.size());
-  for(int r=0; r<rows.size(); ++r){
-    for(int c=0; c<cols.size(); ++c){
-      subMat(r,c)= m(rows(r),cols(c));
-    }
-  }
-  return subMat;
-}
-
 
 // [[Rcpp::export]]
 
@@ -154,30 +170,6 @@ NumericMatrix setCol(NumericMatrix m, int c, int n){
   return m;
 }
 
-// [[Rcpp::export]]
-NumericMatrix delRowCol(NumericMatrix m, int i){
-  IntegerVector rows = Rcpp::seq(0, m.nrow()-1);
-  rows.erase(i);
-  IntegerVector cols = Rcpp::seq(0, m.ncol()-1);
-  cols.erase(i);
-  return subsetMatrix(m,rows,cols);
-}
-
-//' @export 
-// [[Rcpp::export]]
-List r_wrapper(NumericMatrix adj_mat, double r_param, double m_param, double q, double qup, double update){
-  vector<Clique*> cliqueList = findQuasiCliques(adj_mat, r_param, update);
-  cliqueList = mergeCliques(adj_mat, cliqueList, m_param, q, qup, update);
-  list<IntegerVector > cliqueListFinal;
-  list<int> cliqueSizesFinal;
-  for(int i =0; i<cliqueList.size(); ++i){
-    cliqueListFinal.push_back(cliqueList[i]->getMembers()+1);
-    cliqueSizesFinal.push_back(cliqueList[i]->getSize());
-  }
-  
-  return List::create(cliqueListFinal, cliqueSizesFinal);
-}
-
 double scoreCluster(IntegerVector cluster, int cell, NumericMatrix adj_mat){
   double score;
   for(int i=0;i<cluster.size(); ++i){
@@ -187,11 +179,58 @@ double scoreCluster(IntegerVector cluster, int cell, NumericMatrix adj_mat){
   return score;
 }
 
+/*Functions for dealing with sparse matrix*/
+NumericVector subviewToVec(arma::SpSubview<double> sbv, int n){
+  NumericVector v(n);
+  for(int i=0; i<n; ++i){
+    v[i] = sbv[i];
+  }
+  return v;
+}
 
-vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double update){
-  int num_cells = adj_mat.nrow();
+NumericMatrix subsetMatrix(sp_mat m, IntegerVector rows, IntegerVector cols){
+  NumericMatrix subMat(rows.size(),cols.size());
+  for(int r=0; r<rows.size(); ++r){
+    for(int c=0; c<cols.size(); ++c){
+      subMat(r,c)= m(rows(r),cols(c));
+    }
+  }
+  return subMat;
+}
+
+double scoreCluster(IntegerVector cluster, int cell, sp_mat adj_mat){
+  double score;
+  for(int i=0;i<cluster.size(); ++i){
+    score = score + adj_mat(cell, cluster[i]);
+  }
+  score = (score - 1)/cluster.size(); 
+  return score;
+}
+
+//' @export 
+// [[Rcpp::export]]
+List r_wrapper(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse){
+  vector<Clique*> cliqueList = findQuasiCliques(adj_mat, adj_mat_sp, r_param, update, do_sparse);
+  cliqueList = mergeCliques(adj_mat, adj_mat_sp, cliqueList, m_param, q, qup, update, min_cluster_size, do_sparse);
+  list<IntegerVector > cliqueListFinal;
+  list<int> cliqueSizesFinal;
+  list<bool> unassigned;
+  for(int i =0; i<cliqueList.size(); ++i){
+    cliqueListFinal.push_back(cliqueList[i]->getMembers()+1);
+    cliqueSizesFinal.push_back(cliqueList[i]->getSize());
+  }
+  if(cliqueList[cliqueList.size()]->getIdx()==-1){
+    unassigned.push_back(true);
+  }
+  return List::create(cliqueListFinal, cliqueSizesFinal, unassigned);
+}
+
+
+vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, double r_param, double update, bool do_sparse){
+  int num_cells;
+  if(do_sparse)  num_cells = adj_mat_sp.n_rows;
+  else num_cells = adj_mat.nrow();
   if(num_cells==0) Rcpp::stop("error: adjacency matrix required");
-  
   /*Creates a vector to hold all the Clique objects,  
   storing as a vector of pointers prevents object slicing*/
   vector<Clique*> cliqueList;
@@ -202,17 +241,22 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
       counter++;
     }
     bool in_clique = false;
-    NumericVector r = adj_mat.row(i);
+    
+    NumericVector r;
+    if(do_sparse){
+      SpSubview<double> spr = adj_mat_sp.row(i);
+       r = subviewToVec(spr, num_cells);
+    }
+    else  r = adj_mat.row(i);
     /* possible improvement here is to limit the number of nodes to compare to only the nearest X */
     IntegerVector nodes = whichNotZero(r);
     NumericMatrix sub_adj_mat(nodes.size(), nodes.size()); 
     if(nodes.size()>1){   
       /* Subsetting matrices isn't well supported. */
-      sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
+      if(do_sparse) sub_adj_mat = subsetMatrix(adj_mat_sp, nodes, nodes);
+      else sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
     }
     else{
-      IntegerVector m = IntegerVector::create(i);
-      cliqueList.push_back(new Clique(m));
       in_clique = true;
     }
     while(!in_clique){
@@ -226,7 +270,8 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
         int least_connected = which_min(rsums);
         if(rsums(least_connected)/sub_adj_mat.nrow() < r_param){
           nodes = removeNode(nodes, least_connected);
-          sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
+          if(do_sparse) sub_adj_mat = subsetMatrix(adj_mat_sp, nodes, nodes);
+          else sub_adj_mat = subsetMatrix(adj_mat, nodes, nodes);
         }
         else {
           in_clique = true;
@@ -241,7 +286,7 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
   /* cmpI is a custom comparator for Clique objects - sorts in increasing order */
   sort(cliqueList.begin(), cliqueList.end(), cmpI); 
   for(int i = 0; i<cliqueList.size(); ++i){ 
-    for(int j = i+1; j<cliqueList.size(); ++j){ 
+    for(int j = i+1; j<cliqueList.size(); ++j){
       if (removeRedundantClique(cliqueList[i]->getMembers(), cliqueList[j]->getMembers())){ 
         cliqueList.erase(cliqueList.begin()+j);
         --j;
@@ -256,8 +301,10 @@ vector<Clique*> findQuasiCliques(NumericMatrix adj_mat, double r_param, double u
  *based on clique overlap
  */
 
-vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, double m_param, double q, double qup, double update){
-  int num_cells = adj_mat.nrow();
+vector<Clique*> mergeCliques(NumericMatrix adj_mat, arma::sp_mat adj_mat_sp, vector<Clique*> cliqueList, double m_param, double q, double qup, double update, int min_cluster_size, bool do_sparse){
+  int num_cells;
+  if(do_sparse)  num_cells = adj_mat_sp.n_rows;
+  else num_cells = adj_mat.nrow();
   /* count singletons */
   int num_singletons = 0;
   int counter=1;
@@ -317,6 +364,14 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
     q=q+qup;
   }
 
+  /* remove clusters that are smaller than minimum requirement*/
+  for(int i=0; i<cliqueList.size(); ++i){
+    if(cliqueList[i]->getSize() < min_cluster_size){
+      cliqueList.erase(cliqueList.begin()+i);
+      --i;
+    }
+  }
+  
   /* ensure cells are only assigned to one cluster 
    * It is possible cells to belong to no cluster, 
    * assign all of those to a separate 'ignore' cluster
@@ -328,7 +383,8 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
     MapType clusterRepeats;
     for(int j=0;j<cliqueList.size();++j){
       if(sizeCliqueIntersection(IntegerVector::create(i),cliqueList[j]->getMembers()) == 1){
-        clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat),j));
+        if(do_sparse) clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat_sp),j));
+        else clusterRepeats.insert(MapType::value_type(scoreCluster(cliqueList[j]->getMembers(),i,adj_mat),j));
       }
     }
     if(clusterRepeats.size()>1){
@@ -341,16 +397,7 @@ vector<Clique*> mergeCliques(NumericMatrix adj_mat, vector<Clique*> cliqueList, 
       ignore.push_back(i);
     }
   }
-  if(ignore.size()>0) cliqueList.push_back(new Clique(ignore));
+  if(ignore.size()>0) cliqueList.push_back(new Clique(ignore,-1));
   if(update>0) Rcout << "Merge Quasi-Cliques :  " << cliqueList.size() << " cliques remain" <<endl;
   return cliqueList;
-}
-
-std::vector<Clique*> findLargestCliques(vector<Clique*> cliqueList, int n ){
-  vector<Clique*> sortedCliques = cliqueList;
-  vector<Clique*> largestCliques(n);
-  /*only need to sort the largest n cliques*/
-  nth_element(sortedCliques.begin(), sortedCliques.begin()+n, sortedCliques.end(), cmpD );
-  partial_sort_copy(sortedCliques.begin(), sortedCliques.begin()+n, largestCliques.begin(), largestCliques.end(), cmpD);
-  return largestCliques;
 }

@@ -42,7 +42,6 @@
 #' @rdname seurat
 #' @aliases seurat-class
 #' @exportClass seurat
-#' @importFrom useful corner
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -2879,7 +2878,6 @@ setMethod("genePlot","seurat",
                    pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
             data.use=data.frame(t(fetch.data(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
-            corner(data.use)
             g1=as.numeric(data.use[gene1,cell.ids])
             g2=as.numeric(data.use[gene2,cell.ids])
             ident.use=as.factor(object@ident[cell.ids])
@@ -3183,14 +3181,16 @@ setMethod("mean.var.plot", signature = "seurat",
 
 #' Cluster Determination
 #'
-#' Identifies clusters of cells by a shared nearest neighbor (SNN) quasi-clique
-#' based clustering algorithm. First calculates k-nearest neighbors and constructs 
-#' the SNN graph. Then determines quasi-cliques associated with each cell. Finally, 
-#' merges the quasi-cliques into clusters.
+#' Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+#' based clustering algorithm. First calculate k-nearest neighbors and construct 
+#' the SNN graph. Then determine the quasi-cliques associated with each cell. Finally, 
+#' merge the quasi-cliques into clusters. For a full description of the algorithm, see 
+#' Xu and Su (2015) \emph{Bioinformatics}. 
 #' 
 #'
+#'
 #' @param object Seurat object
-#' @param gene.use Gene expression data
+#' @param genes.use Gene expression data
 #' @param pc.use Which PCs to use for construction of the SNN graph
 #' @param SNN Allows use of existing SNN matrix
 #' @param k_param Defines k for the k-nearest neighbor algorithm
@@ -3203,20 +3203,33 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param q Defines the percentage of quasi-cliques to examine for merging each iteration
 #' @param qup Determines how to change q once all possible merges have been made
 #' @param update Adjust how verbose the output is
+#' @param min_cluster_size Smallest allowed size for a cluster
+#' @param do_sparse Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
+#' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
-                                    save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25 )  standardGeneric("find.clusters"))
+                                    save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
           function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
-                   r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25 ){
-            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update) }
-            if(is.null(m_param)) clusters = r_wrapper(SNN, r_param, m_param = r_param, q, qup, update )
-            else clusters = r_wrapper(SNN, r_param, m_param, q, qup, update )
+                   r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE ){
+            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update, do_sparse)}
+            
+            if(is.object(SNN)){
+              SNN_sp = SNN
+              SNN = matrix(1,1)
+            }
+            else SNN_sp = sparseMatrix(1,1,x=1)
+            if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
+            else clusters = r_wrapper(SNN, SNN_sp, r_param, m_param, q, qup, update, min_cluster_size, do_sparse )
+            
             clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
+            if(!is.null(clusters[[3]])){
+              clusters.list = replace(clusters.list, seq(length(clusters.list)-tail(clusters[[2]],1),length(clusters.list)), 0)
+            }
             cells.use = object@cell.names[unlist(clusters[[1]])]
             ident.use = clusters.list
             object=set.ident(object, cells.use, ident.use)
