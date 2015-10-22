@@ -123,6 +123,7 @@ custom.dist <- function(my.mat, my.function,...) {
 #' gene expression space)
 #' @param pcs.use If set, tree is calculated in PCA space, using the
 #' eigenvalue-weighted euclidean distance across these PC scores.
+#' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
 #' @param do.plot Plot the resulting phylogenetic tree
 #' @param do.reorder Re-order identity classes (factor ordering), according to
 #' position on the tree. This groups similar classes together which can be
@@ -133,13 +134,13 @@ custom.dist <- function(my.mat, my.function,...) {
 #' object@@cluster.tree[[1]]
 #' @importFrom ape as.phylo
 #' @export
-setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
+setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL, SNN.use=NULL, do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
 #' @export
 setMethod("buildClusterTree","seurat",
-          function(object,genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
+          function(object,genes.use=NULL,pcs.use=NULL, SNN.use=NULL, do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             ident.names=as.character(unique(object@ident))
-            if (is.null(pcs.use)) {
+            if (!is.null(genes.use)) {
               genes.use=ainb(genes.use,rownames(object@data))
               data.avg=average.expression(object,genes.use = genes.use)
               data.dist=dist(t(data.avg[genes.use,]))
@@ -150,6 +151,20 @@ setMethod("buildClusterTree","seurat",
               data.eigenval=(object@pca.obj[[1]]$sdev)^2
               data.weights=(data.eigenval/sum(data.eigenval))[pcs.use]; data.weights=data.weights/sum(data.weights)
               data.dist=custom.dist(data.pca[pcs.use,],weighted.euclidean,data.weights)
+            }
+            if(!is.null(SNN.use)){
+              num_clusters = length(ident.names)
+              data.dist = matrix(0, nrow=num_clusters, ncol= num_clusters)
+              for (i in 1:num_clusters-1){
+                for (j in (i+1):num_clusters){
+                  subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
+                  d = mean(suppressMessages(subSNN[subSNN!=0]))
+                  if(is.na(d)) data.dist[i,j] = 0
+                  else data.dist[i,j] = d
+                }
+              }
+              diag(data.dist)=1
+              data.dist=dist(data.dist)
             }
             data.tree=as.phylo(hclust(data.dist))
             object@cluster.tree[[1]]=data.tree

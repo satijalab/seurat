@@ -4,8 +4,8 @@
 \alias{buildClusterTree}
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
-buildClusterTree(object, genes.use = NULL, pcs.use = NULL, do.plot = TRUE,
-  do.reorder = FALSE, reorder.numeric = FALSE)
+buildClusterTree(object, genes.use = NULL, pcs.use = NULL, SNN.use = NULL,
+  do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,6 +16,8 @@ gene expression space)}
 
 \item{pcs.use}{If set, tree is calculated in PCA space, using the
 eigenvalue-weighted euclidean distance across these PC scores.}
+
+\item{SNN.use}{If SNN is passed, build tree based on SNN graph connectivity between clusters}
 
 \item{do.plot}{Plot the resulting phylogenetic tree}
 

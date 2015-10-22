@@ -1307,6 +1307,7 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_s
     }
     w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
     diag(w) = 1
+    rownames(w)=object@cell.names;colnames(w)=object@cell.names
   }
   else{
     w=matrix(0,n_cell,n_cell)
