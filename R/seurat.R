@@ -3283,3 +3283,38 @@ setMethod("set.clusters", signature="seurat",
           }
 )
 
+#' Cluster Validation
+#'
+#' Methods for validating the legitimacy of clusters using
+#' classification. SVMs are used as the basis for the classification.
+#' Merging is done recursively up the tree built by buildClusterTree using 
+#' an SNN graph to build the tree. 
+#'
+#'
+#' @param object Seurat object
+#' @param pc.use Which PCs to use for model construction
+#' @param top.genes Use the top X genes for model construction
+#' @param SNN.use SNN matrix to use for tree building algorithm
+#' @param acc.cutoff Accuracy cutoff for classifier 
+#' @importFrom caret trainControl train
+#' @return Returns a Seurat object, object@@ident has been updated with new cluster info
+#' @export
+setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9)  standardGeneric("validate.clusters"))
+#' @export
+setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9){
+    still_merging = TRUE
+    object = buildClusterTree(object, SNN.use = SNN, do.reorder=T, reorder.numeric = T)
+    # to speed up, put in check for already evaluated branches
+    while(still_merging){
+      num_clusters = length(object@cluster.tree[[1]]$tip.label)
+      print(paste(num_clusters, "clusters remaining"), sep ="")
+      tree = object@cluster.tree[[1]]
+      node = tree$edge[1,1]
+      object = mergeDescendents(object, tree, node, pc.use, top.genes, acc.cutoff)
+      object = buildClusterTree(object, SNN.use=SNN, do.reorder = T, reorder.numeric = T)
+      new_tree = object@cluster.tree[[1]]
+      if(length(new_tree$edge) == length(tree$edge)) still_merging =FALSE
+    }
+    return(object)
+  }
+)
