@@ -1251,7 +1251,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
 
 
 #' @export
-doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_sparse){
+doSNN.2=function(object,genes.use=NULL,pc.use=NULL,k_param=10,plot.SNN=F,prune.SNN=T,update=0.1, do_sparse=F){
   counter=1;
   if (is.null(genes.use)&&is.null(pc.use)){
     genes.use=object@var.genes;data.use=t(as.matrix(object@data[genes.use,]))
@@ -1274,9 +1274,9 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_s
   nn.large=my.knn$nn.index
   
   if(do_sparse){
-    idx1 = vector(mode="integer", length = n_cell*n_cell/k_param)
-    idx2 = vector(mode="integer", length = n_cell*n_cell/k_param)
-    edge_weight = vector(mode="double", length = n_cell*n_cell/k_param)
+    idx1 = vector(mode="integer", length = n_cell^2/k_param)
+    idx2 = vector(mode="integer", length = n_cell^2/k_param)
+    edge_weight = vector(mode="double", length = n_cell^2/k_param)
     id = 1
     
     #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
@@ -1307,6 +1307,7 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_s
     }
     w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
     diag(w) = 1
+    rownames(w)=object@cell.names;colnames(w)=object@cell.names
   }
   else{
     w=matrix(0,n_cell,n_cell)
@@ -1334,4 +1335,42 @@ doSNN.2=function(object,genes.use,pc.use,k_param,plot.SNN,prune.SNN,update, do_s
     }
   }
   return (w)
+}
+
+
+mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
+  # find daughter cells of given node in given tree
+  daughters = tree$edge[which(tree$edge[,1]==node),2]
+  # get the children of both daughters
+  childNodes = 1:(tree$Nnode+1)
+  if(length(ainb(c(daughters[1], daughters[2]), childNodes))==2){
+    d1 = which.cells(object,daughters[1])
+    d2 = which.cells(object,daughters[2])
+    y  = as.numeric(object@ident[c(d1,d2)])-1
+    x  = data.frame(t(object@data[pcTopGenes(object,pcs,num.genes = top.genes ),c(d1,d2)]));
+    xv = apply(x,2,var)
+    x  = x[,names(xv>0)]
+    # run k-fold cross validation
+    ctrl = trainControl(method = "repeatedcv", repeats = 5)
+    set.seed(1500)
+    model = train(as.factor(y)~., data=x, method = "svmLinear", trControl = ctrl)
+    acc = model$results[,2]
+    # if classifier can't classify them well enough, merge clusters
+    if(acc<acc.cutoff){
+      object = set.ident(object,cells.use = which.cells(object,daughters[1]), ident.use = daughters[2])
+    }
+    return(object)
+  }
+  # recursion to traverse tree
+  if(daughters[1]%in%childNodes){
+    object = mergeDescendents(object, tree, daughters[2], pcs, top.genes, acc.cutoff)
+    return(object)
+  }
+  if(daughters[2]%in%childNodes){
+    object = mergeDescendents(object, tree, daughters[1], pcs, top.genes, acc.cutoff)
+    return(object)
+  }
+  object = mergeDescendents(object, tree, daughters[1], pcs, top.genes, acc.cutoff)
+  object = mergeDescendents(object, tree, daughters[2], pcs, top.genes, acc.cutoff)
+  return(object)
 }

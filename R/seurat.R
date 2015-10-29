@@ -123,6 +123,7 @@ custom.dist <- function(my.mat, my.function,...) {
 #' gene expression space)
 #' @param pcs.use If set, tree is calculated in PCA space, using the
 #' eigenvalue-weighted euclidean distance across these PC scores.
+#' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
 #' @param do.plot Plot the resulting phylogenetic tree
 #' @param do.reorder Re-order identity classes (factor ordering), according to
 #' position on the tree. This groups similar classes together which can be
@@ -133,13 +134,13 @@ custom.dist <- function(my.mat, my.function,...) {
 #' object@@cluster.tree[[1]]
 #' @importFrom ape as.phylo
 #' @export
-setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
+setGeneric("buildClusterTree", function(object, genes.use=NULL,pcs.use=NULL, SNN.use=NULL, do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) standardGeneric("buildClusterTree"))
 #' @export
 setMethod("buildClusterTree","seurat",
-          function(object,genes.use=NULL,pcs.use=NULL,do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
+          function(object,genes.use=NULL,pcs.use=NULL, SNN.use=NULL, do.plot=TRUE,do.reorder=FALSE,reorder.numeric=FALSE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             ident.names=as.character(unique(object@ident))
-            if (is.null(pcs.use)) {
+            if (!is.null(genes.use)) {
               genes.use=ainb(genes.use,rownames(object@data))
               data.avg=average.expression(object,genes.use = genes.use)
               data.dist=dist(t(data.avg[genes.use,]))
@@ -150,6 +151,20 @@ setMethod("buildClusterTree","seurat",
               data.eigenval=(object@pca.obj[[1]]$sdev)^2
               data.weights=(data.eigenval/sum(data.eigenval))[pcs.use]; data.weights=data.weights/sum(data.weights)
               data.dist=custom.dist(data.pca[pcs.use,],weighted.euclidean,data.weights)
+            }
+            if(!is.null(SNN.use)){
+              num_clusters = length(ident.names)
+              data.dist = matrix(0, nrow=num_clusters, ncol= num_clusters)
+              for (i in 1:num_clusters-1){
+                for (j in (i+1):num_clusters){
+                  subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
+                  d = mean(suppressMessages(subSNN[subSNN!=0]))
+                  if(is.na(d)) data.dist[i,j] = 0
+                  else data.dist[i,j] = d
+                }
+              }
+              diag(data.dist)=1
+              data.dist=dist(data.dist)
             }
             data.tree=as.phylo(hclust(data.dist))
             object@cluster.tree[[1]]=data.tree
@@ -3234,8 +3249,14 @@ setMethod("find.clusters", signature = "seurat",
             ident.use = clusters.list
             object=set.ident(object, cells.use, ident.use)
             if(save.SNN){
-              output<-list();output[[1]]=object; output[[2]]=SNN
-              return(output)
+              if(do_sparse){
+                output<-list();output[[1]]=object; output[[2]]=SNN_sp
+                return(output)
+              }
+              else{
+                output<-list();output[[1]]=object; output[[2]]=SNN
+                return(output)
+              }
             }
             else{
               return(object)
@@ -3271,3 +3292,38 @@ setMethod("save.clusters", signature="seurat",
           }
 )
 
+#' Cluster Validation
+#'
+#' Methods for validating the legitimacy of clusters using
+#' classification. SVMs are used as the basis for the classification.
+#' Merging is done recursively up the tree built by buildClusterTree using 
+#' an SNN graph to build the tree. 
+#'
+#'
+#' @param object Seurat object
+#' @param pc.use Which PCs to use for model construction
+#' @param top.genes Use the top X genes for model construction
+#' @param SNN.use SNN matrix to use for tree building algorithm
+#' @param acc.cutoff Accuracy cutoff for classifier 
+#' @importFrom caret trainControl train
+#' @return Returns a Seurat object, object@@ident has been updated with new cluster info
+#' @export
+setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9)  standardGeneric("validate.clusters"))
+#' @export
+setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9){
+    still_merging = TRUE
+    object = buildClusterTree(object, SNN.use = SNN, do.reorder=T, reorder.numeric = T)
+    # to speed up, put in check for already evaluated branches
+    while(still_merging){
+      num_clusters = length(object@cluster.tree[[1]]$tip.label)
+      print(paste(num_clusters, "clusters remaining"), sep ="")
+      tree = object@cluster.tree[[1]]
+      node = tree$edge[1,1]
+      object = mergeDescendents(object, tree, node, pc.use, top.genes, acc.cutoff)
+      object = buildClusterTree(object, SNN.use=SNN, do.reorder = T, reorder.numeric = T)
+      new_tree = object@cluster.tree[[1]]
+      if(length(new_tree$edge) == length(tree$edge)) still_merging =FALSE
+    }
+    return(object)
+  }
+)
