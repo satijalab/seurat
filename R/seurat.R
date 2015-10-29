@@ -3284,6 +3284,15 @@ setMethod("set.clusters", signature="seurat",
           }
 )
 
+#' @export 
+setGeneric("save.clusters", function(object, file) standardGeneric("save.clusters"))
+setMethod("save.clusters", signature="seurat",
+          function(object, file){
+            my.clusters=get.clusters(object)
+            write.table(my.clusters,file = file,sep="\t",quote = FALSE)
+          }
+)
+
 #' Cluster Validation
 #'
 #' Methods for validating the legitimacy of clusters using
