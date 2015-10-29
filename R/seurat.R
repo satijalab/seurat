@@ -3209,6 +3209,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param pc.use Which PCs to use for construction of the SNN graph
 #' @param SNN Allows use of existing SNN matrix
 #' @param k_param Defines k for the k-nearest neighbor algorithm
+#' @param k_scale granularity option for k_param
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Prune the SNN graph
 #' @param save.SNN Whether to return the SNN matrix or not. If true, returns a list with the object as the first item
@@ -3225,13 +3226,13 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=TRUE,
+setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=TRUE,
                                     save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
-          function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10,plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
+          function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale =10, plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
                    r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE ){
-            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, plot.SNN, prune.SNN, update, do_sparse)}
+            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, update, do_sparse)}
             
             if(is.object(SNN)){
               SNN_sp = SNN
@@ -3303,7 +3304,7 @@ setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN.
 #' @export
 setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9){
     still_merging = TRUE
-    object = buildClusterTree(object, SNN.use = SNN, do.reorder=T, reorder.numeric = T)
+    object = buildClusterTree(object, SNN.use = SNN, do.reorder=T, reorder.numeric = T, do.plot = F)
     # to speed up, put in check for already evaluated branches
     while(still_merging){
       num_clusters = length(object@cluster.tree[[1]]$tip.label)
@@ -3311,7 +3312,7 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
       tree = object@cluster.tree[[1]]
       node = tree$edge[1,1]
       object = mergeDescendents(object, tree, node, pc.use, top.genes, acc.cutoff)
-      object = buildClusterTree(object, SNN.use=SNN, do.reorder = T, reorder.numeric = T)
+      object = buildClusterTree(object, SNN.use=SNN, do.reorder = T, reorder.numeric = T, do.plot = F)
       new_tree = object@cluster.tree[[1]]
       if(length(new_tree$edge) == length(tree$edge)) still_merging =FALSE
     }

@@ -5,9 +5,9 @@
 \title{Cluster Determination}
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
-  k_param = 10, plot.SNN = FALSE, prune.SNN = TRUE, save.SNN = FALSE,
-  r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1, update = 0.25,
-  min_cluster_size = 1, do_sparse = FALSE)
+  k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = TRUE,
+  save.SNN = FALSE, r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1,
+  update = 0.25, min_cluster_size = 1, do_sparse = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +19,8 @@ find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
 \item{SNN}{Allows use of existing SNN matrix}
 
 \item{k_param}{Defines k for the k-nearest neighbor algorithm}
+
+\item{k_scale}{granularity option for k_param}
 
 \item{plot.SNN}{Plot the SNN graph}
 
