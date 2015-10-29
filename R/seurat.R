@@ -3221,17 +3221,27 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param update Adjust how verbose the output is
 #' @param min_cluster_size Smallest allowed size for a cluster
 #' @param do_sparse Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.
+#' @param do_mudularity Option to use modularity optimization for single cell clustering.
+#' @param modularity Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm).
+#' @param n_start Number of random starts.
+#' @param n_iter Maximal number of iterations per random start.
+#' @param random_seed Seed of the random number generator.
+#' @param print_output Whether or not to print output to the console (0 = no; 1 = yes).
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=TRUE,
-                                    save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE )  standardGeneric("find.clusters"))
+                                     save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
+                                     do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1 )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
           function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale =10, plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
-                   r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE ){
+                   r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
+                   do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1){
             if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, update, do_sparse)}
             
             if(is.object(SNN)){
@@ -3239,16 +3249,24 @@ setMethod("find.clusters", signature = "seurat",
               SNN = matrix(1,1)
             }
             else SNN_sp = sparseMatrix(1,1,x=1)
-            if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
-            else clusters = r_wrapper(SNN, SNN_sp, r_param, m_param, q, qup, update, min_cluster_size, do_sparse )
             
-            clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
-            if(!is.null(clusters[[3]])){
-              clusters.list = replace(clusters.list, seq(length(clusters.list)-tail(clusters[[2]],1),length(clusters.list)), 0)
+            if (do_modularity){
+              doModularity_Clust(SNN, output, modularity_function, resolution_param, algorithm, n_start, n_iter, random_seed, print_output)
+              ident.use=read.table(file = "output.txt",header = FALSE,sep = "\t")[,1]
+              object=set.ident(object,object@cell.names,ident.use)
             }
-            cells.use = object@cell.names[unlist(clusters[[1]])]
-            ident.use = clusters.list
-            object=set.ident(object, cells.use, ident.use)
+            else{
+              if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
+              else clusters = r_wrapper(SNN, SNN_sp, r_param, m_param, q, qup, update, min_cluster_size, do_sparse )
+              clusters.list=rep(1:length(clusters[[2]]),clusters[[2]])
+              if(!is.null(clusters[[3]])){
+                clusters.list = replace(clusters.list, seq(length(clusters.list)-tail(clusters[[2]],1),length(clusters.list)), 0)
+              }
+              cells.use = object@cell.names[unlist(clusters[[1]])]
+              ident.use = clusters.list
+              object=set.ident(object, cells.use, ident.use)
+            }
+            
             if(save.SNN){
               if(do_sparse){
                 output<-list();output[[1]]=object; output[[2]]=SNN_sp
