@@ -157,8 +157,8 @@ setMethod("buildClusterTree","seurat",
               data.dist = matrix(0, nrow=num_clusters, ncol= num_clusters)
               for (i in 1:num_clusters-1){
                 for (j in (i+1):num_clusters){
-                  subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
-                  d = mean(suppressMessages(subSNN[subSNN!=0]))
+                  subSNN = SNN.use[match(which.cells(object, i), colnames(SNN.use)), match(which.cells(object, j), rownames(SNN.use))]
+                  d = mean(subSNN)
                   if(is.na(d)) data.dist[i,j] = 0
                   else data.dist[i,j] = d
                 }
