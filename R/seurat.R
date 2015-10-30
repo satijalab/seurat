@@ -2409,6 +2409,7 @@ setMethod("icHeatmap","seurat",
 #' @inheritParams doHeatMap
 #' @inheritParams pcTopGenes
 #' @inheritParams viz.pca
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
@@ -2417,7 +2418,12 @@ setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use
 #' @export
 setMethod("pcHeatmap","seurat",
           function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) {
-            cells.use=set.ifnull(cells.use,object@cell.names)
+            if (is.numeric((cells.use))) {
+              cells.use=pcTopCells(object,pc.use,cells.use,do.balanced)
+            }
+            else {          
+              cells.use=set.ifnull(cells.use,object@cell.names)
+            }
             genes.use=rev(pcTopGenes(object,pc.use,num.genes,use.full,do.balanced))
             cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
             data.use=object@scale.data[genes.use,cells.ordered]
