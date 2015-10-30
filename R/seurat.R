@@ -282,7 +282,7 @@ setMethod("setup","seurat",
             genes.use=names(num.cells[which(num.cells>min.cells)])
             object@data=object@data[genes.use,]
             
-            object@ident=factor(unlist(lapply(colnames(object@data),extract.field,names.field,names.delim)))
+            object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
             object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
@@ -345,7 +345,7 @@ setMethod("add_samples","seurat",
             #object@scale.data = cbind(object@scale.data, data.new.scale)
             
             object@scale.data=data.new.scale
-            new.ident=(unlist(lapply(colnames(new.data),extract.field,names.field,names.delim)))
+            new.ident=(unlist(lapply(colnames(new.data),extract_field,names.field,names.delim)))
             names(new.ident)=colnames(new.data)
             object@ident=factor(c(as.character(object@ident),as.character(new.ident)))
             names(object@ident)=colnames(object@data)

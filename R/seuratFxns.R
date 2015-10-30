@@ -472,7 +472,7 @@ plotVln=function(gene,data=dc2,code="rsem",mmax=12,getStat=getStat1,doRet=FALSE,
 }
 
 #' @export
-extract.field=function(string,field=1,delim="_") {
+extract_field=function(string,field=1,delim="_") {
   fields=as.numeric(unlist(strsplit(as.character(field),",")))
   if (length(fields)==1)  return(strsplit(string,delim)[[1]][field])
   return(paste(strsplit(string,delim)[[1]][fields],collapse = delim))
