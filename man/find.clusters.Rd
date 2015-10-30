@@ -7,7 +7,9 @@
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = TRUE,
   save.SNN = FALSE, r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1,
-  update = 0.25, min_cluster_size = 1, do_sparse = FALSE)
+  update = 0.25, min_cluster_size = 1, do_sparse = FALSE,
+  do_modularity = FALSE, modularity = 1, resolution = 1, algorithm = 1,
+  n_start = 1000, n_iter = 10, random_seed = 0, print_output = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -42,6 +44,22 @@ and the SNN matrix as the second item.}
 \item{min_cluster_size}{Smallest allowed size for a cluster}
 
 \item{do_sparse}{Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.}
+
+\item{modularity}{Modularity function (1 = standard; 2 = alternative).}
+
+\item{resolution}{Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
+
+\item{algorithm}{Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm).}
+
+\item{n_start}{Number of random starts.}
+
+\item{n_iter}{Maximal number of iterations per random start.}
+
+\item{random_seed}{Seed of the random number generator.}
+
+\item{print_output}{Whether or not to print output to the console (0 = no; 1 = yes).}
+
+\item{do_mudularity}{Option to use modularity optimization for single cell clustering.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info
