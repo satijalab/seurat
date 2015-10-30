@@ -1376,12 +1376,14 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
   return(object)
 }
 
-doModularity_Clust=function(SNN=matrix(), modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1){
+doModularity_Clust=function(SNN=matrix(), modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1,ModularityJarFile="ModularityOptimizer.jar"){
   diag(SNN)=0
   edge=cbind((which(SNN!=0,arr.ind = TRUE)-1),SNN[which(SNN!=0,arr.ind = TRUE)])
   rownames(edge)=NULL; colnames(edge)=NULL
   write.table(x = edge,file = "edge.txt",sep = "\t",row.names = FALSE,col.names = FALSE)
   
-  command=paste("java -jar ModularityOptimizer.jar", "edge.txt", "output.txt", modularity, resolution, algorithm, n_start, n_iter, random_seed, print_output, sep = " ")
+  command=paste("java -jar", ModularityJarFile, "edge.txt", "output.txt", modularity, resolution, algorithm, n_start, n_iter, random_seed, print_output, sep = " ")
   system(command, wait=TRUE)
+  ident.use=read.table(file = "output.txt",header = FALSE,sep = "\t")[,1]
+  object=set.ident(object,object@cell.names,ident.use)
 }
