@@ -3259,7 +3259,7 @@ setMethod("find.clusters", signature = "seurat",
             else SNN_sp = sparseMatrix(1,1,x=1)
             
             if (do_modularity){
-              object=doModularity_Clust(SNN, output, modularity_function, resolution_param, algorithm, n_start, n_iter, random_seed, print_output,ModularityJarFile)
+              object=doModularity_Clust(object, SNN, output, modularity_function, resolution_param, algorithm, n_start, n_iter, random_seed, print_output,ModularityJarFile)
             }
             else{
               if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
