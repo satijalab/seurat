@@ -11,7 +11,7 @@ find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   do_modularity = FALSE, modularity = 1, resolution = 1, algorithm = 1,
   n_start = 1000, n_iter = 10, random_seed = 0, print_output = 1,
   ModularityJarFile = paste(system.file(package = "Seurat"),
-  "/Modularity/ModularityOptimizer.jar", sep = ""))
+  "/java/ModularityOptimizer.jar", sep = ""))
 }
 \arguments{
 \item{object}{Seurat object}

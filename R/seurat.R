@@ -3243,12 +3243,12 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=TRUE,
                                      save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
-                                     do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/Modularity/ModularityOptimizer.jar", sep = "") )  standardGeneric("find.clusters"))
+                                     do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "") )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
           function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale =10, plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
                    r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
-                   do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/Modularity/ModularityOptimizer.jar", sep = "")){
+                   do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
             
             if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, update, do_sparse)}
             
