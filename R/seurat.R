@@ -3349,7 +3349,7 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
         c1 = which(connectivity == m, arr.ind = TRUE)[1]
         c2 = which(connectivity == m, arr.ind = TRUE)[2]
         if(m > min_connectivity){
-          acc = runClassifier(object, c1, c2, pcs, top.genes)
+          acc = runClassifier(object, c1, c2, pc.use, top.genes)
           # if classifier can't classify them well enough, merge clusters
           if(acc<acc.cutoff){
             object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
