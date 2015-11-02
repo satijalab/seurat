@@ -1388,3 +1388,30 @@ doModularity_Clust=function(object, SNN=matrix(), modularity=1, resolution=1.0, 
   object=set.ident(object,object@cell.names,ident.use)
   return (object)
 }
+
+calcConnectivity = function(object, num_clusters, SNN){
+  connectivity = matrix(0, nrow=num_clusters, ncol=num_clusters)
+  for (i in 1:num_clusters-1){
+    for (j in (i+1):num_clusters){
+      subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
+      if (is.object(subSNN)) connectivity[i,j] = sum(subSNN)/(nrow(subSNN)*ncol(subSNN))
+      else connectivity[i,j] = mean(subSNN)
+    }
+  }
+  return(connectivity)
+}
+
+runClassifier = function(object, group1, group2, pcs, num.genes){
+  d1 = which.cells(object, group1)
+  d2 = which.cells(object, group2)
+  y  = as.numeric(object@ident[c(d1,d2)])-1
+  x  = data.frame(t(object@data[pcTopGenes(object,pcs,num.genes),c(d1,d2)]));
+  xv = apply(x,2,var)
+  x  = x[,names(xv>0)]
+  # run k-fold cross validation
+  ctrl = trainControl(method = "repeatedcv", repeats = 5)
+  set.seed(1500)
+  model = train(as.factor(y)~., data=x, method = "svmLinear", trControl = ctrl)
+  acc = model$results[,2]
+  return(acc)
+}

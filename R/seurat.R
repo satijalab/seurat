@@ -3328,26 +3328,42 @@ setMethod("save.clusters", signature="seurat",
 #' @param object Seurat object
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN.use SNN matrix to use for tree building algorithm
+#' @param SNN SNN matrix to use for tree building algorithm
+#' @param min_connectivity Threshold of connectedness for comparison of two clusters
 #' @param acc.cutoff Accuracy cutoff for classifier 
 #' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9)  standardGeneric("validate.clusters"))
+setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9)  standardGeneric("validate.clusters"))
 #' @export
-setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN.use = NULL, acc.cutoff=0.9){
+setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9){
     still_merging = TRUE
-    object = buildClusterTree(object, SNN.use = SNN, do.reorder=T, reorder.numeric = T, do.plot = F)
-    # to speed up, put in check for already evaluated branches
+    num_clusters = length(unique(object@ident))
+    
+    # find connectedness of every two clusters
     while(still_merging){
-      num_clusters = length(object@cluster.tree[[1]]$tip.label)
-      print(paste(num_clusters, "clusters remaining"), sep ="")
-      tree = object@cluster.tree[[1]]
-      node = tree$edge[1,1]
-      object = mergeDescendents(object, tree, node, pc.use, top.genes, acc.cutoff)
-      object = buildClusterTree(object, SNN.use=SNN, do.reorder = T, reorder.numeric = T, do.plot = F)
-      new_tree = object@cluster.tree[[1]]
-      if(length(new_tree$edge) == length(tree$edge)) still_merging =FALSE
+      connectivity = calcConnectivity(object, num_clusters, SNN)
+      merge_done = FALSE
+      while(!merge_done){
+        m = max(connectivity, na.rm=T)
+        c1 = which(connectivity == m, arr.ind = TRUE)[1]
+        c2 = which(connectivity == m, arr.ind = TRUE)[2]
+        if(m > min_connectivity){
+          acc = runClassifier(object, c1, c2, pcs, top.genes)
+          # if classifier can't classify them well enough, merge clusters
+          if(acc<acc.cutoff){
+            object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
+            print(paste("merge cluster ", c1, " and ", c2))
+            merge_done = TRUE
+          } else{
+            connectivity[c1,c2] = 0
+            connectivity[c2,c1] = 0
+          }
+        } else{
+          still_merging = FALSE
+          break
+        }
+      }
     }
     return(object)
   }

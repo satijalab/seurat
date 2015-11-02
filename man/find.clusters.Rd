@@ -9,7 +9,8 @@ find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
   save.SNN = FALSE, r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1,
   update = 0.25, min_cluster_size = 1, do_sparse = FALSE,
   do_modularity = FALSE, modularity = 1, resolution = 1, algorithm = 1,
-  n_start = 1000, n_iter = 10, random_seed = 0, print_output = 1)
+  n_start = 1000, n_iter = 10, random_seed = 0, print_output = 1,
+  ModularityJarFile = "ModularityOptimizer.jar")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -58,6 +59,8 @@ and the SNN matrix as the second item.}
 \item{random_seed}{Seed of the random number generator.}
 
 \item{print_output}{Whether or not to print output to the console (0 = no; 1 = yes).}
+
+\item{ModularityJarFile}{Location of the ModularityOptimizer JAR file.}
 
 \item{do_mudularity}{Option to use modularity optimization for single cell clustering.}
 }

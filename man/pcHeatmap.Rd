@@ -14,7 +14,7 @@ pcHeatmap(object, pc.use = 1, cells.use = NULL, num.genes = 30,
 
 \item{pc.use}{Principal components to use}
 
-\item{cells.use}{Cells to include in the heatmap (default is all cells)}
+\item{cells.use}{A list of cells to plot. If numeric, just plots the top cells.}
 
 \item{num.genes}{Number of genes to return}
 

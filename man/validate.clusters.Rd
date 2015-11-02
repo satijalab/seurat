@@ -4,8 +4,8 @@
 \alias{validate.clusters}
 \title{Cluster Validation}
 \usage{
-validate.clusters(object, pc.use = NULL, top.genes = 30, SNN.use = NULL,
-  acc.cutoff = 0.9)
+validate.clusters(object, pc.use = NULL, top.genes = 30, SNN = NULL,
+  min_connectivity = 0.01, acc.cutoff = 0.9)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,7 +14,9 @@ validate.clusters(object, pc.use = NULL, top.genes = 30, SNN.use = NULL,
 
 \item{top.genes}{Use the top X genes for model construction}
 
-\item{SNN.use}{SNN matrix to use for tree building algorithm}
+\item{SNN}{SNN matrix to use for tree building algorithm}
+
+\item{min_connectivity}{Threshold of connectedness for comparison of two clusters}
 
 \item{acc.cutoff}{Accuracy cutoff for classifier}
 }
