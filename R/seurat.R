@@ -3392,29 +3392,30 @@ setMethod("save.clusters", signature="seurat",
 setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE)  standardGeneric("validate.clusters"))
 #' @export
 setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE){
+    num_clusters_orig = length(unique(object@ident))
     still_merging = TRUE
-    num_clusters = length(unique(object@ident))
     if(verbose){
-      connectivity = calcConnectivity(object, num_clusters, SNN)
-      end = length(connectivity[connectivity>min_connectivity])-num_clusters
+      connectivity = calcConnectivity(object, SNN)
+      end = length(connectivity[connectivity>min_connectivity])
       progress = end
     }
     # find connectedness of every two clusters
     while(still_merging){
-      connectivity = calcConnectivity(object, num_clusters, SNN)
+      connectivity = calcConnectivity(object, SNN)
       merge_done = FALSE
       while(!merge_done){
         m = max(connectivity, na.rm=T)
-        c1 = which(connectivity == m, arr.ind = TRUE)[1]
-        c2 = which(connectivity == m, arr.ind = TRUE)[2]
+        mi = which(connectivity == m, arr.ind = TRUE)
+        c1 = rownames(connectivity)[mi[,1]]
+        c2 = rownames(connectivity)[mi[,2]]
         if(m > min_connectivity){
           acc = runClassifier(object, c1, c2, pc.use, top.genes)
           # if classifier can't classify them well enough, merge clusters
           if(acc<acc.cutoff){
             object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
             if(verbose){
-              progress = progress - 1
-              print(paste(sprintf("%3.0f", (1-progress/end)*100), "% complete --- merge cluster ", sprintf("%2.0f", c1), " and ", sprintf("%2.0f", c2), ", classification accuracy of ", sprintf("%1.4f", acc),sep=""))
+              progress = length(connectivity[connectivity>min_connectivity])
+              print(paste(sprintf("%3.0f", (1-progress/end)*100), "% complete --- merge cluster ",c1, " and ", c2, ", classification accuracy of ", sprintf("%1.4f", acc),sep=""))
             }
             merge_done = TRUE
           } else{
@@ -3427,7 +3428,7 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
         }
       }
     }
-    if(verbose) print(paste("100% complete --- started with ", num_clusters," clusters, ", length(unique(object@ident)), " clusters remaining", sep = "" ))
+    if(verbose) print(paste("100% complete --- started with ", num_clusters_orig," clusters, ", length(unique(object@ident)), " clusters remaining", sep = "" ))
     return(object)
   }
 )

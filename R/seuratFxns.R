@@ -1363,17 +1363,24 @@ doModularity_Clust=function(object, SNN=matrix(), modularity=1, resolution=1.0, 
   return (object)
 }
 
-calcConnectivity = function(object, num_clusters, SNN){
+calcConnectivity = function(object, SNN){
+  cluster_names = unique(object@ident)
+  num_clusters = length(cluster_names)
   connectivity = matrix(0, nrow=num_clusters, ncol=num_clusters)
-  for (i in 1:num_clusters-1){
-    for (j in (i+1):num_clusters){
+  rownames(connectivity) = cluster_names
+  colnames(connectivity) = cluster_names
+  n = 1
+  for (i in cluster_names){
+    for (j in cluster_names[-(1:n)]){
       subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
       if (is.object(subSNN)) connectivity[i,j] = sum(subSNN)/(nrow(subSNN)*ncol(subSNN))
       else connectivity[i,j] = mean(subSNN)
     }
+    n=n+1
   }
   return(connectivity)
 }
+
 
 runClassifier = function(object, group1, group2, pcs, num.genes){
   d1 = which.cells(object, group1)
