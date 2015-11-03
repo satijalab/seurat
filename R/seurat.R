@@ -3407,7 +3407,7 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
           # if classifier can't classify them well enough, merge clusters
           if(acc<acc.cutoff){
             object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
-            print(paste("merge cluster ", c1, " and ", c2))
+            print(paste("merge cluster ", c1, " and ", c2, "with Acc", acc))
             merge_done = TRUE
           } else{
             connectivity[c1,c2] = 0
