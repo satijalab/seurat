@@ -3200,6 +3200,62 @@ setMethod("mean.var.plot", signature = "seurat",
 )
 
 
+#' SNN Graph Construction
+#'
+#' Construct a Shared Nearest Neighbor (SNN) Graph for a given 
+#' dataset.  
+#'
+#'
+#' @param object Seurat object
+#' @param genes.use Gene expression data
+#' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param k_param Defines k for the k-nearest neighbor algorithm
+#' @param k_scale granularity option for k_param
+#' @param plot.SNN Plot the SNN graph
+#' @param prune.SNN Prune the SNN graph
+#' @param do_sparse Whether to compute and return the SNN graph as a sparse matrix or not
+#' @param update Adjust how verbose the output is
+#' @importFrom FNN get.knn
+#' @importFrom igraph plot.igraph graph.adjlist
+#' @importFrom Matrix sparseMatrix
+#' @return Returns the SNN matrix
+#' @export
+setGeneric("build.SNN", function(object, genes.use=NULL, pc.use=NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=FALSE,
+                                 do_sparse = FALSE, update=0.25 )  standardGeneric("build.SNN"))
+#' @export
+setMethod("build.SNN", signature = "seurat",
+          function(object, genes.use=NULL, pc.use=NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=FALSE,
+                   do_sparse = FALSE, update = 0.25){
+                if (is.null(genes.use)&&is.null(pc.use)){
+                  genes.use=object@var.genes;data.use=t(as.matrix(object@data[genes.use,]))
+                } else if (!is.null(pc.use)){
+                  data.use=as.matrix(object@pca.rot[,pc.use])
+                } else if (!is.null(genes.use)&&is.null(pc.use)){
+                  data.use=t(as.matrix(object@data[genes.use,]))
+                } else{
+                  stop("Data error!")
+                }
+                
+                n_cell=nrow(data.use)
+                if(k_param*k_scale > n_cell) stop("k_scale x k_param can't be larger than the number of cells")
+                
+                #find the k-nearest neighbors for each single cell
+                my.knn=get.knn(as.matrix(data.use), k=min(k_scale*k_param,n_cell))
+                nn.ranked=cbind(1:n_cell,my.knn$nn.index[,1:(k_param-1)])
+                nn.large=my.knn$nn.index
+                
+                if(do_sparse) w = calcSNNSparse(object, n_cell, k_param, nn.large, nn.ranked, prune.SNN, update)
+                else w = calcSNNDense(object, n_cell, nn.large, nn.ranked, prune.SNN, update)
+              
+                if (plot.SNN==TRUE) {
+                  net=graph.adjacency(w,mode="undirected",weighted=TRUE,diag=FALSE)
+                  plot.igraph(net,layout=as.matrix(object@tsne.rot),edge.width=E(net)$weight,vertex.label=NA,vertex.size=0)
+                }
+                return (w)
+              }
+)
+
+
 #' Cluster Determination
 #'
 #' Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
@@ -3241,7 +3297,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=TRUE,
+setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=FALSE,
                                      save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
                                      do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "") )  standardGeneric("find.clusters"))
 #' @export
@@ -3250,8 +3306,7 @@ setMethod("find.clusters", signature = "seurat",
                    r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
                    do_modularity=FALSE, modularity=1, resolution=1.0, algorithm=1, n_start=1000, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
             
-            if(is.null(SNN)){ SNN = doSNN.2(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, update, do_sparse)}
-            
+            if(is.null(SNN)){ SNN = build.SNN(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, do_sparse, update)}
             if(is.object(SNN)){
               SNN_sp = SNN
               SNN = matrix(1,1)

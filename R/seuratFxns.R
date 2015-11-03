@@ -1249,93 +1249,65 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   par(mar=oldMar)
 }
 
+calcSNNSparse = function(object, n_cell, k_param, nn.large, nn.ranked, prune.SNN, update){
+  counter = 1
+  idx1 = vector(mode="integer", length = n_cell^2/k_param)
+  idx2 = vector(mode="integer", length = n_cell^2/k_param)
+  edge_weight = vector(mode="double", length = n_cell^2/k_param)
+  id = 1
+  
+  #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
+  #speed things up (don't have to calculate all pairwise distances)
+  for (i in 1:n_cell){
+    for (j in 1:ncol(nn.large)){
+      s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      e = length(s)/length(u)
+      if(e!=0){
+        idx1[id]=i
+        idx2[id]= nn.large[i,j]
+        edge_weight[id] = e
+        id = id + 1
+      }
+    }
+    if (i==round(counter*n_cell*update)) {
+      print(paste("SNN : processed ", i, " cells", sep=""))
+      counter= counter+1;
+    }
+  }
+  #define the edge weights with Jaccard distance
+  idx1 = idx1[!is.na(idx1) & idx1!=0]; idx2 = idx2[!is.na(idx2) & idx2!=0]; edge_weight = edge_weight[!is.na(edge_weight)& edge_weight!=0]
+  
+  if(prune.SNN==TRUE){
+    rm_idx = which(edge_weight<median(edge_weight))
+    idx1=idx1[-rm_idx]; idx2=idx2[-rm_idx]; edge_weight=edge_weight[-rm_idx];
+  }
+  w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
+  diag(w) = 1
+  rownames(w)=object@cell.names;colnames(w)=object@cell.names
+  return(w)
+}
 
-#' @export
-doSNN.2=function(object,genes.use=NULL,pc.use=NULL,k_param=10, k_scale=10, plot.SNN=F,prune.SNN=T,update=0.1, do_sparse=F){
-  counter=1;
-  if (is.null(genes.use)&&is.null(pc.use)){
-    genes.use=object@var.genes;data.use=t(as.matrix(object@data[genes.use,]))
-  } 
-  else if (!is.null(pc.use)){
-    data.use=as.matrix(object@pca.rot[,pc.use])
-  }
-  else if (!is.null(genes.use)&&is.null(pc.use)){
-    data.use=t(as.matrix(object@data[genes.use,]))
-  }
-  else{
-    stop("Data error!")
-  }
-  
-  n_cell=nrow(data.use)
-  if(k_param*k_scale > n_cell) stop("k_scale x k_param can't be larger than the number of cells")
-  
-  #find the k-nearest neighbors for each single cell
-  my.knn=get.knn(as.matrix(data.use), k=min(k_scale*k_param,n_cell))
-  nn.ranked=cbind(1:n_cell,my.knn$nn.index[,1:(k_param-1)])
-  nn.large=my.knn$nn.index
-  
-  if(do_sparse){
-    idx1 = vector(mode="integer", length = n_cell^2/k_param)
-    idx2 = vector(mode="integer", length = n_cell^2/k_param)
-    edge_weight = vector(mode="double", length = n_cell^2/k_param)
-    id = 1
-    
-    #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
-    #speed things up (don't have to calculate all pairwise distances)
-    for (i in 1:n_cell){
-      for (j in 1:ncol(nn.large)){
-        s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-        u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-        e = length(s)/length(u)
-        if(e!=0){
-          idx1[id]=i
-          idx2[id]= nn.large[i,j]
-          edge_weight[id] = e
-          id = id + 1
-        }
-      }
-      if (i==round(counter*n_cell*update)) {
-        print(paste("SNN : processed ", i, " cells", sep=""))
-        counter= counter+1;
-      }
+calcSNNDense = function(object, n_cell, nn.large, nn.ranked, prune.SNN, update){
+  counter = 1
+  w=matrix(0,n_cell,n_cell)
+  rownames(w)=object@cell.names;colnames(w)=object@cell.names
+  diag(w)=1
+  #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
+  #speed things up (don't have to calculate all pairwise distances)
+  for (i in 1:n_cell){
+    for (j in 1:ncol(nn.large)){
+      s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
+      w[i,nn.large[i,j]]=length(s)/length(u)
     }
-    #define the edge weights with Jaccard distance
-    idx1 = idx1[!is.na(idx1) & idx1!=0]; idx2 = idx2[!is.na(idx2) & idx2!=0]; edge_weight = edge_weight[!is.na(edge_weight)& edge_weight!=0]
-    
-    if(prune.SNN==TRUE){
-      rm_idx = which(edge_weight<median(edge_weight))
-      idx1=idx1[-rm_idx]; idx2=idx2[-rm_idx]; edge_weight=edge_weight[-rm_idx];
+    if (i==round(counter*n_cell*update)) {
+      print(paste("SNN : processed ", i, " cells", sep=""))
+      counter= counter+1;
     }
-    w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
-    diag(w) = 1
-    rownames(w)=object@cell.names;colnames(w)=object@cell.names
-  }
-  else{
-    w=matrix(0,n_cell,n_cell)
-    rownames(w)=object@cell.names;colnames(w)=object@cell.names
-    diag(w)=1
-    #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
-    #speed things up (don't have to calculate all pairwise distances)
-    for (i in 1:n_cell){
-      for (j in 1:ncol(nn.large)){
-        s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-        u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-        w[i,nn.large[i,j]]=length(s)/length(u)
-      }
-      if (i==round(counter*n_cell*update)) {
-        print(paste("SNN : processed ", i, " cells", sep=""))
-        counter= counter+1;
-      }
-    }
-    #define the edge weights with Jaccard distance
-    
     if (prune.SNN==TRUE) w[w<median(w[w>0])]=0
-    if (plot.SNN==TRUE) {
-      net=graph.adjacency(w,mode="undirected",weighted=TRUE,diag=FALSE)
-      plot.igraph(net,layout=as.matrix(object@tsne.rot),edge.width=E(net)$weight,vertex.label=NA,vertex.size=0)
-    }
   }
-  return (w)
+  return(w)
 }
 
 

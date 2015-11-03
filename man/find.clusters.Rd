@@ -5,7 +5,7 @@
 \title{Cluster Determination}
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
-  k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = TRUE,
+  k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = FALSE,
   save.SNN = FALSE, r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1,
   update = 0.25, min_cluster_size = 1, do_sparse = FALSE,
   do_modularity = FALSE, modularity = 1, resolution = 1, algorithm = 1,
