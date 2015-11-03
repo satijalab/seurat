@@ -5,7 +5,7 @@
 \title{Cluster Validation}
 \usage{
 validate.clusters(object, pc.use = NULL, top.genes = 30, SNN = NULL,
-  min_connectivity = 0.01, acc.cutoff = 0.9)
+  min_connectivity = 0.01, acc.cutoff = 0.9, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +19,8 @@ validate.clusters(object, pc.use = NULL, top.genes = 30, SNN = NULL,
 \item{min_connectivity}{Threshold of connectedness for comparison of two clusters}
 
 \item{acc.cutoff}{Accuracy cutoff for classifier}
+
+\item{verbose}{Controls whether to display progress and merge results}
 }
 \value{
 Returns a Seurat object, object@ident has been updated with new cluster info
