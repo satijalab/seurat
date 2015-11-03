@@ -3227,7 +3227,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @param update Adjust how verbose the output is
 #' @param min_cluster_size Smallest allowed size for a cluster
 #' @param do_sparse Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.
-#' @param do_mudularity Option to use modularity optimization for single cell clustering.
+#' @param do_modularity Option to use modularity optimization for single cell clustering.
 #' @param modularity Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm).
@@ -3321,14 +3321,13 @@ setMethod("save.clusters", signature="seurat",
 #'
 #' Methods for validating the legitimacy of clusters using
 #' classification. SVMs are used as the basis for the classification.
-#' Merging is done recursively up the tree built by buildClusterTree using 
-#' an SNN graph to build the tree. 
+#' Merging is done based on the connectivity from an SNN graph. 
 #'
 #'
 #' @param object Seurat object
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN SNN matrix to use for tree building algorithm
+#' @param SNN SNN matrix used for cluster comparison
 #' @param min_connectivity Threshold of connectedness for comparison of two clusters
 #' @param acc.cutoff Accuracy cutoff for classifier 
 #' @importFrom caret trainControl train
@@ -3368,3 +3367,35 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
     return(object)
   }
 )
+
+
+
+#' Specific Cluster Validation
+#'
+#' Methods for validating the legitimacy of two specific clusters using
+#' classification. SVMs are used as the basis for the classification.
+#' Merging is done based on the connectivity from an SNN graph.  
+#'
+#'
+#' @param object Seurat object
+#' @param cluster1 First cluster to check classification
+#' @param cluster2 Second cluster to check with classification
+#' @param pc.use Which PCs to use for model construction
+#' @param top.genes Use the top X genes for model construction
+#' @param SNN SNN matrix used for cluster comparison
+#' @param acc.cutoff Accuracy cutoff for classifier 
+#' @importFrom caret trainControl train
+#' @return Returns a Seurat object, object@@ident has been updated with new cluster info
+#' @export
+setGeneric("validate.specific.clusters", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, SNN = NULL, acc.cutoff=0.9)  standardGeneric("validate.specific.clusters"))
+#' @export
+setMethod("validate.specific.clusters", signature = "seurat", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, SNN = NULL, acc.cutoff=0.9){
+  acc = runClassifier(object, cluster1, cluster2, pc.use, top.genes)
+  print(paste("Comparing cluster ", cluster1, " and ", cluster2, ": Acc = ", acc, sep=""))
+  if(acc<acc.cutoff){
+    object = set.ident(object,cells.use = which.cells(object,cluster1), ident.use = cluster2)
+    print(paste("merge cluster ", cluster1, " and ", cluster2))
+    merge_done = TRUE
+  }
+  return(object)
+})

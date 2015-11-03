@@ -47,6 +47,8 @@ and the SNN matrix as the second item.}
 
 \item{do_sparse}{Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.}
 
+\item{do_modularity}{Option to use modularity optimization for single cell clustering.}
+
 \item{modularity}{Modularity function (1 = standard; 2 = alternative).}
 
 \item{resolution}{Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
@@ -62,8 +64,6 @@ and the SNN matrix as the second item.}
 \item{print_output}{Whether or not to print output to the console (0 = no; 1 = yes).}
 
 \item{ModularityJarFile}{Location of the ModularityOptimizer JAR file.}
-
-\item{do_mudularity}{Option to use modularity optimization for single cell clustering.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info
