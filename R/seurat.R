@@ -3284,6 +3284,7 @@ setMethod("build.SNN", signature = "seurat",
 #' @param min_cluster_size Smallest allowed size for a cluster
 #' @param do_sparse Option to store and use SNN matrix as a sparse matrix. May be necessary datasets containing a large number of cells.
 #' @param do_modularity Option to use modularity optimization for single cell clustering.
+#' @param modularity Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm).
 #' @param n_start Number of random starts.
@@ -3298,12 +3299,12 @@ setMethod("build.SNN", signature = "seurat",
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=FALSE,
                                      save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
-                                     do_modularity=FALSE, resolution=1.0, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "") )  standardGeneric("find.clusters"))
+                                     do_modularity=FALSE, modularity=1, resolution=0.8, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "") )  standardGeneric("find.clusters"))
 #' @export
 setMethod("find.clusters", signature = "seurat",
           function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale =10, plot.SNN=FALSE,prune.SNN=FALSE, save.SNN = FALSE,
                    r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
-                   do_modularity=FALSE, resolution=1.0, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
+                   do_modularity=FALSE, modularity=1, resolution=0.8, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
             
             if(is.null(SNN)){ SNN = build.SNN(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, do_sparse, update)}
             if(is.object(SNN)){
@@ -3313,7 +3314,7 @@ setMethod("find.clusters", signature = "seurat",
             else SNN_sp = sparseMatrix(1,1,x=1)
             
             if (do_modularity){
-              object=doModularity_Clust(object, SNN, resolution, algorithm, n_start, n_iter, random_seed, print_output, ModularityJarFile)
+              object=doModularity_Clust(object, SNN, modularity, resolution, algorithm, n_start, n_iter, random_seed, print_output, ModularityJarFile)
             }
             else{
               if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
