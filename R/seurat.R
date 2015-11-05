@@ -1993,7 +1993,7 @@ setMethod("dim.plot", "seurat",
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size)
+            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size, alpha = 1/10)
             if (!is.null(pt.shape)) {
               shape.val=fetch.data(object,pt.shape)[cells.use,1]
               if (is.numeric(shape.val)) {
