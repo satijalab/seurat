@@ -1976,6 +1976,7 @@ translate.dim.code=function(reduction.use) {
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any 
 #' cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.
+#' @param pt.alpha A value between 0 and 1 to set points transparent. (default: 1).
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #' @export
