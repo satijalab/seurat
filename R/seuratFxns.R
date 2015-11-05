@@ -1364,6 +1364,39 @@ doModularity_Clust=function(object, SNN=matrix(), modularity=1, resolution=0.8, 
   return (object)
 }
 
+groupSingletons = function(object, SNN){
+  # identify singletons
+  singletons = c()
+  for (cluster in unique(object@ident)){
+    if(length(which.cells(object, cluster))==1){
+      singletons <- append(singletons, cluster)
+    }
+  }
+  # calculate connectivity of singletons to other clusters, add singleton
+  # to cluster it is most connected to
+  cluster_names = unique(object@ident)
+  cluster_names = setdiff(cluster_names,singletons)
+  while(length(singletons)>0){
+    connectivity = matrix(0, ncol=length(cluster_names), nrow=length(singletons))
+    rownames(connectivity) = singletons
+    colnames(connectivity) = cluster_names
+    for (i in singletons){
+      for (j in cluster_names){
+        subSNN = SNN[match(which.cells(object, j), colnames(SNN)), match(which.cells(object, i), rownames(SNN))]
+        if (is.object(subSNN)) connectivity[i,j] = sum(subSNN)/(nrow(subSNN)*ncol(subSNN))
+        else connectivity[i,j] = mean(subSNN)
+      }
+    }
+    m = max(connectivity, na.rm=T)
+    mi = which(connectivity == m, arr.ind = TRUE)
+    c1 = rownames(connectivity)[mi[,1]]
+    c2 = colnames(connectivity)[mi[,2]]
+    object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
+    singletons = singletons[singletons!=c1]
+  }
+  return(object)
+}
+
 calcConnectivity = function(object, SNN){
   cluster_names = unique(object@ident)
   num_clusters = length(cluster_names)

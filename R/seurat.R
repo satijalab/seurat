@@ -3315,6 +3315,7 @@ setMethod("find.clusters", signature = "seurat",
             
             if (do_modularity){
               object=doModularity_Clust(object, SNN, modularity, resolution, algorithm, n_start, n_iter, random_seed, print_output, ModularityJarFile)
+              object=groupSingletons(object,SNN)
             }
             else{
               if(is.null(m_param)) clusters = r_wrapper(SNN, SNN_sp, r_param, m_param = r_param, q, qup, update, min_cluster_size, do_sparse )
@@ -3369,6 +3370,28 @@ setMethod("save.clusters", signature="seurat",
           function(object, file){
             my.clusters=get.clusters(object)
             write.table(my.clusters,file = file,sep="\t",quote = FALSE)
+          }
+)
+
+#' @export 
+setGeneric("number.clusters", function(object) standardGeneric("number.clusters"))
+setMethod("number.clusters", signature="seurat",
+          function(object){
+            clusters = unique(object@ident)
+            if(typeof(clusters)=="integer"){
+              n = as.numeric(max(clusters))+1
+              for(i in clusters){
+                object = set.ident(object, cells.use=which.cells(object, i) , ident.use = n)
+                n=n+1
+              }
+              clusters = unique(object@ident)
+            }
+            n=1
+            for(i in clusters){
+              object = set.ident(object, cells.use=which.cells(object, i) , ident.use = n)
+              n=n+1
+            }
+            return(object)
           }
 )
 
