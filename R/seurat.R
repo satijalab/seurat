@@ -1602,7 +1602,7 @@ setMethod("fit.gene.k", "seurat",
                 ident.table=table(cell.ident)
               }
             }
-            ident.table=table(cell.ident)
+            # ident.table=table(cell.ident)
             raw.probs=t(sapply(data.use,function(y) unlist(lapply(1:do.k,function(x) ((ident.table[x]/sum(ident.table))*dnorm(y,mean(as.numeric(data.use[cell.ident==x])),sd(as.numeric(data.use[cell.ident==x]))))))))
             norm.probs=raw.probs/apply(raw.probs,1,sum)
             colnames(norm.probs)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"post",sep=".")))
