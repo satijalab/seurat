@@ -36,7 +36,7 @@ setMethod("fit.gene.k.fast", "seurat",
               ident.table=table(cell.ident)
               if (num.iter > 0) {
                   for(i2 in 1:num.iter) {
-                      cell.ident=iter.k.fit(scale.data,cell.ident,data.use)
+                      cell.ident=iter.k.fit.fast(scale.data,cell.ident,data.use)
                       ident.table=table(cell.ident)
                   }
               }
@@ -77,3 +77,23 @@ setMethod("fit.gene.k.fast", "seurat",
               return(object)
           }
 )
+
+calc.dist <- function(x, v, method = c('euclidean')) {
+    ## x: matrix. F x N
+    ## v: vector. 1 x F
+    if (method == 'euclidean') {
+        return(sqrt(colSums((x - v) ^ 2)))
+    }
+}
+
+iter.k.fit.fast <- function(scale.data, cell.ident, data.use) {
+    cell.ident.K <- sort(unique(cell.ident))
+    means.all <- sapply(cell.ident.K, function(x) 
+            rowMeans(scale.data[, cell.ident == x]))
+    all.dist <- lapply(cell.ident.K, function(i) 
+            calc.dist(scale.data, means.all[, i]))
+    all.dist <- matrix(unlist(all.dist), ncol = length(cell.ident.K))
+    cell.ident <- apply(all.dist, 1, which.min)
+    cell.ident <- order(tapply(as.numeric(data.use), cell.ident, mean))[cell.ident] 
+    return(cell.ident)
+}
