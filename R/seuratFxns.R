@@ -1350,7 +1350,11 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
 
 doModularity_Clust=function(object, SNN=matrix(), modularity=1, resolution=0.8, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1,ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
   diag(SNN)=0
-  edge=cbind((which(SNN!=0,arr.ind = TRUE)-1),SNN[which(SNN!=0,arr.ind = TRUE)])
+  if(is.object(SNN)){
+    SNN <- as(SNN, "dgTMatrix")
+    edge = cbind (i = SNN@i , j = SNN@j , x = SNN@x)
+  }
+  else edge=cbind((which(SNN!=0,arr.ind = TRUE)-1),SNN[which(SNN!=0,arr.ind = TRUE)])
   rownames(edge)=NULL; colnames(edge)=NULL
   write.table(x = edge,file = "edge.txt",sep = "\t",row.names = FALSE,col.names = FALSE)
   
