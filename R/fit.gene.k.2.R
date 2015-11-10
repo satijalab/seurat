@@ -63,9 +63,10 @@ setMethod("fit.gene.k.fast", "seurat",
               colnames(norm.probs) <- paste(gene, (1:do.k)-1, "post", sep = ".")
               row.names(norm.probs) <- row.names(data.use.t)
               norm.probs <- cbind(norm.probs, cell.ident)
-              colnames(norm.probs)[-1] <- paste0(gene, ".ident")
+              colnames(norm.probs)[ncol(norm.probs)] <- paste0(gene, ".ident")
 
-              new.mix.probs=data.frame(minusc(object@mix.probs,paste(gene,".",sep="")),row.names = rownames(object@mix.probs)); colnames(new.mix.probs)[1]="nGene"
+              new.mix.probs=data.frame(minusc(object@mix.probs,paste(gene,".",sep="")),row.names = rownames(object@mix.probs))
+              colnames(new.mix.probs)[1]="nGene"
               object@mix.probs=cbind(new.mix.probs,norm.probs)
               
               if (do.plot) {
