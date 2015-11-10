@@ -5,7 +5,7 @@
 \title{Cluster Determination}
 \usage{
 find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
-  k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = FALSE,
+  k_param = 10, k_scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
   save.SNN = FALSE, r_param = 0.7, m_param = NULL, q = 0.1, qup = 0.1,
   update = 0.25, min_cluster_size = 1, do_sparse = FALSE,
   do_modularity = FALSE, modularity = 1, resolution = 0.8,
@@ -28,7 +28,7 @@ find.clusters(object, genes.use = NULL, pc.use = NULL, SNN = NULL,
 
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Prune the SNN graph}
+\item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning, 1 - prune everything)}
 
 \item{save.SNN}{Whether to return the SNN matrix or not. If true, returns a list with the object as the first item
 and the SNN matrix as the second item.}

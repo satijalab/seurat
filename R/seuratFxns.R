@@ -1258,12 +1258,13 @@ calcSNNSparse = function(object, n_cell, k_param, nn.large, nn.ranked, prune.SNN
   
   #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
+  #define the edge weights with Jaccard distance
   for (i in 1:n_cell){
     for (j in 1:ncol(nn.large)){
       s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
       u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
       e = length(s)/length(u)
-      if(e!=0){
+      if(e>prune.SNN){
         idx1[id]=i
         idx2[id]= nn.large[i,j]
         edge_weight[id] = e
@@ -1275,13 +1276,7 @@ calcSNNSparse = function(object, n_cell, k_param, nn.large, nn.ranked, prune.SNN
       counter= counter+1;
     }
   }
-  #define the edge weights with Jaccard distance
   idx1 = idx1[!is.na(idx1) & idx1!=0]; idx2 = idx2[!is.na(idx2) & idx2!=0]; edge_weight = edge_weight[!is.na(edge_weight)& edge_weight!=0]
-  
-  if(prune.SNN==TRUE){
-    rm_idx = which(edge_weight<median(edge_weight))
-    idx1=idx1[-rm_idx]; idx2=idx2[-rm_idx]; edge_weight=edge_weight[-rm_idx];
-  }
   w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
   diag(w) = 1
   rownames(w)=object@cell.names;colnames(w)=object@cell.names
@@ -1299,13 +1294,14 @@ calcSNNDense = function(object, n_cell, nn.large, nn.ranked, prune.SNN, update){
     for (j in 1:ncol(nn.large)){
       s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
       u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-      w[i,nn.large[i,j]]=length(s)/length(u)
+      e=length(s)/length(u)
+      if (e>prune.SNN) w[i,nn.large[i,j]] = length(s)/length(u)
+      else w[i,nn.large[i,j]]= 0 
     }
     if (i==round(counter*n_cell*update)) {
       print(paste("SNN : processed ", i, " cells", sep=""))
       counter= counter+1;
     }
-    if (prune.SNN==TRUE) w[w<median(w[w>0])]=0
   }
   return(w)
 }
