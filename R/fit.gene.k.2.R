@@ -52,10 +52,10 @@ setMethod("fit.gene.k.fast", "seurat",
               kmodal.sd <- dcast(data.use.t.melt, cell_ident ~ variable, sd)
               kmodal.norm_factor <- as.numeric(ident.table / sum(ident.table))
               raw.probs <- sapply(1:do.k, function(k) {
-                                            factor.k <- (kmodal.norm_factor[k])
+                                            factor.k <- as.numeric(kmodal.norm_factor[k])
                                             mean.k <- kmodal.mu[k, gene]
                                             sd.k <- kmodal.sd[k, gene]
-                                            prob.k <- (dnorm(data.use.t[, gene], mean = mean.k, sd = sd.k))
+                                            prob.k <- (factor.k * dnorm(data.use.t[, gene], mean = mean.k, sd = sd.k))
                                             return(prob.k)
                                             })
               norm.probs <- as.data.frame(raw.probs / rowSums(raw.probs))
