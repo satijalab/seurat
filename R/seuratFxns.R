@@ -1344,58 +1344,6 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
   return(object)
 }
 
-doModularity_Clust=function(object, SNN=matrix(), modularity=1, resolution=0.8, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1,ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
-  diag(SNN)=0
-  if(is.object(SNN)){
-    SNN <- as(SNN, "dgTMatrix")
-    edge = cbind (i = SNN@i , j = SNN@j , x = SNN@x)
-  }
-  else edge=cbind((which(SNN!=0,arr.ind = TRUE)-1),SNN[which(SNN!=0,arr.ind = TRUE)])
-  rownames(edge)=NULL; colnames(edge)=NULL
-  write.table(x = edge,file = "edge.txt",sep = "\t",row.names = FALSE,col.names = FALSE)
-  
-  if (modularity == 2 && resolution > 1) stop("error: resolution<1 for alternative modularity")
-  command=paste("java -jar", ModularityJarFile, "edge.txt", "output.txt", modularity, resolution, algorithm, n_start, n_iter, random_seed, print_output, sep = " ")
-  system(command, wait=TRUE)
-  ident.use=read.table(file = "output.txt",header = FALSE,sep = "\t")[,1]
-  object=set.ident(object,object@cell.names,ident.use)
-  file.remove("edge.txt")
-  file.remove("output.txt")
-  return (object)
-}
-
-groupSingletons = function(object, SNN){
-  # identify singletons
-  singletons = c()
-  for (cluster in unique(object@ident)){
-    if(length(which.cells(object, cluster))==1){
-      singletons <- append(singletons, cluster)
-    }
-  }
-  # calculate connectivity of singletons to other clusters, add singleton
-  # to cluster it is most connected to
-  cluster_names = unique(object@ident)
-  cluster_names = setdiff(cluster_names,singletons)
-  while(length(singletons)>0){
-    connectivity = matrix(0, ncol=length(cluster_names), nrow=length(singletons))
-    rownames(connectivity) = singletons
-    colnames(connectivity) = cluster_names
-    for (i in singletons){
-      for (j in cluster_names){
-        subSNN = SNN[match(which.cells(object, j), colnames(SNN)), match(which.cells(object, i), rownames(SNN))]
-        if (is.object(subSNN)) connectivity[i,j] = sum(subSNN)/(nrow(subSNN)*ncol(subSNN))
-        else connectivity[i,j] = mean(subSNN)
-      }
-    }
-    m = max(connectivity, na.rm=T)
-    mi = which(connectivity == m, arr.ind = TRUE)
-    c1 = rownames(connectivity)[mi[,1]]
-    c2 = colnames(connectivity)[mi[,2]]
-    object = set.ident(object,cells.use = which.cells(object,c1), ident.use = c2)
-    singletons = singletons[singletons!=c1]
-  }
-  return(object)
-}
 
 calcConnectivity = function(object, SNN){
   cluster_names = unique(object@ident)
