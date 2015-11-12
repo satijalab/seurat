@@ -321,10 +321,11 @@ setMethod("add_samples","seurat",
             genes.old=rownames(object@data); genes.new=rownames(new.data)
             genes.same.1=which(genes.old%in%genes.new); genes.same.2=which(genes.new%in%genes.old)
             genes.diff.1=which(!(genes.old%in%genes.new)); genes.diff.2=which(!(genes.new%in%genes.old))
-            
-            data.bind.new.1=matrix(rep(0,length(genes.diff.1)*ncol(new.data)),nrow = length(genes.diff.1)); colnames(data.bind.new.1)=colnames(new.data); new.data.1=rbind(new.data,data.bind.new.1)
-            rownames(new.data.1)[(nrow(new.data)+1):nrow(new.data.1)]=genes.old[genes.diff.1]; new.data.1=new.data.1[sort(rownames(new.data.1)),]
-            
+            new.data.1=new.data
+            if (length(genes.diff.1)!=0) {
+              data.bind.new.1=matrix(rep(0,length(genes.diff.1)*ncol(new.data)),nrow = length(genes.diff.1)); colnames(data.bind.new.1)=colnames(new.data); new.data.1=rbind(new.data,data.bind.new.1)
+              rownames(new.data.1)[(nrow(new.data)+1):nrow(new.data.1)]=genes.old[genes.diff.1]; new.data.1=new.data.1[sort(rownames(new.data.1)),]
+            }
             data.bind.new.2=matrix(rep(0,length(genes.diff.2)*ncol(object@data)),nrow = length(genes.diff.2)); colnames(data.bind.new.2)=colnames(object@data); new.data.2=rbind(object@data,data.bind.new.2)
             rownames(new.data.2)[(nrow(object@data)+1):nrow(new.data.2)]=genes.new[genes.diff.2]; new.data.2=new.data.2[sort(rownames(new.data.2)),]
             
