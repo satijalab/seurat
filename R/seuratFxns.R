@@ -1249,64 +1249,6 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   par(mar=oldMar)
 }
 
-calcSNNSparse = function(object, n_cell, k_param, nn.large, nn.ranked, prune.SNN, update){
-  counter = 1
-  idx1 = vector(mode="integer", length = n_cell^2/k_param)
-  idx2 = vector(mode="integer", length = n_cell^2/k_param)
-  edge_weight = vector(mode="double", length = n_cell^2/k_param)
-  id = 1
-  
-  #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
-  #speed things up (don't have to calculate all pairwise distances)
-  #define the edge weights with Jaccard distance
-  for (i in 1:n_cell){
-    for (j in 1:ncol(nn.large)){
-      s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-      u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-      e = length(s)/length(u)
-      if(e>prune.SNN){
-        idx1[id]=i
-        idx2[id]= nn.large[i,j]
-        edge_weight[id] = e
-        id = id + 1
-      }
-    }
-    if (i==round(counter*n_cell*update)) {
-      print(paste("SNN : processed ", i, " cells", sep=""))
-      counter= counter+1;
-    }
-  }
-  idx1 = idx1[!is.na(idx1) & idx1!=0]; idx2 = idx2[!is.na(idx2) & idx2!=0]; edge_weight = edge_weight[!is.na(edge_weight)& edge_weight!=0]
-  w = sparseMatrix(i=idx1, j=idx2, x=edge_weight, dims=c(n_cell, n_cell))
-  diag(w) = 1
-  rownames(w)=object@cell.names;colnames(w)=object@cell.names
-  return(w)
-}
-
-calcSNNDense = function(object, n_cell, nn.large, nn.ranked, prune.SNN, update){
-  counter = 1
-  w=matrix(0,n_cell,n_cell)
-  rownames(w)=object@cell.names;colnames(w)=object@cell.names
-  diag(w)=1
-  #fill out the adjacency matrix w with edge weights only between your target cell and its 10*k_param-nearest neighbors
-  #speed things up (don't have to calculate all pairwise distances)
-  for (i in 1:n_cell){
-    for (j in 1:ncol(nn.large)){
-      s=intersect(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-      u=union(nn.ranked[i,],nn.ranked[nn.large[i,j],])
-      e=length(s)/length(u)
-      if (e>prune.SNN) w[i,nn.large[i,j]] = length(s)/length(u)
-      else w[i,nn.large[i,j]]= 0 
-    }
-    if (i==round(counter*n_cell*update)) {
-      print(paste("SNN : processed ", i, " cells", sep=""))
-      counter= counter+1;
-    }
-  }
-  return(w)
-}
-
-
 mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
   # find daughter cells of given node in given tree
   daughters = tree$edge[which(tree$edge[,1]==node),2]
@@ -1345,36 +1287,4 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
 }
 
 
-calcConnectivity = function(object, SNN){
-  cluster_names = unique(object@ident)
-  num_clusters = length(cluster_names)
-  connectivity = matrix(0, nrow=num_clusters, ncol=num_clusters)
-  rownames(connectivity) = cluster_names
-  colnames(connectivity) = cluster_names
-  n = 1
-  for (i in cluster_names){
-    for (j in cluster_names[-(1:n)]){
-      subSNN = SNN[match(which.cells(object, i), colnames(SNN)), match(which.cells(object, j), rownames(SNN))]
-      if (is.object(subSNN)) connectivity[i,j] = sum(subSNN)/(nrow(subSNN)*ncol(subSNN))
-      else connectivity[i,j] = mean(subSNN)
-    }
-    n=n+1
-  }
-  return(connectivity)
-}
 
-
-runClassifier = function(object, group1, group2, pcs, num.genes){
-  d1 = which.cells(object, group1)
-  d2 = which.cells(object, group2)
-  y  = as.numeric(object@ident[c(d1,d2)])-1
-  x  = data.frame(t(object@data[pcTopGenes(object,pcs,num.genes),c(d1,d2)]));
-  xv = apply(x,2,var)
-  x  = x[,names(xv>0)]
-  # run k-fold cross validation
-  ctrl = trainControl(method = "repeatedcv", repeats = 5)
-  set.seed(1500)
-  model = train(as.factor(y)~., data=x, method = "svmLinear", trControl = ctrl)
-  acc = model$results[,2]
-  return(acc)
-}

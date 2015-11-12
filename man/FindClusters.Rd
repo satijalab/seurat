@@ -23,7 +23,7 @@ FindClusters(object, genes.use = NULL, pc.use = NULL, SNN.use = NULL,
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{k.scale}{granularity option for k_param}
+\item{k.scale}{granularity option for k.param}
 
 \item{plot.SNN}{Plot the SNN graph}
 

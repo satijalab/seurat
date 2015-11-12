@@ -37,6 +37,8 @@ Collate:
     'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
+    'cluster_validation.R'
     'helper.R'
     'seuratFxns.R'
+    'snn.R'
     'zfRenderSeurat.R'

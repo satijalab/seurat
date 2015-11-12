@@ -15,7 +15,7 @@ NULL
 #' @param pc.use Which PCs to use for construction of the SNN graph
 #' @param SNN.use Allows use of existing SNN matrix
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale granularity option for k_param
+#' @param k.scale granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning, 
 #'        1 - prune everything)
@@ -78,7 +78,7 @@ setMethod("FindClusters", signature = "seurat",
 
   # if no SNN matrix is provided, build one
   if (is.null(SNN.use)) {
-    SNN.use <- build.SNN(object, genes.use, pc.use, k.param, k.scale, 
+    SNN.use <- BuildSNN(object, genes.use, pc.use, k.param, k.scale, 
                          plot.SNN, prune.SNN, do.sparse, update)
   } 
   
@@ -237,15 +237,15 @@ GroupSingletons <- function(object, SNN){
   }
   # calculate connectivity of singletons to other clusters, add singleton
   # to cluster it is most connected to
-  cluster_names <- unique(object@ident)
-  cluster_names <- setdiff(cluster_names, singletons)
+  cluster.names <- unique(object@ident)
+  cluster.names <- setdiff(cluster.names, singletons)
   while (length(singletons) > 0) {
-    connectivity <- matrix(0, ncol = length(cluster_names), 
+    connectivity <- matrix(0, ncol = length(cluster.names), 
                            nrow = length(singletons))
     rownames(connectivity) <- singletons
-    colnames(connectivity) <- cluster_names
+    colnames(connectivity) <- cluster.names
     for (i in singletons) {
-      for (j in cluster_names) {
+      for (j in cluster.names) {
         subSNN <- SNN[match(which.cells(object, j), colnames(SNN)), 
                       match(which.cells(object, i), rownames(SNN))]
         if (is.object(subSNN)) {
