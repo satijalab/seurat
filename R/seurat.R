@@ -1816,6 +1816,39 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
   return(lasso.fits)  
 }
 
+#' Calculate smoothed expression values
+#'
+#'
+#' Smooths expression values across the k-nearest neighbors based on dimensional reduction
+#'
+#' @inheritParams feature.plot
+#' @inheritParams addImputedScore
+#' @param inheritParams Seurat object
+#' @param genes.fit Genes to calculate smoothed values for
+#' @importFrom FNN get.knn
+#' @export
+setGeneric("addSmoothedScore", function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tSNE",k=30,do.log=FALSE,do.print=FALSE) standardGeneric("addSmoothedScore"))
+#' @export
+setMethod("addSmoothedScore", "seurat",
+          function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tSNE",k=30,do.log=FALSE,do.print=FALSE) {
+            genes.fit=set.ifnull(genes.fit,object@var.genes)
+            genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
+            
+            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            data.plot=fetch.data(object,dim.codes)
+            knn.smooth=get.knn(data.plot,k)$nn.index
+            avg.fxn=mean; 
+            if (do.log==FALSE) avg.fxn=expMean;
+            lasso.fits=data.frame(t(sapply(genes.fit,function(g) unlist(lapply(1:nrow(data.plot),function(y) avg.fxn(as.numeric(object@data[g,knn.smooth[y,]])))))))
+            colnames(lasso.fits)=rownames(data.plot)
+            genes.old=genes.fit[genes.fit%in%rownames(object@imputed)]
+            genes.new=genes.fit[!(genes.fit%in%rownames(object@imputed))]
+            
+            if (length(genes.old)>0) object@imputed[genes.old,]=lasso.fits[genes.old,]
+            object@imputed=rbind(object@imputed,lasso.fits[genes.new,])
+            return(object)
+          }
+)    
 #' Calculate imputed expression values
 #'
 #' Uses L1-constrained linear models (LASSO) to impute single cell gene
@@ -1933,13 +1966,14 @@ setMethod("calcNoiseModels","seurat",
 #' @param pch.use Pch for plotting
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param use.imputed Use imputed values for gene expression (default is FALSE)
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) standardGeneric("feature.plot"))
+setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL) standardGeneric("feature.plot"))
 #' @export
 setMethod("feature.plot", "seurat", 
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",nCol=NULL) {
+          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (is.null(nCol)) {
@@ -1955,7 +1989,7 @@ setMethod("feature.plot", "seurat",
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            data.use=data.frame(t(fetch.data(object,features.plot,cells.use = cells.use)))
+            data.use=data.frame(t(fetch.data(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
             for(i in features.plot) {
               data.gene=na.omit(data.frame(data.use[i,]))
               data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
