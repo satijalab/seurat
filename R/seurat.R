@@ -36,6 +36,8 @@
 #'    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
 #'    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the 
 #'    phylogenetic tree relating different identity classes }
+#'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
+#'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
 #'      
 #'}
 #' @name seurat
@@ -52,7 +54,8 @@ seurat <- setClass("seurat", slots =
                        project.name="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame", 
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
-                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list"))
+                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
+                       snn="dgCMatrix", snn.k="numeric"))
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))

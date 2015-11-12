@@ -40,6 +40,8 @@ are listed below.
    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
    phylogenetic tree relating different identity classes }
+   \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
+   \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
 
 }
 }
