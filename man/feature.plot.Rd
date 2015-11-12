@@ -6,7 +6,8 @@
 \usage{
 feature.plot(object, features.plot, dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 1, cols.use = heat.colors(10),
-  pch.use = 16, reduction.use = "tsne", nCol = NULL)
+  pch.use = 16, reduction.use = "tsne", use.imputed = FALSE,
+  nCol = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,6 +29,8 @@ heat.colors(10).}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
+
+\item{use.imputed}{Use imputed values for gene expression (default is FALSE)}
 
 \item{nCol}{Number of columns to use when plotting multiple features.}
 }
