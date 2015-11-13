@@ -10,7 +10,6 @@ NULL
 #' @param object Seurat object
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN SNN matrix used for cluster comparison
 #' @param min.connectivity Threshold of connectedness for comparison 
 #' of two clusters
 #' @param acc.cutoff Accuracy cutoff for classifier
@@ -20,14 +19,23 @@ NULL
 #' new cluster info
 #' @export
 setGeneric("ValidateClusters", function(object, pc.use = NULL, top.genes = 30, 
-                                         SNN.use = NULL, min.connectivity = 0.01, 
-                                         acc.cutoff = 0.9, verbose = TRUE)  
+                                        min.connectivity = 0.01, 
+                                        acc.cutoff = 0.9, verbose = TRUE)  
 standardGeneric("ValidateClusters"))
 #' @export
 setMethod("ValidateClusters", signature = "seurat", 
-  function(object, pc.use = NULL, top.genes = 30, SNN.use = NULL, 
-           min.connectivity = 0.01, acc.cutoff = 0.9, verbose = TRUE){
+  function(object, pc.use = NULL, top.genes = 30, min.connectivity = 0.01, 
+           acc.cutoff = 0.9, verbose = TRUE){
 
+  #probably should refactor to make cleaner
+  if (length(object@snn.dense) > 1) {
+    SNN.use <- object@snn.dense
+  } else if (length(object@snn.sparse) > 1){
+    SNN.use <- object@snn.sparse
+  } else {
+    stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in the object slot")
+  }
+  
   num.clusters.orig <- length(unique(object@ident))
   still_merging <- TRUE
   if (verbose) {
@@ -98,7 +106,6 @@ setMethod("ValidateClusters", signature = "seurat",
 #' @param cluster2 Second cluster to check with classification
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN SNN matrix used for cluster comparison
 #' @param acc.cutoff Accuracy cutoff for classifier 
 #' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with 
@@ -106,13 +113,13 @@ setMethod("ValidateClusters", signature = "seurat",
 #' @export
 setGeneric("ValidateSpecificClusters", function(object, cluster1 = NULL, 
                                                   cluster2 = 1, pc.use=2, 
-                                                  top.genes = 30, SNN.use = NULL, 
+                                                  top.genes = 30, 
                                                   acc.cutoff = 0.9)  
 standardGeneric("ValidateSpecificClusters"))
 #' @export
 setMethod("ValidateSpecificClusters", signature = "seurat", 
   function(object, cluster1 = NULL, cluster2 = 1, pc.use = 2, top.genes = 30, 
-           SNN.use = NULL, acc.cutoff = 0.9){
+           acc.cutoff = 0.9){
   acc <- RunClassifier(object, cluster1, cluster2, pc.use, top.genes)
   print(paste("Comparing cluster ", cluster1, " and ", cluster2, ": Acc = ", 
         acc, sep = ""))

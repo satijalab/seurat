@@ -29,7 +29,9 @@ matrix or not}
 \item{update}{Adjust how verbose the output is}
 }
 \value{
-Returns the SNN matrix
+Returns the object with object@snn.k and either
+object@snn.dense or object@snn.sparse filled depending on the option
+set
 }
 \description{
 Construct a Shared Nearest Neighbor (SNN) Graph for a given

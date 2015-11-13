@@ -4,13 +4,12 @@
 \alias{FindClusters}
 \title{Cluster Determination}
 \usage{
-FindClusters(object, genes.use = NULL, pc.use = NULL, SNN.use = NULL,
-  k.param = 10, k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
-  save.SNN = FALSE, r.param = 0.7, m.param = NULL, q = 0.1, qup = 0.1,
-  update = 0.25, min.cluster.size = 1, do.sparse = FALSE,
-  do.modularity = FALSE, modularity = 1, resolution = 0.8,
-  algorithm = 1, n.start = 100, n.iter = 10, random.seed = 0,
-  print.output = 1)
+FindClusters(object, genes.use = NULL, pc.use = NULL, k.param = 10,
+  k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1, save.SNN = FALSE,
+  r.param = 0.7, m.param = NULL, q = 0.1, qup = 0.1, update = 0.25,
+  min.cluster.size = 1, do.sparse = FALSE, do.modularity = FALSE,
+  modularity = 1, resolution = 0.8, algorithm = 1, n.start = 100,
+  n.iter = 10, random.seed = 0, print.output = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,8 +17,6 @@ FindClusters(object, genes.use = NULL, pc.use = NULL, SNN.use = NULL,
 \item{genes.use}{Gene expression data}
 
 \item{pc.use}{Which PCs to use for construction of the SNN graph}
-
-\item{SNN.use}{Allows use of existing SNN matrix}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 

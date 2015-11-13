@@ -19,7 +19,9 @@ NULL
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the SNN matrix
+#' @return Returns the object with object@@snn.k and either 
+#' object@@snn.dense or object@@snn.sparse filled depending on the option
+#' set
 #' @export
 setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL, 
                                 k.param = 10, k.scale = 10, plot.SNN = FALSE, 
@@ -65,7 +67,17 @@ setMethod("BuildSNN", signature = "seurat",
                     vertex.size = 0)
       }
   }
-  return (w)
+  
+  #only allow one of the snn matrix slots to be filled
+  object@snn.k <- k.param
+  if (do.sparse == TRUE) {
+    object@snn.sparse <- w
+    object@snn.dense <- matrix()
+  } else {
+    object@snn.dense <- w
+    object@snn.sparse <- sparseMatrix(1, 1, x = 1)
+  }
+  return(object)
 })
 
 CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked, 

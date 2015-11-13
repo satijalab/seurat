@@ -13,7 +13,6 @@ NULL
 #' @param object Seurat object
 #' @param genes.use Gene expression data
 #' @param pc.use Which PCs to use for construction of the SNN graph
-#' @param SNN.use Allows use of existing SNN matrix
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
@@ -54,7 +53,7 @@ NULL
 #'         object@@ident has been updated with new cluster info
 #' @export
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL, 
-                                     SNN.use = NULL, k.param = 10, k.scale = 10,
+                                     k.param = 10, k.scale = 10,
                                      plot.SNN = FALSE, prune.SNN = 0.1, 
                                      save.SNN = FALSE, r.param = 0.7, 
                                      m.param = NULL, q = 0.1, qup = 0.1, 
@@ -67,28 +66,47 @@ setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
 standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, SNN.use = NULL, 
-                   k.param = 10, k.scale = 10, plot.SNN = FALSE, 
-                   prune.SNN = 0.1, save.SNN = FALSE, r.param = 0.7, 
-                   m.param = NULL, q = 0.1, qup = 0.1, update = 0.25, 
-                   min.cluster.size = 1, do.sparse = FALSE, 
-                   do.modularity = FALSE, modularity = 1, resolution = 0.8, 
-                   algorithm = 1, n.start = 100, n.iter = 10, random.seed = 0, 
-                   print.output = 1){
+          function(object, genes.use = NULL, pc.use = NULL, k.param = 10, 
+                   k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1, 
+                   save.SNN = FALSE, r.param = 0.7, m.param = NULL, 
+                   q = 0.1, qup = 0.1, update = 0.25, min.cluster.size = 1, 
+                   do.sparse = FALSE, do.modularity = FALSE, modularity = 1, 
+                   resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10, 
+                   random.seed = 0, print.output = 1){
 
-  # if no SNN matrix is provided, build one
-  if (is.null(SNN.use)) {
-    SNN.use <- BuildSNN(object, genes.use, pc.use, k.param, k.scale, 
-                         plot.SNN, prune.SNN, do.sparse, update)
-  } 
+  # if any SNN building parameters are provided, build a new SNN
+  if (k.param != 10 | k.scale != 10) {
+    object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale, 
+                        plot.SNN, prune.SNN, do.sparse, update)
+  }
   
-  # deal with sparse SNNs          
-  if (is.object(SNN.use)) {
-    SNN.sp <- SNN.use
-    SNN.use <- matrix(1, 1)
+  # if the SNN hasn't been built yet, build it
+  snn.built = FALSE
+  if (.hasSlot(object, "snn.dense")) {
+    if (length(object@snn.dense) > 1) {
+      snn.built = TRUE
+    }
+  }
+  if (.hasSlot(object, "snn.sparse")) {
+    if (length(object@snn.sparse) > 1) {
+      snn.built = TRUE
+    }
+  }
+  if (!snn.built) {
+    object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale, 
+                       plot.SNN, prune.SNN, do.sparse, update)
+  }
+  # deal with sparse SNNs
+  # this part should be refactored given new slots to make it cleaner
+  # (will require changing called functions as well)
+  if (length(object@snn.sparse) > 1) {
+    SNN.sp <- object@snn.sparse
+    SNN.use <- matrix()
     do.sparse <- TRUE
   } else {
+    SNN.use <- object@snn.dense
     SNN.sp <- sparseMatrix(1, 1, x = 1)
+    do.sparse <- FALSE
   }
 
   if (do.modularity) {
@@ -122,19 +140,12 @@ setMethod("FindClusters", signature = "seurat",
     object <- set.ident(object, cells.use, ident.use)
   }
             
-  if (save.SNN) {
-    output <- list();
-    output[[1]] <- object; 
-    if (do.sparse) {
-      output[[2]] <- SNN.sp
-      return(output)
-    } else {
-      output[[2]] <- SNN.use
-      return(output)
-    }
-  } else {
-    return(object)
+  if (!save.SNN) {
+    object@snn.sparse <- sparseMatrix(1, 1, x = 1)
+    object@snn.dense <- matrix()
+    object@snn.k <- integer()
   }
+  return(object)
 })
 
 #' @export 

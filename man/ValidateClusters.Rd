@@ -4,7 +4,7 @@
 \alias{ValidateClusters}
 \title{Cluster Validation}
 \usage{
-ValidateClusters(object, pc.use = NULL, top.genes = 30, SNN.use = NULL,
+ValidateClusters(object, pc.use = NULL, top.genes = 30,
   min.connectivity = 0.01, acc.cutoff = 0.9, verbose = TRUE)
 }
 \arguments{
@@ -20,8 +20,6 @@ of two clusters}
 \item{acc.cutoff}{Accuracy cutoff for classifier}
 
 \item{verbose}{Controls whether to display progress and merge results}
-
-\item{SNN}{SNN matrix used for cluster comparison}
 }
 \value{
 Returns a Seurat object, object@ident has been updated with

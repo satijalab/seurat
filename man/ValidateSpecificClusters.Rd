@@ -5,7 +5,7 @@
 \title{Specific Cluster Validation}
 \usage{
 ValidateSpecificClusters(object, cluster1 = NULL, cluster2 = 1,
-  pc.use = 2, top.genes = 30, SNN.use = NULL, acc.cutoff = 0.9)
+  pc.use = 2, top.genes = 30, acc.cutoff = 0.9)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,8 +19,6 @@ ValidateSpecificClusters(object, cluster1 = NULL, cluster2 = 1,
 \item{top.genes}{Use the top X genes for model construction}
 
 \item{acc.cutoff}{Accuracy cutoff for classifier}
-
-\item{SNN}{SNN matrix used for cluster comparison}
 }
 \value{
 Returns a Seurat object, object@ident has been updated with
