@@ -28,7 +28,7 @@ build.SNN(object, genes.use = NULL, pc.use = NULL, k_param = 10,
 \item{update}{Adjust how verbose the output is}
 }
 \value{
-Returns the SNN matrix
+Returns the object with object@snn.k and object@snn.sparse or object@snn.dense filled
 }
 \description{
 Construct a Shared Nearest Neighbor (SNN) Graph for a given

@@ -66,7 +66,7 @@ and the SNN matrix as the second item.}
 \item{ModularityJarFile}{Location of the ModularityOptimizer JAR file.}
 }
 \value{
-Returns a Seurat object and optionally the SNN matrix, object@ident has been updated with new cluster info
+Returns a Seurat object, object@ident has been updated with new cluster info and optionally object@snn.sparse or object@snn.dense has been filled
 }
 \description{
 Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique

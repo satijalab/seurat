@@ -36,7 +36,8 @@
 #'    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
 #'    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the 
 #'    phylogenetic tree relating different identity classes }
-#'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
+#'    \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
+#'    \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
 #'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
 #'      
 #'}
@@ -55,7 +56,7 @@ seurat <- setClass("seurat", slots =
                        jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
-                       snn="dgCMatrix", snn.k="numeric"))
+                       snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric"))
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
@@ -3256,7 +3257,7 @@ setMethod("mean.var.plot", signature = "seurat",
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the SNN matrix
+#' @return Returns the object with object@@snn.k and object@@snn.sparse or object@@snn.dense filled 
 #' @export
 setGeneric("build.SNN", function(object, genes.use=NULL, pc.use=NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=FALSE,
                                  do_sparse = FALSE, update=0.25 )  standardGeneric("build.SNN"))
@@ -3289,7 +3290,16 @@ setMethod("build.SNN", signature = "seurat",
                   net=graph.adjacency(w,mode="undirected",weighted=TRUE,diag=FALSE)
                   plot.igraph(net,layout=as.matrix(object@tsne.rot),edge.width=E(net)$weight,vertex.label=NA,vertex.size=0)
                 }
-                return (w)
+                
+                object@snn.k <- k_param
+                if (do_sparse == TRUE) {
+                  object@snn.sparse <- w
+                  object@snn.dense <- matrix()
+                } else {
+                  object@snn.dense <- w
+                  object@snn.sparse <- sparseMatrix(1,1,x=1)
+                }
+                return (object)
               }
 )
 
@@ -3333,7 +3343,7 @@ setMethod("build.SNN", signature = "seurat",
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#' @return Returns a Seurat object and optionally the SNN matrix, object@@ident has been updated with new cluster info
+#' @return Returns a Seurat object, object@@ident has been updated with new cluster info and optionally object@@snn.sparse or object@@snn.dense has been filled
 #' @export
 setGeneric("find.clusters", function(object, genes.use=NULL, pc.use=NULL, SNN = NULL, k_param=10, k_scale=10,plot.SNN=FALSE,prune.SNN=0.1,
                                      save.SNN = FALSE, r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
@@ -3344,13 +3354,18 @@ setMethod("find.clusters", signature = "seurat",
                    r_param=0.7, m_param=NULL, q=0.1, qup=0.1, update=0.25, min_cluster_size=1, do_sparse=FALSE, 
                    do_modularity=FALSE, modularity=1, resolution=0.8, algorithm=1, n_start=100, n_iter=10, random_seed=0, print_output=1, ModularityJarFile=paste(system.file(package="Seurat"),"/java/ModularityOptimizer.jar", sep = "")){
             
-            if(is.null(SNN)){ SNN = build.SNN(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, do_sparse, update)}
-            if(is.object(SNN)){
-              SNN_sp = SNN
-              SNN = matrix(1,1)
+            if(is.null(SNN)){ object = build.SNN(object, genes.use, pc.use, k_param, k_scale, plot.SNN, prune.SNN, do_sparse, update)}
+            
+            # this part should be refactored to reflect new slots
+            if(length(object@snn.dense) >1){
+              SNN_sp = sparseMatrix(1,1,x=1)
+              SNN = object@snn.dense
+            }
+            else{
+              SNN_sp = object@snn.sparse
+              SNN = matrix()
               do_sparse=TRUE
             }
-            else SNN_sp = sparseMatrix(1,1,x=1)
             
             if (do_modularity){
               if(do_sparse){
@@ -3374,19 +3389,12 @@ setMethod("find.clusters", signature = "seurat",
               object=set.ident(object, cells.use, ident.use)
             }
             
-            if(save.SNN){
-              if(do_sparse){
-                output<-list();output[[1]]=object; output[[2]]=SNN_sp
-                return(output)
-              }
-              else{
-                output<-list();output[[1]]=object; output[[2]]=SNN
-                return(output)
-              }
+            if(!save.SNN){
+              object@snn.sparse <- sparseMatrix(1,1,x=1)
+              object@snn.dense <- matrix()
+              object@snn.k <- integer()
             }
-            else{
-              return(object)
-            }
+            return(object)
           }
 )
 
@@ -3450,17 +3458,25 @@ setMethod("number.clusters", signature="seurat",
 #' @param object Seurat object
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN SNN matrix used for cluster comparison
 #' @param min_connectivity Threshold of connectedness for comparison of two clusters
 #' @param acc.cutoff Accuracy cutoff for classifier
 #' @param verbose Controls whether to display progress and merge results 
 #' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE)  standardGeneric("validate.clusters"))
+setGeneric("validate.clusters", function(object, pc.use=NULL, top.genes=30, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE)  standardGeneric("validate.clusters"))
 #' @export
-setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, SNN = NULL, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE){
-    num_clusters_orig = length(unique(object@ident))
+setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NULL, top.genes=30, min_connectivity = 0.01, acc.cutoff=0.9, verbose = TRUE){
+  
+  # probably should be refactored to make this cleaner
+  if(length(object@snn.dense) >1){
+    SNN = object@snn.dense
+  } else if (length(object@snn.sparse) > 1){
+    SNN = object@snn.sparse
+  } else{
+    stop("SNN matrix needed. Please run build.SNN() to save the SNN matrix in the object slot")
+  }
+  num_clusters_orig = length(unique(object@ident))
     still_merging = TRUE
     if(verbose){
       connectivity = calcConnectivity(object, SNN)
@@ -3521,14 +3537,13 @@ setMethod("validate.clusters", signature = "seurat", function(object, pc.use=NUL
 #' @param cluster2 Second cluster to check with classification
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
-#' @param SNN SNN matrix used for cluster comparison
 #' @param acc.cutoff Accuracy cutoff for classifier 
 #' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with new cluster info
 #' @export
-setGeneric("validate.specific.clusters", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, SNN = NULL, acc.cutoff=0.9)  standardGeneric("validate.specific.clusters"))
+setGeneric("validate.specific.clusters", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, acc.cutoff=0.9)  standardGeneric("validate.specific.clusters"))
 #' @export
-setMethod("validate.specific.clusters", signature = "seurat", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, SNN = NULL, acc.cutoff=0.9){
+setMethod("validate.specific.clusters", signature = "seurat", function(object, cluster1=NULL, cluster2=1,pc.use=2, top.genes=30, acc.cutoff=0.9){
   acc = runClassifier(object, cluster1, cluster2, pc.use, top.genes)
   print(paste("Comparing cluster ", cluster1, " and ", cluster2, ": Acc = ", acc, sep=""))
   if(acc<acc.cutoff){

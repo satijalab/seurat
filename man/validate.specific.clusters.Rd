@@ -5,7 +5,7 @@
 \title{Specific Cluster Validation}
 \usage{
 validate.specific.clusters(object, cluster1 = NULL, cluster2 = 1,
-  pc.use = 2, top.genes = 30, SNN = NULL, acc.cutoff = 0.9)
+  pc.use = 2, top.genes = 30, acc.cutoff = 0.9)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,8 +17,6 @@ validate.specific.clusters(object, cluster1 = NULL, cluster2 = 1,
 \item{pc.use}{Which PCs to use for model construction}
 
 \item{top.genes}{Use the top X genes for model construction}
-
-\item{SNN}{SNN matrix used for cluster comparison}
 
 \item{acc.cutoff}{Accuracy cutoff for classifier}
 }

@@ -4,7 +4,7 @@
 \alias{validate.clusters}
 \title{Cluster Validation}
 \usage{
-validate.clusters(object, pc.use = NULL, top.genes = 30, SNN = NULL,
+validate.clusters(object, pc.use = NULL, top.genes = 30,
   min_connectivity = 0.01, acc.cutoff = 0.9, verbose = TRUE)
 }
 \arguments{
@@ -13,8 +13,6 @@ validate.clusters(object, pc.use = NULL, top.genes = 30, SNN = NULL,
 \item{pc.use}{Which PCs to use for model construction}
 
 \item{top.genes}{Use the top X genes for model construction}
-
-\item{SNN}{SNN matrix used for cluster comparison}
 
 \item{min_connectivity}{Threshold of connectedness for comparison of two clusters}
 
