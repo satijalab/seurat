@@ -12,7 +12,8 @@ NULL
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Prune the SNN graph
+#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning, 
+#'        1 - prune everything)
 #' @param do.sparse Whether to compute and return the SNN graph as a sparse 
 #' matrix or not
 #' @param update Adjust how verbose the output is
@@ -25,13 +26,13 @@ NULL
 #' @export
 setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL, 
                                 k.param = 10, k.scale = 10, plot.SNN = FALSE, 
-                                prune.SNN = FALSE, do.sparse = FALSE, 
+                                prune.SNN = 0.1, do.sparse = FALSE, 
                                 update = 0.25)  
 standardGeneric("BuildSNN"))
 #' @export
 setMethod("BuildSNN", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 10, 
-                   k.scale = 10, plot.SNN = FALSE, prune.SNN = FALSE,
+                   k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
                    do.sparse = FALSE, update = 0.25) {
 
   if (is.null(genes.use) && is.null(pc.use)) {

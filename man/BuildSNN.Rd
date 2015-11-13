@@ -5,7 +5,7 @@
 \title{SNN Graph Construction}
 \usage{
 BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
-  k.scale = 10, plot.SNN = FALSE, prune.SNN = FALSE, do.sparse = FALSE,
+  k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1, do.sparse = FALSE,
   update = 0.25)
 }
 \arguments{
@@ -21,7 +21,8 @@ BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
 
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Prune the SNN graph}
+\item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning,
+1 - prune everything)}
 
 \item{do.sparse}{Whether to compute and return the SNN graph as a sparse
 matrix or not}
