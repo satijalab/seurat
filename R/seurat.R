@@ -2967,7 +2967,7 @@ setMethod("removePC","seurat",
             data.old=object@data
             pcs.use=anotinb(1:ncol(object@pca.obj[[1]]$rotation),pcs.remove)
             data.x=as.matrix(object@pca.obj[[1]]$x[,pcs.use])
-            if (use.full) data.x=object@as.matrix(object@pca.x.$x[,pcs.use])
+            if (use.full) data.x=as.matrix(object@pca.x.full[,ainb(pcs.use,1:ncol(object@pca.x.full))])
             data.1=data.x%*%t(as.matrix(object@pca.obj[[1]]$rotation[,pcs.use]))
             data.2=sweep(data.1,2,colMeans(object@scale.data),"+")
             data.3=sweep(data.2,MARGIN = 1,apply(object@data[rownames(data.2),],1,sd),"*")         
