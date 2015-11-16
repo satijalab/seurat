@@ -1,15 +1,25 @@
 #' Build mixture models of gene expression
 #'
-#' Proof-of-concept to accelarate runing speed of fit.gene.k function
+#' Proof-of-concept to accelarate runing speed of fit.gene.k function. 
+#' 
+#' Models the imputed gene expression values as a mixture of gaussian
+#' distributions. For a two-state model, estimates the probability that a given
+#' cell is in the 'on' or 'off' state for any gene. Followed by a greedy
+#' k-means step where cells are allowed to flip states based on the overall
+#' structure of the data (see Manuscript for details)
 #' 
 #' @param object Seurat object
 #' @param gene Gene to fit
-#' @param do.k Number of modes for the mixture model (default is 2)
+#' @param do.k Number of modes for the mixture model (default is 2). 
+#' When \code{do.k} is set greater than 2, it cannot co-exist with
+#' \code{start.pct}.  
 #' @param num.iter Number of 'greedy k-means' iterations (default is 1)
 #' @param do.plot Plot mixture model results
 #' @param genes.use Genes to use in the greedy k-means step (See manuscript for details)
-#' @param start.pct Initial estimates of the percentage of cells in the 'on'
-#' state (usually estimated from the in situ map)
+#' @param start.pct (Optional) Initial estimates of the percentage of cells in the 'on'
+#' state (usually estimated from the in situ map). Cannot co-exist with \code{do.k}. 
+#' When \code{start.pct} is used, it is assumed that 2 states exisits
+#' \code{do.k} to be 2. 
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@mix.probs
 #' @importFrom mixtools normalmixEM
@@ -29,15 +39,18 @@ setMethod("fit.gene.k.fast", "seurat",
               data.cut=as.numeric(data.use[gene,])
               cell.ident=as.numeric(cut(data.cut,do.k))
               if (!(is.null(start.pct))) {
-                  cell.ident=rep(1,length(data.cut))
-                  cell.ident[data.cut>quantile(data.cut,1-start.pct)]=2
+                if(!(is.null(do.k)) && do.k > 2) {
+                  stop("Parameter do.k with greater than 2 cannot coexist with parameter start.pct")
+                }
+                  cell.ident <- rep(1,length(data.cut))
+                  cell.ident[data.cut>quantile(data.cut,1-start.pct)] <- 2
               }
               cell.ident=order(tapply(as.numeric(data.use),cell.ident,mean))[cell.ident]
               ident.table=table(cell.ident)
               if (num.iter > 0) {
                   for(i2 in 1:num.iter) {
-                      cell.ident=iter.k.fit.fast(scale.data,cell.ident,data.use)
-                      ident.table=table(cell.ident)
+                      cell.ident <- iter.k.fit.fast(scale.data, cell.ident, data.use, do.k)
+                      ident.table <- table(cell.ident)
                   }
               }
               # ident.table=table(cell.ident)
@@ -73,7 +86,15 @@ setMethod("fit.gene.k.fast", "seurat",
                   nCol=2
                   num.row=floor((do.k+1)/nCol-1e-5)+1
                   hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-                  for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
+                  for(k in 1:do.k) {
+                    # hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
+                    factor.k <- as.numeric(kmodal.norm_factor[k])
+                    mean.k <- kmodal.mu[k, gene]
+                    sd.k <- kmodal.sd[k, gene]
+                    lines(seq(-10,10,0.01),
+                          factor.k * dnorm(seq(-10,10,0.01), mean.k, sd.k), 
+                          col = k + 1, lwd = 2); 
+                  }
               }
               return(object)
           }
@@ -87,8 +108,9 @@ calc.dist <- function(x, v, method = c('euclidean')) {
     }
 }
 
-iter.k.fit.fast <- function(scale.data, cell.ident, data.use) {
-    cell.ident.K <- sort(unique(cell.ident))
+iter.k.fit.fast <- function(scale.data, cell.ident, data.use, do.k) {
+    # cell.ident.K <- sort(unique(cell.ident))
+    cell.ident.K <- 1:(do.k)
     means.all <- sapply(cell.ident.K, function(x) 
             rowMeans(scale.data[, cell.ident == x]))
     all.dist <- lapply(cell.ident.K, function(i) 
