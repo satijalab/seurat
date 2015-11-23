@@ -221,19 +221,30 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   }
   rownames(edge) <- NULL
   colnames(edge) <- NULL
-  write.table(x = edge, file = "edge.txt", sep = "\t", row.names = FALSE, 
+  
+  unique_ID <- sample(10000 : 99999, 1)
+  edge_file <- paste("edge_", unique_ID, ".txt", sep = "")
+  output_file <- paste("output_", unique_ID, ".txt", sep = "")
+  while (file.exists(edge_file)) {
+    unique_ID <- sample(10000 : 99999, 1)
+    edge_file <- paste("edge_", unique_ID, ".txt", sep = "")
+    output_file <- paste("output", unique_ID, ".txt", sep = "")
+  }
+  
+  
+  write.table(x = edge, file = edge_file, sep = "\t", row.names = FALSE, 
               col.names = FALSE)
   if (modularity == 2 && resolution > 1){
     stop("error: resolution<1 for alternative modularity")
   }
-  command <- paste("java -jar", ModularityJarFile, "edge.txt", "output.txt", 
+  command <- paste("java -jar", ModularityJarFile, edge_file, output_file, 
                    modularity, resolution, algorithm, n.start, n.iter, 
                    random.seed, print.output, sep = " ")
   system(command, wait = TRUE)
-  ident.use <- read.table(file = "output.txt", header = FALSE, sep = "\t")[, 1]
+  ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
   object <- set.ident(object, object@cell.names, ident.use)
-  file.remove("edge.txt")
-  file.remove("output.txt")
+  file.remove(edge_file)
+  file.remove(output_file)
   return (object)
 }
 

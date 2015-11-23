@@ -71,7 +71,7 @@ setMethod("ValidateClusters", signature = "seurat",
           if (verbose & status == 5) {
             print(paste(sprintf("%3.0f", (1 - progress / end) * 100), 
                   "% complete --- Last 5 cluster comparisons failed to merge", 
-                  "still checking possible merges ...", sep = ""))
+                  " ,still checking possible merges ...", sep = ""))
             status <- 0
           }
           status <- status + 1
