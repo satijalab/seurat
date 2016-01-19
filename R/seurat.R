@@ -310,6 +310,40 @@ setMethod("setup","seurat",
           }         
 )
 
+#' Regress out technical effects and cell cycle
+#'
+#' Remove unwanted effects from scale.data
+#'
+#'
+#' @param object Seurat object
+#' @param latent.vars effects to regress out
+#' @param genes.regress gene to run regression for (default is all genes)
+#' @param do.scale Z-normalize the residual values (default is TRUE)
+#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
+#' @import pbsapply
+#' @export
+setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut"))
+#' @export
+setMethod("RegressOut", "seurat", 
+          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
+            genes.regress=set.ifnull(genes.regress,rownames(object@scale.data))
+            genes.regress=ainb(genes.regress,rownames(object@scale.data))
+            latent.data=fetch.data(object,latent.vars)
+            exp.data=t(object@data[genes.regress,])
+            regression.mat=cbind(latent.data,exp.data)
+            new.data=t(pbsapply(genes.regress, function(x) {
+              regression.mat[,"GENE"] = regression.mat[,x];
+              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+              return(lm(fmla,data = regression.mat)$residuals)
+            }))
+            if (do.scale) {
+              new.data=t(scale(t(new.data)))
+            }
+            object@scale.data=new.data
+            return(object)
+            
+          }
+)
 
 #' @export
 setGeneric("add_samples", function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") standardGeneric("add_samples"))
