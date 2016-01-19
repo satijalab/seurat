@@ -42,4 +42,5 @@ Collate:
     'helper.R'
     'seuratFxns.R'
     'snn.R'
+    'tSNE_project.R'
     'zfRenderSeurat.R'

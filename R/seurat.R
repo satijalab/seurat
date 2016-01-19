@@ -662,25 +662,38 @@ setMethod("ica", "seurat",
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
 #' object@@pca.obj[[1]]
 #' @export
-setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) standardGeneric("pca"))
+setGeneric("pca", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,rev.pca=FALSE,...) standardGeneric("pca"))
 #' @export
 setMethod("pca", "seurat", 
-          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,...) {
+          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,rev.pca=FALSE,...) {
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             pc.genes=set.ifnull(pc.genes,object@var.genes)
             pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
-            pc.data = data.use[pc.genes[pc.genes.var>0],]
-            pca.obj = prcomp(pc.data,...)
-            object@pca.obj=list(pca.obj)
+            
+            if (!rev.pca) {
+              pc.data = data.use[pc.genes[pc.genes.var>0],]
+              pca.obj = prcomp(pc.data,...)
+              object@pca.obj=list(pca.obj)
             
               
-            pcs.store=min(pcs.store,ncol(pc.data))
-            pcs.print=min(pcs.print,ncol(pc.data))
-            object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
-            object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
-
+              pcs.store=min(pcs.store,ncol(pc.data))
+              pcs.print=min(pcs.print,ncol(pc.data))
+              object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
+              object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
+            }
+            if (rev.pca) {
+              pc.data = data.use[pc.genes[pc.genes.var>0],]
+              pca.obj = prcomp(t(pc.data),...)
+              object@pca.obj=list(pca.obj)
+              
+              
+              pcs.store=min(pcs.store,ncol(pc.data))
+              pcs.print=min(pcs.print,ncol(pc.data))
+              object@pca.x=data.frame(pca.obj$rotation[,1:pcs.store])
+              object@pca.rot=data.frame(pca.obj$x[,1:pcs.store])
+            }
             
             if (do.print) {
               pc_scores=object@pca.x
@@ -727,6 +740,36 @@ setMethod("cluster.alpha", "seurat",
           }
 )
 
+
+#' Reorder identity classes 
+#'
+#' Re-assigns the identity classes according to the average expression of a particular feature (i.e, gene expression, or PC score)
+#' Very useful after clustering, to re-order cells, for example, based on PC scores
+#'
+#' @param object Seurat object
+#' @param feature Feature to reorder on. Default is PC1
+#' @param rev Reverse ordering (default is FALSE)
+#' @param aggregate.fxn Function to evaluate each identity class based on (default is mean)
+#' @param reorder.numeric Rename all identity classes to be increasing numbers starting from 1 (default is FALSE)
+#' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
+#' @return A seurat object where the identity have been re-oredered based on the average.
+#' @export
+setGeneric("reorder.ident", function(object,feature="PC1",rev=FALSE,aggregate.fxn=mean,reorder.numeric=FALSE,...) standardGeneric("reorder.ident"))
+#' @export
+setMethod("reorder.ident", "seurat", 
+          function(object,feature="PC1",rev=FALSE,aggregate.fxn=mean,reorder.numeric=FALSE,...) {
+            ident.use=object@ident
+            data.use=fetch.data(object,feature,...)[,1]
+            revFxn=same; if (rev) revFxn=function(x)max(x)+1-x;
+            names.sort=names(revFxn(sort(tapply(data.use,(ident.use),aggregate.fxn))))
+            ident.new=factor(ident.use,levels = names.sort,ordered = TRUE)
+            if (reorder.numeric)  ident.new=factor(revFxn(rank(tapply(data.use,as.numeric(ident.new),mean)))[as.numeric(ident.new)],levels = 1:length(levels(ident.new)),ordered = TRUE)
+            names(ident.new)=names(ident.use)
+            object@ident=ident.new
+            return(object)
+          }
+)
+
 #' Average PCA scores by identity class
 #' 
 #' Returns the PCA scores for an 'average' single cell in each identity class
@@ -764,22 +807,32 @@ setMethod("average.pca", "seurat",
 #' @param genes.use Genes to analyze. Default is all genes.
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
-setGeneric("average.expression", function(object,genes.use=NULL) standardGeneric("average.expression"))
+setGeneric("average.expression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) standardGeneric("average.expression"))
 #' @export
 setMethod("average.expression", "seurat", 
-          function(object,genes.use=NULL) {
+          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             genes.use=ainb(genes.use,rownames(object@data))
             ident.use=object@ident
+            if (!is.null(add.ident)) {
+              new.data=fetch.data(object,add.ident)
+              new.ident=paste(object@ident[rownames(new.data)],new.data[,1],sep="_")
+              object=set.ident(object,rownames(new.data),new.ident)
+            }
             data.all=data.frame(row.names = genes.use)
-            for(i in levels(ident.use)) {
+            for(i in levels(object@ident)) {
               temp.cells=which.cells(object,i)
               if (length(temp.cells)==1) data.temp=(object@data[genes.use,temp.cells])
               if (length(temp.cells)>1) data.temp=apply(object@data[genes.use,temp.cells],1,expMean)
               data.all=cbind(data.all,data.temp)
               colnames(data.all)[ncol(data.all)]=i
             }
-            colnames(data.all)=levels(ident.use)
+            colnames(data.all)=levels(object@ident)
+            if (return.seurat) {
+              toRet=new("seurat",raw.data=data.all)
+              toRet=setup(toRet,project = "Average",min.cells = 0,min.genes = 0,is.expr = 0,...)
+              return(toRet)
+            }
             return(data.all)
           }
 )
@@ -2375,10 +2428,10 @@ same=function(x) return(x)
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @importFrom gplots heatmap.2
 #' @export
-setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,...) standardGeneric("doHeatMap"))
+setGeneric("doHeatMap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) standardGeneric("doHeatMap"))
 #' @export
 setMethod("doHeatMap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
@@ -2389,6 +2442,8 @@ setMethod("doHeatMap","seurat",
               cells.use=cells.use[order(cells.ident)]
             }
             data.use=object@scale.data[genes.use,cells.use]
+            if (!do.scale) data.use=object@data[genes.use,cells.use]
+            
             data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
             colsep.use=NULL
