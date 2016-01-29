@@ -268,28 +268,39 @@ setMethod("plotNoiseModel","seurat",
 #' @return Seurat object. Fields modified include object@@data,
 #' object@@scale.data, object@@data.info, object@@ident
 #' @import stringr
+#' @import pbapply
+#' @import pbsapply
 #' @export
-setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("setup"))
+setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=F,...) standardGeneric("setup"))
 #' @export
 setMethod("setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
+          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=F,...) {
             object@is.expr = is.expr
             num.genes=findNGene(object@raw.data,object@is.expr)
             cells.use=names(num.genes[which(num.genes>min.genes)]) 
             
             object@data=object@raw.data[,cells.use]
+            t.data=t(object@data)
             
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data=data.frame();
-            
-            num.cells=apply(object@data,1,humpCt,min=object@is.expr)
-            genes.use=names(num.cells[which(num.cells>min.cells)])
-            object@data=object@data[genes.use,]
+            genes.use=rownames(object@data)
+            if (min.cells>0) {
+              if (!large.object) num.cells=apply(object@data,1,humpCt,min=object@is.expr)
+              if (large.object) num.cells=colSums(t.data)
+              genes.use=names(num.cells[which(num.cells>min.cells)])
+              object@data=object@data[genes.use,]
+              t.data=t.data[,genes.use]
+            }
             
             object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
-            object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+            if (!large.object) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+            if (large.object) {
+              object@scale.data=t(pbsapply(colnames(t.data),function(x) scale(t.data[,x],center=do.center,scale=do.scale)))
+              rownames(object@scale.data)=rownames(object@data); colnames(object@scale.data)=colnames(object@data)
+            }
             data.ngene=num.genes[cells.use]
             object@gene.scores=data.frame(data.ngene); colnames(object@gene.scores)[1]="nGene"
             object@data.info=data.frame(data.ngene); colnames(object@data.info)[1]="nGene"
@@ -339,6 +350,7 @@ setMethod("RegressOut", "seurat",
             if (do.scale) {
               new.data=t(scale(t(new.data)))
             }
+            new.data[is.na(new.data)]=0
             object@scale.data=new.data
             return(object)
             
@@ -437,8 +449,11 @@ setMethod("subsetData","seurat",
               cells.use=rownames(data.use)[pass.inds]
             }
             object@data=object@data[,cells.use]
-            object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
-            object@scale.data=object@scale.data[complete.cases(object@scale.data),]
+            object@scale.data=object@scale.data[,cells.use]
+            if (do.scale) {
+              object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+            }
+            object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             object@ident=drop.levels(object@ident[cells.use])
             object@tsne.rot=object@tsne.rot[cells.use,]
             object@pca.rot=object@pca.rot[cells.use,]
@@ -1918,7 +1933,7 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
 #' @param genes.fit Genes to calculate smoothed values for
 #' @importFrom FNN get.knn
 #' @export
-setGeneric("addSmoothedScore", function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tSNE",k=30,do.log=FALSE,do.print=FALSE) standardGeneric("addSmoothedScore"))
+setGeneric("addSmoothedScore", function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tsne",k=30,do.log=FALSE,do.print=FALSE) standardGeneric("addSmoothedScore"))
 #' @export
 setMethod("addSmoothedScore", "seurat",
           function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tSNE",k=30,do.log=FALSE,do.print=FALSE) {
@@ -3020,11 +3035,11 @@ setMethod("jackStrawPlot","seurat",
 #' @return No return, only graphical output
 #' @export
 setGeneric("genePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...)  standardGeneric("genePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("genePlot"))
 #' @export
 setMethod("genePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                   pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,...) {
+                   pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
             data.use=data.frame(t(fetch.data(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
             g1=as.numeric(data.use[gene1,cell.ids])
@@ -3040,7 +3055,11 @@ setMethod("genePlot","seurat",
             plot(g1,g2,xlab=gene1,ylab=gene2,col=col.use,cex=cex.use,main=gene.cor,pch=pch.use,...)
             if (do.spline) {
               spline.fit=smooth.spline(g1,g2,df = 4)
-              lines(spline.fit$x,spline.fit$y,lwd=3)
+              #lines(spline.fit$x,spline.fit$y,lwd=3)
+              #spline.fit=smooth.spline(g1,g2,df = 4)
+              loess.fit=loess(g2~g1,span=spline.span)
+              #lines(spline.fit$x,spline.fit$y,lwd=3)
+              points(g1,loess.fit$fitted,col="darkblue")         
             }
             if (do.ident) {
               return(identify(g1,g2,labels = cell.ids))
