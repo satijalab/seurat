@@ -1675,44 +1675,174 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
   return(lasso.fits)  
 }
 
-#' Calculate imputed expression values
+#' @title Impute gene expression and fill in Seurat object.
 #'
-#' Uses L1-constrained linear models (LASSO) to impute single cell gene
-#' expression values.
-#'
+#' @description Impute the expression values of import genes, e.g. landmark,
+#' genes with other genes as predictors via L1-constrained linear models, i.e.
+#' lasso (default), or partial least squares regression (plsr), or tilling LASSO #' (tlasso).
 #'
 #' @param object Seurat object
 #' @param genes.use A vector of genes (predictors) that can be used for
-#' building the LASSO models.
-#' @param genes.fit A vector of genes to impute values for
+#' building the imputation models.
+#' @param genes.fit A vector of response genes to be imputed.
+#' @param scheme Imputation strategies: "lasso", "plsr", "tlasso" (tilling lasso).
 #' @param s.use Maximum number of steps taken by the algorithm (lower values
-#' indicate a greater degree of smoothing)
+#' indicate a greater degree of smoothing). Only used for "lasso" scheme.
 #' @param do.print Print progress (output the name of each gene after it has
 #' been imputed).
-#' @param gram The use.gram argument passed to lars
+#' @param gram The use.gram argument passed to \link{lars} of lars package. See
+#' \link{lars} for parameter details. Only used for "lasso" scheme.
 #' @return Returns a Seurat object where the imputed values have been added to
-#' object@@data
+#' \code{object@@data}. If \code{genes.fit} have already existed in object,
+#' their values are imputed again via the selected \code{scheme} and refilled;
+#' otherwise they are imputed and added to \code{object@@data}.
+#' @import lars
+#' @import pls
+#' @export
+setGeneric("addImputedScore",
+  function(object, genes.use = NULL, genes.fit = NULL, scheme = "lasso",
+           s.use = 20, do.print = FALSE, gram = TRUE)
+  standardGeneric("addImputedScore"))
+setMethod("addImputedScore", "seurat",
+  function(object, genes.use = NULL, genes.fit = NULL, scheme = "lasso",
+           s.use = 20, do.print = FALSE, gram = TRUE) {
+    genes.use <- set.ifnull(genes.use, object@var.genes)
+    genes.fit <- set.ifnull(genes.fit, object@var.genes)
+    genes.use <- intersect(genes.use, rownames(object@data))
+    genes.fit <- intersect(genes.fit, rownames(object@data))
+
+    fitted.expr <- sapply(genes.fit, function(g) {
+                           x = t(object@data[setdiff(genes.use, g), ])
+                           y = object@data[g, ]
+                           if (scheme == "lasso"){
+                             lasso_preds_expr(x, y, s.use = s.use, y.name = g,
+                                              do.print, gram)
+                           } else if (scheme == "plsr"){
+                             plsr_preds_expr(x, y, y.name =g, do.print)
+                           } else if (scheme == "tlasso"){
+                             tilling_lasso_preds_expr(x, y, s.use = s.use,
+                                                      y.name = g, do.print,
+                                                      gram)
+                           } else { stop('xx Select imputation strategy.') }
+                         })
+    fitted.expr <- as.data.frame(t(fitted.expr))
+
+    genes.old <- intersect(genes.fit, rownames(object@imputed))
+    genes.new <- setdiff(genes.fit, rownames(object@imputed))
+    if (length(genes.old) > 0) {
+      object@imputed[genes.old, ] <- fitted.expr[genes.old, ]
+    }
+
+    object@imputed <- rbind(object@imputed, fitted.expr[genes.new, ])
+    return(object)
+  }
+)
+
+
+#' PLSR scheme to perform imputation
+#'
+#' @param x data.frame of predictors(columns): observed gene expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param y.name Chractor. Name of given landmarked gene.
+#' @param do.print Logic. Whether print gene name to screen.
+#' @param validation Charactor. Scheme for validation. Default: CV.
+#' @import pls
+#' @export
+plsr_preds_expr <- function(x, y, y.name, do.print = FALSE, validation = "CV"){
+  if (class(x) != "data.frame") x <- as.data.frame(x)
+  y <- as.numeric(y)
+  data <- cbind(x, y)
+  colnames(data)[ncol(data)] <- y.name
+  f <- as.formula(paste0(y.name, " ~ ."))
+  plsr.modal <- plsr(formula = f, data = data, validation = validation)
+  plsr.rmsep <- RMSEP(plsr.modal, estimate = validation)
+  k <- which.min(plsr.rmsep$val) - 1
+  k <- ifelse(k == 0, 1, k) ## excluding intercept item
+  plrs.fits <- predict(plsr.modal, x, ncomp = k) ## array: Cells x 1 x 1
+  plrs.fits <- plrs.fits[, 1, 1]
+  if (do.print) print(y.name)
+  return(plrs.fits)
+}
+
+
+#' @title Impute expression of landmarked genes based on other genes via LASSO
+#' linear modal
+#'
+#' @param x Matrix of predictors(columns), observed genes expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param s.use Numeric. See \link{predict.lars}'s parameter \code{s}.
+#' @param y.name Chractor. Name of the given landmarked gene.
+#' @param do.print Logic. Whether print \code{y.name} on screen.
+#' @param use.gram Logic. See \link{lars}'s parameter \code{use.Gram}
+#' @return Returns the imputed landmarked gene expession via LASSO modal.
 #' @import lars
 #' @export
-setGeneric("addImputedScore", function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) standardGeneric("addImputedScore"))
+lasso_preds_expr <- function(x, y, s.use = 20, y.name = NULL,
+                            do.print = FALSE, use.gram = TRUE) {
+  if (class(x) != "matrix") x <- as.matrix(x)
+  lasso.modal <- lars(x, as.numeric(y), type = "lasso", max.steps = s.use * 2,
+                      use.Gram = use.gram)
+  #lasso.fits = predict.lars(lasso.modal,x,type = "fit",s = min(s.use,max(lasso.modal$df)))$fit
+  lasso.fits <- predict.lars(lasso.modal, x, type = "fit", s = s.use)$fit
+  if (do.print) print(y.name)
+  return(lasso.fits)
+}
+
+
+#' @title Tilling LASSO linear modal to impute expression of landmark genes
+#'
+#' @param x Matrix of predictors(columns), observed genes expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param s.use Numeric. See \link{predict.lars}'s parameter \code{s}.
+#' @param y.name Chractor. Name of the given landmarked gene.
+#' @param do.print Logic. Whether print \code{y.name} on screen.
+#' @param use.gram Logic. See \link{lars}'s parameter \code{use.Gram}
+#' @param w Window size to set the training data size relative to input
+#' \code{x}. Default: 0.8.
+#' @param loops Times to run tilling LASSO.
+#' @return Returns the imputed landmarked gene expession via LASSO modal.
+#' @import lars
 #' @export
-setMethod("addImputedScore", "seurat",
-          function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
-            genes.fit=set.ifnull(genes.fit,object@var.genes)
-            genes.use=genes.use[genes.use%in%rownames(object@data)]
-            genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
-            
-            lasso.input=t(object@data[genes.use,])
-            lasso.fits=data.frame(t(sapply(genes.fit,function(x)lasso.fxn(t(object@data[genes.use[genes.use!=x],]),object@data[x,],s.use=s.use,x,do.print,gram))))
-            genes.old=genes.fit[genes.fit%in%rownames(object@imputed)]
-            genes.new=genes.fit[!(genes.fit%in%rownames(object@imputed))]
-            
-            if (length(genes.old)>0) object@imputed[genes.old,]=lasso.fits[genes.old,]
-            object@imputed=rbind(object@imputed,lasso.fits[genes.new,])
-            return(object)
-          }
-)    
+tilling_lasso_preds_expr <- function(x, y, s.use = 20, y.name = NULL,
+                             do.print = FALSE, use.gram = FALSE,
+                             w = 0.8, loops = 10) {
+  if(nrow(x) < 10) stop("Size of sequenced cells is less than 10")
+  x <- as.matrix(x)
+  y <- as.numeric(y)
+  n <- nrow(x)
+  s <- ceiling(n * (1 - w))
+  idx <- 1:n
+
+  yhatmtx <- sapply(1:loops, function(i) {
+    set.seed(i)
+    ridx <- sample(idx, n, replace = FALSE)
+    ridx.p <- partition(ridx, s)
+    yhat <- rep(NA, nrow(x))
+    parts <- seq_len(length(ridx.p))
+    yhat[ridx] <- unlist(lapply(parts,
+                     function(p) {
+                       idx.un <- ridx.p[[p]]
+                       idx.tr <- setdiff(ridx, idx.un)
+                       x.tr <- x[idx.tr, ]
+                       y.tr <- y[idx.tr]
+                       model.p <- lars(x.tr, y.tr, type = "lasso",
+                                       max.steps = s.use * 2,
+                                       use.Gram = use.gram)
+                       x.un <- x[idx.un, ]
+                       o <- predict.lars(model.p, x.un, type = "fit", s = s.use)
+                       o$fit
+                     }))
+    if(do.print) print(y.name)
+    names(yhat) <- rownames(x)
+    yhat
+  }, simplify = FALSE)
+  yhatmtx <- do.call("rbind", yhatmtx)
+  if (loops > 1){
+    return(colMeans(yhatmtx))
+  }else {
+    return(yhatmtx[1, ])
+  }
+}
 
 
 # Not currently supported, but a cool scoring function
