@@ -1230,3 +1230,19 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   invisible(retval)
   par(mar=oldMar)
 }
+
+partition <- function(x, pSize){
+  n <- length(x)
+  pNum <- n %/% pSize
+  g <- rep(1:pNum, each = pSize)
+  out <- n %% pSize
+  if (out != 0){
+    if(out < pSize / 2){
+      g <- c(g, rep(pNum, out))
+    } else{
+      g <- c(g, rep(pNum + 1, out))
+    }
+  }
+  l <- split(x = x, f = g)
+  return(l)
+}
