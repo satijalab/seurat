@@ -4,12 +4,18 @@
 \alias{refined.mapping}
 \title{Quantitative refinement of spatial inferences}
 \usage{
-refined.mapping(object, genes.use)
+refined.mapping(object, genes.use, cells.num, bins = 64)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{genes.use}{Genes to use to drive the refinement procedure.}
+
+\item{cells.num}{Number of centroids candiates to be used to estimate mean
+and variance parameters of for each cell and each bin. Default: 2n where n is
+number of \code{genes.use}.}
+
+\item{bins}{Number of bins. Default: 64.}
 }
 \value{
 Seurat object, where mapping probabilities for each bin are stored

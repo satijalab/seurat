@@ -12,20 +12,25 @@ fit.gene.k(object, gene, do.k = 2, num.iter = 1, do.plot = FALSE,
 
 \item{gene}{Gene to fit}
 
-\item{do.k}{Number of modes for the mixture model (default is 2)}
+\item{do.k}{Number of modes for the mixture model (default is 2).  When
+\code{do.k} is set greater than 2, it cannot co-exist with parameter
+\code{start.pct}.}
 
 \item{num.iter}{Number of 'greedy k-means' iterations (default is 1)}
 
-\item{do.plot}{Plot mixture model results}
+\item{do.plot}{Logic. Plot mixture model results if TRUE.}
 
-\item{genes.use}{Genes to use in the greedy k-means step (See manuscript for details)}
+\item{genes.use}{Genes to use in the greedy k-means step. (Default: landmark
+genes. See manuscript for details)}
 
-\item{start.pct}{Initial estimates of the percentage of cells in the 'on'
-state (usually estimated from the in situ map)}
+\item{start.pct}{(Optional) Initial estimates of the percentage of cells in
+the 'on' state (usually estimated from the in situ map). Cannot co-exist with
+\code{do.k}.  When \code{start.pct} is used, it is assumed that only 2 states
+exisits and in the same time \code{do.k} is forced to be 2.}
 }
 \value{
 A Seurat object, where the posterior of each cell being in the 'on'
-or 'off' state for each gene is stored in object@mix.probs
+or 'off' state for each gene is stored in \code{object@mix.probs}
 }
 \description{
 Models the imputed gene expression values as a mixture of gaussian
