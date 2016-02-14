@@ -1246,3 +1246,34 @@ partition <- function(x, pSize){
   l <- split(x = x, f = g)
   return(l)
 }
+
+#' @title Distance Calculation
+#'
+#' @description Compute distance between query vector and all rows (or columns)
+#' of data matrix in 1 v.s. N fashion. Alternatively pairwise compute distance
+#' among rows (or columns).
+#'
+#' @param x A matrix or data.frame.
+#' @param v A query vector.
+#' @param struct A character indicating structure of the \code{x}. String
+#' "\code{fn}" means feature by sample; "\code{nf}" means sample by feature.
+#' Default: '\code{fn}'.
+#' @param method Distance metric (Default: euclidean).
+#' @return A vector of distance or pairwise distance matrix.
+#' @note Default structure of matrix is feature by sample, which is opposite to
+#' conventions. But this is a good compromise so that friendly to vectorized
+#' computation and smaller memory usage.
+#' @export
+calc_dist <- function(x, v, struct = 'fn', method = c('euclidean')) {
+  ## x: matrix. F x N
+  ## v: vector. 1 x F
+  if (struct == 'nf'){
+    x <- t(x)
+  }
+  if (nrow(x) != length(v)) {
+    stop("Dimension imcompatible")
+  }
+  if (method == 'euclidean') {
+      return(sqrt(colSums((x - v) ^ 2)))
+  }
+}
