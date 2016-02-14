@@ -3160,6 +3160,7 @@ setMethod("jackStraw","seurat",
             #num.pc=min(num.pc,length(object@cell.names))
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
+            prop.freq <- max(prop.freq, (2.01 / length(pc.genes)))
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x),simplify = FALSE)
