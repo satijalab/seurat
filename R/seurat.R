@@ -1389,42 +1389,86 @@ map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
   return(bin.prob)
 }
 
-#Internal, not documented for now
+
+#' @title Helper function of \code{initial_mapping}.
+#' @description Map one cell to bins.
 #' @export
-setGeneric("map.cell",  function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) standardGeneric("map.cell"))
-#' @export
-setMethod("map.cell", "seurat",
-          function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) {
-            insitu.matrix=object@insitu.matrix
-            insitu.genes=colnames(insitu.matrix)
-            insitu.genes=insitu.genes[insitu.genes%in%rownames(object@imputed)]
-            insitu.use=insitu.matrix[,insitu.genes]
-            imputed.use=object@imputed[insitu.genes,]
-            safe_fxn=sum
-            if (safe.use) safe_fxn=log_add
-            
-            all.needed.cols=unique(unlist(lapply(insitu.genes,function(x) paste(x,insitu.use[,x],"post",sep="."))))
-            missing.cols=which(!(all.needed.cols%in%colnames(object@mix.probs)))
-            if (length(missing.cols)>0) stop(paste("Error : ", all.needed.cols[missing.cols], " is missing from the mixture fits",sep=""))
-            all.probs=data.frame(sapply(insitu.genes,function(x) log(as.numeric(object@mix.probs[cell.name,paste(x,insitu.use[,x],"post",sep=".")]))))
-            scale.probs=t(t(all.probs)-apply(t(all.probs),1,log_add))
-            scale.probs[scale.probs<(-9.2)]=(-9.2)
-            #head(scale.probs)
-            total.prob=exp(apply(scale.probs,1,safe_fxn))
-            total.prob=total.prob/sum(total.prob)
-            if (do.plot) {
-              #plot(total.prob,main=cell.name)
-              par(mfrow=c(1,2))
-              txt.matrix=matrix(rep("",64),nrow=8,ncol=8)
-              if (!is.null(text.val)) txt.matrix[text.val]="X"
-              if (do.rev) scale.probs=scale.probs[unlist(lapply(0:7,function(x)seq(1,57,8)+x)),] 
-              aheatmap(matrix(total.prob,nrow=8,ncol=8),Rowv=NA,Colv=NA,txt=txt.matrix,col=bwCols)   
-              aheatmap(scale.probs,Rowv=NA,Colv=NA)
-              rp()
-            }
-            return(total.prob)
-          } 
+setGeneric("map.cell",
+  function(object, cell.name,
+           do.plot = FALSE, safe.use = TRUE,
+           text.val = NULL, do.rev = FALSE) standardGeneric("map.cell")
 )
+setMethod("map.cell", "seurat",
+  function(object, cell.name,
+           do.plot = FALSE, safe.use = TRUE,
+           text.val = NULL, do.rev = FALSE) {
+    insitu.matrix <- object@insitu.matrix
+    insitu.genes <- colnames(insitu.matrix)
+    insitu.genes <- intersect(insitu.genes, rownames(object@imputed))
+
+    insitu.use <- insitu.matrix[, insitu.genes]
+    imputed.use <- object@imputed[insitu.genes, ]
+
+    safe_fxn  <- sum
+    if (safe.use) {
+      safe_fxn <- log_add
+    }
+
+    all.avail.states <- lapply(insitu.matrix, unique)
+    all.avail.states <- unlist(lapply(insitu.genes,
+                                      function(x) paste(x,
+                                                        all.avail.states[[x]],
+                                                        "post", sep =".")
+                                      )
+                              )
+
+    missing.states <- setdiff(all.avail.states, colnames(object@mix.probs))
+    if (length(missing.states) > 0){
+      stop(paste0("Error: ", all.avail.states[missing.states], " is missing from the mixture fits"))
+    }
+
+    all.avail.probs <- object@mix.probs[cell.name, all.avail.states] # yellow-page
+    bins.avail.probs <- sapply(insitu.genes,
+                               function(x) {
+                                 g.stat.idx <- paste(x, insitu.matrix[ ,x],
+                                                     "post", sep = ".")
+                                 log(as.numeric(all.avail.probs[ ,g.stat.idx]))
+                               })
+    bins.avail.probs <- data.frame(bins.avail.probs)
+    tmp <- apply(bins.avail.probs, 2, log_add)
+    bins.avail.probs.scale <- bins.avail.probs - matrix(rep(tmp, 64), nrow = 64,
+                                                        byrow = TRUE)
+
+    THREHOLD <- -9.2
+    bins.avail.probs.scale[bins.avail.probs.scale < THREHOLD] <- THREHOLD
+
+    cell.bins.prob <- exp(apply(bins.avail.probs.scale, 1, safe_fxn))
+    cell.bins.prob <- cell.bins.prob / sum(cell.bins.prob)
+
+    #
+    # plot
+    #
+    if (do.plot) {
+      par(mfrow = c(1, 2))
+      txt.matrix <- matrix(rep("", 64), nrow = 8)
+      if (!is.null(text.val)) {
+        txt.matrix[text.val] <- "X"
+      }
+      if (do.rev) {
+        bins.avail.probs.scale <- bins.avail.probs.scale[unlist(lapply(0:7, function(x) seq(1, 57, 8) + x)), ]
+      }
+      aheatmap(matrix(cell.bins.prob, nrow = 8), Rowv = NA, Colv = NA,
+               txt = txt.matrix, col = bwCols)
+      aheatmap(bins.avail.probs.scale, Rowv = NA, Colv = NA)
+      rp()
+    }
+    ## output
+    ## cell to 64 bins probs - numeric vector
+    return(cell.bins.prob)
+
+  }
+)
+
 
 #' Get cell centroids
 #'
@@ -1471,25 +1515,75 @@ setMethod("get.centroids", "seurat",
 #'
 #' @param object Seurat object
 #' @param genes.use Genes to use to drive the refinement procedure.
+#' @param cells.num Number of centroids candiates to be used to estimate mean
+#' and variance parameters of for each cell and each bin. Default: 2n where n is
+#' number of \code{genes.use}.
+#' @param bins Number of bins. Default: 64.
 #' @return Seurat object, where mapping probabilities for each bin are stored
 #' in object@@final.prob
 #' @import fpc
+#' @importFrom dplyr summarise group_by
+#' @importFrom tidyr spread
+#' @importFrom mixtools logdmvnorm
 #' @export
-setGeneric("refined.mapping",  function(object,genes.use) standardGeneric("refined.mapping"))
+setGeneric("refined.mapping",
+           function(object, genes.use, cells.num, bins = 64)
+             standardGeneric("refined.mapping"))
 #' @export
 setMethod("refined.mapping", "seurat",
-          function(object,genes.use) {
-            
-            genes.use=ainb(genes.use, rownames(object@imputed))            
-            cells.max=t(sapply(colnames(object@data),function(x) exact.cell.centroid(object@final.prob[,x])))
-            all.mu=sapply(genes.use,function(gene) sapply(1:64, function(bin) mean(as.numeric(object@imputed[gene,fetch.closest(bin,cells.max,2*length(genes.use))]))))
-            all.cov=list(); for(x in 1:64) all.cov[[x]]=cov(t(object@imputed[genes.use,fetch.closest(x,cells.max,2*length(genes.use))]))
-            
-            mv.probs=sapply(colnames(object@data),function(my.cell) sapply(1:64,function(bin) slimdmvnorm(as.numeric(object@imputed[genes.use,my.cell]),as.numeric(all.mu[bin,genes.use]),all.cov[[bin]])))
-            mv.final=exp(sweep(mv.probs,2,apply(mv.probs,2,log_add)))
-            object@final.prob=data.frame(mv.final)            
-            return(object)
-          } 
+  function(object, genes.use, cells.num, bins = 64) {
+    genes.use <- intersect(genes.use, rownames(object@imputed))
+    if (missingArg(cells.num)) {
+      cells.num <- 2 * length(genes.use)
+    }
+    cells.name <- colnames(object@data)
+    centroids.pos <- t(sapply(cells.name,
+                          function(x) calc_cell_centroid(object@final.prob[, x])
+                          ))
+    bins.centroids <- t(sapply(1:bins, function(b) fetch_closest(b, centroids.pos,
+                                                               cells.num)))
+    ## estimate mean of imputed expression value of landmarked genes in all
+    ## bins
+    permu.centrds <- c(t(bins.centroids)) ## matrix to vector
+    cells.num <- ncol(bins.centroids) ## cells.num is 2n+1 due to compatible modal
+    permu.bins <- rep(paste0("bin.", seq_len(bins)), each = cells.num)
+    gbcenexpr.df <- data.frame(permu.bins, permu.centrds,
+                               stringsAsFactors = FALSE)
+    temp.rep.idx <- rep(seq_len(length(permu.centrds)), length(genes.use))
+    gbcenexpr.df <- gbcenexpr.df[temp.rep.idx, ]
+    permu.genes <- rep(genes.use, each = length(permu.centrds))
+    gbcenexpr.df <- cbind(permu.genes, gbcenexpr.df, stringsAsFactors = FALSE)
+    gbcenexpr.df$expr <- unlist(sapply(seq_len(nrow(gbcenexpr.df)),
+                              function(i) {
+                                r = gbcenexpr.df$permu.genes[i]
+                                c = gbcenexpr.df$permu.centrds[i]
+                                as.numeric(object@imputed[r, c])
+                              }))
+    gb.mu <- summarise(group_by(gbcenexpr.df, permu.genes, permu.bins),
+                       mu = mean(expr))
+    gb.mu <- as.data.frame(gb.mu)
+    gb.mu <- spread(gb.mu, permu.bins, mu)
+    rownames(gb.mu) <- gb.mu$permu.genes
+    gb.mu <- gb.mu[, -1]
+    gb.mu <- gb.mu[genes.use, paste0('bin.', seq_len(bins))]
+
+    gb.cov <- lapply(seq_len(bins), function(b)
+                     cov(t(object@imputed[genes.use, bins.centroids[b, ]])))
+
+    ## estimate the density for multivariate normal distribution
+    imputed.expr <- t(object@imputed[genes.use, cells.name])
+    mvnorm.logden <- t(sapply(seq_len(bins), function(b) {
+                            b.mv.mu = gb.mu[, b]
+                            b.mv.cov = gb.cov[[b]]
+                            logdmvnorm(y = imputed.expr,
+                                       mu = b.mv.mu, sigma = b.mv.cov)
+                     }))
+
+    ## substract the log_add
+    mv.final <- exp(sweep(mvnorm.logden, 2, apply(mvnorm.logden, 2, log_add)))
+    object@final.prob <- data.frame(mv.final)
+    return(object)
+  }
 )
 
 #' Infer spatial origins for single cells
@@ -1501,7 +1595,7 @@ setMethod("refined.mapping", "seurat",
 #' @param object Seurat object
 #' @param cells.use Which cells to map
 #' @return Seurat object, where mapping probabilities for each bin are stored
-#' in object@@final.prob
+#' in \code{object@@final.prob}
 #' @export
 setGeneric("initial.mapping", function(object,cells.use=NULL) standardGeneric("initial.mapping"))
 #' @export
