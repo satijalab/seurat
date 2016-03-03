@@ -347,7 +347,7 @@ setMethod("RegressOut", "seurat",
               fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
               return(lm(fmla,data = regression.mat)$residuals)
             }))
-            if (do.scale) {
+            if (do.scale==TRUE) {
               new.data=t(scale(t(new.data)))
             }
             new.data[is.na(new.data)]=0
@@ -599,8 +599,8 @@ setMethod("run_tsne", "seurat",
               data.use=fetch.data(object,dim.codes)
             }
             if (!is.null(genes.use)) {
-              genes.use=ainb(genes.use,rownames(object@scale.data))
-              data.use=t(object@scale.data[genes.use,cells.use])
+              genes.use=ainb(genes.use,rownames(object@data))
+              data.use=t(object@data[genes.use,cells.use])
             }
             
             
@@ -622,6 +622,54 @@ setMethod("run_tsne", "seurat",
           }
 )
 
+#' Run t-distributed Stochastic Neighbor Embedding
+#'
+#' Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced 
+#' dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
+#' 
+#'
+#' @param object Seurat object
+#' @param cells.use Which cells to analyze (default, all cells)
+#' @param dims.use Which dimensions to use as input features 
+#' @param k.seed Random seed for the t-SNE
+#' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
+#' faster, but is less flexible
+#' @param add.iter If an existing tSNE has already been computed, uses the 
+#' current tSNE to seed the algorithm and then adds additional iterations on top of this
+#' @param genes.use If set, run the tSNE on this subset of genes 
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+#' @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
+#' For example, set to 3 for a 3d tSNE
+#' @param \dots Additional arguments to the tSNE call. Most commonly used is
+#' perplexity (expected number of neighbors default is 30)
+#' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
+#' @import Rtsne
+#' @import tsne
+#' @export
+setGeneric("run_diffusion", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,...) standardGeneric("run_diffusion"))
+#' @export
+setMethod("run_diffusion", "seurat", 
+          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,...) {
+            cells.use=set.ifnull(cells.use,colnames(object@data))
+            if (is.null(genes.use)) {
+              dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
+              data.use=fetch.data(object,dim.codes)
+            }
+            if (!is.null(genes.use)) {
+              genes.use=ainb(genes.use,rownames(object@scale.data))
+              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-3,3)
+            }
+            data.dist=dist(data.use)
+            data.diffusion=data.frame(diffuse(data.dist,neigen = max.dim,maxdim = max.dim,...)$X)
+            colnames(data.diffusion)=paste("tSNE_",1:ncol(data.diffusion),sep="")
+            rownames(data.diffusion)=cells.use
+            x=data.diffusion[,1]; x=minmax(x,min = quantile(x,q.use),quantile(x,1-q.use)); data.diffusion[,1]=x
+            y=data.diffusion[,2]; y=minmax(y,min = quantile(y,q.use),quantile(y,1-q.use)); data.diffusion[,2]=y
+            object@tsne.rot=data.diffusion
+            return(object)
+          }
+)
 #Not currently supported
 setGeneric("add_tsne", function(object,cells.use=NULL,pcs.use=1:10,do.plot=TRUE,k.seed=1,add.iter=1000,...) standardGeneric("add_tsne"))
 setMethod("add_tsne", "seurat", 
@@ -2076,10 +2124,10 @@ setMethod("calcNoiseModels","seurat",
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL) standardGeneric("feature.plot"))
+setGeneric("feature.plot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) standardGeneric("feature.plot"))
 #' @export
 setMethod("feature.plot", "seurat", 
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL) {
+          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (is.null(nCol)) {
@@ -2100,7 +2148,8 @@ setMethod("feature.plot", "seurat",
               data.gene=na.omit(data.frame(data.use[i,]))
               data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
               data.col=rev(cols.use)[data.cut]
-              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab=x1,ylab=x2)
+              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="Dim. 1",ylab="Dim. 2",...)
+              #plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main="",xlab="",ylab="",...)
             }
             rp()
           }
