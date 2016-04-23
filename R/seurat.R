@@ -343,9 +343,10 @@ setMethod("RegressOut", "seurat",
             exp.data=t(object@data[genes.regress,])
             regression.mat=cbind(latent.data,exp.data)
             new.data=t(pbsapply(genes.regress, function(x) {
-              regression.mat[,"GENE"] = regression.mat[,x];
+              regression.mat.2=latent.data
+              regression.mat.2[,"GENE"] = regression.mat[,x];
               fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
-              return(lm(fmla,data = regression.mat)$residuals)
+              return(lm(fmla,data = regression.mat.2)$residuals)
             }))
             if (do.scale==TRUE) {
               new.data=t(scale(t(new.data)))
@@ -658,14 +659,15 @@ setMethod("run_diffusion", "seurat",
             }
             if (!is.null(genes.use)) {
               genes.use=ainb(genes.use,rownames(object@scale.data))
-              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-3,3)
+              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-2,2)
             }
             data.dist=dist(data.use)
             data.diffusion=data.frame(diffuse(data.dist,neigen = max.dim,maxdim = max.dim,...)$X)
             colnames(data.diffusion)=paste("tSNE_",1:ncol(data.diffusion),sep="")
             rownames(data.diffusion)=cells.use
-            x=data.diffusion[,1]; x=minmax(x,min = quantile(x,q.use),quantile(x,1-q.use)); data.diffusion[,1]=x
-            y=data.diffusion[,2]; y=minmax(y,min = quantile(y,q.use),quantile(y,1-q.use)); data.diffusion[,2]=y
+            for(i in 1:max.dim) {
+              x=data.diffusion[,i]; x=minmax(x,min = quantile(x,q.use),quantile(x,1-q.use)); data.diffusion[,i]=x
+            }
             object@tsne.rot=data.diffusion
             return(object)
           }
@@ -770,7 +772,8 @@ setMethod("pca", "seurat",
             pc.genes.var = apply(data.use[pc.genes,],1,var)
             
             if (!rev.pca) {
-              pc.data = data.use[pc.genes[pc.genes.var>0],]
+              pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
+              pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(pc.data,...)
               object@pca.obj=list(pca.obj)
             
@@ -781,7 +784,8 @@ setMethod("pca", "seurat",
               object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
             }
             if (rev.pca) {
-              pc.data = data.use[pc.genes[pc.genes.var>0],]
+              pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
+              pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(t(pc.data),...)
               object@pca.obj=list(pca.obj)
               
@@ -2747,10 +2751,10 @@ setMethod("cell.cor.matrix", signature = "seurat",
             cor.genes=set.ifnull(cor.genes,object@var.genes)
             cell.inds=set.ifnull(cell.inds,colnames(object@data))
             cor.genes=cor.genes[cor.genes%in%rownames(object@data)]
-            data.cor=object@data[cor.genes,cell.inds]
+            data.cor=object@scale.data[cor.genes,cell.inds]
             cor.matrix=cor((data.cor))
             set.seed(k.seed); kmeans.cor=kmeans(cor.matrix,k.num)
-            cor.matrix=cor.matrix[order(kmeans.cor$cluster),order(kmeans.cor$cluster)]
+            if (do.k) cor.matrix=cor.matrix[order(kmeans.cor$cluster),order(kmeans.cor$cluster)]
             kmeans.names=rownames(cor.matrix)
             row.annot=data.frame(cbind(kmeans.cor$cluster[kmeans.names],object@pca.rot[kmeans.names,pcs.use]))
             colnames(row.annot)=c("K",paste("PC",pcs.use,sep=""))
@@ -2758,7 +2762,7 @@ setMethod("cell.cor.matrix", signature = "seurat",
             cor.matrix=minmax(cor.matrix,min = vis.low,max=vis.high)
             object@kmeans.cell=list(kmeans.cor)
             if (do.k) aheatmap(cor.matrix,col=col.use,Rowv=NA,Colv=NA,annRow=row.annot)
-            if (!(do.k)) aheatmap(cor.matrix,col=col.use,annRow=row.annot)
+            if (!(do.k)) heatmap.2(cor.matrix,trace="none",Rowv=NA,Colv=NA,col=pyCols)
             return(object)
           }    
 )
