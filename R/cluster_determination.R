@@ -268,8 +268,7 @@ GroupSingletons <- function(object, SNN){
     colnames(connectivity) <- cluster.names
     for (i in singletons) {
       for (j in cluster.names) {
-        subSNN <- SNN[match(which.cells(object, j), colnames(SNN)), 
-                      match(which.cells(object, i), rownames(SNN))]
+        subSNN = SNN[which.cells(object, i), match(which.cells(object, j), colnames(SNN))]
         if (is.object(subSNN)) {
           connectivity[i, j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
         } else {
@@ -279,8 +278,8 @@ GroupSingletons <- function(object, SNN){
     }
     m <- max(connectivity, na.rm = T)
     mi <- which(connectivity == m, arr.ind = TRUE)
-    c1 <- rownames(connectivity)[mi[, 1]]
-    c2 <- colnames(connectivity)[mi[, 2]]
+    c1 <- rownames(connectivity)[mi[1, 1]]
+    c2 <- colnames(connectivity)[mi[1, 2]]
     object <- set.ident(object, cells.use = which.cells(object, c1), 
                         ident.use = c2)
     singletons <- singletons[singletons != c1]

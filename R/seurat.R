@@ -47,7 +47,7 @@
 #' @exportClass seurat
 
 seurat <- setClass("seurat", slots = 
-                     c(raw.data = "data.frame", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
+                     c(raw.data = "ANY", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
                        ident="vector",pca.x="data.frame",pca.rot="data.frame",
                        emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
@@ -296,7 +296,12 @@ setMethod("setup","seurat",
             object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
-            if (!large.object) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+            if (!large.object && do.scale==F) 
+            if (!(large.object)) {
+              if ((do.center==F)&&(do.scale==F)) object@scale.data=t(object@data)
+              if ((do.center==T)||(do.scale==T)) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+              
+            }
             if (large.object) {
               object@scale.data=t(pbsapply(colnames(t.data),function(x) scale(t.data[,x],center=do.center,scale=do.scale)))
               rownames(object@scale.data)=rownames(object@data); colnames(object@scale.data)=colnames(object@data)
