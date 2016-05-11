@@ -271,10 +271,10 @@ setMethod("plotNoiseModel","seurat",
 #' @import pbapply
 #' @import pbsapply
 #' @export
-setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=F,...) standardGeneric("setup"))
+setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=T,...) standardGeneric("setup"))
 #' @export
 setMethod("setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=F,...) {
+          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=T,...) {
             object@is.expr = is.expr
             num.genes=findNGene(object@raw.data,object@is.expr)
             cells.use=names(num.genes[which(num.genes>min.genes)]) 
@@ -296,7 +296,6 @@ setMethod("setup","seurat",
             object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
-            if (!large.object && do.scale==F) 
             if (!(large.object)) {
               if ((do.center==F)&&(do.scale==F)) object@scale.data=t(object@data)
               if ((do.center==T)||(do.scale==T)) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
@@ -653,10 +652,10 @@ setMethod("run_tsne", "seurat",
 #' @import Rtsne
 #' @import tsne
 #' @export
-setGeneric("run_diffusion", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,...) standardGeneric("run_diffusion"))
+setGeneric("run_diffusion", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,scale.clip=3,...) standardGeneric("run_diffusion"))
 #' @export
 setMethod("run_diffusion", "seurat", 
-          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,...) {
+          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,scale.clip=3,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             if (is.null(genes.use)) {
               dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
@@ -664,7 +663,7 @@ setMethod("run_diffusion", "seurat",
             }
             if (!is.null(genes.use)) {
               genes.use=ainb(genes.use,rownames(object@scale.data))
-              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-2,2)
+              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-1*scale.clip,scale.clip)
             }
             data.dist=dist(data.use)
             data.diffusion=data.frame(diffuse(data.dist,neigen = max.dim,maxdim = max.dim,...)$X)
