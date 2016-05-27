@@ -63,16 +63,16 @@ calc.drop.prob=function(x,a,b) {
 }
 
 
-setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) standardGeneric("find_all_markers_node"))
+setGeneric("find_all_markers_node", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,...) standardGeneric("find_all_markers_node"))
 setMethod("find_all_markers_node","seurat",
-          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE) {
+          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,...) {
             ident.use=object@ident
             tree.use=object@cluster.tree[[1]]
             
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
             genes.de=list()
             for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
-              genes.de[[i]]=find.markers.node(object,i,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use)
+              genes.de[[i]]=find.markers.node(object,i,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,...)
               if (do.print) print(paste("Calculating node", i))
             }
             gde.all=data.frame()
@@ -81,7 +81,7 @@ setMethod("find_all_markers_node","seurat",
               if (is.null(gde)) next;
               if (nrow(gde)>0) {
                 if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-                if (test.use=="bimod") {
+                if ((test.use=="bimod")||(test.use=="t")) {
                   gde=gde[order(gde$p_val,-gde$avg_diff),]
                   gde=subset(gde,p_val<return.thresh)
                 }
@@ -1210,11 +1210,11 @@ setMethod("getWeightMatrix", "seurat",
           function(object) {
             data=object@data
             data.humpAvg=apply(data,1,humpMean,min=object@drop.expr)
-            wt.matrix=data.frame(t(sapply(data.humpAvg,expAlpha,object@drop.coefs)))
+            wt.matrix=data.frame(t(pbsapply(data.humpAvg,expAlpha,object@drop.coefs)))
             colnames(wt.matrix)=colnames(data); rownames(wt.matrix)=rownames(data)
             wt.matrix[is.na(wt.matrix)]=0
             object@wt.matrix=wt.matrix
-            wt1.matrix=data.frame(sapply(1:ncol(data),function(x)setWt1(data[,x],wt.matrix[,x],min=object@drop.expr)))
+            wt1.matrix=data.frame(pbsapply(1:ncol(data),function(x)setWt1(data[,x],wt.matrix[,x],min=object@drop.expr)))
             colnames(wt1.matrix)=colnames(data); rownames(wt1.matrix)=rownames(data)
             wt1.matrix[is.na(wt1.matrix)]=0
             object@drop.wt.matrix=wt1.matrix
@@ -2100,7 +2100,7 @@ setMethod("calcNoiseModels","seurat",
             data$bin=cut(code_humpAvg,n.bin)
             data$avg=code_humpAvg
             rownames(idents)=rownames(data)
-            my.coefs=data.frame(t(sapply(colnames(data[1:(ncol(data)-2)]),
+            my.coefs=data.frame(t(pbsapply(colnames(data[1:(ncol(data)-2)]),
                                          getAB,data=data,data2=idents,status="code",code2="humpAvg",hasBin=TRUE,doPlot=FALSE)))
             colnames(my.coefs)=c("a","b")
             object@drop.coefs = my.coefs
@@ -2158,6 +2158,63 @@ setMethod("feature.plot", "seurat",
               data.col=rev(cols.use)[data.cut]
               plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="Dim. 1",ylab="Dim. 2",...)
               #plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main="",xlab="",ylab="",...)
+            }
+            rp()
+          }
+)
+
+#' Visualize 'features' on a dimensional reduction plot
+#' 
+#' Colors single cells on a dimensional reduction plot according to a 'feature'
+#' (i.e. gene expression, PC scores, number of genes detected, etc.)
+#' 
+#' To determine the color, the feature values across all cells are placed into
+#' discrete bins, and then assigned a color based on cols.use. The number of
+#' bins is determined by the number of colors in cols.use
+#' 
+#' This function is specifically to generate plots used in Keynote, where the white background is removed
+#' 
+#' @param object Seurat object
+#' @param features.plot Vector of features to plot
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+#' @param cols.use Ordered vector of colors to use for plotting. Default is
+#' heat.colors(10).
+#' @param pch.use Pch for plotting
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param use.imputed Use imputed values for gene expression (default is FALSE)
+#' @param nCol Number of columns to use when plotting multiple features.
+#' @return No return value, only a graphical output
+#' @export
+setGeneric("feature.plot.keynote", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) standardGeneric("feature.plot.keynote"))
+#' @export
+setMethod("feature.plot.keynote", "seurat", 
+          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) {
+            cells.use=set.ifnull(cells.use,colnames(object@data))
+            dim.code="PC"
+            if (is.null(nCol)) {
+              nCol=2
+              if (length(features.plot)>6) nCol=3
+              if (length(features.plot)>9) nCol=4
+            }         
+            num.row=floor(length(features.plot)/nCol-1e-5)+1
+            par(mfrow=c(num.row,nCol))
+            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            data.plot=fetch.data(object,dim.codes)
+            
+            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
+            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
+            data.plot$pt.size=pt.size
+            data.use=data.frame(t(fetch.data(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
+            for(i in features.plot) {
+              data.gene=na.omit(data.frame(data.use[i,]))
+              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
+              data.col=rev(cols.use)[data.cut]
+              #plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="Dim. 1",ylab="Dim. 2",...)
+              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="",ylab="",axes=F,col.main="white")
             }
             rp()
           }
@@ -2548,9 +2605,9 @@ setMethod("doHeatMap","seurat",
               cells.use=cells.use[order(cells.ident)]
             }
             data.use=object@scale.data[genes.use,cells.use]
-            if (!do.scale) data.use=object@data[genes.use,cells.use]
+            if (!do.scale) data.use=as.matrix(object@data[genes.use,cells.use])
             
-            data.use=minmax(data.use,min=disp.min,max=disp.max)
+            if (do.scale) data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
             colsep.use=NULL
             hmFunction=heatmap.2
@@ -2719,7 +2776,8 @@ setMethod("doKMeans","seurat",
             }
             if (do.plot) {       
               disp.data=minmax(kmeans.data[order(kmeans.obj$cluster[genes.use]),],min=data.cut*(-1),max=data.cut)
-              doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,col.use = k.cols,...)
+              #doHeatMap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,col.use = k.cols,...)
+              kMeansHeatmap(object)
             }
             return(object)
           }
@@ -2737,13 +2795,16 @@ setMethod("genes.in.cluster", signature = "seurat",
 
 #Needs comments
 #' @export
-setGeneric("kMeansHeatmap", function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,...)  standardGeneric("kMeansHeatmap"))
+setGeneric("kMeansHeatmap", function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,row.lines=T,...)  standardGeneric("kMeansHeatmap"))
 #' @export
 setMethod("kMeansHeatmap", signature = "seurat",
-          function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,...) {
+          function(object, cells.use=object@cell.names,genes.cluster=NULL,max.genes=1e6,slim.col.label=TRUE,remove.key=TRUE,row.lines=T,...) {
             genes.cluster=set.ifnull(genes.cluster,unique(object@kmeans.obj[[1]]$cluster))
             genes.use=genes.in.cluster(object,genes.cluster,max.genes)
-            doHeatMap(object,cells.use = cells.use,genes.use = genes.use,slim.col.label=slim.col.label,remove.key=remove.key,...)
+            cluster.lengths=sapply(genes.cluster,function(x)length(genes.in.cluster(object,x)))
+            print(cluster.lengths)
+            rowsep.use=NA; if (row.lines) rowsep.use=cumsum(cluster.lengths)
+            doHeatMap(object,cells.use = cells.use,genes.use = genes.use,slim.col.label=slim.col.label,remove.key=remove.key,rowsep=rowsep.use,...)
           }
 )
             
