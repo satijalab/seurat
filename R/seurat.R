@@ -2675,9 +2675,9 @@ setGeneric("jackStrawPlot", function(object,PCs=1:5, nCol=3, score.thresh=1e-5,p
 setMethod("jackStrawPlot","seurat",
           function(object,PCs=1:5, nCol=3, score.thresh=1e-5,plot.x.lim=0.1,plot.y.lim=0.3) {
             pAll=object@jackStraw.empP
-            pAll <- pAll[,PCs, drop=F]
-            pAll$Contig <- rownames(pAll)
-            pAll.l <- melt(pAll, id.vars = "Contig")
+            pAll.small <- pAll[,PCs, drop=F]
+            pAll.small$Contig <- rownames(pAll)
+            pAll.l <- melt(pAll.small, id.vars = "Contig")
             colnames(pAll.l) <- c("Contig", "PC", "Value")
             
             qq.df <- NULL
@@ -2696,13 +2696,13 @@ setMethod("jackStrawPlot","seurat",
               
               
               if (is.null(qq.df))
-                qq.df <- data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep=""))
+                qq.df <- data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep=""), PC.label=paste0("PC",i, " ",sprintf("%1.3g", pc.score)))
               else
-                qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep="")))
+                qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep=""), PC.label=paste0("PC",i, " ",sprintf("%1.3g", pc.score))))
             }
 
             # create new dataframe column to wrap on that includes the PC number and score
-            pAll.l$PC.Score <- paste(score.df$PC, sprintf("%1.3g", score.df$Score))
+            pAll.l$PC.Score <- qq.df$PC.label
             gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC.Score", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
             return(gp)
 
