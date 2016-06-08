@@ -45,6 +45,8 @@
 #' @rdname seurat
 #' @aliases seurat-class
 #' @exportClass seurat
+#' @importFrom Rcpp evalCpp
+#' @useDynLib Seurat
 
 seurat <- setClass("seurat", slots = 
                      c(raw.data = "ANY", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -269,7 +271,6 @@ setMethod("plotNoiseModel","seurat",
 #' object@@scale.data, object@@data.info, object@@ident
 #' @import stringr
 #' @import pbapply
-#' @import pbsapply
 #' @export
 setGeneric("setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=T,...) standardGeneric("setup"))
 #' @export
@@ -335,7 +336,7 @@ setMethod("setup","seurat",
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param do.scale Z-normalize the residual values (default is TRUE)
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
-#' @import pbsapply
+#' @import pbapply
 #' @export
 setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut"))
 #' @export

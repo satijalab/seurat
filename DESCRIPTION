@@ -40,8 +40,8 @@ Collate:
     'seurat.R'
     'cluster_determination.R'
     'cluster_validation.R'
-    'helper.R'
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'
     'zfRenderSeurat.R'
+RoxygenNote: 5.0.1
