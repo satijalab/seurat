@@ -3129,8 +3129,9 @@ setMethod("jackStrawPlot","seurat",
             }
 
             # create new dataframe column to wrap on that includes the PC number and score
-            pAll.l$PC.Score <- paste(score.df$PC, sprintf("%1.3g", score.df$Score))
-            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(dist=qunif) + facet_wrap("PC.Score", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
+            pAll.l$PC.Score <- rep(paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)), each=length(unique(pAll.l$Contig)))
+            pAll.l$PC.Score <- factor(pAll.l$PC.Score, levels = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)))
+            gp <- ggplot(pAll.l, aes(sample=Value)) + stat_qq(distribution=qunif) + facet_wrap("PC.Score", ncol = nCol) + labs(x="Theoretical [runif(1000)]", y = "Empirical") +  xlim(0,plot.y.lim) + ylim(0,plot.x.lim) + coord_flip() + geom_abline(intercept=0, slope=1, linetype="dashed",na.rm=T) + theme_bw()
             return(gp)
           })
 
