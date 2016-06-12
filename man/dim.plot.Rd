@@ -6,7 +6,7 @@
 \usage{
 dim.plot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
-  cols.use = NULL, group.by = "ident", pt.shape = NULL)
+  cols.use = NULL, group.by = "ident", pt.shape = NULL, pt.alpha = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +33,8 @@ class. By default, ggplot assigns colors.}
 
 \item{pt.shape}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.}
+
+\item{pt.alpha}{A value between 0 and 1 to set points transparent. (default: 1).}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only

@@ -1389,42 +1389,86 @@ map.cell.score=function(gene,gene.value,insitu.bin,mu,sigma,alpha) {
   return(bin.prob)
 }
 
-#Internal, not documented for now
+
+#' @title Helper function of \code{initial_mapping}.
+#' @description Map one cell to bins.
 #' @export
-setGeneric("map.cell",  function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) standardGeneric("map.cell"))
-#' @export
-setMethod("map.cell", "seurat",
-          function(object,cell.name,do.plot=FALSE,safe.use=TRUE,text.val=NULL,do.rev=FALSE) {
-            insitu.matrix=object@insitu.matrix
-            insitu.genes=colnames(insitu.matrix)
-            insitu.genes=insitu.genes[insitu.genes%in%rownames(object@imputed)]
-            insitu.use=insitu.matrix[,insitu.genes]
-            imputed.use=object@imputed[insitu.genes,]
-            safe_fxn=sum
-            if (safe.use) safe_fxn=log_add
-            
-            all.needed.cols=unique(unlist(lapply(insitu.genes,function(x) paste(x,insitu.use[,x],"post",sep="."))))
-            missing.cols=which(!(all.needed.cols%in%colnames(object@mix.probs)))
-            if (length(missing.cols)>0) stop(paste("Error : ", all.needed.cols[missing.cols], " is missing from the mixture fits",sep=""))
-            all.probs=data.frame(sapply(insitu.genes,function(x) log(as.numeric(object@mix.probs[cell.name,paste(x,insitu.use[,x],"post",sep=".")]))))
-            scale.probs=t(t(all.probs)-apply(t(all.probs),1,log_add))
-            scale.probs[scale.probs<(-9.2)]=(-9.2)
-            #head(scale.probs)
-            total.prob=exp(apply(scale.probs,1,safe_fxn))
-            total.prob=total.prob/sum(total.prob)
-            if (do.plot) {
-              #plot(total.prob,main=cell.name)
-              par(mfrow=c(1,2))
-              txt.matrix=matrix(rep("",64),nrow=8,ncol=8)
-              if (!is.null(text.val)) txt.matrix[text.val]="X"
-              if (do.rev) scale.probs=scale.probs[unlist(lapply(0:7,function(x)seq(1,57,8)+x)),] 
-              aheatmap(matrix(total.prob,nrow=8,ncol=8),Rowv=NA,Colv=NA,txt=txt.matrix,col=bwCols)   
-              aheatmap(scale.probs,Rowv=NA,Colv=NA)
-              rp()
-            }
-            return(total.prob)
-          } 
+setGeneric("map.cell",
+  function(object, cell.name,
+           do.plot = FALSE, safe.use = TRUE,
+           text.val = NULL, do.rev = FALSE) standardGeneric("map.cell")
 )
+setMethod("map.cell", "seurat",
+  function(object, cell.name,
+           do.plot = FALSE, safe.use = TRUE,
+           text.val = NULL, do.rev = FALSE) {
+    insitu.matrix <- object@insitu.matrix
+    insitu.genes <- colnames(insitu.matrix)
+    insitu.genes <- intersect(insitu.genes, rownames(object@imputed))
+
+    insitu.use <- insitu.matrix[, insitu.genes]
+    imputed.use <- object@imputed[insitu.genes, ]
+
+    safe_fxn  <- sum
+    if (safe.use) {
+      safe_fxn <- log_add
+    }
+
+    all.avail.states <- lapply(insitu.matrix, unique)
+    all.avail.states <- unlist(lapply(insitu.genes,
+                                      function(x) paste(x,
+                                                        all.avail.states[[x]],
+                                                        "post", sep =".")
+                                      )
+                              )
+
+    missing.states <- setdiff(all.avail.states, colnames(object@mix.probs))
+    if (length(missing.states) > 0){
+      stop(paste0("Error: ", all.avail.states[missing.states], " is missing from the mixture fits"))
+    }
+
+    all.avail.probs <- object@mix.probs[cell.name, all.avail.states] # yellow-page
+    bins.avail.probs <- sapply(insitu.genes,
+                               function(x) {
+                                 g.stat.idx <- paste(x, insitu.matrix[ ,x],
+                                                     "post", sep = ".")
+                                 log(as.numeric(all.avail.probs[ ,g.stat.idx]))
+                               })
+    bins.avail.probs <- data.frame(bins.avail.probs)
+    tmp <- apply(bins.avail.probs, 2, log_add)
+    bins.avail.probs.scale <- bins.avail.probs - matrix(rep(tmp, 64), nrow = 64,
+                                                        byrow = TRUE)
+
+    THREHOLD <- -9.2
+    bins.avail.probs.scale[bins.avail.probs.scale < THREHOLD] <- THREHOLD
+
+    cell.bins.prob <- exp(apply(bins.avail.probs.scale, 1, safe_fxn))
+    cell.bins.prob <- cell.bins.prob / sum(cell.bins.prob)
+
+    #
+    # plot
+    #
+    if (do.plot) {
+      par(mfrow = c(1, 2))
+      txt.matrix <- matrix(rep("", 64), nrow = 8)
+      if (!is.null(text.val)) {
+        txt.matrix[text.val] <- "X"
+      }
+      if (do.rev) {
+        bins.avail.probs.scale <- bins.avail.probs.scale[unlist(lapply(0:7, function(x) seq(1, 57, 8) + x)), ]
+      }
+      aheatmap(matrix(cell.bins.prob, nrow = 8), Rowv = NA, Colv = NA,
+               txt = txt.matrix, col = bwCols)
+      aheatmap(bins.avail.probs.scale, Rowv = NA, Colv = NA)
+      rp()
+    }
+    ## output
+    ## cell to 64 bins probs - numeric vector
+    return(cell.bins.prob)
+
+  }
+)
+
 
 #' Get cell centroids
 #'
@@ -1471,25 +1515,75 @@ setMethod("get.centroids", "seurat",
 #'
 #' @param object Seurat object
 #' @param genes.use Genes to use to drive the refinement procedure.
+#' @param cells.num Number of centroids candiates to be used to estimate mean
+#' and variance parameters of for each cell and each bin. Default: 2n where n is
+#' number of \code{genes.use}.
+#' @param bins Number of bins. Default: 64.
 #' @return Seurat object, where mapping probabilities for each bin are stored
 #' in object@@final.prob
 #' @import fpc
+#' @importFrom dplyr summarise group_by
+#' @importFrom tidyr spread
+#' @importFrom mixtools logdmvnorm
 #' @export
-setGeneric("refined.mapping",  function(object,genes.use) standardGeneric("refined.mapping"))
+setGeneric("refined.mapping",
+           function(object, genes.use, cells.num, bins = 64)
+             standardGeneric("refined.mapping"))
 #' @export
 setMethod("refined.mapping", "seurat",
-          function(object,genes.use) {
-            
-            genes.use=ainb(genes.use, rownames(object@imputed))            
-            cells.max=t(sapply(colnames(object@data),function(x) exact.cell.centroid(object@final.prob[,x])))
-            all.mu=sapply(genes.use,function(gene) sapply(1:64, function(bin) mean(as.numeric(object@imputed[gene,fetch.closest(bin,cells.max,2*length(genes.use))]))))
-            all.cov=list(); for(x in 1:64) all.cov[[x]]=cov(t(object@imputed[genes.use,fetch.closest(x,cells.max,2*length(genes.use))]))
-            
-            mv.probs=sapply(colnames(object@data),function(my.cell) sapply(1:64,function(bin) slimdmvnorm(as.numeric(object@imputed[genes.use,my.cell]),as.numeric(all.mu[bin,genes.use]),all.cov[[bin]])))
-            mv.final=exp(sweep(mv.probs,2,apply(mv.probs,2,log_add)))
-            object@final.prob=data.frame(mv.final)            
-            return(object)
-          } 
+  function(object, genes.use, cells.num, bins = 64) {
+    genes.use <- intersect(genes.use, rownames(object@imputed))
+    if (missingArg(cells.num)) {
+      cells.num <- 2 * length(genes.use)
+    }
+    cells.name <- colnames(object@data)
+    centroids.pos <- t(sapply(cells.name,
+                          function(x) calc_cell_centroid(object@final.prob[, x])
+                          ))
+    bins.centroids <- t(sapply(1:bins, function(b) fetch_closest(b, centroids.pos,
+                                                               cells.num)))
+    ## estimate mean of imputed expression value of landmarked genes in all
+    ## bins
+    permu.centrds <- c(t(bins.centroids)) ## matrix to vector
+    cells.num <- ncol(bins.centroids) ## cells.num is 2n+1 due to compatible modal
+    permu.bins <- rep(paste0("bin.", seq_len(bins)), each = cells.num)
+    gbcenexpr.df <- data.frame(permu.bins, permu.centrds,
+                               stringsAsFactors = FALSE)
+    temp.rep.idx <- rep(seq_len(length(permu.centrds)), length(genes.use))
+    gbcenexpr.df <- gbcenexpr.df[temp.rep.idx, ]
+    permu.genes <- rep(genes.use, each = length(permu.centrds))
+    gbcenexpr.df <- cbind(permu.genes, gbcenexpr.df, stringsAsFactors = FALSE)
+    gbcenexpr.df$expr <- unlist(sapply(seq_len(nrow(gbcenexpr.df)),
+                              function(i) {
+                                r = gbcenexpr.df$permu.genes[i]
+                                c = gbcenexpr.df$permu.centrds[i]
+                                as.numeric(object@imputed[r, c])
+                              }))
+    gb.mu <- summarise(group_by(gbcenexpr.df, permu.genes, permu.bins),
+                       mu = mean(expr))
+    gb.mu <- as.data.frame(gb.mu)
+    gb.mu <- spread(gb.mu, permu.bins, mu)
+    rownames(gb.mu) <- gb.mu$permu.genes
+    gb.mu <- gb.mu[, -1]
+    gb.mu <- gb.mu[genes.use, paste0('bin.', seq_len(bins))]
+
+    gb.cov <- lapply(seq_len(bins), function(b)
+                     cov(t(object@imputed[genes.use, bins.centroids[b, ]])))
+
+    ## estimate the density for multivariate normal distribution
+    imputed.expr <- t(object@imputed[genes.use, cells.name])
+    mvnorm.logden <- t(sapply(seq_len(bins), function(b) {
+                            b.mv.mu = gb.mu[, b]
+                            b.mv.cov = gb.cov[[b]]
+                            logdmvnorm(y = imputed.expr,
+                                       mu = b.mv.mu, sigma = b.mv.cov)
+                     }))
+
+    ## substract the log_add
+    mv.final <- exp(sweep(mvnorm.logden, 2, apply(mvnorm.logden, 2, log_add)))
+    object@final.prob <- data.frame(mv.final)
+    return(object)
+  }
 )
 
 #' Infer spatial origins for single cells
@@ -1501,7 +1595,7 @@ setMethod("refined.mapping", "seurat",
 #' @param object Seurat object
 #' @param cells.use Which cells to map
 #' @return Seurat object, where mapping probabilities for each bin are stored
-#' in object@@final.prob
+#' in \code{object@@final.prob}
 #' @export
 setGeneric("initial.mapping", function(object,cells.use=NULL) standardGeneric("initial.mapping"))
 #' @export
@@ -1566,59 +1660,107 @@ setMethod("calc.insitu", "seurat",
 #' 
 #' @param object Seurat object
 #' @param gene Gene to fit
-#' @param do.k Number of modes for the mixture model (default is 2)
+#' @param do.k Number of modes for the mixture model (default is 2).  When
+#' \code{do.k} is set greater than 2, it cannot co-exist with parameter
+#' \code{start.pct}.
 #' @param num.iter Number of 'greedy k-means' iterations (default is 1)
-#' @param do.plot Plot mixture model results
-#' @param genes.use Genes to use in the greedy k-means step (See manuscript for details)
-#' @param start.pct Initial estimates of the percentage of cells in the 'on'
-#' state (usually estimated from the in situ map)
+#' @param do.plot Logic. Plot mixture model results if TRUE.
+#' @param genes.use Genes to use in the greedy k-means step. (Default: landmark
+#' genes. See manuscript for details)
+#' @param start.pct (Optional) Initial estimates of the percentage of cells in
+#' the 'on' state (usually estimated from the in situ map). Cannot co-exist with
+#' \code{do.k}.  When \code{start.pct} is used, it is assumed that only 2 states
+#' exisits and in the same time \code{do.k} is forced to be 2.
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
-#' or 'off' state for each gene is stored in object@@mix.probs
-#' @importFrom mixtools normalmixEM
+#' or 'off' state for each gene is stored in \code{object@@mix.probs}
 #' @export
-setGeneric("fit.gene.k", function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) standardGeneric("fit.gene.k"))
-#' @export
+setGeneric("fit.gene.k",
+  function(object, gene, do.k = 2, num.iter = 1, do.plot = FALSE,
+           genes.use = NULL, start.pct = NULL) standardGeneric("fit.gene.k"))
 setMethod("fit.gene.k", "seurat",
-          function(object, gene, do.k=2,num.iter=1,do.plot=FALSE,genes.use=NULL,start.pct=NULL) {
-            data=object@imputed            
-            data.use=data[gene,]
-            names(data.use)=colnames(data.use)
-            scale.data=t(scale(t(object@imputed)))
-            genes.use=set.ifnull(genes.use,rownames(scale.data))
-            genes.use=genes.use[genes.use%in%rownames(scale.data)]
-            scale.data=scale.data[genes.use,]
+  function(object, gene, do.k = 2, num.iter = 1, do.plot = FALSE,
+           genes.use = NULL, start.pct = NULL) {
+    data <- object@imputed
+    data.use <- data[gene, ]
+    names(data.use) <- colnames(data.use)
+    scale.data <- t(scale(t(object@imputed)))
+    genes.use <- set.ifnull(genes.use, rownames(scale.data))
+    genes.use <- intersect(genes.use, rownames(scale.data))
+    scale.data <- scale.data[genes.use, ]
 
-            data.cut=as.numeric(data.use[gene,])
-            cell.ident=as.numeric(cut(data.cut,do.k))
-            if (!(is.null(start.pct))) {
-              cell.ident=rep(1,length(data.cut))
-              cell.ident[data.cut>quantile(data.cut,1-start.pct)]=2
-            }
-            cell.ident=order(tapply(as.numeric(data.use),cell.ident,mean))[cell.ident]
-            ident.table=table(cell.ident)
-            if (num.iter > 0) {
-              for(i2 in 1:num.iter) {
-                cell.ident=iter.k.fit(scale.data,cell.ident,data.use)
-                ident.table=table(cell.ident)
-              }
-            }
-            ident.table=table(cell.ident)
-            raw.probs=t(sapply(data.use,function(y) unlist(lapply(1:do.k,function(x) ((ident.table[x]/sum(ident.table))*dnorm(y,mean(as.numeric(data.use[cell.ident==x])),sd(as.numeric(data.use[cell.ident==x]))))))))
-            norm.probs=raw.probs/apply(raw.probs,1,sum)
-            colnames(norm.probs)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"post",sep=".")))
-            norm.probs=cbind(norm.probs,cell.ident); colnames(norm.probs)[ncol(norm.probs)]=paste(gene,".ident",sep="")
-            new.mix.probs=data.frame(minusc(object@mix.probs,paste(gene,".",sep="")),row.names = rownames(object@mix.probs)); colnames(new.mix.probs)[1]="nGene"
-            object@mix.probs=cbind(new.mix.probs,norm.probs)
-            
-            if (do.plot) {
-              nCol=2
-              num.row=floor((do.k+1)/nCol-1e-5)+1
-              hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
-              for(i in 1:do.k) lines(seq(-10,10,0.01),(ident.table[i]/sum(ident.table)) * dnorm(seq(-10,10,0.01),mean(as.numeric(data.use[cell.ident==i])),sd(as.numeric(data.use[cell.ident==i]))),col=i,lwd=2); 
-            }
-            return(object)
-          }
+    data.cut <- as.numeric(data.use[gene, ])
+    cell.ident <- as.numeric(cut(data.cut, do.k))
+    if (!(is.null(start.pct))) {
+      if(!(is.null(do.k)) && do.k > 2) {
+        stop("Parameter do.k with greater than 2 cannot coexist with parameter start.pct")
+      }
+      cell.ident <- rep(1, length(data.cut))
+      cell.ident[data.cut > quantile(data.cut, 1-start.pct)] <- 2
+    }
+    cell.ident <- order(tapply(as.numeric(data.use),cell.ident,mean))[cell.ident]
+    ident.table <- table(cell.ident)
+    if (num.iter > 0) {
+      for(i2 in 1:num.iter) {
+        cell.ident <- iter.k.fit.fast(scale.data, cell.ident, data.use, do.k)
+        ident.table <- table(cell.ident)
+      }
+    }
+    data.use.t <- as.data.frame(t(data.use))
+    data.use.t <- cbind(data.use.t, cell_ident = cell.ident)
+    data.use.t.melt <- melt(data.use.t, id.vars = "cell_ident")
+    kmodal.mu <- dcast(data.use.t.melt, cell_ident ~ variable, mean)
+    kmodal.sd <- dcast(data.use.t.melt, cell_ident ~ variable, sd)
+    kmodal.norm_factor <- as.numeric(ident.table / sum(ident.table))
+    raw.probs <- sapply(1:do.k, function(k) {
+      factor.k <- as.numeric(kmodal.norm_factor[k])
+      mean.k <- kmodal.mu[k, gene]
+      sd.k <- kmodal.sd[k, gene]
+      prob.k <- (factor.k * dnorm(data.use.t[, gene], mean = mean.k, sd = sd.k))
+      return(prob.k)
+    })
+    norm.probs <- as.data.frame(raw.probs / rowSums(raw.probs))
+    #colnames(norm.probs)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"post",sep=".")))
+    colnames(norm.probs) <- paste(gene, (1:do.k)-1, "post", sep = ".")
+    row.names(norm.probs) <- row.names(data.use.t)
+    norm.probs <- cbind(norm.probs, cell.ident)
+    colnames(norm.probs)[ncol(norm.probs)] <- paste0(gene, ".ident")
+
+    new.mix.probs <- data.frame(minusc(object@mix.probs,
+                                       paste(gene, ".",sep = "")),
+                                row.names = rownames(object@mix.probs))
+    colnames(new.mix.probs)[1] <- "nGene"
+    object@mix.probs <- cbind(new.mix.probs,norm.probs)
+
+    if (do.plot) {
+      nCol=2
+      num.row=floor((do.k+1)/nCol-1e-5)+1
+      hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
+      for(k in 1:do.k) {
+        # hist(as.numeric(data.use),probability = TRUE,ylim=c(0,1),xlab=gene,main=gene);
+        factor.k <- as.numeric(kmodal.norm_factor[k])
+        mean.k <- kmodal.mu[k, gene]
+        sd.k <- kmodal.sd[k, gene]
+        lines(seq(-10,10,0.01),
+              factor.k * dnorm(seq(-10,10,0.01), mean.k, sd.k),
+              col = k + 1, lwd = 2);
+      }
+    }
+    return(object)
+  }
 )
+
+iter.k.fit.fast <- function(scale.data, cell.ident, data.use, do.k) {
+  # cell.ident.K <- sort(unique(cell.ident))
+  cell.ident.K <- 1:(do.k)
+  means.all <- sapply(cell.ident.K, function(x)
+                      rowMeans(scale.data[, cell.ident == x]))
+  all.dist <- lapply(cell.ident.K, function(i)
+                     calc_dist(scale.data, means.all[, i]))
+  all.dist <- matrix(unlist(all.dist), ncol = length(cell.ident.K))
+  cell.ident <- apply(all.dist, 1, which.min)
+  cell.ident <- order(tapply(as.numeric(data.use), cell.ident, mean))[cell.ident]
+  return(cell.ident)
+}
 
 #Internal, not documented for now
 iter.k.fit=function(scale.data,cell.ident,data.use) {
@@ -1675,44 +1817,174 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
   return(lasso.fits)  
 }
 
-#' Calculate imputed expression values
+#' @title Impute gene expression and fill in Seurat object.
 #'
-#' Uses L1-constrained linear models (LASSO) to impute single cell gene
-#' expression values.
-#'
+#' @description Impute the expression values of import genes, e.g. landmark,
+#' genes with other genes as predictors via L1-constrained linear models, i.e.
+#' lasso (default), or partial least squares regression (plsr), or tilling LASSO #' (tlasso).
 #'
 #' @param object Seurat object
 #' @param genes.use A vector of genes (predictors) that can be used for
-#' building the LASSO models.
-#' @param genes.fit A vector of genes to impute values for
+#' building the imputation models.
+#' @param genes.fit A vector of response genes to be imputed.
+#' @param scheme Imputation strategies: "lasso", "plsr", "tlasso" (tilling lasso).
 #' @param s.use Maximum number of steps taken by the algorithm (lower values
-#' indicate a greater degree of smoothing)
+#' indicate a greater degree of smoothing). Only used for "lasso" scheme.
 #' @param do.print Print progress (output the name of each gene after it has
 #' been imputed).
-#' @param gram The use.gram argument passed to lars
+#' @param gram The use.gram argument passed to \link{lars} of lars package. See
+#' \link{lars} for parameter details. Only used for "lasso" scheme.
 #' @return Returns a Seurat object where the imputed values have been added to
-#' object@@data
+#' \code{object@@data}. If \code{genes.fit} have already existed in object,
+#' their values are imputed again via the selected \code{scheme} and refilled;
+#' otherwise they are imputed and added to \code{object@@data}.
+#' @import lars
+#' @import pls
+#' @export
+setGeneric("addImputedScore",
+  function(object, genes.use = NULL, genes.fit = NULL, scheme = "lasso",
+           s.use = 20, do.print = FALSE, gram = TRUE)
+  standardGeneric("addImputedScore"))
+setMethod("addImputedScore", "seurat",
+  function(object, genes.use = NULL, genes.fit = NULL, scheme = "lasso",
+           s.use = 20, do.print = FALSE, gram = TRUE) {
+    genes.use <- set.ifnull(genes.use, object@var.genes)
+    genes.fit <- set.ifnull(genes.fit, object@var.genes)
+    genes.use <- intersect(genes.use, rownames(object@data))
+    genes.fit <- intersect(genes.fit, rownames(object@data))
+
+    fitted.expr <- sapply(genes.fit, function(g) {
+                           x = t(object@data[setdiff(genes.use, g), ])
+                           y = object@data[g, ]
+                           if (scheme == "lasso"){
+                             lasso_preds_expr(x, y, s.use = s.use, y.name = g,
+                                              do.print, gram)
+                           } else if (scheme == "plsr"){
+                             plsr_preds_expr(x, y, y.name =g, do.print)
+                           } else if (scheme == "tlasso"){
+                             tilling_lasso_preds_expr(x, y, s.use = s.use,
+                                                      y.name = g, do.print,
+                                                      gram)
+                           } else { stop('xx Select imputation strategy.') }
+                         })
+    fitted.expr <- as.data.frame(t(fitted.expr))
+
+    genes.old <- intersect(genes.fit, rownames(object@imputed))
+    genes.new <- setdiff(genes.fit, rownames(object@imputed))
+    if (length(genes.old) > 0) {
+      object@imputed[genes.old, ] <- fitted.expr[genes.old, ]
+    }
+
+    object@imputed <- rbind(object@imputed, fitted.expr[genes.new, ])
+    return(object)
+  }
+)
+
+
+#' PLSR scheme to perform imputation
+#'
+#' @param x data.frame of predictors(columns): observed gene expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param y.name Chractor. Name of given landmarked gene.
+#' @param do.print Logic. Whether print gene name to screen.
+#' @param validation Charactor. Scheme for validation. Default: CV.
+#' @import pls
+#' @export
+plsr_preds_expr <- function(x, y, y.name, do.print = FALSE, validation = "CV"){
+  if (class(x) != "data.frame") x <- as.data.frame(x)
+  y <- as.numeric(y)
+  data <- cbind(x, y)
+  colnames(data)[ncol(data)] <- y.name
+  f <- as.formula(paste0(y.name, " ~ ."))
+  plsr.modal <- plsr(formula = f, data = data, validation = validation)
+  plsr.rmsep <- RMSEP(plsr.modal, estimate = validation)
+  k <- which.min(plsr.rmsep$val) - 1
+  k <- ifelse(k == 0, 1, k) ## excluding intercept item
+  plrs.fits <- predict(plsr.modal, x, ncomp = k) ## array: Cells x 1 x 1
+  plrs.fits <- plrs.fits[, 1, 1]
+  if (do.print) print(y.name)
+  return(plrs.fits)
+}
+
+
+#' @title Impute expression of landmarked genes based on other genes via LASSO
+#' linear modal
+#'
+#' @param x Matrix of predictors(columns), observed genes expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param s.use Numeric. See \link{predict.lars}'s parameter \code{s}.
+#' @param y.name Chractor. Name of the given landmarked gene.
+#' @param do.print Logic. Whether print \code{y.name} on screen.
+#' @param use.gram Logic. See \link{lars}'s parameter \code{use.Gram}
+#' @return Returns the imputed landmarked gene expession via LASSO modal.
 #' @import lars
 #' @export
-setGeneric("addImputedScore", function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) standardGeneric("addImputedScore"))
+lasso_preds_expr <- function(x, y, s.use = 20, y.name = NULL,
+                            do.print = FALSE, use.gram = TRUE) {
+  if (class(x) != "matrix") x <- as.matrix(x)
+  lasso.modal <- lars(x, as.numeric(y), type = "lasso", max.steps = s.use * 2,
+                      use.Gram = use.gram)
+  #lasso.fits = predict.lars(lasso.modal,x,type = "fit",s = min(s.use,max(lasso.modal$df)))$fit
+  lasso.fits <- predict.lars(lasso.modal, x, type = "fit", s = s.use)$fit
+  if (do.print) print(y.name)
+  return(lasso.fits)
+}
+
+
+#' @title Tilling LASSO linear modal to impute expression of landmark genes
+#'
+#' @param x Matrix of predictors(columns), observed genes expression.
+#' @param y Vector of response, observed expression of given landmarked gene.
+#' @param s.use Numeric. See \link{predict.lars}'s parameter \code{s}.
+#' @param y.name Chractor. Name of the given landmarked gene.
+#' @param do.print Logic. Whether print \code{y.name} on screen.
+#' @param use.gram Logic. See \link{lars}'s parameter \code{use.Gram}
+#' @param w Window size to set the training data size relative to input
+#' \code{x}. Default: 0.8.
+#' @param loops Times to run tilling LASSO.
+#' @return Returns the imputed landmarked gene expession via LASSO modal.
+#' @import lars
 #' @export
-setMethod("addImputedScore", "seurat",
-          function(object, genes.use=NULL,genes.fit=NULL,s.use=20,do.print=FALSE,gram=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
-            genes.fit=set.ifnull(genes.fit,object@var.genes)
-            genes.use=genes.use[genes.use%in%rownames(object@data)]
-            genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
-            
-            lasso.input=t(object@data[genes.use,])
-            lasso.fits=data.frame(t(sapply(genes.fit,function(x)lasso.fxn(t(object@data[genes.use[genes.use!=x],]),object@data[x,],s.use=s.use,x,do.print,gram))))
-            genes.old=genes.fit[genes.fit%in%rownames(object@imputed)]
-            genes.new=genes.fit[!(genes.fit%in%rownames(object@imputed))]
-            
-            if (length(genes.old)>0) object@imputed[genes.old,]=lasso.fits[genes.old,]
-            object@imputed=rbind(object@imputed,lasso.fits[genes.new,])
-            return(object)
-          }
-)    
+tilling_lasso_preds_expr <- function(x, y, s.use = 20, y.name = NULL,
+                             do.print = FALSE, use.gram = FALSE,
+                             w = 0.8, loops = 10) {
+  if(nrow(x) < 10) stop("Size of sequenced cells is less than 10")
+  x <- as.matrix(x)
+  y <- as.numeric(y)
+  n <- nrow(x)
+  s <- ceiling(n * (1 - w))
+  idx <- 1:n
+
+  yhatmtx <- sapply(1:loops, function(i) {
+    set.seed(i)
+    ridx <- sample(idx, n, replace = FALSE)
+    ridx.p <- partition(ridx, s)
+    yhat <- rep(NA, nrow(x))
+    parts <- seq_len(length(ridx.p))
+    yhat[ridx] <- unlist(lapply(parts,
+                     function(p) {
+                       idx.un <- ridx.p[[p]]
+                       idx.tr <- setdiff(ridx, idx.un)
+                       x.tr <- x[idx.tr, ]
+                       y.tr <- y[idx.tr]
+                       model.p <- lars(x.tr, y.tr, type = "lasso",
+                                       max.steps = s.use * 2,
+                                       use.Gram = use.gram)
+                       x.un <- x[idx.un, ]
+                       o <- predict.lars(model.p, x.un, type = "fit", s = s.use)
+                       o$fit
+                     }))
+    if(do.print) print(y.name)
+    names(yhat) <- rownames(x)
+    yhat
+  }, simplify = FALSE)
+  yhatmtx <- do.call("rbind", yhatmtx)
+  if (loops > 1){
+    return(colMeans(yhatmtx))
+  }else {
+    return(yhatmtx[1, ])
+  }
+}
 
 
 # Not currently supported, but a cool scoring function
@@ -1976,13 +2248,14 @@ translate.dim.code=function(reduction.use) {
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any 
 #' cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.
+#' @param pt.alpha A value between 0 and 1 to set points transparent. (default: 1).
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #' @export
-setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) standardGeneric("dim.plot"))
+setGeneric("dim.plot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL,pt.alpha=1) standardGeneric("dim.plot"))
 #' @export
 setMethod("dim.plot", "seurat", 
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL,pt.alpha=1) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=fetch.data(object,dim.codes,cells.use)
@@ -1993,7 +2266,7 @@ setMethod("dim.plot", "seurat",
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size)
+            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size, alpha = pt.alpha)
             if (!is.null(pt.shape)) {
               shape.val=fetch.data(object,pt.shape)[cells.use,1]
               if (is.numeric(shape.val)) {
@@ -2888,6 +3161,7 @@ setMethod("jackStraw","seurat",
             #num.pc=min(num.pc,length(object@cell.names))
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
+            prop.freq <- max(prop.freq, (2.01 / length(pc.genes)))
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x),simplify = FALSE)

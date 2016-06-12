@@ -13,7 +13,7 @@ initial.mapping(object, cells.use = NULL)
 }
 \value{
 Seurat object, where mapping probabilities for each bin are stored
-in object@final.prob
+in \code{object@final.prob}
 }
 \description{
 Probabilistically maps single cells based on (imputed) gene expression
