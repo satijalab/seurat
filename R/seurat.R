@@ -2885,7 +2885,17 @@ setGeneric("jackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.
 #' @export
 setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
-            #num.pc=min(num.pc,length(object@cell.names))
+            
+            # error checking for number of PCs
+            if (num.pc >= ncol(object@pca.rot)){
+              num.pc <- ncol(object@pca.rot)
+              warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
+            }
+            if (num.pc > length(object@cell.names)){
+              num.pc <- length(object@cell.names)
+              warning("Number of PCs specified is greater than number of cells. Setting num.pc to ", num.pc, " and continuing.")
+            }
+            
             pc.genes=rownames(object@pca.x)
             if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
             md.x=as.matrix(object@pca.x)
