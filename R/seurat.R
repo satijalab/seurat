@@ -3330,7 +3330,15 @@ setMethod("jackStraw","seurat",
             }
             
             pc.genes=rownames(object@pca.x)
-            if (length(pc.genes)<200) prop.freq=max(prop.freq,0.015)
+            
+            if (length(pc.genes) < 3){
+              stop("Too few variable genes")
+            }
+            if (length(pc.genes) * prop.freq < 3){
+              warning("Number of variable genes given ", prop.freq, " as the prop.freq is low. Consider including more variable genes and/or increasing prop.freq. ", 
+                      "Continuing with 3 genes in every random sampling.")
+            }
+            
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x),simplify = FALSE)
@@ -3347,6 +3355,12 @@ setMethod("jackStraw","seurat",
 #' @export
 jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1) {
   set.seed(seed.use); rand.genes=sample(rownames(scaled.data),nrow(scaled.data)*prop.use)
+  
+  # make sure that rand.genes is at least 3
+  if (length(rand.genes) < 3){
+    rand.genes <- sample(rownames(scaled.data), 3)
+  }
+  
   data.mod=scaled.data
   data.mod[rand.genes,]=shuffleMatRow(scaled.data[rand.genes,])
   fake.pca=prcomp(data.mod)
