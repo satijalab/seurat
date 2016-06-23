@@ -765,9 +765,24 @@ setMethod("fetch.data","seurat",
           function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.return=data.frame(row.names = cells.use)
-            data.expression=object@data; if (use.imputed) data.expression=object@imputed; if (use.scaled) data.expression=object@scale.data
+            # if any vars passed are genes, subset expression data
+            gene_check <- vars.all %in% rownames(object@data)
+            data.expression <- matrix()
+            if (any(gene_check)){
+              if (all(gene_check)){
+                if(use.imputed) data.expression = object@imputed[vars.all, ]
+                if(use.scaled) data.expression = object@scale.data[vars.all, ]
+                else data.expression = object@data[vars.all, ]
+                return(t(data.expression))
+              }
+              else{
+                if(use.imputed) data.expression = object@imputed[vars.all[gene_check], ]
+                if(use.scaled) data.expression = object@scale.data[vars.all[gene_check], ]
+                else data.expression = object@data[vars.all[gene_check], ]
+                data.expression = t(data.expression)
+              }
+            }
             var.options=c("data.info","pca.rot","ica.rot","tsne.rot","mix.probs","gene.scores")
-            data.expression=t(data.expression)
             object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
             for (my.var in vars.all) {
               data.use=data.frame()
