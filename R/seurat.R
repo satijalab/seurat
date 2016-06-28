@@ -288,8 +288,8 @@ setMethod("setup","seurat",
             genes.use=rownames(object@data)
             if (min.cells>0) {
               if (!large.object) num.cells=apply(object@data,1,humpCt,min=object@is.expr)
-              if (large.object) num.cells=colSums(t.data)
-              genes.use=names(num.cells[which(num.cells>min.cells)])
+              if (large.object) num.cells=colSums(t.data > is.expr)
+              genes.use=names(num.cells[which(num.cells>=min.cells)])
               object@data=object@data[genes.use,]
               t.data=t.data[,genes.use]
             }

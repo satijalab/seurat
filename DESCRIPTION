@@ -45,3 +45,4 @@ Collate:
     'tSNE_project.R'
     'zfRenderSeurat.R'
 RoxygenNote: 5.0.1
+Suggests: testthat
