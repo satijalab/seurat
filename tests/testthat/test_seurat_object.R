@@ -4,7 +4,7 @@
 load("../testdata/nbt_small.Rdata")
 
 
-# Tests for object creation (via setup)
+# Tests for object creation (via new/setup)
 # --------------------------------------------------------------------------------
 context("Object creation")
 
@@ -35,7 +35,7 @@ test_that("entered parameters set correctly", {
 
 test_that("correct cells are used",{
   gene_count <- unname(findNGene(nbt_test@raw.data, nbt_test@is.expr))
-  expect_equal(min(gene_count), 2814)
+  expect_equal(min(gene_count), 2405)
   expect_true(all(gene_count >= min_genes))
 })
 
@@ -59,8 +59,8 @@ test_that("names and IDs set correctly", {
 })
 
 test_that("scaling done correctly", {
-  expect_equal(nbt_test@scale.data["AAAS", "Hi_GW21.2_3"], 3.28266251317083)
-  expect_equal(nbt_test@scale.data["ZYX", "Hi_GW16_1"], -0.380777117739444)
+  expect_equal(nbt_test@scale.data["AACS", "Hi_GW21.2_3"], 1.66900902464456)
+  expect_equal(nbt_test@scale.data["ZYX", "Hi_GW16_1"], -0.658326175185112)
 })
 
 test_that("nGene calculations are consistent" , {
@@ -69,3 +69,46 @@ test_that("nGene calculations are consistent" , {
   expect_equal(nbt_test@gene.scores[, 1], gene_count)
   
 })
+
+
+# Test PCA dimensional reduction
+# --------------------------------------------------------------------------------
+context("PCA dimensional reduction")
+
+nbt_test <- mean.var.plot(nbt_test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
+nbt_test <- pca(nbt_test, do.print=FALSE)
+
+test_that("pca returns expected data", {
+  
+  expect_is(nbt_test@pca.rot, "data.frame")
+  expect_is(nbt_test@pca.x, "data.frame")
+  expect_true(length(nbt_test@pca.rot) != 0)
+  expect_true(length(nbt_test@pca.x) != 0)
+  expect_equal(ncol(nbt_test@pca.rot), length(nbt_test@var.genes))
+  
+})
+
+
+# Tests for plotting functionality (via setup)
+# --------------------------------------------------------------------------------
+context("Plotting/Visualization")
+
+test_that("Violin plots (vlnPlot() ) return as expected", {
+  expect_is(vlnPlot(nbt_test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
+  expect_equal(length(vlnPlot(nbt_test, c("ZYX", "AACS"), do.ret = T)), 2)
+  
+})
+
+test_that("cellPlots return as expected", {
+  expect_equal(cellPlot(nbt_test, nbt_test@cell.names[1], nbt_test@cell.names[2]), NULL)
+})
+
+test_that("genePlots return as expected", {
+  expect_equal(genePlot(nbt_test,"DLX1","DLX2"), NULL)
+})
+
+test_that("mean.var.plot works as expected", {
+  expect_is(mean.var.plot(nbt_test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean), "seurat")
+})
+
+
