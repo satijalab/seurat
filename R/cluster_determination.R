@@ -75,7 +75,7 @@ setMethod("FindClusters", signature = "seurat",
                    random.seed = 0, print.output = 1){
 
   # if any SNN building parameters are provided, build a new SNN
-  if (k.param != 10 | k.scale != 10) {
+  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 10) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale, 
                         plot.SNN, prune.SNN, do.sparse, update)
   }

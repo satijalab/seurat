@@ -281,18 +281,17 @@ setMethod("setup","seurat",
             cells.use=names(num.genes[which(num.genes>min.genes)]) 
             
             object@data=object@raw.data[,cells.use]
-            t.data=t(object@data)
             
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data=data.frame();
             genes.use=rownames(object@data)
             if (min.cells>0) {
               if (!large.object) num.cells=apply(object@data,1,humpCt,min=object@is.expr)
-              if (large.object) num.cells=colSums(t.data > is.expr)
+              if (large.object) num.cells=rowSums(object@data > is.expr)
               genes.use=names(num.cells[which(num.cells>=min.cells)])
               object@data=object@data[genes.use,]
-              t.data=t.data[,genes.use]
             }
+            t.data=t(object@data[genes.use, ])
             
             object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)

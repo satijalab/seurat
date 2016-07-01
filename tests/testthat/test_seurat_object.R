@@ -112,3 +112,24 @@ test_that("mean.var.plot works as expected", {
 })
 
 
+# Tests for plotting functionality (via setup)
+# --------------------------------------------------------------------------------
+context("Clustering Functions")
+
+test_that("SNN will be built if not present", {
+  expect_true(length(nbt_test@snn.dense) == 0)
+  expect_true(length(nbt_test@snn.sparse) == 0)
+  
+  nbt_test <- FindClusters(nbt_test, pc.use = 1:8, print.output = 0, update = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  expect_true(length(nbt_test@snn.dense) > 1)
+  
+  nbt_test <- FindClusters(nbt_test, pc.use = 1:8, print.output = 0, update = 0, k.param = 4, k.scale = 1, do.sparse = T, save.SNN = T)
+              
+  expect_true(length(nbt_test@snn.dense) == 1)
+  expect_true(length(nbt_test@snn.sparse) > 1)
+  
+  
+})
+
+
+
