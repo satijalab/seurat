@@ -2902,7 +2902,7 @@ setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
             
             # error checking for number of PCs
-            if (num.pc >= ncol(object@pca.rot)){
+            if (num.pc > ncol(object@pca.rot)){
               num.pc <- ncol(object@pca.rot)
               warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
             }
