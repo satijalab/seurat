@@ -2677,38 +2677,72 @@ setMethod("icHeatmap","seurat",
 
 #' Principal component heatmap
 #' 
-#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. 
+#' Allows for nice visualization of sources of heterogeneity in the dataset.
 #' 
 #' @inheritParams doHeatMap
 #' @inheritParams pcTopGenes
 #' @inheritParams viz.pca
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @export
-setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) standardGeneric("pcHeatmap"))
+setGeneric("pcHeatmap", function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE, label.columns=NULL, ...) standardGeneric("pcHeatmap"))
 #' @export
 setMethod("pcHeatmap","seurat",
-          function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE,...) {
-            if (is.numeric((cells.use))) {
-              cells.use=pcTopCells(object,pc.use,cells.use,do.balanced)
+          function(object,pc.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE, label.columns=NULL, ...) {
+            num.row=floor(length(pc.use)/3.01)+1
+            orig_par <- par()$mfrow
+            par(mfrow=c(num.row, min(length(pc.use),3)))
+            cells <- cells.use
+            plots <- c()
+            
+            if (is.null(label.columns)){
+              if (length(pc.use) > 1){
+                label.columns = FALSE
+              }
+              else{
+                label.columns = TRUE
+              }
             }
-            else {          
-              cells.use=set.ifnull(cells.use,object@cell.names)
+            
+            for(pc in pc.use){
+              if (is.numeric((cells))) {
+                cells.use=pcTopCells(object,pc,cells,do.balanced)
+              }
+              else {          
+                cells.use=set.ifnull(cells,object@cell.names)
+              }
+              genes.use=rev(pcTopGenes(object,pc,num.genes,use.full,do.balanced))
+              cells.ordered=cells.use[order(object@pca.rot[cells.use,pc])]
+              data.use=object@scale.data[genes.use,cells.ordered]
+              data.use=minmax(data.use,min=disp.min,max=disp.max)
+              if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
+              vline.use=NULL;
+              
+              if (remove.key || length(pc.use) > 1){
+                hmFunction <- "heatmap2NoKey(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, pc = pc, "
+              }
+              else{
+                hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, main = paste(\"PC\",pc) , "
+              }
+              
+              if (!label.columns){
+                
+                hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
+              }
+              hmFunction <- paste(hmFunction, "...)", sep="")
+              eval(parse(text=hmFunction))
             }
-            genes.use=rev(pcTopGenes(object,pc.use,num.genes,use.full,do.balanced))
-            cells.ordered=cells.use[order(object@pca.rot[cells.use,pc.use])]
-            data.use=object@scale.data[genes.use,cells.ordered]
-            data.use=minmax(data.use,min=disp.min,max=disp.max)
-            if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
-            vline.use=NULL;
-            hmFunction=heatmap.2; if (remove.key) hmFunction=heatmap2NoKey
-            hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,...)
             if (do.return) {
               return(data.use)
             }
+            # reset graphics parameters
+            par(mfrow=orig_par)
           }
+
 )
 
 
@@ -3335,7 +3369,7 @@ setMethod("jackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
             
             # error checking for number of PCs
-            if (num.pc >= ncol(object@pca.rot)){
+            if (num.pc > ncol(object@pca.rot)){
               num.pc <- ncol(object@pca.rot)
               warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
             }

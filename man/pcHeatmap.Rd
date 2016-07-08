@@ -7,7 +7,7 @@
 pcHeatmap(object, pc.use = 1, cells.use = NULL, num.genes = 30,
   use.full = FALSE, disp.min = -2.5, disp.max = 2.5, do.return = FALSE,
   col.use = pyCols, use.scale = TRUE, do.balanced = FALSE,
-  remove.key = FALSE, ...)
+  remove.key = FALSE, label.columns = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -35,6 +35,8 @@ which would be passed to heatmap.2}
 
 \item{remove.key}{Removes the color key from the plot.}
 
+\item{label.columns}{Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC}
+
 \item{...}{Additional parameters to heatmap.2. Common examples are cexRow
 and cexCol, which set row and column text sizes}
 }
@@ -43,6 +45,7 @@ If do.return==TRUE, a matrix of scaled values which would be passed
 to heatmap.2. Otherwise, no return value, only a graphical output
 }
 \description{
-Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores. 
+Allows for nice visualization of sources of heterogeneity in the dataset.
 }
 

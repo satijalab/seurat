@@ -876,22 +876,22 @@ sensitivityCurve=function(cellName,scData,bulkData,mycut=1,mycex=1,mynew=TRUE,..
 
 #' @export
 heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE, 
-              distfun = dist, hclustfun = hclust, dendrogram = c("both", 
-                                                                 "row", "column", "none"), symm = FALSE, scale = c("none", 
-                                                                                                                   "row", "column"), na.rm = TRUE, revC = identical(Colv, 
-                                                                                                                                                                    "Rowv"), add.expr, breaks, symbreaks = min(x < 0, na.rm = TRUE) || 
-                scale != "none", col = "heat.colors", colsep, rowsep, 
-              sepcolor = "white", sepwidth = c(0.05, 0.05), cellnote, notecex = 1, 
-              notecol = "cyan", na.color = par("bg"), trace = c("column", 
-                                                                "row", "both", "none"), tracecol = "cyan", hline = median(breaks), 
-              vline = median(breaks), linecol = tracecol, margins = c(5, 
-                                                                      5), ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nr), 
-              cexCol = 0.2 + 1/log10(nc), labRow = NULL, labCol = NULL, 
-              key = TRUE, keysize = 1.5, density.info = c("histogram", 
-                                                          "density", "none"), denscol = tracecol, symkey = min(x < 
-                                                                                                                 0, na.rm = TRUE) || symbreaks, densadj = 0.25, main = NULL, 
-              xlab = NULL, ylab = NULL, lmat = NULL, lhei = NULL, axRowCol="black",lwid = NULL, 
-              ...) 
+                        distfun = dist, hclustfun = hclust, dendrogram = c("both", 
+                                                                           "row", "column", "none"), symm = FALSE, scale = c("none", 
+                                                                                                                             "row", "column"), na.rm = TRUE, revC = identical(Colv, 
+                                                                                                                                                                              "Rowv"), add.expr, breaks, symbreaks = min(x < 0, na.rm = TRUE) || 
+                          scale != "none", col = "heat.colors", colsep, rowsep, 
+                        sepcolor = "white", sepwidth = c(0.05, 0.05), cellnote, notecex = 1, 
+                        notecol = "cyan", na.color = par("bg"), trace = c("column", 
+                                                                          "row", "both", "none"), tracecol = "cyan", hline = median(breaks), 
+                        vline = median(breaks), linecol = tracecol, margins = c(5, 
+                                                                                5), ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nr), 
+                        cexCol = 0.2 + 1/log10(nc), labRow = NULL, labCol = NULL, 
+                        key = TRUE, keysize = 1.5, density.info = c("histogram", 
+                                                                    "density", "none"), denscol = tracecol, symkey = min(x < 
+                                                                                                                           0, na.rm = TRUE) || symbreaks, densadj = 0.25, main = NULL, 
+                        xlab = NULL, ylab = NULL, lmat = NULL, lhei = NULL, axRowCol="black",lwid = NULL, pc = NULL,
+                        ...) 
 {
   scale01 <- function(x, low = min(x), high = max(x)) {
     x <- (x - low)/(high - low)
@@ -927,7 +927,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     cellnote <- matrix("", ncol = ncol(x), nrow = nrow(x))
   if (!inherits(Rowv, "dendrogram")) {
     if (((!isTRUE(Rowv)) || (is.null(Rowv))) && (dendrogram %in% 
-                                                   c("both", "row"))) {
+                                                 c("both", "row"))) {
       if (is.logical(Colv) && (Colv)) 
         dendrogram <- "column"
       else dedrogram <- "none"
@@ -937,7 +937,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   }
   if (!inherits(Colv, "dendrogram")) {
     if (((!isTRUE(Colv)) || (is.null(Colv))) && (dendrogram %in% 
-                                                   c("both", "column"))) {
+                                                 c("both", "column"))) {
       if (is.logical(Rowv) && (Rowv)) 
         dendrogram <- "row"
       else dendrogram <- "none"
@@ -1035,7 +1035,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     x <- sweep(x, 2, sx, "/")
   }
   if (missing(breaks) || is.null(breaks) || length(breaks) < 
-        1) {
+      1) {
     if (missing(col) || is.function(col)) 
       breaks <- 16
     else breaks <- length(col) + 1
@@ -1098,7 +1098,13 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     image(cbind(1:nc), col = ColSideColors[colInd], axes = FALSE)
   }
   oldMar=par()$mar
-  par(mar = c(margins[1], margins[2], margins[1], margins[2]))
+  if (labCol[1] == ""){
+    par(mar = c(margins[1]-4, margins[2], margins[1], margins[2]))
+  }
+  else{
+    par(mar = c(margins[1], margins[2], margins[1], margins[2]))
+  }
+  
   
   x <- t(x)
   cellnote <- t(cellnote)
@@ -1110,8 +1116,17 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     cellnote <- cellnote[, iy]
   }
   else iy <- 1:nr
+  
+  # add pc number as title if plotting pc heatmaps
+  if(!is.null(pc)){
+    pc_title <- paste("PC", pc)
+  }
+  else{
+    pc_title <- ""
+  }
+  
   image(1:nc, 1:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 + 
-          c(0, nr), axes = FALSE, xlab = "", ylab = "", col = col, 
+          c(0, nr), axes = FALSE, xlab = "", ylab = "", main = pc_title , col = col, 
         breaks = breaks, ...)
   retval$carpet <- x
   if (exists("ddr")) 
@@ -1122,7 +1137,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   retval$col <- col
   if (any(is.na(x))) {
     mmat <- ifelse(is.na(x), 1, NA)
-    image(1:nc, 1:nr, mmat, axes = FALSE, xlab = "", ylab = "", 
+    image(1:nc, 1:nr, mmat, axes = FALSE, xlab = "", ylab = "", main = pc_title,
           col = na.color, add = TRUE)
   }
   axis(1, 1:nc, labels = labCol, las = 2, line = -0.5, tick = 0, 
