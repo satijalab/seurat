@@ -21,7 +21,7 @@ ValidateSpecificClusters(object, cluster1 = NULL, cluster2 = 1,
 \item{acc.cutoff}{Accuracy cutoff for classifier}
 }
 \value{
-Returns a Seurat object, object@ident has been updated with 
+Returns a Seurat object, object@ident has been updated with
 new cluster info
 }
 \description{

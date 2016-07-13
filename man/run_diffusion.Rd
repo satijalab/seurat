@@ -21,10 +21,10 @@ run_diffusion(object, cells.use = NULL, dims.use = 1:5, k.seed = 1,
 \item{do.fast}{If TRUE, uses the Barnes-hut implementation, which runs
 faster, but is less flexible}
 
-\item{add.iter}{If an existing tSNE has already been computed, uses the 
+\item{add.iter}{If an existing tSNE has already been computed, uses the
 current tSNE to seed the algorithm and then adds additional iterations on top of this}
 
-\item{genes.use}{If set, run the tSNE on this subset of genes 
+\item{genes.use}{If set, run the tSNE on this subset of genes
 (instead of running on a set of reduced dimensions). Not set (NULL) by default}
 
 \item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA}
@@ -39,7 +39,7 @@ perplexity (expected number of neighbors default is 30)}
 Returns a Seurat object with a tSNE embedding in object@tsne_rot
 }
 \description{
-Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced 
+Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
 dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
 }
 

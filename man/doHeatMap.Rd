@@ -32,11 +32,11 @@ is TRUE). If FALSE, cells are ordered based on their order in cells.use}
 
 \item{col.use}{Color palette to use}
 
-\item{slim.col.label}{if (order.by.ident==TRUE) then instead of displaying 
-every cell name on the heatmap, display only the identity class name once 
+\item{slim.col.label}{if (order.by.ident==TRUE) then instead of displaying
+every cell name on the heatmap, display only the identity class name once
 for each group}
 
-\item{group.by}{If (order.by.ident==TRUE) default,  you can group cells in 
+\item{group.by}{If (order.by.ident==TRUE) default,  you can group cells in
 different ways (for example, orig.ident)}
 
 \item{remove.key}{Removes the color key from the plot.}

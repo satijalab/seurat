@@ -31,7 +31,7 @@ class. By default, ggplot assigns colors.}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
-\item{pt.shape}{If NULL, all points are circles (default). You can specify any 
+\item{pt.shape}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with fetch.data) allowing for both different colors and different shapes on cells.}
 }
 \value{

@@ -34,7 +34,7 @@ heat.colors(10).}
 No return value, only a graphical output
 }
 \description{
-Similar to feature.plot, however, also splits the plot by visualizing each
+Similar to FeaturePlot, however, also splits the plot by visualizing each
 identity class separately.
 }
 \details{

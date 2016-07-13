@@ -18,10 +18,10 @@ DBclust_dimension(object, dim.1 = 1, dim.2 = 2, reduction.use = "tsne",
 
 \item{G.use}{Parameter for the density clustering. Lower value to get more fine-scale clustering}
 
-\item{set.ident}{TRUE by default. Set identity class to the results of the density clustering. 
-Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.}
-
 \item{seed.use}{Random seed for the dbscan function}
+
+\item{SetIdent}{TRUE by default. Set identity class to the results of the density clustering.
+Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.}
 
 \item{\dots}{Additional arguments to be passed to the dbscan function}
 }

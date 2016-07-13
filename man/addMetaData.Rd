@@ -22,6 +22,6 @@ Adds additional data for single cells to the Seurat object. Can be any piece
 of information associated with a cell (examples include read depth,
 alignment rate, experimental batch, or subpopulation identity). The
 advantage of adding it to the Seurat object is so that it can be
-analyzed/visualized using fetch.data, vlnPlot, genePlot, subsetData, etc.
+analyzed/visualized using fetch.data, VlnPlot, GenePlot, SubsetData, etc.
 }
 

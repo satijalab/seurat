@@ -26,8 +26,8 @@ dot.plot(object, genes.plot, cex.use = 2, cols.use = NULL,
 Only graphical output
 }
 \description{
-Intuitive way of visualizing how gene expression changes across different identity classes (clusters). 
-The size of the dot encodes the percentage of cells within a class, while the color encodes the 
+Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
+The size of the dot encodes the percentage of cells within a class, while the color encodes the
 average expression level of 'expressing' cells (green is high).
 }
 

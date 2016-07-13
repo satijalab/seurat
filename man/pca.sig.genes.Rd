@@ -15,7 +15,7 @@ pca.sig.genes(object, pcs.use, pval.cut = 0.1, use.full = TRUE,
 \item{pval.cut}{P-value cutoff}
 
 \item{use.full}{Use the full list of genes (from the projected PCA). Assumes
-that project.pca has been run. Default is TRUE}
+that ProjectPCA has been run. Default is TRUE}
 
 \item{max.per.pc}{Maximum number of genes to return per PC. Used to avoid genes from one PC dominating the entire analysis.}
 }
@@ -24,7 +24,7 @@ A vector of genes whose p-values are statistically significant for
 at least one of the given PCs.
 }
 \description{
-Returns a set of genes, based on the jackStraw analysis, that have
+Returns a set of genes, based on the JackStraw analysis, that have
 statistically significant associations with a set of PCs.
 }
 

@@ -25,7 +25,7 @@ getDescendants<-function(tree,node,curr=NULL){
   daughters<-tree$edge[which(tree$edge[,1]==node),2]
   curr<-c(curr,daughters)
   w<-which(daughters>=length(tree$tip))
-  if(length(w)>0) for(i in 1:length(w)) 
+  if(length(w)>0) for(i in 1:length(w))
     curr<-getDescendants(tree,daughters[w[i]],curr)
   return(curr)
 }
@@ -38,11 +38,11 @@ situ3d=function(data, label=NULL, ...) {
   expression.matrix <- data.frame(matrix(exp.1, nrow=8, ncol=8))
   rownames(expression.matrix) <- c("24-30", "17-23", "13-16", "9-12", "7-8", "5-6", "3-4", "1-2")
   names(expression.matrix) <- c("1-4", "5-8", "9-12", "13-16", "17-20", "21-24", "25-28", "29-32")
-  
+
   # Call the plotting function.
   zf.insitu.side(expression.matrix)
   par3d(windowRect=c(0, 0, 800, 800))
-  
+
   # Label or not and then set the view.
   if (!(is.null(label))) {
     text3d(x=0, y=0, z=1.5, text=label, cex=3)
@@ -67,11 +67,11 @@ humpMean=function(x, min=0) {
 #' @export
 humpVar=function(x, min=0) {
   return(var(x[x>min]))
-} 
+}
 
-debugdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) 
+debugdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE)
 {
-  if (is.vector(x)) 
+  if (is.vector(x))
     x <- matrix(x, ncol = length(x))
   p <- ncol(x)
   dec <- tryCatch(chol(sigma), error = function(e) e)
@@ -82,7 +82,7 @@ debugdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE)
   logretval
 }
 
-slimdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) 
+slimdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE)
 {
   x <- matrix(x, ncol = length(x))
   p <- ncol(x)
@@ -94,7 +94,7 @@ slimdmvnorm=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE)
   logretval
 }
 
-slimdmvnorm_nosum=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) 
+slimdmvnorm_nosum=function (x, mean = rep(0, p), sigma = diag(p), log = FALSE)
 {
   x <- matrix(x, ncol = length(x))
   p <- ncol(x)
@@ -149,7 +149,7 @@ minusr=function(data,code) {
   toRet=data.frame(data[-toIgnore,])
   rownames(toRet)=rownames(data)[-toIgnore]
   colnames(toRet)=colnames(data)
-  return(toRet)                   
+  return(toRet)
 }
 
 #' @export
@@ -196,7 +196,7 @@ neighbor.cells=function(bin) {
 }
 
 all.neighbor.cells=function(bin,dist=1) {
-  all.comb=expand.grid(rep(list(-dist:dist), 2)) 
+  all.comb=expand.grid(rep(list(-dist:dist), 2))
   return(unique(unlist(lapply(1:nrow(all.comb),function(x)shift.cell(bin,all.comb[x,1],all.comb[x,2])))))
 }
 
@@ -207,11 +207,11 @@ gg.legend.text=function(x=12,y="bold") return(theme(legend.text = element_text(s
 #' @export
 gg.legend.pts=function(x=6) guides(colour = guide_legend(override.aes = list(size=x)))
 #' @export
-gg.xax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.x = element_text(face=z, colour=y, size=x), 
+gg.xax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.x = element_text(face=z, colour=y, size=x),
                                                               axis.text.x  = element_text(angle=90, vjust=0.5, size=x2)))
 
 #' @export
-gg.yax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.y = element_text(face=z, colour=y, size=x), 
+gg.yax=function(x=16,y="#990000",z="bold",x2=12) return(theme(axis.title.y = element_text(face=z, colour=y, size=x),
                                                               axis.text.y  = element_text(angle=90, vjust=0.5, size=x2)))
 
 #' @export
@@ -285,7 +285,7 @@ expMean=function(x) {
 #' @export
 normal.sample=function(x) {
   return(rnorm(10000,mean(x),sd(x)))
-  
+
 }
 
 fetch.closest=function(bin,all.centroids,num.cell) {
@@ -338,14 +338,14 @@ marker.auc.test=function(data1,data2,mygenes,print.bar=TRUE) {
   toRet=data.frame(cbind(myAUC,avg_diff),row.names=mygenes)
   toRet=toRet[rev(order(toRet$myAUC)),]
   return(toRet)
-}  
+}
 
 #credit to Cole Trapnell for this
 tobit_fitter <- function(x, modelFormulaStr, lower=1, upper=Inf){
   tryCatch({
     FM_fit <-  suppressWarnings(vgam(as.formula(modelFormulaStr), family=tobit(Lower=lower, Upper=upper),data = x))
     FM_fit
-  }, 
+  },
   #warning = function(w) { FM_fit },
   error = function(e) { NULL }
   )
@@ -503,12 +503,12 @@ getStat3=function(x,y=3) return(strsplit(x,"_")[[1]][y])
 
 #' @export
 multiplotList <- function(plots, file, cols=1, layout=NULL) {
-  
+
   # Make a list from the ... arguments and plotlist
   #plots <- c(list(...), plotlist)
-  
+
   numPlots = length(plots)
-  
+
   # If layout is NULL, then use 'cols' to determine layout
   if (is.null(layout)) {
     # Make the panel
@@ -517,20 +517,20 @@ multiplotList <- function(plots, file, cols=1, layout=NULL) {
     layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
                      ncol = cols, nrow = ceiling(numPlots/cols))
   }
-  
+
   if (numPlots==1) {
     print(plots[[1]])
-    
+
   } else {
     # Set up the page
     grid.newpage()
     pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
-    
+
     # Make each plot, in the correct location
     for (i in 1:numPlots) {
       # Get the i,j matrix positions of the regions that contain this subplot
       matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
-      
+
       print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
                                       layout.pos.col = matchidx$col))
     }
@@ -636,7 +636,7 @@ getSmooth = function(vsort, myBin, n=0, smooth=0, overlap=0.9, type=0) {
     delta=1/(1-overlap)
     nbin=round((length(vsort[,1])-delta)/(n-1+delta))
     smooth=(nbin+1)*delta
-    
+
   }
   return(smooth)
 }
@@ -651,9 +651,9 @@ genCols=function(al=50) {
   return(tcols)
 }
 
-init = function() {  
+init = function() {
   opt <-  opts(legend.title = theme_blank(), # switch off the legend title
-               legend.text = theme_text(size=12,face="bold"),        
+               legend.text = theme_text(size=12,face="bold"),
                legend.key.size = unit(2.5, "lines"),
                legend.key = theme_blank(),
                axis.title.x = theme_text(size = 14, vjust = -0.5),
@@ -662,7 +662,7 @@ init = function() {
                axis.text.y = theme_text(size = 12),
                plot.title = theme_text(size = 18,vjust=2.5,face="bold"),
                plot.margin = unit(c(2,2,0.75,0.75), "lines"))
-  
+
   lwid=2
 }
 
@@ -728,7 +728,7 @@ calcResid=function(x1,y1,mcut=30,toAdd=1) {
 
 #' @export
 findNGene=function(data,is.expr=1) {
-  toRet=unlist(lapply(1:ncol(data),function(x)gtCut(data[,x],cutoff=is.expr)))  
+  toRet=unlist(lapply(1:ncol(data),function(x)gtCut(data[,x],cutoff=is.expr)))
   names(toRet)=colnames(data)
   return(toRet)
 }
@@ -780,7 +780,7 @@ covCellWeightFast=function(cell1,cell2,wt_matrix,data=subc(cell,"lps_t2"),spear=
   my_weights=cell1Drop*cell2Drop
   cell1Data=an(data[,cell1])
   cell2Data=an(data[,cell2])
-  
+
   # print(my_weights)
   ret=wtCov(cell1Data,cell2Data,my_weights)
   if (spear==TRUE) {
@@ -843,9 +843,9 @@ getAB=function(cn="lps_t1_S1_rsem",code="lps_t1",data=cell,data2=cs,code2="avg",
   x2=(tapply(data[,"avg"],data$bin,mean))
   #glm.out = glm(val~avg,data=data,family=binomial)
   glm.out = glm(x1~x2,data=data,family=binomial)
-  
+
   if (doPlot==TRUE) {
-    
+
     pred=(predict(glm.out,data.frame(avg=as.numeric(x2)),type="response"))
     myfunc(x2,x1,pch=16,xlab="Log TPM",ylab="Detection Rate",main=cn,ylim=c(0,1))
     func2(x2,pred,...)
@@ -865,7 +865,7 @@ sensitivityCurve=function(cellName,scData,bulkData,mycut=1,mycex=1,mynew=TRUE,..
   #glm.out = glm(val~avg,data=data,family=binomial)
   options(warn=-1) #otherwise glm throws an unnecessary error
   glm.out = glm(binaryData~bulkData,family=binomial)
-  options(warn=0)  
+  options(warn=0)
   x_vals=seq(0,10,0.1)
   y_vals=predict(glm.out,data.frame(bulkData=x_vals),type="response")
   if (mynew) {
@@ -875,73 +875,73 @@ sensitivityCurve=function(cellName,scData,bulkData,mycut=1,mycex=1,mynew=TRUE,..
 }
 
 #' @export
-heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE, 
-                        distfun = dist, hclustfun = hclust, dendrogram = c("both", 
-                                                                           "row", "column", "none"), symm = FALSE, scale = c("none", 
-                                                                                                                             "row", "column"), na.rm = TRUE, revC = identical(Colv, 
-                                                                                                                                                                              "Rowv"), add.expr, breaks, symbreaks = min(x < 0, na.rm = TRUE) || 
-                          scale != "none", col = "heat.colors", colsep, rowsep, 
-                        sepcolor = "white", sepwidth = c(0.05, 0.05), cellnote, notecex = 1, 
-                        notecol = "cyan", na.color = par("bg"), trace = c("column", 
-                                                                          "row", "both", "none"), tracecol = "cyan", hline = median(breaks), 
-                        vline = median(breaks), linecol = tracecol, margins = c(5, 
-                                                                                5), ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nr), 
-                        cexCol = 0.2 + 1/log10(nc), labRow = NULL, labCol = NULL, 
-                        key = TRUE, keysize = 1.5, density.info = c("histogram", 
-                                                                    "density", "none"), denscol = tracecol, symkey = min(x < 
-                                                                                                                           0, na.rm = TRUE) || symbreaks, densadj = 0.25, main = NULL, 
+heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
+                        distfun = dist, hclustfun = hclust, dendrogram = c("both",
+                                                                           "row", "column", "none"), symm = FALSE, scale = c("none",
+                                                                                                                             "row", "column"), na.rm = TRUE, revC = identical(Colv,
+                                                                                                                                                                              "Rowv"), add.expr, breaks, symbreaks = min(x < 0, na.rm = TRUE) ||
+                          scale != "none", col = "heat.colors", colsep, rowsep,
+                        sepcolor = "white", sepwidth = c(0.05, 0.05), cellnote, notecex = 1,
+                        notecol = "cyan", na.color = par("bg"), trace = c("column",
+                                                                          "row", "both", "none"), tracecol = "cyan", hline = median(breaks),
+                        vline = median(breaks), linecol = tracecol, margins = c(5,
+                                                                                5), ColSideColors, RowSideColors, cexRow = 0.2 + 1/log10(nr),
+                        cexCol = 0.2 + 1/log10(nc), labRow = NULL, labCol = NULL,
+                        key = TRUE, keysize = 1.5, density.info = c("histogram",
+                                                                    "density", "none"), denscol = tracecol, symkey = min(x <
+                                                                                                                           0, na.rm = TRUE) || symbreaks, densadj = 0.25, main = NULL,
                         xlab = NULL, ylab = NULL, lmat = NULL, lhei = NULL, axRowCol="black",lwid = NULL, pc = NULL,
-                        ...) 
+                        ...)
 {
   scale01 <- function(x, low = min(x), high = max(x)) {
     x <- (x - low)/(high - low)
     x
   }
   retval <- list()
-  scale <- if (symm && missing(scale)) 
+  scale <- if (symm && missing(scale))
     "none"
   else match.arg(scale)
   dendrogram <- match.arg(dendrogram)
   trace <- match.arg(trace)
   density.info <- match.arg(density.info)
-  if (length(col) == 1 && is.character(col)) 
+  if (length(col) == 1 && is.character(col))
     col <- get(col, mode = "function")
-  if (!missing(breaks) && (scale != "none")) 
-    warning("Using scale=\"row\" or scale=\"column\" when breaks are", 
+  if (!missing(breaks) && (scale != "none"))
+    warning("Using scale=\"row\" or scale=\"column\" when breaks are",
             "specified can produce unpredictable results.", "Please consider using only one or the other.")
-  if (is.null(Rowv) || is.na(Rowv)) 
+  if (is.null(Rowv) || is.na(Rowv))
     Rowv <- FALSE
-  if (is.null(Colv) || is.na(Colv)) 
+  if (is.null(Colv) || is.na(Colv))
     Colv <- FALSE
-  else if (Colv == "Rowv" && !isTRUE(Rowv)) 
+  else if (Colv == "Rowv" && !isTRUE(Rowv))
     Colv <- FALSE
-  if (length(di <- dim(x)) != 2 || !is.numeric(x)) 
+  if (length(di <- dim(x)) != 2 || !is.numeric(x))
     stop("`x' must be a numeric matrix")
   nr <- di[1]
   nc <- di[2]
-  if (nr <= 1 || nc <= 1) 
+  if (nr <= 1 || nc <= 1)
     stop("`x' must have at least 2 rows and 2 columns")
-  if (!is.numeric(margins) || length(margins) != 2) 
+  if (!is.numeric(margins) || length(margins) != 2)
     stop("`margins' must be a numeric vector of length 2")
-  if (missing(cellnote)) 
+  if (missing(cellnote))
     cellnote <- matrix("", ncol = ncol(x), nrow = nrow(x))
   if (!inherits(Rowv, "dendrogram")) {
-    if (((!isTRUE(Rowv)) || (is.null(Rowv))) && (dendrogram %in% 
+    if (((!isTRUE(Rowv)) || (is.null(Rowv))) && (dendrogram %in%
                                                  c("both", "row"))) {
-      if (is.logical(Colv) && (Colv)) 
+      if (is.logical(Colv) && (Colv))
         dendrogram <- "column"
       else dedrogram <- "none"
-      warning("Discrepancy: Rowv is FALSE, while dendrogram is `", 
+      warning("Discrepancy: Rowv is FALSE, while dendrogram is `",
               dendrogram, "'. Omitting row dendogram.")
     }
   }
   if (!inherits(Colv, "dendrogram")) {
-    if (((!isTRUE(Colv)) || (is.null(Colv))) && (dendrogram %in% 
+    if (((!isTRUE(Colv)) || (is.null(Colv))) && (dendrogram %in%
                                                  c("both", "column"))) {
-      if (is.logical(Rowv) && (Rowv)) 
+      if (is.logical(Rowv) && (Rowv))
         dendrogram <- "row"
       else dendrogram <- "none"
-      warning("Discrepancy: Colv is FALSE, while dendrogram is `", 
+      warning("Discrepancy: Colv is FALSE, while dendrogram is `",
               dendrogram, "'. Omitting column dendogram.")
     }
   }
@@ -954,7 +954,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     ddr <- as.dendrogram(hcr)
     ddr <- reorder(ddr, Rowv)
     rowInd <- order.dendrogram(ddr)
-    if (nr != length(rowInd)) 
+    if (nr != length(rowInd))
       stop("row dendrogram ordering gave index of wrong length")
   }
   else if (isTRUE(Rowv)) {
@@ -963,7 +963,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     ddr <- as.dendrogram(hcr)
     ddr <- reorder(ddr, Rowv)
     rowInd <- order.dendrogram(ddr)
-    if (nr != length(rowInd)) 
+    if (nr != length(rowInd))
       stop("row dendrogram ordering gave index of wrong length")
   }
   else {
@@ -974,7 +974,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     colInd <- order.dendrogram(ddc)
   }
   else if (identical(Colv, "Rowv")) {
-    if (nr != nc) 
+    if (nr != nc)
       stop("Colv = \"Rowv\" but nrow(x) != ncol(x)")
     if (exists("ddr")) {
       ddc <- ddr
@@ -983,24 +983,24 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     else colInd <- rowInd
   }
   else if (is.integer(Colv)) {
-    hcc <- hclustfun(distfun(if (symm) 
+    hcc <- hclustfun(distfun(if (symm)
       x
       else t(x)))
     ddc <- as.dendrogram(hcc)
     ddc <- reorder(ddc, Colv)
     colInd <- order.dendrogram(ddc)
-    if (nc != length(colInd)) 
+    if (nc != length(colInd))
       stop("column dendrogram ordering gave index of wrong length")
   }
   else if (isTRUE(Colv)) {
     Colv <- colMeans(x, na.rm = na.rm)
-    hcc <- hclustfun(distfun(if (symm) 
+    hcc <- hclustfun(distfun(if (symm)
       x
       else t(x)))
     ddc <- as.dendrogram(hcc)
     ddc <- reorder(ddc, Colv)
     colInd <- order.dendrogram(ddc)
-    if (nc != length(colInd)) 
+    if (nc != length(colInd))
       stop("column dendrogram ordering gave index of wrong length")
   }
   else {
@@ -1012,13 +1012,13 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   x <- x[rowInd, colInd]
   x.unscaled <- x
   cellnote <- cellnote[rowInd, colInd]
-  if (is.null(labRow)) 
-    labRow <- if (is.null(rownames(x))) 
+  if (is.null(labRow))
+    labRow <- if (is.null(rownames(x)))
       (1:nr)[rowInd]
   else rownames(x)
   else labRow <- labRow[rowInd]
-  if (is.null(labCol)) 
-    labCol <- if (is.null(colnames(x))) 
+  if (is.null(labCol))
+    labCol <- if (is.null(colnames(x)))
       (1:nc)[colInd]
   else colnames(x)
   else labCol <- labCol[colInd]
@@ -1034,15 +1034,15 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     retval$colSDs <- sx <- apply(x, 2, sd, na.rm = na.rm)
     x <- sweep(x, 2, sx, "/")
   }
-  if (missing(breaks) || is.null(breaks) || length(breaks) < 
+  if (missing(breaks) || is.null(breaks) || length(breaks) <
       1) {
-    if (missing(col) || is.function(col)) 
+    if (missing(col) || is.function(col))
       breaks <- 16
     else breaks <- length(col) + 1
   }
   if (length(breaks) == 1) {
-    if (!symbreaks) 
-      breaks <- seq(min(x, na.rm = na.rm), max(x, na.rm = na.rm), 
+    if (!symbreaks)
+      breaks <- seq(min(x, na.rm = na.rm), max(x, na.rm = na.rm),
                     length = breaks)
     else {
       extreme <- max(abs(x), na.rm = TRUE)
@@ -1051,44 +1051,44 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   }
   nbr <- length(breaks)
   ncol <- length(breaks) - 1
-  if (class(col) == "function") 
+  if (class(col) == "function")
     col <- col(ncol)
   min.breaks <- min(breaks)
   max.breaks <- max(breaks)
   x[x < min.breaks] <- min.breaks
   x[x > max.breaks] <- max.breaks
-  #  if (missing(lhei) || is.null(lhei)) 
+  #  if (missing(lhei) || is.null(lhei))
   #    lhei <- c(keysize, 4)
-  #  if (missing(lwid) || is.null(lwid)) 
+  #  if (missing(lwid) || is.null(lwid))
   #    lwid <- c(keysize, 4)
   #  if (missing(lmat) || is.null(lmat)) {
   #    lmat <- rbind(4:3, 2:1)
   #    if (!missing(ColSideColors)) {
-  #      if (!is.character(ColSideColors) || length(ColSideColors) != 
-  #        nc) 
+  #      if (!is.character(ColSideColors) || length(ColSideColors) !=
+  #        nc)
   #        stop("'ColSideColors' must be a character vector of length ncol(x)")
-  #      lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] + 
+  #      lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] +
   #        1)
   #      lhei <- c(lhei[1], 0.2, lhei[2])
   #    }
   #    if (!missing(RowSideColors)) {
-  #      if (!is.character(RowSideColors) || length(RowSideColors) != 
-  #        nr) 
+  #      if (!is.character(RowSideColors) || length(RowSideColors) !=
+  #        nr)
   #        stop("'RowSideColors' must be a character vector of length nrow(x)")
-  #      lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) - 
+  #      lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) -
   #        1), 1), lmat[, 2] + 1)
   #      lwid <- c(lwid[1], 0.2, lwid[2])
   #    }
   #    lmat[is.na(lmat)] <- 0
   #  }
-  #  if (length(lhei) != nrow(lmat)) 
+  #  if (length(lhei) != nrow(lmat))
   #    stop("lhei must have length = nrow(lmat) = ", nrow(lmat))
-  #  if (length(lwid) != ncol(lmat)) 
+  #  if (length(lwid) != ncol(lmat))
   #    stop("lwid must have length = ncol(lmat) =", ncol(lmat))
   #  op <- par(no.readonly = TRUE)
   #  on.exit(par(op))
   #  layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
-  
+
   if (!missing(RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
@@ -1104,19 +1104,19 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   else{
     par(mar = c(margins[1], margins[2], margins[1], margins[2]))
   }
-  
-  
+
+
   x <- t(x)
   cellnote <- t(cellnote)
   if (revC) {
     iy <- nr:1
-    if (exists("ddr")) 
+    if (exists("ddr"))
       ddr <- rev(ddr)
     x <- x[, iy]
     cellnote <- cellnote[, iy]
   }
   else iy <- 1:nr
-  
+
   # add pc number as title if plotting pc heatmaps
   if(!is.null(pc)){
     pc_title <- paste("PC", pc)
@@ -1124,14 +1124,14 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   else{
     pc_title <- ""
   }
-  
-  image(1:nc, 1:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 + 
-          c(0, nr), axes = FALSE, xlab = "", ylab = "", main = pc_title , col = col, 
+
+  image(1:nc, 1:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 +
+          c(0, nr), axes = FALSE, xlab = "", ylab = "", main = pc_title , col = col,
         breaks = breaks, ...)
   retval$carpet <- x
-  if (exists("ddr")) 
+  if (exists("ddr"))
     retval$rowDendrogram <- ddr
-  if (exists("ddc")) 
+  if (exists("ddc"))
     retval$colDendrogram <- ddc
   retval$breaks <- breaks
   retval$col <- col
@@ -1140,25 +1140,25 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     image(1:nc, 1:nr, mmat, axes = FALSE, xlab = "", ylab = "", main = pc_title,
           col = na.color, add = TRUE)
   }
-  axis(1, 1:nc, labels = labCol, las = 2, line = -0.5, tick = 0, 
+  axis(1, 1:nc, labels = labCol, las = 2, line = -0.5, tick = 0,
        cex.axis = cexCol)
-  if (!is.null(xlab)) 
+  if (!is.null(xlab))
     mtext(xlab, side = 1, line = margins[1] - 1.25)
-  axis(4, iy, labels = labRow, las = 2, line = -0.5, tick = 0, 
+  axis(4, iy, labels = labRow, las = 2, line = -0.5, tick = 0,
        cex.axis = cexRow,col=axRowCol)
-  if (!is.null(ylab)) 
+  if (!is.null(ylab))
     mtext(ylab, side = 4, line = margins[2] - 1.25)
-  if (!missing(add.expr)) 
+  if (!missing(add.expr))
     eval(substitute(add.expr))
-  if (!missing(colsep)) 
-    for (csep in colsep) rect(xleft = csep + 0.5, ybottom = rep(0, 
-                                                                length(csep)), xright = csep + 0.5 + sepwidth[1], 
-                              ytop = rep(ncol(x) + 1, csep), lty = 1, lwd = 1, 
+  if (!missing(colsep))
+    for (csep in colsep) rect(xleft = csep + 0.5, ybottom = rep(0,
+                                                                length(csep)), xright = csep + 0.5 + sepwidth[1],
+                              ytop = rep(ncol(x) + 1, csep), lty = 1, lwd = 1,
                               col = sepcolor, border = sepcolor)
-  if (!missing(rowsep)) 
-    for (rsep in rowsep) rect(xleft = 0, ybottom = (ncol(x) + 
-                                                      1 - rsep) - 0.5, xright = nrow(x) + 1, ytop = (ncol(x) + 
-                                                                                                       1 - rsep) - 0.5 - sepwidth[2], lty = 1, lwd = 1, 
+  if (!missing(rowsep))
+    for (rsep in rowsep) rect(xleft = 0, ybottom = (ncol(x) +
+                                                      1 - rsep) - 0.5, xright = nrow(x) + 1, ytop = (ncol(x) +
+                                                                                                       1 - rsep) - 0.5 - sepwidth[2], lty = 1, lwd = 1,
                               col = sepcolor, border = sepcolor)
   min.scale <- min(breaks)
   max.scale <- max(breaks)
@@ -1168,7 +1168,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     vline.vals <- scale01(vline, min.scale, max.scale)
     for (i in colInd) {
       if (!is.null(vline)) {
-        abline(v = i - 0.5 + vline.vals, col = linecol, 
+        abline(v = i - 0.5 + vline.vals, col = linecol,
                lty = 2)
       }
       xv <- rep(i, nrow(x.scaled)) + x.scaled[, i] - 0.5
@@ -1190,8 +1190,8 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       ##lines(x = xv, y = yv, lwd = 1, col = tracecol, type = "s")
     }
   }
-  if (!missing(cellnote)) 
-    text(x = c(row(cellnote)), y = c(col(cellnote)), labels = c(cellnote), 
+  if (!missing(cellnote))
+    text(x = c(row(cellnote)), y = c(col(cellnote)), labels = c(cellnote),
          col = notecol, cex = notecex)
   #par(mar = c(margins[1], 0, 0, 0))
   if (dendrogram %in% c("both", "row")) {
@@ -1204,7 +1204,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   }
   ##else plot.new()
   key=FALSE
-  if (!is.null(main)) 
+  if (!is.null(main))
     title(main, cex.main = 1.5 * op[["cex.main"]])
   if (key) {
     par(mar = c(5, 4, 2, 1), cex = 0.75)
@@ -1220,15 +1220,15 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       max.raw <- max(x, na.rm = TRUE)
     }
     z <- seq(min.raw, max.raw, length = length(col))
-    #image(z = matrix(z, ncol = 1), col = col, breaks = tmpbreaks, 
+    #image(z = matrix(z, ncol = 1), col = col, breaks = tmpbreaks,
     #      xaxt = "n", yaxt = "n")
     par(usr = c(0, 1, 0, 1))
     lv <- pretty(breaks)
     xv <- scale01(as.numeric(lv), min.raw, max.raw)
     axis(1, at = xv, labels = lv)
-    if (scale == "row") 
+    if (scale == "row")
       mtext(side = 1, "Row Z-Score", line = 2)
-    else if (scale == "column") 
+    else if (scale == "column")
       mtext(side = 1, "Column Z-Score", line = 2)
     else mtext(side = 1, "Value", line = 2)
     if (density.info == "density") {
@@ -1237,7 +1237,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       dens$x <- dens$x[-omit]
       dens$y <- dens$y[-omit]
       dens$x <- scale01(dens$x, min.raw, max.raw)
-      lines(dens$x, dens$y/max(dens$y) * 0.95, col = denscol, 
+      lines(dens$x, dens$y/max(dens$y) * 0.95, col = denscol,
             lwd = 1)
       axis(2, at = pretty(dens$y)/max(dens$y) * 0.95, pretty(dens$y))
       title("Color Key\nand Density Plot")
@@ -1248,7 +1248,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       h <- hist(x, plot = FALSE, breaks = breaks)
       hx <- scale01(breaks, min.raw, max.raw)
       hy <- c(h$counts, h$counts[length(h$counts)])
-      lines(hx, hy/max(hy) * 0.95, lwd = 1, type = "s", 
+      lines(hx, hy/max(hy) * 0.95, lwd = 1, type = "s",
             col = denscol)
       axis(2, at = pretty(hy)/max(hy) * 0.95, pretty(hy))
       title("Color Key\nand Histogram")
@@ -1258,7 +1258,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
     else title("Color Key")
   }
   ##else plot.new()
-  retval$colorTable <- data.frame(low = retval$breaks[-length(retval$breaks)], 
+  retval$colorTable <- data.frame(low = retval$breaks[-length(retval$breaks)],
                                   high = retval$breaks[-1], color = retval$col)
   invisible(retval)
   par(mar=oldMar)
@@ -1283,7 +1283,7 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
     acc = model$results[,2]
     # if classifier can't classify them well enough, merge clusters
     if(acc<acc.cutoff){
-      object = set.ident(object,cells.use = which.cells(object,daughters[1]), ident.use = daughters[2])
+      object = SetIdent(object,cells.use = which.cells(object,daughters[1]), ident.use = daughters[2])
     }
     return(object)
   }

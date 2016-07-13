@@ -18,7 +18,7 @@ viz.ica(object, ics.use = 1:5, num.genes = 30, font.size = 0.5,
 
 \item{nCol}{Number of columns to display}
 
-\item{do.balanced}{Return an equal number of genes with both + and - IC scores. 
+\item{do.balanced}{Return an equal number of genes with both + and - IC scores.
 If FALSE (by default), returns the top genes ranked by the score's absolute values}
 }
 \value{

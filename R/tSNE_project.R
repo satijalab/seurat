@@ -7,8 +7,8 @@ project_map=function(z,x_old,sum_X_old,x_old_tsne,P_tol=5e-6,perplexity=30) {
   P=d2p_cell(D_org,perplexity)
 
   nn_points = which(P> P_tol);    #Use only a small subset of points to comupute embedding. This keeps all the points that are proximal to the new point
-  X_nn_set = x_old[nn_points,]  #Original points                                       
-  y_nn_set = x_old_tsne[nn_points,];  #Computed embeddings                     
+  X_nn_set = x_old[nn_points,]  #Original points
+  y_nn_set = x_old_tsne[nn_points,];  #Computed embeddings
   P_nn_set = P[nn_points,]; #Probabilities
   y_new0 = (t(as.matrix(y_nn_set))%*%t(as.matrix(rbind(P_nn_set,P_nn_set))))[,1] #Initial guess of point as a weighted average
   sink("/dev/null")
@@ -32,7 +32,7 @@ d2p_cell=function(D,u=15,tol=1e-4) {
       if (betamax==Inf) {
         beta = beta * 2;
       } else
-      { 
+      {
         beta = (beta + betamax) / 2;
       }
     } else {
