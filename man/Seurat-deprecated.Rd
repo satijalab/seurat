@@ -2,15 +2,24 @@
 % Please edit documentation in R/deprecated_functions.R
 \name{Seurat-deprecated}
 \alias{Seurat-deprecated}
+\alias{feature.plot}
+\alias{find.markers}
+\alias{find_all_markers}
+\alias{genePlot}
+\alias{jackStraw}
+\alias{jackStrawPlot}
 \alias{mean.var.plot}
 \alias{pcHeatmap}
 \alias{pca}
 \alias{pca.plot}
 \alias{print.pca}
 \alias{project.pca}
+\alias{run_tsne}
 \alias{set.ident}
 \alias{setup}
 \alias{subsetData}
+\alias{tnse.plot}
+\alias{tsne.plot}
 \alias{viz.pca}
 \alias{vlnPlot}
 \title{Deprecated function(s) in the Seurat package}
