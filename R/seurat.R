@@ -296,6 +296,12 @@ setMethod("setup","seurat",
             object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
             names(object@ident)=colnames(object@data)
             object@cell.names=names(object@ident)
+          
+              # if there are more than 100 idents, set all ident to project name
+            if(length(unique(object@ident)) > 100 || length(unique(object@ident)) == 0) {
+              object <- set.ident(object, ident.use = project)
+            }
+            
             if (!(large.object)) {
               if ((do.center==F)&&(do.scale==F)) object@scale.data=t(object@data)
               if ((do.center==T)||(do.scale==T)) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))

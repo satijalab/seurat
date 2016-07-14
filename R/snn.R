@@ -48,11 +48,11 @@ setMethod("BuildSNN", signature = "seurat",
                 
   n.cells <- nrow(data.use)
   if (k.param * k.scale > n.cells){
-    stop("k.scale x k.param can't be larger than the number of cells")
+    warning("k.scale x k.param larger than the number of cells, setting k to number of cells - 1")
   }
 
   #find the k-nearest neighbors for each single cell
-  my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells))
+  my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells -1))
   nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
   nn.large <- my.knn$nn.index
   if (do.sparse){
