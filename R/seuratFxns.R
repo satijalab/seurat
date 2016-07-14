@@ -370,7 +370,7 @@ diffTobit=function(x1,x2,lower=1,upper=Inf) {
   return(p)
 }
 
-tobit.diffExp.test=function(data1,data2,mygenes,print.bar) {
+TobitDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffTobit(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
@@ -380,7 +380,7 @@ tobit.diffExp.test=function(data1,data2,mygenes,print.bar) {
   return(toRet)
 }
 
-bimod.diffExp.test=function(data1,data2,mygenes,print.bar) {
+BimodDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffLRT(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
@@ -483,7 +483,7 @@ getStat1=function(x)return(strsplit(x,"_")[[1]][1])
 
 #' @export
 genes.ca.range=function(object,my.min,my.max) {
-  ca=cluster.alpha(object)
+  ca=ClusterAlpha(object)
   ca.min=apply(ca,1,min)
   ca.max=apply(ca,1,max)
   genes.1=names(ca.min[ca.min<my.max])
@@ -1270,10 +1270,10 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
   # get the children of both daughters
   childNodes = 1:(tree$Nnode+1)
   if(length(ainb(c(daughters[1], daughters[2]), childNodes))==2){
-    d1 = which.cells(object,daughters[1])
-    d2 = which.cells(object,daughters[2])
+    d1 = WhichCells(object,daughters[1])
+    d2 = WhichCells(object,daughters[2])
     y  = as.numeric(object@ident[c(d1,d2)])-1
-    x  = data.frame(t(object@data[pcTopGenes(object,pcs,num.genes = top.genes ),c(d1,d2)]));
+    x  = data.frame(t(object@data[PCTopGenes(object,pcs,num.genes = top.genes ),c(d1,d2)]));
     xv = apply(x,2,var)
     x  = x[,names(xv>0)]
     # run k-fold cross validation
@@ -1283,7 +1283,7 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
     acc = model$results[,2]
     # if classifier can't classify them well enough, merge clusters
     if(acc<acc.cutoff){
-      object = SetIdent(object,cells.use = which.cells(object,daughters[1]), ident.use = daughters[2])
+      object = SetIdent(object,cells.use = WhichCells(object,daughters[1]), ident.use = daughters[2])
     }
     return(object)
   }
@@ -1301,5 +1301,39 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
   return(object)
 }
 
+set.ifnull=function(x,y) {
+  if(is.null(x)) x=y
+  return(x)
+}
 
+kill.ifnull=function(x,message="Error:Execution Halted") {
+  if(is.null(x)) {
+    stop(message)
+  }
+}
 
+expAlpha=function(mu,coefs) {
+  logA=coefs$a
+  logB=coefs$b
+  return(exp(logA+logB*mu)/(1+(exp(logA+logB*mu))))
+}
+
+regression.sig=function(x,score,data,latent,code="rsem") {
+  if(var(as.numeric(subc(data,code)[x,]))==0) {
+    return(0)
+  }
+  latent=latent[grep(code,names(data))]
+  data=rbind(subc(data,code),vsubc(score,code))
+  rownames(data)[nrow(data)]="score"
+  data2=data[c(x,"score"),]
+  rownames(data2)[1]="fac"
+  if (length(unique(latent))>1) {
+    mylm=lm(score ~ fac+latent, data = data.frame(t(data2)))
+  }
+  else {
+    mylm=lm(score ~ fac, data = data.frame(t(data2)))
+  }
+  return(coef(summary(mylm))["fac",3])
+}
+
+same=function(x) return(x)

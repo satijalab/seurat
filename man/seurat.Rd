@@ -25,7 +25,7 @@ are listed below.
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
    \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
-   the original identity class (orig.ident), user-provided information (through addMetaData), etc.  }
+   the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
    \item{\code{pca.x}:}{\code{"data.frame"}, Gene projection scores for the PCA analysis  }
    \item{\code{pca.x.full}:}{\code{"data.frame"}, Gene projection scores for the projected PCA  (contains all genes)  }

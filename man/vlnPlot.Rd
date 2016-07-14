@@ -13,7 +13,7 @@ VlnPlot(object, features.plot, nCol = NULL, ylab.max = 12, do.ret = TRUE,
 \item{object}{Seurat object}
 
 \item{features.plot}{Features to plot (gene expression, metrics, PC scores,
-anything that can be retreived by fetch.data)}
+anything that can be retreived by FetchData)}
 
 \item{nCol}{Number of columns if multiple plots are displayed}
 

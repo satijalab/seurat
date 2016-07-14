@@ -21,21 +21,21 @@ BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
 
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning, 
+\item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning,
 1 - prune everything)}
 
-\item{do.sparse}{Whether to compute and return the SNN graph as a sparse 
+\item{do.sparse}{Whether to compute and return the SNN graph as a sparse
 matrix or not}
 
 \item{update}{Adjust how verbose the output is}
 }
 \value{
-Returns the object with object@snn.k and either 
+Returns the object with object@snn.k and either
 object@snn.dense or object@snn.sparse filled depending on the option
 set
 }
 \description{
-Construct a Shared Nearest Neighbor (SNN) Graph for a given 
+Construct a Shared Nearest Neighbor (SNN) Graph for a given
 dataset.
 }
 

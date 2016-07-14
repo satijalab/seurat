@@ -57,7 +57,7 @@ setMethod("ValidateClusters", signature = "seurat",
         acc <- RunClassifier(object, c1, c2, pc.use, top.genes)
         # if classifier can't classify them well enough, merge clusters
         if (acc < acc.cutoff) {
-          object <- SetIdent(object, cells.use = which.cells(object, c1),
+          object <- SetIdent(object, cells.use = WhichCells(object, c1),
                               ident.use = c2)
           if (verbose) {
             progress <- length(connectivity[connectivity > min.connectivity])
@@ -124,7 +124,7 @@ setMethod("ValidateSpecificClusters", signature = "seurat",
   print(paste("Comparing cluster ", cluster1, " and ", cluster2, ": Acc = ",
         acc, sep = ""))
   if (acc < acc.cutoff) {
-    object <- SetIdent(object, cells.use = which.cells(object, cluster1),
+    object <- SetIdent(object, cells.use = WhichCells(object, cluster1),
                         ident.use = cluster2)
     print(paste("merge cluster ", cluster1, " and ", cluster2))
     merge.done <- TRUE
@@ -134,8 +134,8 @@ setMethod("ValidateSpecificClusters", signature = "seurat",
 
 
 RunClassifier <- function(object, group1, group2, pcs, num.genes) {
-  d1 <- which.cells(object, group1)
-  d2 <- which.cells(object, group2)
+  d1 <- WhichCells(object, group1)
+  d2 <- WhichCells(object, group2)
   y  <- as.numeric(object@ident[c(d1, d2)]) - 1
   x  <- data.frame(t(object@data[pcTopGenes(object, pcs, num.genes),
                                             c(d1, d2)]));

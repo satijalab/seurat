@@ -17,7 +17,7 @@ arguments. Otherwise, will return an object consissting only of these cells}
 
 \item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
 column name in object@data.info, etc. Any argument that can be retreived
-using fetch.data}
+using FetchData}
 
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}
 
@@ -27,7 +27,7 @@ using fetch.data}
 
 \item{do.scale}{Rescale the new object@scale.data}
 
-\item{\dots}{Additional arguments to be passed to fetch.data (for example,
+\item{\dots}{Additional arguments to be passed to FetchData (for example,
 use.imputed=TRUE)}
 }
 \value{

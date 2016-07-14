@@ -187,7 +187,7 @@ setMethod("NumberClusters", signature="seurat",
             if (typeof(clusters) == "integer") {
               n <- as.numeric(max(clusters)) + 1
               for (i in clusters) {
-                object <- SetIdent(object, cells.use = which.cells(object, i),
+                object <- SetIdent(object, cells.use = WhichCells(object, i),
                                     ident.use = n)
                 n <- n + 1
               }
@@ -195,7 +195,7 @@ setMethod("NumberClusters", signature="seurat",
             }
             n <- 1
             for (i in clusters) {
-              object <- SetIdent(object, cells.use = which.cells(object, i),
+              object <- SetIdent(object, cells.use = WhichCells(object, i),
                                   ident.use = n)
               n <- n + 1
             }
@@ -253,7 +253,7 @@ GroupSingletons <- function(object, SNN){
   # identify singletons
   singletons <- c()
   for (cluster in unique(object@ident)) {
-    if (length(which.cells(object, cluster)) == 1) {
+    if (length(WhichCells(object, cluster)) == 1) {
       singletons <- append(singletons, cluster)
     }
   }
@@ -268,7 +268,7 @@ GroupSingletons <- function(object, SNN){
     colnames(connectivity) <- cluster.names
     for (i in singletons) {
       for (j in cluster.names) {
-        subSNN = SNN[which.cells(object, i), match(which.cells(object, j), colnames(SNN))]
+        subSNN = SNN[WhichCells(object, i), match(WhichCells(object, j), colnames(SNN))]
         if (is.object(subSNN)) {
           connectivity[i, j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
         } else {
@@ -280,7 +280,7 @@ GroupSingletons <- function(object, SNN){
     mi <- which(connectivity == m, arr.ind = TRUE)
     c1 <- rownames(connectivity)[mi[1, 1]]
     c2 <- colnames(connectivity)[mi[1, 2]]
-    object <- SetIdent(object, cells.use = which.cells(object, c1),
+    object <- SetIdent(object, cells.use = WhichCells(object, c1),
                         ident.use = c2)
     singletons <- singletons[singletons != c1]
   }

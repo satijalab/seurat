@@ -12,7 +12,7 @@ GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
 \item{object}{Seurat object}
 
 \item{gene1}{First feature to plot. Typically gene expression but can also
-be metrics, PC scores, etc. - anything that can be retreived with fetch.data}
+be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{gene2}{Second feature to plot.}
 

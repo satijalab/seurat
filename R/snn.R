@@ -2,8 +2,8 @@
 NULL
 #' SNN Graph Construction
 #'
-#' Construct a Shared Nearest Neighbor (SNN) Graph for a given 
-#' dataset.  
+#' Construct a Shared Nearest Neighbor (SNN) Graph for a given
+#' dataset.
 #'
 #'
 #' @param object Seurat object
@@ -12,26 +12,26 @@ NULL
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning, 
+#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
 #'        1 - prune everything)
-#' @param do.sparse Whether to compute and return the SNN graph as a sparse 
+#' @param do.sparse Whether to compute and return the SNN graph as a sparse
 #' matrix or not
 #' @param update Adjust how verbose the output is
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the object with object@@snn.k and either 
+#' @return Returns the object with object@@snn.k and either
 #' object@@snn.dense or object@@snn.sparse filled depending on the option
 #' set
 #' @export
-setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL, 
-                                k.param = 10, k.scale = 10, plot.SNN = FALSE, 
-                                prune.SNN = 0.1, do.sparse = FALSE, 
-                                update = 0.25)  
+setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL,
+                                k.param = 10, k.scale = 10, plot.SNN = FALSE,
+                                prune.SNN = 0.1, do.sparse = FALSE,
+                                update = 0.25)
 standardGeneric("BuildSNN"))
 #' @export
 setMethod("BuildSNN", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, k.param = 10, 
+          function(object, genes.use = NULL, pc.use = NULL, k.param = 10,
                    k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
                    do.sparse = FALSE, update = 0.25) {
 
@@ -45,7 +45,7 @@ setMethod("BuildSNN", signature = "seurat",
   } else {
       stop("Data error!")
   }
-                
+
   n.cells <- nrow(data.use)
   if (k.param * k.scale > n.cells){
     stop("k.scale x k.param can't be larger than the number of cells")
@@ -56,19 +56,19 @@ setMethod("BuildSNN", signature = "seurat",
   nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
   nn.large <- my.knn$nn.index
   if (do.sparse){
-    w <- CalcSNNSparse(object, n.cells, k.param, nn.large, nn.ranked, prune.SNN, 
+    w <- CalcSNNSparse(object, n.cells, k.param, nn.large, nn.ranked, prune.SNN,
                        update)
   } else {
       w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN, update)
       if (plot.SNN==TRUE) {
-        net <- graph.adjacency(w, mode = "undirected", weighted = TRUE, 
+        net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
                                diag = FALSE)
-        plot.igraph(net, layout = as.matrix(object@tsne.rot), 
-                    edge.width = E(net)$weight, vertex.label = NA, 
+        plot.igraph(net, layout = as.matrix(object@tsne.rot),
+                    edge.width = E(net)$weight, vertex.label = NA,
                     vertex.size = 0)
       }
   }
-  
+
   #only allow one of the snn matrix slots to be filled
   object@snn.k <- k.param
   if (do.sparse == TRUE) {
@@ -81,15 +81,15 @@ setMethod("BuildSNN", signature = "seurat",
   return(object)
 })
 
-CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked, 
+CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
                          prune.SNN, update) {
   counter <- 1
   idx1 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
   idx2 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
   edge.weight <- vector(mode = "double", length = n.cells ^ 2 / k.param)
   id <- 1
-  
-  #fill out the adjacency matrix w with edge weights only between your target 
+
+  #fill out the adjacency matrix w with edge weights only between your target
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
   #define the edge weights with Jaccard distance
@@ -113,7 +113,7 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
   idx1 <- idx1[!is.na(idx1) & idx1 != 0]
   idx2 <- idx2[!is.na(idx2) & idx2 != 0]
   edge.weight <- edge.weight[!is.na(edge.weight) & edge.weight != 0]
-  w <- sparseMatrix(i = idx1, j = idx2, x = edge.weight, 
+  w <- sparseMatrix(i = idx1, j = idx2, x = edge.weight,
                     dims = c(n.cells, n.cells))
   diag(w) <- 1
   rownames(w) <- object@cell.names
@@ -121,14 +121,14 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
   return(w)
 }
 
-CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN, 
+CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
                          update) {
   counter <- 1
   w <- matrix(0, n.cells, n.cells)
   rownames(w) <- object@cell.names
   colnames(w) <- object@cell.names
   diag(w) <- 1
-  #fill out the adjacency matrix w with edge weights only between your target 
+  #fill out the adjacency matrix w with edge weights only between your target
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
   for (i in 1:n.cells) {
@@ -139,7 +139,7 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
       if (e > prune.SNN) {
         w[i, nn.large[i, j]] <- e
       } else {
-        w[i,nn.large[i, j]] <- 0 
+        w[i,nn.large[i, j]] <- 0
       }
     }
     if (i == round(counter * n.cells * update)) {
@@ -159,8 +159,8 @@ CalcConnectivity <- function(object, SNN) {
   n <- 1
   for (i in cluster.names) {
     for (j in cluster.names[-(1:n)]) {
-      subSNN <- SNN[match(which.cells(object, i), colnames(SNN)), 
-                    match(which.cells(object, j), rownames(SNN))]
+      subSNN <- SNN[match(WhichCells(object, i), colnames(SNN)),
+                    match(WhichCells(object, j), rownames(SNN))]
       if (is.object(subSNN)) {
         connectivity[i, j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
       } else {

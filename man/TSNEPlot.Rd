@@ -21,17 +21,17 @@ cluster is lebeled}
 
 \item{color.scramble}{If do.label is set, scramble the color palette (can help to distinguish adjacent clusters)}
 
-\item{\dots}{Additional parameters to dim.plot, for example, which dimensions to plot.}
+\item{\dots}{Additional parameters to DimPlot, for example, which dimensions to plot.}
 }
 \description{
 Graphs the output of a tSNE analysis
 Cells are colored by their identity class.
 }
 \details{
-This function is a wrapper for dim.plot. See ?dim.plot for a full list of possible
+This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
 arguments which can be passed in here.
 }
 \seealso{
-dim.plot
+DimPlot
 }
 
