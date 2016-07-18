@@ -52,7 +52,7 @@ setMethod("BuildSNN", signature = "seurat",
   }
 
   #find the k-nearest neighbors for each single cell
-  my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells -1))
+  my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells - 1))
   nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
   nn.large <- my.knn$nn.index
   if (do.sparse){

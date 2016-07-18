@@ -780,7 +780,7 @@ setMethod("pca", "seurat",
             pc.genes=set.ifnull(pc.genes,object@var.genes)
             pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
-            pcs.store = min(pcs.store, length(object@var.genes))
+            pcs.store = min(pcs.store, length(pc.genes))
             
             if (!rev.pca) {
               pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]

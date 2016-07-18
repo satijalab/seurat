@@ -259,30 +259,25 @@ GroupSingletons <- function(object, SNN){
   }
   # calculate connectivity of singletons to other clusters, add singleton
   # to cluster it is most connected to
-  cluster.names <- unique(object@ident)
-  cluster.names <- setdiff(cluster.names, singletons)
-  while (length(singletons) > 0) {
-    connectivity <- matrix(0, ncol = length(cluster.names), 
-                           nrow = length(singletons))
-    rownames(connectivity) <- singletons
-    colnames(connectivity) <- cluster.names
-    for (i in singletons) {
-      for (j in cluster.names) {
-        subSNN = SNN[which.cells(object, i), match(which.cells(object, j), colnames(SNN))]
-        if (is.object(subSNN)) {
-          connectivity[i, j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
-        } else {
-          connectivity[i, j] <- mean(subSNN)
-        }
+  cluster_names <- unique(object@ident)
+  cluster_names <- setdiff(cluster_names, singletons)
+  connectivity <- vector(mode="character", length = length(cluster_names))
+  names(connectivity) <- cluster_names
+  for (i in singletons) {
+    for (j in cluster_names) {
+      subSNN = SNN[which.cells(object, i), match(which.cells(object, j), colnames(SNN))]
+      if (is.object(subSNN)) {
+        connectivity[j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
+      } else {
+        connectivity[j] <- mean(subSNN)
       }
     }
     m <- max(connectivity, na.rm = T)
     mi <- which(connectivity == m, arr.ind = TRUE)
-    c1 <- rownames(connectivity)[mi[1, 1]]
-    c2 <- colnames(connectivity)[mi[1, 2]]
-    object <- set.ident(object, cells.use = which.cells(object, c1), 
-                        ident.use = c2)
-    singletons <- singletons[singletons != c1]
+    closest_cluster <- names(connectivity[mi])
+    
+    object <- set.ident(object, cells.use = which.cells(object,i), 
+                        ident.use = closest_cluster)
   }
   return(object)
 }
