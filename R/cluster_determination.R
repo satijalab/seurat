@@ -261,7 +261,7 @@ GroupSingletons <- function(object, SNN){
   # to cluster it is most connected to
   cluster_names <- unique(object@ident)
   cluster_names <- setdiff(cluster_names, singletons)
-  connectivity <- vector(mode="character", length = length(cluster_names))
+  connectivity <- vector(mode="numeric", length = length(cluster_names))
   names(connectivity) <- cluster_names
   for (i in singletons) {
     for (j in cluster_names) {
