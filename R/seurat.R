@@ -3383,6 +3383,37 @@ setMethod("JackStrawFull","seurat",
           }
 )
 
+#' Quickly Pick Relevant PCs
+#'
+#' Plots the standard deviations of the principle components for easy 
+#' identification of an elbow in the graph. This often corresponds well with the 
+#' significant PCs.
+#'
+#'
+#' @param object Seurat object
+#' @param num.pc Number of PCs to plot
+#' @return Returns ggplot object
+#' @export
+setGeneric("PCElbowPlot", function(object,num.pc = 20)  standardGeneric("PCElbowPlot"))
+#' @export
+setMethod("PCElbowPlot","seurat",
+          function(object,num.pc = 20) {
+            if (length(object@pca.obj) == 0) {
+              stop("This object has no PCA associated with it. Please run PCA() and then retry.")
+            }
+            if (length(object@pca.obj[[1]]$sdev) < num.pc) {
+              num.pc <- length(object@pca.obj[[1]]$sdev)
+              warning(paste("The object only has information for", num.pc, "PCs." ))
+            }
+            sdev = object@pca.obj[[1]]$sdev[1:num.pc]
+            pc = 1:length(sdev)
+            data <- data.frame(pc, sdev)
+            plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
+            return (plot)
+          }
+)
+
+
 
 #' Identify variable genes
 #'
