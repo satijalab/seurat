@@ -6,7 +6,7 @@
 \usage{
 BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
   k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1, do.sparse = FALSE,
-  update = 0.25)
+  update = 0.25, print.output = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,6 +28,8 @@ BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
 matrix or not}
 
 \item{update}{Adjust how verbose the output is}
+
+\item{print.output}{Whether or not to print output to the console}
 }
 \value{
 Returns the object with object@snn.k and either

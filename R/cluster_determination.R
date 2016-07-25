@@ -2,11 +2,11 @@
 NULL
 #' Cluster Determination
 #'
-#' Identify clusters of cells by a shared nearest neighbor (SNN) quasi-clique
+#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
 #' based clustering algorithm. First calculate k-nearest neighbors and construct
-#' the SNN graph. Then determine the quasi-cliques associated with each cell.
-#' Finally, merge the quasi-cliques into clusters. For a full description of the
-#' algorithm, see Xu and Su (2015) \emph{Bioinformatics}.
+#' the SNN graph. Then optimize the modularity function to determine clusters.
+#' For a full description of the algorithms, see Waltman and van Eck (2013) 
+#' \emph{The European Physical Journal B}.
 #'
 #'
 #'
@@ -21,20 +21,10 @@ NULL
 #' @param save.SNN Whether to return the SNN matrix or not. If true, returns a
 #'        list with the object as the first item
 #'         and the SNN matrix as the second item.
-#' @param r.param r defines the connectivity for the quasi-cliques.
-#'        Higher r gives a more compact subgraph
-#' @param m.param m is the threshold for merging two quasi-cliques.
-#'        Higher m results in less merging
-#' @param q Defines the percentage of quasi-cliques to examine for merging each
-#'        iteration
-#' @param qup Determines how to change q once all possible merges have been made
 #' @param update Adjust how verbose the output is
-#' @param min.cluster.size Smallest allowed size for a cluster
 #' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
 #'        May be necessary datasets containing a large number of cells.
-#' @param do.modularity Option to use modularity optimization for single cell
-#'        clustering.
-#' @param modularity Modularity function (1 = standard; 2 = alternative).
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #'        (below) 1.0 if you want to obtain a larger (smaller) number of
 #'        communities.
@@ -44,8 +34,7 @@ NULL
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param print.output Whether or not to print output to the console (0 = no;
-#'        1 = yes).
+#' @param print.output Whether or not to print output to the console
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
@@ -55,29 +44,27 @@ NULL
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
                                      k.param = 10, k.scale = 10,
                                      plot.SNN = FALSE, prune.SNN = 0.1,
-                                     save.SNN = FALSE, r.param = 0.7,
-                                     m.param = NULL, q = 0.1, qup = 0.1,
-                                     update = 0.25, min.cluster.size = 1,
-                                     do.sparse = FALSE, do.modularity = TRUE,
-                                     modularity = 1, resolution = 0.8,
+                                     save.SNN = FALSE, update = 0.25,
+                                     do.sparse = FALSE,
+                                     modularity.fxn = 1, resolution = 0.8,
                                      algorithm = 1, n.start = 100,
                                      n.iter = 10, random.seed = 0,
-                                     print.output = 1)
+                                     print.output = TRUE)
 standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 10,
                    k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
-                   save.SNN = FALSE, r.param = 0.7, m.param = NULL,
-                   q = 0.1, qup = 0.1, update = 0.25, min.cluster.size = 1,
-                   do.sparse = FALSE, do.modularity = TRUE, modularity = 1,
+                   save.SNN = FALSE, update = 0.25,
+                   do.sparse = FALSE, modularity.fxn = 1,
                    resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-                   random.seed = 0, print.output = 1){
+                   random.seed = 0, print.output = TRUE){
 
   # if any SNN building parameters are provided, build a new SNN
-  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 10) {
+  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 10 || !is.null(pc.use) 
+      || !is.null(genes.use)) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                        plot.SNN, prune.SNN, do.sparse, update)
+                        plot.SNN, prune.SNN, do.sparse, update, print.output)
   }
 
   # if the SNN hasn't been built yet, build it
@@ -94,51 +81,20 @@ setMethod("FindClusters", signature = "seurat",
   }
   if (!snn.built) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                       plot.SNN, prune.SNN, do.sparse, update)
+                       plot.SNN, prune.SNN, do.sparse, update, print.output)
   }
+  
   # deal with sparse SNNs
-  # this part should be refactored given new slots to make it cleaner
-  # (will require changing called functions as well)
   if (length(object@snn.sparse) > 1) {
-    SNN.sp <- object@snn.sparse
-    SNN.use <- matrix()
-    do.sparse <- TRUE
+    SNN.use <- object@snn.sparse
   } else {
     SNN.use <- object@snn.dense
-    SNN.sp <- sparseMatrix(1, 1, x = 1)
-    do.sparse <- FALSE
   }
 
-  if (do.modularity) {
-    if (do.sparse) {
-      object <- RunModularityClustering(object, SNN.sp, modularity, resolution,
-                                   algorithm, n.start, n.iter, random.seed,
-                                   print.output)
-      object <- GroupSingletons(object, SNN.sp)
-    } else {
-      object <- RunModularityClustering(object, SNN.use, modularity, resolution,
-                                   algorithm, n.start, n.iter, random.seed,
-                                   print.output)
-      object <- GroupSingletons(object, SNN.use)
-    }
-  } else {
-    if (is.null(m.param)) {
-      clusters <- r_wrapper(SNN.use, SNN.sp, r.param, m.param <- r.param, q,
-                            qup, update, min.cluster.size, do.sparse)
-    } else {
-      clusters <- r_wrapper(SNN.use, SNN.sp, r.param, m.param, q, qup, update,
-                            min.cluster.size, do.sparse)
-    }
-    clusters.list <- rep(1:length(clusters[[2]]), clusters[[2]])
-    if (!is.null(clusters[[3]])) {
-      clusters.list <- replace(clusters.list,
-                               seq(length(clusters.list)-tail(clusters[[2]],1),
-                               length(clusters.list)), 0)
-    }
-    cells.use <- object@cell.names[unlist(clusters[[1]])]
-    ident.use <- clusters.list
-    object <- SetIdent(object, cells.use, ident.use)
-  }
+  object <- RunModularityClustering(object, SNN.use, modularity.fxn, resolution,
+                                    algorithm, n.start, n.iter, random.seed,
+                                    print.output)
+  object <- GroupSingletons(object, SNN.use)
 
   if (!save.SNN) {
     object@snn.sparse <- sparseMatrix(1, 1, x = 1)
@@ -207,7 +163,7 @@ setMethod("NumberClusters", signature="seurat",
 RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                                     resolution = 0.8, algorithm = 1,
                                     n.start = 100, n.iter = 10, random.seed = 0,
-                                    print.output = 1){
+                                    print.output = TRUE){
 
   ModularityJarFile <- paste(system.file(package="Seurat"),
                              "/java/ModularityOptimizer.jar", sep = "")
@@ -230,7 +186,12 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
     edge_file <- paste("edge_", unique_ID, ".txt", sep = "")
     output_file <- paste("output", unique_ID, ".txt", sep = "")
   }
-
+  if (print.output) {
+    print.output <- 1
+  }
+  else {
+    print.output <- 0
+  }
 
   write.table(x = edge, file = edge_file, sep = "\t", row.names = FALSE,
               col.names = FALSE)

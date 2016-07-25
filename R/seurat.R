@@ -45,8 +45,6 @@
 #' @rdname seurat
 #' @aliases seurat-class
 #' @exportClass seurat
-#' @importFrom Rcpp evalCpp
-#' @useDynLib Seurat
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
@@ -3385,8 +3383,8 @@ setMethod("JackStrawFull","seurat",
 
 #' Quickly Pick Relevant PCs
 #'
-#' Plots the standard deviations of the principle components for easy 
-#' identification of an elbow in the graph. This often corresponds well with the 
+#' Plots the standard deviations of the principle components for easy
+#' identification of an elbow in the graph. This often corresponds well with the
 #' significant PCs.
 #'
 #'
@@ -3405,8 +3403,8 @@ setMethod("PCElbowPlot","seurat",
               num.pc <- length(object@pca.obj[[1]]$sdev)
               warning(paste("The object only has information for", num.pc, "PCs." ))
             }
-            sdev = object@pca.obj[[1]]$sdev[1:num.pc]
-            pc = 1:length(sdev)
+            sdev <- object@pca.obj[[1]]$sdev[1:num.pc]
+            pc <- 1:length(sdev)
             data <- data.frame(pc, sdev)
             plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
             return (plot)

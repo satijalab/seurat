@@ -31,14 +31,10 @@ Imports:
     igraph,
     FNN,
     caret,
-    lfa,
-    Rcpp (>= 0.11.3),
-    RcppArmadillo
-LinkingTo: Rcpp, RcppArmadillo
+    lfa
 Remotes: StoreyLab/lfa@a1df252
 License: GPL 3.0
 Collate:
-    'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
     'cluster_validation.R'
