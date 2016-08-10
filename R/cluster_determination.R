@@ -18,10 +18,8 @@ NULL
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
 #'        1 - prune everything)
-#' @param save.SNN Whether to return the SNN matrix or not. If true, returns a
-#'        list with the object as the first item
-#'         and the SNN matrix as the second item.
-#' @param update Adjust how verbose the output is
+#' @param save.SNN Whether to save the SNN in an object slot
+#' @param update Adjust how verbose the output of the SNN calculation is (0 to 1)
 #' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
 #'        May be necessary datasets containing a large number of cells.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
@@ -42,7 +40,7 @@ NULL
 #'         object@@ident has been updated with new cluster info
 #' @export
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
-                                     k.param = 10, k.scale = 10,
+                                     k.param = 30, k.scale = 25,
                                      plot.SNN = FALSE, prune.SNN = 0.1,
                                      save.SNN = FALSE, update = 0.25,
                                      do.sparse = FALSE,
@@ -53,8 +51,8 @@ setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
 standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, k.param = 10,
-                   k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1,
+          function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
+                   k.scale = 25, plot.SNN = FALSE, prune.SNN = 0.1,
                    save.SNN = FALSE, update = 0.25,
                    do.sparse = FALSE, modularity.fxn = 1,
                    resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,

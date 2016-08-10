@@ -4,7 +4,7 @@
 load("../testdata/nbt_small.Rdata")
 
 
-# Tests for object creation (via new/setup)
+# Tests for object creation (via new/Setup)
 # --------------------------------------------------------------------------------
 context("Object creation")
 
@@ -22,7 +22,7 @@ test_that("object initialization creates seurat object", {
   expect_is(nbt_test, "seurat")
 })
 
-nbt_test <- setup(nbt_test, project = project_name, min.cells = min_cells, names.field = names_field,
+nbt_test <- Setup(nbt_test, project = project_name, min.cells = min_cells, names.field = names_field,
                   names.delim = names_delim, min.genes = min_genes, is.expr = expression_thresh,
                   large.object = T )
 
@@ -76,9 +76,9 @@ test_that("nGene calculations are consistent" , {
 context("PCA dimensional reduction")
 
 nbt_test <- MeanVarPlot(nbt_test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
-nbt_test <- pca(nbt_test, do.print=FALSE)
+nbt_test <- PCA(nbt_test, do.print=FALSE)
 
-test_that("pca returns expected data", {
+test_that("PCA returns expected data", {
 
   expect_is(nbt_test@pca.rot, "data.frame")
   expect_is(nbt_test@pca.x, "data.frame")
@@ -89,18 +89,18 @@ test_that("pca returns expected data", {
 })
 
 
-# Tests for plotting functionality (via setup)
+# Tests for plotting functionality (via Setup)
 # --------------------------------------------------------------------------------
 context("Plotting/Visualization")
 
-test_that("Violin plots (vlnPlot() ) return as expected", {
-  expect_is(vlnPlot(nbt_test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
-  expect_equal(length(vlnPlot(nbt_test, c("ZYX", "AACS"), do.ret = T)), 2)
+test_that("Violin plots (VlnPlot() ) return as expected", {
+  expect_is(VlnPlot(nbt_test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
+  expect_equal(length(VlnPlot(nbt_test, c("ZYX", "AACS"), do.ret = T)), 2)
 
 })
 
-test_that("cellPlots return as expected", {
-  expect_equal(cellPlot(nbt_test, nbt_test@cell.names[1], nbt_test@cell.names[2]), NULL)
+test_that("CellPlots return as expected", {
+  expect_equal(CellPlot(nbt_test, nbt_test@cell.names[1], nbt_test@cell.names[2]), NULL)
 })
 
 test_that("GenePlots return as expected", {
@@ -112,7 +112,7 @@ test_that("MeanVarPlotworks as expected", {
 })
 
 
-# Tests for plotting functionality (via setup)
+# Tests for plotting functionality (via Setup)
 # --------------------------------------------------------------------------------
 context("Clustering Functions")
 

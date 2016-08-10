@@ -14,8 +14,9 @@
 #'
 #'@section Slots:
 #'  \describe{
-#'    \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-#'    \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring
+#'    \item{\code{raw.data}:{\code{"ANY"}, The raw project data }
+#'    \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
+#'    \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
 #'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
 #'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
 #'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
@@ -47,7 +48,7 @@
 #' @exportClass seurat
 
 seurat <- setClass("seurat", slots =
-                     c(raw.data = "ANY", data="data.frame",scale.data="matrix",var.genes="vector",is.expr="numeric",
+                     c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
                        ident="vector",pca.x="data.frame",pca.rot="data.frame",
                        emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
@@ -57,6 +58,110 @@ seurat <- setClass("seurat", slots =
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
                        tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
                        snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric"))
+
+
+#' Setup Seurat object
+#'
+#' Setup and initialize basic parameters of the Seurat object
+#'
+#'
+#' @param object Seurat object
+#' @param project Project name (string)
+#' @param min.cells Include genes with detected expression in at least this
+#' many cells
+#' @param min.genes Include cells where at least this many genes are detected
+#' @param is.expr Expression threshold for 'detected' gene
+#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
+#' z-score)
+#' @param do.center In object@@scale.data, perform row-centering (gene-based
+#' centering)
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name
+#' @param meta.data Additional metadata to add to the Seurat object. Should be
+#' a data frame where the rows are cell names, and the columns are additional
+#' metadata fields
+#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
+#' which will save memory downstream for large datasets
+#' @param \dots Additional arguments, not currently used.
+#' @return Seurat object. Fields modified include object@@data,
+#' object@@scale.data, object@@data.info, object@@ident
+#' @import stringr
+#' @import pbapply
+#' @export
+setGeneric("Setup", function(object, project, min.cells=3, min.genes=2500, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
+#' @export
+setMethod("Setup","seurat",
+          function(object, project, min.cells=3, min.genes=2500, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
+            object@is.expr <- is.expr
+            num.genes <- findNGene(object@raw.data, object@is.expr)
+            cells.use <- names(num.genes[which(num.genes > min.genes)])
+            
+            object@data <- object@raw.data[, cells.use]
+            
+            #to save memory downstream, especially for large object
+            if (!(save.raw)) object@raw.data <- matrix();
+            genes.use <- rownames(object@data)
+            if (min.cells > 0) {
+              num.cells <- rowSums(object@data > is.expr)
+              genes.use <- names(num.cells[which(num.cells >= min.cells)])
+              object@data <- object@data[genes.use, ]
+            }
+            
+            object@ident <- factor(unlist(lapply(colnames(object@data), extract_field, names.field, names.delim)))
+            names(object@ident) <- colnames(object@data)
+            object@cell.names <- names(object@ident)
+            
+            # if there are more than 100 idents, set all ident to project name
+            if(length(unique(object@ident)) > 100 || length(unique(object@ident)) == 0) {
+              object <- SetIdent(object, ident.use = project)
+            }
+            object@scale.data <- matrix(NA, nrow = nrow(object@data), ncol = ncol(object@data))
+            rownames(object@scale.data) <- rownames(object@data) 
+            colnames(object@scale.data) <- colnames(object@data)
+            
+            if(do.scale | do.center) {
+              bin.size <- 1000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              print(max.bin)
+              print(length(genes.use))
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- (bin.size * (i - 1) + 1):(bin.size * i - 1)
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                object@scale.data[genes.use[my.inds], ] <- t(scale(t(object@data[genes.use[my.inds], ]), center = do.center, scale = do.scale))
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+            }
+            
+            data.ngene <- num.genes[cells.use]
+            object@gene.scores <- data.frame(data.ngene)
+            colnames(object@gene.scores)[1] <- "nGene"
+            
+            object@data.info <- data.frame(data.ngene)
+            colnames(object@data.info)[1] <- "nGene"
+            
+            if (!is.null(meta.data)) {
+              object <- AddMetaData(object ,metadata = meta.data)
+            }
+            object@mix.probs <- data.frame(data.ngene)
+            colnames(object@mix.probs)[1] <- "nGene"
+            rownames(object@gene.scores) <- colnames(object@data)
+            
+            object@data.info[names(object@ident),"orig.ident"] <- object@ident
+            
+            object@project.name <- project
+            #if(calc.noise) {
+            #  object=CalcNoiseModels(object,...)
+            #  object=GetWeightMatrix(object)
+            #}
+            return(object)
+          }
+)
+
+
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
@@ -237,89 +342,6 @@ setMethod("PlotNoiseModel","seurat",
               y.vals=unlist(lapply(x.vals,calc.drop.prob,cell.coefs[y,1],cell.coefs[y,2]))
               lines(x.vals,y.vals,lwd=lwd.use,col=col.use,...)
             }))
-          }
-)
-
-#' Setup Seurat object
-#'
-#' Setup and initialize basic parameters of the Seurat object
-#'
-#'
-#' @param object Seurat object
-#' @param project Project name (string)
-#' @param min.cells Include genes with detected expression in at least this
-#' many cells
-#' @param min.genes Include cells where at least this many genes are detected
-#' @param is.expr Expression threshold for 'detected' gene
-#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score)
-#' @param do.center In object@@scale.data, perform row-centering (gene-based
-#' centering)
-#' @param names.field For the initial identity class for each cell, choose this
-#' field from the cell's column name
-#' @param names.delim For the initial identity class for each cell, choose this
-#' delimiter from the cell's column name
-#' @param meta.data Additional metadata to add to the Seurat object. Should be
-#' a data frame where the rows are cell names, and the columns are additional
-#' metadata fields
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
-#' which will save memory downstream for large datasets
-#' @param \dots Additional arguments, not currently used.
-#' @return Seurat object. Fields modified include object@@data,
-#' object@@scale.data, object@@data.info, object@@ident
-#' @import stringr
-#' @import pbapply
-#' @export
-setGeneric("Setup", function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=T,...) standardGeneric("Setup"))
-#' @export
-setMethod("Setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=1, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,large.object=T,...) {
-            object@is.expr = is.expr
-            num.genes=findNGene(object@raw.data,object@is.expr)
-            cells.use=names(num.genes[which(num.genes>min.genes)])
-
-            object@data=object@raw.data[,cells.use]
-
-            #to save memory downstream, especially for large object
-            if (!(save.raw)) object@raw.data=data.frame();
-            genes.use=rownames(object@data)
-            if (min.cells>0) {
-              if (!large.object) num.cells=apply(object@data,1,humpCt,min=object@is.expr)
-              if (large.object) num.cells=rowSums(object@data > is.expr)
-              genes.use=names(num.cells[which(num.cells>=min.cells)])
-              object@data=object@data[genes.use,]
-            }
-            t.data=t(object@data[genes.use, ])
-
-            object@ident=factor(unlist(lapply(colnames(object@data),extract_field,names.field,names.delim)))
-            names(object@ident)=colnames(object@data)
-            object@cell.names=names(object@ident)
-            if (!(large.object)) {
-              if ((do.center==F)&&(do.scale==F)) object@scale.data=t(object@data)
-              if ((do.center==T)||(do.scale==T)) object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
-
-            }
-            if (large.object) {
-              object@scale.data=t(pbsapply(colnames(t.data),function(x) scale(t.data[,x],center=do.center,scale=do.scale)))
-              rownames(object@scale.data)=rownames(object@data); colnames(object@scale.data)=colnames(object@data)
-            }
-            data.ngene=num.genes[cells.use]
-            object@gene.scores=data.frame(data.ngene); colnames(object@gene.scores)[1]="nGene"
-            object@data.info=data.frame(data.ngene); colnames(object@data.info)[1]="nGene"
-            if (!is.null(meta.data)) {
-              object=AddMetaData(object,metadata = meta.data)
-            }
-            object@mix.probs=data.frame(data.ngene); colnames(object@mix.probs)[1]="nGene"
-            rownames(object@gene.scores)=colnames(object@data)
-
-            object@data.info[names(object@ident),"orig.ident"]=object@ident
-
-            object@project.name=project
-            #if(calc.noise) {
-            #  object=CalcNoiseModels(object,...)
-            #  object=GetWeightMatrix(object)
-            #}
-            return(object)
           }
 )
 
@@ -780,7 +802,6 @@ setMethod("PCA", "seurat",
               pca.obj = prcomp(pc.data,...)
               object@pca.obj=list(pca.obj)
 
-
               pcs.store=min(pcs.store,ncol(pc.data))
               pcs.print=min(pcs.print,ncol(pc.data))
               object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
@@ -791,12 +812,12 @@ setMethod("PCA", "seurat",
               pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(t(pc.data),...)
               object@pca.obj=list(pca.obj)
-
-
+  
               pcs.store=min(pcs.store,ncol(pc.data))
               pcs.print=min(pcs.print,ncol(pc.data))
               object@pca.x=data.frame(pca.obj$rotation[,1:pcs.store])
               object@pca.rot=data.frame(pca.obj$x[,1:pcs.store])
+              
             }
 
             if (do.print) {
@@ -3329,9 +3350,10 @@ setMethod("JackStraw","seurat",
 
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
+            
             if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x),simplify = FALSE)
             if ((do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x){ print(x); jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x)},simplify = FALSE)
-
+            
             fake.pcVals=sapply(1:num.pc,function(x)as.numeric(unlist(lapply(1:num.replicate,function(y)fake.pcVals.raw[[y]][,x]))))
             object@jackStraw.fakePC = data.frame(fake.pcVals)
             object@jackStraw.empP=data.frame(sapply(1:num.pc,function(x)unlist(lapply(abs(md.x[,x]),empP,abs(fake.pcVals[,x])))))
@@ -3466,7 +3488,7 @@ setGeneric("MeanVarPlot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do
                                      contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("MeanVarPlot"))
 #' @export
 setMethod("MeanVarPlot", signature = "seurat",
-          function(object, fxn.x=humpMean, fxn.y=sd,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
+          function(object, fxn.x=expMean, fxn.y=logVarDivMean, do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
                    x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
                    pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                    contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) {

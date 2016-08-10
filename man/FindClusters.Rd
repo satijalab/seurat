@@ -26,11 +26,9 @@ FindClusters(object, genes.use = NULL, pc.use = NULL, k.param = 10,
 \item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning,
 1 - prune everything)}
 
-\item{save.SNN}{Whether to return the SNN matrix or not. If true, returns a
-list with the object as the first item
- and the SNN matrix as the second item.}
+\item{save.SNN}{Whether to save the SNN in an object slot}
 
-\item{update}{Adjust how verbose the output is}
+\item{update}{Adjust how verbose the output of the SNN calculation is (0 to 1)}
 
 \item{do.sparse}{Option to store and use SNN matrix as a sparse matrix.
 May be necessary datasets containing a large number of cells.}
