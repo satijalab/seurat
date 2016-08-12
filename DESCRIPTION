@@ -30,7 +30,9 @@ Imports:
     pbapply,
     igraph,
     FNN,
-    caret
+    caret,
+    dplyr,
+    RColorBrewer
 License: GPL 3.0
 Collate:
     'seurat.R'

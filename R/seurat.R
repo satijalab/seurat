@@ -1117,13 +1117,13 @@ setMethod("FetchData","seurat",
               if (all(gene_check)){
                 if(use.imputed) data.expression = object@imputed[vars.all, ]
                 if(use.scaled) data.expression = object@scale.data[vars.all, ]
-                else data.expression = object@data[vars.all, ]
+                else data.expression = object@data[vars.all, , drop = FALSE ]
                 return(t(data.expression))
               }
               else{
                 if(use.imputed) data.expression = object@imputed[vars.all[gene_check], ]
                 if(use.scaled) data.expression = object@scale.data[vars.all[gene_check], ]
-                else data.expression = object@data[vars.all[gene_check], ]
+                else data.expression = object@data[vars.all[gene_check], , drop = FALSE]
                 data.expression = t(data.expression)
               }
             }
@@ -1142,14 +1142,12 @@ setMethod("FetchData","seurat",
                 }
               }
               if (ncol(data.use)==0) {
-                print(paste("Error : ", my.var, " not found", sep=""))
-                return(0);
+                stop(paste("Error : ", my.var, " not found", sep=""))
               }
               cells.use=ainb(cells.use,rownames(data.use))
               data.add=data.use[cells.use,my.var]
               if (is.null(data.add)) {
-                print(paste("Error : ", my.var, " not found", sep=""))
-                return(0);
+                stop(paste("Error : ", my.var, " not found", sep=""))
               }
               data.return=cbind(data.return,data.add)
             }
@@ -2128,9 +2126,6 @@ setMethod("CalcNoiseModels","seurat",
 #' Colors single cells on a dimensional reduction plot according to a 'feature'
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
-#' To determine the color, the feature values across all cells are placed into
-#' discrete bins, and then assigned a color based on cols.use. The number of
-#' bins is determined by the number of colors in cols.use
 #'
 #' @param object Seurat object
 #' @param features.plot Vector of features to plot
@@ -2138,23 +2133,27 @@ setMethod("CalcNoiseModels","seurat",
 #' @param dim.2 Dimension for y-axis (default 2)
 #' @param cells.use Vector of cells to plot (default is all cells)
 #' @param pt.size Adjust point size for plotting
-#' @param cols.use Ordered vector of colors to use for plotting. Default is
-#' heat.colors(10).
+#' @param cols.use The two colors to form the gradient over. Provide as string vector with
+#' the first color corresponding to low values, the second to high. Also accepts a Brewer
+#' color scale or vector of colors. Note: this will bin the data into number of colors provided.
 #' @param pch.use Pch for plotting
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param use.imputed Use imputed values for gene expression (default is FALSE)
 #' @param nCol Number of columns to use when plotting multiple features.
+#' @param no.axes Remove axis labels
+#' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("FeaturePlot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) standardGeneric("FeaturePlot"))
+setGeneric("FeaturePlot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE,...) standardGeneric("FeaturePlot"))
 #' @export
 setMethod("FeaturePlot", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) {
+          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (is.null(nCol)) {
               nCol=2
+              if (length(features.plot) == 1) ncol=1
               if (length(features.plot)>6) nCol=3
               if (length(features.plot)>9) nCol=4
             }
@@ -2164,76 +2163,55 @@ setMethod("FeaturePlot", "seurat",
             data.plot=FetchData(object,dim.codes)
 
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
+            
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
             data.use=data.frame(t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
-            for(i in features.plot) {
-              data.gene=na.omit(data.frame(data.use[i,]))
-              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
-              data.col=rev(cols.use)[data.cut]
-              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="Dim. 1",ylab="Dim. 2",...)
-              #plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main="",xlab="",ylab="",...)
-            }
+            pList=lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes))
+            
+            multiplotList(pList, cols = nCol)
             rp()
           }
 )
 
-#' Visualize 'features' on a dimensional reduction plot
-#'
-#' Colors single cells on a dimensional reduction plot according to a 'feature'
-#' (i.e. gene expression, PC scores, number of genes detected, etc.)
-#'
-#' To determine the color, the feature values across all cells are placed into
-#' discrete bins, and then assigned a color based on cols.use. The number of
-#' bins is determined by the number of colors in cols.use
-#'
-#' This function is specifically to generate plots used in Keynote, where the white background is removed
-#'
-#' @param object Seurat object
-#' @param features.plot Vector of features to plot
-#' @param dim.1 Dimension for x-axis (default 1)
-#' @param dim.2 Dimension for y-axis (default 2)
-#' @param cells.use Vector of cells to plot (default is all cells)
-#' @param pt.size Adjust point size for plotting
-#' @param cols.use Ordered vector of colors to use for plotting. Default is
-#' heat.colors(10).
-#' @param pch.use Pch for plotting
-#' @param reduction.use Which dimensionality reduction to use. Default is
-#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
-#' @param use.imputed Use imputed values for gene expression (default is FALSE)
-#' @param nCol Number of columns to use when plotting multiple features.
-#' @return No return value, only a graphical output
-#' @export
-setGeneric("FeaturePlotKeynote", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) standardGeneric("FeaturePlotKeynote"))
-#' @export
-setMethod("FeaturePlotKeynote", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=heat.colors(10),pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,...) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            dim.code="PC"
-            if (is.null(nCol)) {
-              nCol=2
-              if (length(features.plot)>6) nCol=3
-              if (length(features.plot)>9) nCol=4
-            }
-            num.row=floor(length(features.plot)/nCol-1e-5)+1
-            par(mfrow=c(num.row,nCol))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=FetchData(object,dim.codes)
-
-            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
-            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            data.plot$pt.size=pt.size
-            data.use=data.frame(t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
-            for(i in features.plot) {
-              data.gene=na.omit(data.frame(data.use[i,]))
-              data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = length(cols.use))))
-              data.col=rev(cols.use)[data.cut]
-              #plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="Dim. 1",ylab="Dim. 2",...)
-              plot(data.plot$x,data.plot$y,col=data.col,cex=pt.size,pch=pch.use,main=i,xlab="",ylab="",axes=F,col.main="white")
-            }
-            rp()
-          }
-)
+SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes){
+  data.gene=na.omit(data.frame(data.use[feature,]))
+  data.plot$gene = t(data.gene)
+  brewer.gran <- 1
+  if(length(cols.use) == 1){
+    brewer.gran <- brewer.pal.info[cols.use,]$maxcolors
+  }
+  else{
+    brewer.gran <- length(cols.use)
+  }
+  data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = brewer.gran)))
+  data.plot$col=as.factor(data.cut)
+  p <- ggplot(data.plot, aes(x,y))
+  if(brewer.gran != 2){
+    if(length(cols.use) == 1){
+      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + theme(legend.position='none') + 
+        scale_color_brewer(palette=cols.use)
+    }
+    else{
+      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + theme(legend.position='none') + 
+        scale_color_manual(values=cols.use)
+    }
+  }
+  else{
+    p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) + theme(legend.position='none') +
+      scale_color_gradientn(colors=cols.use) 
+  }
+  if(no.axes){
+    p <- p + labs(title = feature, x ="", y="") +  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+                                                         axis.text.y=element_blank(),axis.ticks=element_blank(),
+                                                         axis.title.x=element_blank(),
+                                                         axis.title.y=element_blank())
+  }
+  else{
+    p <- p + labs(title = feature, x = x1, y = x2)
+  }
+  return(p)
+}
 
 #' Vizualization of multiple features
 #'
@@ -2388,6 +2366,7 @@ translate.dim.code=function(reduction.use) {
 #' @param no.legend Setting to TRUE will remove the legend
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
+#' @importFrom dplyr summarize group_by
 #' @export
 setGeneric("DimPlot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) standardGeneric("DimPlot"))
 #' @export
@@ -2942,39 +2921,6 @@ setMethod("show", "seurat",
           }
 )
 
-plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL) {
-  data$gene=as.character(rownames(data))
-  data.use=data.frame(data[gene,])
-  if (length(gene)==1) {
-    data.melt=data.frame(rep(gene,length(cell.ident))); colnames(data.melt)[1]="gene"
-    data.melt$value=as.numeric(data[1,1:length(cell.ident)])
-    data.melt$id=names(data)[1:length(cell.ident)]
-  }
-  #print(head(data.melt))
-
-  if (length(gene)>1) data.melt=melt(data.use,id="gene")
-  data.melt$ident=cell.ident
-
-  noise <- rnorm(length(data.melt$value))/100000
-  data.melt$value=as.numeric(as.character(data.melt$value))+noise
-  if(do.sort) {
-    data.melt$ident=factor(data.melt$ident,levels=names(rev(sort(tapply(data.melt$value,data.melt$ident,mean)))))
-  }
-  p=ggplot(data.melt,aes(factor(ident),value))
-  p2=p + geom_violin(scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(ident))) + ylab("Expression level (log TPM)")
-  if (!is.null(cols.use)) {
-    p2=p2+scale_fill_manual(values=cols.use)
-  }
-  p3=p2+theme(legend.position="top")+guides(fill=guide_legend(title=NULL))+geom_jitter(height=0,size=size.use)+xlab("Cell Type")
-  p4=p3+ theme(axis.title.x = element_text(face="bold", colour="#990000", size=size.x.use), axis.text.x  = element_text(angle=90, vjust=0.5, size=12))+theme_bw()+nogrid
-  p5=(p4+theme(axis.title.y = element_text(face="bold", colour="#990000", size=size.y.use), axis.text.y  = element_text(angle=90, vjust=0.5, size=12))+ggtitle(gene)+theme(plot.title = element_text(size=size.title.use, face="bold")))
-  if(do.ret==TRUE) {
-    return(p5)
-  }
-  else {
-    print(p5)
-  }
-}
 
 #' Dot plot visualization
 #'
@@ -3053,21 +2999,75 @@ setMethod("VlnPlot","seurat",
               if (length(features.plot)>6) nCol=3
               if (length(features.plot)>9) nCol=4
             }
-            data.use=data.frame(t(FetchData(object,features.plot,use.imputed=use.imputed)))
-            #print(head(data.use))
+            
+            if(length(features.plot == 1)) {
+              data.use=data.frame(FetchData(object,features.plot,use.imputed=use.imputed))
+              if(nrow(data.use) > 1) {
+                data.use = t(data.use)
+              }
+              rownames(data.use) <- features.plot
+            }
+            
+            else {
+              data.use=data.frame(t(FetchData(object,features.plot,use.imputed=use.imputed)))
+            }
             ident.use=object@ident
             if (!is.null(group.by)) ident.use=as.factor(FetchData(object,group.by)[,1])
-            pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use))
+            gene.names <- rownames(data.use)[rownames(data.use) %in% rownames(object@data)]
+            pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,,drop=FALSE],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use,gene.names))
 
             if(do.ret) {
               return(pList)
             }
+            
             else {
               multiplotList(pList,cols = nCol)
               rp()
             }
           }
 )
+
+plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL,gene.names) {
+  data.use=data.frame(data[gene,])
+  if (length(gene)==1) {
+    data.melt=data.frame(rep(gene,length(cell.ident))); colnames(data.melt)[1]="gene"
+    data.melt$value=as.numeric(data[1,1:length(cell.ident)])
+    data.melt$id=names(data)[1:length(cell.ident)]
+  }
+  #print(head(data.melt))
+  
+  if (length(gene)>1) data.melt=melt(data.use,id="gene")
+  data.melt$ident=cell.ident
+  
+  noise <- rnorm(length(data.melt$value))/100000
+  data.melt$value=as.numeric(as.character(data.melt$value))+noise
+  if(do.sort) {
+    data.melt$ident=factor(data.melt$ident,levels=names(rev(sort(tapply(data.melt$value,data.melt$ident,mean)))))
+  }
+
+  p=ggplot(data.melt,aes(factor(ident),value))
+  p2=p + geom_violin(scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(ident)))
+  if(gene %in% gene.names){
+    p2=p2 + ylab("Expression level (log TPM)")
+  }
+  else{
+    p2 = p2 + ylab("")
+  }
+  if (!is.null(cols.use)) {
+    p2=p2+scale_fill_manual(values=cols.use)
+  }
+  p3=p2+theme(legend.position="top")+guides(fill=guide_legend(title=NULL))+geom_jitter(height=0,size=size.use)+xlab("Cell Type")
+  p4=p3+ theme(axis.title.x = element_text(face="bold", colour="#990000", size=size.x.use), axis.text.x  = element_text(angle=90, vjust=0.5, size=12))+theme_bw()+nogrid
+  p5=(p4+theme(axis.title.y = element_text(face="bold", colour="#990000", size=size.y.use), axis.text.y  = element_text(angle=90, vjust=0.5, size=12))+ggtitle(gene)+theme(plot.title = element_text(size=size.title.use, face="bold")))
+  if(do.ret==TRUE) {
+    return(p5)
+  }
+  else {
+    print(p5)
+  }
+}
+
+
 
 #' Add Metadata
 #'
