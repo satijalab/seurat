@@ -5,7 +5,7 @@
 \title{Determine statistical significance of PCA scores.}
 \usage{
 JackStraw(object, num.pc = 30, num.replicate = 100, prop.freq = 0.01,
-  do.print = FALSE)
+  do.print = FALSE, rev.pca = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,6 +18,9 @@ JackStraw(object, num.pc = 30, num.replicate = 100, prop.freq = 0.01,
 replicate}
 
 \item{do.print}{Print the number of replicates that have been processed.}
+
+\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to 
+true will compute it on gene x cell matrix. This should match what was set when the intial PCA was run.}
 }
 \value{
 Returns a Seurat object where object@jackStraw.empP represents

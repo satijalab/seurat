@@ -30,9 +30,7 @@ Imports:
     pbapply,
     igraph,
     FNN,
-    caret,
-    lfa
-Remotes: StoreyLab/lfa@a1df252
+    caret
 License: GPL 3.0
 Collate:
     'seurat.R'

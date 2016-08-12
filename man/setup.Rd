@@ -4,9 +4,9 @@
 \alias{Setup}
 \title{Setup Seurat object}
 \usage{
-Setup(object, project, min.cells = 3, min.genes = 2500, is.expr = 1,
+Setup(object, project, min.cells = 3, min.genes = 2500, is.expr = 0,
   do.scale = TRUE, do.center = TRUE, names.field = 1, names.delim = "_",
-  meta.data = NULL, save.raw = TRUE, large.object = T, ...)
+  meta.data = NULL, save.raw = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

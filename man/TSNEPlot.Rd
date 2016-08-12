@@ -4,22 +4,20 @@
 \alias{TSNEPlot}
 \title{Plot tSNE map}
 \usage{
-TSNEPlot(object, do.label = FALSE, label.pt.size = 1, label.cex.text = 1,
-  label.cols.use = NULL, ...)
+TSNEPlot(object, do.label = FALSE, pt.size = 1, label.size = 4,
+  cells.use = NULL, colors.use = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{do.label}{FALSE by default. If TRUE, plots an alternate view where the center of each
-cluster is lebeled}
+cluster is labeled}
 
-\item{label.pt.size}{If do.label is set, the point size}
+\item{pt.size}{Set the point size}
 
-\item{label.cex.text}{If label.cex.text is set, the size of the text labels}
+\item{label.size}{Set the size of the text labels}
 
-\item{label.cols.use}{If do.label is set, the color palette to use for the points}
-
-\item{color.scramble}{If do.label is set, scramble the color palette (can help to distinguish adjacent clusters)}
+\item{colors.use}{Manually set the color palette to use for the points}
 
 \item{\dots}{Additional parameters to DimPlot, for example, which dimensions to plot.}
 }

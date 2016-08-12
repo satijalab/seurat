@@ -6,7 +6,8 @@
 \usage{
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
-  cols.use = NULL, group.by = "ident", pt.shape = NULL)
+  cols.use = NULL, group.by = "ident", pt.shape = NULL,
+  do.label = FALSE, label.size = 1, no.legend = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +34,12 @@ class. By default, ggplot assigns colors.}
 
 \item{pt.shape}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.}
+
+\item{do.label}{Whether to label the clusters}
+
+\item{label.size}{Sets size of labels}
+
+\item{no.legend}{Setting to TRUE will remove the legend}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only

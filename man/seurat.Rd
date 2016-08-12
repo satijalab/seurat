@@ -18,8 +18,9 @@ are listed below.
 \section{Slots}{
 
  \describe{
-   \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-   \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring
+   \item{\code{raw.data}:}{\code{"ANY"}, The raw project data }
+   \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
+   \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }

@@ -14,7 +14,7 @@
 #'
 #'@section Slots:
 #'  \describe{
-#'    \item{\code{raw.data}:{\code{"ANY"}, The raw project data }
+#'    \item{\code{raw.data}:}{\code{"ANY"}, The raw project data }
 #'    \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
 #'    \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
 #'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
@@ -124,8 +124,6 @@ setMethod("Setup","seurat",
             if(do.scale | do.center) {
               bin.size <- 1000
               max.bin <- floor(length(genes.use)/bin.size) + 1
-              print(max.bin)
-              print(length(genes.use))
               pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
               for(i in 1:max.bin) {
                 my.inds <- (bin.size * (i - 1) + 1):(bin.size * i - 1)
@@ -158,6 +156,22 @@ setMethod("Setup","seurat",
             #  object=GetWeightMatrix(object)
             #}
             return(object)
+          }
+)
+
+#' Normalize raw data
+#'
+#' Normalize count data per cell and transform to log scale
+#'
+#'
+#' @param data Matrix with the raw count data
+#' @return Returns a matrix with the normalize and log transformed data
+#' @export
+setGeneric("LogNormalize", function(data) standardGeneric("LogNormalize"))
+#' @export
+setMethod("LogNormalize","matrix",
+          function(data) {
+            return(log(sweep(data, 2, colSums(data), FUN = "/") * 1e4 + 1))
           }
 )
 
@@ -388,7 +402,6 @@ setGeneric("AddSamples", function(object,new.data, min.genes=2500 ,names.field=1
 setMethod("AddSamples","seurat",
           function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") {
             geneMeans.old = apply(object@data, 1, mean)
-            #print("hi")
             geneSd.old = apply(object@data, 1, sd)
             levels.old=levels(object@ident)
             num.genes=findNGene(new.data,object@is.expr)
@@ -780,6 +793,7 @@ setMethod("ICA", "seurat",
 #' @param pcs.store Number of PCs to store
 #' @param genes.print Number of genes to print for each PC
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will compute it on gene x cell matrix. 
 #' @param \dots Additional arguments to be passed to prcomp
 #' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
@@ -796,7 +810,7 @@ setMethod("PCA", "seurat",
             pc.genes.var = apply(data.use[pc.genes,],1,var)
             pcs.store = min(pcs.store, length(object@var.genes))
 
-            if (!rev.pca) {
+            if (rev.pca) {
               pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
               pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(pc.data,...)
@@ -807,7 +821,7 @@ setMethod("PCA", "seurat",
               object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
               object@pca.rot=data.frame(pca.obj$rotation[,1:pcs.store])
             }
-            if (rev.pca) {
+            if (!rev.pca) {
               pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
               pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(t(pc.data),...)
@@ -2285,31 +2299,21 @@ setMethod("FeatureHeatmap", "seurat",
 #'
 #' @param object Seurat object
 #' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is lebeled
-#' @param label.pt.size If do.label is set, the point size
-#' @param label.cex.text If label.cex.text is set, the size of the text labels
-#' @param label.cols.use If do.label is set, the color palette to use for the points
-#' @param color.scramble If do.label is set, scramble the color palette (can help to distinguish adjacent clusters)
+#' cluster is labeled
+#' @param pt.size Set the point size
+#' @param label.size Set the size of the text labels
+#' @param colors.use Manually set the color palette to use for the points
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #' @seealso DimPlot
 #' @export
-setGeneric("TSNEPlot", function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,...) standardGeneric("TSNEPlot"))
+setGeneric("TSNEPlot", function(object,do.label=FALSE, pt.size=1, label.size = 4, cells.use = NULL, colors.use = NULL, ...) standardGeneric("TSNEPlot"))
 #' @export
 setMethod("TSNEPlot", "seurat",
-          function(object,do.label=FALSE,label.pt.size=1,label.cex.text=1,label.cols.use=NULL,cells.use=NULL,...) {
+          function(object,do.label=FALSE, pt.size=1, label.size=4, cells.use = NULL, colors.use = NULL,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             #print(head(cells.use))
             cells.use=ainb(cells.use,object@cell.names)
-            if (do.label==TRUE) {
-              label.cols.use=set.ifnull(label.cols.use,rainbow(length(levels(object@ident[cells.use]))));
-              set.seed(1); label.cols.use=sample(label.cols.use)
-              plot(object@tsne.rot[cells.use,1],object@tsne.rot[cells.use,2],col=label.cols.use[as.integer(object@ident[cells.use])],pch=16,xlab="tSNE_1",ylab="tSNE_2",cex=label.pt.size)
-              k.centers=t(sapply(levels(object@ident),function(x) apply(object@tsne.rot[WhichCells(object,x),],2,median)))
-              points(k.centers[,1],k.centers[,2],cex=1.3,col="white",pch=16); text(k.centers[,1],k.centers[,2],levels(object@ident),cex=label.cex.text)
-            }
-            else {
-              return(DimPlot(object,reduction.use = "tsne",cells.use = cells.use,...))
-            }
+            return(DimPlot(object,reduction.use = "tsne",cells.use = cells.use, pt.size = pt.size, do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
           }
 )
 
@@ -2379,13 +2383,16 @@ translate.dim.code=function(reduction.use) {
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
+#' @param do.label Whether to label the clusters
+#' @param label.size Sets size of labels
+#' @param no.legend Setting to TRUE will remove the legend
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #' @export
-setGeneric("DimPlot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) standardGeneric("DimPlot"))
+setGeneric("DimPlot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) standardGeneric("DimPlot"))
 #' @export
 setMethod("DimPlot", "seurat",
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL) {
+          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes,cells.use)
@@ -2404,7 +2411,6 @@ setMethod("DimPlot", "seurat",
               }
               data.plot[,"pt.shape"]=shape.val
               p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident),shape=factor(pt.shape)),size=pt.size)
-
             }
             if (!is.null(cols.use)) {
               p=p+scale_colour_manual(values=cols.use)
@@ -2412,6 +2418,13 @@ setMethod("DimPlot", "seurat",
             p2=p+xlab(x1)+ylab(x2)+scale_size(range = c(pt.size, pt.size))
             p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid
             p3=p3+theme(legend.title=element_blank())
+            if (do.label) {
+              data.plot %>% dplyr::group_by(ident) %>% summarize(x = median(x), y = median(y)) -> centers
+              p3 <- p3 + geom_point(data = centers, aes(x=x, y=y), size=0, alpha=0) + geom_text(data=centers, aes(label=ident), size = label.size)
+            }
+            if (no.legend) {
+              p3 <- p3 + theme(legend.position = "none")
+            }
             if (do.return) {
               if (do.bare) return(p)
               return(p3)
@@ -3318,15 +3331,17 @@ setMethod("JackStrawMC","seurat",
 #' @param prop.freq Proportion of the data to randomly permute for each
 #' replicate
 #' @param do.print Print the number of replicates that have been processed.
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to 
+#' true will compute it on gene x cell matrix. This should match what was set when the intial PCA was run.
 #' @return Returns a Seurat object where object@@jackStraw.empP represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
 #' run, object@@jackStraw.empP.full then represents p-values for all genes.
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #' @export
-setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE)  standardGeneric("JackStraw"))
+setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE)  standardGeneric("JackStraw"))
 #' @export
 setMethod("JackStraw","seurat",
-          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE) {
+          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE) {
 
             # error checking for number of PCs
             if (num.pc > ncol(object@pca.rot)){
@@ -3351,8 +3366,8 @@ setMethod("JackStraw","seurat",
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             
-            if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x),simplify = FALSE)
-            if ((do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x){ print(x); jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x)},simplify = FALSE)
+            if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x, rev.pca=rev.pca),simplify = FALSE)
+            if ((do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x){ print(x); jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x,rev.pca=rev.pca)},simplify = FALSE)
             
             fake.pcVals=sapply(1:num.pc,function(x)as.numeric(unlist(lapply(1:num.replicate,function(y)fake.pcVals.raw[[y]][,x]))))
             object@jackStraw.fakePC = data.frame(fake.pcVals)
@@ -3363,20 +3378,30 @@ setMethod("JackStraw","seurat",
 )
 
 #' @export
-jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1) {
-  set.seed(seed.use); rand.genes=sample(rownames(scaled.data),nrow(scaled.data)*prop.use)
+jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.pca=FALSE) {
+  set.seed(seed.use)
+  rand.genes <- sample(rownames(scaled.data), nrow(scaled.data) * prop.use)
 
   # make sure that rand.genes is at least 3
   if (length(rand.genes) < 3){
     rand.genes <- sample(rownames(scaled.data), 3)
   }
 
-  data.mod=scaled.data
-  data.mod[rand.genes,]=shuffleMatRow(scaled.data[rand.genes,])
-  fake.pca=prcomp(data.mod)
-  fake.x=fake.pca$x
-  fake.rot=fake.pca$rotation
-  return(fake.x[rand.genes,r1.use:r2.use])
+  data.mod <- scaled.data
+  data.mod[rand.genes, ] <- shuffleMatRow(scaled.data[rand.genes, ])
+  
+  if(rev.pca){
+    fake.pca <- prcomp(data.mod)
+    fake.x <- fake.pca$x
+    fake.rot <- fake.pca$rotation
+  }
+  else {
+    fake.pca <- prcomp(t(data.mod))
+    fake.x <- fake.pca$rotation
+    fake.rot <- fake.pca$x
+  }
+
+  return(fake.x[rand.genes, r1.use:r2.use])
 }
 
 setGeneric("JackStrawFull", function(object,num.pc=5,num.replicate=100,prop.freq=0.01)  standardGeneric("JackStrawFull"))
