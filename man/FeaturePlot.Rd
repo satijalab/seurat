@@ -5,8 +5,9 @@
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
 FeaturePlot(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL,
-  pt.size = 1, cols.use = heat.colors(10), pch.use = 16,
-  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL, ...)
+  pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
+  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+  no.axes = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,8 +22,9 @@ FeaturePlot(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL,
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{cols.use}{Ordered vector of colors to use for plotting. Default is
-heat.colors(10).}
+\item{cols.use}{The two colors to form the gradient over. Provide as string vector with
+the first color corresponding to low values, the second to high. Also accepts a Brewer
+color scale or vector of colors. Note: this will bin the data into number of colors provided.}
 
 \item{pch.use}{Pch for plotting}
 
@@ -32,6 +34,8 @@ heat.colors(10).}
 \item{use.imputed}{Use imputed values for gene expression (default is FALSE)}
 
 \item{nCol}{Number of columns to use when plotting multiple features.}
+
+\item{no.axes}{Remove axis labels}
 }
 \value{
 No return value, only a graphical output
@@ -39,10 +43,5 @@ No return value, only a graphical output
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'
 (i.e. gene expression, PC scores, number of genes detected, etc.)
-}
-\details{
-To determine the color, the feature values across all cells are placed into
-discrete bins, and then assigned a color based on cols.use. The number of
-bins is determined by the number of colors in cols.use
 }
 
