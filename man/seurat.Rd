@@ -6,8 +6,8 @@
 \alias{seurat-class}
 \title{The Seurat Class}
 \description{
-The Seurat object is the center of each single cell analysis. It stores all information 
-associated with the dataset, including data, annotations, analyes, etc. All that is needed 
+The Seurat object is the center of each single cell analysis. It stores all information
+associated with the dataset, including data, annotations, analyes, etc. All that is needed
 to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
 should be log-scale
 }
@@ -18,14 +18,15 @@ are listed below.
 \section{Slots}{
 
  \describe{
-   \item{\code{data}:}{\code{"data.frame"}, The expression matrix (log-scale) }
-   \item{\code{scale.data}:}{\code{"data.frame"}, The scaled (after z-scoring
+   \item{\code{raw.data}:}{\code{"ANY"}, The raw project data }
+   \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
+   \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
    \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
-   the original identity class (orig.ident), user-provided information (through addMetaData), etc.  }
+   the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
    \item{\code{pca.x}:}{\code{"data.frame"}, Gene projection scores for the PCA analysis  }
    \item{\code{pca.x.full}:}{\code{"data.frame"}, Gene projection scores for the projected PCA  (contains all genes)  }
@@ -38,12 +39,12 @@ are listed below.
    \item{\code{final.prob}:}{\code{"data.frame"}, For spatial inference, posterior probability of each cell mapping to each bin }
    \item{\code{insitu.matrix}:}{\code{"data.frame"}, For spatial inference, the discretized spatial reference map }
    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
-   \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the 
+   \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
    phylogenetic tree relating different identity classes }
    \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
    \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-     
+
 }
 }
 

@@ -14,7 +14,7 @@ ValidateClusters(object, pc.use = NULL, top.genes = 30,
 
 \item{top.genes}{Use the top X genes for model construction}
 
-\item{min.connectivity}{Threshold of connectedness for comparison 
+\item{min.connectivity}{Threshold of connectedness for comparison
 of two clusters}
 
 \item{acc.cutoff}{Accuracy cutoff for classifier}
@@ -22,7 +22,7 @@ of two clusters}
 \item{verbose}{Controls whether to display progress and merge results}
 }
 \value{
-Returns a Seurat object, object@ident has been updated with 
+Returns a Seurat object, object@ident has been updated with
 new cluster info
 }
 \description{

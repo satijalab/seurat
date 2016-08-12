@@ -21,8 +21,8 @@ May 21, 2015:
 	- Added support for spectral t-SNE and density clustering
 	- New visualizations - including pcHeatmap, dot.plot, and feature.plot
 	- Expanded package documentation, reduced import package burden
-	- Seurat code is now hosted on GitHub, enables easy install through devtools  
-	- Small bug fixes 	
+	- Seurat code is now hosted on GitHub, enables easy install through devtools
+	- Small bug fixes
 
 April 13, 2015:
     Spatial mapping manuscript published. Version 1.1 released (initial release)
