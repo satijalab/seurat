@@ -90,21 +90,20 @@ seurat <- setClass("seurat", slots =
 #' @import stringr
 #' @import pbapply
 #' @export
-setGeneric("Setup", function(object, project, min.cells=3, min.genes=2500, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
+setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
 #' @export
 setMethod("Setup","seurat",
-          function(object, project, min.cells=3, min.genes=2500, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
+          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
             object@is.expr <- is.expr
-            num.genes <- findNGene(object@raw.data, object@is.expr)
+            num.genes <- Matrix::colSums(object@raw.data > is.expr)
             cells.use <- names(num.genes[which(num.genes > min.genes)])
-            
             object@data <- object@raw.data[, cells.use]
             
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data <- matrix();
             genes.use <- rownames(object@data)
             if (min.cells > 0) {
-              num.cells <- rowSums(object@data > is.expr)
+              num.cells <- Matrix::rowSums(object@data > is.expr)
               genes.use <- names(num.cells[which(num.cells >= min.cells)])
               object@data <- object@data[genes.use, ]
             }
@@ -149,10 +148,10 @@ setMethod("Setup","seurat",
 
 
 #Andrew please add docs :)
-setGeneric("ScaleData", function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE) standardGeneric("ScaleData"))
+setGeneric("ScaleData", function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE,scale.max=10) standardGeneric("ScaleData"))
 #' @export
 setMethod("ScaleData", "seurat",
-          function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE) {
+          function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE,scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
             data.use=set.ifnull(data.use,object@data[genes.use,])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
@@ -167,7 +166,9 @@ setMethod("ScaleData", "seurat",
                 my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                 my.inds <- my.inds[my.inds <= length(genes.use)]
                 #print(my.inds)
-                object@scale.data[genes.use[my.inds], ] <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
+                new.data=t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
+                new.data[new.data>scale.max]=scale.max
+                object@scale.data[genes.use[my.inds], ]=new.data
                 setTxtProgressBar(pb, i)  
               }
               close(pb)
@@ -505,12 +506,18 @@ setMethod("SubsetData","seurat",
               pass.inds=which((subset.data>accept.low) & (subset.data<accept.high))
               cells.use=rownames(data.use)[pass.inds]
             }
+            cells.use=ainb(cells.use,object@cell.names)
             object@data=object@data[,cells.use]
-            object@scale.data=object@scale.data[,cells.use]
-            if (do.scale) {
-              object@scale.data=t(scale(t(object@data),center=do.center,scale=do.scale))
+            if(!(is.null(object@scale.data))) {
+              if (length(colnames(object@scale.data)>0)) {
+                object@scale.data[,cells.use]
+                object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
+              }
             }
-            object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
+            if (do.scale) {
+              object=ScaleData(object,do.scale = do.scale,do.center = do.center)
+              object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
+            }
             object@ident=drop.levels(object@ident[cells.use])
             object@tsne.rot=object@tsne.rot[cells.use,]
             object@pca.rot=object@pca.rot[cells.use,]
@@ -3543,29 +3550,60 @@ setMethod("PCElbowPlot","seurat",
 #' @param contour.lty Contour line type
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
+#' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @importFrom MASS kde2d
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
 #' The result of all analysis is stored in object@@mean.var
 #' @export
 setGeneric("MeanVarPlot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                                     x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
+                                     x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
                                      pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
-                                     contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) standardGeneric("MeanVarPlot"))
+                                     contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) standardGeneric("MeanVarPlot"))
 #' @export
 setMethod("MeanVarPlot", signature = "seurat",
           function(object, fxn.x=expMean, fxn.y=logVarDivMean, do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                   x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=12,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
+                   x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
                    pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
-                   contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20) {
+                   contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) {
             data=object@data
-            data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
-            data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
-            data.norm.y[is.na(data.norm.y)]=0
-            names(data.norm.y)=names(data.x)
+            
+            if (do.recalc) {    
+                genes.use <- rownames(object@data)
+                data.x=rep(0,length(genes.use)); names(data.x)=genes.use; data.y=data.x; data.norm.y=data.x;
+    
+                bin.size <- 1000
+                max.bin <- floor(length(genes.use)/bin.size) + 1
+                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+                for(i in 1:max.bin) {
+                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                  my.inds <- my.inds[my.inds <= length(genes.use)]
+                  genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,]
+                  data.x[genes.iter]=apply(data.iter,1,fxn.x); data.y[genes.iter]=apply(data.iter,1,fxn.y)
+                  setTxtProgressBar(pb, i)  
+                }
+                close(pb)
+                data.y[is.na(data.y)]=0
+                data.x[is.na(data.x)]=0
+                
+                data_x_bin=cut(data.x,num.bin)
+                names(data_x_bin)=names(data.x)
+                mean_y=tapply(data.y,data_x_bin,mean)
+                sd_y=tapply(data.y,data_x_bin,sd)
+                data.norm.y=(data.y-mean_y[as.numeric(data_x_bin)])/sd_y[as.numeric(data_x_bin)]
+                #data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
+                #data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
+                
+                data.norm.y[is.na(data.norm.y)]=0
+                names(data.norm.y)=names(data.x)
+                
+                mv.df=data.frame(data.x,data.y,data.norm.y)
+                rownames(mv.df)=rownames(data)
+                object@mean.var=mv.df
+            }
+            data.x=object@mean.var[,1]; data.y=object@mean.var[,2]; data.norm.y=object@mean.var[,3]; 
+            names(data.x)=names(data.y)=names(data.norm.y)=rownames(object@data)
+            
             pass.cutoff=names(data.x)[which(((data.x>x.low.cutoff) & (data.x<x.high.cutoff)) & (data.norm.y>y.cutoff) & (data.norm.y < y.high.cutoff))]
-            mv.df=data.frame(data.x,data.y,data.norm.y)
-            rownames(mv.df)=rownames(data)
-            object@mean.var=mv.df
             if (do.spike) spike.genes=rownames(subr(data,"^ERCC"))
             if (do.plot) {
               if (plot.both) {
