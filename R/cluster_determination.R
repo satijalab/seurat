@@ -211,7 +211,7 @@ GroupSingletons <- function(object, SNN){
   # identify singletons
   singletons <- c()
   for (cluster in unique(object@ident)) {
-    if (length(which.cells(object, cluster)) == 1) {
+    if (length(WhichCells(object, cluster)) == 1) {
       singletons <- append(singletons, cluster)
     }
   }
@@ -223,7 +223,7 @@ GroupSingletons <- function(object, SNN){
   names(connectivity) <- cluster_names
   for (i in singletons) {
     for (j in cluster_names) {
-      subSNN = SNN[which.cells(object, i), match(which.cells(object, j), colnames(SNN))]
+      subSNN = SNN[WhichCells(object, i), match(WhichCells(object, j), colnames(SNN))]
       if (is.object(subSNN)) {
         connectivity[j] <- sum(subSNN) / (nrow(subSNN) * ncol(subSNN))
       } else {
@@ -234,7 +234,7 @@ GroupSingletons <- function(object, SNN){
     mi <- which(connectivity == m, arr.ind = TRUE)
     closest_cluster <- names(connectivity[mi])
     
-    object <- set.ident(object, cells.use = which.cells(object,i), 
+    object <- set.ident(object, cells.use = WhichCells(object,i), 
                         ident.use = closest_cluster)
   }
   return(object)

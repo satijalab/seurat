@@ -159,6 +159,35 @@ setMethod("Setup","seurat",
           }
 )
 
+
+#Andrew please add docs :)
+setGeneric("ScaleData", function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE) standardGeneric("ScaleData"))
+#' @export
+setMethod("ScaleData", "seurat",
+          function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE) {
+            genes.use <- set.ifnull(genes.use,rownames(object@data))
+            data.use=set.ifnull(data.use,object@data[genes.use,])
+            object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
+            #rownames(object@scale.data) <- genes.use 
+            #colnames(object@scale.data) <- colnames(object@data)
+            dimnames(object@scale.data)=dimnames(data.use)
+            if(do.scale | do.center) {
+              bin.size <- 3000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- (bin.size * (i - 1) + 1):(bin.size * i - 1)
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                #print(my.inds)
+                object@scale.data[genes.use[my.inds], ] <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+            }
+            return(object)
+          }
+)
+
 #' Normalize raw data
 #'
 #' Normalize count data per cell and transform to log scale
@@ -370,15 +399,19 @@ setMethod("PlotNoiseModel","seurat",
 #' @param do.scale Z-normalize the residual values (default is TRUE)
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #' @import pbapply
+#' @import Matrix
 #' @export
 setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut"))
 #' @export
 setMethod("RegressOut", "seurat",
           function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
-            genes.regress=set.ifnull(genes.regress,rownames(object@scale.data))
-            genes.regress=ainb(genes.regress,rownames(object@scale.data))
+            require(Matrix)
+            genes.regress=set.ifnull(genes.regress,rownames(object@data))
+            genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
-            exp.data=t(object@data[genes.regress,])
+            
+            #NEEDS TO BE FIXED!!!!
+            exp.data=t(as.matrix(object@data[genes.regress,]))
             regression.mat=cbind(latent.data,exp.data)
             new.data=t(pbsapply(genes.regress, function(x) {
               regression.mat.2=latent.data
@@ -387,12 +420,10 @@ setMethod("RegressOut", "seurat",
               return(lm(fmla,data = regression.mat.2)$residuals)
             }))
             if (do.scale==TRUE) {
-              new.data=t(scale(t(new.data)))
+              object=ScaleData(object,genes.use = rownames(new.data),data.use = new.data,...)
             }
-            new.data[is.na(new.data)]=0
-            object@scale.data=new.data
+            object@scale.data[is.na(object@scale.data)]=0
             return(object)
-
           }
 )
 
@@ -1117,7 +1148,7 @@ setMethod("FetchData","seurat",
                 if(use.imputed) data.expression = object@imputed[vars.all, ]
                 if(use.scaled) data.expression = object@scale.data[vars.all, ]
                 else data.expression = object@data[vars.all, , drop = FALSE ]
-                return(t(data.expression))
+                return(t(as.matrix(data.expression)))
               }
               else{
                 if(use.imputed) data.expression = object@imputed[vars.all[gene_check], ]
