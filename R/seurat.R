@@ -117,21 +117,9 @@ setMethod("Setup","seurat",
             if(length(unique(object@ident)) > 100 || length(unique(object@ident)) == 0) {
               object <- SetIdent(object, ident.use = project)
             }
-            object@scale.data <- matrix(NA, nrow = nrow(object@data), ncol = ncol(object@data))
-            rownames(object@scale.data) <- rownames(object@data) 
-            colnames(object@scale.data) <- colnames(object@data)
-            
+            object@scale.data <- matrix()
             if(do.scale | do.center) {
-              bin.size <- 1000
-              max.bin <- floor(length(genes.use)/bin.size) + 1
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-              for(i in 1:max.bin) {
-                my.inds <- (bin.size * (i - 1) + 1):(bin.size * i - 1)
-                my.inds <- my.inds[my.inds <= length(genes.use)]
-                object@scale.data[genes.use[my.inds], ] <- t(scale(t(object@data[genes.use[my.inds], ]), center = do.center, scale = do.scale))
-                setTxtProgressBar(pb, i)  
-              }
-              close(pb)
+              object=ScaleData(object,do.scale = do.scale,do.center = do.center)
             }
             
             data.ngene <- num.genes[cells.use]
@@ -172,11 +160,11 @@ setMethod("ScaleData", "seurat",
             #colnames(object@scale.data) <- colnames(object@data)
             dimnames(object@scale.data)=dimnames(data.use)
             if(do.scale | do.center) {
-              bin.size <- 3000
+              bin.size <- 1000
               max.bin <- floor(length(genes.use)/bin.size) + 1
               pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
               for(i in 1:max.bin) {
-                my.inds <- (bin.size * (i - 1) + 1):(bin.size * i - 1)
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                 my.inds <- my.inds[my.inds <= length(genes.use)]
                 #print(my.inds)
                 object@scale.data[genes.use[my.inds], ] <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
@@ -196,11 +184,11 @@ setMethod("ScaleData", "seurat",
 #' @param data Matrix with the raw count data
 #' @return Returns a matrix with the normalize and log transformed data
 #' @export
-setGeneric("LogNormalize", function(data) standardGeneric("LogNormalize"))
+setGeneric("LogNormalize", function(data,scale.factor=1e4) standardGeneric("LogNormalize"))
 #' @export
 setMethod("LogNormalize","matrix",
-          function(data) {
-            return(log(sweep(data, 2, colSums(data), FUN = "/") * 1e4 + 1))
+          function(data,scale.factor=1e4) {
+            return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
           }
 )
 
@@ -609,17 +597,39 @@ setMethod("ProjectSamples", "seurat",
 #' @return Returns Seurat object with the projected PCA values in
 #' object@@pca.x.full
 #' @export
-setGeneric("ProjectPCA", function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) standardGeneric("ProjectPCA"))
+setGeneric("ProjectPCA", function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) standardGeneric("ProjectPCA"))
 #' @export
 setMethod("ProjectPCA", "seurat",
-          function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=TRUE) {
-            if (!(do.center)) object@pca.x.full=data.frame(as.matrix(object@scale.data)%*%as.matrix(object@pca.rot))
+          function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) {
+            if (!(do.center)) {
+              genes.use=rownames(object@scale.data)
+              #object@pca.x.full=data.frame(as.matrix(object@scale.data)%*%as.matrix(object@pca.rot))
+              object.rot=as.matrix(object@pca.rot)
+              object@pca.x.full <- data.frame(matrix(NA, nrow = length(genes.use), ncol = ncol(object@pca.rot)))
+              rownames(object@pca.x.full) <- genes.use 
+              colnames(object@pca.x.full) <- colnames(object@pca.rot)
+             # dimnames(object@scale.data)=dimnames(data.use)
+
+                bin.size <- 1000
+                max.bin <- floor(length(genes.use)/bin.size) + 1
+                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+                for(i in 1:max.bin) {
+                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                  my.inds <- my.inds[my.inds <= length(genes.use)]
+                  #print(my.inds)
+                  object@pca.x.full[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
+                  setTxtProgressBar(pb, i)  
+                }
+                close(pb)
+              }
+              
             if (do.center) object@pca.x.full=data.frame(scale(as.matrix(object@scale.data),center = TRUE,scale = FALSE)%*%as.matrix(object@pca.rot))
             if (ncol(object@jackStraw.fakePC)>0) {
               object@jackStraw.empP.full=data.frame(sapply(1:ncol(object@jackStraw.fakePC),function(x)unlist(lapply(abs(object@pca.x.full[,x]),empP,abs(object@jackStraw.fakePC[,x])))))
               colnames(object@jackStraw.empP.full)=paste("PC",1:ncol(object@jackStraw.empP),sep="")
               rownames(object@jackStraw.empP.full)=rownames(object@scale.data)
             }
+            object@pca.x.full[is.na(object@pca.x.full)]=0
 
             if (replace.pc==TRUE) {
               object@jackStraw.empP=object@jackStraw.empP.full
