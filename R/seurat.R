@@ -195,6 +195,37 @@ setMethod("LogNormalize","matrix",
 
 
 
+#' Normalize raw data from sparse matrix
+#'
+#' Normalize count data per cell and transform to log scale
+#'
+#'
+#' @param data Matrix with the raw count data
+#' @return Returns a matrix with the normalize and log transformed data
+#' @export
+setGeneric("LogNormalize", function(data,scale.factor=1e4) standardGeneric("LogNormalize"))
+#' @export
+setMethod("LogNormalize","dgCMatrix",
+          function(data,scale.factor=1e4) {
+            cells.use <- colnames(data)
+            bin.size <- 1000
+            max.bin <- floor(length(cells.use)/bin.size) + 1
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            for(i in 1:max.bin) {
+              my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+              my.inds <- my.inds[my.inds <= length(cells.use)]
+              cells.iter=cells.use[my.inds]; data.iter=data[,my.inds]
+              data.new=sweep(data.iter,2,Matrix::colSums(data.iter),FUN = "/")
+              data.new=log1p(data.new*scale.factor)
+              if (i==1) all.norm=data.new;
+              if (i>1) all.norm=cbind(all.norm,data.new)
+              setTxtProgressBar(pb, i)  
+            }
+            close(pb)
+            return(all.norm)
+          }
+)
+
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
@@ -486,6 +517,7 @@ setMethod("AddSamples","seurat",
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
 #' column name in object@@data.info, etc. Any argument that can be retreived
 #' using FetchData
+#' @param ident.use Create a cell subset based on the provided identity classes
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param do.center Recenter the new object@@scale.data
@@ -494,11 +526,14 @@ setMethod("AddSamples","seurat",
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
             data.use=NULL
+            if (!is.null(ident.use)) {
+              cells.use=WhichCells(object,ident.use)
+            }
             if (is.null(cells.use)) {
               data.use=FetchData(object,subset.name,...)
               if (length(data.use)==0) return(object)
@@ -1697,6 +1732,23 @@ setMethod("RenameIdent", "seurat",
             ident.vector=as.character(object@ident); names(ident.vector)=names(object@ident)
             ident.vector[WhichCells(object,old.ident.name)]=new.ident.name
             object@ident=factor(ident.vector,levels = new.levels)
+            return(object)
+          }
+)
+
+#' Set identity class information
+#'
+#' Stashes the identity in data.info to be retrieved later. Useful if, for example, testing multiple clustering parameters
+#'
+#' @param object Seurat object
+#' @param save.name Store current object@@ident under this column name in object@@data.info. Can be easily retrived with SetAllIdent
+#' @return A Seurat object where object@@ident has been appropriately modified
+#' @export
+setGeneric("StashIdent", function(object,save.name="oldIdent") standardGeneric("StashIdent"))
+#' @export
+setMethod("StashIdent", "seurat",
+          function(object,save.name="oldIdent") {
+            object@data.info[,save.name]=as.character(object@ident)
             return(object)
           }
 )

@@ -49,7 +49,7 @@ setMethod("BuildSNN", signature = "seurat",
 
   n.cells <- nrow(data.use)
   if (k.param * k.scale > n.cells){
-    warning("k.scale x k.param larger than the number of cells, setting k to number of cells - 1")
+    #warning("k.scale x k.param larger than the number of cells, setting k to number of cells - 1")
   }
 
   #find the k-nearest neighbors for each single cell
@@ -95,6 +95,11 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
   #define the edge weights with Jaccard distance
+  
+  #if (1)   {
+    print("Constructing SNN")
+    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+  #}
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
       s <- intersect(nn.ranked[i, ], nn.ranked[nn.large[i, j], ])
@@ -107,11 +112,13 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
         id <- id + 1
       }
     }
-    if (i == round(counter * n.cells * update) && print.output) {
-      print(paste("SNN : processed ", i, " cells", sep = ""))
-      counter <- counter + 1;
-    }
+    #if (i == round(counter * n.cells * update) && print.output) {
+    #  print(paste("SNN : processed ", i, " cells", sep = ""))
+    #  counter <- counter + 1;
+    setTxtProgressBar(pb, i)  
   }
+
+  if (print.output) close(pb)
   idx1 <- idx1[!is.na(idx1) & idx1 != 0]
   idx2 <- idx2[!is.na(idx2) & idx2 != 0]
   edge.weight <- edge.weight[!is.na(edge.weight) & edge.weight != 0]
@@ -133,6 +140,8 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
   #fill out the adjacency matrix w with edge weights only between your target
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
+  print("Constructing SNN")
+  pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
       s <- intersect(nn.ranked[i, ], nn.ranked[nn.large[i, j], ])
@@ -144,11 +153,12 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
         w[i,nn.large[i, j]] <- 0
       }
     }
-    if (i == round(counter * n.cells * update) && print.output) {
-      print(paste("SNN : processed ", i, " cells", sep = ""))
-      counter <- counter + 1;
-    }
+    #if (i == round(counter * n.cells * update) && print.output) {
+    #  print(paste("SNN : processed ", i, " cells", sep = ""))
+    #  counter <- counter + 1;
+    setTxtProgressBar(pb, i)  
   }
+  close(pb)
   return(w)
 }
 
