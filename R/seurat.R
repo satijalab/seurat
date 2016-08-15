@@ -89,13 +89,14 @@ seurat <- setClass("seurat", slots =
 #' object@@scale.data, object@@data.info, object@@ident
 #' @import stringr
 #' @import pbapply
+#' @importFrom Matrix colSums rowSums
 #' @export
 setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
 #' @export
 setMethod("Setup","seurat",
           function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
             object@is.expr <- is.expr
-            num.genes <- Matrix::colSums(object@raw.data > is.expr)
+            num.genes <- colSums(object@raw.data > is.expr)
             cells.use <- names(num.genes[which(num.genes > min.genes)])
             object@data <- object@raw.data[, cells.use]
             
@@ -103,7 +104,7 @@ setMethod("Setup","seurat",
             if (!(save.raw)) object@raw.data <- matrix();
             genes.use <- rownames(object@data)
             if (min.cells > 0) {
-              num.cells <- Matrix::rowSums(object@data > is.expr)
+              num.cells <- rowSums(object@data > is.expr)
               genes.use <- names(num.cells[which(num.cells >= min.cells)])
               object@data <- object@data[genes.use, ]
             }
@@ -147,17 +148,28 @@ setMethod("Setup","seurat",
 )
 
 
-#Andrew please add docs :)
-setGeneric("ScaleData", function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE,scale.max=10) standardGeneric("ScaleData"))
+
+#' Scale and center the data
+#'
+#'
+#' @param object Seurat object
+#' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
+#' @param data.use Can optionally pass a matrix of data to scale 
+#' @param do.scale Whether to scale the data. 
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
+#' reduce the effects of genes that are only expressed in a very small number of cells. 
+#' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
+setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) standardGeneric("ScaleData"))
 #' @export
 setMethod("ScaleData", "seurat",
-          function(object, genes.use=NULL,data.use=NULL,do.scale=TRUE, do.center=TRUE,scale.max=10) {
+          function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
-            data.use=set.ifnull(data.use,object@data[genes.use,])
+            data.use <- set.ifnull(data.use,object@data[genes.use, ])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
             #rownames(object@scale.data) <- genes.use 
             #colnames(object@scale.data) <- colnames(object@data)
-            dimnames(object@scale.data)=dimnames(data.use)
+            dimnames(object@scale.data) <- dimnames(data.use)
             if(do.scale | do.center) {
               bin.size <- 1000
               max.bin <- floor(length(genes.use)/bin.size) + 1
@@ -166,9 +178,9 @@ setMethod("ScaleData", "seurat",
                 my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                 my.inds <- my.inds[my.inds <= length(genes.use)]
                 #print(my.inds)
-                new.data=t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
-                new.data[new.data>scale.max]=scale.max
-                object@scale.data[genes.use[my.inds], ]=new.data
+                new.data <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
+                new.data[new.data>scale.max] <- scale.max
+                object@scale.data[genes.use[my.inds], ] <- new.data
                 setTxtProgressBar(pb, i)  
               }
               close(pb)
@@ -184,47 +196,37 @@ setMethod("ScaleData", "seurat",
 #'
 #' @param data Matrix with the raw count data
 #' @return Returns a matrix with the normalize and log transformed data
+#' @importFrom Matrix colSums 
 #' @export
-setGeneric("LogNormalize", function(data,scale.factor=1e4) standardGeneric("LogNormalize"))
+setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("LogNormalize"))
 #' @export
-setMethod("LogNormalize","matrix",
-          function(data,scale.factor=1e4) {
-            return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
-          }
-)
-
-
-
-#' Normalize raw data from sparse matrix
-#'
-#' Normalize count data per cell and transform to log scale
-#'
-#'
-#' @param data Matrix with the raw count data
-#' @return Returns a matrix with the normalize and log transformed data
-#' @export
-setGeneric("LogNormalize", function(data,scale.factor=1e4) standardGeneric("LogNormalize"))
-#' @export
-setMethod("LogNormalize","dgCMatrix",
-          function(data,scale.factor=1e4) {
-            cells.use <- colnames(data)
-            bin.size <- 1000
-            max.bin <- floor(length(cells.use)/bin.size) + 1
-            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-            for(i in 1:max.bin) {
-              my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-              my.inds <- my.inds[my.inds <= length(cells.use)]
-              cells.iter=cells.use[my.inds]; data.iter=data[,my.inds]
-              data.new=sweep(data.iter,2,Matrix::colSums(data.iter),FUN = "/")
-              data.new=log1p(data.new*scale.factor)
-              if (i==1) all.norm=data.new;
-              if (i>1) all.norm=cbind(all.norm,data.new)
-              setTxtProgressBar(pb, i)  
+setMethod("LogNormalize", "ANY",
+          function(data, scale.factor = 1e4) {
+            if(is.matrix(data) || class(data) == "data.frame") {
+              return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
             }
-            close(pb)
-            return(all.norm)
+            else {
+              cells.use <- colnames(data)
+              bin.size <- 1000
+              max.bin <- floor(length(cells.use)/bin.size) + 1
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                my.inds <- my.inds[my.inds <= length(cells.use)]
+                cells.iter <- cells.use[my.inds]
+                data.iter <- data[, my.inds]
+                data.new <- sweep(data.iter, 2, colSums(data.iter), FUN = "/")
+                data.new <- log1p(data.new * scale.factor)
+                if (i == 1) all.norm <- data.new
+                if (i > 1) all.norm <- cbind(all.norm, data.new)
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+              return(all.norm)
+            }
           }
 )
+
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
@@ -3435,6 +3437,7 @@ setMethod("JackStrawMC","seurat",
 #' @return Returns a Seurat object where object@@jackStraw.empP represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
 #' run, object@@jackStraw.empP.full then represents p-values for all genes.
+#' @importFrom pbapply pbsapply
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #' @export
 setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE)  standardGeneric("JackStraw"))
@@ -3466,7 +3469,7 @@ setMethod("JackStraw","seurat",
             md.rot=as.matrix(object@pca.rot)
             
             if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x, rev.pca=rev.pca),simplify = FALSE)
-            if ((do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x){ print(x); jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x,rev.pca=rev.pca)},simplify = FALSE)
+            if ((do.print)) fake.pcVals.raw=pbsapply(1:num.replicate,function(x){jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x,rev.pca=rev.pca)},simplify = FALSE)
             
             fake.pcVals=sapply(1:num.pc,function(x)as.numeric(unlist(lapply(1:num.replicate,function(y)fake.pcVals.raw[[y]][,x]))))
             object@jackStraw.fakePC = data.frame(fake.pcVals)

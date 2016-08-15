@@ -151,7 +151,7 @@ pcHeatmap <- function(...) {
 }
 
 jackStraw <- function(...) {
-    .Deprecated("jackStraw", package="Seurat")
+    .Deprecated("JackStraw", package="Seurat")
     JackStraw(...)
 }
 

@@ -5,7 +5,7 @@
 \title{Project Principal Components Analysis onto full dataset}
 \usage{
 ProjectPCA(object, do.print = TRUE, pcs.print = 5, pcs.store = 30,
-  genes.print = 30, replace.pc = FALSE, do.center = TRUE)
+  genes.print = 30, replace.pc = FALSE, do.center = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

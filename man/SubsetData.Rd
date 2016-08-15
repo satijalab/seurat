@@ -4,7 +4,7 @@
 \alias{SubsetData}
 \title{Return a subset of the Seurat object}
 \usage{
-SubsetData(object, cells.use = NULL, subset.name = NULL,
+SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   accept.low = -Inf, accept.high = Inf, do.center = TRUE,
   do.scale = TRUE, ...)
 }
@@ -18,6 +18,8 @@ arguments. Otherwise, will return an object consissting only of these cells}
 \item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
 column name in object@data.info, etc. Any argument that can be retreived
 using FetchData}
+
+\item{ident.use}{Create a cell subset based on the provided identity classes}
 
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}
 
