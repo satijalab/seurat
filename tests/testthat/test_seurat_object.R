@@ -2,71 +2,72 @@
 
 # load a minimal example data set (subset of nbt dataset)
 load("../testdata/nbt_small.Rdata")
+nbt.small <- log(nbt.small + 1)
 
+
+# Test Initial Normalization
+expect_equal(LogNormalize(matrix(1:16, nrow = 4))[1,1], 6.908755, tolerance=1e-6)
 
 # Tests for object creation (via new/Setup)
 # --------------------------------------------------------------------------------
 context("Object creation")
 
 # Generate Seurat object
-min_cells <- 3
-project_name <- "NBT_TEST"
-names_field <- 2
-names_delim <- "_"
-min_genes <- 1000
-expression_thresh <- 1
+min.cells <- 3
+project.name <- "nbt.test"
+names.field <- 2
+names.delim <- "_"
+min.genes <- 1000
+expression.thresh <- 1
 
-nbt_test <- new("seurat", raw.data = nbt_small)
+nbt.test <- new("seurat", raw.data = nbt.small)
 
 test_that("object initialization creates seurat object", {
-  expect_is(nbt_test, "seurat")
+  expect_is(nbt.test, "seurat")
 })
 
-nbt_test <- Setup(nbt_test, project = project_name, min.cells = min_cells, names.field = names_field,
-                  names.delim = names_delim, min.genes = min_genes, is.expr = expression_thresh,
-                  large.object = T )
+nbt.test <- Setup(nbt.test, project = project.name, min.cells = min.cells, names.field = names.field,
+                  names.delim = names.delim, min.genes = min.genes, is.expr = expression.thresh)
 
 test_that("entered parameters set correctly", {
-  expect_match(project_name, nbt_test@project.name)
-  expect_equal(expression_thresh, nbt_test@is.expr)
-
-
+  expect_match(project.name, nbt.test@project.name)
+  expect_equal(expression.thresh, nbt.test@is.expr)
 })
 
 test_that("correct cells are used",{
-  gene_count <- unname(findNGene(nbt_test@raw.data, nbt_test@is.expr))
-  expect_equal(min(gene_count), 2405)
-  expect_true(all(gene_count >= min_genes))
+  gene.count <- unname(findNGene(nbt.test@raw.data, nbt.test@is.expr))
+  expect_equal(min(gene.count), 2405)
+  expect_true(all(gene.count >= min.genes))
 })
 
 test_that("correct genes are used", {
-  usuable_genes <- rowSums(nbt_test@raw.data > expression_thresh)
-  usuable_genes <- usuable_genes[usuable_genes >= min_cells]
-  used_genes <- rownames(nbt_test@data)
+  useable.genes <- rowSums(nbt.test@raw.data > expression.thresh)
+  useable.genes <- useable.genes[useable.genes >= min.cells]
+  used.genes <- rownames(nbt.test@data)
 
-  expect_true(length(usuable_genes) > 0)
-  expect_equal(length(usuable_genes), length(used_genes))
+  expect_true(length(useable.genes) > 0)
+  expect_equal(length(useable.genes), length(used.genes))
 })
 
 test_that("names and IDs set correctly", {
-  expect_true(length(colnames(nbt_test@raw.data)) > 0)
-  expect_equal(nbt_test@cell.names, colnames(nbt_test@raw.data))
+  expect_true(length(colnames(nbt.test@raw.data)) > 0)
+  expect_equal(nbt.test@cell.names, colnames(nbt.test@raw.data))
 
-  expected_cluster_ids = c("GW21.2", "GW16", "GW21")
-  expect_equal(as.vector(unique(nbt_test@ident)), expected_cluster_ids)
-  expect_equal(as.vector(unique(nbt_test@ident)), as.vector(unique(nbt_test@data.info$orig.ident)))
+  expected.cluster.ids = c("GW21.2", "GW16", "GW21")
+  expect_equal(as.vector(unique(nbt.test@ident)), expected.cluster.ids)
+  expect_equal(as.vector(unique(nbt.test@ident)), as.vector(unique(nbt.test@data.info$orig.ident)))
 
 })
 
 test_that("scaling done correctly", {
-  expect_equal(nbt_test@scale.data["AACS", "Hi_GW21.2_3"], 1.66900902464456)
-  expect_equal(nbt_test@scale.data["ZYX", "Hi_GW16_1"], -0.658326175185112)
+  expect_equal(nbt.test@scale.data["AACS", "Hi_GW21.2_3"], 1.66900902464456)
+  expect_equal(nbt.test@scale.data["ZYX", "Hi_GW16_1"], -0.658326175185112)
 })
 
 test_that("nGene calculations are consistent" , {
-  gene_count <- unname(findNGene(nbt_test@raw.data, nbt_test@is.expr))
-  expect_equal(nbt_test@mix.probs[, 1], gene_count)
-  expect_equal(nbt_test@gene.scores[, 1], gene_count)
+  gene.count <- unname(findNGene(nbt.test@raw.data, nbt.test@is.expr))
+  expect_equal(nbt.test@mix.probs[, 1], gene.count)
+  expect_equal(nbt.test@gene.scores[, 1], gene.count)
 
 })
 
@@ -75,17 +76,14 @@ test_that("nGene calculations are consistent" , {
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
-nbt_test <- MeanVarPlot(nbt_test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
-nbt_test <- PCA(nbt_test, do.print=FALSE)
+nbt.test <- MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
+nbt.test <- PCA(nbt.test, do.print=FALSE)
 
 test_that("PCA returns expected data", {
-
-  expect_is(nbt_test@pca.rot, "data.frame")
-  expect_is(nbt_test@pca.x, "data.frame")
-  expect_true(length(nbt_test@pca.rot) != 0)
-  expect_true(length(nbt_test@pca.x) != 0)
-  expect_equal(ncol(nbt_test@pca.rot), length(nbt_test@var.genes))
-
+  expect_true(nrow(nbt.test@pca.rot) == ncol(nbt.test@data))
+  expect_true(nrow(nbt.test@pca.x) == length(nbt.test@var.genes))
+  expect_equal(nbt.test@pca.rot[1,1], -0.8723915, tolerance=1e-6)
+  expect_equal(nbt.test@pca.x[1,1], 0.4362582, tolerance=1e-6 )
 })
 
 
@@ -94,41 +92,64 @@ test_that("PCA returns expected data", {
 context("Plotting/Visualization")
 
 test_that("Violin plots (VlnPlot() ) return as expected", {
-  expect_is(VlnPlot(nbt_test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
-  expect_equal(length(VlnPlot(nbt_test, c("ZYX", "AACS"), do.ret = T)), 2)
+  expect_is(VlnPlot(nbt.test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
+  expect_equal(length(VlnPlot(nbt.test, c("ZYX", "AACS"), do.ret = T)), 2)
 
 })
 
 test_that("CellPlots return as expected", {
-  expect_equal(CellPlot(nbt_test, nbt_test@cell.names[1], nbt_test@cell.names[2]), NULL)
+  expect_equal(CellPlot(nbt.test, nbt.test@cell.names[1], nbt.test@cell.names[2]), NULL)
 })
 
 test_that("GenePlots return as expected", {
-  expect_equal(GenePlot(nbt_test,"DLX1","DLX2"), NULL)
+  expect_equal(GenePlot(nbt.test,"DLX1","DLX2"), NULL)
 })
 
-test_that("MeanVarPlotworks as expected", {
-  expect_is(MeanVarPlot(nbt_test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean), "seurat")
+test_that("MeanVarPlot works as expected", {
+  expect_is(MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean), "seurat")
+})
+
+test_that("FeaturePlot works as expected", {
+  expect_is(FeaturePlot(nbt.test, "DLX1"), "list")
+  expect_is(FeaturePlot(nbt.test, c("DLX1", "nGene")), "list")
+  expect_is(FeaturePlot(nbt.test, "DLX1", cols.use = "Purples"), "list")
 })
 
 
-# Tests for plotting functionality (via Setup)
+# Tests for clustering related functions
 # --------------------------------------------------------------------------------
 context("Clustering Functions")
 
-test_that("SNN will be built if not present", {
-  expect_true(length(nbt_test@snn.dense) == 0)
-  expect_true(length(nbt_test@snn.sparse) == 0)
+test_that("SNN calculations are correct and handled properly", {
+  expect_true(length(nbt.test@snn.dense) == 0)
+  expect_true(length(nbt.test@snn.sparse) == 0)
 
-  nbt_test <- FindClusters(nbt_test, pc.use = 1:8, print.output = 0, update = 0, k.param = 4, k.scale = 1, save.SNN = T)
-  expect_true(length(nbt_test@snn.dense) > 1)
+  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, update = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  expect_true(length(nbt.test@snn.dense) > 1)
+  expect_equal(nbt.test@snn.dense[2,9], 0.6)
 
-  nbt_test <- FindClusters(nbt_test, pc.use = 1:8, print.output = 0, update = 0, k.param = 4, k.scale = 1, do.sparse = T, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, update = 0, k.param = 4, k.scale = 1, do.sparse = T, save.SNN = T)
 
-  expect_true(length(nbt_test@snn.dense) == 1)
-  expect_true(length(nbt_test@snn.sparse) > 1)
+  expect_true(length(nbt.test@snn.dense) == 1)
+  expect_true(length(nbt.test@snn.sparse) > 1)
+  expect_equal(nbt.test@snn.sparse[2,9], 0.6)
+})
 
+# Tests for tSNE
+# --------------------------------------------------------------------------------
+context("tSNE")
+set.seed(42)
+nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 
+test_that("tSNE is run correctly", {
+  expect_equal(nrow(nbt.test@tsne.rot), ncol(nbt.test@data))
+  expect_equal(nbt.test@tsne.rot[1,1], 12.118800, tolerance = 1e-6)
+})
+
+test_that("tSNE plots correctly", {
+  p <- TSNEPlot(nbt.test)
+  expect_is(p, "list")
+  expect_equal(length(unique(p[[1]][[1]]$group)), 3)
 })
 
 

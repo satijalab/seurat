@@ -12,7 +12,7 @@ ScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
 
 \item{genes.use}{Vector of gene names to scale/center. Default is all genes in object@data.}
 
-\item{data.use}{Can optionally pass a matrix of data to scale}
+\item{data.use}{Can optionally pass a matrix of data to scale, default is object@data[genes.use,]}
 
 \item{do.scale}{Whether to scale the data.}
 

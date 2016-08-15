@@ -119,7 +119,7 @@ setMethod("Setup","seurat",
             }
             object@scale.data <- matrix()
             if(do.scale | do.center) {
-              object=ScaleData(object,do.scale = do.scale,do.center = do.center)
+              object <- ScaleData(object, do.scale = do.scale, do.center = do.center)
             }
             
             data.ngene <- num.genes[cells.use]
@@ -154,7 +154,7 @@ setMethod("Setup","seurat",
 #'
 #' @param object Seurat object
 #' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
-#' @param data.use Can optionally pass a matrix of data to scale 
+#' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
 #' @param do.scale Whether to scale the data. 
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
@@ -204,7 +204,7 @@ setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("L
 setMethod("LogNormalize", "ANY",
           function(data, scale.factor = 1e4) {
             if(is.matrix(data) || class(data) == "data.frame") {
-              return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
+              return(log(sweep(data, 2, colSums(data), FUNpbmc = "/") * scale.factor + 1))
             }
             else {
               cells.use <- colnames(data)
@@ -421,80 +421,38 @@ setMethod("PlotNoiseModel","seurat",
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param do.scale Z-normalize the residual values (default is TRUE)
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
-#' @import pbapply
 #' @import Matrix
 #' @export
 setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut"))
 #' @export
 setMethod("RegressOut", "seurat",
           function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
-            require(Matrix)
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
             
-            #NEEDS TO BE FIXED!!!!
             exp.data=t(as.matrix(object@data[genes.regress,]))
-            regression.mat=cbind(latent.data,exp.data)
-            new.data=t(pbsapply(genes.regress, function(x) {
-              regression.mat.2=latent.data
-              regression.mat.2[,"GENE"] = regression.mat[,x];
-              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
-              return(lm(fmla,data = regression.mat.2)$residuals)
-            }))
-            if (do.scale==TRUE) {
-              object=ScaleData(object,genes.use = rownames(new.data),data.use = new.data,...)
-            }
-            object@scale.data[is.na(object@scale.data)]=0
-            return(object)
-          }
-)
-
-#' @param object Seurat object
-#' @param latent.vars effects to regress out
-#' @param genes.regress gene to run regression for (default is all genes)
-#' @param do.scale Z-normalize the residual values (default is TRUE)
-#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
-#' @import pbapply
-#' @export
-setGeneric("RegressOut2", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut2"))
-#' @export
-setMethod("RegressOut2", "seurat",
-          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
-            genes.regress=set.ifnull(genes.regress,rownames(object@data))
-            genes.regress=ainb(genes.regress,rownames(object@data))
-            latent.data=FetchData(object,latent.vars)
             
-            exp.data=t((object@data[genes.regress,]))
-            #regression.mat=cbind(latent.data,exp.data)
-            regression.mat.2=latent.data
-            paste.latent=paste(latent.vars,collapse="+")
-            #new.data=t(pbsapply(genes.regress, function(x) {
-            #    regression.mat.2[,"GENE"] = exp.data[,x];
-            #  fmla=as.formula(paste("GENE ", " ~ ", paste.latent);
-            #  return(lm(fmla,data = regression.mat.2)$residuals)
-            #}))
-            
-            gene.resid=function(x) {
-              regression.mat.2[,"GENE"] = exp.data[,x]
-              fmla=as.formula(paste("GENE ", " ~ ", paste.latent,sep=""))
-              return(lm(fmla,data = regression.mat.2)$residuals)
-            }
-            data.resid=c()
             bin.size <- 100
             max.bin <- floor(length(genes.regress)/bin.size) + 1
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            data.resid=c()
             for(i in 1:max.bin) {
               my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
               my.inds <- my.inds[my.inds <= length(genes.regress)]
-              new.data <- do.call(rbind, lapply(genes.regress[my.inds], rGene))
+              regression.mat <- cbind(latent.data, exp.data[, my.inds])
+              genes.bin.regress <-  colnames(exp.data[, my.inds])
+              new.data <- do.call(rbind, lapply(genes.bin.regress, function(x) {
+                regression.mat.2=latent.data
+                regression.mat.2[,"GENE"] = regression.mat[,x];
+                fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+                return(lm(fmla,data = regression.mat.2)$residuals)
+              }))
               if (i==1) data.resid=new.data
               if (i>1) data.resid=rbind(data.resid,new.data)
-              setTxtProgressBar(pb, i)  
+              setTxtProgressBar(pb, i)
             }
-            close(pb)
-            
-            rownames(data.resid)=genes.regress; colnames(data.resid)=rownames(regression.mat.2)
+            rownames(data.resid) <- genes.regress
             object@scale.data=data.resid
             if (do.scale==TRUE) {
               object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
@@ -966,8 +924,8 @@ setMethod("PCA", "seurat",
               pca.obj = prcomp(t(pc.data),...)
               object@pca.obj=list(pca.obj)
   
-              pcs.store=min(pcs.store,ncol(pc.data))
-              pcs.print=min(pcs.print,ncol(pc.data))
+              pcs.store=min(pcs.store,nrow(pc.data))
+              pcs.print=min(pcs.print,nrow(pc.data))
               object@pca.x=data.frame(pca.obj$rotation[,1:pcs.store])
               object@pca.rot=data.frame(pca.obj$x[,1:pcs.store])
               
@@ -1006,6 +964,7 @@ setMethod("PCA", "seurat",
 #' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
 #' object@@pca.obj[[1]]
+#' @importFrom irlba irlba
 #' @export
 setGeneric("PCAFast", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.compute=20,genes.print=30,...) standardGeneric("PCAFast"))
 #' @export
@@ -2501,6 +2460,9 @@ setMethod("TSNEPlot", "seurat",
             cells.use=set.ifnull(cells.use,object@cell.names)
             #print(head(cells.use))
             cells.use=ainb(cells.use,object@cell.names)
+            if(length(object@tsne.rot) == 0) {
+              stop("tSNE has not been run for this object yet. Please call RunTSNE() first")
+            }
             return(DimPlot(object,reduction.use = "tsne",cells.use = cells.use, pt.size = pt.size, do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
           }
 )
@@ -2539,7 +2501,7 @@ setGeneric("PCAPlot", function(object,...) standardGeneric("PCAPlot"))
 #' @export
 setMethod("PCAPlot", "seurat",
           function(object,...) {
-              return(DimPlot(object,reduction.use = "pca",...))
+              return(DimPlot(object,reduction.use = "pca", label.size = 6, ...))
           }
 )
 
