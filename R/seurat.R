@@ -165,6 +165,7 @@ setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale
 setMethod("ScaleData", "seurat",
           function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
+            genes.use=ainb(genes.use,rownames(object@data))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
             #rownames(object@scale.data) <- genes.use 
@@ -443,6 +444,60 @@ setMethod("RegressOut", "seurat",
             }))
             if (do.scale==TRUE) {
               object=ScaleData(object,genes.use = rownames(new.data),data.use = new.data,...)
+            }
+            object@scale.data[is.na(object@scale.data)]=0
+            return(object)
+          }
+)
+
+#' @param object Seurat object
+#' @param latent.vars effects to regress out
+#' @param genes.regress gene to run regression for (default is all genes)
+#' @param do.scale Z-normalize the residual values (default is TRUE)
+#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
+#' @import pbapply
+#' @export
+setGeneric("RegressOut2", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut2"))
+#' @export
+setMethod("RegressOut2", "seurat",
+          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
+            genes.regress=set.ifnull(genes.regress,rownames(object@data))
+            genes.regress=ainb(genes.regress,rownames(object@data))
+            latent.data=FetchData(object,latent.vars)
+            
+            exp.data=t((object@data[genes.regress,]))
+            #regression.mat=cbind(latent.data,exp.data)
+            regression.mat.2=latent.data
+            paste.latent=paste(latent.vars,collapse="+")
+            #new.data=t(pbsapply(genes.regress, function(x) {
+            #    regression.mat.2[,"GENE"] = exp.data[,x];
+            #  fmla=as.formula(paste("GENE ", " ~ ", paste.latent);
+            #  return(lm(fmla,data = regression.mat.2)$residuals)
+            #}))
+            
+            gene.resid=function(x) {
+              regression.mat.2[,"GENE"] = exp.data[,x]
+              fmla=as.formula(paste("GENE ", " ~ ", paste.latent,sep=""))
+              return(lm(fmla,data = regression.mat.2)$residuals)
+            }
+            data.resid=c()
+            bin.size <- 100
+            max.bin <- floor(length(genes.regress)/bin.size) + 1
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            for(i in 1:max.bin) {
+              my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+              my.inds <- my.inds[my.inds <= length(genes.regress)]
+              new.data <- do.call(rbind, lapply(genes.regress[my.inds], rGene))
+              if (i==1) data.resid=new.data
+              if (i>1) data.resid=rbind(data.resid,new.data)
+              setTxtProgressBar(pb, i)  
+            }
+            close(pb)
+            
+            rownames(data.resid)=genes.regress; colnames(data.resid)=rownames(regression.mat.2)
+            object@scale.data=data.resid
+            if (do.scale==TRUE) {
+              object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
             }
             object@scale.data[is.na(object@scale.data)]=0
             return(object)
