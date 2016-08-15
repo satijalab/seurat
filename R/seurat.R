@@ -934,6 +934,60 @@ setMethod("PCA", "seurat",
           }
 )
 
+#' Run Principal Component Analysis on gene expression using IRLBA
+#'
+#' Run Fast PCA dimensionality reduction
+#'
+#' @param object Seurat object
+#' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.compute Total Number of PCs to compute and store
+#' @param genes.print Number of genes to print for each PC
+#' @param \dots Additional arguments to be passed to prcomp
+#' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
+#' gene projection matrix (object@@pca.x). The PCA object itself is stored in
+#' object@@pca.obj[[1]]
+#' @export
+setGeneric("PCAFast", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.compute=20,genes.print=30,...) standardGeneric("PCAFast"))
+#' @export
+setMethod("PCAFast", "seurat",
+          function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.compute=20,genes.print=30,...) {
+            data.use=object@scale.data
+            pc.genes=set.ifnull(pc.genes,object@var.genes)
+            pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
+            pc.genes.var = apply(data.use[pc.genes,],1,var)
+
+              pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
+              pc.data = data.use[pc.genes.use,]
+              pca.obj = irlba(t(pc.data),nv = pcs.compute,...)
+              object@pca.obj=list(pca.obj)
+              
+              pcs.store=min(pcs.compute,ncol(pc.data))
+              pcs.print=min(pcs.print,ncol(pc.data))
+              object@pca.x=data.frame(pca.obj$v[,1:pcs.store],row.names = rownames(pc.data)); colnames(object@pca.x)=paste("PC",1:pcs.compute,sep="")
+              object@pca.rot=data.frame(pca.obj$u[,1:pcs.store],row.names = colnames(pc.data)); colnames(object@pca.rot)=colnames(object@pca.x)
+              
+            
+            if (do.print) {
+              pc_scores=object@pca.x
+              for(i in 1:pcs.print) {
+                code=paste("PC",i,sep="")
+                sx=pc_scores[order(pc_scores[,code]),]
+                print(code)
+                print(rownames(sx[1:genes.print,]))
+                print ("")
+                
+                print(rev(rownames(sx[(nrow(sx)-genes.print):nrow(sx),])))
+                print ("")
+                print ("")
+              }
+            }
+            return(object)
+          }
+)
+
 #' Probability of detection by identity class
 #'
 #' For each gene, calculates the probability of detection for each identity
