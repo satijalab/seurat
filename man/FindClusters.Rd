@@ -6,9 +6,9 @@
 \usage{
 FindClusters(object, genes.use = NULL, pc.use = NULL, k.param = 30,
   k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15, save.SNN = FALSE,
-  update = 0.25, do.sparse = FALSE, modularity.fxn = 1,
-  resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-  random.seed = 0, print.output = TRUE)
+  do.sparse = FALSE, modularity.fxn = 1, resolution = 0.8,
+  algorithm = 1, n.start = 100, n.iter = 10, random.seed = 0,
+  print.output = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,8 +27,6 @@ FindClusters(object, genes.use = NULL, pc.use = NULL, k.param = 30,
 1 - prune everything)}
 
 \item{save.SNN}{Whether to save the SNN in an object slot}
-
-\item{update}{Adjust how verbose the output of the SNN calculation is (0 to 1)}
 
 \item{do.sparse}{Option to store and use SNN matrix as a sparse matrix.
 May be necessary datasets containing a large number of cells.}

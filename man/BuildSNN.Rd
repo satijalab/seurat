@@ -6,7 +6,7 @@
 \usage{
 BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
   k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15, do.sparse = FALSE,
-  update = 0.25, print.output = TRUE)
+  print.output = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,8 +26,6 @@ BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
 
 \item{do.sparse}{Whether to compute and return the SNN graph as a sparse
 matrix or not}
-
-\item{update}{Adjust how verbose the output is}
 
 \item{print.output}{Whether or not to print output to the console}
 }

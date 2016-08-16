@@ -16,7 +16,6 @@ NULL
 #'        1 - prune everything)
 #' @param do.sparse Whether to compute and return the SNN graph as a sparse
 #' matrix or not
-#' @param update Adjust how verbose the output is
 #' @param print.output Whether or not to print output to the console
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
@@ -27,14 +26,14 @@ NULL
 #' @export
 setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL,
                                 k.param = 10, k.scale = 10, plot.SNN = FALSE,
-                                prune.SNN = 1/15, do.sparse = FALSE,
-                                update = 0.25, print.output = TRUE)
+                                prune.SNN = 1/15, do.sparse = FALSE, 
+                                print.output = TRUE)
 standardGeneric("BuildSNN"))
 #' @export
 setMethod("BuildSNN", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 10,
                    k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
-                   do.sparse = FALSE, update = 0.25, print.output = TRUE) {
+                   do.sparse = FALSE, print.output = TRUE) {
 
   if (is.null(genes.use) && is.null(pc.use)) {
     genes.use <- object@var.genes
@@ -55,9 +54,9 @@ setMethod("BuildSNN", signature = "seurat",
   nn.large <- my.knn$nn.index
   if (do.sparse){
     w <- CalcSNNSparse(object, n.cells, k.param, nn.large, nn.ranked, prune.SNN,
-                       update, print.output)
+                       print.output)
   } else {
-      w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN, update,
+      w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN,
                         print.output)
       if (plot.SNN==TRUE) {
         net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
@@ -81,7 +80,7 @@ setMethod("BuildSNN", signature = "seurat",
 })
 
 CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
-                         prune.SNN, update, print.output) {
+                         prune.SNN, print.output) {
   counter <- 1
   idx1 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
   idx2 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
@@ -125,7 +124,7 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
 }
 
 CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
-                         update, print.output = TRUE) {
+                         print.output = TRUE) {
   counter <- 1
   w <- matrix(0, n.cells, n.cells)
   rownames(w) <- object@cell.names
@@ -149,9 +148,6 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
         w[i,nn.large[i, j]] <- 0
       }
     }
-    #if (i == round(counter * n.cells * update) && print.output) {
-    #  print(paste("SNN : processed ", i, " cells", sep = ""))
-    #  counter <- counter + 1;
     if (print.output) setTxtProgressBar(pb, i)  
   }
   if (print.output) close(pb)

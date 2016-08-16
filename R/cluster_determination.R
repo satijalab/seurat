@@ -19,7 +19,6 @@ NULL
 #' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
 #'        1 - prune everything)
 #' @param save.SNN Whether to save the SNN in an object slot
-#' @param update Adjust how verbose the output of the SNN calculation is (0 to 1)
 #' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
 #'        May be necessary datasets containing a large number of cells.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
@@ -42,8 +41,7 @@ NULL
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
                                      k.param = 30, k.scale = 25,
                                      plot.SNN = FALSE, prune.SNN = 1/15,
-                                     save.SNN = FALSE, update = 0.25,
-                                     do.sparse = FALSE,
+                                     save.SNN = FALSE, do.sparse = FALSE,
                                      modularity.fxn = 1, resolution = 0.8,
                                      algorithm = 1, n.start = 100,
                                      n.iter = 10, random.seed = 0,
@@ -53,8 +51,7 @@ standardGeneric("FindClusters"))
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
-                   save.SNN = FALSE, update = 0.25,
-                   do.sparse = FALSE, modularity.fxn = 1,
+                   save.SNN = FALSE, do.sparse = FALSE, modularity.fxn = 1,
                    resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
                    random.seed = 0, print.output = TRUE){
 
@@ -67,7 +64,7 @@ setMethod("FindClusters", signature = "seurat",
   if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 25 || !is.null(pc.use) 
       || !is.null(genes.use)) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                        plot.SNN, prune.SNN, do.sparse, update, print.output)
+                        plot.SNN, prune.SNN, do.sparse, print.output)
   }
   else {
     save.SNN <- TRUE
@@ -87,7 +84,7 @@ setMethod("FindClusters", signature = "seurat",
   }
   if (!snn.built) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                       plot.SNN, prune.SNN, do.sparse, update, print.output)
+                       plot.SNN, prune.SNN, do.sparse, print.output)
   }
   
   # deal with sparse SNNs
@@ -97,10 +94,22 @@ setMethod("FindClusters", signature = "seurat",
     SNN.use <- object@snn.dense
   }
 
-  object <- RunModularityClustering(object, SNN.use, modularity.fxn, resolution,
-                                    algorithm, n.start, n.iter, random.seed,
-                                    print.output)
-  object <- GroupSingletons(object, SNN.use)
+  if (length(resolution > 1)) {
+    for (r in resolution) {
+      object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
+                                        algorithm, n.start, n.iter, random.seed,
+                                        print.output)
+      object <- GroupSingletons(object, SNN.use)
+      name <- paste("resolution.", r, sep = "")
+      object <- StashIdent(object, name)
+    }
+  }
+  else{
+    object <- RunModularityClustering(object, SNN.use, modularity.fxn, resolution,
+                                      algorithm, n.start, n.iter, random.seed,
+                                      print.output)
+    object <- GroupSingletons(object, SNN.use)
+  }
 
   if (!save.SNN) {
     object@snn.sparse <- sparseMatrix(1, 1, x = 1)
