@@ -41,7 +41,7 @@ NULL
 #' @export
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
                                      k.param = 30, k.scale = 25,
-                                     plot.SNN = FALSE, prune.SNN = 0.1,
+                                     plot.SNN = FALSE, prune.SNN = 1/15,
                                      save.SNN = FALSE, update = 0.25,
                                      do.sparse = FALSE,
                                      modularity.fxn = 1, resolution = 0.8,
@@ -52,7 +52,7 @@ standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
-                   k.scale = 25, plot.SNN = FALSE, prune.SNN = 0.1,
+                   k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
                    save.SNN = FALSE, update = 0.25,
                    do.sparse = FALSE, modularity.fxn = 1,
                    resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,

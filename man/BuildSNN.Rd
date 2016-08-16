@@ -5,7 +5,7 @@
 \title{SNN Graph Construction}
 \usage{
 BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
-  k.scale = 10, plot.SNN = FALSE, prune.SNN = 0.1, do.sparse = FALSE,
+  k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15, do.sparse = FALSE,
   update = 0.25, print.output = TRUE)
 }
 \arguments{
