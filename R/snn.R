@@ -93,10 +93,10 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
   #speed things up (don't have to calculate all pairwise distances)
   #define the edge weights with Jaccard distance
   
-  #if (1)   {
+  if (print.output)   {
     print("Constructing SNN")
     pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
-  #}
+  }
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
       s <- intersect(nn.ranked[i, ], nn.ranked[nn.large[i, j], ])
@@ -109,10 +109,7 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
         id <- id + 1
       }
     }
-    #if (i == round(counter * n.cells * update) && print.output) {
-    #  print(paste("SNN : processed ", i, " cells", sep = ""))
-    #  counter <- counter + 1;
-    setTxtProgressBar(pb, i)  
+    if (print.output) setTxtProgressBar(pb, i)  
   }
 
   if (print.output) close(pb)
@@ -137,8 +134,10 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
   #fill out the adjacency matrix w with edge weights only between your target
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
-  print("Constructing SNN")
-  pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+  if (print.output){
+    print("Constructing SNN")
+    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+  }
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
       s <- intersect(nn.ranked[i, ], nn.ranked[nn.large[i, j], ])
@@ -153,9 +152,9 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
     #if (i == round(counter * n.cells * update) && print.output) {
     #  print(paste("SNN : processed ", i, " cells", sep = ""))
     #  counter <- counter + 1;
-    setTxtProgressBar(pb, i)  
+    if (print.output) setTxtProgressBar(pb, i)  
   }
-  close(pb)
+  if (print.output) close(pb)
   return(w)
 }
 

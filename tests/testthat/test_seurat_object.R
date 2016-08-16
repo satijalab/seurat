@@ -1,4 +1,5 @@
 # Tests for functions dependent on a seurat object
+set.seed(42)
 
 # load a minimal example data set (subset of nbt dataset)
 load("../testdata/nbt_small.Rdata")
@@ -6,7 +7,7 @@ nbt.small <- log(nbt.small + 1)
 
 
 # Test Initial Normalization
-expect_equal(LogNormalize(matrix(1:16, nrow = 4))[1,1], 6.908755, tolerance=1e-6)
+expect_equal(LogNormalize(matrix(1:16, nrow = 4))[1,1], 6.908755, tolerance = 1e-6)
 
 # Tests for object creation (via new/Setup)
 # --------------------------------------------------------------------------------
@@ -77,15 +78,40 @@ test_that("nGene calculations are consistent" , {
 context("PCA dimensional reduction")
 
 nbt.test <- MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
-nbt.test <- PCA(nbt.test, do.print=FALSE)
+pcs.compute <- 4
+nbt.test <- PCAFast(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
 
+test_that("PCAFast returns expected data", {
+  expect_equal(abs(nbt.test@pca.rot[1,1]), 0.1442809, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@pca.x[1,1]), 0.4362582, tolerance = 1e-6)
+  expect_equal(ncol(nbt.test@pca.x), pcs.compute)
+  expect_equal(ncol(nbt.test@pca.rot), pcs.compute)
+  
+})
+
+nbt.test <- PCA(nbt.test, do.print = FALSE)
 test_that("PCA returns expected data", {
   expect_true(nrow(nbt.test@pca.rot) == ncol(nbt.test@data))
   expect_true(nrow(nbt.test@pca.x) == length(nbt.test@var.genes))
-  expect_equal(nbt.test@pca.rot[1,1], -0.8723915, tolerance=1e-6)
-  expect_equal(nbt.test@pca.x[1,1], 0.4362582, tolerance=1e-6 )
+  expect_equal(nbt.test@pca.rot[1,1], -0.8723915, tolerance = 1e-6)
+  expect_equal(nbt.test@pca.x[1,1], 0.4362582, tolerance = 1e-6 )
 })
 
+# Tests for tSNE
+# --------------------------------------------------------------------------------
+context("tSNE")
+nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
+
+test_that("tSNE is run correctly", {
+  expect_equal(nrow(nbt.test@tsne.rot), ncol(nbt.test@data))
+  expect_equal(nbt.test@tsne.rot[1,1], 12.118800, tolerance = 1e-6)
+})
+
+test_that("tSNE plots correctly", {
+  p <- TSNEPlot(nbt.test)
+  expect_is(p, "list")
+  expect_equal(length(unique(p[[1]][[1]]$group)), 3)
+})
 
 # Tests for plotting functionality (via Setup)
 # --------------------------------------------------------------------------------
@@ -134,23 +160,3 @@ test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn.sparse) > 1)
   expect_equal(nbt.test@snn.sparse[2,9], 0.6)
 })
-
-# Tests for tSNE
-# --------------------------------------------------------------------------------
-context("tSNE")
-set.seed(42)
-nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
-
-test_that("tSNE is run correctly", {
-  expect_equal(nrow(nbt.test@tsne.rot), ncol(nbt.test@data))
-  expect_equal(nbt.test@tsne.rot[1,1], 12.118800, tolerance = 1e-6)
-})
-
-test_that("tSNE plots correctly", {
-  p <- TSNEPlot(nbt.test)
-  expect_is(p, "list")
-  expect_equal(length(unique(p[[1]][[1]]$group)), 3)
-})
-
-
-

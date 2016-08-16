@@ -147,8 +147,6 @@ setMethod("Setup","seurat",
           }
 )
 
-
-
 #' Scale and center the data
 #'
 #'
@@ -901,6 +899,12 @@ setGeneric("PCA", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.st
 #' @export
 setMethod("PCA", "seurat",
           function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.store=40,genes.print=30,use.imputed=FALSE,rev.pca=FALSE,...) {
+            if (length(object@scale.data) == 0){
+              stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
+            }
+            if (length(object@var.genes) == 0){
+              stop("Variable genes haven't been set. Run MeanVarPlot() and retry.")
+            }
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             pc.genes=set.ifnull(pc.genes,object@var.genes)
@@ -970,21 +974,27 @@ setGeneric("PCAFast", function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pc
 #' @export
 setMethod("PCAFast", "seurat",
           function(object,pc.genes=NULL,do.print=TRUE,pcs.print=5,pcs.compute=20,genes.print=30,...) {
+            if (length(object@scale.data) == 0){
+              stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
+            }
+            if (length(object@var.genes) == 0){
+              stop("Variable genes haven't been set. Run MeanVarPlot() and retry.")
+            }
             data.use=object@scale.data
-            pc.genes=set.ifnull(pc.genes,object@var.genes)
+            pc.genes=set.ifnull(pc.genes, object@var.genes)
             pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
 
-              pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
-              pc.data = data.use[pc.genes.use,]
-              pca.obj = irlba(t(pc.data),nv = pcs.compute,...)
-              object@pca.obj=list(pca.obj)
-              
-              pcs.store=min(pcs.compute,ncol(pc.data))
-              pcs.print=min(pcs.print,ncol(pc.data))
-              object@pca.x=data.frame(pca.obj$v[,1:pcs.store],row.names = rownames(pc.data)); colnames(object@pca.x)=paste("PC",1:pcs.compute,sep="")
-              object@pca.rot=data.frame(pca.obj$u[,1:pcs.store],row.names = colnames(pc.data)); colnames(object@pca.rot)=colnames(object@pca.x)
-              
+            pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
+            pc.data = data.use[pc.genes.use,]
+            pca.obj = irlba(t(pc.data),nv = pcs.compute,...)
+            object@pca.obj=list(pca.obj)
+            
+            pcs.store=min(pcs.compute,ncol(pc.data))
+            pcs.print=min(pcs.print,ncol(pc.data))
+            object@pca.x=data.frame(pca.obj$v[,1:pcs.store],row.names = rownames(pc.data)); colnames(object@pca.x)=paste("PC",1:pcs.compute,sep="")
+            object@pca.rot=data.frame(pca.obj$u[,1:pcs.store],row.names = colnames(pc.data)); colnames(object@pca.rot)=colnames(object@pca.x)
+            
             
             if (do.print) {
               pc_scores=object@pca.x
@@ -3603,9 +3613,9 @@ setMethod("JackStrawFull","seurat",
 
 #' Quickly Pick Relevant PCs
 #'
-#' Plots the standard deviations of the principle components for easy
-#' identification of an elbow in the graph. This often corresponds well with the
-#' significant PCs.
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph. 
+#' This elbow often corresponds well with the significant PCs and is much faster to run.
 #'
 #'
 #' @param object Seurat object
@@ -3619,15 +3629,28 @@ setMethod("PCElbowPlot","seurat",
             if (length(object@pca.obj) == 0) {
               stop("This object has no PCA associated with it. Please run PCA() and then retry.")
             }
-            if (length(object@pca.obj[[1]]$sdev) < num.pc) {
-              num.pc <- length(object@pca.obj[[1]]$sdev)
-              warning(paste("The object only has information for", num.pc, "PCs." ))
+            if(is.null(object@pca.obj[[1]]$sdev)){
+              if (length(object@pca.obj[[1]]$d) < num.pc) {
+                num.pc <- length(object@pca.obj[[1]]$d)
+                warning(paste("The object only has information for", num.pc, "PCs." ))
+              }
+              sv <- object@pca.obj[[1]]$d[1:num.pc]
+              pc <- 1:length(sv)
+              data <- data.frame(pc, sv)
+              plot <- ggplot(data, aes(pc, sv)) + geom_point() + labs(y = "Singular Value for PC", x = "PC")
+              return(plot)
             }
-            sdev <- object@pca.obj[[1]]$sdev[1:num.pc]
-            pc <- 1:length(sdev)
-            data <- data.frame(pc, sdev)
-            plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
-            return (plot)
+            else{
+              if (length(object@pca.obj[[1]]$sdev) < num.pc) {
+                num.pc <- length(object@pca.obj[[1]]$sdev)
+                warning(paste("The object only has information for", num.pc, "PCs." ))
+              }
+              sdev <- object@pca.obj[[1]]$sdev[1:num.pc]
+              pc <- 1:length(sdev)
+              data <- data.frame(pc, sdev)
+              plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
+              return (plot)
+            }
           }
 )
 

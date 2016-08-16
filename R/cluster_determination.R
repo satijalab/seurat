@@ -58,11 +58,17 @@ setMethod("FindClusters", signature = "seurat",
                    resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
                    random.seed = 0, print.output = TRUE){
 
+  # for older objects without the snn.k slot
+  invisible(tryCatch(object@snn.k, error = object@snn.k <- numeric()))
+  
   # if any SNN building parameters are provided, build a new SNN
   if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 10 || !is.null(pc.use) 
       || !is.null(genes.use)) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
                         plot.SNN, prune.SNN, do.sparse, update, print.output)
+  }
+  else {
+    save.SNN <- TRUE
   }
 
   # if the SNN hasn't been built yet, build it
