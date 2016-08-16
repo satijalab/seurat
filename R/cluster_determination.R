@@ -59,10 +59,12 @@ setMethod("FindClusters", signature = "seurat",
                    random.seed = 0, print.output = TRUE){
 
   # for older objects without the snn.k slot
-  invisible(tryCatch(object@snn.k, error = object@snn.k <- numeric()))
-  
+  if(typeof(validObject(object, test = T)) == "character"){
+    object@snn.k <- numeric()
+  }
+            
   # if any SNN building parameters are provided, build a new SNN
-  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 10 || !is.null(pc.use) 
+  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 25 || !is.null(pc.use) 
       || !is.null(genes.use)) {
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
                         plot.SNN, prune.SNN, do.sparse, update, print.output)
@@ -240,7 +242,7 @@ GroupSingletons <- function(object, SNN){
     mi <- which(connectivity == m, arr.ind = TRUE)
     closest_cluster <- names(connectivity[mi])
     
-    object <- set.ident(object, cells.use = WhichCells(object,i), 
+    object <- SetIdent(object, cells.use = WhichCells(object,i), 
                         ident.use = closest_cluster)
   }
   return(object)
