@@ -204,7 +204,7 @@ setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("L
 setMethod("LogNormalize", "ANY",
           function(data, scale.factor = 1e4) {
             if(is.matrix(data) || class(data) == "data.frame") {
-              return(log(sweep(data, 2, colSums(data), FUNpbmc = "/") * scale.factor + 1))
+              return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
             }
             else {
               cells.use <- colnames(data)
@@ -3682,13 +3682,13 @@ setMethod("PCElbowPlot","seurat",
 #' The result of all analysis is stored in object@@mean.var
 #' @export
 setGeneric("MeanVarPlot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                                     x.low.cutoff=4,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
+                                     x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
                                      pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                                      contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) standardGeneric("MeanVarPlot"))
 #' @export
 setMethod("MeanVarPlot", signature = "seurat",
           function(object, fxn.x=expMean, fxn.y=logVarDivMean, do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                   x.low.cutoff=4,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
+                   x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
                    pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
                    contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) {
             data=object@data
