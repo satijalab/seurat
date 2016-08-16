@@ -843,14 +843,17 @@ setMethod("add_tsne", "seurat",
 setGeneric("ICA", function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) standardGeneric("ICA"))
 #' @export
 setMethod("ICA", "seurat",
-          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=30,genes.print=30,use.imputed=FALSE,seed.use=1,...) {
+          function(object,ic.genes=NULL,do.print=TRUE,ics.print=5,ics.store=50,genes.print=50,use.imputed=FALSE,seed.use=1,...) {
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
             ic.genes=set.ifnull(ic.genes,object@var.genes)
             ic.genes = unique(ic.genes[ic.genes%in%rownames(data.use)])
             ic.genes.var = apply(data.use[ic.genes,],1,var)
-            ic.data = data.use[ic.genes[ic.genes.var>0],]
+            ic.genes.use=ic.genes[ic.genes.var>0]; ic.genes.use=ic.genes.use[!is.na(ic.genes.use)]
+            
+            ic.data = data.use[ic.genes.use,]
             set.seed(seed.use); ica.obj = fastICA(t(ic.data),n.comp=ics.store,...)
+            
             object@ica.obj=list(ica.obj)
             ics.store=min(ics.store,ncol(ic.data))
             ics.print=min(ics.print,ncol(ic.data))
@@ -867,7 +870,7 @@ setMethod("ICA", "seurat",
                 print(code)
                 print(rownames(sx[1:genes.print,]))
                 print ("")
-
+                
                 print(rev(rownames(sx[(nrow(sx)-genes.print):nrow(sx),])))
                 print ("")
                 print ("")
