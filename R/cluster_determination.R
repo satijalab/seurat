@@ -69,7 +69,6 @@ setMethod("FindClusters", signature = "seurat",
   else {
     save.SNN <- TRUE
   }
-
   # if the SNN hasn't been built yet, build it
   snn.built = FALSE
   if (.hasSlot(object, "snn.dense")) {
@@ -93,22 +92,13 @@ setMethod("FindClusters", signature = "seurat",
   } else {
     SNN.use <- object@snn.dense
   }
-
-  if (length(resolution > 1)) {
-    for (r in resolution) {
-      object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
-                                        algorithm, n.start, n.iter, random.seed,
-                                        print.output)
-      object <- GroupSingletons(object, SNN.use)
-      name <- paste("resolution.", r, sep = "")
-      object <- StashIdent(object, name)
-    }
-  }
-  else{
-    object <- RunModularityClustering(object, SNN.use, modularity.fxn, resolution,
+  for (r in resolution) {
+    object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
                                       algorithm, n.start, n.iter, random.seed,
                                       print.output)
     object <- GroupSingletons(object, SNN.use)
+    name <- paste("res.", r, sep = "")
+    object <- StashIdent(object, name)
   }
 
   if (!save.SNN) {

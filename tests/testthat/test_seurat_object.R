@@ -150,13 +150,23 @@ test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn.dense) == 0)
   expect_true(length(nbt.test@snn.sparse) == 0)
 
-  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, update = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
   expect_true(length(nbt.test@snn.dense) > 1)
   expect_equal(nbt.test@snn.dense[2,9], 0.6)
 
-  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, update = 0, k.param = 4, k.scale = 1, do.sparse = T, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, do.sparse = T, save.SNN = T)
 
   expect_true(length(nbt.test@snn.dense) == 1)
   expect_true(length(nbt.test@snn.sparse) > 1)
   expect_equal(nbt.test@snn.sparse[2,9], 0.6)
+})
+
+nbt.test <- FindClusters(nbt.test, k.param = 4, resolution = seq(1,2,0.1), print.output = 0)
+
+test_that("Clustering over multiple resolution values handled correctly", {
+  nbt.test <- FindClusters(nbt.test, k.param = 4, resolution = seq(1,2,0.1), print.output = 0)
+  expect_equal(length(nbt.test@data.info$res.1), ncol(nbt.test@data))
+  expect_equal(length(nbt.test@data.info$res.2), ncol(nbt.test@data))
+  expect_equal(length(nbt.test@snn.sparse), 1)
+  expect_equal(length(nbt.test@snn.dense), 1)
 })

@@ -1,6 +1,5 @@
 #' @export
 zf.cells.render <- function(seuratObject, cells.use, do.rotate=TRUE,label=TRUE,calc.new=FALSE,col.use="red",radius.use=0.05,col.prob=FALSE,do.new=TRUE,...) {
-  require(rgl)
   tierBins <- 30 # 1 bin per cell tier.
   DVBins <- 64 # 1 bin every 5.625 degrees; compatible with our current 8-bin system.
   phiPerTier <- pi/(-2*tierBins)
@@ -57,8 +56,6 @@ zf.cells.render <- function(seuratObject, cells.use, do.rotate=TRUE,label=TRUE,c
 
 #' @export
 zf.anchor.render <- function(seuratObject, this.anchor, anchors, label=TRUE, do.rotate=TRUE,calc.new=FALSE,...) {
-  require(rgl)
-
   # Determine geometry
   tierBins <- 30 # 1 bin per cell tier.
   DVBins <- 64 # 1 bin every 5.625 degrees; compatible with our current 8-bin system.
@@ -127,7 +124,7 @@ zf.anchor.render <- function(seuratObject, this.anchor, anchors, label=TRUE, do.
 }
 
 zf.anchor.map <- function(seuratObject, this.anchor, anchors, calc.new=FALSE,...) {
-  require(rgl)
+
 
   # Determine geometry
   if (calc.new) anchor.prob <- (prob=as.numeric(project.cell(seuratObject,this.anchor,do.plot=FALSE,safe=FALSE)))
@@ -142,7 +139,6 @@ zf.anchor.map <- function(seuratObject, this.anchor, anchors, calc.new=FALSE,...
 
 #' @export
 zf.insitu.vec.lateral <- function(expression.vector, label=TRUE, title=NULL, ...) {
-  require(rgl)
 
     # Reformat them into an expression matrix as expected by the plotting function
     expression.matrix <- data.frame(matrix(expression.vector, nrow=8, ncol=8))
@@ -167,8 +163,6 @@ zf.insitu.vec.lateral <- function(expression.vector, label=TRUE, title=NULL, ...
 
 #' @export
 zf.insitu.lateral <- function(seuratObject, gene, label=TRUE, ...) {
-  require(rgl)
-
     # Call Seurat function to get the in situ values out.
     expression <- CalcInsitu(seuratObject, gene, do.plot=FALSE, do.return=TRUE, do.norm=TRUE, ...)
 
@@ -194,7 +188,6 @@ zf.insitu.lateral <- function(seuratObject, gene, label=TRUE, ...) {
 
 #' @export
 zf.insitu.dorsal <- function(seuratObject, gene, label=TRUE, ...) {
-  require(rgl)
 
     # Call Seurat function to get the in situ values out.
     expression <- CalcInsitu(seuratObject, gene, do.plot=FALSE, do.return=TRUE, do.norm=TRUE, ...)
@@ -222,7 +215,6 @@ zf.insitu.dorsal <- function(seuratObject, gene, label=TRUE, ...) {
 
 #' @export
 zf.insitu.ventral <- function(seuratObject, gene, label=TRUE, ...) {
-  require(rgl)
 
     # Call Seurat function to get the in situ values out.
     expression <- CalcInsitu(seuratObject, gene, do.plot=FALSE, do.return=TRUE, do.norm=TRUE, ...)
@@ -250,7 +242,6 @@ zf.insitu.ventral <- function(seuratObject, gene, label=TRUE, ...) {
 
 #' @export
 zf.insitu.side <- function(expressionMatrix, nonmirror=TRUE, mirror=TRUE) {
-  require(rgl)
 
     # Determine geometry
     tierBins <- 30 # 1 bin per cell tier.
