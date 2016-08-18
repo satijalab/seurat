@@ -91,15 +91,18 @@ seurat <- setClass("seurat", slots =
 #' @import pbapply
 #' @importFrom Matrix colSums rowSums
 #' @export
-setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
+setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
 #' @export
 setMethod("Setup","seurat",
-          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
+          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
             object@is.expr <- is.expr
             num.genes <- colSums(object@raw.data > is.expr)
+            num.mol=colSums(object@raw.data)
             cells.use <- names(num.genes[which(num.genes > min.genes)])
             object@data <- object@raw.data[, cells.use]
-            
+            if (do.logNormalize) {
+              object@data=LogNormalize(object@data,scale.factor = total.expr)
+            }
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data <- matrix();
             genes.use <- rownames(object@data)
@@ -114,21 +117,20 @@ setMethod("Setup","seurat",
             object@cell.names <- names(object@ident)
             
             # if there are more than 100 idents, set all ident to project name
-            if(length(unique(object@ident)) > 100 || length(unique(object@ident)) == 0) {
+            ident.levels=length(object@ident)
+            if((ident.levels > 100 || ident.levels == 0)||ident.levels==length(object@ident)) {
               object <- SetIdent(object, ident.use = project)
             }
-            object@scale.data <- matrix()
-            if(do.scale | do.center) {
-              object <- ScaleData(object, do.scale = do.scale, do.center = do.center)
-            }
+
             
             data.ngene <- num.genes[cells.use]
+            data.nmol <- num.mol[cells.use]
             object@gene.scores <- data.frame(data.ngene)
             colnames(object@gene.scores)[1] <- "nGene"
             
-            object@data.info <- data.frame(data.ngene)
-            colnames(object@data.info)[1] <- "nGene"
-            
+            nGene=data.ngene; nUMI=data.nmol
+            object@data.info <- data.frame(nGene,nUMI)
+
             if (!is.null(meta.data)) {
               object <- AddMetaData(object ,metadata = meta.data)
             }
@@ -139,6 +141,15 @@ setMethod("Setup","seurat",
             object@data.info[names(object@ident),"orig.ident"] <- object@ident
             
             object@project.name <- project
+            
+            
+
+            object@scale.data <- matrix()
+
+              if(do.scale | do.center) {
+                object <- ScaleData(object,do.scale = do.scale, do.center = do.center)
+              }
+
             #if(calc.noise) {
             #  object=CalcNoiseModels(object,...)
             #  object=GetWeightMatrix(object)
@@ -172,6 +183,7 @@ setMethod("ScaleData", "seurat",
             if(do.scale | do.center) {
               bin.size <- 1000
               max.bin <- floor(length(genes.use)/bin.size) + 1
+              print("Scaling data matrix")
               pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
               for(i in 1:max.bin) {
                 my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
@@ -208,6 +220,7 @@ setMethod("LogNormalize", "ANY",
               cells.use <- colnames(data)
               bin.size <- 1000
               max.bin <- floor(length(cells.use)/bin.size) + 1
+              print("Performing log-normalization")
               pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
               for(i in 1:max.bin) {
                 my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
@@ -433,6 +446,7 @@ setMethod("RegressOut", "seurat",
             
             bin.size <- 100
             max.bin <- floor(length(genes.regress)/bin.size) + 1
+            print(paste("Regressing out ",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             data.resid=c()
             for(i in 1:max.bin) {
@@ -534,15 +548,15 @@ setMethod("AddSamples","seurat",
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data
+#' @param do.scale Rescale the new object@@scale.data. FALSE by default
 #' @param \dots Additional arguments to be passed to FetchData (for example,
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,...) {
             data.use=NULL
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
@@ -1269,10 +1283,10 @@ setMethod("PrintPCA", "seurat",
 #' @param use.scaled For gene expression, use scaled values
 #' @return A data frame with cells as rows and cellular data as columns
 #' @export
-setGeneric("FetchData",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) standardGeneric("FetchData"))
+setGeneric("FetchData",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE,use.raw=FALSE) standardGeneric("FetchData"))
 #' @export
 setMethod("FetchData","seurat",
-          function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE) {
+          function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE,use.raw=FALSE) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.return=data.frame(row.names = cells.use)
             # if any vars passed are genes, subset expression data
@@ -1280,15 +1294,17 @@ setMethod("FetchData","seurat",
             data.expression <- matrix()
             if (any(gene_check)){
               if (all(gene_check)){
-                if(use.imputed) data.expression = object@imputed[vars.all, ]
-                if(use.scaled) data.expression = object@scale.data[vars.all, ]
-                else data.expression = object@data[vars.all, , drop = FALSE ]
+                if(use.imputed) data.expression = object@imputed[vars.all,cells.use ,drop=F]
+                if(use.scaled) data.expression = object@scale.data[vars.all,cells.use ,drop=F]
+                if(use.raw) data.expression = object@raw.data[vars.all,cells.use ,drop=F]
+                else data.expression = object@data[vars.all,cells.use , drop = FALSE ]
                 return(t(as.matrix(data.expression)))
               }
               else{
-                if(use.imputed) data.expression = object@imputed[vars.all[gene_check], ]
-                if(use.scaled) data.expression = object@scale.data[vars.all[gene_check], ]
-                else data.expression = object@data[vars.all[gene_check], , drop = FALSE]
+                if(use.imputed) data.expression = object@imputed[vars.all[gene_check],cells.use ,drop=F]
+                if(use.scaled) data.expression = object@scale.data[vars.all[gene_check],cells.use ,drop=F]
+                if(use.raw) data.expression = object@raw.data[vars.all[gene_check],cells.use ,drop=F]
+                else data.expression = object@data[vars.all[gene_check],cells.use , drop = FALSE]
                 data.expression = t(data.expression)
               }
             }
@@ -3161,11 +3177,12 @@ setMethod("DotPlot","seurat",
 #' @param size.x.use X axis font size
 #' @param size.y.use Y axis font size
 #' @param size.title.use Title font size
-#' @param use.imputed Use imputed values for gene expression (default is FALSE)
 #' @param adjust.use Adjust parameter for geom_violin
 #' @param size.use Point size for geom_violin
 #' @param cols.use Colors to use for plotting
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param y.log plot T axis on log scale
+#' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #' @import grid
 #' @import gridExtra
 #' @import ggplot2
@@ -3174,11 +3191,11 @@ setMethod("DotPlot","seurat",
 #' returns a list of ggplot objects.
 #' @export
 setGeneric("VlnPlot", function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=TRUE,do.sort=FALSE,
-                               size.x.use=16,size.y.use=16,size.title.use=20, use.imputed=FALSE,adjust.use=1,size.use=1,cols.use=NULL,group.by="ident")  standardGeneric("VlnPlot"))
+                               size.x.use=16,size.y.use=16,size.title.use=20, adjust.use=1,size.use=1,cols.use=NULL,group.by="ident",y.log=F,...)  standardGeneric("VlnPlot"))
 #' @export
 setMethod("VlnPlot","seurat",
-          function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,use.imputed=FALSE,adjust.use=1,
-                   size.use=1,cols.use=NULL,group.by=NULL) {
+          function(object,features.plot,nCol=NULL,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,
+                   size.use=1,cols.use=NULL,group.by=NULL,y.log=F,...) {
             if (is.null(nCol)) {
               nCol=2
               if (length(features.plot)>6) nCol=3
@@ -3186,7 +3203,7 @@ setMethod("VlnPlot","seurat",
             }
             
             if(length(features.plot == 1)) {
-              data.use=data.frame(FetchData(object,features.plot,use.imputed=use.imputed))
+              data.use=data.frame(FetchData(object,features.plot,...))
               if(nrow(data.use) > 1) {
                 data.use = t(data.use)
               }
@@ -3199,7 +3216,7 @@ setMethod("VlnPlot","seurat",
             ident.use=object@ident
             if (!is.null(group.by)) ident.use=as.factor(FetchData(object,group.by)[,1])
             gene.names <- rownames(data.use)[rownames(data.use) %in% rownames(object@data)]
-            pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,,drop=FALSE],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use,gene.names))
+            pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,,drop=FALSE],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use,gene.names,y.log))
 
             if(do.ret) {
               return(pList)
@@ -3212,7 +3229,7 @@ setMethod("VlnPlot","seurat",
           }
 )
 
-plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL,gene.names) {
+plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,size.x.use=16,size.y.use=16,size.title.use=20,adjust.use=1,size.use=1,cols.use=NULL,gene.names,y.log) {
   data.use=data.frame(data[gene,])
   if (length(gene)==1) {
     data.melt=data.frame(rep(gene,length(cell.ident))); colnames(data.melt)[1]="gene"
@@ -3225,15 +3242,18 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
   data.melt$ident=cell.ident
   
   noise <- rnorm(length(data.melt$value))/100000
+  if (y.log)   noise <- rnorm(length(data.melt$value))/200
   data.melt$value=as.numeric(as.character(data.melt$value))+noise
   if(do.sort) {
     data.melt$ident=factor(data.melt$ident,levels=names(rev(sort(tapply(data.melt$value,data.melt$ident,mean)))))
   }
-
+  if (y.log) data.melt$value=data.melt$value+1
   p=ggplot(data.melt,aes(factor(ident),value))
   p2=p + geom_violin(scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(ident)))
+  if (y.log) p2=p2+scale_y_log10()
+  
   if(gene %in% gene.names){
-    p2=p2 + ylab("Expression level (log TPM)")
+    p2=p2 + ylab("Expression level")
   }
   else{
     p2 = p2 + ylab("")
@@ -3725,6 +3745,7 @@ setMethod("MeanVarPlot", signature = "seurat",
     
                 bin.size <- 1000
                 max.bin <- floor(length(genes.use)/bin.size) + 1
+                print("Calculating gene dispersion")
                 pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
                 for(i in 1:max.bin) {
                   my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
