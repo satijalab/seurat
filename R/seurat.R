@@ -592,11 +592,12 @@ setMethod("AddSamples","seurat",
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) {
             data.use=NULL
+            cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
             }
@@ -608,6 +609,9 @@ setMethod("SubsetData","seurat",
               cells.use=rownames(data.use)[pass.inds]
             }
             cells.use=ainb(cells.use,object@cell.names)
+            if (max.cells.per.ident < Inf) {
+              cells.use=unlist(lapply(levels(object@ident),function(x)head(ainb(WhichCells(object,x),cells.use),max.cells.per.ident)))
+            }
             object@data=object@data[,cells.use]
             if(!(is.null(object@scale.data))) {
               if (length(colnames(object@scale.data)>0)) {
