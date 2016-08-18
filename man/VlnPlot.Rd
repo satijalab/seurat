@@ -6,8 +6,8 @@
 \usage{
 VlnPlot(object, features.plot, nCol = NULL, ylab.max = 12, do.ret = TRUE,
   do.sort = FALSE, size.x.use = 16, size.y.use = 16,
-  size.title.use = 20, use.imputed = FALSE, adjust.use = 1,
-  size.use = 1, cols.use = NULL, group.by = "ident")
+  size.title.use = 20, adjust.use = 1, size.use = 1, cols.use = NULL,
+  group.by = "ident", y.log = F, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,8 +30,6 @@ expression of the attribute being potted}
 
 \item{size.title.use}{Title font size}
 
-\item{use.imputed}{Use imputed values for gene expression (default is FALSE)}
-
 \item{adjust.use}{Adjust parameter for geom_violin}
 
 \item{size.use}{Point size for geom_violin}
@@ -39,6 +37,10 @@ expression of the attribute being potted}
 \item{cols.use}{Colors to use for plotting}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+
+\item{y.log}{plot T axis on log scale}
+
+\item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
 By default, no return, only graphical output. If do.return=TRUE,

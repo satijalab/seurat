@@ -21,6 +21,8 @@ DotPlot(object, genes.plot, cex.use = 2, cols.use = NULL,
 \item{dot.min}{The fraction of cells at which to draw the smallest dot (default is 0.05)}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+
+\item{...}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
 Only graphical output

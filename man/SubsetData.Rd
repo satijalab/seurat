@@ -5,8 +5,8 @@
 \title{Return a subset of the Seurat object}
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
-  accept.low = -Inf, accept.high = Inf, do.center = TRUE,
-  do.scale = TRUE, ...)
+  accept.low = -Inf, accept.high = Inf, do.center = F, do.scale = F,
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,7 +27,7 @@ using FetchData}
 
 \item{do.center}{Recenter the new object@scale.data}
 
-\item{do.scale}{Rescale the new object@scale.data}
+\item{do.scale}{Rescale the new object@scale.data. FALSE by default}
 
 \item{\dots}{Additional arguments to be passed to FetchData (for example,
 use.imputed=TRUE)}

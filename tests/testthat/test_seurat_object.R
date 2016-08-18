@@ -28,7 +28,7 @@ test_that("object initialization creates seurat object", {
 })
 
 nbt.test <- Setup(nbt.test, project = project.name, min.cells = min.cells, names.field = names.field,
-                  names.delim = names.delim, min.genes = min.genes, is.expr = expression.thresh)
+                  names.delim = names.delim, min.genes = min.genes, is.expr = expression.thresh, do.logNormalize = F)
 
 test_that("entered parameters set correctly", {
   expect_match(project.name, nbt.test@project.name)

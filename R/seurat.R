@@ -158,6 +158,45 @@ setMethod("Setup","seurat",
           }
 )
 
+#' Load in data from 10X
+#' 
+#' Enables easy loading of sparse data matrices provided by 10X genomics.
+#' 
+#' @param data.dir Directory containing the matrix.mtx, genes.tsv, and barcodes.tsv
+#' files provided by 10X.
+#' @return Returns a sparse matrix with rows and columns labeled 
+#' @importFrom Matrix readMM
+setGeneric("Read10X", function(data.dir = NULL) standardGeneric("Read10X"))
+#' @export
+setMethod("Read10X", "character", function(data.dir = NULL){
+  if (!file.exists(data.dir)){
+    stop("Directory provided does not exist")
+  }
+  
+  barcode.loc <- paste(data.dir, "barcodes.tsv", sep ="")
+  gene.loc <- paste(data.dir, "genes.tsv", sep ="")
+  matrix.loc <- paste(data.dir, "matrix.mtx", sep ="")
+  
+  if (!file.exists(barcode.loc)){
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)){
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)){
+    stop("Expression matrix file missing")
+  }
+  
+  data <- readMM(matrix.loc)
+  cell.names <- readLines(barcode.loc)
+  gene.names <- readLines(gene.loc)
+  
+  rownames(data) <- make.unique(as.character(sapply(gene.names, extract_field, 2, delim = "\\t"))) 
+  colnames(data) <- cell.names
+  return(data)
+})
+
+
 #' Scale and center the data
 #'
 #'
