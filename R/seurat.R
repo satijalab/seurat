@@ -117,7 +117,7 @@ setMethod("Setup","seurat",
             object@cell.names <- names(object@ident)
             
             # if there are more than 100 idents, set all ident to project name
-            ident.levels=length(object@ident)
+            ident.levels=length(unique(object@ident))
             if((ident.levels > 100 || ident.levels == 0)||ident.levels==length(object@ident)) {
               object <- SetIdent(object, ident.use = project)
             }
