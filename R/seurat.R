@@ -602,7 +602,7 @@ setMethod("SubsetData","seurat",
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
             }
-            if (is.null(cells.use)) {
+            if (is.null(cells.use) & max.cells.per.ident == Inf) {
               data.use=FetchData(object,subset.name,...)
               if (length(data.use)==0) return(object)
               subset.data=data.use[,subset.name]
@@ -1541,20 +1541,21 @@ setMethod("FindMarkersNode", "seurat",
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
 #' @param only.pos Only return positive markers (FALSE by default)
-#' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
+#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
+#' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2),test.use="bimod",min.pct=0,print.bar=TRUE,only.pos=FALSE) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(1.5),test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(2), test.use="bimod",min.pct=0,print.bar=TRUE,only.pos=FALSE) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(1.5), test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
 
-            cells.1=WhichCells(object,ident.1)
+            cells.1=WhichCells(object, ident.1)
             # in case the user passed in cells instead of identity classes
-            if (length(ident.1>1)&&any(ident.1%in%object@cell.names)) {
+            if (length(as.vector(ident.1) > 1) && any(as.character(ident.1) %in% object@cell.names)) {
               cells.1=ainb(ident.1,object@cell.names)
             }
 
@@ -1565,7 +1566,7 @@ setMethod("FindMarkers", "seurat",
             else {
               cells.2=WhichCells(object,ident.2)
             }
-            if (length(ident.2>1)&&any(ident.2%in%object@cell.names)) {
+            if (length(as.vector(ident.2) > 1) && any(as.character(ident.2) %in% object@cell.names)) {
               cells.2=ainb(ident.2,object@cell.names)
             }
             cells.2=anotinb(cells.2,cells.1)
@@ -1579,6 +1580,14 @@ setMethod("FindMarkers", "seurat",
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
               return(NULL)
             }
+            # downsample clusters
+            if (length(cells.1) > max.cells.per.ident) {
+              cells.1 <- sample(cells.1, max.cells.per.ident)
+            }
+            if (length(cells.2) > max.cells.per.ident) {
+              cells.2 <- sample(cells.2, max.cells.per.ident)
+            }
+            
             thresh.min=object@is.expr
             data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
@@ -1605,13 +1614,14 @@ setMethod("FindMarkers", "seurat",
 #' @param thresh.test Limit testing to genes which show, on average, at least X-fold difference (log-scale) between cells in an identity class, and all other cells.
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
+#' 
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE,only.pos=FALSE) standardGeneric("FindAllMarkers"))
+setGeneric("FindAllMarkers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
-      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0,print.bar=TRUE,only.pos=FALSE) {
+      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -1656,7 +1666,7 @@ setGeneric("DiffExpTest", function(object, cells.1,cells.2,genes.use=NULL,thresh
 #' @export
 setMethod("DiffExpTest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
+            genes.use=set.ifnull(genes.use, object@var.genes)
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
             total.diff=abs(data.1-data.2)

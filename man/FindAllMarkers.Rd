@@ -5,8 +5,8 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 FindAllMarkers(object, thresh.test = 1, test.use = "bimod",
-  return.thresh = 0.01, do.print = FALSE, min.pct = 0, print.bar = TRUE,
-  only.pos = FALSE)
+  return.thresh = 0.01, do.print = FALSE, min.pct = 0.1,
+  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -29,6 +29,8 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 
 \item{only.pos}{Only return positive markers (FALSE by default)}
+
+\item{max.cells.per.ident}{Down sample each identity class to a max number. Default is no downsampling.}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

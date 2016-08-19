@@ -6,7 +6,7 @@
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   accept.low = -Inf, accept.high = Inf, do.center = F, do.scale = F,
-  ...)
+  max.cells.per.ident = Inf, ...)
 }
 \arguments{
 \item{object}{Seurat object}
