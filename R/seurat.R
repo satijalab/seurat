@@ -190,7 +190,9 @@ setMethod("Read10X", "character", function(data.dir = NULL){
   data <- readMM(matrix.loc)
   cell.names <- readLines(barcode.loc)
   gene.names <- readLines(gene.loc)
-  
+  if(all(grepl("\\-1$", cell.names)) == TRUE) {
+    cell.names <- as.vector(as.character(sapply(cell.names, extract_field, 1, delim = "-")))
+  }
   rownames(data) <- make.unique(as.character(sapply(gene.names, extract_field, 2, delim = "\\t"))) 
   colnames(data) <- cell.names
   return(data)
@@ -597,7 +599,6 @@ setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.
 setMethod("SubsetData","seurat",
           function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) {
             data.use=NULL
-            cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
             }
