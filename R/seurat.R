@@ -3380,15 +3380,20 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
 #' @param metadata Data frame where the row names are cell names (note : these
 #' must correspond exactly to the items in object@@cell.names), and the columns
 #' are additional metadata items.
+#' @param col.name Name for metadata if passing in single vector of information
 #' @return Seurat object where the additional metadata has been added as
 #' columns in object@@data.info
 #' @export
-setGeneric("AddMetaData", function(object,metadata)  standardGeneric("AddMetaData"))
+setGeneric("AddMetaData", function(object,metadata, col.name = NULL)  standardGeneric("AddMetaData"))
 #' @export
 setMethod("AddMetaData","seurat",
-          function(object,metadata) {
+          function(object,metadata, col.name = NULL) {
             if(typeof(metadata) != "list"){
               metadata <- as.data.frame(metadata)
+              if(is.null(col.name)){
+                stop("Please provide a name for provided metadata")
+              }
+              colnames(metadata) <- col.name
             }
             cols.add=colnames(metadata)
             object@data.info[,cols.add]=metadata[rownames(object@data.info),]

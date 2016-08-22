@@ -4,7 +4,7 @@
 \alias{AddMetaData}
 \title{Add Metadata}
 \usage{
-AddMetaData(object, metadata)
+AddMetaData(object, metadata, col.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -12,6 +12,8 @@ AddMetaData(object, metadata)
 \item{metadata}{Data frame where the row names are cell names (note : these
 must correspond exactly to the items in object@cell.names), and the columns
 are additional metadata items.}
+
+\item{col.name}{Name for metadata if passing in single vector of information}
 }
 \value{
 Seurat object where the additional metadata has been added as
