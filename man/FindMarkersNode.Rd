@@ -15,7 +15,7 @@ FindMarkersNode(object, node, genes.use = NULL, thresh.use = log(2),
 \item{genes.use}{Genes to test. Default is to use all genes.}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells.
+X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 Increasing thresh.use speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Seurat currently implements

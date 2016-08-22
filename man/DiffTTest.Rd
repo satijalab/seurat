@@ -17,7 +17,7 @@ DiffTTest(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2),
 \item{genes.use}{Genes to test. Default is to use all genes.}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells.
+X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 Increasing thresh.use speeds up the function, but can miss weaker signals.}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
