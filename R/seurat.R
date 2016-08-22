@@ -248,6 +248,7 @@ setMethod("ScaleData", "seurat",
 #'
 #'
 #' @param data Matrix with the raw count data
+#' @param scale.factor Scale the data. Default is 1e4
 #' @return Returns a matrix with the normalize and log transformed data
 #' @importFrom Matrix colSums 
 #' @export
@@ -473,6 +474,7 @@ setMethod("PlotNoiseModel","seurat",
 #' @param latent.vars effects to regress out
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param do.scale Z-normalize the residual values (default is TRUE)
+#' @inheritParams ScaleData
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #' @import Matrix
 #' @export
@@ -1285,7 +1287,7 @@ setMethod("PCTopGenes", "seurat",
 #'
 #' @param object Seurat object
 #' @param pc.use Principal component to use
-#' @param num.genes Number of cells to return
+#' @param num.cells Number of cells to return
 #' @param do.balanced Return an equal number of cells with both + and - PC scores.
 #' @return Returns a vector of cells
 #' @export

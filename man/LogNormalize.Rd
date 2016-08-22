@@ -8,6 +8,8 @@ LogNormalize(data, scale.factor = 10000)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
+
+\item{scale.factor}{Scale the data. Default is 1e4}
 }
 \value{
 Returns a matrix with the normalize and log transformed data

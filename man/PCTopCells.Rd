@@ -11,9 +11,9 @@ PCTopCells(object, pc.use = 1, num.cells = NULL, do.balanced = FALSE)
 
 \item{pc.use}{Principal component to use}
 
-\item{do.balanced}{Return an equal number of cells with both + and - PC scores.}
+\item{num.cells}{Number of cells to return}
 
-\item{num.genes}{Number of cells to return}
+\item{do.balanced}{Return an equal number of cells with both + and - PC scores.}
 }
 \value{
 Returns a vector of cells
