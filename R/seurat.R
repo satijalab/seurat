@@ -1551,7 +1551,7 @@ setMethod("FindMarkersNode", "seurat",
 #' use all other cells for comparison.
 #' @param genes.use Genes to test. Default is to use all genes.
 #' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
@@ -1559,10 +1559,10 @@ setMethod("FindMarkersNode", "seurat",
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 #' as in Trapnell et al., Nature Biotech, 2014)
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
-#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
+#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @import pbapply
