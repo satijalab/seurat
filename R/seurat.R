@@ -615,7 +615,7 @@ setMethod("SubsetData","seurat",
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
             }
-            if (is.null(cells.use) & max.cells.per.ident == Inf) {
+            if (!is.null(subset.name)) {
               data.use=FetchData(object,subset.name,...)
               if (length(data.use)==0) return(object)
               subset.data=data.use[,subset.name]
