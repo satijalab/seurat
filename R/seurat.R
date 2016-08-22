@@ -1661,7 +1661,7 @@ setMethod("FindAllMarkers","seurat",
             genes.de=list()
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident)
             for(i in 1:length(idents.all)) {
-              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,min.pct,print.bar)
+              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, test.use = test.use,min.pct,print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -3387,6 +3387,9 @@ setGeneric("AddMetaData", function(object,metadata)  standardGeneric("AddMetaDat
 #' @export
 setMethod("AddMetaData","seurat",
           function(object,metadata) {
+            if(typeof(metadata) != "list"){
+              metadata <- as.data.frame(metadata)
+            }
             cols.add=colnames(metadata)
             object@data.info[,cols.add]=metadata[rownames(object@data.info),]
             return(object)
