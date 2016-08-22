@@ -733,6 +733,15 @@ findNGene=function(data,is.expr=1) {
   return(toRet)
 }
 
+#' @export
+returnTopX=function(data,group.by,n.return,col.return=NA) {
+  to.ret=c()
+  levels.use=unique(group.by); if (is.factor(group.by)) levels.use=levels(group.by)
+  if (!is.na(col.return)) return(unlist(lapply(levels.use, function(x) head(data[group.by==x,col.return],n.return)))) else {
+    return(unlist(lapply(levels.use, function(x) head(rownames(data[group.by==x,])))))
+  }
+}
+
 getCoefs=function(data,nbin=20,mycut=1) {
   my_stats=data.frame(data[,1])
   code_humpAvg=apply(data,1,humpMean,min=mycut)
