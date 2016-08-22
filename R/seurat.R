@@ -71,6 +71,8 @@ seurat <- setClass("seurat", slots =
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
+#' @param do.logNormalize whether to normalize the expression data per cell and transform to log space.
+#' @param total.expr scale factor in the log normalization
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -84,17 +86,16 @@ seurat <- setClass("seurat", slots =
 #' metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
 #' which will save memory downstream for large datasets
-#' @param \dots Additional arguments, not currently used.
 #' @return Seurat object. Fields modified include object@@data,
 #' object@@scale.data, object@@data.info, object@@ident
 #' @import stringr
 #' @import pbapply
 #' @importFrom Matrix colSums rowSums
 #' @export
-setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) standardGeneric("Setup"))
+setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) standardGeneric("Setup"))
 #' @export
 setMethod("Setup","seurat",
-          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE,...) {
+          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) {
             object@is.expr <- is.expr
             num.genes <- colSums(object@raw.data > is.expr)
             num.mol=colSums(object@raw.data)
@@ -488,6 +489,7 @@ setMethod("RegressOut", "seurat",
             bin.size <- 100
             max.bin <- floor(length(genes.regress)/bin.size) + 1
             print(paste("Regressing out ",latent.vars))
+            cat("\n")
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             data.resid=c()
             for(i in 1:max.bin) {
@@ -515,6 +517,15 @@ setMethod("RegressOut", "seurat",
           }
 )
 
+#' Add samples into existing Seurat object.
+#' 
+#' @param object Seurat object
+#' @param new.data Data to be added to the object
+#' @param min.genes Gene threshold for new data. Discard all cells with fewer genes detected
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name 
 #' @export
 setGeneric("AddSamples", function(object,new.data, min.genes=2500 ,names.field=1,names.delim="_") standardGeneric("AddSamples"))
 #' @export
@@ -590,6 +601,7 @@ setMethod("AddSamples","seurat",
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param do.center Recenter the new object@@scale.data
 #' @param do.scale Rescale the new object@@scale.data. FALSE by default
+#' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
 #' @param \dots Additional arguments to be passed to FetchData (for example,
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
@@ -674,9 +686,7 @@ setMethod("SubsetCells","seurat",
 )
 
 
-#' @export
 setGeneric("ProjectSamples", function(object,new.samples) standardGeneric("ProjectSamples"))
-#' @export
 setMethod("ProjectSamples", "seurat",
           function(object,new.samples) {
             genes.use = rownames(object@data)
@@ -833,7 +843,10 @@ setMethod("RunTSNE", "seurat",
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
 #' @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
 #' For example, set to 3 for a 3d tSNE
-#' @param \dots Additional arguments to the tSNE call. Most commonly used is
+#' @param q.use Quantile to use
+#' @param max.dim Max dimension to keep from diffusion calculation
+#' @param scale.clip Max/min value for scaled data. Default is 3
+#' @param ... Additional arguments to the tSNE call. Most commonly used is
 #' perplexity (expected number of neighbors default is 30)
 #' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
 #' @import Rtsne
@@ -1167,6 +1180,9 @@ setMethod("AveragePCA", "seurat",
 #'
 #' @param object Seurat object
 #' @param genes.use Genes to analyze. Default is all genes.
+#' @param return.seurat Whether to return the data as a Seurat object. Default is false.
+#' @param add.ident Add identity label to class
+#' @param ... Arguments to be passed to methods such as \code{\link{Setup}}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
 setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) standardGeneric("AverageExpression"))
@@ -1325,6 +1341,7 @@ setMethod("PrintPCA", "seurat",
 #' @param cells.use Cells to collect data for (default is all cells)
 #' @param use.imputed For gene expression, use imputed values
 #' @param use.scaled For gene expression, use scaled values
+#' @param use.raw For gene expression, use raw values
 #' @return A data frame with cells as rows and cellular data as columns
 #' @export
 setGeneric("FetchData",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE,use.raw=FALSE) standardGeneric("FetchData"))
@@ -1500,6 +1517,7 @@ setMethod("RegulatorScore", "seurat",
 #'
 #' @inheritParams FindMarkers
 #' @param node The node in the phylogenetic tree to use as a branch point
+#' @param ... Additional arguments passed to FindMarkers
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
@@ -1531,7 +1549,6 @@ setMethod("FindMarkersNode", "seurat",
 #' @param genes.use Genes to test. Default is to use all genes.
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
-#'
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
@@ -1547,10 +1564,10 @@ setMethod("FindMarkersNode", "seurat",
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(1.5),test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=log(1.5), test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
 
             cells.1=WhichCells(object, ident.1)
@@ -1610,18 +1627,33 @@ setMethod("FindMarkers", "seurat",
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 #'
 #'
-#' @inheritParams FindMarkers
-#' @param thresh.test Limit testing to genes which show, on average, at least X-fold difference (log-scale) between cells in an identity class, and all other cells.
+#' @param object Seurat object
+#' @param ident.1 Identity class to define markers for
+#' @param ident.2 A second identity class for comparison. If NULL (default) -
+#' use all other cells for comparison.
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' @param test.use Denotes which test to use. Seurat currently implements
+#' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
+#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
+#' as in Trapnell et al., Nature Biotech, 2014)
+#' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
+#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @param only.pos Only return positive markers (FALSE by default)
+#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
+#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
-#' 
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindAllMarkers"))
+setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
-      function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
+      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -2250,8 +2282,9 @@ lasso.fxn = function(lasso.input,genes.obs,s.use=20,gene.name=NULL,do.print=FALS
 #'
 #' @inheritParams FeaturePlot
 #' @inheritParams AddImputedScore
-#' @param inheritParams Seurat object
 #' @param genes.fit Genes to calculate smoothed values for
+#' @param k k-param for k-nearest neighbor calculation
+#' @param do.log Whether to perform smoothing in log space. Default is false.
 #' @importFrom FNN get.knn
 #' @export
 setGeneric("AddSmoothedScore", function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tsne",k=30,do.log=FALSE,do.print=FALSE) standardGeneric("AddSmoothedScore"))
@@ -2397,10 +2430,10 @@ setMethod("CalcNoiseModels","seurat",
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("FeaturePlot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE,...) standardGeneric("FeaturePlot"))
+setGeneric("FeaturePlot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE) standardGeneric("FeaturePlot"))
 #' @export
 setMethod("FeaturePlot", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE,...) {
+          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code="PC"
             if (is.null(nCol)) {
@@ -2532,6 +2565,7 @@ setMethod("FeatureHeatmap", "seurat",
 #' cluster is labeled
 #' @param pt.size Set the point size
 #' @param label.size Set the size of the text labels
+#' @param cells.use Vector of cell names to use in the plot.
 #' @param colors.use Manually set the color palette to use for the points
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #' @seealso DimPlot
@@ -2704,10 +2738,10 @@ setMethod("SpatialDe", "seurat",
 #' @param dim.2 second dimension to use
 #' @param reduction.use Which dimensional reduction to use (either 'pca' or 'ica')
 #' @param G.use Parameter for the density clustering. Lower value to get more fine-scale clustering
-#' @param SetIdent TRUE by default. Set identity class to the results of the density clustering.
+#' @param set.ident TRUE by default. Set identity class to the results of the density clustering.
 #' Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.
 #' @param seed.use Random seed for the dbscan function
-#' @param \dots Additional arguments to be passed to the dbscan function
+#' @param ... Additional arguments to be passed to the dbscan function
 #' @export
 setGeneric("DBClustDimension", function(object,dim.1=1,dim.2=2,reduction.use="tsne",G.use=NULL,set.ident=TRUE,seed.use=1,...) standardGeneric("DBClustDimension"))
 #' @export
@@ -2829,7 +2863,10 @@ setMethod("PCASigGenes", "seurat",
 #' @param group.by If (order.by.ident==TRUE) default,  you can group cells in
 #' different ways (for example, orig.ident)
 #' @param remove.key Removes the color key from the plot.
-#' @param \dots Additional parameters to heatmap.2. Common examples are cexRow
+#' @param cex.col positive numbers, used as cex.axis in for the column axis labeling. 
+#' The defaults currently only use number of columns
+#' @param do.scale whether to use the data or scaled data 
+#' @param ... Additional parameters to heatmap.2. Common examples are cexRow
 #' and cexCol, which set row and column text sizes
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
@@ -3432,6 +3469,7 @@ setMethod("JackStrawPlot","seurat",
 #' @param use.imputed Use imputed values for gene expression (Default is FALSE)
 #' @param do.ident False by default. If TRUE,
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
+#' @param spline.span spline span in loess function call
 #' @param \dots Additional arguments to be passed to plot.
 #' @return No return, only graphical output
 #' @export

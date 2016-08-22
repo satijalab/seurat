@@ -29,6 +29,8 @@ using FetchData}
 
 \item{do.scale}{Rescale the new object@scale.data. FALSE by default}
 
+\item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+
 \item{\dots}{Additional arguments to be passed to FetchData (for example,
 use.imputed=TRUE)}
 }

@@ -7,7 +7,7 @@
 Setup(object, project, min.cells = 3, min.genes = 1000, is.expr = 0,
   do.logNormalize = T, total.expr = 10000, do.scale = TRUE,
   do.center = TRUE, names.field = 1, names.delim = "_",
-  meta.data = NULL, save.raw = TRUE, ...)
+  meta.data = NULL, save.raw = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +20,10 @@ many cells}
 \item{min.genes}{Include cells where at least this many genes are detected}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
+
+\item{do.logNormalize}{whether to normalize the expression data per cell and transform to log space.}
+
+\item{total.expr}{scale factor in the log normalization}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score)}
@@ -39,8 +43,6 @@ metadata fields}
 
 \item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in object@raw.data
 which will save memory downstream for large datasets}
-
-\item{\dots}{Additional arguments, not currently used.}
 }
 \value{
 Seurat object. Fields modified include object@data,

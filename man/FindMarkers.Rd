@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes}
 \usage{
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
-  thresh.use = log(1.5), test.use = "bimod", min.pct = 0.1,
+  thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf)
 }
 \arguments{
@@ -20,7 +20,6 @@ use all other cells for comparison.}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells.
-
 Increasing thresh.use speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Seurat currently implements

@@ -11,6 +11,12 @@ AverageExpression(object, genes.use = NULL, return.seurat = F,
 \item{object}{Seurat object}
 
 \item{genes.use}{Genes to analyze. Default is all genes.}
+
+\item{return.seurat}{Whether to return the data as a Seurat object. Default is false.}
+
+\item{add.ident}{Add identity label to class}
+
+\item{...}{Arguments to be passed to methods such as \code{\link{Setup}}}
 }
 \value{
 Returns a matrix with genes as rows, identity classes as columns.

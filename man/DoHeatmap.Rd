@@ -41,7 +41,12 @@ different ways (for example, orig.ident)}
 
 \item{remove.key}{Removes the color key from the plot.}
 
-\item{\dots}{Additional parameters to heatmap.2. Common examples are cexRow
+\item{cex.col}{positive numbers, used as cex.axis in for the column axis labeling. 
+The defaults currently only use number of columns}
+
+\item{do.scale}{whether to use the data or scaled data}
+
+\item{...}{Additional parameters to heatmap.2. Common examples are cexRow
 and cexCol, which set row and column text sizes}
 }
 \value{

@@ -31,7 +31,6 @@
 \alias{find.markers}
 \alias{find.markers.node}
 \alias{find_all_markers}
-\alias{find_all_markers_node}
 \alias{fit.gene.k}
 \alias{fit.gene.mix}
 \alias{gene.cor.matrix}
@@ -119,7 +118,6 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{find_all_markers} \tab now a synonym for \code{\link{FindAllMarkers}}\cr
   \code{genePlot} \tab now a synonym for \code{\link{GenePlot}}\cr
   \code{feature.plot} \tab now a synonym for \code{\link{FeaturePlot}}\cr
-  \code{find_all_markers_node} \tab now a synonym for \code{\link{FindAllMarkersNode}}\cr
   \code{buildClusterTree} \tab now a synonym for \code{\link{BuildClusterTree}}\cr
   \code{plotClusterTree} \tab now a synonym for \code{\link{PlotClusterTree}}\cr
   \code{plotNoiseModel} \tab now a synonym for \code{\link{PlotNoiseModel}}\cr

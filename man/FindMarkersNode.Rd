@@ -16,7 +16,6 @@ FindMarkersNode(object, node, genes.use = NULL, thresh.use = log(2),
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells.
-
 Increasing thresh.use speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Seurat currently implements
@@ -24,6 +23,8 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 as in Trapnell et al., Nature Biotech, 2014)}
+
+\item{...}{Additional arguments passed to FindMarkers}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

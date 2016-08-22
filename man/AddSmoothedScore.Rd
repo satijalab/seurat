@@ -19,10 +19,12 @@ AddSmoothedScore(object, genes.fit = NULL, dim.1 = 1, dim.2 = 2,
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
 
+\item{k}{k-param for k-nearest neighbor calculation}
+
+\item{do.log}{Whether to perform smoothing in log space. Default is false.}
+
 \item{do.print}{Print progress (output the name of each gene after it has
 been imputed).}
-
-\item{inheritParams}{Seurat object}
 }
 \description{
 Smooths expression values across the k-nearest neighbors based on dimensional reduction

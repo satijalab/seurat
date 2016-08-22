@@ -17,6 +17,8 @@ cluster is labeled}
 
 \item{label.size}{Set the size of the text labels}
 
+\item{cells.use}{Vector of cell names to use in the plot.}
+
 \item{colors.use}{Manually set the color palette to use for the points}
 
 \item{\dots}{Additional parameters to DimPlot, for example, which dimensions to plot.}

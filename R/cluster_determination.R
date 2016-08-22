@@ -208,6 +208,7 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                    random.seed, print.output, sep = " ")
   system(command, wait = TRUE)
   ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
+
   object <- SetIdent(object, object@cell.names, ident.use)
   file.remove(edge_file)
   file.remove(output_file)
@@ -239,10 +240,13 @@ GroupSingletons <- function(object, SNN){
     }
     m <- max(connectivity, na.rm = T)
     mi <- which(connectivity == m, arr.ind = TRUE)
-    closest_cluster <- names(connectivity[mi])
-    
+    closest_cluster <- sample(names(connectivity[mi]), 1)
     object <- SetIdent(object, cells.use = WhichCells(object,i), 
                         ident.use = closest_cluster)
+    
+  }
+  if (length(singletons) > 0){
+    print(paste(length(singletons), "singletons identified.", length(unique(object@ident)), "final clusters."))
   }
   return(object)
 }

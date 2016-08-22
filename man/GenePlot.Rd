@@ -30,6 +30,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{do.spline}{Add a spline (currently hardwired to df=4, to be improved)}
 
+\item{spline.span}{spline span in loess function call}
+
 \item{\dots}{Additional arguments to be passed to plot.}
 }
 \value{

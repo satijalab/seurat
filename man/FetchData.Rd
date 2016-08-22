@@ -17,6 +17,8 @@ FetchData(object, vars.all = NULL, cells.use = NULL, use.imputed = FALSE,
 \item{use.imputed}{For gene expression, use imputed values}
 
 \item{use.scaled}{For gene expression, use scaled values}
+
+\item{use.raw}{For gene expression, use raw values}
 }
 \value{
 A data frame with cells as rows and cellular data as columns

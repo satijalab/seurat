@@ -32,7 +32,13 @@ current tSNE to seed the algorithm and then adds additional iterations on top of
 \item{dim_embed}{The dimensional space of the resulting tSNE embedding (default is 2).
 For example, set to 3 for a 3d tSNE}
 
-\item{\dots}{Additional arguments to the tSNE call. Most commonly used is
+\item{q.use}{Quantile to use}
+
+\item{max.dim}{Max dimension to keep from diffusion calculation}
+
+\item{scale.clip}{Max/min value for scaled data. Default is 3}
+
+\item{...}{Additional arguments to the tSNE call. Most commonly used is
 perplexity (expected number of neighbors default is 30)}
 }
 \value{

@@ -7,7 +7,7 @@
 FeaturePlot(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL,
   pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
   reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
-  no.axes = FALSE, ...)
+  no.axes = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
