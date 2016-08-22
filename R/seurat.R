@@ -611,6 +611,7 @@ setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.
 setMethod("SubsetData","seurat",
           function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) {
             data.use=NULL
+            cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
               cells.use=WhichCells(object,ident.use)
             }
@@ -1658,6 +1659,7 @@ setMethod("FindAllMarkers","seurat",
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
             genes.de=list()
+            if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident)
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,min.pct,print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
