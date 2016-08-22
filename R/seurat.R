@@ -2458,7 +2458,7 @@ setMethod("FeaturePlot", "seurat",
             data.use=data.frame(t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
             pList=lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes))
             
-            multiplotList(pList, cols = nCol)
+            MultiPlotList(pList, cols = nCol)
             rp()
           }
 )
@@ -3318,7 +3318,7 @@ setMethod("VlnPlot","seurat",
             }
             
             else {
-              multiplotList(pList,cols = nCol)
+              MultiPlotList(pList,cols = nCol)
               rp()
             }
           }

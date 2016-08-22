@@ -502,7 +502,7 @@ getStat2=function(x,y=2) return(strsplit(x,"_")[[1]][y])
 getStat3=function(x,y=3) return(strsplit(x,"_")[[1]][y])
 
 #' @export
-multiplotList <- function(plots, file, cols=1, layout=NULL) {
+MultiPlotList <- function(plots, file, cols=1, layout=NULL) {
 
   # Make a list from the ... arguments and plotlist
   #plots <- c(list(...), plotlist)
