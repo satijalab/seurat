@@ -488,8 +488,7 @@ setMethod("RegressOut", "seurat",
             
             bin.size <- 100
             max.bin <- floor(length(genes.regress)/bin.size) + 1
-            print(paste("Regressing out ",latent.vars))
-            cat("\n")
+            print(paste("Regressing out",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             data.resid=c()
             for(i in 1:max.bin) {
@@ -507,6 +506,7 @@ setMethod("RegressOut", "seurat",
               if (i>1) data.resid=rbind(data.resid,new.data)
               setTxtProgressBar(pb, i)
             }
+            close(pb)
             rownames(data.resid) <- genes.regress
             object@scale.data=data.resid
             if (do.scale==TRUE) {
