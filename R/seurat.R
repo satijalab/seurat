@@ -1190,7 +1190,7 @@ setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,a
 setMethod("AverageExpression", "seurat",
           function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
-            genes.use=ainb(genes.use,rownames(object@data))
+            genes.use=unique(ainb(genes.use,rownames(object@data)))
             ident.use=object@ident
             if (!is.null(add.ident)) {
               new.data=FetchData(object,add.ident)
