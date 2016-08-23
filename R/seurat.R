@@ -1314,13 +1314,13 @@ setMethod("PCTopCells", "seurat",
 #' @param genes.print Number of genes to print for each PC
 #' @return Only text output
 #' @export
-setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("PrintPCA"))
+setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) standardGeneric("PrintPCA"))
 #' @export
 setMethod("PrintPCA", "seurat",
-          function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
+          function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) {
             for(i in pcs.print) {
               code=paste("PC",i,sep="")
-              sx=PCTopGenes(object,i, genes.print * 2, use.full = TRUE, do.balanced = TRUE)
+              sx=PCTopGenes(object,i, genes.print * 2, use.full = use.full, do.balanced = TRUE)
               print(code)
               print((sx[1:genes.print]))
               print ("")
@@ -3586,7 +3586,6 @@ setMethod("CellPlot","seurat",
 )
 
 #' @export
-#' @import jackstraw
 setGeneric("JackStrawPermutationTest", function(object,genes.use=NULL,num.iter=100, thresh.use=0.05,do.print=TRUE,k.seed=1)  standardGeneric("JackStrawPermutationTest"))
 #' @export
 setMethod("JackStrawPermutationTest","seurat",
