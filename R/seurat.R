@@ -1021,7 +1021,7 @@ setMethod("PCA", "seurat",
                 print(rownames(sx[1:genes.print,]))
                 print ("")
 
-                print(rev(rownames(sx[(nrow(sx)-genes.print):nrow(sx),])))
+                print(rev(rownames(sx[(nrow(sx)-genes.print+1):nrow(sx),])))
                 print ("")
                 print ("")
               }
