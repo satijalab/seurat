@@ -1225,7 +1225,7 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
     num.genes=round(num.genes/2)
     sx=dim_scores[order(dim_scores[,code]),]
     genes.1=(rownames(sx[1:num.genes,]))
-    genes.2=(rownames(sx[(nrow(sx)-num.genes):nrow(sx),]))
+    genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),]))
     return(c(genes.1,genes.2))
   }
   if (!(do.balanced)) {
@@ -1318,15 +1318,14 @@ setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=FAL
 #' @export
 setMethod("PrintPCA", "seurat",
           function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
-            genes.print.use=round(genes.print/2)
             for(i in pcs.print) {
               code=paste("PC",i,sep="")
-              sx=PCTopGenes(object,i,genes.print.use*2,use.full,TRUE)
+              sx=PCTopGenes(object,i, genes.print * 2, use.full = TRUE, do.balanced = TRUE)
               print(code)
-              print((sx[1:genes.print.use]))
+              print((sx[1:genes.print]))
               print ("")
 
-              print(rev((sx[(length(sx)-genes.print.use):length(sx)])))
+              print(rev((sx[(length(sx)-genes.print+1):length(sx)])))
               print ("")
               print ("")
             }
