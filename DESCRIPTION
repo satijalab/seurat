@@ -1,13 +1,51 @@
 Package: Seurat
-Version: 1.2.1
-Date: 10/06/2015
+Version: 1.3
+Date: 05/21/2015
 Title: Seurat : R toolkit for single cell genomics
-Description: Seurat : R toolkit for single cell genomics
+Description: Seurat : R toolkit for single cell genomics.
 Author: Rahul Satija
 Maintainer: Satija Lab <seuratpackage@gmail.com>
 URL: http://www.satijalab.org/seurat
-Depends: R (>= 3.1.0), ggplot2, reshape2, useful, gridExtra, gplots, gdata
-Imports: ROCR, stringr, mixtools, lars, fastICA, tsne, Rtsne, fpc, ape, VGAM, jackstraw, XLConnect, lfa
-Remotes: StoreyLab/lfa@a1df252
-License: GPL 3.0
-
+Depends:
+    R (>= 3.2.0),
+    ggplot2,
+    cowplot,
+SystemRequirements: Java (>= 1.6)
+Imports:
+    methods,
+    ROCR,
+    stringr,
+    mixtools,
+    lars,
+    fastICA,
+    tsne,
+    Rtsne,
+    fpc,
+    ape,
+    VGAM,
+    pbapply,
+    igraph,
+    FNN,
+    caret,
+    dplyr,
+    RColorBrewer,
+    MASS,
+    Matrix,
+    irlba,
+    reshape2,
+    gridExtra,
+    gplots,
+    gdata
+License: GPL-3
+Collate:
+    'seurat.R'
+    'cluster_determination.R'
+    'cluster_validation.R'
+    'deprecated_functions.R'
+    'seuratFxns.R'
+    'snn.R'
+    'tSNE_project.R'
+    'zfRenderSeurat.R'
+RoxygenNote: 5.0.1
+Suggests:
+    testthat
