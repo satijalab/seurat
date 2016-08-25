@@ -57,7 +57,7 @@ setMethod("FindClusters", signature = "seurat",
 
             
   # for older objects without the snn.k slot
-  if(!validObject(object, test = T)){
+  if(typeof(validObject(object, test = T)) == "character"){
     object@snn.k <- numeric()
   }
             
