@@ -19,6 +19,8 @@ NULL
 #' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
 #'        1 - prune everything)
 #' @param save.SNN Whether to save the SNN in an object slot
+#' @param reuse.SNN Force utilization of stored SNN. If none store, this will
+#' throw an error.
 #' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
 #'        May be necessary datasets containing a large number of cells.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
@@ -41,47 +43,51 @@ NULL
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
                                      k.param = 30, k.scale = 25,
                                      plot.SNN = FALSE, prune.SNN = 1/15,
-                                     save.SNN = FALSE, do.sparse = FALSE,
-                                     modularity.fxn = 1, resolution = 0.8,
-                                     algorithm = 1, n.start = 100,
-                                     n.iter = 10, random.seed = 0,
+                                     save.SNN = FALSE, reuse.SNN = FALSE,
+                                     do.sparse = FALSE, modularity.fxn = 1, 
+                                     resolution = 0.8, algorithm = 1, 
+                                     n.start = 100, n.iter = 10, random.seed = 0,
                                      print.output = TRUE)
 standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
-                   save.SNN = FALSE, do.sparse = FALSE, modularity.fxn = 1,
-                   resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-                   random.seed = 0, print.output = TRUE){
+                   save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
+                   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
+                   n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE){
 
   # for older objects without the snn.k slot
   if(typeof(validObject(object, test = T)) == "character"){
     object@snn.k <- numeric()
   }
-            
-  # if any SNN building parameters are provided, build a new SNN
-  if (length(object@snn.k) == 0 || k.param != object@snn.k || k.scale != 25 || !is.null(pc.use) 
-      || !is.null(genes.use)) {
-    object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                        plot.SNN, prune.SNN, do.sparse, print.output)
-  }
-  else {
-    save.SNN <- TRUE
-  }
-  # if the SNN hasn't been built yet, build it
-  snn.built = FALSE
+  
+  snn.built <- FALSE
   if (.hasSlot(object, "snn.dense")) {
     if (length(object@snn.dense) > 1) {
-      snn.built = TRUE
+      snn.built <- TRUE
     }
   }
   if (.hasSlot(object, "snn.sparse")) {
     if (length(object@snn.sparse) > 1) {
-      snn.built = TRUE
+      snn.built <- TRUE
     }
   }
-  if (!snn.built) {
+  
+  if((missing(genes.use) && missing(pc.use) && missing(k.param) && missing(k.scale) && 
+     missing(prune.SNN) && snn.built) || reuse.SNN){
+    save.SNN <- TRUE
+    if (reuse.SNN && !snn.built){
+      stop("No SNN stored to reuse.")
+    }
+    if (reuse.SNN && (!missing(genes.use) || !missing(pc.use) || !missing(k.param) || 
+                      !missing(k.scale) || !missing(prune.SNN))){
+      warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
+              warning, remove all SNN building parameters.")
+    }
+  }
+  # if any SNN building parameters are provided or it hasn't been built, build a new SNN
+  else{
     object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
                        plot.SNN, prune.SNN, do.sparse, print.output)
   }
