@@ -9,7 +9,7 @@ URL: http://www.satijalab.org/seurat
 Depends:
     R (>= 3.2.0),
     ggplot2,
-    cowplot,
+    cowplot
 SystemRequirements: Java (>= 1.6)
 Imports:
     methods,

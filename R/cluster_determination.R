@@ -19,6 +19,8 @@ NULL
 #' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
 #'        1 - prune everything)
 #' @param save.SNN Whether to save the SNN in an object slot
+#' @param reuse.SNN Force utilization of stored SNN. If none store, this will
+#' throw an error.
 #' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
 #'        May be necessary datasets containing a large number of cells.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
@@ -39,28 +41,27 @@ NULL
 #'         object@@ident has been updated with new cluster info
 #' @export
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
-                                     k.param = 30, k.scale = 25,
-                                     plot.SNN = FALSE, prune.SNN = 1/15,
-                                     save.SNN = FALSE, do.sparse = FALSE,
-                                     modularity.fxn = 1, resolution = 0.8,
-                                     algorithm = 1, n.start = 100,
-                                     n.iter = 10, random.seed = 0,
-                                     print.output = TRUE)
-standardGeneric("FindClusters"))
+                                    k.param = 30, k.scale = 25,
+                                    plot.SNN = FALSE, prune.SNN = 1/15,
+                                    save.SNN = FALSE, reuse.SNN = FALSE,
+                                    do.sparse = FALSE, modularity.fxn = 1, 
+                                    resolution = 0.8, algorithm = 1, 
+                                    n.start = 100, n.iter = 10, random.seed = 0,
+                                    print.output = TRUE)
+  standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
-                   save.SNN = FALSE, do.sparse = FALSE, modularity.fxn = 1,
-                   resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-                   random.seed = 0, print.output = TRUE){
-
+                   save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
+                   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
+                   n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE){
             
   # for older objects without the snn.k slot
   if(typeof(validObject(object, test = T)) == "character"){
     object@snn.k <- numeric()
   }
-            
+  
   snn.built <- FALSE
   if (.hasSlot(object, "snn.dense")) {
     if (length(object@snn.dense) > 1) {
@@ -72,10 +73,18 @@ setMethod("FindClusters", signature = "seurat",
       snn.built <- TRUE
     }
   }
-            
-  if(missing(genes.use) && missing(pc.use) && missing(k.param) && missing(k.scale) && 
-     missing(prune.SNN) & snn.built){
+  
+  if((missing(genes.use) && missing(pc.use) && missing(k.param) && missing(k.scale) && 
+      missing(prune.SNN) && snn.built) || reuse.SNN){
     save.SNN <- TRUE
+    if (reuse.SNN && !snn.built){
+      stop("No SNN stored to reuse.")
+    }
+    if (reuse.SNN && (!missing(genes.use) || !missing(pc.use) || !missing(k.param) || 
+                      !missing(k.scale) || !missing(prune.SNN))){
+      warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
+              warning, remove all SNN building parameters.")
+    }
   }
   # if any SNN building parameters are provided or it hasn't been built, build a new SNN
   else{
@@ -205,7 +214,6 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                    random.seed, print.output, sep = " ")
   system(command, wait = TRUE)
   ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
-
   object <- SetIdent(object, object@cell.names, ident.use)
   file.remove(edge_file)
   file.remove(output_file)
