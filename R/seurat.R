@@ -257,6 +257,7 @@ setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("L
 setMethod("LogNormalize", "ANY",
           function(data, scale.factor = 1e4) {
             if(is.matrix(data) || class(data) == "data.frame") {
+              print("Performing log-normalization")
               return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
             }
             else {
