@@ -170,8 +170,12 @@ setMethod("Setup","seurat",
 setGeneric("Read10X", function(data.dir = NULL) standardGeneric("Read10X"))
 #' @export
 setMethod("Read10X", "character", function(data.dir = NULL){
-  if (!file.exists(data.dir)){
+  if (!dir.exists(data.dir)){
     stop("Directory provided does not exist")
+  }
+  
+  if(!grepl("\\/$", data.dir)){
+    data.dir <- paste(data.dir, "/", sep = "")
   }
   
   barcode.loc <- paste(data.dir, "barcodes.tsv", sep ="")

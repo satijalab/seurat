@@ -175,9 +175,15 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                                     resolution = 0.8, algorithm = 1,
                                     n.start = 100, n.iter = 10, random.seed = 0,
                                     print.output = TRUE){
-
-  ModularityJarFile <- paste(system.file(package="Seurat"),
+  
+  seurat.dir <- system.file(package="Seurat")
+  
+  ModularityJarFile <- paste(seurat.dir,
                              "/java/ModularityOptimizer.jar", sep = "")
+  
+  seurat.dir <- paste0(strsplit(seurat.dir, "/")[[1]][0:(length(strsplit(seurat.dir, "/")[[1]])-1)], collapse = "/")
+  seurat.dir <- paste0(seurat.dir, "/", sep = "")
+  
   diag(SNN) <- 0
   if (is.object(SNN)) {
     SNN <- as(SNN, "dgTMatrix")
@@ -190,12 +196,12 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   colnames(edge) <- NULL
 
   unique_ID <- sample(10000 : 99999, 1)
-  edge_file <- paste("edge_", unique_ID, ".txt", sep = "")
-  output_file <- paste("output_", unique_ID, ".txt", sep = "")
+  edge_file <- paste(seurat.dir, "edge_", unique_ID, ".txt", sep = "")
+  output_file <- paste(seurat.dir, "output_", unique_ID, ".txt", sep = "")
   while (file.exists(edge_file)) {
     unique_ID <- sample(10000 : 99999, 1)
-    edge_file <- paste("edge_", unique_ID, ".txt", sep = "")
-    output_file <- paste("output", unique_ID, ".txt", sep = "")
+    edge_file <- paste(seurat.dir, "edge_", unique_ID, ".txt", sep = "")
+    output_file <- paste(seurat.dir, "output", unique_ID, ".txt", sep = "")
   }
   if (print.output) {
     print.output <- 1
