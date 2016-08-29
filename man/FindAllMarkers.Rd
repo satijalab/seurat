@@ -7,7 +7,7 @@
 FindAllMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  return.thresh = 0.01, do.print = FALSE)
+  return.thresh = 0.01, do.print = FALSE, random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -41,6 +41,8 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
 \item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
+
+\item{random.seed}{Random seed for downsampling}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

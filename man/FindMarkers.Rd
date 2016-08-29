@@ -6,7 +6,8 @@
 \usage{
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
-  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf)
+  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
+  random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -36,6 +37,8 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
 \item{max.cells.per.ident}{Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)}
+
+\item{random.seed}{Random seed for downsampling}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)

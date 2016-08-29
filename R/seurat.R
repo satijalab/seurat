@@ -607,14 +607,15 @@ setMethod("AddSamples","seurat",
 #' @param do.center Recenter the new object@@scale.data
 #' @param do.scale Rescale the new object@@scale.data. FALSE by default
 #' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
+#' @param random.seed Random seed for downsampling
 #' @param \dots Additional arguments to be passed to FetchData (for example,
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) {
             data.use=NULL
             cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
@@ -628,9 +629,7 @@ setMethod("SubsetData","seurat",
               cells.use=rownames(data.use)[pass.inds]
             }
             cells.use=ainb(cells.use,object@cell.names)
-            if (max.cells.per.ident < Inf) {
-              cells.use=unlist(lapply(levels(object@ident),function(x)head(ainb(WhichCells(object,x),cells.use),max.cells.per.ident)))
-            }
+            cells.use = WhichCells(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             object@data=object@data[,cells.use]
             if(!(is.null(object@scale.data))) {
               if (length(colnames(object@scale.data)>0)) {
@@ -1565,17 +1564,18 @@ setMethod("FindMarkersNode", "seurat",
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
+#' @param random.seed Random seed for downsampling
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
 
-            cells.1=WhichCells(object, ident.1)
+            cells.1=WhichCells(object, ident = ident.1, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             # in case the user passed in cells instead of identity classes
             if (length(as.vector(ident.1) > 1) && any(as.character(ident.1) %in% object@cell.names)) {
               cells.1=ainb(ident.1,object@cell.names)
@@ -1586,7 +1586,7 @@ setMethod("FindMarkers", "seurat",
               cells.2=object@cell.names
             }
             else {
-              cells.2=WhichCells(object,ident.2)
+              cells.2=WhichCells(object, ident = ident.2, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             }
             if (length(as.vector(ident.2) > 1) && any(as.character(ident.2) %in% object@cell.names)) {
               cells.2=ainb(ident.2,object@cell.names)
@@ -1602,20 +1602,12 @@ setMethod("FindMarkers", "seurat",
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
               return(NULL)
             }
-            # downsample clusters
-            if (length(cells.1) > max.cells.per.ident) {
-              cells.1 <- sample(cells.1, max.cells.per.ident)
-            }
-            if (length(cells.2) > max.cells.per.ident) {
-              cells.2 <- sample(cells.2, max.cells.per.ident)
-            }
-            
             thresh.min=object@is.expr
             data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
-
+            
             if (test.use=="bimod") to.return=DiffExpTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
             if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
             if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
@@ -1650,20 +1642,21 @@ setMethod("FindMarkers", "seurat",
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
+#' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE) standardGeneric("FindAllMarkers"))
+setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
-      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE) {
+      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
             genes.de=list()
-            if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident)
+            if (max.cells.per.ident < Inf) object=SubsetData(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, test.use = test.use,min.pct,print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
@@ -1844,33 +1837,52 @@ setMethod("DiffTTest", "seurat",
           }
 )
 
-#' Identify matching cells
+#' Identify cells matching certain criteria
 #'
-#' Returns a list of cells that match a particular query (usually, query is
-#' based on identity class). For example, to find the names of all cells in cluster 1.
+#' Returns a list of cells that match a particular set of criteria such as 
+#' identity class, high/low values for particular PCs, ect..
 #'
 #' @param object Seurat object
-#' @param value Query value to match
-#' @param id Variable to query (by default, identity class)
+#' @param ident Identity class to subset. Default is all identities.
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@data.info, etc. Any argument that can be retreived
+#' using FetchData
+#' @param accept.low Low cutoff for the parameter (default is -Inf)
+#' @param accept.high High cutoff for the parameter (default is Inf)
+#' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
+#' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-setGeneric("WhichCells", function(object,value=1, id=NULL) standardGeneric("WhichCells"))
+setGeneric("WhichCells", function(object, ident = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("WhichCells"))
 #' @export
 setMethod("WhichCells", "seurat",
-          function(object, value=1,id=NULL) {
-            id=set.ifnull(id,"ident")
-            data.use=NULL;
-            if (id=="ident") {
-              data.use=object@ident
-            } else {
-              if (id %in% colnames(object@data.info)) {
-                data.use=object@data.info[,id]; names(data.use)=rownames(object@data.info)
+          function(object, ident = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) {
+            set.seed(random.seed)
+            ident <- set.ifnull(ident, unique(object@ident))
+            if (!all(ident %in% unique(object@ident))){
+              bad.idents <- ident[!(ident %in% unique(object@ident))]
+              stop(paste("Identity :", bad.idents, "not found.   "))
+            }
+        
+            cells.use <- character()
+            for (id in ident){
+              cells <- names(object@ident[object@ident == id])
+              if (length(cells) > max.cells.per.ident){
+                cells <- sample(cells, max.cells.per.ident)
               }
+              cells.use <- c(cells.use, cells)
             }
-            if (is.null(data.use)) {
-              stop(paste("Error : ", id, " not found"))
+            
+            if (!missing(subset.name)){
+              data.use <- FetchData(object, subset.name, cells.use)
+              if (length(data.use) == 0) {
+                stop(paste("Error : ", id, " not found"))
+              }
+              subset.data <- data.use[, subset.name]
+              pass.inds <- which((subset.data > accept.low) & (subset.data < accept.high))
+              cells.use <- rownames(data.use)[pass.inds]
             }
-            return(names(data.use[which(data.use%in%value)]))
+            return(cells.use)
           }
 )
 
