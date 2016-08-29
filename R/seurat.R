@@ -3494,7 +3494,7 @@ setMethod("GenePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
                    pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
-            data.use=data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
+            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
             g1=as.numeric(data.use[gene1,cell.ids])
             g2=as.numeric(data.use[gene2,cell.ids])
             ident.use=as.factor(object@ident[cell.ids])
