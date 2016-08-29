@@ -18,7 +18,7 @@ NULL
 #' matrix or not
 #' @param print.output Whether or not to print output to the console
 #' @importFrom FNN get.knn
-#' @importFrom igraph plot.igraph graph.adjlist
+#' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
 #' @return Returns the object with object@@snn.k and either
 #' object@@snn.dense or object@@snn.sparse filled depending on the option
@@ -58,13 +58,13 @@ setMethod("BuildSNN", signature = "seurat",
   } else {
       w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN,
                         print.output)
-      if (plot.SNN==TRUE) {
-        net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
-                               diag = FALSE)
-        plot.igraph(net, layout = as.matrix(object@tsne.rot),
-                    edge.width = E(net)$weight, vertex.label = NA,
-                    vertex.size = 0)
-      }
+  }
+  if (plot.SNN==TRUE) {
+    net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
+                           diag = FALSE)
+    plot.igraph(net, layout = as.matrix(object@tsne.rot),
+                edge.width = E(net)$weight, vertex.label = NA,
+                vertex.size = 0)
   }
 
   #only allow one of the snn matrix slots to be filled

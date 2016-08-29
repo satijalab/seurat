@@ -170,8 +170,12 @@ setMethod("Setup","seurat",
 setGeneric("Read10X", function(data.dir = NULL) standardGeneric("Read10X"))
 #' @export
 setMethod("Read10X", "character", function(data.dir = NULL){
-  if (!file.exists(data.dir)){
+  if (!dir.exists(data.dir)){
     stop("Directory provided does not exist")
+  }
+  
+  if(!grepl("\\/$", data.dir)){
+    data.dir <- paste(data.dir, "/", sep = "")
   }
   
   barcode.loc <- paste(data.dir, "barcodes.tsv", sep ="")
@@ -198,7 +202,6 @@ setMethod("Read10X", "character", function(data.dir = NULL){
   colnames(data) <- cell.names
   return(data)
 })
-
 
 #' Scale and center the data
 #'
@@ -257,7 +260,6 @@ setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("L
 setMethod("LogNormalize", "ANY",
           function(data, scale.factor = 1e4) {
             if(is.matrix(data) || class(data) == "data.frame") {
-              print("Performing log-normalization")
               return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
             }
             else {
@@ -1315,10 +1317,10 @@ setMethod("PCTopCells", "seurat",
 #' @param genes.print Number of genes to print for each PC
 #' @return Only text output
 #' @export
-setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("PrintPCA"))
+setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) standardGeneric("PrintPCA"))
 #' @export
 setMethod("PrintPCA", "seurat",
-          function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
+          function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) {
             for(i in pcs.print) {
               code=paste("PC",i,sep="")
               sx=PCTopGenes(object,i, genes.print * 2, use.full = use.full, do.balanced = TRUE)
