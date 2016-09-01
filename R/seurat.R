@@ -1587,24 +1587,24 @@ setMethod("FindMarkersNode", "seurat",
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
-
-            cells.1=WhichCells(object, ident = ident.1, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
+            
+            if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
+            cells.1=WhichCells(object,ident.1)
             # in case the user passed in cells instead of identity classes
             if (length(as.vector(ident.1) > 1) && any(as.character(ident.1) %in% object@cell.names)) {
               cells.1=ainb(ident.1,object@cell.names)
             }
-
             # if NULL for ident.2, use all other cells
             if (is.null(ident.2)) {
               cells.2=object@cell.names
             }
             else {
-              cells.2=WhichCells(object, ident = ident.2, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
+              cells.2=WhichCells(object, ident = ident.2)
             }
             if (length(as.vector(ident.2) > 1) && any(as.character(ident.2) %in% object@cell.names)) {
               cells.2=ainb(ident.2,object@cell.names)
@@ -1620,17 +1620,36 @@ setMethod("FindMarkers", "seurat",
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
               return(NULL)
             }
+            
+            #gene selection (based on percent expressed)
             thresh.min=object@is.expr
             data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
             
-            if (test.use=="bimod") to.return=DiffExpTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
-            if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
-            if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
-            if (test.use=="tobit") to.return=TobitTest(object,cells.1,cells.2,genes.use,thresh.use,print.bar)
+            #gene selection (based on average difference)
+            data.1=apply(object@data[genes.use,cells.1],1,expMean)
+            data.2=apply(object@data[genes.use,cells.2],1,expMean)
+            total.diff=(data.1-data.2)
+            
+            genes.diff = names(which(abs(total.diff)>thresh.use))
+            genes.use=ainb(genes.use,genes.diff)
+            
+            #perform DR
+            if (test.use=="bimod") to.return=DiffExpTest(object,cells.1,cells.2,genes.use,print.bar)
+            if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,print.bar)
+            if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,print.bar)
+            if (test.use=="tobit") to.return=TobitTest(object,cells.1,cells.2,genes.use,print.bar)
+            
+            #return results
+            to.return[,"avg_diff"]=total.diff[rownames(to.return)]
             to.return=cbind(to.return,data.alpha[rownames(to.return),])
+            if (test.use=="roc") {
+              to.return=to.return[order(-to.return$power,-to.return$avg_diff),]
+            } else to.return=to.return[order(to.return$p_val,-to.return$avg_diff),]
+            
+            
             if(only.pos) to.return=subset(to.return,avg_diff>0)
             return(to.return)
           }
@@ -1711,22 +1730,45 @@ setMethod("FindAllMarkers","seurat",
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("DiffExpTest", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("DiffExpTest"))
+setGeneric("DiffExpTest", function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) standardGeneric("DiffExpTest"))
 #' @export
 setMethod("DiffExpTest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
+          function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use, object@var.genes)
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
-            total.diff=abs(data.1-data.2)
-            genes.diff = names(which(total.diff>thresh.use))
-            #print(genes.diff)
-            to.return=BimodDiffExpTest(object@data[,cells.1],object@data[,cells.2],genes.diff,print.bar)
-            to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
+            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+            p_val=unlist(iterate.fxn(genes.use,function(x)diffLRT(as.numeric(object@data[x,cells.1]),as.numeric(object@data[x,cells.2]))))
+            to.return=data.frame(p_val,row.names = genes.use)
             return(to.return)
           }
 )
 
+#' Negative binomial test for UMI-count based data
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' a negative binomial generalized linear model
+#
+#'
+#' @inheritParams FindMarkers
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
+#' @export
+setGeneric("NegBinomTest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("NegBinomTest"))
+#' @export
+setMethod("NegBinomTest", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
+            genes.use=set.ifnull(genes.use, object@var.genes)
+            to.test=FetchData(object,genes.diff,cells.use = c(cells.1,cells.2))
+            to.test[cells.1,"group"]="A";
+            to.test[cells.2,"group"]="B";
+            to.test$group=factor(to.test$group)
+            to.return=NegBinomDiffExpTest(to.test,print.bar)
+            to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
+            return(to.return)
+          }
+)
 #' Differential expression testing using Tobit models
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -1737,18 +1779,13 @@ setMethod("DiffExpTest", "seurat",
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("TobitTest", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("TobitTest"))
+setGeneric("TobitTest", function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) standardGeneric("TobitTest"))
 #' @export
 setMethod("TobitTest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
+          function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
-            total.diff=abs(data.1-data.2)
-            genes.diff = names(which(total.diff>thresh.use))
             #print(genes.diff)
-            to.return=TobitDiffExpTest(object@data[,cells.1],object@data[,cells.2],genes.diff,print.bar)
-            to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
+            to.return=TobitDiffExpTest(object@data[,cells.1],object@data[,cells.2],genes.use,print.bar)
             return(to.return)
           }
 )
@@ -1807,20 +1844,14 @@ setMethod("BatchGene", "seurat",
 #' putative differentially expressed genes.
 #' @import ROCR
 #' @export
-setGeneric("MarkerTest", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("MarkerTest"))
+setGeneric("MarkerTest", function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) standardGeneric("MarkerTest"))
 #' @export
 setMethod("MarkerTest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
+          function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
-            data.use=object@data
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
-            total.diff=abs(data.1-data.2)
-            genes.diff = names(which(total.diff>thresh.use))
-            genes.use=ainb(genes.diff,rownames(data.use))
             to.return=marker.auc.test(object@data[,cells.1],object@data[,cells.2],genes.use,print.bar=TRUE)
-            to.return=to.return[rev(order(abs(to.return$myAUC-0.5))),]
             to.return$power=abs(to.return$myAUC-0.5)*2
+            #print(head(to.return))
             return(to.return)
           }
 )
@@ -1835,22 +1866,15 @@ setMethod("MarkerTest", "seurat",
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("DiffTTest", function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) standardGeneric("DiffTTest"))
+setGeneric("DiffTTest", function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) standardGeneric("DiffTTest"))
 #' @export
 setMethod("DiffTTest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,thresh.use=log(2),print.bar=TRUE) {
+          function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use,object@var.genes)
             data.use=object@data
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
-            total.diff=abs(data.1-data.2)
-            genes.diff = names(which(total.diff>thresh.use))
-            genes.use=ainb(genes.diff,rownames(data.use))
             iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
             p_val=unlist(iterate.fxn(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
-            avg_diff=(data.1-data.2)[genes.use]
-            to.return=data.frame(p_val,avg_diff,row.names = genes.use)
-            to.return=to.return[with(to.return, order(p_val, -abs(avg_diff))), ]
+            to.return=data.frame(p_val,row.names = genes.use)
             return(to.return)
           }
 )

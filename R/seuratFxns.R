@@ -374,13 +374,13 @@ TobitDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffTobit(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-  avg_diff=unlist(iterate.fxn(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
-  toRet=data.frame(cbind(p_val,avg_diff),row.names=mygenes)
-  toRet=toRet[order(toRet$p_val),]
+  toRet=data.frame(p_val,row.names=mygenes)
   return(toRet)
 }
 
-BimodDiffExpTest=function(data1,data2,mygenes,print.bar) {
+
+
+NegBinomDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffLRT(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
@@ -390,6 +390,9 @@ BimodDiffExpTest=function(data1,data2,mygenes,print.bar) {
   return(toRet)
 }
 
+diffNegBinom=function(x,data,vars) {
+  
+}
 diffAUC = function(x,y) {
   prediction.use=prediction(c(x,y),c(rep(1,length(x)),rep(0,length(y))),0:1)
   perf.use=performance(prediction.use,"auc")
@@ -402,7 +405,7 @@ diffLRT = function(x,y,xmin=1) {
   lrtY=bimodLikData(y)
   lrtZ=bimodLikData(c(x,y))
   lrt_diff=2*(lrtX+lrtY-lrtZ)
-  return(1-pchisq(lrt_diff,3))
+  return(pchisq(lrt_diff,3,lower.tail = F))
 }
 
 bimodLikData=function(x,xmin=0) {
