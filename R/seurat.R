@@ -286,6 +286,24 @@ setMethod("LogNormalize", "ANY",
 )
 
 
+#' Merge Seurat Objects
+#'
+#' Merge two Seurat objects
+#'
+#'
+#' @param object1 First Seurat object to merge
+#' @param object2 Second Seurat object to merge
+#' @return Merged Seurat object
+#' @export
+setGeneric("MergeSeurat", function(object1, object2) standardGeneric("MergeSeurat"))
+#' @export
+setMethod("MergeSeurat", "seurat",
+          function(object1, object2) {
+            
+          }
+)
+
+
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
