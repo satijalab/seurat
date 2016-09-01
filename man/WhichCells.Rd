@@ -4,13 +4,16 @@
 \alias{WhichCells}
 \title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, ident = NULL, subset.name = NULL, accept.low = -Inf,
-  accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1)
+WhichCells(object, ident = NULL, cells.use = NULL, subset.name = NULL,
+  accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf,
+  random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{ident}{Identity class to subset. Default is all identities.}
+
+\item{cells.use}{Subset of cell names}
 
 \item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
 column name in object@data.info, etc. Any argument that can be retreived

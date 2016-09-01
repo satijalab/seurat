@@ -629,7 +629,7 @@ setMethod("SubsetData","seurat",
               cells.use=rownames(data.use)[pass.inds]
             }
             cells.use=ainb(cells.use,object@cell.names)
-            cells.use = WhichCells(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
+            cells.use = WhichCells(object, cells.use = cells.use, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             object@data=object@data[,cells.use]
             if(!(is.null(object@scale.data))) {
               if (length(colnames(object@scale.data)>0)) {
@@ -1844,6 +1844,7 @@ setMethod("DiffTTest", "seurat",
 #'
 #' @param object Seurat object
 #' @param ident Identity class to subset. Default is all identities.
+#' @param cells.use Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
 #' column name in object@@data.info, etc. Any argument that can be retreived
 #' using FetchData
@@ -1853,26 +1854,28 @@ setMethod("DiffTTest", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-setGeneric("WhichCells", function(object, ident = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("WhichCells"))
+setGeneric("WhichCells", function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("WhichCells"))
 #' @export
 setMethod("WhichCells", "seurat",
-          function(object, ident = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) {
+          function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
+            cells.use <- set.ifnull(cells.use, object@cell.names)
             ident <- set.ifnull(ident, unique(object@ident))
             if (!all(ident %in% unique(object@ident))){
               bad.idents <- ident[!(ident %in% unique(object@ident))]
               stop(paste("Identity :", bad.idents, "not found.   "))
             }
-        
-            cells.use <- character()
+            cells.to.use <- character()
             for (id in ident){
-              cells <- names(object@ident[object@ident == id])
-              if (length(cells) > max.cells.per.ident){
-                cells <- sample(cells, max.cells.per.ident)
+              cells.in.ident <- object@ident[cells.use]
+              cells.in.ident <- names(cells.in.ident[cells.in.ident == id])
+              if (length(cells.in.ident) > max.cells.per.ident){
+                cells.in.ident <- sample(cells.in.ident, max.cells.per.ident)
               }
-              cells.use <- c(cells.use, cells)
+              cells.to.use <- c(cells.to.use, cells.in.ident)
             }
-            
+            cells.use <- cells.to.use
+              
             if (!missing(subset.name)){
               data.use <- FetchData(object, subset.name, cells.use)
               if (length(data.use) == 0) {
