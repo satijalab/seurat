@@ -35,9 +35,14 @@ Imports:
     reshape2,
     gridExtra,
     gplots,
-    gdata
+    gdata,
+    Rcpp,
+    RcppEigen,
+    RcppProgress
+LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate:
+    'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
     'cluster_validation.R'

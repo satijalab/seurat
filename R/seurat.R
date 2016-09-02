@@ -46,6 +46,8 @@
 #' @rdname seurat
 #' @aliases seurat-class
 #' @exportClass seurat
+#' @importFrom Rcpp evalCpp
+#' @useDynLib Seurat
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
@@ -285,6 +287,39 @@ setMethod("LogNormalize", "ANY",
           }
 )
 
+#' Sample UMI
+#'
+#' Downsample each cell to a specified number of UMIs. Includes
+#' an option to upsample cells below specified UMI as well.
+#'
+#'
+#' @param data Matrix with the raw count data
+#' @param max.umi Number of UMIs to sample to
+#' @param upsample Upsamples all cells with fewer than max.umi 
+#' @param progress.bar Display the progress bar
+#' @return Matrix with downsampled data
+#' @export
+setGeneric("SampleUMI", function(data, max.umi = 1000, upsample = F, progress.bar = T) standardGeneric("SampleUMI"))
+#' @export
+setMethod("SampleUMI", "ANY",
+          function(data, max.umi = 1000, upsample = F, progress.bar = T){
+            data <- as(data, "dgCMatrix")
+            if(length(max.umi) == 1){
+              return(RunUMISampling(data = data, sample_val = max.umi, upsample = upsample, display_progress = T))
+            }
+            else{
+              if(length(max.umi) != ncol(data)){
+                stop("max.umi vector not equal to number of cells")
+              }
+              return(RunUMISamplingPerCell(data = data, sample_val = max.umi, upsample = upsample, display_progress = T))
+            }
+          }
+)
+
+
+
+
+
 
 #' Merge Seurat Objects
 #'
@@ -299,7 +334,7 @@ setGeneric("MergeSeurat", function(object1, object2) standardGeneric("MergeSeura
 #' @export
 setMethod("MergeSeurat", "seurat",
           function(object1, object2) {
-            
+            return(object1)
           }
 )
 
@@ -506,9 +541,7 @@ setMethod("RegressOut", "seurat",
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
-            
-            exp.data=t(as.matrix(object@data[genes.regress,]))
-            
+
             bin.size <- 100
             max.bin <- floor(length(genes.regress)/bin.size) + 1
             print(paste("Regressing out",latent.vars))
@@ -517,13 +550,13 @@ setMethod("RegressOut", "seurat",
             for(i in 1:max.bin) {
               my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
               my.inds <- my.inds[my.inds <= length(genes.regress)]
-              regression.mat <- cbind(latent.data, exp.data[, my.inds])
-              genes.bin.regress <-  colnames(exp.data[, my.inds])
+              genes.bin.regress <- rownames(object@data[my.inds, ])
+              gene.expr <- as.matrix(object@data[genes.bin.regress,])
               new.data <- do.call(rbind, lapply(genes.bin.regress, function(x) {
-                regression.mat.2=latent.data
-                regression.mat.2[,"GENE"] = regression.mat[,x];
+                regression.mat = cbind(latent.data, gene.expr[x,])
+                colnames(regression.mat) <- c(colnames(latent.data), "GENE")
                 fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
-                return(lm(fmla,data = regression.mat.2)$residuals)
+                return(lm(fmla,data = regression.mat)$residuals)
               }))
               if (i==1) data.resid=new.data
               if (i>1) data.resid=rbind(data.resid,new.data)
