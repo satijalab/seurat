@@ -46,6 +46,8 @@
 #' @rdname seurat
 #' @aliases seurat-class
 #' @exportClass seurat
+#' @importFrom Rcpp evalCpp
+#' @useDynLib Seurat
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
@@ -285,6 +287,39 @@ setMethod("LogNormalize", "ANY",
           }
 )
 
+#' Sample UMI
+#'
+#' Downsample each cell to a specified number of UMIs. Includes
+#' an option to upsample cells below specified UMI as well.
+#'
+#'
+#' @param data Matrix with the raw count data
+#' @param max.umi Number of UMIs to sample to
+#' @param upsample Upsamples all cells with fewer than max.umi 
+#' @param progress.bar Display the progress bar
+#' @return Matrix with downsampled data
+#' @export
+setGeneric("SampleUMI", function(data, max.umi = 1000, upsample = F, progress.bar = T) standardGeneric("SampleUMI"))
+#' @export
+setMethod("SampleUMI", "ANY",
+          function(data, max.umi = 1000, upsample = F, progress.bar = T){
+            data <- as(data, "dgCMatrix")
+            if(length(max.umi) == 1){
+              return(RunUMISampling(data = data, sample_val = max.umi, upsample = upsample, display_progress = T))
+            }
+            else{
+              if(length(max.umi) != ncol(data)){
+                stop("max.umi vector not equal to number of cells")
+              }
+              return(RunUMISamplingPerCell(data = data, sample_val = max.umi, upsample = upsample, display_progress = T))
+            }
+          }
+)
+
+
+
+
+
 
 #' Merge Seurat Objects
 #'
@@ -299,7 +334,7 @@ setGeneric("MergeSeurat", function(object1, object2) standardGeneric("MergeSeura
 #' @export
 setMethod("MergeSeurat", "seurat",
           function(object1, object2) {
-            
+            return(object1)
           }
 )
 
