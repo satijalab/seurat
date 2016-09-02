@@ -1579,6 +1579,7 @@ setMethod("FindMarkersNode", "seurat",
 #' as in Trapnell et al., Nature Biotech, 2014)
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
+#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to 0.025 by default
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
@@ -1587,10 +1588,10 @@ setMethod("FindMarkersNode", "seurat",
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
@@ -1627,7 +1628,8 @@ setMethod("FindMarkers", "seurat",
             data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
-            
+            alpha.diff=alpha.min-apply(data.alpha,1,min); 
+            genes.use=names(which(alpha.min>min.pct&alpha.diff>min.diff.pct))
             #gene selection (based on average difference)
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
@@ -1641,6 +1643,8 @@ setMethod("FindMarkers", "seurat",
             if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="tobit") to.return=TobitTest(object,cells.1,cells.2,genes.use,print.bar)
+            if (test.use=="negbinom") to.return=NegBinomDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
+            if (test.use=="poisson") to.return=PoissonDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
             
             #return results
             to.return[,"avg_diff"]=total.diff[rownames(to.return)]
@@ -1694,6 +1698,7 @@ setMethod("FindAllMarkers","seurat",
             idents.all=sort(unique(object@ident))
             genes.de=list()
             if (max.cells.per.ident < Inf) object=SubsetData(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
+            
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, test.use = test.use,min.pct,print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
@@ -1702,8 +1707,9 @@ setMethod("FindAllMarkers","seurat",
             for(i in 1:length(idents.all)) {
               gde=genes.de[[i]]
               if (nrow(gde)>0) {
-                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-                if (test.use=="bimod") {
+                if (test.use=="roc") {
+                  gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+                } else {
                   gde=gde[order(gde$p_val,-gde$avg_diff),]
                   gde=subset(gde,p_val<return.thresh)
                 }
@@ -1755,20 +1761,65 @@ setMethod("DiffExpTest", "seurat",
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @export
-setGeneric("NegBinomTest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("NegBinomTest"))
+setGeneric("NegBinomDETest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("NegBinomDETest"))
 #' @export
-setMethod("NegBinomTest", "seurat",
+setMethod("NegBinomDETest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
             genes.use=set.ifnull(genes.use, object@var.genes)
-            to.test=FetchData(object,genes.diff,cells.use = c(cells.1,cells.2))
+            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
+            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
+            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
             to.test[cells.1,"group"]="A";
             to.test[cells.2,"group"]="B";
             to.test$group=factor(to.test$group)
-            to.return=NegBinomDiffExpTest(to.test,print.bar)
-            to.return=to.return[order(to.return$p_val,-abs(to.return$avg_diff)),]
+            latent.vars=c("group",latent.vars)
+            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+            p_val=unlist(iterate.fxn(genes.use,function(x) {
+              to.test[,"GENE"]=to.test.data[x,]
+              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+              return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
+            }))
+            to.return=data.frame(p_val,row.names = genes.use)
             return(to.return)
           }
 )
+
+#' Negative binomial test for UMI-count based data
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' a negative binomial generalized linear model
+#
+#'
+#' @inheritParams FindMarkers
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
+#' @export
+setGeneric("PoissonDETest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("PoissonDETest"))
+#' @export
+setMethod("PoissonDETest", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
+            genes.use=set.ifnull(genes.use, object@var.genes)
+            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
+            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
+            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
+            to.test[cells.1,"group"]="A";
+            to.test[cells.2,"group"]="B";
+            to.test$group=factor(to.test$group)
+            latent.vars=c("group",latent.vars)
+            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
+            p_val=unlist(iterate.fxn(genes.use,function(x) {
+              to.test[,"GENE"]=to.test.data[x,]
+              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+              return(summary(glm(fmla,data = to.test,family = "poisson"))$coef[2,4])
+            }))
+            to.return=data.frame(p_val,row.names = genes.use)
+            return(to.return)
+          }
+)
+
 #' Differential expression testing using Tobit models
 #'
 #' Identifies differentially expressed genes between two groups of cells using
