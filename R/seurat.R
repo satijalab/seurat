@@ -530,14 +530,16 @@ setMethod("PlotNoiseModel","seurat",
 #' @param latent.vars effects to regress out
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param do.scale Z-normalize the residual values (default is TRUE)
+#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson' 
 #' @inheritParams ScaleData
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #' @import Matrix
 #' @export
-setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) standardGeneric("RegressOut"))
+setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,model.use="linear",use.umi=F,...) standardGeneric("RegressOut"))
 #' @export
 setMethod("RegressOut", "seurat",
-          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,...) {
+          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,model.use="linear",use.umi=F,...) {
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
@@ -547,16 +549,23 @@ setMethod("RegressOut", "seurat",
             print(paste("Regressing out",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             data.resid=c()
+            data.use=object@data[genes.regress,];
+            if (model.use != "linear") {
+              use.umi=T
+            }
+            if (use.umi) data.use=object@raw.data[genes.regress,object@cell.names]
             for(i in 1:max.bin) {
               my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
               my.inds <- my.inds[my.inds <= length(genes.regress)]
-              genes.bin.regress <- rownames(object@data[my.inds, ])
-              gene.expr <- as.matrix(object@data[genes.bin.regress,])
+              genes.bin.regress <- rownames(data.use[my.inds, ])
+              gene.expr <- as.matrix(data.use[genes.bin.regress,])
               new.data <- do.call(rbind, lapply(genes.bin.regress, function(x) {
                 regression.mat = cbind(latent.data, gene.expr[x,])
                 colnames(regression.mat) <- c(colnames(latent.data), "GENE")
                 fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
-                return(lm(fmla,data = regression.mat)$residuals)
+                if (model.use=="linear") return(lm(fmla,data = regression.mat)$residuals)
+                if (model.use=="poisson") return(glm(fmla,data = regression.mat,family = "poisson")$residuals)
+                if (model.use=="negbinom") return(glm.nb(fmla,data = regression.mat)$residuals)
               }))
               if (i==1) data.resid=new.data
               if (i>1) data.resid=rbind(data.resid,new.data)
@@ -564,6 +573,9 @@ setMethod("RegressOut", "seurat",
             }
             close(pb)
             rownames(data.resid) <- genes.regress
+            if (use.umi) {
+              data.resid=log1p(sweep(data.resid,MARGIN = 1,apply(data.resid,1,min),"-"))
+            }
             object@scale.data=data.resid
             if (do.scale==TRUE) {
               object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
@@ -1609,7 +1621,9 @@ setMethod("FindMarkersNode", "seurat",
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
 #' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-#' as in Trapnell et al., Nature Biotech, 2014)
+#' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
+#' The latter two options should only be used on UMI datasets, and assume an underlying 
+#' poisson or negative-binomial distribution
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
 #' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to 0.025 by default
@@ -3635,7 +3649,7 @@ setMethod("GenePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
                    pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
-            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed)))
+            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed,...)))
             g1=as.numeric(data.use[gene1,cell.ids])
             g2=as.numeric(data.use[gene2,cell.ids])
             ident.use=as.factor(object@ident[cell.ids])
