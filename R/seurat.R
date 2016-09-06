@@ -1719,7 +1719,7 @@ setMethod("FindMarkers", "seurat",
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
             total.diff=(data.1-data.2)
-            
+
             genes.diff = names(which(abs(total.diff)>thresh.use))
             genes.use=ainb(genes.use,genes.diff)
             
@@ -2004,8 +2004,8 @@ setMethod("MarkerTest", "seurat",
 #' @inheritParams DiffExpTest
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
-#' @export
 #' @importFrom pbapply pblapply
+#' @export
 setGeneric("DiffTTest", function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) standardGeneric("DiffTTest"))
 #' @export
 setMethod("DiffTTest", "seurat",
