@@ -9,3 +9,7 @@ RunUMISamplingPerCell <- function(data, sample_val, upsample = FALSE, display_pr
     .Call('Seurat_RunUMISamplingPerCell', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }
 
+RowMergeMatrices <- function(mat1, mat2, mat1_rownames, mat2_rownames, all_rownames) {
+    .Call('Seurat_RowMergeMatrices', PACKAGE = 'Seurat', mat1, mat2, mat1_rownames, mat2_rownames, all_rownames)
+}
+
