@@ -1774,10 +1774,14 @@ setMethod("FindMarkers", "seurat",
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkers"))
+setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+                                      min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
+                                      do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
-      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
+      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
+               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
+        
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -1785,7 +1789,8 @@ setMethod("FindAllMarkers","seurat",
             if (max.cells.per.ident < Inf) object=SubsetData(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             
             for(i in 1:length(idents.all)) {
-              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, test.use = test.use,min.pct,print.bar)
+              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, 
+                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()

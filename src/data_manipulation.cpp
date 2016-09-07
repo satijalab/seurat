@@ -109,3 +109,16 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   return combined_mat;
 }
 
+// [[Rcpp::export]]
+Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){
+  Progress p(data.outerSize(), display_progress);
+  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.cols());
+  for (int k=0; k < data.outerSize(); ++k){
+    p.increment();
+    for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
+      data.coeffRef(it.row(), it.col()) = log1p(double(it.value()) / colSums[k] * scale_factor);
+    }
+  }
+  return data;
+}
+
