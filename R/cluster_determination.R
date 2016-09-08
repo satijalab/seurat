@@ -41,14 +41,14 @@ NULL
 #'         object@@ident has been updated with new cluster info
 #' @export
 setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
-                                    k.param = 30, k.scale = 25,
-                                    plot.SNN = FALSE, prune.SNN = 1/15,
-                                    save.SNN = FALSE, reuse.SNN = FALSE,
-                                    do.sparse = FALSE, modularity.fxn = 1, 
-                                    resolution = 0.8, algorithm = 1, 
-                                    n.start = 100, n.iter = 10, random.seed = 0,
-                                    print.output = TRUE)
-  standardGeneric("FindClusters"))
+                                     k.param = 30, k.scale = 25,
+                                     plot.SNN = FALSE, prune.SNN = 1/15,
+                                     save.SNN = FALSE, reuse.SNN = FALSE,
+                                     do.sparse = FALSE, modularity.fxn = 1, 
+                                     resolution = 0.8, algorithm = 1, 
+                                     n.start = 100, n.iter = 10, random.seed = 0,
+                                     print.output = TRUE)
+standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
           function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
@@ -56,65 +56,64 @@ setMethod("FindClusters", signature = "seurat",
                    save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
                    modularity.fxn = 1, resolution = 0.8, algorithm = 1,
                    n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE){
-            
-          # for older objects without the snn.k slot
-          if(typeof(validObject(object, test = T)) == "character"){
-            object@snn.k <- numeric()
-          }
-          
-          snn.built <- FALSE
-          if (.hasSlot(object, "snn.dense")) {
-            if (length(object@snn.dense) > 1) {
-              snn.built <- TRUE
-            }
-          }
-          if (.hasSlot(object, "snn.sparse")) {
-            if (length(object@snn.sparse) > 1) {
-              snn.built <- TRUE
-            }
-          }
-          
-          if((missing(genes.use) && missing(pc.use) && missing(k.param) && missing(k.scale) && 
-              missing(prune.SNN) && snn.built) || reuse.SNN){
-            save.SNN <- TRUE
-            if (reuse.SNN && !snn.built){
-              stop("No SNN stored to reuse.")
-            }
-            if (reuse.SNN && (!missing(genes.use) || !missing(pc.use) || !missing(k.param) || 
-                              !missing(k.scale) || !missing(prune.SNN))){
-              warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
-                      warning, remove all SNN building parameters.")
-            }
-          }
-          # if any SNN building parameters are provided or it hasn't been built, build a new SNN
-          else{
-            object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
-                               plot.SNN, prune.SNN, do.sparse, print.output)
-          }
-          
-          # deal with sparse SNNs
-          if (length(object@snn.sparse) > 1) {
-            SNN.use <- object@snn.sparse
-          } else {
-            SNN.use <- object@snn.dense
-          }
-          for (r in resolution) {
-            object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
-                                              algorithm, n.start, n.iter, random.seed,
-                                              print.output)
-            object <- GroupSingletons(object, SNN.use)
-            name <- paste("res.", r, sep = "")
-            object <- StashIdent(object, name)
-          }
-          
-          if (!save.SNN) {
-            object@snn.sparse <- sparseMatrix(1, 1, x = 1)
-            object@snn.dense <- matrix()
-            object@snn.k <- integer()
-          }
-          return(object)
-})
 
+  # for older objects without the snn.k slot
+  if(typeof(validObject(object, test = T)) == "character"){
+    object@snn.k <- numeric()
+  }
+  
+  snn.built <- FALSE
+  if (.hasSlot(object, "snn.dense")) {
+    if (length(object@snn.dense) > 1) {
+      snn.built <- TRUE
+    }
+  }
+  if (.hasSlot(object, "snn.sparse")) {
+    if (length(object@snn.sparse) > 1) {
+      snn.built <- TRUE
+    }
+  }
+  
+  if((missing(genes.use) && missing(pc.use) && missing(k.param) && missing(k.scale) && 
+     missing(prune.SNN) && snn.built) || reuse.SNN){
+    save.SNN <- TRUE
+    if (reuse.SNN && !snn.built){
+      stop("No SNN stored to reuse.")
+    }
+    if (reuse.SNN && (!missing(genes.use) || !missing(pc.use) || !missing(k.param) || 
+                      !missing(k.scale) || !missing(prune.SNN))){
+      warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
+              warning, remove all SNN building parameters.")
+    }
+  }
+  # if any SNN building parameters are provided or it hasn't been built, build a new SNN
+  else{
+    object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
+                       plot.SNN, prune.SNN, do.sparse, print.output)
+  }
+  
+  # deal with sparse SNNs
+  if (length(object@snn.sparse) > 1) {
+    SNN.use <- object@snn.sparse
+  } else {
+    SNN.use <- object@snn.dense
+  }
+  for (r in resolution) {
+    object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
+                                      algorithm, n.start, n.iter, random.seed,
+                                      print.output)
+    object <- GroupSingletons(object, SNN.use)
+    name <- paste("res.", r, sep = "")
+    object <- StashIdent(object, name)
+  }
+
+  if (!save.SNN) {
+    object@snn.sparse <- sparseMatrix(1, 1, x = 1)
+    object@snn.dense <- matrix()
+    object@snn.k <- integer()
+  }
+  return(object)
+})
 
 #' @export
 setGeneric("GetClusters", function(object) standardGeneric("GetClusters"))
@@ -195,7 +194,7 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   }
   rownames(edge) <- NULL
   colnames(edge) <- NULL
-  
+
   unique_ID <- sample(10000 : 99999, 1)
   edge_file <- paste(seurat.dir, "edge_", unique_ID, ".txt", sep = "")
   output_file <- paste(seurat.dir, "output_", unique_ID, ".txt", sep = "")
@@ -210,7 +209,7 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   else {
     print.output <- 0
   }
-  
+
   write.table(x = edge, file = edge_file, sep = "\t", row.names = FALSE,
               col.names = FALSE)
   if (modularity == 2 && resolution > 1){
@@ -221,13 +220,12 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                    random.seed, print.output, sep = " ")
   system(command, wait = TRUE)
   ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
-  
+
   object <- SetIdent(object, object@cell.names, ident.use)
   file.remove(edge_file)
   file.remove(output_file)
   return (object)
 }
-
 
 GroupSingletons <- function(object, SNN){
   # identify singletons

@@ -59,7 +59,7 @@ setMethod("BuildSNN", signature = "seurat",
       w <- CalcSNNDense(object, n.cells, nn.large, nn.ranked, prune.SNN,
                         print.output)
   }
-  if (plot.SNN==TRUE) {
+  if (plot.SNN) {
     net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
                            diag = FALSE)
     plot.igraph(net, layout = as.matrix(object@tsne.rot),
