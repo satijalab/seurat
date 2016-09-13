@@ -366,7 +366,7 @@ setMethod("AddSamples","seurat",
             new.object <- Setup(new.object, project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                 total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                 names.delim = names.delim, save.raw = save.raw)
-            new.object@data.info <- combined.meta.data
+            new.object@data.info <- combined.meta.data[new.object@cell.names,]
             return(new.object)
           }
 )
@@ -437,7 +437,7 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   all.names <- union(mat1.names, mat2.names)
   new.mat <- RowMergeMatrices(mat1 = mat1, mat2 = mat2, mat1_rownames = mat1.names, mat2_rownames = mat2.names, all_rownames = all.names)
   rownames(new.mat) <- make.unique(all.names)
-  colnames(mat2) <- sprintf('%s_2', colnames(mat2))
+  #colnames(mat2) <- sprintf('%s_2', colnames(mat2))
   colnames(new.mat) <- c(colnames(mat1), colnames(mat2))
   return(new.mat)
 }
