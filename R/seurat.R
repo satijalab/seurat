@@ -350,7 +350,7 @@ setGeneric("AddSamples", function(object, new.data, project = NULL, min.cells=3,
 setMethod("AddSamples","seurat",
           function(object, new.data, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, total.expr=1e4, 
                    do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", meta.data=NULL, save.raw = T) {
-            combined.data <- RowMergeSparseMatrices(object@raw.data, new.data)
+            combined.data <- RowMergeSparseMatrices(object@raw.data[,object@cell.names], new.data)
             new.object <- new("seurat", raw.data = combined.data)
             if (is.null(meta.data)){
               filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@data.info))
@@ -410,7 +410,7 @@ setMethod("MergeSeurat", "seurat",
                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
                    save.raw = T) {
             
-            merged.raw.data <- RowMergeSparseMatrices(object1@raw.data, object2@raw.data)
+            merged.raw.data <- RowMergeSparseMatrices(object1@raw.data[,object1@cell.names], object2@raw.data[,object2@cell.names])
             new.object <- new("seurat", raw.data = merged.raw.data)
             project = set.ifnull(project, object1@project.name)
             merged.meta.data <- full_join(object1@data.info, object2@data.info)
