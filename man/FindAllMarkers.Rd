@@ -6,8 +6,9 @@
 \usage{
 FindAllMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
-  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  return.thresh = 0.01, do.print = FALSE, random.seed = 1)
+  min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
+  max.cells.per.ident = Inf, return.thresh = 0.01, do.print = FALSE,
+  random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}

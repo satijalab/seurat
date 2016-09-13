@@ -38,7 +38,8 @@ Imports:
     gdata,
     Rcpp,
     RcppEigen,
-    RcppProgress
+    RcppProgress,
+    tclust
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate:
