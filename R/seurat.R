@@ -1082,8 +1082,8 @@ setMethod("PCA", "seurat",
             if (length(object@scale.data) == 0){
               stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
             }
-            if (length(object@var.genes) == 0){
-              stop("Variable genes haven't been set. Run MeanVarPlot() and retry.")
+            if (length(object@var.genes) == 0 && is.null(pc.genes)) {
+              stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in pc.genes and retry.")
             }
             data.use=object@scale.data
             if (use.imputed) data.use=data.frame(t(scale(t(object@imputed))))
@@ -1157,8 +1157,8 @@ setMethod("PCAFast", "seurat",
             if (length(object@scale.data) == 0){
               stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
             }
-            if (length(object@var.genes) == 0){
-              stop("Variable genes haven't been set. Run MeanVarPlot() and retry.")
+            if (length(object@var.genes) == 0 && is.null(pc.genes)){
+              stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in pc.genes and retry")
             }
             data.use=object@scale.data
             pc.genes=set.ifnull(pc.genes, object@var.genes)
@@ -1376,9 +1376,14 @@ setGeneric("PCTopGenes", function(object,pc.use=1,num.genes=30,use.full=FALSE,do
 #' @export
 setMethod("PCTopGenes", "seurat",
           function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) {
+            if(length(object@pca.x) == 0) {
+              stop("No PC values stored. Run PCA or PCAFast and try again.")
+            }
             pc_scores=object@pca.x
             i=pc.use
-            if (use.full==TRUE) pc_scores = object@pca.x.full
+            if (use.full==TRUE) {
+              pc_scores = object@pca.x.full
+            }
             pc.top.genes=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.genes,"pca")))
             return(pc.top.genes)
           }
@@ -1421,6 +1426,10 @@ setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=TRU
 #' @export
 setMethod("PrintPCA", "seurat",
           function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) {
+            if(length(object@pca.x.full) == 0){
+              warning("PCA has not been projected. Setting use.full = FALSE")
+              use.full = FALSE
+            }
             for(i in pcs.print) {
               code=paste("PC",i,sep="")
               sx=PCTopGenes(object,i, genes.print * 2, use.full = use.full, do.balanced = TRUE)
