@@ -350,7 +350,7 @@ setGeneric("AddSamples", function(object, new.data, project = NULL, min.cells=3,
 setMethod("AddSamples","seurat",
           function(object, new.data, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, total.expr=1e4, 
                    do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", meta.data=NULL, save.raw = T) {
-            combined.data <- RowMergeSparseMatrices(object@raw.data, new.data)
+            combined.data <- RowMergeSparseMatrices(object@raw.data[,object@cell.names], new.data)
             new.object <- new("seurat", raw.data = combined.data)
             if (is.null(meta.data)){
               filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@data.info))
@@ -366,7 +366,7 @@ setMethod("AddSamples","seurat",
             new.object <- Setup(new.object, project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                 total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                 names.delim = names.delim, save.raw = save.raw)
-            new.object@data.info <- combined.meta.data
+            new.object@data.info <- combined.meta.data[new.object@cell.names,]
             return(new.object)
           }
 )
@@ -410,7 +410,7 @@ setMethod("MergeSeurat", "seurat",
                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
                    save.raw = T) {
             
-            merged.raw.data <- RowMergeSparseMatrices(object1@raw.data, object2@raw.data)
+            merged.raw.data <- RowMergeSparseMatrices(object1@raw.data[,object1@cell.names], object2@raw.data[,object2@cell.names])
             new.object <- new("seurat", raw.data = merged.raw.data)
             project = set.ifnull(project, object1@project.name)
             merged.meta.data <- full_join(object1@data.info, object2@data.info)
@@ -437,7 +437,7 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   all.names <- union(mat1.names, mat2.names)
   new.mat <- RowMergeMatrices(mat1 = mat1, mat2 = mat2, mat1_rownames = mat1.names, mat2_rownames = mat2.names, all_rownames = all.names)
   rownames(new.mat) <- make.unique(all.names)
-  colnames(mat2) <- sprintf('%s_2', colnames(mat2))
+  #colnames(mat2) <- sprintf('%s_2', colnames(mat2))
   colnames(new.mat) <- c(colnames(mat1), colnames(mat2))
   return(new.mat)
 }
