@@ -417,7 +417,7 @@ setMethod("MergeSeurat", "seurat",
             merged.object <- Setup(new.object, project = project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                    total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                    names.delim = names.delim, save.raw = save.raw)
-            merged.object@data.info <- merged.meta.data
+            merged.object@data.info <- merged.meta.data[merged.object@cell.names,]
             return(merged.object)
           }
 )
