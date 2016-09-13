@@ -3228,6 +3228,7 @@ setMethod("PCHeatmap","seurat",
 )
 
 
+
 #' K-Means Clustering
 #'
 #' Perform k=means clustering on both genes and single cells
@@ -3254,31 +3255,38 @@ setMethod("PCHeatmap","seurat",
 #' @param use.imputed Cluster imputed values (default is FALSE)
 #' @param set.ident If clustering cells (so k.cells>0), set the cell identity
 #' class to its K-means cluster (default is TRUE)
-#' @param \dots Additional parameters passed to DoHeatmap for plotting
+#' @param do.constrained FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.
+#' @param \dots Additional parameters passed to kmeans (or tkmeans) 
+#' @importFrom tclust tkmeans
 #' @return Seurat object where the k-means results for genes is stored in
 #' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
 #' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@data.info[,"kmeans.ident"]
 #' and also object@@ident (if set.ident=TRUE)
 #' @export
 setGeneric("DoKMeans", function(object,genes.use=NULL,k.genes=NULL,k.cells=NULL,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                                pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) standardGeneric("DoKMeans"))
+                                pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,do.constrained=F,...) standardGeneric("DoKMeans"))
 #' @export
 setMethod("DoKMeans","seurat",
           function(object,genes.use=NULL,k.genes=NULL,k.cells=0,k.seed=1,do.plot=TRUE,data.cut=2.5,k.cols=pyCols,
-                   pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,...) {
-
+                   pc.row.order=NULL,pc.col.order=NULL, rev.pc.order=FALSE, use.imputed=FALSE,set.ident=TRUE,do.constrained=F,...) {
+            
             data.use.orig=object@scale.data
             if (use.imputed) data.use.orig=data.frame(t(scale(t(object@imputed))))
             data.use=minmax(data.use.orig,min=data.cut*(-1),max=data.cut)
             revFxn=same; if (rev.pc.order) revFxn=function(x)max(x)+1-x;
             kmeans.col=NULL
-
+            
             genes.use=set.ifnull(genes.use,object@var.genes)
             genes.use=genes.use[genes.use%in%rownames(data.use)]
             cells.use=object@cell.names
-
+            
             kmeans.data=data.use[genes.use,cells.use]
-            set.seed(k.seed); kmeans.obj=kmeans(kmeans.data,k.genes);
+            if (!do.constrained) {
+              set.seed(k.seed); kmeans.obj=kmeans(kmeans.data,centers=k.genes,...);
+            }
+            if (do.constrained) {
+              set.seed(k.seed); kmeans.obj=tkmeans(kmeans.data,k=k.genes,...)
+            }
             if (!(is.null(pc.row.order))) {
               pcx.use=object@pca.x; pc.genes=ainb(genes.use,rownames(pcx.use))
               if(nrow(object@pca.x.full>0)) {
@@ -3287,22 +3295,22 @@ setMethod("DoKMeans","seurat",
               kmeans.obj$cluster=as.numeric(revFxn(rank(tapply(pcx.use[genes.use,pc.row.order],as.numeric(kmeans.obj$cluster),mean)))[as.numeric(kmeans.obj$cluster)])
             }
             names(kmeans.obj$cluster)=genes.use
-
+            
             if (k.cells>0) {
               kmeans.col=kmeans(t(kmeans.data),k.cells)
               if (!(is.null(pc.col.order))) {
-                    kmeans.col$cluster=as.numeric(revFxn(rank(tapply(object@pca.rot[cells.use,pc.col.order],kmeans.col$cluster,mean)))[as.numeric(kmeans.col$cluster)])
+                kmeans.col$cluster=as.numeric(revFxn(rank(tapply(object@pca.rot[cells.use,pc.col.order],kmeans.col$cluster,mean)))[as.numeric(kmeans.col$cluster)])
               }
               names(kmeans.col$cluster)=cells.use
             }
-
+            
             object@kmeans.obj=list(kmeans.obj)
             object@kmeans.col=list(kmeans.col)
-
+            
             kmeans.obj=object@kmeans.obj[[1]]
             kmeans.col=object@kmeans.col[[1]]
             if (k.cells>0) object@data.info[names(kmeans.col$cluster),"kmeans.ident"]=kmeans.col$cluster
-
+            
             if ((set.ident) && (k.cells > 0)) {
               object=SetIdent(object,cells.use=names(kmeans.col$cluster),ident.use = kmeans.col$cluster)
             }
