@@ -1426,7 +1426,7 @@ setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=TRU
 #' @export
 setMethod("PrintPCA", "seurat",
           function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) {
-            if(length(object@pca.x.full) == 0){
+            if(length(object@pca.x.full) == 0 && use.full){
               warning("PCA has not been projected. Setting use.full = FALSE")
               use.full = FALSE
             }
