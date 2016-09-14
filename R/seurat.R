@@ -543,6 +543,41 @@ setMethod("BuildRFClassifier", "seurat",
           }
 )
 
+
+
+#' Highlight classification results
+#'
+#' Proportionally plots the 
+#'
+#'
+#' @param object Seurat object on which the classifier was trained and 
+#' onto which the classification results will be highlighted
+#' @param clusters vector of cluster ids (output of ClassifyCells)
+#' @param ... additional parameters to pass to FeaturePlot()
+#' @return Returns a feature plot with clusters highlighted by proportion of cells
+#' mapping to that cluster
+#' @export
+setGeneric("VizClassification", function(object, clusters, ... ) standardGeneric("VizClassification"))
+#' @export
+setMethod("VizClassification", "seurat",
+          function(object, clusters, ...) {
+            cluster.dist <- prop.table(table(out))
+            object@data.info$Classification <- numeric(nrow(object@data.info))
+            for (cluster in 1:length(cluster.dist)) {
+              cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
+              if(length(cells.to.highlight) > 0){
+                object@data.info[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
+              }
+            }
+            if(any(grepl("cols.use", deparse(match.call())))){
+              return(FeaturePlot(object, "Classification", ...))
+            }
+            cols.use = c("#f6f6f6", "black")
+            return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
+          }
+)
+
+
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }
