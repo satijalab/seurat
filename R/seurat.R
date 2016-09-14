@@ -287,6 +287,31 @@ setMethod("LogNormalize", "ANY",
           }
 )
 
+#' Make object sparse
+
+#' Converts stored data matrices to sparse matrices to save space
+#' 
+#' @param object Seurat object
+#' @return Returns a seurat object with object@@raw.data and object@@data converted to sparse matrices
+#' @import Matrix
+#' @export
+setGeneric("MakeSparse", function(object) standardGeneric("MakeSparse"))
+#' @export
+setMethod("MakeSparse", "seurat",
+          function(object){
+            if (class(object@raw.data) == "data.frame"){
+              object@raw.data <- as.matrix(object@raw.data)
+            }
+            if (class(object@data) == "data.frame"){
+              object@data <- as.matrix(object@data)
+            }
+            object@raw.data <- as(object@raw.data, "dgCMatrix")
+            object@data <- as(object@data, "dgCMatrix")
+            return(object)
+          }
+)
+
+
 #' Sample UMI
 #'
 #' Downsample each cell to a specified number of UMIs. Includes
@@ -509,7 +534,6 @@ setMethod("BuildRFClassifier", "seurat",
             orig.classes <- unique(training.classes)
             new.classes <- 1:length(unique(training.classes))
             numeric.training.classes <- as.numeric(plyr::mapvalues(training.classes, from = orig.classes, to = new.classes))
-            
             training.data <- cbind(training.data, class = numeric.training.classes)
             print("Training Classifier ...")
             classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
@@ -517,10 +541,6 @@ setMethod("BuildRFClassifier", "seurat",
             return(list(classifier, orig.classes, new.classes))
           }
 )
-
-
-
-
 
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
