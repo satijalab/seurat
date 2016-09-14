@@ -529,6 +529,7 @@ setGeneric("BuildRFClassifier", function(object, training.genes = NULL, training
 #' @export
 setMethod("BuildRFClassifier", "seurat",
           function(object, training.genes = NULL, training.classes = NULL, ...) {
+            training.classes <- as.vector(training.classes)
             training.genes <- set.ifnull(training.genes, rownames(object@data))
             training.data <- as.matrix(t(object@data[training.genes, ]))
             orig.classes <- unique(training.classes)
