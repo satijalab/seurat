@@ -454,25 +454,23 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #' @param training.classes Vector of classes to build the classifier on
 #' @param ... additional parameters passed to ranger
 #' @return Vector of cluster ids
+#' @import Matrix
 #' @importFrom ranger ranger 
 #' @importFrom plyr mapvalues
 #' @export
-setGeneric("ClassifyCells", function(object, new.data = NULL, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("ClassifyCells"))
+setGeneric("ClassifyCells", function(object, classifier, new.data = NULL, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("ClassifyCells"))
 #' @export
 setMethod("ClassifyCells", "seurat",
-          function(object, new.data = NULL, training.genes = NULL, training.classes = NULL, ...) {
+          function(object, classifier, new.data = NULL, training.genes = NULL, training.classes = NULL, ...) {
             # build the classifier
-            training.genes <- set.ifnull(training.genes, rownames(object@data))
-            training.data <- as.matrix(t(object@data[training.genes, ]))
-            orig.classes <- unique(training.classes)
-            new.classes <- 1:length(unique(training.classes))
-            numeric.training.classes <- as.numeric(plyr::mapvalues(training.classes, from = orig.classes, to = new.classes))
-            
-            training.data <- cbind(training.data, class = numeric.training.classes)
-            print("Training Classifier ...")
-            classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
-                                 write.forest = T, ...)
+            if (missing(classifier)){
+              classifier <- BuildRFClassifier(object, training.genes = training.genes, training.classes = training.classes)
+            }
             # run the classifier on the new data
+            classifier_full <- classifier
+            classifier <- classifier_full[[1]]
+            orig.classes <- classifier_full[[2]]
+            new.classes <- classifier_full[[3]]
             features <- classifier$forest$independent.variable.names
             genes.to.add <- setdiff(features, rownames(new.data))
             data.to.add <- matrix(0, nrow = length(genes.to.add), ncol = ncol(new.data))
@@ -484,6 +482,39 @@ setMethod("ClassifyCells", "seurat",
             prediction <- predict(classifier, new.data)
             new.classes <- plyr::mapvalues(prediction$predictions, from = new.classes, to = orig.classes)
             return(new.classes)
+          }
+)
+
+#' Build Random Forest Classifier
+#'
+#' Train the random forest classifier 
+#'
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param ... additional parameters passed to ranger
+#' @return Returns a list with the random forest classifier object as the first element,
+#' the original classes as the second, and the classes used by the classifier as the third
+#' @import Matrix
+#' @importFrom ranger ranger 
+#' @importFrom plyr mapvalues
+#' @export
+setGeneric("BuildRFClassifier", function(object, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("BuildRFClassifier"))
+#' @export
+setMethod("BuildRFClassifier", "seurat",
+          function(object, training.genes = NULL, training.classes = NULL, ...) {
+            training.genes <- set.ifnull(training.genes, rownames(object@data))
+            training.data <- as.matrix(t(object@data[training.genes, ]))
+            orig.classes <- unique(training.classes)
+            new.classes <- 1:length(unique(training.classes))
+            numeric.training.classes <- as.numeric(plyr::mapvalues(training.classes, from = orig.classes, to = new.classes))
+            
+            training.data <- cbind(training.data, class = numeric.training.classes)
+            print("Training Classifier ...")
+            classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
+                                 write.forest = T, ...)
+            return(list(classifier, orig.classes, new.classes))
           }
 )
 
