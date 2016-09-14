@@ -442,6 +442,55 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   return(new.mat)
 }
 
+#' Classify New Data 
+#'
+#' Classify new data based on the cluster information of the provided object.
+#' Random Forests are used as the basis of the classification.
+#'
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param new.data New data to classify
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param ... additional parameters passed to ranger
+#' @return Vector of cluster ids
+#' @importFrom ranger ranger 
+#' @importFrom plyr mapvalues
+#' @export
+setGeneric("ClassifyCells", function(object, new.data = NULL, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("ClassifyCells"))
+#' @export
+setMethod("ClassifyCells", "seurat",
+          function(object, new.data = NULL, training.genes = NULL, training.classes = NULL, ...) {
+            # build the classifier
+            training.genes <- set.ifnull(training.genes, rownames(object@data))
+            training.data <- as.matrix(t(object@data[training.genes, ]))
+            orig.classes <- unique(training.classes)
+            new.classes <- 1:length(unique(training.classes))
+            numeric.training.classes <- as.numeric(plyr::mapvalues(training.classes, from = orig.classes, to = new.classes))
+            
+            training.data <- cbind(training.data, class = numeric.training.classes)
+            print("Training Classifier ...")
+            classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
+                                 write.forest = T, ...)
+            # run the classifier on the new data
+            features <- classifier$forest$independent.variable.names
+            genes.to.add <- setdiff(features, rownames(new.data))
+            data.to.add <- matrix(0, nrow = length(genes.to.add), ncol = ncol(new.data))
+            rownames(data.to.add) <- genes.to.add
+            new.data <- rbind(new.data, data.to.add)
+            new.data <- new.data[features, ]
+            new.data <- as.matrix(t(new.data))
+            print("Running Classifier ...")
+            prediction <- predict(classifier, new.data)
+            new.classes <- plyr::mapvalues(prediction$predictions, from = new.classes, to = orig.classes)
+            return(new.classes)
+          }
+)
+
+
+
+
+
 calc.drop.prob=function(x,a,b) {
   return(exp(a+b*x)/(1+exp(a+b*x)))
 }

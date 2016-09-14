@@ -39,7 +39,8 @@ Imports:
     Rcpp,
     RcppEigen,
     RcppProgress,
-    tclust
+    tclust,
+    ranger
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate:
