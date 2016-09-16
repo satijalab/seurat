@@ -7,7 +7,8 @@
 AddSamples(object, new.data, project = NULL, min.cells = 3,
   min.genes = 1000, is.expr = 0, do.logNormalize = T,
   total.expr = 10000, do.scale = TRUE, do.center = TRUE,
-  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = T)
+  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = T,
+  add.cell.id = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -45,6 +46,9 @@ metadata fields}
 
 \item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in object@raw.data
 which will save memory downstream for large datasets}
+
+\item{add.cell.id}{String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
+"cell1" becomes "cell1.rep1"}
 }
 \description{
 Add samples into existing Seurat object.

@@ -254,36 +254,28 @@ setMethod("ScaleData", "seurat",
 #'
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data. Default is 1e4
+#' @param display.progress Print progress
 #' @return Returns a matrix with the normalize and log transformed data
-#' @importFrom Matrix colSums 
+#' @import Matrix
 #' @export
-setGeneric("LogNormalize", function(data, scale.factor = 1e4) standardGeneric("LogNormalize"))
+setGeneric("LogNormalize", function(data, scale.factor = 1e4, display.progress = T) standardGeneric("LogNormalize"))
 #' @export
 setMethod("LogNormalize", "ANY",
-          function(data, scale.factor = 1e4) {
-            if(is.matrix(data) || class(data) == "data.frame") {
-              return(log(sweep(data, 2, colSums(data), FUN = "/") * scale.factor + 1))
+          function(data, scale.factor = 1e4, display.progress = T) {
+            if(class(data) == "data.frame") {
+              data <- as.matrix(data)
             }
-            else {
-              cells.use <- colnames(data)
-              bin.size <- 1000
-              max.bin <- floor(length(cells.use)/bin.size) + 1
+            if(class(data) != "dgCMatrix") {
+              data <- as(data, "dgCMatrix")
+            }
+            # call Rcpp function to normalize
+            if(display.progress){
               print("Performing log-normalization")
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-              for(i in 1:max.bin) {
-                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                my.inds <- my.inds[my.inds <= length(cells.use)]
-                cells.iter <- cells.use[my.inds]
-                data.iter <- data[, my.inds]
-                data.new <- sweep(data.iter, 2, colSums(data.iter), FUN = "/")
-                data.new <- log1p(data.new * scale.factor)
-                if (i == 1) all.norm <- data.new
-                if (i > 1) all.norm <- cbind(all.norm, data.new)
-                setTxtProgressBar(pb, i)  
-              }
-              close(pb)
-              return(all.norm)
             }
+            norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
+            colnames(norm.data) <- colnames(data)
+            rownames(norm.data) <- rownames(data)
+            return(norm.data)
           }
 )
 
@@ -322,6 +314,7 @@ setMethod("MakeSparse", "seurat",
 #' @param max.umi Number of UMIs to sample to
 #' @param upsample Upsamples all cells with fewer than max.umi 
 #' @param progress.bar Display the progress bar
+#' @import Matrix
 #' @return Matrix with downsampled data
 #' @export
 setGeneric("SampleUMI", function(data, max.umi = 1000, upsample = F, progress.bar = T) standardGeneric("SampleUMI"))
@@ -366,15 +359,32 @@ setMethod("SampleUMI", "ANY",
 #' metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
 #' which will save memory downstream for large datasets
+#' @param add.cell.id String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
+#' "cell1" becomes "cell1.rep1"
+#' @import Matrix
 #' @importFrom dplyr full_join
 #' @export
 setGeneric("AddSamples", function(object, new.data, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, 
                                   total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_",
-                                  meta.data=NULL, save.raw = T) standardGeneric("AddSamples"))
+                                  meta.data=NULL, save.raw = T, add.cell.id = NULL) standardGeneric("AddSamples"))
 #' @export
 setMethod("AddSamples","seurat",
           function(object, new.data, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, total.expr=1e4, 
-                   do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", meta.data=NULL, save.raw = T) {
+                   do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", meta.data=NULL, save.raw = T, add.cell.id = NULL) {
+            if (!missing(add.cell.id)){
+              colnames(new.data) <- paste(colnames(new.data), add.cell.id, sep = ".")
+            }
+            
+            if (any(colnames(new.data) %in% object@cell.names)) {
+              warning("Duplicate cell names, enforcing uniqueness via make.unique()")
+              new.data.names <- as.list(make.unique(c(colnames(object@raw.data), colnames(new.data)))[(ncol(object@raw.data)+1):(ncol(object@raw.data) + ncol(new.data))])
+              names(new.data.names) <- colnames(new.data)
+              colnames(new.data) <- new.data.names
+              if(!is.null(meta.data)){
+                rownames(meta.data) <- unlist(unname(new.data.names[rownames(meta.data)]))
+              }
+            }
+            
             combined.data <- RowMergeSparseMatrices(object@raw.data[,object@cell.names], new.data)
             new.object <- new("seurat", raw.data = combined.data)
             if (is.null(meta.data)){
@@ -385,7 +395,7 @@ setMethod("AddSamples","seurat",
               combined.meta.data <- rbind(object@data.info, filler)
             }
             else{
-              combined.meta.data <- full_join(object@data.info, meta.data)
+              combined.meta.data <- suppressMessages(suppressWarnings(full_join(object@data.info, meta.data)))
             }
             project = set.ifnull(project, object@project.name)
             new.object <- Setup(new.object, project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
@@ -422,27 +432,52 @@ setMethod("AddSamples","seurat",
 #' metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
 #' which will save memory downstream for large datasets
+#' @param add.cell.id1 String to be appended to the names of all cells in object1
+#' @param add.cell.id2 String to be appended to the names of all cells in object2
 #' 
 #' @return Merged Seurat object
+#' @import Matrix
 #' @importFrom dplyr full_join
 #' @export
 setGeneric("MergeSeurat", function(object1, object2, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, 
                                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
-                                   save.raw = T) standardGeneric("MergeSeurat"))
+                                   save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL) standardGeneric("MergeSeurat"))
 #' @export
 setMethod("MergeSeurat", "seurat",
           function(object1, object2, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, 
                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
-                   save.raw = T) {
-            
+                   save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL) {
+            if (!missing(add.cell.id1)){
+              object1@cell.names <- paste(object1@cell.names, add.cell.id1, sep = ".")
+              colnames(object1@raw.data) <- paste(colnames(object1@raw.data), add.cell.id1, sep = ".")
+              rownames(object1@data.info) <- paste(rownames(object1@data.info), add.cell.id1, sep = ".")
+            }
+            if (!missing(add.cell.id2)){
+              object2@cell.names <- paste(object2@cell.names, add.cell.id2, sep = ".")
+              colnames(object2@raw.data) <- paste(colnames(object2@raw.data), add.cell.id2, sep = ".")
+              rownames(object2@data.info) <- paste(rownames(object2@data.info), add.cell.id2, sep = ".")
+            }
+            if (any(object1@cell.names %in% object2@cell.names)) {
+              warning("Duplicate cell names, enforcing uniqueness via make.unique()")
+              object2.names <- as.list(make.unique(c(colnames(object1@raw.data), colnames(object2@raw.data)))[(ncol(object1@raw.data)+1):(ncol(object1@raw.data) + ncol(object2@raw.data))])
+              names(object2.names) <- colnames(object2@raw.data)
+              colnames(object2@raw.data) <- object2.names
+              object2@cell.names <- unlist(unname(object2.names[object2@cell.names]))
+              rownames(object2@data.info) <- unlist(unname(object2.names[rownames(object2@data.info)]))
+            }
             merged.raw.data <- RowMergeSparseMatrices(object1@raw.data[,object1@cell.names], object2@raw.data[,object2@cell.names])
+            object1@data.info <- object1@data.info[object1@cell.names, ]
+            object2@data.info <- object2@data.info[object2@cell.names, ]
             new.object <- new("seurat", raw.data = merged.raw.data)
             project = set.ifnull(project, object1@project.name)
-            merged.meta.data <- full_join(object1@data.info, object2@data.info)
+            object1@data.info$cell.name <- rownames(object1@data.info)
+            object2@data.info$cell.name <- rownames(object2@data.info)
+            merged.meta.data <- suppressMessages(suppressWarnings(full_join(object1@data.info, object2@data.info)))
+            merged.meta.data$cell.name <- NULL
             merged.object <- Setup(new.object, project = project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                    total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                    names.delim = names.delim, save.raw = save.raw)
-            merged.object@data.info <- merged.meta.data[merged.object@cell.names,]
+            merged.object@data.info <- merged.meta.data
             return(merged.object)
           }
 )
@@ -463,9 +498,10 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   new.mat <- RowMergeMatrices(mat1 = mat1, mat2 = mat2, mat1_rownames = mat1.names, mat2_rownames = mat2.names, all_rownames = all.names)
   rownames(new.mat) <- make.unique(all.names)
   #colnames(mat2) <- sprintf('%s_2', colnames(mat2))
-  colnames(new.mat) <- c(colnames(mat1), colnames(mat2))
+  colnames(new.mat) <- make.unique(c(colnames(mat1), colnames(mat2)))
   return(new.mat)
 }
+
 
 #' Classify New Data 
 #'
@@ -505,7 +541,7 @@ setMethod("ClassifyCells", "seurat",
             new.data <- as.matrix(t(new.data))
             print("Running Classifier ...")
             prediction <- predict(classifier, new.data)
-            new.classes <- plyr::mapvalues(prediction$predictions, from = new.classes, to = orig.classes)
+            new.classes <- suppressMessages(plyr::mapvalues(prediction$predictions, from = new.classes, to = orig.classes))
             return(new.classes)
           }
 )
@@ -547,7 +583,9 @@ setMethod("BuildRFClassifier", "seurat",
 
 #' Highlight classification results
 #'
-#' Proportionally plots the 
+#' This function is useful to view where proportionally the clusters returned from 
+#' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
+#' function to color clusters in object.
 #'
 #'
 #' @param object Seurat object on which the classifier was trained and 

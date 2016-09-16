@@ -7,7 +7,8 @@
 MergeSeurat(object1, object2, project = NULL, min.cells = 3,
   min.genes = 1000, is.expr = 0, do.logNormalize = T,
   total.expr = 10000, do.scale = TRUE, do.center = TRUE,
-  names.field = 1, names.delim = "_", save.raw = T)
+  names.field = 1, names.delim = "_", save.raw = T, add.cell.id1 = NULL,
+  add.cell.id2 = NULL)
 }
 \arguments{
 \item{object1}{First Seurat object to merge}
@@ -39,6 +40,10 @@ delimiter from the cell's column name}
 
 \item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in object@raw.data
 which will save memory downstream for large datasets}
+
+\item{add.cell.id1}{String to be appended to the names of all cells in object1}
+
+\item{add.cell.id2}{String to be appended to the names of all cells in object2}
 
 \item{meta.data}{Additional metadata to add to the Seurat object. Should be
 a data frame where the rows are cell names, and the columns are additional
