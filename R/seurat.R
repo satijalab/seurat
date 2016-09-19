@@ -1282,8 +1282,8 @@ setMethod("PCA", "seurat",
               pca.obj = prcomp(t(pc.data),...)
               object@pca.obj=list(pca.obj)
   
-              pcs.store=min(pcs.store,ncol(pc.data))
-              pcs.print=min(pcs.print,ncol(pc.data))
+              pcs.store=min(pcs.store, ncol(pca.obj$rotation))
+              pcs.print=min(pcs.print, ncol(pca.obj$rotation))
               object@pca.x=data.frame(pca.obj$rotation[,1:pcs.store])
               object@pca.rot=data.frame(pca.obj$x[,1:pcs.store])
             }
