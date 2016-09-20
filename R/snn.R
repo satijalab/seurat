@@ -47,6 +47,10 @@ setMethod("BuildSNN", signature = "seurat",
   }
 
   n.cells <- nrow(data.use)
+  if(n.cells < k.param) {
+    warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+    k.param = n.cells - 1
+  }
 
   #find the k-nearest neighbors for each single cell
   my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells - 1))
