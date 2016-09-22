@@ -627,7 +627,7 @@ calc.drop.prob=function(x,a,b) {
 #' 
 #'
 #' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
-#' @param node Node from which to start identifying split markers
+#' @param node Node from which to start identifying split markers, default is top node.
 #' @param genes.use Genes to test. Default is to use all genes.
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
@@ -647,14 +647,15 @@ calc.drop.prob=function(x,a,b) {
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #' @export
-setGeneric("FindAllMarkersNode", function(object, node, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+setGeneric("FindAllMarkersNode", function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                           min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
                                           do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkersNode"))
 setMethod("FindAllMarkersNode","seurat",
-          function(object, node, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+          function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
                    do.print=FALSE, random.seed = 1) {
                       genes.use <- set.ifnull(genes.use, rownames(object@data))
+                      node <- set.ifnull(node, tree$edge[1,1])
                       ident.use <- object@ident
                       tree.use <- object@cluster.tree[[1]]
                       descendants = DFT(tree.use, node, path = NULL, include.children = T)
@@ -3457,25 +3458,36 @@ setMethod("PCHeatmap","seurat",
 #' 
 #' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
 #' @param marker.list List of marker genes given from the FindAllMarkersNode function
-#' @param node Node in the cluster tree from which to start the plot
+#' @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
 #' @param max.genes Maximum number of genes to keep for each division
 #' @param ... Additional parameters to pass to DoHeatmap
 #' @importFrom dplyr %>% group_by filter top_n select
 #' @return Plots heatmap. No return value.
 #' @export
-setGeneric("HeatmapNode", function(object, marker.list, node, max.genes = 10,...) standardGeneric("HeatmapNode"))
+setGeneric("HeatmapNode", function(object, marker.list, node = NULL, max.genes = 10,...) standardGeneric("HeatmapNode"))
 #' @export
-setMethod("HeatmapNode","seurat", function(object, marker.list, node, max.genes = 10, ...){
+setMethod("HeatmapNode","seurat", function(object, marker.list, node = NULL, max.genes = 10, ...){
     tree <- object@cluster.tree[[1]]
+    node <- set.ifnull(node, min(marker.list$cluster))
     node.order <- c(node, DFT(tree, node))
     marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -p_val) %>% 
       select(gene, cluster) -> pos.genes
     marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -p_val) %>% 
       select(gene, cluster) -> neg.genes 
-    
     gene.list <- vector()
+    node.stack <- vector()
     for (n in node.order){
-      gene.list <- c(gene.list, c(subset(pos.genes, cluster == n)$gene, subset(neg.genes, cluster == n)$gene))
+      if(NodeHasChild(tree, n)){
+        gene.list <- c(gene.list, c(subset(pos.genes, cluster == n)$gene, subset(neg.genes, cluster == n)$gene))
+        if(NodeHasOnlyChildren(tree, n)){
+          gene.list <- c(gene.list, subset(neg.genes, cluster == node.stack[length(node.stack)])$gene)
+          node.stack <- node.stack[-length(node.stack)]
+        }
+      }
+      else{
+        gene.list <- c(gene.list, subset(pos.genes, cluster == n)$gene)
+        node.stack <- append(node.stack, n)
+      }
     }
     gene.list <- rev(unique(rev(gene.list)))
     descendants <- getDescendants(tree, node)

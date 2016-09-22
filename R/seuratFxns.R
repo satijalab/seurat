@@ -1378,3 +1378,13 @@ DFT <- function(tree, node, path = NULL, include.children = F, only.children = F
   }
   return(path)
 }
+
+NodeHasChild <- function(tree, node){
+  children <- tree$edge[which(tree$edge[,1] == node),][,2]
+  return(any(children %in% tree$edge[,2] && ! children %in% tree$edge[,1]))
+}
+
+NodeHasOnlyChildren <- function(tree, node){
+  children <- tree$edge[which(tree$edge[,1] == node),][,2]
+  return(!any(children %in% tree$edge[,1]))
+}
