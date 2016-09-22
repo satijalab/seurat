@@ -4,13 +4,15 @@
 \alias{FindMarkersNode}
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
-FindMarkersNode(object, node, genes.use = NULL, thresh.use = log(2),
-  test.use = "bimod", ...)
+FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
+  thresh.use = log(2), test.use = "bimod", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node}{The node in the phylogenetic tree to use as a branch point}
+
+\item{tree.use}{Can optionally pass the tree to be used. Default uses the tree in object@cluster.tree}
 
 \item{genes.use}{Genes to test. Default is to use all genes.}
 

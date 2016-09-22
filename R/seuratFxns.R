@@ -1111,7 +1111,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   }
   oldMar=par()$mar
   if (labCol[1] == ""){
-    par(mar = c(margins[1]-4, margins[2], margins[1], margins[2]))
+    par(mar = c(margins[1]-3, margins[2]-2, margins[1]-3, margins[2]))
   }
   else{
     par(mar = c(margins[1], margins[2], margins[1], margins[2]))
@@ -1349,3 +1349,32 @@ regression.sig=function(x,score,data,latent,code="rsem") {
 }
 
 same=function(x) return(x)
+
+DFT <- function(tree, node, path = NULL, include.children = F, only.children = F){
+  children <- which(tree$edge[,1] == node)
+  child1 <- tree$edge[children[1], 2]
+  child2 <- tree$edge[children[2], 2]
+  if(child1 %in% tree$edge[,1]){
+    if(!only.children){
+      path <- c(path, child1)
+    }
+    path <- DFT(tree, child1, path, include.children)
+  }
+  else{
+    if(include.children){
+      path <-c(path, child1)
+    }
+  }
+  if(child2 %in% tree$edge[,1]){
+    if(!only.children){
+      path <- c(path, child2)
+    }
+    path <- DFT(tree, child2, path, include.children)
+  }
+  else{
+    if(include.children){
+      path <-c(path, child2)
+    }
+  }
+  return(path)
+}

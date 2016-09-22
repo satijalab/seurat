@@ -621,34 +621,75 @@ calc.drop.prob=function(x,a,b) {
 }
 
 
-setGeneric("FindAllMarkersNode", function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,...) standardGeneric("FindAllMarkersNode"))
+#' Find all markers for a node
+#'
+#' This function finds markers for all splits at or below the specified node
+#' 
+#'
+#' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
+#' @param node Node from which to start identifying split markers
+#' @param genes.use Genes to test. Default is to use all genes.
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells.
+#' @param test.use Denotes which test to use. Seurat currently implements
+#' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
+#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
+#' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
+#' The latter two options should only be used on UMI datasets, and assume an underlying 
+#' poisson or negative-binomial distribution.
+#' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
+#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @param only.pos Only return positive markers (FALSE by default)
+#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
+#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
+#' @param random.seed Random seed for downsampling
+#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
+#' @export
+setGeneric("FindAllMarkersNode", function(object, node, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+                                          min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
+                                          do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkersNode"))
 setMethod("FindAllMarkersNode","seurat",
-          function(object, thresh.test=1,test.use="bimod",return.thresh=1e-2,do.print=FALSE,...) {
-            ident.use=object@ident
-            tree.use=object@cluster.tree[[1]]
-
-            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.8
-            genes.de=list()
-            for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
-              genes.de[[i]]=FindMarkersNode(object,i,genes.use=rownames(object@data),thresh.use = thresh.test,test.use = test.use,...)
-              if (do.print) print(paste("Calculating node", i))
-            }
-            gde.all=data.frame()
-            for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
-              gde=genes.de[[i]]
-              if (is.null(gde)) next;
-              if (nrow(gde)>0) {
-                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-                if ((test.use=="bimod")||(test.use=="t")) {
-                  gde=gde[order(gde$p_val,-gde$avg_diff),]
-                  gde=subset(gde,p_val<return.thresh)
-                }
-                if (nrow(gde)>0) gde$cluster=i; gde$gene=rownames(gde)
-                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
-              }
-            }
-            return(gde.all)
-          }
+          function(object, node, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+                   min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
+                   do.print=FALSE, random.seed = 1) {
+                      genes.use <- set.ifnull(genes.use, rownames(object@data))
+                      ident.use <- object@ident
+                      tree.use <- object@cluster.tree[[1]]
+                      descendants = DFT(tree.use, node, path = NULL, include.children = T)
+                      all.children <- sort(tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
+                      descendants <- suppressMessages(mapvalues(descendants, from = all.children, to = tree.use$tip.label))
+                      drop.children <- setdiff(tree.use$tip.label, descendants)
+                      keep.children <- setdiff(tree.use$tip.label, drop.children)
+                      orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
+                      tree.use <- drop.tip(tree.use, drop.children)
+                      new.nodes <- unique(tree.use$edge[,1])
+                      if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh <- 0.7
+                      genes.de <- list()
+                      for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+                        genes.de[[i]]=FindMarkersNode(object, i, tree.use = tree.use, genes.use = genes.use, thresh.use = thresh.use, test.use = test.use, min.pct = min.pct, 
+                                                      min.diff.pct = min.diff.pct, print.bar = print.bar, only.pos = only.pos, max.cells.per.ident = max.cells.per.ident, 
+                                                      random.seed = random.seed)
+                        if (do.print) print(paste("Calculating node", i))
+                      }
+                      gde.all=data.frame()
+                      for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+                        gde=genes.de[[i]]
+                        if (is.null(gde)) next;
+                        if (nrow(gde)>0) {
+                          if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+                          if ((test.use=="bimod")||(test.use=="t")) {
+                            gde=gde[order(gde$p_val,-gde$avg_diff),]
+                            gde=subset(gde,p_val<return.thresh)
+                          }
+                          if (nrow(gde)>0) gde$cluster=i; gde$gene=rownames(gde)
+                          if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+                        }
+                      }
+                      gde.all$cluster <- mapvalues(gde.all$cluster, from = new.nodes, to = orig.nodes)
+                      return(gde.all)
+                    }
 )
 
 weighted.euclidean=function(x,y,w) {
@@ -1804,16 +1845,17 @@ setMethod("RegulatorScore", "seurat",
 #'
 #' @inheritParams FindMarkers
 #' @param node The node in the phylogenetic tree to use as a branch point
+#' @param tree.use Can optionally pass the tree to be used. Default uses the tree in object@@cluster.tree
 #' @param ... Additional arguments passed to FindMarkers
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindMarkersNode", function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod",...) standardGeneric("FindMarkersNode"))
+setGeneric("FindMarkersNode", function(object,node, tree.use = NULL, genes.use=NULL,thresh.use=log(2),test.use="bimod",...) standardGeneric("FindMarkersNode"))
 #' @export
 setMethod("FindMarkersNode", "seurat",
-          function(object,node,genes.use=NULL,thresh.use=log(2),test.use="bimod",...) {
+          function(object,node, tree.use = NULL, genes.use=NULL,thresh.use=0.25, test.use="bimod",...) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
-            tree=object@cluster.tree[[1]]
+            tree=set.ifnull(tree.use, object@cluster.tree[[1]])
             ident.order=tree$tip.label
             nodes.1=ident.order[getLeftDecendants(tree,node)]
             nodes.2=ident.order[getRightDecendants(tree,node)]
@@ -1944,7 +1986,9 @@ setMethod("FindMarkers", "seurat",
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
 #' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-#' as in Trapnell et al., Nature Biotech, 2014)
+#' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
+#' The latter two options should only be used on UMI datasets, and assume an underlying 
+#' poisson or negative-binomial distribution
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
 #' @param only.pos Only return positive markers (FALSE by default)
@@ -1963,7 +2007,7 @@ setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NUL
 setMethod("FindAllMarkers","seurat",
       function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
                print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
-        
+            genes.use=set.ifnull(genes.use,rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -1971,7 +2015,7 @@ setMethod("FindAllMarkers","seurat",
             if (max.cells.per.ident < Inf) object=SubsetData(object, max.cells.per.ident = max.cells.per.ident, random.seed = random.seed)
             
             for(i in 1:length(idents.all)) {
-              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i],ident.2 = NULL,genes.use=rownames(object@data),thresh.use = thresh.use, 
+              genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i], ident.2 = NULL, genes.use = genes.use, thresh.use = thresh.use, 
                                         test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
@@ -3292,6 +3336,11 @@ setMethod("DoHeatmap","seurat",
               cex.col=set.ifnull(cex.col,0.2+1/log10(length(unique(cells.ident))))
               hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=cex.col,...)
             }
+            else if (slim.col.label){
+              col.lab=rep("",length(cells.use))
+              cex.col=set.ifnull(cex.col,0.2+1/log10(length(unique(cells.ident))))
+              hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,labCol=col.lab,cexCol=cex.col,...)
+            }
             else {
               hmFunction(data.use,Rowv=NA,Colv=NA,trace = "none",col=col.use,colsep = colsep.use,...)
             }
@@ -3400,6 +3449,41 @@ setMethod("PCHeatmap","seurat",
 
 )
 
+#' Node Heatmap
+#'
+#' Takes an object, a marker list (output of FindAllMarkers), and a node
+#' and plots a heatmap where genes are ordered vertically by the splits present
+#' in the object@@cluster.tree slot.
+#' 
+#' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
+#' @param marker.list List of marker genes given from the FindAllMarkersNode function
+#' @param node Node in the cluster tree from which to start the plot
+#' @param max.genes Maximum number of genes to keep for each division
+#' @param ... Additional parameters to pass to DoHeatmap
+#' @importFrom dplyr %>% group_by filter top_n select
+#' @return Plots heatmap. No return value.
+#' @export
+setGeneric("HeatmapNode", function(object, marker.list, node, max.genes = 10,...) standardGeneric("HeatmapNode"))
+#' @export
+setMethod("HeatmapNode","seurat", function(object, marker.list, node, max.genes = 10, ...){
+    tree <- object@cluster.tree[[1]]
+    node.order <- c(node, DFT(tree, node))
+    marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -p_val) %>% 
+      select(gene, cluster) -> pos.genes
+    marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -p_val) %>% 
+      select(gene, cluster) -> neg.genes 
+    
+    gene.list <- vector()
+    for (n in node.order){
+      gene.list <- c(gene.list, c(subset(pos.genes, cluster == n)$gene, subset(neg.genes, cluster == n)$gene))
+    }
+    gene.list <- rev(unique(rev(gene.list)))
+    descendants <- getDescendants(tree, node)
+    children <- descendants[!descendants %in% tree$edge[,1]]
+    all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]]
+    DoHeatmap(object, cells.use = WhichCells(object, children), genes.use = gene.list, slim.col.label = T, remove.key = T, ...)
+  }
+)
 
 
 #' K-Means Clustering
