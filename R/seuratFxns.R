@@ -1351,6 +1351,7 @@ regression.sig=function(x,score,data,latent,code="rsem") {
 same=function(x) return(x)
 
 DFT <- function(tree, node, path = NULL, include.children = F, only.children = F){
+  if(only.children) include.children = T
   children <- which(tree$edge[,1] == node)
   child1 <- tree$edge[children[1], 2]
   child2 <- tree$edge[children[2], 2]
@@ -1358,18 +1359,19 @@ DFT <- function(tree, node, path = NULL, include.children = F, only.children = F
     if(!only.children){
       path <- c(path, child1)
     }
-    path <- DFT(tree, child1, path, include.children)
+    path <- DFT(tree, child1, path, include.children, only.children)
   }
   else{
     if(include.children){
       path <-c(path, child1)
     }
   }
+  
   if(child2 %in% tree$edge[,1]){
     if(!only.children){
       path <- c(path, child2)
     }
-    path <- DFT(tree, child2, path, include.children)
+    path <- DFT(tree, child2, path, include.children, only.children)
   }
   else{
     if(include.children){

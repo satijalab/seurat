@@ -150,3 +150,44 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
   return(acc)
 }
 
+
+#' Assess Cluster Split
+#'
+#' Method for determining confidence in specific bifurcations in
+#' the cluster tree. Use the Out of Bag (OOB) error of a random
+#' forest classifier to judge confidence.
+#' 
+#'
+#' @param object Seurat object
+#' @param node Node in the cluster tree in question
+#' @param print.output Print the OOB error for the classifier
+#' @return Returns the Out of Bag error for a random forest classifier 
+#' trained on the split from the given node
+#' @export
+setGeneric("AssessSplit", function(object, node, print.output = T)
+  standardGeneric("AssessSplit"))
+#' @export
+setMethod("AssessSplit", signature = "seurat",
+          function(object, node, print.output = T){
+            tree <- object@cluster.tree[[1]]
+            split <- tree$edge[which(tree$edge[,1] == node), ][,2]
+            group1 <- DFT(tree, node = split[1], only.children = T)
+            group2 <- DFT(tree, node = split[2], only.children = T)
+            if(any(is.na(group1))) group1 <- split[1]
+            if(any(is.na(group2))) group2 <- split[2]
+
+            group1.cells <- WhichCells(object, ident = group1)
+            group2.cells <- WhichCells(object, ident = group2)
+            assess.data <- SubsetData(object, cells.use = c(group1.cells, group2.cells))
+            assess.data <- SetIdent(assess.data, cells.use = group1.cells, ident.use = "g1")
+            assess.data <- SetIdent(assess.data, cells.use = group2.cells, ident.use = "g2")
+            
+            rfc <- BuildRFClassifier(object = assess.data, training.genes = assess.data@var.genes, training.classes = assess.data@ident)
+            oobe <- rfc[[1]]$prediction.error
+            if(print.output){
+              print(paste("Out of Bag Error: ", round(oobe, 4) * 100, "%", sep= ""))
+            }
+            return(oobe)
+          }
+)
+
