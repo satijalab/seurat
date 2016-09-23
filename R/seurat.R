@@ -3470,9 +3470,10 @@ setMethod("HeatmapNode","seurat", function(object, marker.list, node = NULL, max
     tree <- object@cluster.tree[[1]]
     node <- set.ifnull(node, min(marker.list$cluster))
     node.order <- c(node, DFT(tree, node))
-    marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -p_val) %>% 
+    marker.list$rank <- seq(1:nrow(marker.list))
+    marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -rank) %>% 
       select(gene, cluster) -> pos.genes
-    marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -p_val) %>% 
+    marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -rank) %>% 
       select(gene, cluster) -> neg.genes 
     gene.list <- vector()
     node.stack <- vector()
@@ -3489,7 +3490,8 @@ setMethod("HeatmapNode","seurat", function(object, marker.list, node = NULL, max
         node.stack <- append(node.stack, n)
       }
     }
-    gene.list <- rev(unique(rev(gene.list)))
+    browser()
+    #gene.list <- rev(unique(rev(gene.list)))
     descendants <- getDescendants(tree, node)
     children <- descendants[!descendants %in% tree$edge[,1]]
     all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]]
