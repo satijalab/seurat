@@ -160,21 +160,37 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #'
 #' @param object Seurat object
 #' @param node Node in the cluster tree in question
+#' @param cluster1 First cluster to compare
+#' @param cluster2 Second cluster to compare 
 #' @param print.output Print the OOB error for the classifier
 #' @return Returns the Out of Bag error for a random forest classifier 
 #' trained on the split from the given node
 #' @export
-setGeneric("AssessSplit", function(object, node, print.output = T)
+setGeneric("AssessSplit", function(object, node, cluster1, cluster2, print.output = T)
   standardGeneric("AssessSplit"))
 #' @export
 setMethod("AssessSplit", signature = "seurat",
-          function(object, node, print.output = T){
+          function(object, node, cluster1, cluster2, print.output = T){
             tree <- object@cluster.tree[[1]]
-            split <- tree$edge[which(tree$edge[,1] == node), ][,2]
-            group1 <- DFT(tree, node = split[1], only.children = T)
-            group2 <- DFT(tree, node = split[2], only.children = T)
-            if(any(is.na(group1))) group1 <- split[1]
-            if(any(is.na(group2))) group2 <- split[2]
+            if(!missing(node)){
+              if(!missing(cluster1) || !missing(cluster2)){
+                warning("Both node and cluster IDs provided. Defaulting to using node ID")
+              }
+              possible.nodes <- DFT(tree, tree$edge[,1][1])
+              if(! node %in% possible.nodes){
+                stop("Not a valid node")
+              }
+              split <- tree$edge[which(tree$edge[,1] == node), ][,2]
+              group1 <- DFT(tree, node = split[1], only.children = T)
+              group2 <- DFT(tree, node = split[2], only.children = T)
+              if(any(is.na(group1))) group1 <- split[1]
+              if(any(is.na(group2))) group2 <- split[2]
+            }
+            else{
+              group1 <- cluster1
+              group2 <- cluster2
+            }
+
 
             group1.cells <- WhichCells(object, ident = group1)
             group2.cells <- WhichCells(object, ident = group2)
@@ -191,3 +207,41 @@ setMethod("AssessSplit", signature = "seurat",
           }
 )
 
+#' Color tSNE Plot Based on Split
+#' 
+#' Returns a tSNE plot colored based on whether the cells fall in clusters
+#' to the left or to the right of a node split in the cluster tree.
+#' 
+#' @param object Seurat object
+#' @param node Node in cluster tree on which to base the split
+#' @param color1 Color for the left side of the split
+#' @param color2 Color for the right side of the split
+#' @param color3 Color for all other cells
+#' @param ... Additional parameters for TSNEPlot()
+#' @return Returns a tSNE plot
+#' @export
+setGeneric("ColorTSNESplit", function(object, node, color1 = "red", color2 = "blue", color3 = "gray")
+  standardGeneric("ColorTSNESplit"))
+#' @export
+setMethod("ColorTSNESplit", signature = "seurat",
+          function(object, node, color1 = "red", color2 = "blue", color3 = "gray"){
+            tree <- object@cluster.tree[[1]]
+            split <- tree$edge[which(tree$edge[,1] == node), ][,2]
+            all.children <- DFT(tree, node = tree$edge[,1][1], only.children = T)
+            left.group <- DFT(tree, node = split[1], only.children = T)
+            right.group <- DFT(tree, node = split[2], only.children = T)
+            if(any(is.na(left.group))) left.group <- split[1]
+            if(any(is.na(left.group))) left.group <- split[2]
+            
+            remaining.group <- setdiff(all.children, c(left.group, right.group))
+            left.cells <- WhichCells(object, left.group)
+            right.cells <- WhichCells(object, right.group)
+            remaining.cells <- WhichCells(object, remaining.group)
+            object <- SetIdent(object, cells.use = left.cells, ident.use = "Left Split")
+            object <- SetIdent(object, cells.use = right.cells, ident.use = "Right Split")
+            object <- SetIdent(object, cells.use = remaining.cells, ident.use = "Not in Split")
+            colors.use = c(color1, color3, color2)
+          
+            return(TSNEPlot(object, colors.use = colors.use))
+          }
+)
