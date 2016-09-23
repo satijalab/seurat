@@ -528,10 +528,6 @@ setMethod("ClassifyCells", "seurat",
               classifier <- BuildRFClassifier(object, training.genes = training.genes, training.classes = training.classes)
             }
             # run the classifier on the new data
-            classifier_full <- classifier
-            classifier <- classifier_full[[1]]
-            orig.classes <- classifier_full[[2]]
-            new.classes <- classifier_full[[3]]
             features <- classifier$forest$independent.variable.names
             genes.to.add <- setdiff(features, rownames(new.data))
             data.to.add <- matrix(0, nrow = length(genes.to.add), ncol = ncol(new.data))
@@ -541,7 +537,7 @@ setMethod("ClassifyCells", "seurat",
             new.data <- as.matrix(t(new.data))
             print("Running Classifier ...")
             prediction <- predict(classifier, new.data)
-            new.classes <- suppressMessages(plyr::mapvalues(prediction$predictions, from = new.classes, to = orig.classes))
+            new.classes <- prediction$predictions
             return(new.classes)
           }
 )
@@ -567,15 +563,12 @@ setMethod("BuildRFClassifier", "seurat",
           function(object, training.genes = NULL, training.classes = NULL, ...) {
             training.classes <- as.vector(training.classes)
             training.genes <- set.ifnull(training.genes, rownames(object@data))
-            training.data <- as.matrix(t(object@data[training.genes, ]))
-            orig.classes <- unique(training.classes)
-            new.classes <- 1:length(unique(training.classes))
-            numeric.training.classes <- as.numeric(plyr::mapvalues(training.classes, from = orig.classes, to = new.classes))
-            training.data <- cbind(training.data, class = numeric.training.classes)
+            training.data <- as.data.frame(as.matrix(t(object@data[training.genes, ])))
+            training.data$class <- factor(training.classes)
             print("Training Classifier ...")
             classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
                                  write.forest = T, ...)
-            return(list(classifier, orig.classes, new.classes))
+            return(classifier)
           }
 )
 
