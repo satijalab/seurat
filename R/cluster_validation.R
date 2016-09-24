@@ -199,7 +199,7 @@ setMethod("AssessSplit", signature = "seurat",
             assess.data <- SetIdent(assess.data, cells.use = group2.cells, ident.use = "g2")
             
             rfc <- BuildRFClassifier(object = assess.data, training.genes = assess.data@var.genes, training.classes = assess.data@ident)
-            oobe <- rfc[[1]]$prediction.error
+            oobe <- rfc$prediction.error
             if(print.output){
               print(paste("Out of Bag Error: ", round(oobe, 4) * 100, "%", sep= ""))
             }
