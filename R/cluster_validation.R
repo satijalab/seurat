@@ -176,7 +176,7 @@ setMethod("AssessSplit", signature = "seurat",
               if(!missing(cluster1) || !missing(cluster2)){
                 warning("Both node and cluster IDs provided. Defaulting to using node ID")
               }
-              possible.nodes <- DFT(tree, tree$edge[,1][1])
+              possible.nodes <- c(DFT(tree, tree$edge[,1][1]), tree$edge[,1][1])
               if(! node %in% possible.nodes){
                 stop("Not a valid node")
               }
@@ -197,9 +197,8 @@ setMethod("AssessSplit", signature = "seurat",
             assess.data <- SubsetData(object, cells.use = c(group1.cells, group2.cells))
             assess.data <- SetIdent(assess.data, cells.use = group1.cells, ident.use = "g1")
             assess.data <- SetIdent(assess.data, cells.use = group2.cells, ident.use = "g2")
-            
             rfc <- BuildRFClassifier(object = assess.data, training.genes = assess.data@var.genes, training.classes = assess.data@ident)
-            oobe <- rfc[[1]]$prediction.error
+            oobe <- rfc$prediction.error
             if(print.output){
               print(paste("Out of Bag Error: ", round(oobe, 4) * 100, "%", sep= ""))
             }
