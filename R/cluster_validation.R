@@ -230,8 +230,8 @@ setMethod("ColorTSNESplit", signature = "seurat",
             left.group <- DFT(tree, node = split[1], only.children = T)
             right.group <- DFT(tree, node = split[2], only.children = T)
             if(any(is.na(left.group))) left.group <- split[1]
-            if(any(is.na(left.group))) left.group <- split[2]
-            
+            if(any(is.na(right.group))) right.group <- split[2]
+
             remaining.group <- setdiff(all.children, c(left.group, right.group))
             left.cells <- WhichCells(object, left.group)
             right.cells <- WhichCells(object, right.group)
