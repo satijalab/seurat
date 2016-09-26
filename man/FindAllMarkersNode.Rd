@@ -15,7 +15,7 @@ FindAllMarkersNode(object, node = NULL, genes.use = NULL,
 
 \item{node}{Node from which to start identifying split markers, default is top node.}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
+\item{genes.use}{Genes to test. Default is to use variable genes (object@var.genes)}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells.}

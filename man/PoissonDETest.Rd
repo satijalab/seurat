@@ -14,7 +14,7 @@ PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
+\item{genes.use}{Genes to test. Default is to use variable genes (object@var.genes)}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }

@@ -14,7 +14,7 @@ FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
 
 \item{tree.use}{Can optionally pass the tree to be used. Default uses the tree in object@cluster.tree}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
+\item{genes.use}{Genes to test. Default is to use variable genes (object@var.genes)}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25

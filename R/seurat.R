@@ -621,7 +621,7 @@ calc.drop.prob=function(x,a,b) {
 #'
 #' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
 #' @param node Node from which to start identifying split markers, default is top node.
-#' @param genes.use Genes to test. Default is to use all genes.
+#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' @param test.use Denotes which test to use. Seurat currently implements
@@ -647,7 +647,7 @@ setMethod("FindAllMarkersNode","seurat",
           function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
                    do.print=FALSE, random.seed = 1) {
-                      genes.use <- set.ifnull(genes.use, rownames(object@data))
+                      genes.use <- set.ifnull(genes.use, object@var.genes)
                       node <- set.ifnull(node, tree$edge[1,1])
                       ident.use <- object@ident
                       tree.use <- object@cluster.tree[[1]]
@@ -1848,7 +1848,7 @@ setGeneric("FindMarkersNode", function(object,node, tree.use = NULL, genes.use=N
 #' @export
 setMethod("FindMarkersNode", "seurat",
           function(object,node, tree.use = NULL, genes.use=NULL,thresh.use=0.25, test.use="bimod",...) {
-            genes.use=set.ifnull(genes.use,rownames(object@data))
+            genes.use=set.ifnull(genes.use, object@var.genes)
             tree=set.ifnull(tree.use, object@cluster.tree[[1]])
             ident.order=tree$tip.label
             nodes.1=ident.order[getLeftDecendants(tree,node)]
@@ -1869,7 +1869,7 @@ setMethod("FindMarkersNode", "seurat",
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
-#' @param genes.use Genes to test. Default is to use all genes.
+#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
@@ -1895,7 +1895,7 @@ setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,t
 #' @export
 setMethod("FindMarkers", "seurat",
           function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") {
-            genes.use=set.ifnull(genes.use,rownames(object@data))
+            genes.use=set.ifnull(genes.use, object@var.genes)
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
             cells.1=WhichCells(object,ident.1)
@@ -1972,7 +1972,7 @@ setMethod("FindMarkers", "seurat",
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
-#' @param genes.use Genes to test. Default is to use all genes.
+#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
@@ -2001,7 +2001,7 @@ setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NUL
 setMethod("FindAllMarkers","seurat",
       function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
                print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
-            genes.use=set.ifnull(genes.use,rownames(object@data))
+            genes.use=set.ifnull(genes.use, object@var.genes)
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))

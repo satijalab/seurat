@@ -4,12 +4,18 @@
 \alias{AssessSplit}
 \title{Assess Cluster Split}
 \usage{
-AssessSplit(object, node)
+AssessSplit(object, node, cluster1, cluster2, print.output = T)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node}{Node in the cluster tree in question}
+
+\item{cluster1}{First cluster to compare}
+
+\item{cluster2}{Second cluster to compare}
+
+\item{print.output}{Print the OOB error for the classifier}
 }
 \value{
 Returns the Out of Bag error for a random forest classifier 
