@@ -787,17 +787,18 @@ setMethod("BuildClusterTree","seurat",
 #' Plots previously computed phylogenetic tree (from BuildClusterTree)
 #'
 #' @param object Seurat object
+#' @param \dots Additional arguments for plotting the phylogeny
 #' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
 #' @importFrom ape plot.phylo
 #' @importFrom ape nodelabels
 #' @export
-setGeneric("PlotClusterTree", function(object) standardGeneric("PlotClusterTree"))
+setGeneric("PlotClusterTree", function(object,...) standardGeneric("PlotClusterTree"))
 #' @export
 setMethod("PlotClusterTree","seurat",
-          function(object) {
+          function(object,...) {
             if (length(object@cluster.tree)==0) stop("Phylogenetic tree does not exist, build using BuildClusterTree")
             data.tree=object@cluster.tree[[1]]
-            plot.phylo(data.tree,direction="downwards")
+            plot.phylo(data.tree,direction="downwards",...)
             nodelabels()
           }
 )
@@ -2390,6 +2391,27 @@ setMethod("SetIdent", "seurat",
             object@ident=factor(object@ident,levels = unique(c(as.character(object@ident),as.character(ident.new))))
             object@ident[cells.use]=ident.use
             object@ident=drop.levels(object@ident)
+            return(object)
+          }
+)
+
+
+#' Merge subchilden of a node
+#'
+#' Merge the subchilden of a node into a single identity class
+#'
+#' @param object Seurat object
+#' @param node.use Merge subchildren of this node
+#' @export
+setGeneric("MergeNode", function(object,node.use=NULL) standardGeneric("MergeNode"))
+#' @export
+setMethod("MergeNode", "seurat",
+          function(object,node.use=NULL) {
+            object.tree=object@cluster.tree[[1]]
+            node.children=DFT(object.tree,node = node.use,include.children = T)
+            node.children=ainb(node.children,levels(object@ident))
+            children.cells=WhichCells(object,ident = node.children)
+            if (length(children.cells>0)) object=SetIdent(object,children.cells,ident.use = min(node.children))
             return(object)
           }
 )
