@@ -745,7 +745,8 @@ setMethod("BuildClusterTree","seurat",
             if (!is.null(pcs.use)) {
               data.pca=AveragePCA(object)
               data.use=data.pca[pcs.use,]
-              data.eigenval=(object@pca.obj[[1]]$sdev)^2
+              if (is.null(object@pca.obj[[1]]$sdev)) data.eigenval=(object@pca.obj[[1]]$d)^2
+              else data.eigenval=(object@pca.obj[[1]]$sdev)^2
               data.weights=(data.eigenval/sum(data.eigenval))[pcs.use]; data.weights=data.weights/sum(data.weights)
               data.dist=custom.dist(data.pca[pcs.use,],weighted.euclidean,data.weights)
             }
