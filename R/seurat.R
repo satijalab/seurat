@@ -164,7 +164,9 @@ setMethod("Setup","seurat",
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
 #' 
 #' @param data.dir Directory containing the matrix.mtx, genes.tsv, and barcodes.tsv
-#' files provided by 10X.
+#' files provided by 10X. A vector or named vector can be given in order to load 
+#' several data directories. If a named vector is given, the cell barcode names 
+#' will be prefixed with the name.
 #' @return Returns a sparse matrix with rows and columns labeled 
 #' @importFrom Matrix readMM
 setGeneric("Read10X", function(data.dir = NULL) standardGeneric("Read10X"))
@@ -202,7 +204,11 @@ setMethod("Read10X", "character", function(data.dir = NULL){
       cell.names <- as.vector(as.character(sapply(cell.names, extract_field, 1, delim = "-")))
     }
     rownames(data) <- make.unique(as.character(sapply(gene.names, extract_field, 2, delim = "\\t"))) 
-    colnames(data) <- paste0(names(data.dir)[i],"_",cell.names)
+    if(is.null(names(data.dir))){
+      colnames(data) <- cell.names
+    } else {
+      colnames(data) <- paste0(names(data.dir)[i],"_",cell.names) 
+    }
     full_data <- append(full_data, data)
   }
   full_data <- do.call(cbind, full_data)
