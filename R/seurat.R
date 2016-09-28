@@ -858,7 +858,8 @@ setMethod("RegressOut", "seurat",
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
 
-            bin.size <- 100
+            bin.size <- 100;
+            if (mode.use=="negbinom") bin.size=5;
             max.bin <- floor(length(genes.regress)/bin.size) + 1
             print(paste("Regressing out",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
@@ -3746,6 +3747,9 @@ setMethod("DotPlot","seurat",
             if (!(is.null(group.by))) object=SetAllIdent(object,id = group.by)
             #object@data=object@data[genes.plot,]
             object@data=data.frame(t(FetchData(object,genes.plot)))
+            
+            #this line is in case there is a '-' in the cell name
+            colnames(object@data)=object@cell.names
             avg.exp=AverageExpression(object)
             avg.alpha=ClusterAlpha(object)
             cols.use=set.ifnull(cols.use,myPalette(low = "red",high="green"))
