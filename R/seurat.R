@@ -859,7 +859,7 @@ setMethod("RegressOut", "seurat",
             latent.data=FetchData(object,latent.vars)
 
             bin.size <- 100;
-            if (mode.use=="negbinom") bin.size=5;
+            if (model.use=="negbinom") bin.size=5;
             max.bin <- floor(length(genes.regress)/bin.size) + 1
             print(paste("Regressing out",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
