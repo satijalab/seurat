@@ -1398,7 +1398,6 @@ nb.residuals <- function(fmla, regression.mat) {
     message('glm.nb failed; trying again with glm and family=negative.binomial(theta=0.1)')
     fit <- glm(fmla, data = regression.mat, family=negative.binomial(theta=0.1))
   }
-  #return(stdres(fit))  # this is actually the correct residual we should use
-  return(fit$residuals)  # this is here for compatibility with the results shown in the webinar
+  return(residuals(fit, type='pearson'))
 }
 
