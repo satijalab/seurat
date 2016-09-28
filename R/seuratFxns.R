@@ -1390,3 +1390,15 @@ NodeHasOnlyChildren <- function(tree, node){
   children <- tree$edge[which(tree$edge[,1] == node),][,2]
   return(!any(children %in% tree$edge[,1]))
 }
+
+nb.residuals <- function(fmla, regression.mat) {
+  fit <- 0
+  try(fit <- glm.nb(fmla, data = regression.mat), silent=TRUE)
+  if (class(fit)[1] == 'numeric') {
+    message('glm.nb failed; trying again with glm and family=negative.binomial(theta=0.1)')
+    fit <- glm(fmla, data = regression.mat, family=negative.binomial(theta=0.1))
+  }
+  #return(stdres(fit))  # this is actually the correct residual we should use
+  return(fit$residuals)  # this is here for compatibility with the results shown in the webinar
+}
+
