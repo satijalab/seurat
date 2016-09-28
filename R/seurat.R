@@ -204,6 +204,7 @@ setMethod("Read10X", "character", function(data.dir = NULL){
       cell.names <- as.vector(as.character(sapply(cell.names, extract_field, 1, delim = "-")))
     }
     rownames(data) <- make.unique(as.character(sapply(gene.names, extract_field, 2, delim = "\\t"))) 
+
     if(is.null(names(data.dir))){
       colnames(data) <- cell.names
     } else {
