@@ -8,7 +8,9 @@ Read10X(data.dir = NULL)
 }
 \arguments{
 \item{data.dir}{Directory containing the matrix.mtx, genes.tsv, and barcodes.tsv
-files provided by 10X.}
+files provided by 10X. A vector or named vector can be given in order to load 
+several data directories. If a named vector is given, the cell barcode names 
+will be prefixed with the name.}
 }
 \value{
 Returns a sparse matrix with rows and columns labeled
