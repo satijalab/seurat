@@ -860,19 +860,18 @@ setMethod("RegressOut", "seurat",
 
             bin.size <- 100;
             if (model.use=="negbinom") bin.size=5;
-            max.bin <- floor(length(genes.regress)/bin.size) + 1
+            bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+            max.bin <- max(bin.ind)
             print(paste("Regressing out",latent.vars))
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             data.resid=c()
-            data.use=object@data[genes.regress,];
+            data.use=object@data[genes.regress, , drop=FALSE];
             if (model.use != "linear") {
               use.umi=T
             }
-            if (use.umi) data.use=object@raw.data[genes.regress,object@cell.names]
+            if (use.umi) data.use=object@raw.data[genes.regress,object@cell.names, drop=FALSE]
             for(i in 1:max.bin) {
-              my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-              my.inds <- my.inds[my.inds <= length(genes.regress)]
-              genes.bin.regress <- rownames(data.use[my.inds, , drop=FALSE])
+              genes.bin.regress <- rownames(data.use)[bin.ind == i]
               gene.expr <- as.matrix(data.use[genes.bin.regress, , drop=FALSE])
               new.data <- do.call(rbind, lapply(genes.bin.regress, function(x) {
                 regression.mat = cbind(latent.data, gene.expr[x,])
