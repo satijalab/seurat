@@ -1399,7 +1399,7 @@ nb.residuals <- function(fmla, regression.mat) {
     try(fit <- glm(fmla, data = regression.mat, family=negative.binomial(theta=0.1)), silent=TRUE)
     if (class(fit)[1] == 'numeric') {
       message('glm and family=negative.binomial(theta=0.1) failed, falling back to scale(log10(y+1))')
-      return(scale(log10(regression.mat[, 'GENE']+1)))
+      return(scale(log10(regression.mat[, 'GENE']+1))[, 1])
     }
   }
   return(residuals(fit, type='pearson'))
