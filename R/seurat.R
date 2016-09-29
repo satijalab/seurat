@@ -872,8 +872,8 @@ setMethod("RegressOut", "seurat",
             for(i in 1:max.bin) {
               my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
               my.inds <- my.inds[my.inds <= length(genes.regress)]
-              genes.bin.regress <- rownames(data.use[my.inds, ])
-              gene.expr <- as.matrix(data.use[genes.bin.regress,])
+              genes.bin.regress <- rownames(data.use[my.inds, , drop=FALSE])
+              gene.expr <- as.matrix(data.use[genes.bin.regress, , drop=FALSE])
               new.data <- do.call(rbind, lapply(genes.bin.regress, function(x) {
                 regression.mat = cbind(latent.data, gene.expr[x,])
                 colnames(regression.mat) <- c(colnames(latent.data), "GENE")
