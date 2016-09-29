@@ -206,7 +206,12 @@ setMethod("Read10X", "character", function(data.dir = NULL){
     rownames(data) <- make.unique(as.character(sapply(gene.names, extract_field, 2, delim = "\\t"))) 
 
     if(is.null(names(data.dir))){
-      colnames(data) <- cell.names
+      if(i < 2){
+        colnames(data) <- cell.names
+      }
+      else {
+        colnames(data) <- paste0(i, "_", cell.names, sep = "") 
+      }
     } else {
       colnames(data) <- paste0(names(data.dir)[i],"_",cell.names) 
     }
