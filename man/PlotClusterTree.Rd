@@ -4,10 +4,12 @@
 \alias{PlotClusterTree}
 \title{Plot phylogenetic tree}
 \usage{
-PlotClusterTree(object)
+PlotClusterTree(object, ...)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{\dots}{Additional arguments for plotting the phylogeny}
 }
 \value{
 Plots dendogram (must be precomputed using BuildClusterTree), returns no value

@@ -4152,16 +4152,18 @@ setMethod("JackStrawMC","seurat",
 #' @param do.print Print the number of replicates that have been processed.
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to 
 #' true will compute it on gene x cell matrix. This should match what was set when the intial PCA was run.
+#' @param do.fast Compute the PCA using the fast approximate calculation from the IRLBA package. Values stored with object
+#' must also have been computed using the PCAFast() function.
 #' @return Returns a Seurat object where object@@jackStraw.empP represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
 #' run, object@@jackStraw.empP.full then represents p-values for all genes.
 #' @importFrom pbapply pbsapply
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #' @export
-setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE)  standardGeneric("JackStraw"))
+setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE, do.fast = FALSE)  standardGeneric("JackStraw"))
 #' @export
 setMethod("JackStraw","seurat",
-          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE) {
+          function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE, do.fast = FALSE) {
 
             # error checking for number of PCs
             if (num.pc > ncol(object@pca.rot)){
@@ -4186,8 +4188,8 @@ setMethod("JackStraw","seurat",
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             
-            if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x, rev.pca=rev.pca),simplify = FALSE)
-            if ((do.print)) fake.pcVals.raw=pbsapply(1:num.replicate,function(x){jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x,rev.pca=rev.pca)},simplify = FALSE)
+            if (!(do.print)) fake.pcVals.raw=sapply(1:num.replicate,function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x, rev.pca=rev.pca, do.fast = do.fast),simplify = FALSE)
+            if ((do.print)) fake.pcVals.raw=pbsapply(1:num.replicate,function(x){jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x,rev.pca=rev.pca, do.fast = do.fast)},simplify = FALSE)
             
             fake.pcVals=sapply(1:num.pc,function(x)as.numeric(unlist(lapply(1:num.replicate,function(y)fake.pcVals.raw[[y]][,x]))))
             object@jackStraw.fakePC = data.frame(fake.pcVals)
@@ -4198,7 +4200,7 @@ setMethod("JackStraw","seurat",
 )
 
 #' @export
-jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.pca=FALSE) {
+jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.pca=FALSE, do.fast = FALSE) {
   set.seed(seed.use)
   rand.genes <- sample(rownames(scaled.data), nrow(scaled.data) * prop.use)
 
@@ -4209,16 +4211,39 @@ jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.
 
   data.mod <- scaled.data
   data.mod[rand.genes, ] <- shuffleMatRow(scaled.data[rand.genes, ])
-  
+
   if(rev.pca){
-    fake.pca <- prcomp(data.mod)
-    fake.x <- fake.pca$x
-    fake.rot <- fake.pca$rotation
+    if(do.fast){
+      fake.pca <- irlba(data.mod, nv = r2.use)
+      fake.rot <- fake.pca$v[, 1:r2.use]
+      rownames(fake.rot) = colnames(data.mod)
+      colnames(fake.rot) <- paste("PC", 1:r2.use, sep="")
+      fake.x <- fake.pca$u[, 1:r2.use]
+      rownames(fake.x) = rownames(data.mod)
+      colnames(fake.x)=colnames(fake.rot)
+    }
+    else{
+      fake.pca <- prcomp(data.mod)
+      fake.x <- fake.pca$x
+      fake.rot <- fake.pca$rotation
+    }
   }
   else {
-    fake.pca <- prcomp(t(data.mod))
-    fake.x <- fake.pca$rotation
-    fake.rot <- fake.pca$x
+    data.mod <- t(data.mod)
+    if(do.fast){
+      fake.pca <- irlba(data.mod, nv = r2.use)
+      fake.rot <- fake.pca$u[, 1:r2.use]
+      rownames(fake.rot) = rownames(data.mod)
+      colnames(fake.rot) <- paste("PC", 1:r2.use, sep="")
+      fake.x <- fake.pca$v[, 1:r2.use]
+      rownames(fake.x) = colnames(data.mod)
+      colnames(fake.x)=colnames(fake.rot)
+    }
+    else{
+      fake.pca <- prcomp(data.mod)
+      fake.x <- fake.pca$rotation
+      fake.rot <- fake.pca$x
+    }
   }
 
   return(fake.x[rand.genes, r1.use:r2.use])
