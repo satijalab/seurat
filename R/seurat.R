@@ -893,7 +893,12 @@ setMethod("RegressOut", "seurat",
             }
             object@scale.data=data.resid
             if (do.scale==TRUE) {
-              object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
+              if(use.umi){
+                object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid, scale.max = 50, ...)
+              }
+              else{
+                object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
+              }
             }
             object@scale.data[is.na(object@scale.data)]=0
             return(object)
