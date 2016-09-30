@@ -4166,6 +4166,18 @@ setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.
 setMethod("JackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE, do.fast = FALSE) {
 
+            # check that PCA calculation method matches
+            if(do.fast){
+              if(is.null(object@pca.obj[[1]]$d)){
+                stop("For fast JackStraw, store PCA values computed with PCAFast()")
+              }
+            }
+            else{
+              if(is.null(object@pca.obj[[1]]$sdev)){
+                stop("For regular JackStraw, store PCA values computed with PCA()")
+              }
+            }
+            
             # error checking for number of PCs
             if (num.pc > ncol(object@pca.rot)){
               num.pc <- ncol(object@pca.rot)
@@ -4186,6 +4198,8 @@ setMethod("JackStraw","seurat",
                       "Continuing with 3 genes in every random sampling.")
             }
 
+            
+            
             md.x=as.matrix(object@pca.x)
             md.rot=as.matrix(object@pca.rot)
             
