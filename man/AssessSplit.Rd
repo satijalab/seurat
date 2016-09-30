@@ -4,7 +4,7 @@
 \alias{AssessSplit}
 \title{Assess Cluster Split}
 \usage{
-AssessSplit(object, node, cluster1, cluster2, print.output = T)
+AssessSplit(object, node, cluster1, cluster2, print.output = T, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,6 +16,8 @@ AssessSplit(object, node, cluster1, cluster2, print.output = T)
 \item{cluster2}{Second cluster to compare}
 
 \item{print.output}{Print the OOB error for the classifier}
+
+\item{...}{additional parameters to pass to BuildRFClassifier}
 }
 \value{
 Returns the Out of Bag error for a random forest classifier 

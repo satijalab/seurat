@@ -1391,6 +1391,10 @@ NodeHasOnlyChildren <- function(tree, node){
   return(!any(children %in% tree$edge[,1]))
 }
 
+GetAllInternalNodes <- function(tree){
+  return(c(tree$edge[1,1], DFT(tree, tree$edge[1,1])))
+}
+
 nb.residuals <- function(fmla, regression.mat) {
   fit <- 0
   try(fit <- glm.nb(fmla, data = regression.mat), silent=TRUE)

@@ -5,7 +5,7 @@
 \title{Build Random Forest Classifier}
 \usage{
 BuildRFClassifier(object, training.genes = NULL, training.classes = NULL,
-  ...)
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object on which to train the classifier}
@@ -13,6 +13,8 @@ BuildRFClassifier(object, training.genes = NULL, training.classes = NULL,
 \item{training.genes}{Vector of genes to build the classifier on}
 
 \item{training.classes}{Vector of classes to build the classifier on}
+
+\item{verbose}{Additional progress print statements}
 
 \item{...}{additional parameters passed to ranger}
 }

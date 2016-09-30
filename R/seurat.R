@@ -550,6 +550,7 @@ setMethod("ClassifyCells", "seurat",
 #' @param object Seurat object on which to train the classifier
 #' @param training.genes Vector of genes to build the classifier on
 #' @param training.classes Vector of classes to build the classifier on
+#' @param verbose Additional progress print statements
 #' @param ... additional parameters passed to ranger
 #' @return Returns a list with the random forest classifier object as the first element,
 #' the original classes as the second, and the classes used by the classifier as the third
@@ -557,15 +558,15 @@ setMethod("ClassifyCells", "seurat",
 #' @importFrom ranger ranger 
 #' @importFrom plyr mapvalues
 #' @export
-setGeneric("BuildRFClassifier", function(object, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("BuildRFClassifier"))
+setGeneric("BuildRFClassifier", function(object, training.genes = NULL, training.classes = NULL, verbose = TRUE, ... ) standardGeneric("BuildRFClassifier"))
 #' @export
 setMethod("BuildRFClassifier", "seurat",
-          function(object, training.genes = NULL, training.classes = NULL, ...) {
+          function(object, training.genes = NULL, training.classes = NULL, verbose = TRUE, ...) {
             training.classes <- as.vector(training.classes)
             training.genes <- set.ifnull(training.genes, rownames(object@data))
             training.data <- as.data.frame(as.matrix(t(object@data[training.genes, ])))
             training.data$class <- factor(training.classes)
-            print("Training Classifier ...")
+            if (verbose) print("Training Classifier ...")
             classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
                                  write.forest = T, ...)
             return(classifier)

@@ -151,6 +151,41 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 }
 
 
+#' Assess Internal Nodes
+#' 
+#' Method for automating assessment of tree splits over all internal nodes,
+#' or a provided list of internal nodes. Uses AssessSplit() for calculation
+#' of Out of Bag error (proxy for confidence in split).
+#' 
+#' @param object Seurat object
+#' @param node.list List of internal nodes to assess and return 
+#' @param all.below If single node provided in node.list, assess all splits below (and including)
+#' provided node.
+#' @return Returns the Out of Bag error for a random forest classifiers trained on 
+#' each internal node split or each split provided in the node list.
+#' @export 
+setGeneric("AssessNodes", function(object, node.list, all.below = FALSE) standardGeneric("AssessNodes"))
+#' @export
+setMethod("AssessNodes", signature = "seurat", 
+          function(object, node.list, all.below = FALSE){
+            tree <- object@cluster.tree[[1]]
+            if(missing(node.list)){
+              node.list <- GetAllInternalNodes(tree)
+            }
+            else{
+              possible.nodes <- GetAllInternalNodes(tree)
+              if(any(!node.list %in% possible.nodes)){
+                stop(paste0(node.list[!(node.list %in% possible.nodes)], "not valid internal nodes", sep = ""))
+              }
+              if(length(node.list == 1) && all.below){
+                node.list <- c(node.list, DFT(tree, node.list))
+              }
+            }
+          oobe <- pbsapply(node.list, function(x) AssessSplit(object, node = x, print.output = F, verbose = F))
+          return(data.frame(node = node.list, oobe))
+          })
+
+
 #' Assess Cluster Split
 #'
 #' Method for determining confidence in specific bifurcations in
@@ -163,14 +198,15 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #' @param cluster1 First cluster to compare
 #' @param cluster2 Second cluster to compare 
 #' @param print.output Print the OOB error for the classifier
+#' @param ... additional parameters to pass to BuildRFClassifier
 #' @return Returns the Out of Bag error for a random forest classifier 
 #' trained on the split from the given node
 #' @export
-setGeneric("AssessSplit", function(object, node, cluster1, cluster2, print.output = T)
+setGeneric("AssessSplit", function(object, node, cluster1, cluster2, print.output = T, ...)
   standardGeneric("AssessSplit"))
 #' @export
 setMethod("AssessSplit", signature = "seurat",
-          function(object, node, cluster1, cluster2, print.output = T){
+          function(object, node, cluster1, cluster2, print.output = T, ...){
             tree <- object@cluster.tree[[1]]
             if(!missing(node)){
               if(!missing(cluster1) || !missing(cluster2)){
@@ -190,14 +226,12 @@ setMethod("AssessSplit", signature = "seurat",
               group1 <- cluster1
               group2 <- cluster2
             }
-
-
             group1.cells <- WhichCells(object, ident = group1)
             group2.cells <- WhichCells(object, ident = group2)
             assess.data <- SubsetData(object, cells.use = c(group1.cells, group2.cells))
             assess.data <- SetIdent(assess.data, cells.use = group1.cells, ident.use = "g1")
             assess.data <- SetIdent(assess.data, cells.use = group2.cells, ident.use = "g2")
-            rfc <- BuildRFClassifier(object = assess.data, training.genes = assess.data@var.genes, training.classes = assess.data@ident)
+            rfc <- BuildRFClassifier(object = assess.data, training.genes = assess.data@var.genes, training.classes = assess.data@ident, ...)
             oobe <- rfc$prediction.error
             if(print.output){
               print(paste("Out of Bag Error: ", round(oobe, 4) * 100, "%", sep= ""))
