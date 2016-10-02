@@ -477,6 +477,7 @@ setMethod("MergeSeurat", "seurat",
             merged.object <- Setup(new.object, project = project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                    total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                    names.delim = names.delim, save.raw = save.raw)
+            rownames(merged.meta.data)=merged.object@cell.names
             merged.object@data.info <- merged.meta.data
             return(merged.object)
           }
@@ -525,7 +526,7 @@ setMethod("ClassifyCells", "seurat",
           function(object, classifier, new.data = NULL, training.genes = NULL, training.classes = NULL, ...) {
             # build the classifier
             if (missing(classifier)){
-              classifier <- BuildRFClassifier(object, training.genes = training.genes, training.classes = training.classes)
+              classifier <- BuildRFClassifier(object, training.genes = training.genes, training.classes = training.classes,...)
             }
             # run the classifier on the new data
             features <- classifier$forest$independent.variable.names
@@ -648,7 +649,7 @@ setMethod("FindAllMarkersNode","seurat",
           function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
                    do.print=FALSE, random.seed = 1) {
-                      genes.use <- set.ifnull(genes.use, object@var.genes)
+                      genes.use <- set.ifnull(genes.use, rownames(object@data))
                       node <- set.ifnull(node, tree$edge[1,1])
                       ident.use <- object@ident
                       tree.use <- object@cluster.tree[[1]]
@@ -1903,7 +1904,7 @@ setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,t
 #' @export
 setMethod("FindMarkers", "seurat",
           function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
             cells.1=WhichCells(object,ident.1)
