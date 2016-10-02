@@ -437,14 +437,14 @@ setMethod("AddSamples","seurat",
 #' 
 #' @return Merged Seurat object
 #' @import Matrix
-#' @importFrom dplyr full_join
+#' @importFrom dplyr full_join filter
 #' @export
-setGeneric("MergeSeurat", function(object1, object2, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, 
+setGeneric("MergeSeurat", function(object1, object2, project = NULL, min.cells=0, min.genes=0, is.expr=0, do.logNormalize=T, 
                                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
                                    save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL) standardGeneric("MergeSeurat"))
 #' @export
 setMethod("MergeSeurat", "seurat",
-          function(object1, object2, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, 
+          function(object1, object2, project = NULL, min.cells=0, min.genes=0, is.expr=0, do.logNormalize=T, 
                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
                    save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL) {
             if (!missing(add.cell.id1)){
@@ -473,11 +473,12 @@ setMethod("MergeSeurat", "seurat",
             object1@data.info$cell.name <- rownames(object1@data.info)
             object2@data.info$cell.name <- rownames(object2@data.info)
             merged.meta.data <- suppressMessages(suppressWarnings(full_join(object1@data.info, object2@data.info)))
-            merged.meta.data$cell.name <- NULL
             merged.object <- Setup(new.object, project = project, min.cells = min.cells, min.genes = min.genes, is.expr = is.expr, do.logNormalize = do.logNormalize,
                                    total.expr = total.expr, do.scale = do.scale, do.center = do.center, names.field = names.field, 
                                    names.delim = names.delim, save.raw = save.raw)
+            merged.meta.data %>% filter(cell.name %in% merged.object@cell.names) -> merged.meta.data
             rownames(merged.meta.data)=merged.object@cell.names
+            merged.meta.data$cell.name <- NULL
             merged.object@data.info <- merged.meta.data
             return(merged.object)
           }
@@ -1857,7 +1858,7 @@ setGeneric("FindMarkersNode", function(object,node, tree.use = NULL, genes.use=N
 #' @export
 setMethod("FindMarkersNode", "seurat",
           function(object,node, tree.use = NULL, genes.use=NULL,thresh.use=0.25, test.use="bimod",...) {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             tree=set.ifnull(tree.use, object@cluster.tree[[1]])
             ident.order=tree$tip.label
             nodes.1=ident.order[getLeftDecendants(tree,node)]
@@ -1878,7 +1879,7 @@ setMethod("FindMarkersNode", "seurat",
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
-#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
+#' @param genes.use Genes to test. Default is to use all genes
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
@@ -2010,7 +2011,7 @@ setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NUL
 setMethod("FindAllMarkers","seurat",
       function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
                print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -2059,7 +2060,7 @@ setGeneric("DiffExpTest", function(object, cells.1,cells.2,genes.use=NULL,print.
 #' @export
 setMethod("DiffExpTest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
             p_val=unlist(iterate.fxn(genes.use,function(x)diffLRT(as.numeric(object@data[x,cells.1]),as.numeric(object@data[x,cells.2]))))
             to.return=data.frame(p_val,row.names = genes.use)
@@ -2086,7 +2087,7 @@ setGeneric("NegBinomDETest", function(object, cells.1,cells.2,genes.use=NULL,lat
 #' @export
 setMethod("NegBinomDETest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
             to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
             to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
@@ -2123,7 +2124,7 @@ setGeneric("PoissonDETest", function(object, cells.1,cells.2,genes.use=NULL,late
 #' @export
 setMethod("PoissonDETest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
             to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
             to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
@@ -2156,7 +2157,7 @@ setGeneric("TobitTest", function(object, cells.1,cells.2,genes.use=NULL,print.ba
 #' @export
 setMethod("TobitTest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             #print(genes.diff)
             to.return=TobitDiffExpTest(object@data[,cells.1],object@data[,cells.2],genes.use,print.bar)
             return(to.return)
@@ -2221,7 +2222,7 @@ setGeneric("MarkerTest", function(object, cells.1,cells.2,genes.use=NULL,print.b
 #' @export
 setMethod("MarkerTest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             to.return=marker.auc.test(object@data[,cells.1],object@data[,cells.2],genes.use,print.bar=TRUE)
             to.return$power=abs(to.return$myAUC-0.5)*2
             #print(head(to.return))
@@ -2244,7 +2245,7 @@ setGeneric("DiffTTest", function(object, cells.1,cells.2,genes.use=NULL,print.ba
 #' @export
 setMethod("DiffTTest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use,object@var.genes)
+            genes.use=set.ifnull(genes.use, rownames(object@data))
             data.use=object@data
             iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
             p_val=unlist(iterate.fxn(genes.use,function(x)t.test(object@data[x,cells.1],object@data[x,cells.2])$p.value))
