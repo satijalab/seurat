@@ -216,7 +216,7 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   if (modularity == 2 && resolution > 1){
     stop("error: resolution<1 for alternative modularity")
   }
-  command <- paste("java -jar", ModularityJarFile, edge_file, output_file,
+  command <- paste("java -jar", shQuote(ModularityJarFile), shQuote(edge_file), shQuote(output_file),
                    modularity, resolution, algorithm, n.start, n.iter,
                    random.seed, print.output, sep = " ")
   system(command, wait = TRUE)
