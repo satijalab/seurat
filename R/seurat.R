@@ -844,17 +844,19 @@ setMethod("PlotNoiseModel","seurat",
 #' @param object Seurat object
 #' @param latent.vars effects to regress out
 #' @param genes.regress gene to run regression for (default is all genes)
-#' @param do.scale Z-normalize the residual values (default is TRUE)
 #' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
 #' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson' 
-#' @inheritParams ScaleData
+#' @param do.scale Whether to scale the data. 
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
+#' reduce the effects of genes that are only expressed in a very small number of cells. 
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #' @import Matrix
 #' @export
-setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,model.use="linear",use.umi=F,...) standardGeneric("RegressOut"))
+setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL, model.use="linear", use.umi=F, do.scale = T, do.center = T, scale.max = 10) standardGeneric("RegressOut"))
 #' @export
 setMethod("RegressOut", "seurat",
-          function(object,latent.vars,genes.regress=NULL,do.scale=TRUE,model.use="linear",use.umi=F,...) {
+          function(object,latent.vars,genes.regress=NULL, model.use="linear", use.umi=F, do.scale = T, do.center = T, scale.max = 10) {
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
@@ -893,12 +895,10 @@ setMethod("RegressOut", "seurat",
             }
             object@scale.data=data.resid
             if (do.scale==TRUE) {
-              if(use.umi){
-                object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid, scale.max = 50, ...)
+              if(use.umi && missing(scale.max)){
+                  scale.max <- 50
               }
-              else{
-                object=ScaleData(object,genes.use = rownames(data.resid),data.use = data.resid,...)
-              }
+              object=ScaleData(object,genes.use = rownames(data.resid), data.use = data.resid, do.center = do.center, do.scale = do.scale, scale.max = scale.max)
             }
             object@scale.data[is.na(object@scale.data)]=0
             return(object)
