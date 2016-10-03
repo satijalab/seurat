@@ -3515,7 +3515,6 @@ setMethod("HeatmapNode","seurat", function(object, marker.list, node = NULL, max
         node.stack <- append(node.stack, n)
       }
     }
-    browser()
     #gene.list <- rev(unique(rev(gene.list)))
     descendants <- getDescendants(tree, node)
     children <- descendants[!descendants %in% tree$edge[,1]]
