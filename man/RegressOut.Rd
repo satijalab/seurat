@@ -4,8 +4,8 @@
 \alias{RegressOut}
 \title{Regress out technical effects and cell cycle}
 \usage{
-RegressOut(object, latent.vars, genes.regress = NULL, do.scale = TRUE,
-  model.use = "linear", use.umi = F, ...)
+RegressOut(object, latent.vars, genes.regress = NULL, model.use = "linear",
+  use.umi = F, do.scale = T, do.center = T, scale.max = 10)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,11 +14,16 @@ RegressOut(object, latent.vars, genes.regress = NULL, do.scale = TRUE,
 
 \item{genes.regress}{gene to run regression for (default is all genes)}
 
-\item{do.scale}{Z-normalize the residual values (default is TRUE)}
-
 \item{model.use}{Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'}
 
 \item{use.umi}{Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'}
+
+\item{do.scale}{Whether to scale the data.}
+
+\item{do.center}{Whether to center the data.}
+
+\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help 
+reduce the effects of genes that are only expressed in a very small number of cells.}
 }
 \value{
 Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model

@@ -642,6 +642,7 @@ calc.drop.prob=function(x,a,b) {
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
+#' @importFrom ape drop.tip
 #' @export
 setGeneric("FindAllMarkersNode", function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                           min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
