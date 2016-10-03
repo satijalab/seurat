@@ -17,7 +17,7 @@ FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
 \item{ident.2}{A second identity class for comparison. If NULL (default) -
 use all other cells for comparison.}
 
-\item{genes.use}{Genes to test. Default is to use variable genes (object@var.genes)}
+\item{genes.use}{Genes to test. Default is to use all genes}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
