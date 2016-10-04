@@ -6,8 +6,8 @@
 \usage{
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
-  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1)
+  min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
+  max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,7 +17,7 @@ FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
 \item{ident.2}{A second identity class for comparison. If NULL (default) -
 use all other cells for comparison.}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
+\item{genes.use}{Genes to test. Default is to use all genes}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -27,10 +27,14 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
 al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-as in Trapnell et al., Nature Biotech, 2014)}
+as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
+The latter two options should only be used on UMI datasets, and assume an underlying 
+poisson or negative-binomial distribution}
 
 \item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells
 in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1}
+
+\item{min.diff.pct}{- only test genes that show a minimum difference in the fraction of detection between the two groups. Set to 0.025 by default}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 

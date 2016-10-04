@@ -7,7 +7,7 @@
 DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = NULL,
   k.seed = 1, do.plot = TRUE, data.cut = 2.5, k.cols = pyCols,
   pc.row.order = NULL, pc.col.order = NULL, rev.pc.order = FALSE,
-  use.imputed = FALSE, set.ident = TRUE, ...)
+  use.imputed = FALSE, set.ident = TRUE, do.constrained = F, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -43,7 +43,9 @@ a cluster}
 \item{set.ident}{If clustering cells (so k.cells>0), set the cell identity
 class to its K-means cluster (default is TRUE)}
 
-\item{\dots}{Additional parameters passed to DoHeatmap for plotting}
+\item{do.constrained}{FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.}
+
+\item{\dots}{Additional parameters passed to kmeans (or tkmeans)}
 }
 \value{
 Seurat object where the k-means results for genes is stored in

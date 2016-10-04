@@ -4,8 +4,7 @@
 \alias{MarkerTest}
 \title{ROC-based marker discovery}
 \usage{
-MarkerTest(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2),
-  print.bar = TRUE)
+MarkerTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,11 +13,7 @@ MarkerTest(object, cells.1, cells.2, genes.use = NULL, thresh.use = log(2),
 
 \item{cells.2}{Group 2 cells}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
-
-\item{thresh.use}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+\item{genes.use}{Genes to test. Default is to use all genes}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 }

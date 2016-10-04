@@ -4,15 +4,17 @@
 \alias{FindMarkersNode}
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
-FindMarkersNode(object, node, genes.use = NULL, thresh.use = log(2),
-  test.use = "bimod", ...)
+FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
+  thresh.use = log(2), test.use = "bimod", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node}{The node in the phylogenetic tree to use as a branch point}
 
-\item{genes.use}{Genes to test. Default is to use all genes.}
+\item{tree.use}{Can optionally pass the tree to be used. Default uses the tree in object@cluster.tree}
+
+\item{genes.use}{Genes to test. Default is to use all genes}
 
 \item{thresh.use}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -22,7 +24,9 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
 al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-as in Trapnell et al., Nature Biotech, 2014)}
+as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
+The latter two options should only be used on UMI datasets, and assume an underlying 
+poisson or negative-binomial distribution}
 
 \item{...}{Additional arguments passed to FindMarkers}
 }
