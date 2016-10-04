@@ -72,7 +72,6 @@ test_that("nGene calculations are consistent" , {
 
 })
 
-
 # Test PCA dimensional reduction
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
@@ -149,14 +148,14 @@ context("Clustering Functions")
 test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn.dense) == 0)
   expect_true(length(nbt.test@snn.sparse) == 0)
-
+  
   nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
   expect_true(length(nbt.test@snn.dense) > 1)
   expect_equal(nbt.test@snn.dense[2,9], 0.6)
-
+  
   nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, do.sparse = T, 
                            save.SNN = T, n.iter = 1, n.start = 1 )
-
+  
   expect_true(length(nbt.test@snn.dense) == 1)
   expect_true(length(nbt.test@snn.sparse) > 1)
   expect_equal(nbt.test@snn.sparse[2,9], 0.6)
@@ -181,4 +180,24 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@data.info$res.2), ncol(nbt.test@data))
   expect_equal(length(nbt.test@snn.sparse), 1)
   expect_equal(length(nbt.test@snn.dense), 1)
+})
+
+# Test cell subsetting functionality
+# --------------------------------------------------------------------------------
+context("Cell Subsetting")
+
+test_that("WhichCells subsets properly", {
+  expect_equal(length(WhichCells(nbt.test, 1)), 4)
+  expect_equal(length(WhichCells(nbt.test, c(1,2))), 6)
+  expect_error(WhichCells(nbt.test, 10))
+  expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
+  
+  expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
+  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -0.8, accept.low = -0.9), "Hi_GW21.2_3")
+  
+  expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
+  expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
+  expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
+  
+  
 })

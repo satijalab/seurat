@@ -2,22 +2,36 @@
 % Please edit documentation in R/seurat.R
 \name{WhichCells}
 \alias{WhichCells}
-\title{Identify matching cells}
+\title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, value = 1, id = NULL)
+WhichCells(object, ident = NULL, cells.use = NULL, subset.name = NULL,
+  accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf,
+  random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{value}{Query value to match}
+\item{ident}{Identity class to subset. Default is all identities.}
 
-\item{id}{Variable to query (by default, identity class)}
+\item{cells.use}{Subset of cell names}
+
+\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
+column name in object@data.info, etc. Any argument that can be retreived
+using FetchData}
+
+\item{accept.low}{Low cutoff for the parameter (default is -Inf)}
+
+\item{accept.high}{High cutoff for the parameter (default is Inf)}
+
+\item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+
+\item{random.seed}{Random seed for downsampling}
 }
 \value{
 A vector of cell names
 }
 \description{
-Returns a list of cells that match a particular query (usually, query is
-based on identity class). For example, to find the names of all cells in cluster 1.
+Returns a list of cells that match a particular set of criteria such as 
+identity class, high/low values for particular PCs, ect..
 }
 

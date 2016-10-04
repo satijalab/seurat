@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=master)](https://travis-ci.org/satijalab/seurat)
 
-# Seurat v1.3
+# Seurat v1.4
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
 
@@ -16,7 +16,13 @@ Improvements and new features will be added on a regular basis, please contact s
 
 Version History
 
-August 22, 2015:
+October 4, 2016
+* Version 1.4 released
+* Changes:
+   * Improved tools for cluster evaluation/visualizations
+   * Methods for combining and adding to datasets
+
+August 22, 2016:
 * Version 1.3 released
 * Changes :
     * Improved clustering approach - see FAQ for details
