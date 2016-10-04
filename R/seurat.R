@@ -1659,10 +1659,10 @@ setMethod("PCTopCells", "seurat",
 #' @param genes.print Number of genes to print for each PC
 #' @return Only text output
 #' @export
-setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) standardGeneric("PrintPCA"))
+setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("PrintPCA"))
 #' @export
 setMethod("PrintPCA", "seurat",
-          function(object,pcs.print=1:5,genes.print=30,use.full=TRUE) {
+          function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
             if(length(object@pca.x.full) == 0 && use.full){
               warning("PCA has not been projected. Setting use.full = FALSE")
               use.full = FALSE
