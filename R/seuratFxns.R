@@ -374,13 +374,13 @@ TobitDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffTobit(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-  avg_diff=unlist(iterate.fxn(mygenes,function(x)(expMean(as.numeric(data1[x,]))-expMean(as.numeric(data2[x,])))))
-  toRet=data.frame(cbind(p_val,avg_diff),row.names=mygenes)
-  toRet=toRet[order(toRet$p_val),]
+  toRet=data.frame(p_val,row.names=mygenes)
   return(toRet)
 }
 
-BimodDiffExpTest=function(data1,data2,mygenes,print.bar) {
+
+
+NegBinomDiffExpTest=function(data1,data2,mygenes,print.bar) {
   p_val=unlist(lapply(mygenes,function(x)diffLRT(as.numeric(data1[x,]),as.numeric(data2[x,]))))
   p_val[is.na(p_val)]=1
   iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
@@ -390,6 +390,9 @@ BimodDiffExpTest=function(data1,data2,mygenes,print.bar) {
   return(toRet)
 }
 
+diffNegBinom=function(x,data,vars) {
+  
+}
 diffAUC = function(x,y) {
   prediction.use=prediction(c(x,y),c(rep(1,length(x)),rep(0,length(y))),0:1)
   perf.use=performance(prediction.use,"auc")
@@ -402,7 +405,7 @@ diffLRT = function(x,y,xmin=1) {
   lrtY=bimodLikData(y)
   lrtZ=bimodLikData(c(x,y))
   lrt_diff=2*(lrtX+lrtY-lrtZ)
-  return(1-pchisq(lrt_diff,3))
+  return(pchisq(lrt_diff,3,lower.tail = F))
 }
 
 bimodLikData=function(x,xmin=0) {
@@ -1108,7 +1111,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   }
   oldMar=par()$mar
   if (labCol[1] == ""){
-    par(mar = c(margins[1]-4, margins[2], margins[1], margins[2]))
+    par(mar = c(margins[1]-3, margins[2]-2, margins[1]-3, margins[2]))
   }
   else{
     par(mar = c(margins[1], margins[2], margins[1], margins[2]))
@@ -1346,3 +1349,63 @@ regression.sig=function(x,score,data,latent,code="rsem") {
 }
 
 same=function(x) return(x)
+
+DFT <- function(tree, node, path = NULL, include.children = F, only.children = F){
+  if(only.children) include.children = T
+  children <- which(tree$edge[,1] == node)
+  child1 <- tree$edge[children[1], 2]
+  child2 <- tree$edge[children[2], 2]
+  if(child1 %in% tree$edge[,1]){
+    if(!only.children){
+      path <- c(path, child1)
+    }
+    path <- DFT(tree, child1, path, include.children, only.children)
+  }
+  else{
+    if(include.children){
+      path <-c(path, child1)
+    }
+  }
+  
+  if(child2 %in% tree$edge[,1]){
+    if(!only.children){
+      path <- c(path, child2)
+    }
+    path <- DFT(tree, child2, path, include.children, only.children)
+  }
+  else{
+    if(include.children){
+      path <-c(path, child2)
+    }
+  }
+  return(path)
+}
+
+NodeHasChild <- function(tree, node){
+  children <- tree$edge[which(tree$edge[,1] == node),][,2]
+  return(any(children %in% tree$edge[,2] && ! children %in% tree$edge[,1]))
+}
+
+NodeHasOnlyChildren <- function(tree, node){
+  children <- tree$edge[which(tree$edge[,1] == node),][,2]
+  return(!any(children %in% tree$edge[,1]))
+}
+
+GetAllInternalNodes <- function(tree){
+  return(c(tree$edge[1,1], DFT(tree, tree$edge[1,1])))
+}
+
+nb.residuals <- function(fmla, regression.mat) {
+  fit <- 0
+  try(fit <- glm.nb(fmla, data = regression.mat), silent=TRUE)
+  if (class(fit)[1] == 'numeric') {
+    message('glm.nb failed; trying again with glm and family=negative.binomial(theta=0.1)')
+    try(fit <- glm(fmla, data = regression.mat, family=negative.binomial(theta=0.1)), silent=TRUE)
+    if (class(fit)[1] == 'numeric') {
+      message('glm and family=negative.binomial(theta=0.1) failed, falling back to scale(log10(y+1))')
+      return(scale(log10(regression.mat[, 'GENE']+1))[, 1])
+    }
+  }
+  return(residuals(fit, type='pearson'))
+}
+
