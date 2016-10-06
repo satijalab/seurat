@@ -4,17 +4,20 @@
 \alias{ClassifyCells}
 \title{Classify New Data}
 \usage{
-ClassifyCells(object, classifier, new.data = NULL, training.genes = NULL,
-  training.classes = NULL, ...)
+ClassifyCells(object, classifier, training.genes = NULL,
+  training.classes = NULL, new.data = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object on which to train the classifier}
 
-\item{new.data}{New data to classify}
+\item{classifier}{Random Forest classifier from BuildRFClassifier. If not provided,
+it will be built from the training data provided.}
 
 \item{training.genes}{Vector of genes to build the classifier on}
 
 \item{training.classes}{Vector of classes to build the classifier on}
+
+\item{new.data}{New data to classify}
 
 \item{...}{additional parameters passed to ranger}
 }

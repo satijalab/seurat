@@ -152,7 +152,7 @@ setMethod("Setup","seurat",
               if(do.scale | do.center) {
                 object <- ScaleData(object,do.scale = do.scale, do.center = do.center)
               }
-
+        
             #if(calc.noise) {
             #  object=CalcNoiseModels(object,...)
             #  object=GetWeightMatrix(object)
@@ -512,19 +512,21 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #'
 #'
 #' @param object Seurat object on which to train the classifier
-#' @param new.data New data to classify
+#' @param classifier Random Forest classifier from BuildRFClassifier. If not provided,
+#' it will be built from the training data provided.
 #' @param training.genes Vector of genes to build the classifier on
 #' @param training.classes Vector of classes to build the classifier on
+#' @param new.data New data to classify
 #' @param ... additional parameters passed to ranger
 #' @return Vector of cluster ids
 #' @import Matrix
 #' @importFrom ranger ranger 
 #' @importFrom plyr mapvalues
 #' @export
-setGeneric("ClassifyCells", function(object, classifier, new.data = NULL, training.genes = NULL, training.classes = NULL, ... ) standardGeneric("ClassifyCells"))
+setGeneric("ClassifyCells", function(object, classifier, training.genes = NULL, training.classes = NULL, new.data = NULL, ... ) standardGeneric("ClassifyCells"))
 #' @export
 setMethod("ClassifyCells", "seurat",
-          function(object, classifier, new.data = NULL, training.genes = NULL, training.classes = NULL, ...) {
+          function(object, classifier, training.genes = NULL, training.classes = NULL, new.data = NULL, ...) {
             # build the classifier
             if (missing(classifier)){
               classifier <- BuildRFClassifier(object, training.genes = training.genes, training.classes = training.classes,...)
