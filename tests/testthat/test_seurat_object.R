@@ -72,6 +72,7 @@ test_that("nGene calculations are consistent" , {
 
 })
 
+
 # Test PCA dimensional reduction
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
@@ -148,14 +149,14 @@ context("Clustering Functions")
 test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn.dense) == 0)
   expect_true(length(nbt.test@snn.sparse) == 0)
-  
+
   nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
   expect_true(length(nbt.test@snn.dense) > 1)
   expect_equal(nbt.test@snn.dense[2,9], 0.6)
-  
+
   nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, do.sparse = T, 
                            save.SNN = T, n.iter = 1, n.start = 1 )
-  
+
   expect_true(length(nbt.test@snn.dense) == 1)
   expect_true(length(nbt.test@snn.sparse) > 1)
   expect_equal(nbt.test@snn.sparse[2,9], 0.6)
@@ -181,7 +182,7 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@snn.sparse), 1)
   expect_equal(length(nbt.test@snn.dense), 1)
 })
-
+-
 # Test cell subsetting functionality
 # --------------------------------------------------------------------------------
 context("Cell Subsetting")
@@ -198,6 +199,4 @@ test_that("WhichCells subsets properly", {
   expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
   expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
-  
-  
 })

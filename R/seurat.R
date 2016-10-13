@@ -124,7 +124,6 @@ setMethod("Setup","seurat",
             if((ident.levels > 100 || ident.levels == 0)||ident.levels==length(object@ident)) {
               object <- SetIdent(object, ident.use = project)
             }
-
             
             data.ngene <- num.genes[cells.use]
             data.nmol <- num.mol[cells.use]
@@ -142,11 +141,7 @@ setMethod("Setup","seurat",
             rownames(object@gene.scores) <- colnames(object@data)
             
             object@data.info[names(object@ident),"orig.ident"] <- object@ident
-            
             object@project.name <- project
-            
-            
-
             object@scale.data <- matrix()
 
               if(do.scale | do.center) {
@@ -298,11 +293,14 @@ setMethod("LogNormalize", "ANY",
 )
 
 #' Make object sparse
-
-#' Converts stored data matrices to sparse matrices to save space
+#'
+#' Converts stored data matrices to sparse matrices to save space. Converts object@@raw.data and object@@data to sparse matrices.
+#' If the snn has been stored as a dense matrix, this will convert it to a sparse matrix, store it in object@@snn.sparse and
+#' remove object@@snn.dense.
+#' 
 #' 
 #' @param object Seurat object
-#' @return Returns a seurat object with object@@raw.data and object@@data converted to sparse matrices
+#' @return Returns a seurat object with data converted to sparse matrices.
 #' @import Matrix
 #' @export
 setGeneric("MakeSparse", function(object) standardGeneric("MakeSparse"))
@@ -314,6 +312,13 @@ setMethod("MakeSparse", "seurat",
             }
             if (class(object@data) == "data.frame"){
               object@data <- as.matrix(object@data)
+            }
+            if (length(object@snn.sparse) == 1 && length(object@snn.dense) > 1) {
+              if (class(object@snn.dense) == "data.frame"){
+                object@snn.dense <- as.matrix(object@snn.dense)
+              }
+              object@snn.sparse <- as(object@snn.dense, "dgCMatrix")
+              object@snn.dense <- matrix()
             }
             object@raw.data <- as(object@raw.data, "dgCMatrix")
             object@data <- as(object@data, "dgCMatrix")
@@ -660,16 +665,17 @@ calc.drop.prob=function(x,a,b) {
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #' @importFrom ape drop.tip
 #' @export
 setGeneric("FindAllMarkersNode", function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                           min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                          do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkersNode"))
+                                          do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkersNode"))
 setMethod("FindAllMarkersNode","seurat",
           function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                   do.print=FALSE, random.seed = 1) {
+                   do.print=FALSE, random.seed = 1, min.cells = 3) {
                       genes.use <- set.ifnull(genes.use, rownames(object@data))
                       node <- set.ifnull(node, tree$edge[1,1])
                       ident.use <- object@ident
@@ -687,7 +693,7 @@ setMethod("FindAllMarkersNode","seurat",
                       for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
                         genes.de[[i]]=FindMarkersNode(object, i, tree.use = tree.use, genes.use = genes.use, thresh.use = thresh.use, test.use = test.use, min.pct = min.pct, 
                                                       min.diff.pct = min.diff.pct, print.bar = print.bar, only.pos = only.pos, max.cells.per.ident = max.cells.per.ident, 
-                                                      random.seed = random.seed)
+                                                      random.seed = random.seed, min.cells = min.cells)
                         if (do.print) print(paste("Calculating node", i))
                       }
                       gde.all=data.frame()
@@ -1917,14 +1923,15 @@ setMethod("FindMarkersNode", "seurat",
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
@@ -1976,8 +1983,8 @@ setMethod("FindMarkers", "seurat",
             if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="tobit") to.return=TobitTest(object,cells.1,cells.2,genes.use,print.bar)
-            if (test.use=="negbinom") to.return=NegBinomDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
-            if (test.use=="poisson") to.return=PoissonDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
+            if (test.use=="negbinom") to.return=NegBinomDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar, min.cells)
+            if (test.use=="poisson") to.return=PoissonDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar, min.cells)
             
             #return results
             to.return[,"avg_diff"]=total.diff[rownames(to.return)]
@@ -2021,16 +2028,17 @@ setMethod("FindMarkers", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
 setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                       min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                      do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkers"))
+                                      do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
       function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
-               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
+               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1, min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
@@ -2040,7 +2048,7 @@ setMethod("FindAllMarkers","seurat",
             
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i], ident.2 = NULL, genes.use = genes.use, thresh.use = thresh.use, 
-                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar)
+                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar, min.cells = min.cells)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -2103,33 +2111,49 @@ setMethod("DiffExpTest", "seurat",
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
 #' @export
-setGeneric("NegBinomDETest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("NegBinomDETest"))
+setGeneric("NegBinomDETest", function(object, cells.1,cells.2, genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) standardGeneric("NegBinomDETest"))
 #' @export
 setMethod("NegBinomDETest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, rownames(object@data))
-            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
-            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
-            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
-            to.test[cells.1,"group"]="A";
-            to.test[cells.2,"group"]="B";
-            to.test$group=factor(to.test$group)
-            latent.vars=c("group",latent.vars)
-            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-            p_val=unlist(iterate.fxn(genes.use,function(x) {
-              to.test[,"GENE"]=to.test.data[x,]
-              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) {
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            to.test[cells.1,"group"]="A"
+            to.test[cells.2,"group"]="B"
+            to.test$group <- factor(to.test$group)
+            latent.vars <- c("group", latent.vars)
+            iterate.fxn <- lapply
+            if (print.bar) iterate.fxn <- pblapply
+            p_val <- unlist(iterate.fxn(genes.use, function(x) {
+              to.test[,"GENE"] <- as.numeric(to.test.data[x, ])
+              # check that gene is expressed in specified number of cells in one group
+              if (sum(to.test$GENE[to.test$group == "A"]) < min.cells || sum(to.test$GENE[to.test$group == "B"]) < min.cells){
+                warning(paste0("Skipping gene ---", x, ". Fewer than", min.cells, "in at least one of the two clusters.", sep=" "))
+                return(2)
+              }
+              # check that variance between groups is not 0
+              if (var(to.test$GENE) == 0){
+                print("what")
+                warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
+                return(2)
+              }
+              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
             }))
-            to.return=data.frame(p_val,row.names = genes.use)
+            genes.use <- genes.use[-which(p_val==2)]
+            p_val <- p_val[!p_val==2]
+            to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
 )
 
-#' Negative binomial test for UMI-count based data
+#' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
-#' a negative binomial generalized linear model
+#' a poisson generalized linear model
 #
 #'
 #' @inheritParams FindMarkers
@@ -2144,21 +2168,37 @@ setGeneric("PoissonDETest", function(object, cells.1,cells.2,genes.use=NULL,late
 #' @export
 setMethod("PoissonDETest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, rownames(object@data))
-            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
-            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
-            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
-            to.test[cells.1,"group"]="A";
-            to.test[cells.2,"group"]="B";
-            to.test$group=factor(to.test$group)
-            latent.vars=c("group",latent.vars)
-            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-            p_val=unlist(iterate.fxn(genes.use,function(x) {
-              to.test[,"GENE"]=to.test.data[x,]
-              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            to.test[cells.1,"group"]="A"
+            to.test[cells.2,"group"]="B"
+            to.test$group <- factor(to.test$group)
+            latent.vars <- c("group", latent.vars)
+            iterate.fxn <- lapply
+            if (print.bar) iterate.fxn <- pblapply
+            p_val <- unlist(iterate.fxn(genes.use, function(x) {
+              to.test[,"GENE"] <- as.numeric(to.test.data[x, ])
+              # check that gene is expressed in specified number of cells in one group
+              if (sum(to.test$GENE[to.test$group == "A"]) < min.cells || sum(to.test$GENE[to.test$group == "B"]) < min.cells){
+                warning(paste0("Skipping gene ---", x, ". Fewer than", min.cells, "in at least one of the two clusters.", sep=" "))
+                return(2)
+              }
+              # check that variance between groups is not 0
+              if (var(to.test$GENE) == 0){
+                print("what")
+                warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
+                return(2)
+              }
+              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm(fmla,data = to.test,family = "poisson"))$coef[2,4])
             }))
-            to.return=data.frame(p_val,row.names = genes.use)
+            genes.use <- genes.use[-which(p_val==2)]
+            p_val <- p_val[!p_val==2]
+            to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
 )
