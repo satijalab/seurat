@@ -182,3 +182,21 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@snn.sparse), 1)
   expect_equal(length(nbt.test@snn.dense), 1)
 })
+-
+# Test cell subsetting functionality
+# --------------------------------------------------------------------------------
+context("Cell Subsetting")
+
+test_that("WhichCells subsets properly", {
+  expect_equal(length(WhichCells(nbt.test, 1)), 4)
+  expect_equal(length(WhichCells(nbt.test, c(1,2))), 6)
+  expect_error(WhichCells(nbt.test, 10))
+  expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
+  
+  expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
+  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -0.8, accept.low = -0.9), "Hi_GW21.2_3")
+  
+  expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
+  expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
+  expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
+})
