@@ -2,8 +2,7 @@
 % Please edit documentation in R/seurat.R
 \name{MakeSparse}
 \alias{MakeSparse}
-\title{Make object sparse
-Converts stored data matrices to sparse matrices to save space}
+\title{Make object sparse}
 \usage{
 MakeSparse(object)
 }
@@ -11,10 +10,11 @@ MakeSparse(object)
 \item{object}{Seurat object}
 }
 \value{
-Returns a seurat object with object@raw.data and object@data converted to sparse matrices
+Returns a seurat object with data converted to sparse matrices.
 }
 \description{
-Make object sparse
-Converts stored data matrices to sparse matrices to save space
+Converts stored data matrices to sparse matrices to save space. Converts object@raw.data and object@data to sparse matrices.
+If the snn has been stored as a dense matrix, this will convert it to a sparse matrix, store it in object@snn.sparse and
+remove object@snn.dense.
 }
 

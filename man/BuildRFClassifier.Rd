@@ -19,8 +19,7 @@ BuildRFClassifier(object, training.genes = NULL, training.classes = NULL,
 \item{...}{additional parameters passed to ranger}
 }
 \value{
-Returns a list with the random forest classifier object as the first element,
-the original classes as the second, and the classes used by the classifier as the third
+Returns the random forest classifier
 }
 \description{
 Train the random forest classifier

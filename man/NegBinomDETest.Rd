@@ -5,7 +5,7 @@
 \title{Negative binomial test for UMI-count based data}
 \usage{
 NegBinomDETest(object, cells.1, cells.2, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE)
+  latent.vars = NULL, print.bar = TRUE, min.cells = 3)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,6 +17,8 @@ NegBinomDETest(object, cells.1, cells.2, genes.use = NULL,
 \item{genes.use}{Genes to test. Default is to use all genes}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+
+\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

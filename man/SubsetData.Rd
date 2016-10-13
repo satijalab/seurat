@@ -6,7 +6,7 @@
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   accept.low = -Inf, accept.high = Inf, do.center = F, do.scale = F,
-  max.cells.per.ident = Inf, ...)
+  max.cells.per.ident = Inf, random.seed = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,6 +30,8 @@ using FetchData}
 \item{do.scale}{Rescale the new object@scale.data. FALSE by default}
 
 \item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+
+\item{random.seed}{Random seed for downsampling}
 
 \item{\dots}{Additional arguments to be passed to FetchData (for example,
 use.imputed=TRUE)}

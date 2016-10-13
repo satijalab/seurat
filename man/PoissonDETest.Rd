@@ -2,7 +2,7 @@
 % Please edit documentation in R/seurat.R
 \name{PoissonDETest}
 \alias{PoissonDETest}
-\title{Negative binomial test for UMI-count based data}
+\title{Poisson test for UMI-count based data}
 \usage{
 PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
   latent.vars = NULL, print.bar = TRUE)
@@ -24,6 +24,6 @@ genes.
 }
 \description{
 Identifies differentially expressed genes between two groups of cells using
-a negative binomial generalized linear model
+a poisson generalized linear model
 }
 
