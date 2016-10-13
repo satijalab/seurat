@@ -182,7 +182,7 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@snn.sparse), 1)
   expect_equal(length(nbt.test@snn.dense), 1)
 })
--
+
 # Test cell subsetting functionality
 # --------------------------------------------------------------------------------
 context("Cell Subsetting")
