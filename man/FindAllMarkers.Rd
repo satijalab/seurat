@@ -44,8 +44,6 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
 \item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
-
-\item{random.seed}{Random seed for downsampling}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

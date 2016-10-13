@@ -4,7 +4,7 @@
 \alias{PrintPCA}
 \title{Print the results of a PCA analysis}
 \usage{
-PrintPCA(object, pcs.print = 1:5, genes.print = 30, use.full = TRUE)
+PrintPCA(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

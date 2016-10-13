@@ -124,7 +124,6 @@ setMethod("Setup","seurat",
             if((ident.levels > 100 || ident.levels == 0)||ident.levels==length(object@ident)) {
               object <- SetIdent(object, ident.use = project)
             }
-
             
             data.ngene <- num.genes[cells.use]
             data.nmol <- num.mol[cells.use]
@@ -133,7 +132,7 @@ setMethod("Setup","seurat",
             
             nGene=data.ngene; nUMI=data.nmol
             object@data.info <- data.frame(nGene,nUMI)
-
+            
             if (!is.null(meta.data)) {
               object <- AddMetaData(object ,metadata = meta.data)
             }
@@ -142,17 +141,13 @@ setMethod("Setup","seurat",
             rownames(object@gene.scores) <- colnames(object@data)
             
             object@data.info[names(object@ident),"orig.ident"] <- object@ident
-            
             object@project.name <- project
-            
-            
-
             object@scale.data <- matrix()
-
-              if(do.scale | do.center) {
-                object <- ScaleData(object,do.scale = do.scale, do.center = do.center)
-              }
-        
+            
+            if(do.scale | do.center) {
+              object <- ScaleData(object,do.scale = do.scale, do.center = do.center)
+            }
+            
             #if(calc.noise) {
             #  object=CalcNoiseModels(object,...)
             #  object=GetWeightMatrix(object)
@@ -298,11 +293,14 @@ setMethod("LogNormalize", "ANY",
 )
 
 #' Make object sparse
-
-#' Converts stored data matrices to sparse matrices to save space
+#'
+#' Converts stored data matrices to sparse matrices to save space. Converts object@@raw.data and object@@data to sparse matrices.
+#' If the snn has been stored as a dense matrix, this will convert it to a sparse matrix, store it in object@@snn.sparse and
+#' remove object@@snn.dense.
+#' 
 #' 
 #' @param object Seurat object
-#' @return Returns a seurat object with object@@raw.data and object@@data converted to sparse matrices
+#' @return Returns a seurat object with data converted to sparse matrices.
 #' @import Matrix
 #' @export
 setGeneric("MakeSparse", function(object) standardGeneric("MakeSparse"))
@@ -314,6 +312,13 @@ setMethod("MakeSparse", "seurat",
             }
             if (class(object@data) == "data.frame"){
               object@data <- as.matrix(object@data)
+            }
+            if (length(object@snn.sparse) == 1 && length(object@snn.dense) > 1) {
+              if (class(object@snn.dense) == "data.frame"){
+                object@snn.dense <- as.matrix(object@snn.dense)
+              }
+              object@snn.sparse <- as(object@snn.dense, "dgCMatrix")
+              object@snn.dense <- matrix()
             }
             object@raw.data <- as(object@raw.data, "dgCMatrix")
             object@data <- as(object@data, "dgCMatrix")
@@ -574,8 +579,7 @@ setMethod("ClassifyCells", "seurat",
 #' @param training.classes Vector of classes to build the classifier on
 #' @param verbose Additional progress print statements
 #' @param ... additional parameters passed to ranger
-#' @return Returns a list with the random forest classifier object as the first element,
-#' the original classes as the second, and the classes used by the classifier as the third
+#' @return Returns the random forest classifier
 #' @import Matrix
 #' @importFrom ranger ranger 
 #' @importFrom plyr mapvalues
@@ -661,53 +665,54 @@ calc.drop.prob=function(x,a,b) {
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #' @importFrom ape drop.tip
 #' @export
 setGeneric("FindAllMarkersNode", function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                           min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                          do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkersNode"))
+                                          do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkersNode"))
 setMethod("FindAllMarkersNode","seurat",
           function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                   do.print=FALSE, random.seed = 1) {
-                      genes.use <- set.ifnull(genes.use, rownames(object@data))
-                      node <- set.ifnull(node, tree$edge[1,1])
-                      ident.use <- object@ident
-                      tree.use <- object@cluster.tree[[1]]
-                      descendants = DFT(tree.use, node, path = NULL, include.children = T)
-                      all.children <- sort(tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-                      descendants <- suppressMessages(mapvalues(descendants, from = all.children, to = tree.use$tip.label))
-                      drop.children <- setdiff(tree.use$tip.label, descendants)
-                      keep.children <- setdiff(tree.use$tip.label, drop.children)
-                      orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
-                      tree.use <- drop.tip(tree.use, drop.children)
-                      new.nodes <- unique(tree.use$edge[,1])
-                      if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh <- 0.7
-                      genes.de <- list()
-                      for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
-                        genes.de[[i]]=FindMarkersNode(object, i, tree.use = tree.use, genes.use = genes.use, thresh.use = thresh.use, test.use = test.use, min.pct = min.pct, 
-                                                      min.diff.pct = min.diff.pct, print.bar = print.bar, only.pos = only.pos, max.cells.per.ident = max.cells.per.ident, 
-                                                      random.seed = random.seed)
-                        if (do.print) print(paste("Calculating node", i))
-                      }
-                      gde.all=data.frame()
-                      for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
-                        gde=genes.de[[i]]
-                        if (is.null(gde)) next;
-                        if (nrow(gde)>0) {
-                          if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
-                          if ((test.use=="bimod")||(test.use=="t")) {
-                            gde=gde[order(gde$p_val,-gde$avg_diff),]
-                            gde=subset(gde,p_val<return.thresh)
-                          }
-                          if (nrow(gde)>0) gde$cluster=i; gde$gene=rownames(gde)
-                          if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
-                        }
-                      }
-                      gde.all$cluster <- mapvalues(gde.all$cluster, from = new.nodes, to = orig.nodes)
-                      return(gde.all)
-                    }
+                   do.print=FALSE, random.seed = 1, min.cells = 3) {
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            node <- set.ifnull(node, tree$edge[1,1])
+            ident.use <- object@ident
+            tree.use <- object@cluster.tree[[1]]
+            descendants = DFT(tree.use, node, path = NULL, include.children = T)
+            all.children <- sort(tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
+            descendants <- suppressMessages(mapvalues(descendants, from = all.children, to = tree.use$tip.label))
+            drop.children <- setdiff(tree.use$tip.label, descendants)
+            keep.children <- setdiff(tree.use$tip.label, drop.children)
+            orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
+            tree.use <- drop.tip(tree.use, drop.children)
+            new.nodes <- unique(tree.use$edge[,1])
+            if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh <- 0.7
+            genes.de <- list()
+            for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+              genes.de[[i]]=FindMarkersNode(object, i, tree.use = tree.use, genes.use = genes.use, thresh.use = thresh.use, test.use = test.use, min.pct = min.pct, 
+                                            min.diff.pct = min.diff.pct, print.bar = print.bar, only.pos = only.pos, max.cells.per.ident = max.cells.per.ident, 
+                                            random.seed = random.seed, min.cells = min.cells)
+              if (do.print) print(paste("Calculating node", i))
+            }
+            gde.all=data.frame()
+            for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+              gde=genes.de[[i]]
+              if (is.null(gde)) next;
+              if (nrow(gde)>0) {
+                if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
+                if ((test.use=="bimod")||(test.use=="t")) {
+                  gde=gde[order(gde$p_val,-gde$avg_diff),]
+                  gde=subset(gde,p_val<return.thresh)
+                }
+                if (nrow(gde)>0) gde$cluster=i; gde$gene=rownames(gde)
+                if (nrow(gde)>0) gde.all=rbind(gde.all,gde)
+              }
+            }
+            gde.all$cluster <- mapvalues(gde.all$cluster, from = new.nodes, to = orig.nodes)
+            return(gde.all)
+          }
 )
 
 weighted.euclidean=function(x,y,w) {
@@ -790,7 +795,7 @@ setMethod("BuildClusterTree","seurat",
             }
             data.tree=as.phylo(hclust(data.dist))
             object@cluster.tree[[1]]=data.tree
-
+            
             if (do.reorder) {
               old.ident.order=sort(unique(object@ident))
               data.tree=object@cluster.tree[[1]]
@@ -883,7 +888,7 @@ setMethod("RegressOut", "seurat",
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
-
+            
             bin.size <- 100;
             if (model.use=="negbinom") bin.size=5;
             bin.ind <- ceiling(1:length(genes.regress)/bin.size)
@@ -919,7 +924,7 @@ setMethod("RegressOut", "seurat",
             object@scale.data=data.resid
             if (do.scale==TRUE) {
               if(use.umi && missing(scale.max)){
-                  scale.max <- 50
+                scale.max <- 50
               }
               object=ScaleData(object,genes.use = rownames(data.resid), data.use = data.resid, do.center = do.center, do.scale = do.scale, scale.max = scale.max)
             }
@@ -986,11 +991,11 @@ setMethod("SubsetData","seurat",
             object@tsne.rot=object@tsne.rot[cells.use,]
             object@pca.rot=object@pca.rot[cells.use,]
             object@cell.names=cells.use
-
+            
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)
             object@data.info=data.frame(object@data.info[cells.use,])
             #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
-
+            
             return(object)
           }
 )
@@ -1022,11 +1027,11 @@ setGeneric("SubsetCells",  function(object,cells.use=NULL,subset.name=NULL,accep
 setMethod("SubsetCells","seurat",
           function(object,cells.use=NULL,subset.name=NULL,accept.low=-Inf, accept.high=Inf,do.center=TRUE,do.scale=TRUE,...) {
             data.use=NULL
-              data.use=FetchData(object,subset.name,cells.use,...)
-              if (length(data.use)==0) return(object)
-              subset.data=data.use[,subset.name]
-              pass.inds=which((subset.data>accept.low) & (subset.data<accept.high))
-              cells.use=rownames(data.use)[pass.inds]
+            data.use=FetchData(object,subset.name,cells.use,...)
+            if (length(data.use)==0) return(object)
+            subset.data=data.use[,subset.name]
+            pass.inds=which((subset.data>accept.low) & (subset.data<accept.high))
+            cells.use=rownames(data.use)[pass.inds]
             return(cells.use)
           }
 )
@@ -1077,21 +1082,21 @@ setMethod("ProjectPCA", "seurat",
               object@pca.x.full <- data.frame(matrix(NA, nrow = length(genes.use), ncol = ncol(object@pca.rot)))
               rownames(object@pca.x.full) <- genes.use 
               colnames(object@pca.x.full) <- colnames(object@pca.rot)
-             # dimnames(object@scale.data)=dimnames(data.use)
-
-                bin.size <- 1000
-                max.bin <- floor(length(genes.use)/bin.size) + 1
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-                for(i in 1:max.bin) {
-                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                  my.inds <- my.inds[my.inds <= length(genes.use)]
-                  #print(my.inds)
-                  object@pca.x.full[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
-                  setTxtProgressBar(pb, i)  
-                }
-                close(pb)
-              }
+              # dimnames(object@scale.data)=dimnames(data.use)
               
+              bin.size <- 1000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                #print(my.inds)
+                object@pca.x.full[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+            }
+            
             if (do.center) object@pca.x.full=data.frame(scale(as.matrix(object@scale.data),center = TRUE,scale = FALSE)%*%as.matrix(object@pca.rot))
             if (ncol(object@jackStraw.fakePC)>0) {
               object@jackStraw.empP.full=data.frame(sapply(1:ncol(object@jackStraw.fakePC),function(x)unlist(lapply(abs(object@pca.x.full[,x]),empP,abs(object@jackStraw.fakePC[,x])))))
@@ -1099,14 +1104,14 @@ setMethod("ProjectPCA", "seurat",
               rownames(object@jackStraw.empP.full)=rownames(object@scale.data)
             }
             object@pca.x.full[is.na(object@pca.x.full)]=0
-
+            
             if (replace.pc==TRUE) {
               object@jackStraw.empP=object@jackStraw.empP.full
               object@pca.x=object@pca.x.full
             }
-
+            
             if (do.print) {
-                PrintPCA(object,1:pcs.print,genes.print,TRUE)
+              PrintPCA(object,1:pcs.print,genes.print,TRUE)
             }
             return(object)
           }
@@ -1150,8 +1155,8 @@ setMethod("RunTSNE", "seurat",
               genes.use=ainb(genes.use,rownames(object@data))
               data.use=t(object@data[genes.use,cells.use])
             }
-
-
+            
+            
             #data.dist=as.dist(mahalanobis.dist(data.use))
             if (do.fast) {
               set.seed(k.seed); data.tsne=Rtsne(as.matrix(data.use),dims=dim_embed,...)
@@ -1330,13 +1335,13 @@ setMethod("PCA", "seurat",
             pc.genes=set.ifnull(pc.genes,object@var.genes)
             pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
-
+            
             if (rev.pca) {
               pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
               pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(pc.data,...)
               object@pca.obj=list(pca.obj)
-
+              
               pcs.store=min(pcs.store,ncol(pc.data))
               pcs.print=min(pcs.print,ncol(pc.data))
               object@pca.x=data.frame(pca.obj$x[,1:pcs.store])
@@ -1347,13 +1352,13 @@ setMethod("PCA", "seurat",
               pc.data = data.use[pc.genes.use,]
               pca.obj = prcomp(t(pc.data),...)
               object@pca.obj=list(pca.obj)
-  
+              
               pcs.store=min(pcs.store, ncol(pca.obj$rotation))
               pcs.print=min(pcs.print, ncol(pca.obj$rotation))
               object@pca.x=data.frame(pca.obj$rotation[,1:pcs.store])
               object@pca.rot=data.frame(pca.obj$x[,1:pcs.store])
             }
-
+            
             if (do.print) {
               pc_scores=object@pca.x
               for(i in 1:pcs.print) {
@@ -1362,7 +1367,7 @@ setMethod("PCA", "seurat",
                 print(code)
                 print(rownames(sx[1:genes.print,]))
                 print ("")
-
+                
                 print(rev(rownames(sx[(nrow(sx)-genes.print+1):nrow(sx),])))
                 print ("")
                 print ("")
@@ -1403,7 +1408,7 @@ setMethod("PCAFast", "seurat",
             pc.genes=set.ifnull(pc.genes, object@var.genes)
             pc.genes = unique(pc.genes[pc.genes%in%rownames(data.use)])
             pc.genes.var = apply(data.use[pc.genes,],1,var)
-
+            
             pc.genes.use=pc.genes[pc.genes.var>0]; pc.genes.use=pc.genes.use[!is.na(pc.genes.use)]
             pc.data = data.use[pc.genes.use,]
             pca.obj = irlba(t(pc.data),nv = pcs.compute,...)
@@ -1642,7 +1647,7 @@ setGeneric("PCTopCells",  function(object,pc.use=1,num.cells=NULL,do.balanced=FA
 #' @export
 setMethod("PCTopCells", "seurat",
           function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) {
-
+            
             #note that we use topGenesForDim, but it still works
             num.cells=set.ifnull(num.cells,length(object@cell.names))
             pc_scores=object@pca.rot
@@ -1675,7 +1680,7 @@ setMethod("PrintPCA", "seurat",
               print(code)
               print((sx[1:genes.print]))
               print ("")
-
+              
               print(rev((sx[(length(sx)-genes.print+1):length(sx)])))
               print ("")
               print ("")
@@ -1778,7 +1783,7 @@ setMethod("VizICA", "seurat",
             }
             num.row=floor(length(ics.use)/nCol-1e-5)+1
             par(mfrow=c(num.row,nCol))
-
+            
             for(i in ics.use) {
               subset.use=ic_scores[ICTopGenes(object,i,num.genes,do.balanced),]
               print(head(subset.use))
@@ -1811,7 +1816,7 @@ setMethod("VizPCA", "seurat",
           function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
             pc_scores=object@pca.x
             if (use.full==TRUE) pc_scores = object@pca.x.full
-
+            
             if (is.null(nCol)) {
               nCol=2
               if (length(pcs.use)>6) nCol=3
@@ -1819,7 +1824,7 @@ setMethod("VizPCA", "seurat",
             }
             num.row=floor(length(pcs.use)/nCol-1e-5)+1
             par(mfrow=c(num.row,nCol))
-
+            
             for(i in pcs.use) {
               subset.use=pc_scores[PCTopGenes(object,i,num.genes,use.full,do.balanced),]
               plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
@@ -1918,14 +1923,15 @@ setMethod("FindMarkersNode", "seurat",
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI") {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
@@ -1945,7 +1951,7 @@ setMethod("FindMarkers", "seurat",
               cells.2=ainb(ident.2,object@cell.names)
             }
             cells.2=anotinb(cells.2,cells.1)
-
+            
             #error checking
             if (length(cells.1)==0) {
               print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
@@ -1968,7 +1974,7 @@ setMethod("FindMarkers", "seurat",
             data.1=apply(object@data[genes.use,cells.1],1,expMean)
             data.2=apply(object@data[genes.use,cells.2],1,expMean)
             total.diff=(data.1-data.2)
-
+            
             genes.diff = names(which(abs(total.diff)>thresh.use))
             genes.use=ainb(genes.use,genes.diff)
             
@@ -1977,8 +1983,8 @@ setMethod("FindMarkers", "seurat",
             if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="t") to.return=DiffTTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="tobit") to.return=TobitTest(object,cells.1,cells.2,genes.use,print.bar)
-            if (test.use=="negbinom") to.return=NegBinomDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
-            if (test.use=="poisson") to.return=PoissonDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar)
+            if (test.use=="negbinom") to.return=NegBinomDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar, min.cells)
+            if (test.use=="poisson") to.return=PoissonDETest(object,cells.1,cells.2,genes.use,latent.vars,print.bar, min.cells)
             
             #return results
             to.return[,"avg_diff"]=total.diff[rownames(to.return)]
@@ -2022,16 +2028,17 @@ setMethod("FindMarkers", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
 setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                                       min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                      do.print=FALSE, random.seed = 1) standardGeneric("FindAllMarkers"))
+                                      do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkers"))
 #' @export
 setMethod("FindAllMarkers","seurat",
-      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
-               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
+                   print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1, min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
@@ -2041,7 +2048,7 @@ setMethod("FindAllMarkers","seurat",
             
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i], ident.2 = NULL, genes.use = genes.use, thresh.use = thresh.use, 
-                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar)
+                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar, min.cells = min.cells)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -2104,33 +2111,49 @@ setMethod("DiffExpTest", "seurat",
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
 #' @export
-setGeneric("NegBinomDETest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("NegBinomDETest"))
+setGeneric("NegBinomDETest", function(object, cells.1,cells.2, genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) standardGeneric("NegBinomDETest"))
 #' @export
 setMethod("NegBinomDETest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, rownames(object@data))
-            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
-            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
-            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
-            to.test[cells.1,"group"]="A";
-            to.test[cells.2,"group"]="B";
-            to.test$group=factor(to.test$group)
-            latent.vars=c("group",latent.vars)
-            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-            p_val=unlist(iterate.fxn(genes.use,function(x) {
-              to.test[,"GENE"]=to.test.data[x,]
-              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) {
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            to.test[cells.1,"group"]="A"
+            to.test[cells.2,"group"]="B"
+            to.test$group <- factor(to.test$group)
+            latent.vars <- c("group", latent.vars)
+            iterate.fxn <- lapply
+            if (print.bar) iterate.fxn <- pblapply
+            p_val <- unlist(iterate.fxn(genes.use, function(x) {
+              to.test[,"GENE"] <- as.numeric(to.test.data[x, ])
+              # check that gene is expressed in specified number of cells in one group
+              if (sum(to.test$GENE[to.test$group == "A"]) < min.cells || sum(to.test$GENE[to.test$group == "B"]) < min.cells){
+                warning(paste0("Skipping gene ---", x, ". Fewer than", min.cells, "in at least one of the two clusters.", sep=" "))
+                return(2)
+              }
+              # check that variance between groups is not 0
+              if (var(to.test$GENE) == 0){
+                print("what")
+                warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
+                return(2)
+              }
+              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
             }))
-            to.return=data.frame(p_val,row.names = genes.use)
+            genes.use <- genes.use[-which(p_val==2)]
+            p_val <- p_val[!p_val==2]
+            to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
 )
 
-#' Negative binomial test for UMI-count based data
+#' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
-#' a negative binomial generalized linear model
+#' a poisson generalized linear model
 #
 #'
 #' @inheritParams FindMarkers
@@ -2145,21 +2168,37 @@ setGeneric("PoissonDETest", function(object, cells.1,cells.2,genes.use=NULL,late
 #' @export
 setMethod("PoissonDETest", "seurat",
           function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
-            genes.use=set.ifnull(genes.use, rownames(object@data))
-            my.latent=FetchData(object,latent.vars,cells.use=c(cells.1,cells.2),use.raw=T)
-            to.test.data=(object@raw.data[genes.use,c(cells.1,cells.2)]); 
-            to.test=data.frame(my.latent,row.names = c(cells.1,cells.2))
-            to.test[cells.1,"group"]="A";
-            to.test[cells.2,"group"]="B";
-            to.test$group=factor(to.test$group)
-            latent.vars=c("group",latent.vars)
-            iterate.fxn=lapply; if (print.bar) iterate.fxn=pblapply
-            p_val=unlist(iterate.fxn(genes.use,function(x) {
-              to.test[,"GENE"]=to.test.data[x,]
-              fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            to.test[cells.1,"group"]="A"
+            to.test[cells.2,"group"]="B"
+            to.test$group <- factor(to.test$group)
+            latent.vars <- c("group", latent.vars)
+            iterate.fxn <- lapply
+            if (print.bar) iterate.fxn <- pblapply
+            p_val <- unlist(iterate.fxn(genes.use, function(x) {
+              to.test[,"GENE"] <- as.numeric(to.test.data[x, ])
+              # check that gene is expressed in specified number of cells in one group
+              if (sum(to.test$GENE[to.test$group == "A"]) < min.cells || sum(to.test$GENE[to.test$group == "B"]) < min.cells){
+                warning(paste0("Skipping gene ---", x, ". Fewer than", min.cells, "in at least one of the two clusters.", sep=" "))
+                return(2)
+              }
+              # check that variance between groups is not 0
+              if (var(to.test$GENE) == 0){
+                print("what")
+                warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
+                return(2)
+              }
+              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm(fmla,data = to.test,family = "poisson"))$coef[2,4])
             }))
-            to.return=data.frame(p_val,row.names = genes.use)
+            genes.use <- genes.use[-which(p_val==2)]
+            p_val <- p_val[!p_val==2]
+            to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
 )
@@ -2313,7 +2352,7 @@ setMethod("WhichCells", "seurat",
               cells.to.use <- c(cells.to.use, cells.in.ident)
             }
             cells.use <- cells.to.use
-              
+            
             if (!missing(subset.name)){
               data.use <- FetchData(object, subset.name, cells.use)
               if (length(data.use) == 0) {
@@ -2454,8 +2493,8 @@ setMethod("PosteriorPlot", "seurat",
           function(object, name) {
             post.names=colnames(subc(object@mix.probs,name))
             VlnPlot(object,post.names,inc.first=TRUE,inc.final=TRUE,by.k=TRUE)
-
-
+            
+            
           }
 )
 
@@ -2482,7 +2521,7 @@ setMethod("MapCell", "seurat",
             imputed.use=object@imputed[insitu.genes,]
             safe_fxn=sum
             if (safe.use) safe_fxn=log_add
-
+            
             all.needed.cols=unique(unlist(lapply(insitu.genes,function(x) paste(x,insitu.use[,x],"post",sep="."))))
             missing.cols=which(!(all.needed.cols%in%colnames(object@mix.probs)))
             if (length(missing.cols)>0) stop(paste("Error : ", all.needed.cols[missing.cols], " is missing from the mixture fits",sep=""))
@@ -2526,17 +2565,17 @@ setGeneric("GetCentroids", function(object, cells.use=NULL,get.exact=TRUE) stand
 setMethod("GetCentroids", "seurat",
           function(object, cells.use=NULL,get.exact=TRUE) {
             cells.use=set.ifnull(cells.use,colnames(object@final.prob))
-
+            
             #Error checking
             cell.names=ainb(cells.use, colnames(object@final.prob))
             if (length(cell.names)!=length(cells.use)) {
               print(paste("Error", anotinb(cells.use,colnames(object@final.prob)), " have not been mapped"))
               return(0);
             }
-
+            
             if (get.exact) my.centroids=data.frame(t(sapply(colnames(object@data),function(x) exact.cell.centroid(object@final.prob[,x])))); colnames(my.centroids)=c("bin.x","bin.y")
             if (!(get.exact)) my.centroids=data.frame(t(sapply(colnames(object@data),function(x) cell.centroid(object@final.prob[,x])))); colnames(my.centroids)=c("bin.x","bin.y")
-
+            
             return(my.centroids)
           }
 )
@@ -2559,12 +2598,12 @@ setGeneric("RefinedMapping",  function(object,genes.use) standardGeneric("Refine
 #' @export
 setMethod("RefinedMapping", "seurat",
           function(object,genes.use) {
-
+            
             genes.use=ainb(genes.use, rownames(object@imputed))
             cells.max=t(sapply(colnames(object@data),function(x) exact.cell.centroid(object@final.prob[,x])))
             all.mu=sapply(genes.use,function(gene) sapply(1:64, function(bin) mean(as.numeric(object@imputed[gene,fetch.closest(bin,cells.max,2*length(genes.use))]))))
             all.cov=list(); for(x in 1:64) all.cov[[x]]=cov(t(object@imputed[genes.use,fetch.closest(x,cells.max,2*length(genes.use))]))
-
+            
             mv.probs=sapply(colnames(object@data),function(my.cell) sapply(1:64,function(bin) slimdmvnorm(as.numeric(object@imputed[genes.use,my.cell]),as.numeric(all.mu[bin,genes.use]),all.cov[[bin]])))
             mv.final=exp(sweep(mv.probs,2,apply(mv.probs,2,log_add)))
             object@final.prob=data.frame(mv.final)
@@ -2667,7 +2706,7 @@ setMethod("FitGeneK", "seurat",
             genes.use=set.ifnull(genes.use,rownames(scale.data))
             genes.use=genes.use[genes.use%in%rownames(scale.data)]
             scale.data=scale.data[genes.use,]
-
+            
             data.cut=as.numeric(data.use[gene,])
             cell.ident=as.numeric(cut(data.cut,do.k))
             if (!(is.null(start.pct))) {
@@ -2689,7 +2728,7 @@ setMethod("FitGeneK", "seurat",
             norm.probs=cbind(norm.probs,cell.ident); colnames(norm.probs)[ncol(norm.probs)]=paste(gene,".ident",sep="")
             new.mix.probs=data.frame(minusc(object@mix.probs,paste(gene,".",sep="")),row.names = rownames(object@mix.probs)); colnames(new.mix.probs)[1]="nGene"
             object@mix.probs=cbind(new.mix.probs,norm.probs)
-
+            
             if (do.plot) {
               nCol=2
               num.row=floor((do.k+1)/nCol-1e-5)+1
@@ -2720,7 +2759,7 @@ setMethod("FitGeneMix", "seurat",
             comp.order=order(mixtools.fit$mu)
             mixtools.posterior=data.frame(mixtools.fit$posterior[,comp.order])
             colnames(mixtools.posterior)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"post",sep=".")))
-
+            
             #mixtools.mu=data.frame(mixtools.fit$mu[comp.order])
             #mixtools.sigma=data.frame(mixtools.fit$sigma[comp.order])
             #mixtools.alpha=data.frame(mixtools.fit$lambda[comp.order])
@@ -2730,7 +2769,7 @@ setMethod("FitGeneMix", "seurat",
             #object@mix.mu = rbind(minusr(object@mix.mu,gene), mixtools.mu);
             #object@mix.sigma = rbind(minusr(object@mix.sigma,gene), mixtools.sigma);
             #o#bject@mu.alpha =rbind(minusr(object@mu.alpha,gene), mixtools.alpha);
-
+            
             if (do.plot) {
               nCol=2
               num.row=floor((do.k+1)/nCol-1e-5)+1
@@ -2773,7 +2812,7 @@ setMethod("AddSmoothedScore", "seurat",
           function(object,genes.fit=NULL,dim.1=1,dim.2=2,reduction.use="tSNE",k=30,do.log=FALSE,do.print=FALSE) {
             genes.fit=set.ifnull(genes.fit,object@var.genes)
             genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
-
+            
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes)
             knn.smooth=get.knn(data.plot,k)$nn.index
@@ -2783,7 +2822,7 @@ setMethod("AddSmoothedScore", "seurat",
             colnames(lasso.fits)=rownames(data.plot)
             genes.old=genes.fit[genes.fit%in%rownames(object@imputed)]
             genes.new=genes.fit[!(genes.fit%in%rownames(object@imputed))]
-
+            
             if (length(genes.old)>0) object@imputed[genes.old,]=lasso.fits[genes.old,]
             object@imputed=rbind(object@imputed,lasso.fits[genes.new,])
             return(object)
@@ -2816,12 +2855,12 @@ setMethod("AddImputedScore", "seurat",
             genes.fit=set.ifnull(genes.fit,object@var.genes)
             genes.use=genes.use[genes.use%in%rownames(object@data)]
             genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
-
+            
             lasso.input=t(object@data[genes.use,])
             lasso.fits=data.frame(t(sapply(genes.fit,function(x)lasso.fxn(t(object@data[genes.use[genes.use!=x],]),object@data[x,],s.use=s.use,x,do.print,gram))))
             genes.old=genes.fit[genes.fit%in%rownames(object@imputed)]
             genes.new=genes.fit[!(genes.fit%in%rownames(object@imputed))]
-
+            
             if (length(genes.old)>0) object@imputed[genes.old,]=lasso.fits[genes.old,]
             object@imputed=rbind(object@imputed,lasso.fits[genes.new,])
             return(object)
@@ -2879,7 +2918,7 @@ setMethod("CalcNoiseModels","seurat",
             data$avg=code_humpAvg
             rownames(idents)=rownames(data)
             my.coefs=data.frame(t(pbsapply(colnames(data[1:(ncol(data)-2)]),
-                                         getAB,data=data,data2=idents,status="code",code2="humpAvg",hasBin=TRUE,doPlot=FALSE)))
+                                           getAB,data=data,data2=idents,status="code",code2="humpAvg",hasBin=TRUE,doPlot=FALSE)))
             colnames(my.coefs)=c("a","b")
             object@drop.coefs = my.coefs
             return(object)
@@ -2926,7 +2965,7 @@ setMethod("FeaturePlot", "seurat",
             par(mfrow=c(num.row,nCol))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes)
-
+            
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
@@ -3011,7 +3050,7 @@ setMethod("FeatureHeatmap", "seurat",
             par(mfrow=c(length(features.plot),length(idents.use)))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=data.frame(FetchData(object,dim.codes))
-
+            
             ident.use=as.factor(object@ident)
             data.plot$ident=ident.use
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
@@ -3025,7 +3064,7 @@ setMethod("FeatureHeatmap", "seurat",
             data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
             #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
             p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
-
+            
             p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
             p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
             print(p2)
@@ -3098,7 +3137,7 @@ setGeneric("PCAPlot", function(object,...) standardGeneric("PCAPlot"))
 #' @export
 setMethod("PCAPlot", "seurat",
           function(object,...) {
-              return(DimPlot(object,reduction.use = "pca", label.size = 6, ...))
+            return(DimPlot(object,reduction.use = "pca", label.size = 6, ...))
           }
 )
 
@@ -3144,7 +3183,7 @@ setMethod("DimPlot", "seurat",
             cells.use=set.ifnull(cells.use,colnames(object@data))
             dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes,cells.use)
-
+            
             ident.use=as.factor(object@ident[cells.use])
             if (group.by != "ident") ident.use=as.factor(FetchData(object,group.by)[,1])
             data.plot$ident=ident.use
@@ -3201,7 +3240,7 @@ setMethod("SpatialDe", "seurat",
             embed.dist=sort(as.matrix(dist((embed.map)))["marker",])
             embed.diff=names(embed.dist[!(names(embed.dist)%in%marker.cells)][1:(mult.use*length(marker.cells))][-1])
             embed.diff.far=names(embed.dist[!(names(embed.dist)%in%marker.cells)][1:(mult.use.far*length(marker.cells))][-1])
-
+            
             diff.genes=rownames(subset(DiffExpTest(p15,marker.cells,embed.diff,genes.use=genes.use),p_val<(1e-5)))
             diff.genes=subset(DiffExpTest(p15,marker.cells,embed.diff,genes.use = diff.genes),p_val<(1e-10))
             return(diff.genes)
@@ -3232,14 +3271,14 @@ setMethod("DBClustDimension", "seurat",
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             set.seed(seed.use); data.mclust=ds <- dbscan(data.plot[,c("x","y")],eps = G.use,...)
-
+            
             to.set=as.numeric(data.mclust$cluster+1)
             data.names=names(object@ident)
             object@data.info[data.names,"DBclust.ident"]=to.set
             if (set.ident) {
               object@ident=factor(to.set); names(object@ident)=data.names;
             }
-
+            
             return(object)
           }
 )
@@ -3279,7 +3318,7 @@ setMethod("KClustDimension", "seurat",
             if (set.ident) {
               object@ident=factor(to.set); names(object@ident)=data.names;
             }
-
+            
             return(object)
           }
 )
@@ -3367,7 +3406,7 @@ setMethod("DoHeatmap","seurat",
             }
             data.use=object@scale.data[genes.use,cells.use]
             if (!do.scale) data.use=as.matrix(object@data[genes.use,cells.use])
-
+            
             if (do.scale) data.use=minmax(data.use,min=disp.min,max=disp.max)
             vline.use=NULL;
             colsep.use=NULL
@@ -3448,7 +3487,7 @@ setMethod("PCHeatmap","seurat",
             par(mfrow=c(num.row, min(length(pc.use),3)))
             cells <- cells.use
             plots <- c()
-
+            
             if (is.null(label.columns)){
               if (length(pc.use) > 1){
                 label.columns = FALSE
@@ -3457,7 +3496,7 @@ setMethod("PCHeatmap","seurat",
                 label.columns = TRUE
               }
             }
-
+            
             for(pc in pc.use){
               if (is.numeric((cells))) {
                 cells.use=PCTopCells(object,pc,cells,do.balanced)
@@ -3471,16 +3510,16 @@ setMethod("PCHeatmap","seurat",
               data.use=minmax(data.use,min=disp.min,max=disp.max)
               if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
               vline.use=NULL;
-
+              
               if (remove.key || length(pc.use) > 1){
                 hmFunction <- "heatmap2NoKey(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, pc = pc, "
               }
               else{
                 hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, main = paste(\"PC\",pc) , "
               }
-
+              
               if (!label.columns){
-
+                
                 hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
               }
               hmFunction <- paste(hmFunction, "...)", sep="")
@@ -3492,7 +3531,7 @@ setMethod("PCHeatmap","seurat",
             # reset graphics parameters
             par(mfrow=orig_par)
           }
-
+          
 )
 
 #' Node Heatmap
@@ -3512,35 +3551,35 @@ setMethod("PCHeatmap","seurat",
 setGeneric("HeatmapNode", function(object, marker.list, node = NULL, max.genes = 10,...) standardGeneric("HeatmapNode"))
 #' @export
 setMethod("HeatmapNode","seurat", function(object, marker.list, node = NULL, max.genes = 10, ...){
-    tree <- object@cluster.tree[[1]]
-    node <- set.ifnull(node, min(marker.list$cluster))
-    node.order <- c(node, DFT(tree, node))
-    marker.list$rank <- seq(1:nrow(marker.list))
-    marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -rank) %>% 
-      select(gene, cluster) -> pos.genes
-    marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -rank) %>% 
-      select(gene, cluster) -> neg.genes 
-    gene.list <- vector()
-    node.stack <- vector()
-    for (n in node.order){
-      if(NodeHasChild(tree, n)){
-        gene.list <- c(gene.list, c(subset(pos.genes, cluster == n)$gene, subset(neg.genes, cluster == n)$gene))
-        if(NodeHasOnlyChildren(tree, n)){
-          gene.list <- c(gene.list, subset(neg.genes, cluster == node.stack[length(node.stack)])$gene)
-          node.stack <- node.stack[-length(node.stack)]
-        }
-      }
-      else{
-        gene.list <- c(gene.list, subset(pos.genes, cluster == n)$gene)
-        node.stack <- append(node.stack, n)
+  tree <- object@cluster.tree[[1]]
+  node <- set.ifnull(node, min(marker.list$cluster))
+  node.order <- c(node, DFT(tree, node))
+  marker.list$rank <- seq(1:nrow(marker.list))
+  marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>% top_n(max.genes, -rank) %>% 
+    select(gene, cluster) -> pos.genes
+  marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>% top_n(max.genes, -rank) %>% 
+    select(gene, cluster) -> neg.genes 
+  gene.list <- vector()
+  node.stack <- vector()
+  for (n in node.order){
+    if(NodeHasChild(tree, n)){
+      gene.list <- c(gene.list, c(subset(pos.genes, cluster == n)$gene, subset(neg.genes, cluster == n)$gene))
+      if(NodeHasOnlyChildren(tree, n)){
+        gene.list <- c(gene.list, subset(neg.genes, cluster == node.stack[length(node.stack)])$gene)
+        node.stack <- node.stack[-length(node.stack)]
       }
     }
-    #gene.list <- rev(unique(rev(gene.list)))
-    descendants <- getDescendants(tree, node)
-    children <- descendants[!descendants %in% tree$edge[,1]]
-    all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]]
-    DoHeatmap(object, cells.use = WhichCells(object, children), genes.use = gene.list, slim.col.label = T, remove.key = T, ...)
+    else{
+      gene.list <- c(gene.list, subset(pos.genes, cluster == n)$gene)
+      node.stack <- append(node.stack, n)
+    }
   }
+  #gene.list <- rev(unique(rev(gene.list)))
+  descendants <- getDescendants(tree, node)
+  children <- descendants[!descendants %in% tree$edge[,1]]
+  all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]]
+  DoHeatmap(object, cells.use = WhichCells(object, children), genes.use = gene.list, slim.col.label = T, remove.key = T, ...)
+}
 )
 
 
@@ -3721,17 +3760,17 @@ setMethod("CalinskiPlot","seurat",
             names(pvals.min)=rownames(object@jackStraw.empP.full)
             genes.use=names(pvals.min)[pvals.min<pval.cut]
             genes.use=genes.use[genes.use%in%rownames(object@scale.data)]
-
+            
             par(mfrow=c(1,2))
-
+            
             mydata <- object@scale.data[genes.use,]
             wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
             for (i in 1:gene.max) wss[i] <- sum(kmeans(mydata,
                                                        centers=i)$withinss)
             plot(1:gene.max, wss, type="b", xlab="Number of Clusters for Genes",
                  ylab="Within groups sum of squares")
-
-
+            
+            
             mydata <- t(object@scale.data[genes.use,])
             wss <- (nrow(mydata)-1)*sum(apply(mydata,2,var))
             for (i in 1:col.max) wss[i] <- sum(kmeans(mydata,
@@ -3792,7 +3831,7 @@ setMethod("DotPlot","seurat",
             axis(1,at = 1:length(genes.plot),genes.plot)
             axis(2,at=1:ncol(avg.alpha),colnames(avg.alpha),las=1)
           }
-
+          
 )
 
 #' Single cell violin plot
@@ -3851,7 +3890,7 @@ setMethod("VlnPlot","seurat",
             if (!is.null(group.by)) ident.use=as.factor(FetchData(object,group.by)[,1])
             gene.names <- rownames(data.use)[rownames(data.use) %in% rownames(object@data)]
             pList=lapply(features.plot,function(x) plot.Vln(x,data.use[x,,drop=FALSE],ident.use,ylab.max,TRUE,do.sort,size.x.use,size.y.use,size.title.use,adjust.use,size.use,cols.use,gene.names,y.log))
-
+            
             if(do.ret) {
               return(pList)
             }
@@ -3975,28 +4014,28 @@ setMethod("JackStrawPlot","seurat",
             pAll$Contig <- rownames(pAll)
             pAll.l <- melt(pAll, id.vars = "Contig")
             colnames(pAll.l) <- c("Contig", "PC", "Value")
-
+            
             qq.df <- NULL
             score.df <- NULL
             for (i in PCs){
               q <- qqplot(pAll[, i],runif(1000),plot.it=FALSE)
-
+              
               #pc.score=mean(q$y[which(q$x <=score.thresh)])
               pc.score=prop.test(c(length(which(pAll[, i] <= score.thresh)), floor(nrow(pAll) * score.thresh)), c(nrow(pAll), nrow(pAll)))$p.val
               if (length(which(pAll[, i] <= score.thresh))==0) pc.score=1
-
+              
               if(is.null(score.df))
                 score.df <- data.frame(PC=paste("PC",i, sep=""), Score=pc.score)
               else
                 score.df <- rbind(score.df, data.frame(PC=paste("PC",i, sep=""), Score=pc.score))
-
-
+              
+              
               if (is.null(qq.df))
                 qq.df <- data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep=""))
               else
                 qq.df <- rbind(qq.df, data.frame(x=q$x, y=q$y, PC=paste("PC",i, sep="")))
             }
-
+            
             # create new dataframe column to wrap on that includes the PC number and score
             pAll.l$PC.Score <- rep(paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)), each=length(unique(pAll.l$Contig)))
             pAll.l$PC.Score <- factor(pAll.l$PC.Score, levels = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)))
@@ -4155,7 +4194,7 @@ setMethod("JackStrawMC","seurat",
             md.rot=as.matrix(object@pca.rot)
             if (!(do.print)) fake.pcVals.raw=mclapply(1:num.replicate, function(x)jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x), mc.cores = num.cores)
             if ((do.print)) fake.pcVals.raw=mclapply(1:num.replicate,function(x){ print(x); jackRandom(scaled.data=object@scale.data[pc.genes,],prop=prop.freq,r1.use = 1,r2.use = num.pc,seed.use=x)}, mc.cores=num.cores)
-
+            
             fake.pcVals=simplify2array(mclapply(1:num.pc,function(x)as.numeric(unlist(lapply(1:num.replicate,function(y)fake.pcVals.raw[[y]][,x]))), mc.cores=num.cores))
             object@jackStraw.fakePC = data.frame(fake.pcVals)
             object@jackStraw.empP=data.frame(simplify2array(mclapply(1:num.pc,function(x)unlist(lapply(abs(md.x[,x]),empP,abs(fake.pcVals[,x]))), mc.cores=num.cores)))
@@ -4192,7 +4231,7 @@ setGeneric("JackStraw", function(object,num.pc=30,num.replicate=100,prop.freq=0.
 #' @export
 setMethod("JackStraw","seurat",
           function(object,num.pc=30,num.replicate=100,prop.freq=0.01,do.print=FALSE, rev.pca=FALSE, do.fast = FALSE) {
-
+            
             # check that PCA calculation method matches
             if(do.fast){
               if(is.null(object@pca.obj[[1]]$d)){
@@ -4214,9 +4253,9 @@ setMethod("JackStraw","seurat",
               num.pc <- length(object@cell.names)
               warning("Number of PCs specified is greater than number of cells. Setting num.pc to ", num.pc, " and continuing.")
             }
-
+            
             pc.genes=rownames(object@pca.x)
-
+            
             if (length(pc.genes) < 3){
               stop("Too few variable genes")
             }
@@ -4224,7 +4263,7 @@ setMethod("JackStraw","seurat",
               warning("Number of variable genes given ", prop.freq, " as the prop.freq is low. Consider including more variable genes and/or increasing prop.freq. ",
                       "Continuing with 3 genes in every random sampling.")
             }
-
+            
             
             
             md.x=as.matrix(object@pca.x)
@@ -4245,15 +4284,15 @@ setMethod("JackStraw","seurat",
 jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.pca=FALSE, do.fast = FALSE) {
   set.seed(seed.use)
   rand.genes <- sample(rownames(scaled.data), nrow(scaled.data) * prop.use)
-
+  
   # make sure that rand.genes is at least 3
   if (length(rand.genes) < 3){
     rand.genes <- sample(rownames(scaled.data), 3)
   }
-
+  
   data.mod <- scaled.data
   data.mod[rand.genes, ] <- shuffleMatRow(scaled.data[rand.genes, ])
-
+  
   if(rev.pca){
     if(do.fast){
       fake.pca <- irlba(data.mod, nv = r2.use)
@@ -4287,7 +4326,7 @@ jackRandom=function(scaled.data,prop.use=0.01,r1.use=1,r2.use=5, seed.use=1,rev.
       fake.rot <- fake.pca$x
     }
   }
-
+  
   return(fake.x[rand.genes, r1.use:r2.use])
 }
 
@@ -4301,14 +4340,14 @@ setMethod("JackStrawFull","seurat",
             real.fval=sapply(1:num.pc,function(x)unlist(lapply(pc.genes,jackF,r1=x,r2=x,md.x,md.rot)))
             rownames(real.fval)=pc.genes
             object@real.fval=data.frame(real.fval)
-
+            
             fake.fval=sapply(1:num.pc,function(x)unlist(replicate(num.replicate,
                                                                   jackStrawF(prop=prop.freq,data=object@scale.data[pc.genes,],myR1 = x,myR2 = x),simplify=FALSE)))
             rownames(fake.fval)=1:nrow(fake.fval)
             object@fake.fval=data.frame(fake.fval)
-
+            
             object@emp.pval=data.frame(sapply(1:num.pc,function(x)unlist(lapply(object@real.fval[,x],empP,object@fake.fval[,x]))))
-
+            
             rownames(object@emp.pval)=pc.genes
             colnames(object@emp.pval)=paste("PC",1:ncol(object@emp.pval),sep="")
             return(object)
@@ -4409,9 +4448,9 @@ setMethod("PCElbowPlot","seurat",
 #' The result of all analysis is stored in object@@mean.var
 #' @export
 setGeneric("MeanVarPlot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                                     x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
-                                     pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
-                                     contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) standardGeneric("MeanVarPlot"))
+                                   x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
+                                   pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
+                                   contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) standardGeneric("MeanVarPlot"))
 #' @export
 setMethod("MeanVarPlot", signature = "seurat",
           function(object, fxn.x=expMean, fxn.y=logVarDivMean, do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
@@ -4421,38 +4460,38 @@ setMethod("MeanVarPlot", signature = "seurat",
             data=object@data
             
             if (do.recalc) {    
-                genes.use <- rownames(object@data)
-                data.x=rep(0,length(genes.use)); names(data.x)=genes.use; data.y=data.x; data.norm.y=data.x;
-    
-                bin.size <- 1000
-                max.bin <- floor(length(genes.use)/bin.size) + 1
-                print("Calculating gene dispersion")
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-                for(i in 1:max.bin) {
-                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                  my.inds <- my.inds[my.inds <= length(genes.use)]
-                  genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,]
-                  data.x[genes.iter]=apply(data.iter,1,fxn.x); data.y[genes.iter]=apply(data.iter,1,fxn.y)
-                  setTxtProgressBar(pb, i)  
-                }
-                close(pb)
-                data.y[is.na(data.y)]=0
-                data.x[is.na(data.x)]=0
-                
-                data_x_bin=cut(data.x,num.bin)
-                names(data_x_bin)=names(data.x)
-                mean_y=tapply(data.y,data_x_bin,mean)
-                sd_y=tapply(data.y,data_x_bin,sd)
-                data.norm.y=(data.y-mean_y[as.numeric(data_x_bin)])/sd_y[as.numeric(data_x_bin)]
-                #data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
-                #data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
-                
-                data.norm.y[is.na(data.norm.y)]=0
-                names(data.norm.y)=names(data.x)
-                
-                mv.df=data.frame(data.x,data.y,data.norm.y)
-                rownames(mv.df)=rownames(data)
-                object@mean.var=mv.df
+              genes.use <- rownames(object@data)
+              data.x=rep(0,length(genes.use)); names(data.x)=genes.use; data.y=data.x; data.norm.y=data.x;
+              
+              bin.size <- 1000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              print("Calculating gene dispersion")
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,]
+                data.x[genes.iter]=apply(data.iter,1,fxn.x); data.y[genes.iter]=apply(data.iter,1,fxn.y)
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+              data.y[is.na(data.y)]=0
+              data.x[is.na(data.x)]=0
+              
+              data_x_bin=cut(data.x,num.bin)
+              names(data_x_bin)=names(data.x)
+              mean_y=tapply(data.y,data_x_bin,mean)
+              sd_y=tapply(data.y,data_x_bin,sd)
+              data.norm.y=(data.y-mean_y[as.numeric(data_x_bin)])/sd_y[as.numeric(data_x_bin)]
+              #data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
+              #data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
+              
+              data.norm.y[is.na(data.norm.y)]=0
+              names(data.norm.y)=names(data.x)
+              
+              mv.df=data.frame(data.x,data.y,data.norm.y)
+              rownames(mv.df)=rownames(data)
+              object@mean.var=mv.df
             }
             data.x=object@mean.var[,1]; data.y=object@mean.var[,2]; data.norm.y=object@mean.var[,3]; 
             names(data.x)=names(data.y)=names(data.norm.y)=rownames(object@data)
@@ -4463,7 +4502,7 @@ setMethod("MeanVarPlot", signature = "seurat",
               if (plot.both) {
                 par(mfrow=c(1,2))
                 smoothScatter(data.x,data.y,pch=pch.use,cex=cex.use,col=col.use,xlab="Average expression",ylab="Dispersion",nrpoints=Inf)
-
+                
                 if (do.contour) {
                   data.kde=kde2d(data.x,data.y)
                   contour(data.kde,add=TRUE,lwd=contour.lwd,col=contour.col,lty=contour.lty)
