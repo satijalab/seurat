@@ -47,6 +47,10 @@ setMethod("BuildSNN", signature = "seurat",
   }
 
   n.cells <- nrow(data.use)
+  if(n.cells < k.param) {
+    warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+    k.param <- n.cells - 1
+  }
 
   #find the k-nearest neighbors for each single cell
   my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells - 1))
@@ -60,11 +64,16 @@ setMethod("BuildSNN", signature = "seurat",
                         print.output)
   }
   if (plot.SNN) {
-    net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
-                           diag = FALSE)
-    plot.igraph(net, layout = as.matrix(object@tsne.rot),
-                edge.width = E(net)$weight, vertex.label = NA,
-                vertex.size = 0)
+    if(length(object@tsne.rot) < 1) {
+      warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
+    }
+    else{
+      net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
+                             diag = FALSE)
+      plot.igraph(net, layout = as.matrix(object@tsne.rot),
+                  edge.width = E(net)$weight, vertex.label = NA,
+                  vertex.size = 0)
+    }
   }
 
   #only allow one of the snn matrix slots to be filled
