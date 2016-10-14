@@ -885,7 +885,7 @@ setMethod("RegressOut", "seurat",
                 fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
                 if (model.use=="linear") return(lm(fmla,data = regression.mat)$residuals)
                 if (model.use=="poisson") return(residuals(glm(fmla,data = regression.mat,family = "poisson"), type='pearson'))
-                if (model.use=="negbinom") return(nb.residuals(fmla, regression.mat))
+                if (model.use=="negbinom") return(nb.residuals(fmla, regression.mat, x))
               }))
               if (i==1) data.resid=new.data
               if (i>1) data.resid=rbind(data.resid,new.data)
