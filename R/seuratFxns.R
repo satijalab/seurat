@@ -1395,14 +1395,14 @@ GetAllInternalNodes <- function(tree){
   return(c(tree$edge[1,1], DFT(tree, tree$edge[1,1])))
 }
 
-nb.residuals <- function(fmla, regression.mat) {
+nb.residuals <- function(fmla, regression.mat, gene) {
   fit <- 0
   try(fit <- glm.nb(fmla, data = regression.mat), silent=TRUE)
   if (class(fit)[1] == 'numeric') {
-    message('glm.nb failed; trying again with glm and family=negative.binomial(theta=0.1)')
+    message(sprintf('glm.nb failed for gene %s; trying again with glm and family=negative.binomial(theta=0.1)', gene))
     try(fit <- glm(fmla, data = regression.mat, family=negative.binomial(theta=0.1)), silent=TRUE)
     if (class(fit)[1] == 'numeric') {
-      message('glm and family=negative.binomial(theta=0.1) failed, falling back to scale(log10(y+1))')
+      message('glm and family=negative.binomial(theta=0.1) failed; falling back to scale(log10(y+1))')
       return(scale(log10(regression.mat[, 'GENE']+1))[, 1])
     }
   }

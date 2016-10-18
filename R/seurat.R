@@ -910,7 +910,7 @@ setMethod("RegressOut", "seurat",
                 fmla=as.formula(paste("GENE ", " ~ ", paste(latent.vars,collapse="+"),sep=""));
                 if (model.use=="linear") return(lm(fmla,data = regression.mat)$residuals)
                 if (model.use=="poisson") return(residuals(glm(fmla,data = regression.mat,family = "poisson"), type='pearson'))
-                if (model.use=="negbinom") return(nb.residuals(fmla, regression.mat))
+                if (model.use=="negbinom") return(nb.residuals(fmla, regression.mat, x))
               }))
               if (i==1) data.resid=new.data
               if (i>1) data.resid=rbind(data.resid,new.data)
@@ -1918,7 +1918,7 @@ setMethod("FindMarkersNode", "seurat",
 #' poisson or negative-binomial distribution
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
-#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to 0.025 by default
+#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
@@ -1928,10 +1928,10 @@ setMethod("FindMarkersNode", "seurat",
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) standardGeneric("FindMarkers"))
+setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=-Inf, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) standardGeneric("FindMarkers"))
 #' @export
 setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=0.05,print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) {
+          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=-Inf, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
