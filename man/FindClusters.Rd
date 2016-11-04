@@ -8,7 +8,7 @@ FindClusters(object, genes.use = NULL, pc.use = NULL, k.param = 30,
   k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15, save.SNN = FALSE,
   reuse.SNN = FALSE, do.sparse = FALSE, modularity.fxn = 1,
   resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-  random.seed = 0, print.output = TRUE)
+  random.seed = 0, print.output = TRUE, temp.file.location = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -51,6 +51,9 @@ algorithm; 2 = Louvain algorithm with multilevel refinement;
 \item{random.seed}{Seed of the random number generator.}
 
 \item{print.output}{Whether or not to print output to the console}
+
+\item{temp.file.location}{Directory where intermediate files will be written. Specify the 
+ABSOLUTE path.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

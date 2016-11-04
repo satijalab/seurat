@@ -9,7 +9,6 @@ NULL
 #' \emph{The European Physical Journal B}.
 #'
 #'
-#'
 #' @param object Seurat object
 #' @param genes.use Gene expression data
 #' @param pc.use Which PCs to use for construction of the SNN graph
@@ -34,6 +33,8 @@ NULL
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
 #' @param print.output Whether or not to print output to the console
+#' @param temp.file.location Directory where intermediate files will be written. Specify the 
+#' ABSOLUTE path.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
@@ -47,7 +48,7 @@ setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
                                     do.sparse = FALSE, modularity.fxn = 1, 
                                     resolution = 0.8, algorithm = 1, 
                                     n.start = 100, n.iter = 10, random.seed = 0,
-                                    print.output = TRUE)
+                                    print.output = TRUE, temp.file.location = NULL)
   standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
@@ -55,7 +56,8 @@ setMethod("FindClusters", signature = "seurat",
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
                    save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
                    modularity.fxn = 1, resolution = 0.8, algorithm = 1,
-                   n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE){
+                   n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE,
+                   temp.file.location = NULL){
             
           # for older objects without the snn.k slot
           if(typeof(validObject(object, test = T)) == "character"){
@@ -101,7 +103,7 @@ setMethod("FindClusters", signature = "seurat",
           for (r in resolution) {
             object <- RunModularityClustering(object, SNN.use, modularity.fxn, r,
                                               algorithm, n.start, n.iter, random.seed,
-                                              print.output)
+                                              print.output, temp.file.location)
             object <- GroupSingletons(object, SNN.use)
             name <- paste("res.", r, sep = "")
             object <- StashIdent(object, name)
@@ -175,7 +177,7 @@ setMethod("NumberClusters", signature="seurat",
 RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
                                     resolution = 0.8, algorithm = 1,
                                     n.start = 100, n.iter = 10, random.seed = 0,
-                                    print.output = TRUE){
+                                    print.output = TRUE, temp.file.location = NULL){
   
   seurat.dir <- system.file(package="Seurat")
   
@@ -196,13 +198,15 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   rownames(edge) <- NULL
   colnames(edge) <- NULL
   
+  temp.file.location <- set.ifnull(temp.file.location, seurat.dir)
+  
   unique_ID <- sample(10000 : 99999, 1)
-  edge_file <- paste(seurat.dir, "edge_", unique_ID, ".txt", sep = "")
-  output_file <- paste(seurat.dir, "output_", unique_ID, ".txt", sep = "")
+  edge_file <- paste(temp.file.location, "edge_", unique_ID, ".txt", sep = "")
+  output_file <- paste(temp.file.location, "output_", unique_ID, ".txt", sep = "")
   while (file.exists(edge_file)) {
     unique_ID <- sample(10000 : 99999, 1)
-    edge_file <- paste(seurat.dir, "edge_", unique_ID, ".txt", sep = "")
-    output_file <- paste(seurat.dir, "output", unique_ID, ".txt", sep = "")
+    edge_file <- paste(temp.file.location, "edge_", unique_ID, ".txt", sep = "")
+    output_file <- paste(temp.file.location, "output", unique_ID, ".txt", sep = "")
   }
   if (print.output) {
     print.output <- 1

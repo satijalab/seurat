@@ -35,6 +35,8 @@ poisson or negative-binomial distribution}
 \item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells
 in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
 
+\item{min.diff.pct}{- only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default}
+
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 
 \item{only.pos}{Only return positive markers (FALSE by default)}

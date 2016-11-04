@@ -394,6 +394,9 @@ setGeneric("AddSamples", function(object, new.data, project = NULL, min.cells=3,
 setMethod("AddSamples","seurat",
           function(object, new.data, project = NULL, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T, total.expr=1e4, 
                    do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", meta.data=NULL, save.raw = T, add.cell.id = NULL) {
+            if(length(object@raw.data) < 2){
+              stop("Object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+            }
             if (!missing(add.cell.id)){
               colnames(new.data) <- paste(colnames(new.data), add.cell.id, sep = ".")
             }
@@ -470,6 +473,14 @@ setMethod("MergeSeurat", "seurat",
           function(object1, object2, project = NULL, min.cells=0, min.genes=0, is.expr=0, do.logNormalize=T, 
                    total.expr=1e4, do.scale=TRUE, do.center=TRUE, names.field=1, names.delim="_", 
                    save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL) {
+            
+            if(length(object1@raw.data) < 2){
+              stop("First object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+            }
+            if(length(object2@raw.data) < 2){
+              stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+            }
+            
             if (!missing(add.cell.id1)){
               object1@cell.names <- paste(object1@cell.names, add.cell.id1, sep = ".")
               colnames(object1@raw.data) <- paste(colnames(object1@raw.data), add.cell.id1, sep = ".")
@@ -660,6 +671,7 @@ calc.drop.prob=function(x,a,b) {
 #' poisson or negative-binomial distribution.
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
@@ -2022,6 +2034,7 @@ setMethod("FindMarkers", "seurat",
 #' poisson or negative-binomial distribution
 #' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
 #' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
+#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
