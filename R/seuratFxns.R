@@ -1314,7 +1314,7 @@ mergeDescendents = function(object, tree, node, pcs, top.genes, acc.cutoff){
 }
 
 set.ifnull=function(x,y) {
-  if(is.null(x)) x=y
+  if(is.null(x)) return(y)
   return(x)
 }
 
