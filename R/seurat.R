@@ -24,11 +24,7 @@
 #'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
-#'    \item{\code{pca.x}:}{\code{"data.frame"}, Gene projection scores for the PCA analysis  }
-#'    \item{\code{pca.x.full}:}{\code{"data.frame"}, Gene projection scores for the projected PCA  (contains all genes)  }
-#'    \item{\code{pca.rot}:}{\code{"data.frame"}, The rotation matrix (eigenvectors) of the PCA   }
-#'    \item{\code{ica.x}:}{\code{"data.frame"}, Gene projection scores for ICA   }
-#'    \item{\code{ica.rot}:}{\code{"data.frame"}, The estimated source matrix from ICA }
+#'    \item{\code{dim.reduction:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
 #'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
 #'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
@@ -51,14 +47,14 @@
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
-                       ident="vector",pca.x="data.frame",pca.rot="data.frame",
-                       emp.pval="data.frame",kmeans.obj="list",pca.obj="list",
+                       ident="vector", dim.reduction="list",
+                       emp.pval="data.frame",kmeans.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
                        wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",
                        project.name="character", kmeans.gene="list", kmeans.cell="list",jackStraw.empP="data.frame",
-                       jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame",pca.x.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
+                       jackStraw.fakePC = "data.frame",jackStraw.empP.full="data.frame", kmeans.col="list",mean.var="data.frame", imputed="data.frame",mix.probs="data.frame",
                        mix.param="data.frame",final.prob="data.frame",insitu.matrix="data.frame",
-                       tsne.rot="data.frame", ica.rot="data.frame", ica.x="data.frame", ica.obj="list",cell.names="vector",cluster.tree="list",
+                       tsne.rot="data.frame",cell.names="vector",cluster.tree="list",
                        snn.sparse="dgCMatrix", snn.dense="matrix", snn.k="numeric"))
 
 
