@@ -1735,7 +1735,10 @@ setMethod("FetchData","seurat",
                 data.expression = t(data.expression)
               }
             }
-            var.options=c("data.info","pca.rot","ica.rot","tsne.rot","mix.probs","gene.scores")
+            var.options=c("data.info","mix.probs","gene.scores")
+            dr.names=paste("dr$",names(pbmc@dr),"@rotation",sep="")
+            var.options=c(var.options,dr.names)
+            
             object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
             for (my.var in vars.all) {
               data.use=data.frame()

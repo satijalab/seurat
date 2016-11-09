@@ -123,6 +123,8 @@ RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn=icafast, ics.store,..
   
   x=(as.matrix(data.use)%*%as.matrix(rotation))
   colnames(x)=paste("IC",1:ncol(x),sep="")
+  colnames(rotation)=paste("IC",1:ncol(x),sep="")
+  
   ica.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = sqrt(ica.results$vafs), key = "IC")
   return(ica.obj)  
 }
@@ -160,6 +162,6 @@ DimTopCells <- function(object,reduction.type="pca",dim.use=1,num.cells=NULL,do.
   pc.top.cells=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.cells,"pca")))
   return(pc.top.cells)
 }
-)
+
 
 
