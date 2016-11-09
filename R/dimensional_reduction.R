@@ -150,4 +150,14 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   return(pca.obj)
 }
 
-
+#' Convert old Seurat object to accomodate new features
+#' 
+#' Adds the object@@dr slot to older objects
+#' 
+#' @param object Seurat object
+#' @return Returns a Seurat object compatible with latest changes
+#' @export
+ConvertSeurat <- function(object) {
+  object@dr <- list()
+  return(object)
+}
