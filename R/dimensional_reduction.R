@@ -64,7 +64,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   if(reduction.type == "pcafast") {
     pcafastobj <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, 
                              pcs.compute = dims.compute, ...)
-    object@dr$pcafast <- pcafastobj
+    object@dr$pca <- pcafastobj
   }
   if(reduction.type == "ica") {
     icaobj=RunICA(data.use = data.use, ics.compute=dims.store, rev.ica = rev.reduction, ics.store = dims.store,ica.fxn = ica.fxn,...)
@@ -149,5 +149,17 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$d, key = "PC")
   return(pca.obj)
 }
+
+
+DimTopCells <- function(object,reduction.type="pca",dim.use=1,num.cells=NULL,do.balanced=FALSE) {
+  
+  #note that we use topGenesForDim, but it still works
+  num.cells=set.ifnull(num.cells,length(object@cell.names))
+  pc_scores=object@pca.rot
+  i=pc.use
+  pc.top.cells=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.cells,"pca")))
+  return(pc.top.cells)
+}
+)
 
 
