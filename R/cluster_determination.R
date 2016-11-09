@@ -190,13 +190,18 @@ RunModularityClustering <- function(object, SNN = matrix(), modularity = 1,
   diag(SNN) <- 0
   if (is.object(SNN)) {
     SNN <- as(SNN, "dgTMatrix")
-    edge <- cbind(i = SNN@i, j = SNN@j, x = SNN@x)
+    edge <- cbind(i = SNN@j, j = SNN@i, x = SNN@x)
   } else {
-    edge <- cbind((which(SNN != 0, arr.ind = TRUE) - 1),
-                  SNN[which(SNN != 0, arr.ind = TRUE)])
+    swap <- which(SNN != 0, arr.ind = TRUE) - 1
+    temp <- swap[, 1]
+    swap[, 1] <- swap[, 2]
+    swap[, 2] <- temp
+    edge <- cbind(swap, SNN[which(SNN != 0, arr.ind = TRUE)])
   }
   rownames(edge) <- NULL
   colnames(edge) <- NULL
+
+  edge <- edge[!duplicated(edge[, 1:2]), ]
   
   temp.file.location <- set.ifnull(temp.file.location, seurat.dir)
   
