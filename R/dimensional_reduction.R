@@ -1,6 +1,12 @@
 #' @include seurat.R
 NULL
 
+# Set up dim.reduction class
+
+dim.reduction <- setClass("dim.reduction", slots = list(
+  rotation = "matrix", x = "matrix", x.full = "matrix", sdev = "numeric", key = "character"
+))
+
 #' Dimensional Reduction
 #' 
 #' Various methods for dimensional reductions
@@ -22,8 +28,8 @@ NULL
 #' @return Returns a Seurat object with the dimensional reduction information stored 
 #' @export
 DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
-                         dims.compute = 20, use.imputed = FALSE, rev.reduction = FALSE, print.results = TRUE, 
-                         dims.print = 5, genes.print = 30, ...){
+                         dims.compute = 20, use.imputed = FALSE, rev.reduction = FALSE, 
+                         print.results = TRUE, dims.print = 5, genes.print = 30, ...){
   
   if (length(object@scale.data) == 0){
     stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
@@ -32,7 +38,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in 
          pc.genes and retry.")
   }
-  browser()
+
   if (use.imputed) {
     data.use <- t(scale(t(object@imputed)))
   }
@@ -64,7 +70,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   
   # print results
   if(print.results){
-    results <- eval(parse(text = paste0("object@dim.reduction$", reduction.type, "$x")))
+    results <- eval(parse(text = paste0("object@dim.reduction$", reduction.type, "@x")))
     for(i in 1:dims.print) {
       genes.ordered <- results[order(results[, i]), ]
       top.genes <- genes.ordered[1:genes.print, ]
@@ -83,38 +89,42 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pcs.store <- min(pcs.store, ncol(data.use))
+  pca.results <- NULL
   if(rev.pca){
-    pca.obj <- prcomp(data.use, ...)
-    pca.obj$x <- pca.obj$x[, 1:pcs.store]
-    pca.obj$rotation <- pca.obj$rotation[, 1:pcs.store]
+    pca.results <- prcomp(data.use, ...)
+    x <- pca.results$x[, 1:pcs.store]
+    rotation <- pca.results$rotation[, 1:pcs.store]
   }
   else{
-    pca.obj = prcomp(t(data.use), ...)
-    pca.obj$x <- pca.obj$rotation[, 1:pcs.store]
-    pca.obj$rotation <- pca.obj$x[, 1:pcs.store]
+    pca.results = prcomp(t(data.use), ...)
+    x <- pca.results$rotation[, 1:pcs.store]
+    rotation <- pca.results$x[, 1:pcs.store]
   }
-  pca.obj$center <- NULL
-  pca.obj$scale <- NULL
+  pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$sdev, key = "PC")
   return(pca.obj)  
 }
 
 RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   pcs.compute <- min(pcs.compute, ncol(data.use))
   pcs.store <- min(pcs.store, pcs.compute)
+  pca.results <- NULL
   if(rev.pca){
-    pca.obj <- irlba(data.use, nv = pcs.compute, ...)
-    pca.obj$x <- pca.obj$u[, 1:pcs.store]
-    pca.obj$rotation <- pca.obj$v[, 1:pcs.store]
+    pca.results <- irlba(data.use, nv = pcs.compute, ...)
+    x <- pca.results$u[, 1:pcs.store]
+    rotation <- pca.results$v[, 1:pcs.store]
   }
   else{
-    pca.obj <- irlba(t(data.use), nv = pcs.compute, ...)
-    pca.obj$x <- pca.obj$v[, 1:pcs.store]
-    pca.obj$rotation <- pca.obj$u[, 1:pcs.store]
+    pca.results <- irlba(t(data.use), nv = pcs.compute, ...)
+    x <- pca.results$v[, 1:pcs.store]
+    rotation <- pca.results$u[, 1:pcs.store]
 
   }
-  rownames(pca.obj$x) <- rownames(data.use)
-  colnames(pca.obj$x) <- paste0("PC", 1:pcs.compute)
-  rownames(pca.obj$rotation) <- colnames(data.use)
-  colnames(pca.obj$rotation) <- colnames(pca.obj$x)
+  rownames(x) <- rownames(data.use)
+  colnames(x) <- paste0("PC", 1:pcs.compute)
+  rownames(rotation) <- colnames(data.use)
+  colnames(rotation) <- colnames(x)
+  pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$d, key = "PC")
   return(pca.obj)
 }
+
+
