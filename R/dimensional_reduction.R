@@ -152,6 +152,17 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   return(pca.obj)
 }
 
+#' Convert old Seurat object to accomodate new features
+#' 
+#' Adds the object@@dr slot to older objects
+#' 
+#' @param object Seurat object
+#' @return Returns a Seurat object compatible with latest changes
+#' @export
+ConvertSeurat <- function(object) {
+  object@dr <- list()
+  return(object)
+}
 
 DimTopCells <- function(object,dim.use=1,reduction.type="pca",num.cells=NULL,do.balanced=FALSE) {
   #note that we use topGenesForDim, but it still works
@@ -178,6 +189,4 @@ DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,do.ba
   dim.top.genes=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.genes,reduction.type)))
   return(dim.top.genes)
 }
-
-
 

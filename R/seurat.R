@@ -24,7 +24,7 @@
 #'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
-#'    \item{\code{dr:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
+#'    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
 #'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
 #'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
@@ -996,8 +996,10 @@ setMethod("SubsetData","seurat",
               object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             }
             object@ident=drop.levels(object@ident[cells.use])
-            object@tsne.rot=object@tsne.rot[cells.use,]
-            object@pca.rot=object@pca.rot[cells.use,]
+            for (i in 1:length(object@dr)){
+              object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+            }
+            object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
 
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)
