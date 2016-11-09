@@ -24,7 +24,7 @@
 #'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
-#'    \item{\code{dim.reduction:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
+#'    \item{\code{dr:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
 #'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
 #'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
@@ -47,7 +47,7 @@
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
-                       ident="vector", dim.reduction="list",
+                       ident="vector", dr="list",
                        emp.pval="data.frame",kmeans.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
                        wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",

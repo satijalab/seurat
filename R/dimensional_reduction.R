@@ -28,17 +28,18 @@ dim.reduction <- setClass("dim.reduction", slots = list(
 #' @return Returns a Seurat object with the dimensional reduction information stored 
 #' @export
 DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
-                         dims.compute = 20, use.imputed = FALSE, rev.reduction = FALSE, 
-                         print.results = TRUE, dims.print = 5, genes.print = 30, ...){
+                         dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
+                         print.results = TRUE, dims.print = 5, genes.print = 30, ica.fxn=icafast,...){
   
   if (length(object@scale.data) == 0){
     stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
   }
-  if (length(object@var.genes) == 0 && is.null(pc.genes)) {
+  if (length(object@var.genes) == 0 && is.null(genes.use)) {
     stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in 
-         pc.genes and retry.")
+         genes.use and retry.")
   }
-
+  
+  dims.store=min(dims.store,dims.compute)
   if (use.imputed) {
     data.use <- t(scale(t(object@imputed)))
   }
@@ -57,20 +58,24 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   # call reduction technique
   reduction.type <- tolower(reduction.type)
   if(reduction.type == "pca"){
-    pca <- RunPCA(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, ...)
-    object@dim.reduction$pca <- pca
+    pcaobj <- RunPCA(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, ...)
+    object@dr$pca <- pcaobj
   }
   if(reduction.type == "pcafast") {
-    pcafast <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, 
-                      pcs.compute = dims.compute, ...)
-    object@dim.reduction$pcafast <- pcafast
+    pcafastobj <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, 
+                             pcs.compute = dims.compute, ...)
+    object@dr$pcafast <- pcafastobj
   }
-  if(reduction.type == "ica") print("doit")
-  if(reduction.type == "icafast") print("doit")
+  if(reduction.type == "ica") {
+    icaobj=RunICA(data.use = data.use, ics.compute=dims.store, rev.ica = rev.reduction, ics.store = dims.store,ica.fxn = ica.fxn,...)
+    object@dr$ica=icaobj
+  }
+  
+  #if(reduction.type == "icafast") print("doit")
   
   # print results
   if(print.results){
-    results <- eval(parse(text = paste0("object@dim.reduction$", reduction.type, "@x")))
+    results <- eval(parse(text = paste0("object@dr$", reduction.type, "@x")))
     for(i in 1:dims.print) {
       genes.ordered <- results[order(results[, i]), ]
       top.genes <- genes.ordered[1:genes.print, ]
@@ -85,7 +90,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     }
   }
   return(object)
-} 
+  } 
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pcs.store <- min(pcs.store, ncol(data.use))
@@ -104,6 +109,24 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   return(pca.obj)  
 }
 
+RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn=icafast, ics.store,...) {
+  ics.store <- min(ics.store, ncol(data.use))
+  ica.results <- NULL
+  if(rev.ica){
+    ica.results <- ica.fxn(data.use, ics.compute,...)
+    rotation <- ica.results$M[,1:ics.store]
+  }
+  else{
+    ica.results = ica.fxn(t(data.use),ics.compute,...)
+    rotation <- ica.results$S[,1:ics.store]
+  }
+  
+  x=(as.matrix(data.use)%*%as.matrix(rotation))
+  colnames(x)=paste("IC",1:ncol(x),sep="")
+  ica.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = sqrt(ica.results$vafs), key = "IC")
+  return(ica.obj)  
+}
+
 RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   pcs.compute <- min(pcs.compute, ncol(data.use))
   pcs.store <- min(pcs.store, pcs.compute)
@@ -117,7 +140,7 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
     pca.results <- irlba(t(data.use), nv = pcs.compute, ...)
     x <- pca.results$v[, 1:pcs.store]
     rotation <- pca.results$u[, 1:pcs.store]
-
+    
   }
   rownames(x) <- rownames(data.use)
   colnames(x) <- paste0("PC", 1:pcs.compute)
