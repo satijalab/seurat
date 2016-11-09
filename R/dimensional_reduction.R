@@ -153,14 +153,30 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
 }
 
 
-DimTopCells <- function(object,reduction.type="pca",dim.use=1,num.cells=NULL,do.balanced=FALSE) {
-  
+DimTopCells <- function(object,dim.use=1,reduction.type="pca",num.cells=NULL,do.balanced=FALSE) {
   #note that we use topGenesForDim, but it still works
+  
+  #error checking
+  if (!(reduction.type%in%names(object@dr))) {
+    stop(paste(reduction.type, " dimensional reduction has not been computed"))
+  }
   num.cells=set.ifnull(num.cells,length(object@cell.names))
-  pc_scores=object@pca.rot
-  i=pc.use
-  pc.top.cells=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.cells,"pca")))
-  return(pc.top.cells)
+  dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
+  i=dim.use
+  dim.top.cells=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.cells,reduction.type)))
+  return(dim.top.cells)
+}
+
+DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,do.balanced=FALSE) {
+  #note that we use topGenesForDim, but it still works
+  #error checking
+  if (!(reduction.type%in%names(object@dr))) {
+    stop(paste(reduction.type, " dimensional reduction has not been computed"))
+  }
+  dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@x",sep="")))
+  i=dim.use
+  dim.top.genes=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.genes,reduction.type)))
+  return(dim.top.genes)
 }
 
 
