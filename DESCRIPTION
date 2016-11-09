@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 1.4.0.4
-Date: 11/4/2016
+Version: 1.4.0.5
+Date: 11/8/2016
 Title: Seurat : R toolkit for single cell genomics
 Description: Seurat : R toolkit for single cell genomics.
 Author: Rahul Satija
