@@ -172,6 +172,7 @@ ConvertSeurat <- function(object) {
   if (length(object@pca.rot) > 0) pca.rotation <- as.matrix(object@pca.rot)
   if (length(object@pca.obj) > 0) {
     pca.sdev <- object@pca.obj[[1]]$sdev
+    if(is.null(pca.sdev)) pca.sdev <- object@pca.obj[[1]]$d
     pca.misc <- object@pca.obj[[1]]
   }
   if(length(pca.x) > 1 || length(pca.x.full) > 1 || length(pca.rotation) > 1 || length(pca.sdev) > 0  
@@ -226,5 +227,132 @@ DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,use.f
   i=dim.use
   dim.top.genes=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.genes,reduction.type)))
   return(dim.top.genes)
+}
+
+#' Dimensional reduction heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
+#' Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams PCTopGenes
+#' @inheritParams VizPCA
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
+DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = NULL, 
+                                  num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
+                                  do.return = FALSE, col.use = pyCols, use.scale = TRUE,
+                                  do.balanced = FALSE, remove.key = FALSE, label.columns=NULL, ...){
+  
+  num.row <- floor(length(dim.use) / 3.01) + 1
+  orig_par <- par()$mfrow
+  par(mfrow=c(num.row, min(length(dim.use), 3)))
+  cells <- cells.use
+  plots <- c()
+  
+  if (is.null(label.columns)){
+    if (length(dim.use) > 1){
+      label.columns <- FALSE
+    }
+    else{
+      label.columns <- TRUE
+    }
+  }
+  
+  for(ndim in dim.use){
+    if (is.numeric((cells))) {
+      cells.use <- DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type, 
+                            num.cells = cells,do.balanced = do.balanced)
+    }
+    else {
+      cells.use <- set.ifnull(cells, object@cell.names)
+    }
+    genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
+                                 num.genes = num.genes, use.full = use.full, 
+                                 do.balanced = do.balanced))
+    dim_scores <- eval(parse(text = paste("object@dr$", reduction.type, "@rotation", sep="")))
+    dim_key <- eval(parse(text = paste("object@dr$", reduction.type, "@key", sep="")))
+    cells.ordered <- cells.use[order(dim_scores[cells.use, paste(dim_key, ndim, sep="")])]
+    data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- minmax(data.use, min = disp.min, max = disp.max)
+    if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
+    vline.use <- NULL
+    hmTitle <- paste(dim_key,ndim)
+    if (remove.key || length(dim.use) > 1){
+      hmFunction <- "heatmap2NoKey(data.use, Rowv = NA, Colv = NA, trace = \"none\", col = col.use, dimTitle = hmTitle, "
+    }
+    else{
+      hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
+    }
+    
+    if (!label.columns){
+      
+      hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
+    }
+    hmFunction <- paste(hmFunction, "...)", sep="")
+    #print(hmFunction)
+    eval(parse(text=hmFunction))
+  }
+  if (do.return) {
+    return(data.use)
+  }
+  # reset graphics parameters
+  par(mfrow=orig_par)
+}
+
+
+#' Principal component heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
+#' Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams PCTopGenes
+#' @inheritParams VizPCA
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
+PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.full = FALSE, 
+                      disp.min = -2.5, disp.max = 2.5, do.return = FALSE, col.use=pyCols,
+                      use.scale = TRUE, do.balanced = FALSE, remove.key = FALSE, 
+                      label.columns = NULL, ...) {
+  
+  return(DimHeatmap(object, reduction.type = "pca", dim.use = pc.use, cells.use = cells.use, 
+             num.genes = num.genes, use.full = use.full, disp.min = disp.min, disp.max = disp.max,
+             do.return = do.return, col.use = col.use, use.scale = use.scale, 
+             do.balanced = do.balanced, remove.key = remove.key, label.columns = label.columns, ...))
+  
+}
+
+
+#' Independent component heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
+#' principal component scores. Allows for nice visualization of sources of heterogeneity 
+#' in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams ICTopGenes
+#' @inheritParams VizICA
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
+ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp.min = -2.5, 
+                      disp.max = 2.5, do.return = FALSE, col.use = pyCols, use.scale = TRUE, 
+                      do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...) {
+            
+  return(DimHeatmap(object, reduction.type = "ica", dim.use = ic.use, cells.use = cells.use, 
+                    num.genes = num.genes, disp.min = disp.min, disp.max = disp.max, 
+                    do.return = do.return, col.use = col.use, use.scale = use.scale, 
+                    do.balanced = do.balanced, remove.key = remove.key, 
+                    label.columns = label.columns, ...))
 }
 
