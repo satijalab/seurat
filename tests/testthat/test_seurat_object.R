@@ -82,19 +82,19 @@ pcs.compute <- 4
 nbt.test <- PCAFast(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
 
 test_that("PCAFast returns expected data", {
-  expect_equal(abs(nbt.test@pca.rot[1,1]), 0.1442809, tolerance = 1e-6)
-  expect_equal(abs(nbt.test@pca.x[1,1]), 0.4362582, tolerance = 1e-6)
-  expect_equal(ncol(nbt.test@pca.x), pcs.compute)
-  expect_equal(ncol(nbt.test@pca.rot), pcs.compute)
+  expect_equal(abs(nbt.test@dr$pca@rotation[1,1]), 0.1442809, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@dr$pca@x[1,1]), 0.4362582, tolerance = 1e-6)
+  expect_equal(ncol(nbt.test@dr$pca@x), pcs.compute)
+  expect_equal(ncol(nbt.test@dr$pca@rotation), pcs.compute)
   
 })
 
 nbt.test <- PCA(nbt.test, do.print = FALSE)
 test_that("PCA returns expected data", {
-  expect_true(nrow(nbt.test@pca.rot) == ncol(nbt.test@data))
-  expect_true(nrow(nbt.test@pca.x) == length(nbt.test@var.genes))
-  expect_equal(nbt.test@pca.rot[1,1], -0.8723915, tolerance = 1e-6)
-  expect_equal(nbt.test@pca.x[1,1], 0.4362582, tolerance = 1e-6 )
+  expect_true(nrow(nbt.test@dr$pca@rotation) == ncol(nbt.test@data))
+  expect_true(nrow(nbt.test@dr$pca@x) == length(nbt.test@var.genes))
+  expect_equal(nbt.test@dr$pca@rotation[1,1], -0.8723915, tolerance = 1e-6)
+  expect_equal(nbt.test@dr$pca@x[1,1], 0.4362582, tolerance = 1e-6 )
 })
 
 # Tests for tSNE

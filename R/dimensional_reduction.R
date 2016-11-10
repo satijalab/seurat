@@ -30,7 +30,7 @@ dim.reduction <- setClass("dim.reduction", slots = list(
 #' @export
 DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
                          dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
-                         print.results = TRUE, dims.print = 5, genes.print = 30, ica.fxn = icafast,
+                         print.results = TRUE, dims.print = 1:5, genes.print = 30, ica.fxn = icafast,
                          ...){
   
   if (length(object@scale.data) == 0){
@@ -84,14 +84,15 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
 } 
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
-  pcs.store <- min(pcs.store, ncol(data.use))
   pca.results <- NULL
   if(rev.pca){
+    pcs.store <- min(pcs.store, ncol(data.use))
     pca.results <- prcomp(data.use, ...)
     x <- pca.results$x[, 1:pcs.store]
     rotation <- pca.results$rotation[, 1:pcs.store]
   }
   else{
+    pcs.store <- min(pcs.store, nrow(data.use))
     pca.results = prcomp(t(data.use), ...)
     x <- pca.results$rotation[, 1:pcs.store]
     rotation <- pca.results$x[, 1:pcs.store]
@@ -142,6 +143,86 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
   pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$d, key = "PC")
   return(pca.obj)
 }
+
+#' Run Principal Component Analysis on gene expression
+#'
+#' Run prcomp for PCA dimensionality reduction
+#'
+#' @param object Seurat object
+#' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store
+#' @param genes.print Number of genes to print for each PC
+#' @param use.imputed Run PCA on imputed values (FALSE by default)
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will compute it on gene x cell matrix. 
+#' @param \dots Additional arguments to be passed to prcomp
+#' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
+#' gene projection matrix (object@@pca.x). The PCA object itself is stored in
+#' object@@pca.obj[[1]]
+#' @export
+PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.store = 40, 
+                genes.print = 30, use.imputed = FALSE, rev.pca = FALSE, ...) {
+  return(DimReduction(object, reduction.type = "pca", genes.use = pc.genes, print.results = do.print,
+                      dims.store = pcs.store, genes.print = genes.print, use.imputed = use.imputed, 
+                      rev.reduction = rev.pca, ...))
+}
+
+
+#' Run Principal Component Analysis on gene expression using IRLBA
+#'
+#' Run Fast PCA dimensionality reduction
+#'
+#' @param object Seurat object
+#' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store
+#' @param pcs.compute Total Number of PCs to compute and store
+#' @param genes.print Number of genes to print for each PC
+#' @param \dots Additional arguments to be passed to prcomp
+#' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
+#' gene projection matrix (object@@pca.x). The PCA object itself is stored in
+#' object@@pca.obj[[1]]
+#' @importFrom irlba irlba
+#' @export
+PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.store = 40, 
+                    pcs.compute = 20, genes.print = 30, ...) {
+  return(DimReduction(object, reduction.type = "pcafast", genes.use = pc.genes, 
+                      print.results = do.print, dims.store = pcs.store, dims.compute = pcs.compute, 
+                      genes.print = genes.print))
+}
+
+
+#' Run Independent Component Analysis on gene expression
+#'
+#' Run fastICA algorithm for ICA dimensionality reduction
+#'
+#'
+#' @param object Seurat object
+#' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
+#' @param do.print Print the top genes associated with high/low loadings for
+#' the ICs
+#' @param ics.print Number of ICs to print genes for
+#' @param ics.store Number of ICs to store
+#' @param genes.print Number of genes to print for each IC
+#' @param use.imputed Run ICA on imputed values (FALSE by default)
+#' @param seed.use Random seed to use for fastICA
+#' @param \dots Additional arguments to be passed to fastICA
+#' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
+#' gene projection matrix (object@@ica.x). The ICA object itself is stored in
+#' object@@ica.obj[[1]]
+#' @import fastICA
+#' @export
+ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 5, ics.store = 50, 
+                genes.print = 50, use.imputed = FALSE, seed.use = 1, ...) {
+  return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.store, 
+                      use.imputed = use.imputed, print.results = do.print, dims.print = ics.print, 
+                      genes.print = genes.print, ... ))
+}
+
 
 #Internal, not documented for now
 topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {

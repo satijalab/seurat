@@ -6,7 +6,7 @@
 \usage{
 DimReduction(object, reduction.type = NULL, genes.use = NULL,
   dims.store = 40, dims.compute = 40, use.imputed = FALSE,
-  rev.reduction = FALSE, print.results = TRUE, dims.print = 5,
+  rev.reduction = FALSE, print.results = TRUE, dims.print = 1:5,
   genes.print = 30, ica.fxn = icafast, ...)
 }
 \arguments{
