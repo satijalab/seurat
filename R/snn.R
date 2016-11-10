@@ -24,14 +24,14 @@ NULL
 #' object@@snn.dense or object@@snn.sparse filled depending on the option
 #' set
 #' @export
-setGeneric("BuildSNN", function(object, genes.use = NULL, pc.use = NULL,
+setGeneric("BuildSNN", function(object, genes.use = NULL, reduction.type="pca", pc.use = NULL,
                                 k.param = 10, k.scale = 10, plot.SNN = FALSE,
                                 prune.SNN = 1/15, do.sparse = FALSE, 
                                 print.output = TRUE)
 standardGeneric("BuildSNN"))
 #' @export
 setMethod("BuildSNN", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, k.param = 10,
+          function(object, genes.use = NULL, reduction.type="pca", pc.use = NULL, k.param = 10,
                    k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
                    do.sparse = FALSE, print.output = TRUE) {
 
@@ -39,7 +39,9 @@ setMethod("BuildSNN", signature = "seurat",
     genes.use <- object@var.genes
     data.use <- t(as.matrix(object@data[genes.use, ]))
   } else if (!is.null(pc.use)) {
-      data.use <- as.matrix(object@pca.rot[, pc.use])
+      #data.use <- as.matrix(object@pca.rot[, pc.use])
+      dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
+      data.use=dim_scores[,pc.use]
   } else if (!is.null(genes.use) && is.null(pc.use)) {
       data.use <- t(as.matrix(object@data[genes.use, ]))
   } else {

@@ -341,6 +341,7 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
   return(dim.top.genes)
 }
 
+
 #' Dimensional reduction heatmap
 #'
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
