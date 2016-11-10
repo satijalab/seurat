@@ -228,3 +228,5 @@ DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,use.f
   return(dim.top.genes)
 }
 
+
+

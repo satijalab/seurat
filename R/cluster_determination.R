@@ -41,7 +41,7 @@ NULL
 #' @return Returns a Seurat object and optionally the SNN matrix,
 #'         object@@ident has been updated with new cluster info
 #' @export
-setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
+setGeneric("FindClusters", function(object, genes.use = NULL, reduction.type="pca",pc.use = NULL,
                                     k.param = 30, k.scale = 25,
                                     plot.SNN = FALSE, prune.SNN = 1/15,
                                     save.SNN = FALSE, reuse.SNN = FALSE,
@@ -52,7 +52,7 @@ setGeneric("FindClusters", function(object, genes.use = NULL, pc.use = NULL,
   standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
-          function(object, genes.use = NULL, pc.use = NULL, k.param = 30,
+          function(object, genes.use = NULL, reduction.type="pca",pc.use = NULL, k.param = 30,
                    k.scale = 25, plot.SNN = FALSE, prune.SNN = 1/15,
                    save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
                    modularity.fxn = 1, resolution = 0.8, algorithm = 1,
@@ -90,7 +90,7 @@ setMethod("FindClusters", signature = "seurat",
           }
           # if any SNN building parameters are provided or it hasn't been built, build a new SNN
           else{
-            object <- BuildSNN(object, genes.use, pc.use, k.param, k.scale,
+            object <- BuildSNN(object, genes.use, reduction.type, pc.use, k.param, k.scale,
                                plot.SNN, prune.SNN, do.sparse, print.output)
           }
           

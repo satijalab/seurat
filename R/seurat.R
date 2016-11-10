@@ -1792,8 +1792,8 @@ setMethod("FetchData","seurat",
                 data.expression = t(data.expression)
               }
             }
-            var.options=c("data.info","mix.probs","gene.scores")
-            dr.names=paste("dr$",names(pbmc@dr),"@rotation",sep="")
+            var.options=c("data.info","mix.probs","gene.scores","tsne.rot")
+            dr.names=paste("dr$",names(object@dr),"@rotation",sep="")
             var.options=c(var.options,dr.names)
             
             object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
