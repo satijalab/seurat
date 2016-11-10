@@ -902,7 +902,7 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
                         key = TRUE, keysize = 1.5, density.info = c("histogram",
                                                                     "density", "none"), denscol = tracecol, symkey = min(x <
                                                                                                                            0, na.rm = TRUE) || symbreaks, densadj = 0.25, main = NULL,
-                        xlab = NULL, ylab = NULL, lmat = NULL, lhei = NULL, axRowCol="black",lwid = NULL, pc = NULL,
+                        xlab = NULL, ylab = NULL, lmat = NULL, lhei = NULL, axRowCol="black",lwid = NULL, dimTitle = NULL,
                         ...)
 {
   scale01 <- function(x, low = min(x), high = max(x)) {
@@ -1130,15 +1130,10 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
   else iy <- 1:nr
 
   # add pc number as title if plotting pc heatmaps
-  if(!is.null(pc)){
-    pc_title <- paste("PC", pc)
-  }
-  else{
-    pc_title <- ""
-  }
-
+  if(is.null(dimTitle)) dimTitle=""
+  #print(dimTitle)
   image(1:nc, 1:nr, x, xlim = 0.5 + c(0, nc), ylim = 0.5 +
-          c(0, nr), axes = FALSE, xlab = "", ylab = "", main = pc_title , col = col,
+          c(0, nr), axes = FALSE, xlab = "", ylab = "", main = dimTitle , col = col,
         breaks = breaks, ...)
   retval$carpet <- x
   if (exists("ddr"))

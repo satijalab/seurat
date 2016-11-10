@@ -1061,6 +1061,61 @@ setMethod("ProjectSamples", "seurat",
           }
 )
 
+#' Project Dimensional reduction onto full dataset
+#'
+#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
+#' projects this onto the entire dataset (all genes). Note that the cell
+#' loadings (PCA rotation matrices) remains unchanged, but now there are gene
+#' scores for all genes.
+#'
+#'
+#' @param object Seurat object
+#' @param do.print Print top genes associated with the projected PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store (default is 30)
+#' @param genes.print Number of genes with highest/lowest loadings to print for
+#' each PC
+#' @param replace.pc Replace the existing PCA (overwite object@@pca.x), not done
+#' by default.
+#' @param do.center Center the dataset prior to projection (should be set to TRUE)
+#' @return Returns Seurat object with the projected PCA values in
+#' object@@pca.x.full
+#' @export
+setGeneric("ProjectDim", function(object,do.print=TRUE,reduction.type="pca",pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) standardGeneric("ProjectDim"))
+#' @export
+setMethod("ProjectDim", "seurat",
+          function(object,do.print=TRUE,reduction.type="pca",pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) {
+            if (!(reduction.type%in%names(object@dr))) {
+              stop(paste(reduction.type, " dimensional reduction has not been computed"))
+            }
+            
+            if (!(do.center)) {
+              genes.use=rownames(object@scale.data)
+              object.rot=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
+              new.full.x <- (matrix(NA, nrow = length(genes.use), ncol = ncol(object.rot)))
+              rownames(new.full.x) <- genes.use 
+              colnames(new.full.x) <- colnames(object.rot)
+              # dimnames(object@scale.data)=dimnames(data.use)
+
+              bin.size <- 1000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                #print(my.inds)
+                new.full.x[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+            }
+            my.cmd=paste("object@dr$",reduction.type,"@x.full = new.full.x",sep="")
+            #print(my.cmd)
+            eval(parse(text=my.cmd))
+            return(object)
+          }
+)
+
 #' Project Principal Components Analysis onto full dataset
 #'
 #' Takes a pre-computed PCA (typically calculated on a subset of genes) and
@@ -3546,6 +3601,80 @@ setMethod("PCHeatmap","seurat",
             par(mfrow=orig_par)
           }
 
+)
+
+
+#' Dimensional reduction heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
+#' Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams PCTopGenes
+#' @inheritParams VizPCA
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @export
+setGeneric("DimHeatmap", function(object,reduction.type="pca",dim.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE, label.columns=NULL, ...) standardGeneric("DimHeatmap"))
+#' @export
+setMethod("DimHeatmap","seurat",
+          function(object,reduction.type="pca",dim.use=1,cells.use=NULL,num.genes=30,use.full=FALSE, disp.min=-2.5,disp.max=2.5,do.return=FALSE,col.use=pyCols,use.scale=TRUE,do.balanced=FALSE,remove.key=FALSE, label.columns=NULL, ...) {
+            num.row=floor(length(dim.use)/3.01)+1
+            orig_par <- par()$mfrow
+            par(mfrow=c(num.row, min(length(dim.use),3)))
+            cells <- cells.use
+            plots <- c()
+            
+            if (is.null(label.columns)){
+              if (length(dim.use) > 1){
+                label.columns = FALSE
+              }
+              else{
+                label.columns = TRUE
+              }
+            }
+            
+            for(ndim in dim.use){
+              if (is.numeric((cells))) {
+                cells.use=DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type, num.cells = cells,do.balanced = do.balanced)
+              }
+              else {
+                cells.use=set.ifnull(cells,object@cell.names)
+              }
+              genes.use=rev(DimTopGenes(object = object,dim.use = ndim,reduction.type = reduction.type,num.genes = num.genes,use.full=use.full,do.balanced = do.balanced))
+              dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
+              dim_key=eval(parse(text=paste("object@dr$",reduction.type,"@key",sep="")))
+              cells.ordered=cells.use[order(dim_scores[cells.use,paste(dim_key,ndim,sep="")])]
+              data.use=object@scale.data[genes.use,cells.ordered]
+              data.use=minmax(data.use,min=disp.min,max=disp.max)
+              if (!(use.scale)) data.use=as.matrix(object@data[genes.use,cells.ordered])
+              vline.use=NULL;
+              hmTitle=paste(dim_key,ndim)
+              if (remove.key || length(dim.use) > 1){
+                hmFunction <- "heatmap2NoKey(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
+              }
+              else{
+                hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
+              }
+              
+              if (!label.columns){
+                
+                hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
+              }
+              hmFunction <- paste(hmFunction, "...)", sep="")
+              #print(hmFunction)
+              eval(parse(text=hmFunction))
+            }
+            if (do.return) {
+              return(data.use)
+            }
+            # reset graphics parameters
+            par(mfrow=orig_par)
+          }
+          
 )
 
 #' Node Heatmap

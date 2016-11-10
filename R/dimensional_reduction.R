@@ -178,13 +178,14 @@ DimTopCells <- function(object,dim.use=1,reduction.type="pca",num.cells=NULL,do.
   return(dim.top.cells)
 }
 
-DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,do.balanced=FALSE) {
+DimTopGenes <- function(object,dim.use=1,reduction.type="pca",num.genes=30,use.full=F,do.balanced=FALSE) {
   #note that we use topGenesForDim, but it still works
   #error checking
   if (!(reduction.type%in%names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
   dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@x",sep="")))
+  if (use.full) dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@x.full",sep="")))
   i=dim.use
   dim.top.genes=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.genes,reduction.type)))
   return(dim.top.genes)
