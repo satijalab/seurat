@@ -4,7 +4,7 @@ NULL
 # Set up dim.reduction class
 
 dim.reduction <- setClass("dim.reduction", slots = list(
-  rotation = "matrix", x = "matrix", x.full = "matrix", sdev = "numeric", key = "character"
+  rotation = "matrix", x = "matrix", x.full = "matrix", sdev = "numeric", key = "character", misc = "ANY"
 ))
 
 #' Dimensional Reduction
@@ -154,13 +154,50 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
 
 #' Convert old Seurat object to accomodate new features
 #' 
-#' Adds the object@@dr slot to older objects
+#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA analyses to new slot
 #' 
 #' @param object Seurat object
 #' @return Returns a Seurat object compatible with latest changes
 #' @export
 ConvertSeurat <- function(object) {
   object@dr <- list()
+  pca.x <- matrix()
+  pca.x.full <- matrix()
+  pca.rotation <- matrix()
+  pca.sdev <- numeric()
+  pca.misc <- NULL
+  
+  if (length(object@pca.x) > 0) pca.x <- as.matrix(object@pca.x)
+  if (length(object@pca.x.full) > 0) pca.x.full <- as.matrix(object@pca.x.full)
+  if (length(object@pca.rot) > 0) pca.rotation <- as.matrix(object@pca.rot)
+  if (length(object@pca.obj) > 0) {
+    pca.sdev <- object@pca.obj[[1]]$sdev
+    pca.misc <- object@pca.obj[[1]]
+  }
+  if(length(pca.x) > 1 || length(pca.x.full) > 1 || length(pca.rotation) > 1 || length(pca.sdev) > 0  
+     || !is.null(pca.misc)) {
+    pca.obj <- new("dim.reduction", x = pca.x, x.full = pca.x.full, rotation = pca.rotation, 
+                   sdev = pca.sdev, key = "PC", misc = pca.misc)
+    object@dr$pca <- pca.obj
+  }
+
+  ica.x <- matrix()
+  ica.rotation <- matrix()
+  ica.sdev <- numeric()
+  ica.misc <- NULL
+  if (length(object@ica.x) > 0) ica.x <- as.matrix(object@ica.x)
+  if (length(object@ica.rot) > 0) ica.rotation <- as.matrix(object@ica.rot)
+  if (length(object@ica.obj) > 0) {
+    ica.sdev <- sqrt(object@ica.obj[[1]]$vafs)
+    ica.misc <- object@ica.obj[[1]]
+  }
+
+  if(length(ica.x) > 1 || length(ica.rotation) > 1 || length(ica.sdev) > 0  || !is.null(ica.misc)) {
+    ica.obj <- new("dim.reduction", x = ica.x, rotation = ica.rotation, sdev = ica.sdev, key = "IC", 
+                   misc = "ica.misc")
+    object@dr$ica <- ica.obj
+  }
+  
   return(object)
 }
 
