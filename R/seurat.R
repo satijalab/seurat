@@ -322,6 +322,55 @@ setMethod("MakeSparse", "seurat",
           }
 )
 
+#' Convert old Seurat object to accomodate new features
+#' 
+#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA analyses to new slot
+#' 
+#' @param object Seurat object
+#' @return Returns a Seurat object compatible with latest changes
+#' @export
+ConvertSeurat <- function(object) {
+  object@dr <- list()
+  pca.x <- matrix()
+  pca.x.full <- matrix()
+  pca.rotation <- matrix()
+  pca.sdev <- numeric()
+  pca.misc <- NULL
+  
+  if (length(object@pca.x) > 0) pca.x <- as.matrix(object@pca.x)
+  if (length(object@pca.x.full) > 0) pca.x.full <- as.matrix(object@pca.x.full)
+  if (length(object@pca.rot) > 0) pca.rotation <- as.matrix(object@pca.rot)
+  if (length(object@pca.obj) > 0) {
+    pca.sdev <- object@pca.obj[[1]]$sdev
+    if(is.null(pca.sdev)) pca.sdev <- object@pca.obj[[1]]$d
+    pca.misc <- object@pca.obj[[1]]
+  }
+  if(length(pca.x) > 1 || length(pca.x.full) > 1 || length(pca.rotation) > 1 || length(pca.sdev) > 0  
+     || !is.null(pca.misc)) {
+    pca.obj <- new("dim.reduction", x = pca.x, x.full = pca.x.full, rotation = pca.rotation, 
+                   sdev = pca.sdev, key = "PC", misc = pca.misc)
+    object@dr$pca <- pca.obj
+  }
+  
+  ica.x <- matrix()
+  ica.rotation <- matrix()
+  ica.sdev <- numeric()
+  ica.misc <- NULL
+  if (length(object@ica.x) > 0) ica.x <- as.matrix(object@ica.x)
+  if (length(object@ica.rot) > 0) ica.rotation <- as.matrix(object@ica.rot)
+  if (length(object@ica.obj) > 0) {
+    ica.sdev <- sqrt(object@ica.obj[[1]]$vafs)
+    ica.misc <- object@ica.obj[[1]]
+  }
+  
+  if(length(ica.x) > 1 || length(ica.rotation) > 1 || length(ica.sdev) > 0  || !is.null(ica.misc)) {
+    ica.obj <- new("dim.reduction", x = ica.x, rotation = ica.rotation, sdev = ica.sdev, key = "IC", 
+                   misc = "ica.misc")
+    object@dr$ica <- ica.obj
+  }
+  
+  return(object)
+}
 
 #' Sample UMI
 #'
@@ -1627,129 +1676,6 @@ setMethod("AverageExpression", "seurat",
               return(toRet)
             }
             return(data.all)
-          }
-)
-
-#Internal, not documented for now
-topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {
-  code=paste(translate.dim.code(reduction.use),i,sep="")
-  if (do.balanced) {
-    num.genes=round(num.genes/2)
-    sx=dim_scores[order(dim_scores[,code]),]
-    genes.1=(rownames(sx[1:num.genes,]))
-    genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),]))
-    return(c(genes.1,genes.2))
-  }
-  if (!(do.balanced)) {
-    sx=dim_scores[rev(order(abs(dim_scores[,code]))),]
-    genes.1=(rownames(sx[1:num.genes,]))
-    genes.1=genes.1[order(dim_scores[genes.1,code])]
-    return(genes.1)
-  }
-}
-
-
-#' Find genes with highest ICA scores
-#'
-#' Return a list of genes with the strongest contribution to a set of indepdendent components
-#'
-#' @param object Seurat object
-#' @param ic.use Independent components to use
-#' @param num.genes Number of genes to return
-#' @param do.balanced Return an equal number of genes with both + and - IC scores.
-#' @return Returns a vector of genes
-#' @export
-setGeneric("ICTopGenes", function(object,ic.use=1,num.genes=30,do.balanced=FALSE) standardGeneric("ICTopGenes"))
-#' @export
-setMethod("ICTopGenes", "seurat",
-          function(object,ic.use=1,num.genes=30,do.balanced=FALSE) {
-            ic_scores=object@ica.x
-            i=ic.use
-            ic.top.genes=unique(unlist(lapply(i,topGenesForDim,ic_scores,do.balanced,num.genes,"ica")))
-            return(ic.top.genes)
-          }
-)
-
-#' Find genes with highest PCA scores
-#'
-#' Return a list of genes with the strongest contribution to a set of principal components
-#'
-#' @param object Seurat object
-#' @param pc.use Principal components to use
-#' @param num.genes Number of genes to return
-#' @param use.full Use the full PCA (projected PCA). Default i s FALSE
-#' @param do.balanced Return an equal number of genes with both + and - PC scores.
-#' @return Returns a vector of genes
-#' @export
-setGeneric("PCTopGenes", function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) standardGeneric("PCTopGenes"))
-#' @export
-setMethod("PCTopGenes", "seurat",
-          function(object,pc.use=1,num.genes=30,use.full=FALSE,do.balanced=FALSE) {
-            if(length(object@pca.x) == 0) {
-              stop("No PC values stored. Run PCA or PCAFast and try again.")
-            }
-            pc_scores=object@pca.x
-            i=pc.use
-            if (use.full==TRUE) {
-              pc_scores = object@pca.x.full
-            }
-            pc.top.genes=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.genes,"pca")))
-            return(pc.top.genes)
-          }
-)
-
-#' Find cells with highest PCA scores
-#'
-#' Return a list of genes with the strongest contribution to a set of principal components
-#'
-#' @param object Seurat object
-#' @param pc.use Principal component to use
-#' @param num.cells Number of cells to return
-#' @param do.balanced Return an equal number of cells with both + and - PC scores.
-#' @return Returns a vector of cells
-#' @export
-setGeneric("PCTopCells",  function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) standardGeneric("PCTopCells"))
-#' @export
-setMethod("PCTopCells", "seurat",
-          function(object,pc.use=1,num.cells=NULL,do.balanced=FALSE) {
-
-            #note that we use topGenesForDim, but it still works
-            num.cells=set.ifnull(num.cells,length(object@cell.names))
-            pc_scores=object@pca.rot
-            i=pc.use
-            pc.top.cells=unique(unlist(lapply(i,topGenesForDim,pc_scores,do.balanced,num.cells,"pca")))
-            return(pc.top.cells)
-          }
-)
-
-#' Print the results of a PCA analysis
-#'
-#' Prints a set of genes that most strongly define a set of principal components
-#'
-#' @inheritParams VizPCA
-#' @param pcs.print Set of PCs to print genes for
-#' @param genes.print Number of genes to print for each PC
-#' @return Only text output
-#' @export
-setGeneric("PrintPCA", function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) standardGeneric("PrintPCA"))
-#' @export
-setMethod("PrintPCA", "seurat",
-          function(object,pcs.print=1:5,genes.print=30,use.full=FALSE) {
-            if(length(object@pca.x.full) == 0 && use.full){
-              warning("PCA has not been projected. Setting use.full = FALSE")
-              use.full = FALSE
-            }
-            for(i in pcs.print) {
-              code=paste("PC",i,sep="")
-              sx=PCTopGenes(object,i, genes.print * 2, use.full = use.full, do.balanced = TRUE)
-              print(code)
-              print((sx[1:genes.print]))
-              print ("")
-
-              print(rev((sx[(length(sx)-genes.print+1):length(sx)])))
-              print ("")
-              print ("")
-            }
           }
 )
 
