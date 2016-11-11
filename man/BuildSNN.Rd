@@ -4,9 +4,9 @@
 \alias{BuildSNN}
 \title{SNN Graph Construction}
 \usage{
-BuildSNN(object, genes.use = NULL, pc.use = NULL, k.param = 10,
-  k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15, do.sparse = FALSE,
-  print.output = TRUE)
+BuildSNN(object, genes.use = NULL, reduction.type = "pca", pc.use = NULL,
+  k.param = 10, k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
+  do.sparse = FALSE, print.output = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

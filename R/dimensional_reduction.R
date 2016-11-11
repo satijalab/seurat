@@ -8,6 +8,49 @@ dim.reduction <- setClass("dim.reduction", slots = list(
   misc = "ANY"
 ))
 
+#' Dimensional Reduction Accessor Function
+#' 
+#' Pull information for specified stored dimensional reduction analysis
+#' 
+#' @param object Seurat object
+#' @param reduction.type Type of dimensional reduction to fetch
+#' @param slot Specific information to pull (i.e. rotation, x, x.full, ...)
+#' @return Returns results from reduction technique
+#' @export
+GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
+  if (!(reduction.type %in% names(object@dr))) {
+    stop(paste(reduction.type, " dimensional reduction has not been computed"))
+  }
+  if (!(slot %in% slotNames(eval(parse(text = paste0("object@dr$", reduction.type)))))) {
+    stop(paste0(slot, " slot doesn't exist"))
+  }
+  return(eval(parse(text = paste0("object@dr$", reduction.type, "@", slot))))
+}
+
+
+#' Dimensional Reduction Mutator Function
+#' 
+#' Set information for specified stored dimensional reduction analysis
+#' 
+#' @param object Seurat object
+#' @param reduction.type Type of dimensional reduction to set
+#' @param slot Specific information to set (i.e. rotation, x, x.full, ...)
+#' @param new.data New data to insert
+#' @return Seurat object with updated slot
+#' @export
+SetDimReduction <- function(object, reduction.type, slot, new.data) {
+  if (reduction.type %in% names(object@dr)) {
+    eval(parse(text = paste0("object@dr$", reduction.type, "@", slot, "<- new.data")))
+  }
+  else{
+    new.dr <- new("dim.reduction")
+    eval(parse(text = paste0("new.dr@", slot, "<- new.data")))
+    eval(parse(text = paste0("object@dr$", reduction.type, "<- new.dr")))
+  }
+  return(object)
+}
+
+
 #' Dimensional Reduction
 #' 
 #' Various methods for dimensional reductions
@@ -308,10 +351,11 @@ DimTopCells <- function(object, dim.use = 1, reduction.type = "pca", num.cells =
   if (!(reduction.type%in%names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
-  num.cells=set.ifnull(num.cells,length(object@cell.names))
-  dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
-  i=dim.use
-  dim.top.cells=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.cells,reduction.type)))
+  num.cells <- set.ifnull(num.cells, length(object@cell.names))
+  dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+  i <- dim.use
+  dim.top.cells <- unique(unlist(lapply(i, topGenesForDim, dim.scores, do.balanced, num.cells, 
+                                        reduction.type)))
   return(dim.top.cells)
 }
 
@@ -334,10 +378,11 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
   if (!(reduction.type%in%names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
-  dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@x",sep="")))
-  if (use.full) dim_scores=eval(parse(text=paste("object@dr$",reduction.type,"@x.full",sep="")))
-  i=dim.use
-  dim.top.genes=unique(unlist(lapply(i,topGenesForDim,dim_scores,do.balanced,num.genes,reduction.type)))
+  dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
+  if (use.full) dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
+  i <- dim.use
+  dim.top.genes <- unique(unlist(lapply(i, topGenesForDim, dim.scores, do.balanced, num.genes,
+                                        reduction.type)))
   return(dim.top.genes)
 }
 
@@ -387,14 +432,14 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
     genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
                                  num.genes = num.genes, use.full = use.full, 
                                  do.balanced = do.balanced))
-    dim_scores <- eval(parse(text = paste("object@dr$", reduction.type, "@rotation", sep="")))
-    dim_key <- eval(parse(text = paste("object@dr$", reduction.type, "@key", sep="")))
-    cells.ordered <- cells.use[order(dim_scores[cells.use, paste(dim_key, ndim, sep="")])]
+    dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+    dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+    cells.ordered <- cells.use[order(dim.scores[cells.use, paste(dim.key, ndim, sep = "")])]
     data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- minmax(data.use, min = disp.min, max = disp.max)
     if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
     vline.use <- NULL
-    hmTitle <- paste(dim_key,ndim)
+    hmTitle <- paste(dim.key, ndim)
     if (remove.key || length(dim.use) > 1){
       hmFunction <- "heatmap2NoKey(data.use, Rowv = NA, Colv = NA, trace = \"none\", col = col.use, dimTitle = hmTitle, "
     }
@@ -408,13 +453,13 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
     }
     hmFunction <- paste(hmFunction, "...)", sep="")
     #print(hmFunction)
-    eval(parse(text=hmFunction))
+    eval(parse(text = hmFunction))
   }
   if (do.return) {
     return(data.use)
   }
   # reset graphics parameters
-  par(mfrow=orig_par)
+  par(mfrow = orig_par)
 }
 
 
@@ -483,12 +528,13 @@ ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp
 PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.print = 30, 
                      use.full = FALSE){
   
-  if(length(eval(parse(text = paste0("object@dr$", reduction.type, "@x.full")))) == 0 && use.full){
+  
+  if(length(GetDimReduction(object, reduction.type = reduction.type, slot = "x.full") == 0) && use.full){
     warning("Dimensions have not been projected. Setting use.full = FALSE")
     use.full <- FALSE
   }
   for(i in dims.print) {
-    code <- paste0(eval(parse(text = paste0("object@dr$", reduction.type, "@key"))), i)
+    code <- paste0(GetDimReduction(object, reduction.type = reduction.type, slot = "key"), i)
     sx <- DimTopGenes(object, dim.use = i, reduction.type = reduction.type, 
                       num.genes = genes.print * 2, use.full = use.full, do.balanced = TRUE)
     print(code)
@@ -514,3 +560,43 @@ PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE
   PrintDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = genes.print, 
            use.full = use.full)
 }
+
+
+#' Visualize PCA genes
+#'
+#' Visualize top genes associated with principal components
+#'
+#'
+#' @param object Seurat object
+#' @param pcs.use Number of PCs to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - PC scores.
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values
+#' @return Graphical, no return value
+#' @export
+setGeneric("VizPCA", function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("VizPCA"))
+#' @export
+setMethod("VizPCA", "seurat",
+          function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
+            pc_scores=object@pca.x
+            if (use.full==TRUE) pc_scores = object@pca.x.full
+            
+            if (is.null(nCol)) {
+              nCol=2
+              if (length(pcs.use)>6) nCol=3
+              if (length(pcs.use)>9) nCol=4
+            }
+            num.row=floor(length(pcs.use)/nCol-1e-5)+1
+            par(mfrow=c(num.row,nCol))
+            
+            for(i in pcs.use) {
+              subset.use=pc_scores[PCTopGenes(object,i,num.genes,use.full,do.balanced),]
+              plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
+              axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)
+            }
+            rp()
+          }
+)
