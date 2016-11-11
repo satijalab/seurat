@@ -183,7 +183,7 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@snn.dense), 1)
 })
 
-# Test cell subsetting functionality
+# Test subsetting functionality
 # --------------------------------------------------------------------------------
 context("Cell Subsetting")
 
@@ -200,3 +200,11 @@ test_that("WhichCells subsets properly", {
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
   expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
 })
+
+test_that("SubsetData works properly", {
+  nbt.test@dr <- list()
+  count <- length(WhichCells(nbt.test, 1))
+  nbt.test.subset <- SubsetData(nbt.test, ident.use = 1)
+  expect_equal(length(nbt.test.subset@ident), count)
+})
+

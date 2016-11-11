@@ -1045,7 +1045,7 @@ setMethod("SubsetData","seurat",
               object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             }
             object@ident=drop.levels(object@ident[cells.use])
-            if (length(object@dr > 0)){
+            if (length(object@dr) > 0){
               for (i in 1:length(object@dr)){
                 object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
               }
