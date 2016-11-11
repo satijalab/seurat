@@ -93,7 +93,7 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   }
   else{
     pcs.store <- min(pcs.store, nrow(data.use))
-    pca.results = prcomp(t(data.use), ...)
+    pca.results <- prcomp(t(data.use), ...)
     x <- pca.results$rotation[, 1:pcs.store]
     rotation <- pca.results$x[, 1:pcs.store]
   }
@@ -101,20 +101,20 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   return(pca.obj)  
 }
 
-RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn=icafast, ics.store,...) {
+RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store,...) {
   ics.store <- min(ics.store, ncol(data.use))
   ica.results <- NULL
   if(rev.ica){
     ica.results <- ica.fxn(data.use, ics.compute,...)
-    rotation <- ica.results$M[,1:ics.store]
+    rotation <- ica.results$M[, 1:ics.store]
   }
   else{
-    ica.results = ica.fxn(t(data.use),ics.compute,...)
-    rotation <- ica.results$S[,1:ics.store]
+    ica.results <- ica.fxn(t(data.use), ics.compute,...)
+    rotation <- ica.results$S[, 1:ics.store]
   }
   
-  x=(as.matrix(data.use)%*%as.matrix(rotation))
-  colnames(x)=paste("IC",1:ncol(x),sep="")
+  x <- (as.matrix(data.use)%*%as.matrix(rotation))
+  colnames(x) <- paste("IC",1:ncol(x),sep="")
   colnames(rotation)=paste("IC",1:ncol(x),sep="")
   
   ica.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = sqrt(ica.results$vafs), key = "IC")

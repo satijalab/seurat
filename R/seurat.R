@@ -1045,8 +1045,10 @@ setMethod("SubsetData","seurat",
               object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             }
             object@ident=drop.levels(object@ident[cells.use])
-            for (i in 1:length(object@dr)){
-              object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+            if (length(object@dr > 0)){
+              for (i in 1:length(object@dr)){
+                object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+              }
             }
             object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
