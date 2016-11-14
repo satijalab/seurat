@@ -73,7 +73,7 @@ test_that("nGene calculations are consistent" , {
 })
 
 
-# Test PCA dimensional reduction
+# Test dimensional reduction
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
@@ -96,6 +96,7 @@ test_that("PCA returns expected data", {
   expect_equal(nbt.test@dr$pca@rotation[1,1], -0.8723915, tolerance = 1e-6)
   expect_equal(nbt.test@dr$pca@x[1,1], 0.4362582, tolerance = 1e-6 )
 })
+
 
 # Tests for tSNE
 # --------------------------------------------------------------------------------

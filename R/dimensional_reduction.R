@@ -68,6 +68,7 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 #' @param print.results Print the top genes associated with each dimension
 #' @param dims.print Number of dimensions to print genes for
 #' @param genes.print Number of genes to print for each PC
+#' @param seed.use Random seed
 #' @param ... Additional arguments to be passed to specific reduction technique
 #' @return Returns a Seurat object with the dimensional reduction information stored 
 #' @importFrom ica icafast icaimax icajade
@@ -75,7 +76,7 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
                          dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
                          print.results = TRUE, dims.print = 1:5, genes.print = 30, ica.fxn = icafast,
-                         ...){
+                         seed.use = 1, ...){
   
   if (length(object@scale.data) == 0){
     stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
@@ -115,7 +116,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   }
   if(reduction.type == "ica") {
     icaobj=RunICA(data.use = data.use, ics.compute = dims.store, rev.ica = rev.reduction, 
-                  ics.store = dims.store, ica.fxn = ica.fxn,...)
+                  ics.store = dims.store, ica.fxn = ica.fxn, seed.use = seed.use, ...)
     object@dr$ica=icaobj
   }
   
@@ -146,7 +147,8 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   return(pca.obj)  
 }
 
-RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store,...) {
+RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store, seed.use, ...) {
+  set.seed(seed.use)
   ics.store <- min(ics.store, ncol(data.use))
   ica.results <- NULL
   if(rev.ica){
@@ -201,7 +203,8 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
 #' @param pcs.store Number of PCs to store
 #' @param genes.print Number of genes to print for each PC
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will compute it on gene x cell matrix. 
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will 
+#' compute it on gene x cell matrix. 
 #' @param \dots Additional arguments to be passed to prcomp
 #' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
@@ -248,12 +251,14 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
-#' @param do.print Print the top genes associated with high/low loadings for
-#' the ICs
-#' @param ics.print ICs to print genes for
 #' @param ics.store Number of ICs to store
-#' @param genes.print Number of genes to print for each IC
+#' @param ics.compute Number of ICs to compute
 #' @param use.imputed Run ICA on imputed values (FALSE by default)
+#' @param rev.ica By default, computes the dimensional reduction on the cell x gene matrix. 
+#' Setting to true will compute it on the transpose (gene x cell matrix).
+#' @param print.results Print the top genes associated with each dimension
+#' @param ics.print ICs to print genes for
+#' @param genes.print Number of genes to print for each IC
 #' @param seed.use Random seed to use for fastica
 #' @param \dots Additional arguments to be passed to fastica
 #' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
@@ -263,8 +268,93 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5, ics.store = 50, 
                 genes.print = 50, use.imputed = FALSE, seed.use = 1, ...) {
   return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.store, 
-                      use.imputed = use.imputed, print.results = do.print, dims.print = ics.print, 
-                      genes.print = genes.print, ... ))
+                      dims.compute = ics.compute, use.imputed = use.imputed, rev.reduction = rev.ica, 
+                      print.results = do.print, dims.print = ics.print, genes.print = genes.print, 
+                      seed.use = seed.use, ... ))
+}
+
+
+#' Project Dimensional reduction onto full dataset
+#'
+#' Takes a pre-computed dimensional reduction (typically calculated on a subset of genes) and
+#' projects this onto the entire dataset (all genes). Note that the cell
+#' loadings (rotation matrices) remains unchanged, but now there are gene
+#' scores for all genes.
+#'
+#'
+#' @param object Seurat object
+#' @param dims.print Number of dims to print genes for
+#' @param dims.store Number of dims to store (default is 30)
+#' @param genes.print Number of genes with highest/lowest loadings to print for
+#' each PC
+#' @param replace.dim Replace the existing data (overwite object@@dr$XXX@x), not done
+#' by default.
+#' @param do.center Center the dataset prior to projection (should be set to TRUE)
+#' @param do.print Print top genes associated with the projected dimensions
+#' @return Returns Seurat object with the projected values in object@@dr$XXX@x.full
+#' @export
+ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.store = 30, 
+                       genes.print = 30, replace.dim = FALSE, do.center = FALSE, do.print = TRUE) {
+  if (!(reduction.type%in%names(object@dr))) {
+    stop(paste(reduction.type, " dimensional reduction has not been computed"))
+  }
+  data.use <- object@scale.data
+  if (do.center) {
+    data.use <- scale(as.matrix(object@scale.data), center = TRUE, scale = FALSE)
+  }
+  genes.use <- rownames(object@scale.data)
+  rotation <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+  new.full.x <- matrix(NA, nrow = length(genes.use), ncol = ncol(object.rot))
+  rownames(new.full.x) <- genes.use 
+  colnames(new.full.x) <- colnames(object.rot)
+  bin.size <- 1000
+  max.bin <- floor(length(genes.use)/bin.size) + 1
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  for(i in 1:max.bin) {
+    my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+    my.inds <- my.inds[my.inds <= length(genes.use)]
+    new.full.x[genes.use[my.inds], ] <- (data.use[genes.use[my.inds], ]) %*% rotation
+    setTxtProgressBar(pb, i)  
+  }
+  close(pb)
+  new.full.x[is.na(new.full.x)] <- 0
+  object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x.full", 
+                            new.data = new.full.x)
+  if(replace.dim == TRUE){
+    object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x", 
+                              new.data = new.full.x)
+  }
+  if(do.print) PrintDim(object, reduction.type = reduction.type, genes.print = genes.print, 
+                        use.full = TRUE, dims.print = dims.print)
+  return(object)
+}
+
+
+#' Project Principal Components Analysis onto full dataset
+#'
+#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
+#' projects this onto the entire dataset (all genes). Note that the cell
+#' loadings (PCA rotation matrices) remains unchanged, but now there are gene
+#' scores for all genes.
+#'
+#'
+#' @param object Seurat object
+#' @param do.print Print top genes associated with the projected PCs
+#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.store Number of PCs to store (default is 30)
+#' @param genes.print Number of genes with highest/lowest loadings to print for
+#' each PC
+#' @param replace.pc Replace the existing PCA (overwite object@@pca.x), not done
+#' by default.
+#' @param do.center Center the dataset prior to projection (should be set to TRUE)
+#' @return Returns Seurat object with the projected PCA values in
+#' object@@pca.x.full
+#' @export
+ProjectPCA <- function(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30, genes.print = 30,
+                       replace.pc = FALSE, do.center = FALSE) {
+  return(ProjectDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = 30, 
+                    replace.dim = replace.pc, do.center = do.center, do.print = do.print,
+                    dims.store = pcs.store))
 }
 
 
@@ -562,6 +652,43 @@ PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE
            use.full = use.full)
 }
 
+#' Visualize Dimensional Reduction genes
+#'
+#' Visualize top genes associated with reduction components
+#' 
+#' @param object Seurat object
+#' @param reduction.type Reduction technique to visualize results for
+#' @param dims.use Number of dimensions to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use reduction values for full dataset (i.e. projected dimensional reduction values)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
+#' the top genes ranked by the scores absolute values
+#' @return Graphical, no return value
+#' @export 
+VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.genes = 30, 
+                            use.full = FALSE, font.size = 0.5, nCol = NULL, do.balanced = FALSE) {
+  dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
+  if(use.full == TRUE) dim.scores <- GetDimReduction(object, reduction.type = reduction.type, "x.full")
+  
+  if(is.null(nCol)) {
+    nCol <- 2
+    if (length(pcs.use) > 6) nCol <- 3
+    if (length(pcs.use) > 9) nCol <- 4
+  }
+  num.row <- floor(length(pcs.use) / nCol - 1e-5) + 1
+  par(mfrow = c(num.row, nCol))
+  
+  for(i in dims.use){
+    subset.use <- dim.scores[DimTopGenes(object, i, num.genes, use.full, do.balanced), ]
+    plot(subset.use[, i], 1:nrow(subset.use) ,pch = 16, col = "blue", xlab = paste0("PC", i), 
+         yaxt="n", ylab="")
+    axis(2, at = 1:nrow(subset.use), labels = rownames(subset.use), las = 1, cex.axis = font.size)
+  }
+  rp()
+}
+
 
 #' Visualize PCA genes
 #'
@@ -578,26 +705,30 @@ PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE
 #' If FALSE (by default), returns the top genes ranked by the score's absolute values
 #' @return Graphical, no return value
 #' @export
-setGeneric("VizPCA", function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("VizPCA"))
+VizPCA <- function(object, pcs.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5, 
+                   nCol = NULL, do.balanced = FALSE){
+  VizDimReduction(object, reduction.type = "pca", dims.use = pcs.use, num.genes = num.genes, 
+                  use.full = use.full, font.size = font.size, nCol = nCol, do.balanced = do.balanced)
+}
+
+
+#' Visualize ICA genes
+#'
+#' Visualize top genes associated with principal components
+#'
+#'
+#' @param object Seurat object
+#' @param ics.use Number of ICs to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use full ICA (i.e. the projected ICA, by default FALSE)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - IC scores.
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values
+#' @return Graphical, no return value
 #' @export
-setMethod("VizPCA", "seurat",
-          function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
-            pc_scores=object@pca.x
-            if (use.full==TRUE) pc_scores = object@pca.x.full
-            
-            if (is.null(nCol)) {
-              nCol=2
-              if (length(pcs.use)>6) nCol=3
-              if (length(pcs.use)>9) nCol=4
-            }
-            num.row=floor(length(pcs.use)/nCol-1e-5)+1
-            par(mfrow=c(num.row,nCol))
-            
-            for(i in pcs.use) {
-              subset.use=pc_scores[PCTopGenes(object,i,num.genes,use.full,do.balanced),]
-              plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
-              axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)
-            }
-            rp()
-          }
-)
+VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5, 
+                   nCol = NULL, do.balanced = FALSE) {
+  VizDimReduction(object, reduction.type = "ica", dims.use = pcs.use, num.genes = num.genes, 
+                  use.full = use.full, font.size = font.size, nCol = nCol, do.balanced = do.balanced)
+}
