@@ -24,9 +24,9 @@ the ICs}
 
 \item{use.imputed}{Run ICA on imputed values (FALSE by default)}
 
-\item{seed.use}{Random seed to use for fastICA}
+\item{seed.use}{Random seed to use for fastica}
 
-\item{\dots}{Additional arguments to be passed to fastICA}
+\item{\dots}{Additional arguments to be passed to fastica}
 }
 \value{
 Returns Seurat object with an ICA embedding (object@ica.rot) and
@@ -34,6 +34,6 @@ gene projection matrix (object@ica.x). The ICA object itself is stored in
 object@ica.obj[[1]]
 }
 \description{
-Run fastICA algorithm for ICA dimensionality reduction
+Run fastica algorithm from the ica package for ICA dimensionality reduction
 }
 

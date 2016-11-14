@@ -243,7 +243,7 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 
 #' Run Independent Component Analysis on gene expression
 #'
-#' Run fastICA algorithm for ICA dimensionality reduction
+#' Run fastica algorithm from the ica package for ICA dimensionality reduction
 #'
 #'
 #' @param object Seurat object
@@ -254,12 +254,11 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 #' @param ics.store Number of ICs to store
 #' @param genes.print Number of genes to print for each IC
 #' @param use.imputed Run ICA on imputed values (FALSE by default)
-#' @param seed.use Random seed to use for fastICA
-#' @param \dots Additional arguments to be passed to fastICA
+#' @param seed.use Random seed to use for fastica
+#' @param \dots Additional arguments to be passed to fastica
 #' @return Returns Seurat object with an ICA embedding (object@@ica.rot) and
 #' gene projection matrix (object@@ica.x). The ICA object itself is stored in
 #' object@@ica.obj[[1]]
-#' @import fastICA
 #' @export
 ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5, ics.store = 50, 
                 genes.print = 50, use.imputed = FALSE, seed.use = 1, ...) {
