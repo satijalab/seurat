@@ -4,7 +4,7 @@
 \alias{ICA}
 \title{Run Independent Component Analysis on gene expression}
 \usage{
-ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 5,
+ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5,
   ics.store = 50, genes.print = 50, use.imputed = FALSE, seed.use = 1,
   ...)
 }
@@ -16,7 +16,7 @@ ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 5,
 \item{do.print}{Print the top genes associated with high/low loadings for
 the ICs}
 
-\item{ics.print}{Number of ICs to print genes for}
+\item{ics.print}{ICs to print genes for}
 
 \item{ics.store}{Number of ICs to store}
 

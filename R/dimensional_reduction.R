@@ -70,6 +70,7 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 #' @param genes.print Number of genes to print for each PC
 #' @param ... Additional arguments to be passed to specific reduction technique
 #' @return Returns a Seurat object with the dimensional reduction information stored 
+#' @importFrom ica icafast icaimax icajade
 #' @export
 DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
                          dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
@@ -110,6 +111,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     pcafastobj <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, 
                              pcs.compute = dims.compute, ...)
     object@dr$pca <- pcafastobj
+    reduction.type <- "pca"
   }
   if(reduction.type == "ica") {
     icaobj=RunICA(data.use = data.use, ics.compute = dims.store, rev.ica = rev.reduction, 
@@ -148,17 +150,17 @@ RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store,
   ics.store <- min(ics.store, ncol(data.use))
   ica.results <- NULL
   if(rev.ica){
-    ica.results <- ica.fxn(data.use, ics.compute,...)
+    ica.results <- ica.fxn(data.use, nc = ics.compute,...)
     rotation <- ica.results$M[, 1:ics.store]
   }
   else{
-    ica.results <- ica.fxn(t(data.use), ics.compute,...)
+    ica.results <- ica.fxn(t(data.use), nc = ics.compute,...)
     rotation <- ica.results$S[, 1:ics.store]
   }
   
-  x <- (as.matrix(data.use)%*%as.matrix(rotation))
-  colnames(x) <- paste("IC",1:ncol(x),sep="")
-  colnames(rotation)=paste("IC",1:ncol(x),sep="")
+  x <- (as.matrix(data.use )%*% as.matrix(rotation))
+  colnames(x) <- paste0("IC", 1:ncol(x))
+  colnames(rotation) <- paste0("IC", 1:ncol(x))
   
   ica.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = sqrt(ica.results$vafs), key = "IC")
   return(ica.obj)  
@@ -221,7 +223,7 @@ PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.sto
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
 #' @param do.print Print the top genes associated with high/low loadings for
 #' the PCs
-#' @param pcs.print Number of PCs to print genes for
+#' @param pcs.print PCs to print genes for
 #' @param pcs.store Number of PCs to store
 #' @param pcs.compute Total Number of PCs to compute and store
 #' @param genes.print Number of genes to print for each PC
@@ -231,7 +233,7 @@ PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.sto
 #' object@@pca.obj[[1]]
 #' @importFrom irlba irlba
 #' @export
-PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.store = 40, 
+PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, pcs.store = 40, 
                     pcs.compute = 20, genes.print = 30, ...) {
   return(DimReduction(object, reduction.type = "pcafast", genes.use = pc.genes, 
                       print.results = do.print, dims.store = pcs.store, dims.compute = pcs.compute, 
@@ -248,7 +250,7 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
 #' @param do.print Print the top genes associated with high/low loadings for
 #' the ICs
-#' @param ics.print Number of ICs to print genes for
+#' @param ics.print ICs to print genes for
 #' @param ics.store Number of ICs to store
 #' @param genes.print Number of genes to print for each IC
 #' @param use.imputed Run ICA on imputed values (FALSE by default)
@@ -259,7 +261,7 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs
 #' object@@ica.obj[[1]]
 #' @import fastICA
 #' @export
-ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 5, ics.store = 50, 
+ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5, ics.store = 50, 
                 genes.print = 50, use.imputed = FALSE, seed.use = 1, ...) {
   return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.store, 
                       use.imputed = use.imputed, print.results = do.print, dims.print = ics.print, 
