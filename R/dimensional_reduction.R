@@ -924,3 +924,70 @@ TSNEPlot <- function(object, do.label = FALSE, pt.size=1, label.size=4, cells.us
   return(DimPlot(object, reduction.use = "tsne", cells.use = cells.use, pt.size = pt.size, 
                  do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
 }
+
+
+
+#' Quickly Pick Relevant Dimensions
+#'
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph. 
+#' This elbow often corresponds well with the significant dims and is much faster to run than 
+#' Jackstraw
+#'
+#'
+#' @param object Seurat object
+#' @param reduction.type  Type of dimensional reduction to plot data for
+#' @param dims.plot Number of dimensions to plot sd for 
+#' @param xlab X axis label
+#' @param ylab Y axis label
+#' @param title Plot title
+#' @return Returns ggplot object
+#' @export
+DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = "", ylab = "", 
+                         title = "") {
+  if(length(GetDimReduction(object, reduction.type = reduction.type, slot = "sdev")) == 0) {
+    stop(paste0("No standard deviation info stored for", reduction.use))
+  }
+  data.use <- GetDimReduction(object, reduction.type = reduction.type, slot = "sdev")
+  if (length(data.use) < dims.plot) {
+    warning(paste("The object only has information for", length(data.use), "PCs." ))
+    dims.plot <- length(data.use)
+  }
+  data.use <- data.use[1:dims.plot]
+  dims <- 1:length(data.use)
+  data.plot <- data.frame(dims, data.use)
+  if(reduction.type == "pca"){
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of PC", 
+                                                                         x = "PC", title = title)
+  }
+  else if(reduction.type == "pcafast"){
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Eigen values of PC", 
+                                                                         x = "Eigen value", 
+                                                                         title = title)
+  }
+  else if(reduction.type == "ica"){
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of IC", 
+                                                                         x = "IC", title = title)
+  }
+  else{
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = ylab, x = xlab, 
+                                                                         title = title)
+  }
+  return (plot)
+}
+
+
+#' Quickly Pick Relevant PCs
+#'
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph. 
+#' This elbow often corresponds well with the significant PCs and is much faster to run.
+#'
+#'
+#' @param object Seurat object
+#' @param num.pc Number of PCs to plot
+#' @return Returns ggplot object
+#' @export
+PCElbowPlot <- function(object, num.pc = 20) {
+  return(DimElbowPlot(object, reduction.type = "pca", dims.plot = num.pc))
+}

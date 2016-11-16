@@ -3668,50 +3668,6 @@ setMethod("JackStrawFull","seurat",
           }
 )
 
-#' Quickly Pick Relevant PCs
-#'
-#' Plots the standard deviations (or approximate singular values if running PCAFast)
-#' of the principle components for easy identification of an elbow in the graph. 
-#' This elbow often corresponds well with the significant PCs and is much faster to run.
-#'
-#'
-#' @param object Seurat object
-#' @param num.pc Number of PCs to plot
-#' @return Returns ggplot object
-#' @export
-setGeneric("PCElbowPlot", function(object,num.pc = 20)  standardGeneric("PCElbowPlot"))
-#' @export
-setMethod("PCElbowPlot","seurat",
-          function(object,num.pc = 20) {
-            if (length(object@pca.obj) == 0) {
-              stop("This object has no PCA associated with it. Please run PCA() and then retry.")
-            }
-            if(is.null(object@pca.obj[[1]]$sdev)){
-              if (length(object@pca.obj[[1]]$d) < num.pc) {
-                num.pc <- length(object@pca.obj[[1]]$d)
-                warning(paste("The object only has information for", num.pc, "PCs." ))
-              }
-              sv <- object@pca.obj[[1]]$d[1:num.pc]
-              pc <- 1:length(sv)
-              data <- data.frame(pc, sv)
-              plot <- ggplot(data, aes(pc, sv)) + geom_point() + labs(y = "Singular Value for PC", x = "PC")
-              return(plot)
-            }
-            else{
-              if (length(object@pca.obj[[1]]$sdev) < num.pc) {
-                num.pc <- length(object@pca.obj[[1]]$sdev)
-                warning(paste("The object only has information for", num.pc, "PCs." ))
-              }
-              sdev <- object@pca.obj[[1]]$sdev[1:num.pc]
-              pc <- 1:length(sdev)
-              data <- data.frame(pc, sdev)
-              plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
-              return (plot)
-            }
-          }
-)
-
-
 
 #' Identify variable genes
 #'
