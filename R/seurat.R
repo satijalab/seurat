@@ -369,6 +369,13 @@ ConvertSeurat <- function(object) {
     object@dr$ica <- ica.obj
   }
   
+  tsne.rotation <- matrix()
+  if (length(object@tsne.rot) > 0) tsne.rotation <- as.matrix(object@tsne.rot)
+  if(length(tsne.rotation) > 1) {
+    tsne.obj <- new("dim.reduction", rotation = tsne.rotation, key = "tSNE_")
+    object@dr$tsne <- tsne.obj
+  }
+  
   return(object)
 }
 
