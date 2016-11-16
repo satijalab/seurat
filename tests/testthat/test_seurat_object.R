@@ -104,8 +104,8 @@ context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 
 test_that("tSNE is run correctly", {
-  expect_equal(nrow(nbt.test@tsne.rot), ncol(nbt.test@data))
-  expect_equal(nbt.test@tsne.rot[1,1], 12.118800, tolerance = 1e-6)
+  expect_equal(nrow(nbt.test@dr$tsne@rotation), ncol(nbt.test@data))
+  expect_equal(unname(nbt.test@dr$tsne@rotation[1, 1]), 12.118800, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {

@@ -31,7 +31,9 @@ Setting to true will compute it on the transpose (gene x cell matrix).}
 
 \item{dims.print}{Number of dimensions to print genes for}
 
-\item{genes.print}{Number of genes to print for each PC}
+\item{genes.print}{Number of genes to print for each dimension}
+
+\item{ica.fxn}{Function to use if calculating ica}
 
 \item{seed.use}{Random seed}
 

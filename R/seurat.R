@@ -1112,63 +1112,6 @@ setMethod("ProjectSamples", "seurat",
           }
 )
 
-#' Run t-distributed Stochastic Neighbor Embedding
-#'
-#' Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
-#' dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
-#'
-#'
-#' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features
-#' @param k.seed Random seed for the t-SNE
-#' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
-#' faster, but is less flexible
-#' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top of this
-#' @param genes.use If set, run the tSNE on this subset of genes
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
-#' @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
-#' For example, set to 3 for a 3d tSNE
-#' @param \dots Additional arguments to the tSNE call. Most commonly used is
-#' perplexity (expected number of neighbors default is 30)
-#' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
-#' @import Rtsne
-#' @import tsne
-#' @export
-setGeneric("RunTSNE", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) standardGeneric("RunTSNE"))
-#' @export
-setMethod("RunTSNE", "seurat",
-          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            if (is.null(genes.use)) {
-              dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
-              data.use=FetchData(object,dim.codes)
-            }
-            if (!is.null(genes.use)) {
-              genes.use=ainb(genes.use,rownames(object@data))
-              data.use=t(object@data[genes.use,cells.use])
-            }
-
-
-            #data.dist=as.dist(mahalanobis.dist(data.use))
-            if (do.fast) {
-              set.seed(k.seed); data.tsne=Rtsne(as.matrix(data.use),dims=dim_embed,...)
-              data.tsne=data.frame(data.tsne$Y)
-            }
-            if (!(do.fast)) {
-              set.seed(k.seed); data.tsne=data.frame(tsne(data.use,k=dim_embed,...))
-            }
-            if (add.iter > 0) {
-              data.tsne=data.frame(tsne(data.use,initial_config = as.matrix(data.tsne),max_iter = add.iter,...))
-            }
-            colnames(data.tsne)=paste("tSNE_",1:ncol(data.tsne),sep="")
-            rownames(data.tsne)=cells.use
-            object@tsne.rot=data.tsne
-            return(object)
-          }
-)
 
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
@@ -2672,75 +2615,6 @@ setMethod("FeatureHeatmap", "seurat",
           }
 )
 
-#' Plot tSNE map
-#'
-#' Graphs the output of a tSNE analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is labeled
-#' @param pt.size Set the point size
-#' @param label.size Set the size of the text labels
-#' @param cells.use Vector of cell names to use in the plot.
-#' @param colors.use Manually set the color palette to use for the points
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @seealso DimPlot
-#' @export
-setGeneric("TSNEPlot", function(object,do.label=FALSE, pt.size=1, label.size = 4, cells.use = NULL, colors.use = NULL, ...) standardGeneric("TSNEPlot"))
-#' @export
-setMethod("TSNEPlot", "seurat",
-          function(object,do.label=FALSE, pt.size=1, label.size=4, cells.use = NULL, colors.use = NULL,...) {
-            cells.use=set.ifnull(cells.use,object@cell.names)
-            #print(head(cells.use))
-            cells.use=ainb(cells.use,object@cell.names)
-            if(length(object@tsne.rot) == 0) {
-              stop("tSNE has not been run for this object yet. Please call RunTSNE() first")
-            }
-            return(DimPlot(object,reduction.use = "tsne",cells.use = cells.use, pt.size = pt.size, do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
-          }
-)
-
-#' Plot ICA map
-#'
-#' Graphs the output of a ICA analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @export
-setGeneric("ICAPlot", function(object,...) standardGeneric("ICAPlot"))
-#' @export
-setMethod("ICAPlot", "seurat",
-          function(object,...) {
-            return(DimPlot(object,reduction.use = "ica",...))
-          }
-)
-
-#' Plot PCA map
-#'
-#' Graphs the output of a PCA analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @export
-setGeneric("PCAPlot", function(object,...) standardGeneric("PCAPlot"))
-#' @export
-setMethod("PCAPlot", "seurat",
-          function(object,...) {
-              return(DimPlot(object,reduction.use = "pca", label.size = 6, ...))
-          }
-)
 
 translate.dim.code=function(reduction.use) {
   return.code="PC"
@@ -2750,77 +2624,7 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-#' Dimensional reduction plot
-#'
-#' Graphs the output of a dimensional reduction technique (PCA by default).
-#' Cells are colored by their identity class.
-#'
-#'
-#' @param object Seurat object
-#' @param reduction.use Which dimensionality reduction to use. Default is
-#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
-#' @param dim.1 Dimension for x-axis (default 1)
-#' @param dim.2 Dimension for y-axis (default 2)
-#' @param cells.use Vector of cells to plot (default is all cells)
-#' @param pt.size Adjust point size for plotting
-#' @param do.return Return a ggplot2 object (default : FALSE)
-#' @param do.bare Do only minimal formatting (default : FALSE)
-#' @param cols.use Vector of colors, each color corresponds to an identity
-#' class. By default, ggplot assigns colors.
-#' @param group.by Group (color) cells in different ways (for example, orig.ident)
-#' @param pt.shape If NULL, all points are circles (default). You can specify any
-#' cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
-#' @param do.label Whether to label the clusters
-#' @param label.size Sets size of labels
-#' @param no.legend Setting to TRUE will remove the legend
-#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
-#' graphical output.
-#' @importFrom dplyr summarize group_by
-#' @export
-setGeneric("DimPlot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) standardGeneric("DimPlot"))
-#' @export
-setMethod("DimPlot", "seurat",
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=FetchData(object,dim.codes,cells.use)
 
-            ident.use=as.factor(object@ident[cells.use])
-            if (group.by != "ident") ident.use=as.factor(FetchData(object,group.by)[,1])
-            data.plot$ident=ident.use
-            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
-            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            data.plot$pt.size=pt.size
-            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size)
-            if (!is.null(pt.shape)) {
-              shape.val=FetchData(object,pt.shape)[cells.use,1]
-              if (is.numeric(shape.val)) {
-                shape.val=cut(shape.val,breaks = 5)
-              }
-              data.plot[,"pt.shape"]=shape.val
-              p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident),shape=factor(pt.shape)),size=pt.size)
-            }
-            if (!is.null(cols.use)) {
-              p=p+scale_colour_manual(values=cols.use)
-            }
-            p2=p+xlab(x1)+ylab(x2)+scale_size(range = c(pt.size, pt.size))
-            p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid
-            p3=p3+theme(legend.title=element_blank())
-            if (do.label) {
-              data.plot %>% dplyr::group_by(ident) %>% summarize(x = median(x), y = median(y)) -> centers
-              p3 <- p3 + geom_point(data = centers, aes(x=x, y=y), size=0, alpha=0) + geom_text(data=centers, aes(label=ident), size = label.size)
-            }
-            if (no.legend) {
-              p3 <- p3 + theme(legend.position = "none")
-            }
-            if (do.return) {
-              if (do.bare) return(p)
-              return(p3)
-            }
-            if (do.bare) print(p)
-            else print(p3)
-          }
-)
 
 #Cool, but not supported right now
 setGeneric("SpatialDe", function(object,marker.cells,genes.use=NULL,...) standardGeneric("SpatialDe"))
