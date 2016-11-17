@@ -1163,12 +1163,13 @@ setMethod("RunDiffusion", "seurat",
             }
             data.dist=dist(data.use)
             data.diffusion=data.frame(diffuse(data.dist,neigen = max.dim,maxdim = max.dim,...)$X)
-            colnames(data.diffusion)=paste("tSNE_",1:ncol(data.diffusion),sep="")
+            colnames(data.diffusion)=paste("DM",1:ncol(data.diffusion),sep="")
             rownames(data.diffusion)=cells.use
             for(i in 1:max.dim) {
               x=data.diffusion[,i]; x=minmax(x,min = quantile(x,q.use),quantile(x,1-q.use)); data.diffusion[,i]=x
             }
-            object@tsne.rot=data.diffusion
+            object=SetDimReduction(object,"dm",slot = "rotation",new.data = as.matrix(data.diffusion))
+            object=SetDimReduction(object,"dm",slot = "key",new.data = "DM")
             return(object)
           }
 )

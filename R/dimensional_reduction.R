@@ -27,6 +27,57 @@ GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
   return(eval(parse(text = paste0("object@dr$", reduction.type, "@", slot))))
 }
 
+#' DimReduction Rotation Accessor Function
+#' 
+#' Pull information for specified stored dimensional reduction analysis
+#' 
+#' @param object Seurat object
+#' @param reduction.type Dimensional reduction to use (default is PCA)
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param cells.use, Cells to include (default is all)
+#' @return Rotation matrix for given reduction, cells, and dimensions
+#' @export
+DimRot <- function(object, reduction.type="pca", dims.use=NULL, cells.use=NULL) {
+  object.rot=GetDimReduction(object,reduction.type = reduction.type,slot = "rotation")
+  oject.key=GetDimReduction(object,reduction.type = reduction.type,slot = "rotation")
+  cells.use=set.ifnull(cells.use,object@cell.names)
+  cells.use=ainb(cells.use,rownames(object.rot))
+  if (!(is.null(dims.use))) dims.use=paste(object.key,dims.use,sep="")
+  dims.use=set.ifnull(dims.use,colnames(object.rot))
+  return(object.rot[cells.use,dims.use])
+}
+
+#' PCA Rotation Accessor Function
+#' 
+#' Pull PCA rotation matrix
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param cells.use, Cells to include (default is all)
+#' @return PCA rotation matrix for given cells and PCs
+#' @export
+PCARot <- function(object, dims.use=NULL, cells.use=NULL) {
+  to.return=DimRot(object,"pca",dims.use,cells.use)
+  return(to.return)
+}
+
+#' ICA Rotation Accessor Function
+#' 
+#' Pull ICA rotation matrix
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param cells.use, Cells to include (default is all)
+#' @return ICA rotation matrix for given cells and ICs
+#' @export
+ICARot <- function(object, dims.use=NULL, cells.use=NULL) {
+  to.return=DimRot(object,"ica",dims.use,cells.use)
+  return(to.return)
+}
+
+
+
+
 
 #' Dimensional Reduction Mutator Function
 #' 
@@ -124,7 +175,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   #if(reduction.type == "icafast") print("doit")
   
   if(print.results){
-    PrintDim(object, reduction.type = reduction.type, dims.print = 1:dims.print,
+    PrintDim(object, reduction.type = reduction.type, dims.print = dims.print,
              genes.print = genes.print)
   }
   return(object)
@@ -147,6 +198,7 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$sdev, key = "PC")
   return(pca.obj)  
 }
+
 
 RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store, seed.use, ...) {
   set.seed(seed.use)
@@ -266,9 +318,9 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 #' gene projection matrix (object@@ica.x). The ICA object itself is stored in
 #' object@@ica.obj[[1]]
 #' @export
-ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5, ics.store = 50, 
-                genes.print = 50, use.imputed = FALSE, seed.use = 1, ...) {
-  return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.store, 
+ICA <- function(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5, ics.compute = 50, 
+                genes.print = 50, use.imputed = FALSE, seed.use = 1, rev.ica=F,...) {
+  return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.compute, 
                       dims.compute = ics.compute, use.imputed = use.imputed, rev.reduction = rev.ica, 
                       print.results = do.print, dims.print = ics.print, genes.print = genes.print, 
                       seed.use = seed.use, ... ))
@@ -417,7 +469,8 @@ ProjectPCA <- function(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30,
 
 
 #Internal, not documented for now
-topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.use="pca") {
+topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.type="pca") {
+  #print(paste("HI", reduction.type))
   code <- paste0(GetDimReduction(object, reduction.type = reduction.type, slot = "key"), i)
   if (do.balanced) {
     num.genes=round(num.genes/2)
