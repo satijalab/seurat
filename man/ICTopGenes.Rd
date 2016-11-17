@@ -4,7 +4,8 @@
 \alias{ICTopGenes}
 \title{Find genes with highest ICA scores}
 \usage{
-ICTopGenes(object, ic.use = 1, num.genes = 30, do.balanced = FALSE)
+ICTopGenes(object, ic.use = 1, num.genes = 30, use.full = F,
+  do.balanced = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -43,6 +43,6 @@ to heatmap.2. Otherwise, no return value, only a graphical output
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
 principal component scores. Allows for nice visualization of sources of heterogeneity 
-in the dataset.
+in the dataset."()
 }
 
