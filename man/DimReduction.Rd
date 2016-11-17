@@ -7,7 +7,7 @@
 DimReduction(object, reduction.type = NULL, genes.use = NULL,
   dims.store = 40, dims.compute = 40, use.imputed = FALSE,
   rev.reduction = FALSE, print.results = TRUE, dims.print = 1:5,
-  genes.print = 30, ica.fxn = icafast, ...)
+  genes.print = 30, ica.fxn = icafast, seed.use = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -31,7 +31,11 @@ Setting to true will compute it on the transpose (gene x cell matrix).}
 
 \item{dims.print}{Number of dimensions to print genes for}
 
-\item{genes.print}{Number of genes to print for each PC}
+\item{genes.print}{Number of genes to print for each dimension}
+
+\item{ica.fxn}{Function to use if calculating ica}
+
+\item{seed.use}{Random seed}
 
 \item{...}{Additional arguments to be passed to specific reduction technique}
 }

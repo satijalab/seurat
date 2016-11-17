@@ -73,7 +73,7 @@ test_that("nGene calculations are consistent" , {
 })
 
 
-# Test PCA dimensional reduction
+# Test dimensional reduction
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
@@ -97,14 +97,15 @@ test_that("PCA returns expected data", {
   expect_equal(nbt.test@dr$pca@x[1,1], 0.4362582, tolerance = 1e-6 )
 })
 
+
 # Tests for tSNE
 # --------------------------------------------------------------------------------
 context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 
 test_that("tSNE is run correctly", {
-  expect_equal(nrow(nbt.test@tsne.rot), ncol(nbt.test@data))
-  expect_equal(nbt.test@tsne.rot[1,1], 12.118800, tolerance = 1e-6)
+  expect_equal(nrow(nbt.test@dr$tsne@rotation), ncol(nbt.test@data))
+  expect_equal(unname(nbt.test@dr$tsne@rotation[1, 1]), 12.118800, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {
@@ -183,7 +184,7 @@ test_that("Clustering over multiple resolution values handled correctly", {
   expect_equal(length(nbt.test@snn.dense), 1)
 })
 
-# Test cell subsetting functionality
+# Test subsetting functionality
 # --------------------------------------------------------------------------------
 context("Cell Subsetting")
 
@@ -200,3 +201,11 @@ test_that("WhichCells subsets properly", {
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
   expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
 })
+
+test_that("SubsetData works properly", {
+  nbt.test@dr <- list()
+  count <- length(WhichCells(nbt.test, 1))
+  nbt.test.subset <- SubsetData(nbt.test, ident.use = 1)
+  expect_equal(length(nbt.test.subset@ident), count)
+})
+

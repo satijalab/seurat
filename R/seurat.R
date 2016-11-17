@@ -369,6 +369,13 @@ ConvertSeurat <- function(object) {
     object@dr$ica <- ica.obj
   }
   
+  tsne.rotation <- matrix()
+  if (length(object@tsne.rot) > 0) tsne.rotation <- as.matrix(object@tsne.rot)
+  if(length(tsne.rotation) > 1) {
+    tsne.obj <- new("dim.reduction", rotation = tsne.rotation, key = "tSNE_")
+    object@dr$tsne <- tsne.obj
+  }
+  
   return(object)
 }
 
@@ -1045,8 +1052,10 @@ setMethod("SubsetData","seurat",
               object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             }
             object@ident=drop.levels(object@ident[cells.use])
-            for (i in 1:length(object@dr)){
-              object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+            if (length(object@dr) > 0){
+              for (i in 1:length(object@dr)){
+                object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+              }
             }
             object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
@@ -1110,184 +1119,6 @@ setMethod("ProjectSamples", "seurat",
           }
 )
 
-#' Project Dimensional reduction onto full dataset
-#'
-#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
-#' projects this onto the entire dataset (all genes). Note that the cell
-#' loadings (PCA rotation matrices) remains unchanged, but now there are gene
-#' scores for all genes.
-#'
-#'
-#' @param object Seurat object
-#' @param do.print Print top genes associated with the projected PCs
-#' @param pcs.print Number of PCs to print genes for
-#' @param pcs.store Number of PCs to store (default is 30)
-#' @param genes.print Number of genes with highest/lowest loadings to print for
-#' each PC
-#' @param replace.pc Replace the existing PCA (overwite object@@pca.x), not done
-#' by default.
-#' @param do.center Center the dataset prior to projection (should be set to TRUE)
-#' @return Returns Seurat object with the projected PCA values in
-#' object@@pca.x.full
-#' @export
-setGeneric("ProjectDim", function(object,do.print=TRUE,reduction.type="pca",pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) standardGeneric("ProjectDim"))
-#' @export
-setMethod("ProjectDim", "seurat",
-          function(object,do.print=TRUE,reduction.type="pca",pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) {
-            if (!(reduction.type%in%names(object@dr))) {
-              stop(paste(reduction.type, " dimensional reduction has not been computed"))
-            }
-            
-            if (!(do.center)) {
-              genes.use=rownames(object@scale.data)
-              object.rot=eval(parse(text=paste("object@dr$",reduction.type,"@rotation",sep="")))
-              new.full.x <- (matrix(NA, nrow = length(genes.use), ncol = ncol(object.rot)))
-              rownames(new.full.x) <- genes.use 
-              colnames(new.full.x) <- colnames(object.rot)
-              # dimnames(object@scale.data)=dimnames(data.use)
-
-              bin.size <- 1000
-              max.bin <- floor(length(genes.use)/bin.size) + 1
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-              for(i in 1:max.bin) {
-                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                my.inds <- my.inds[my.inds <= length(genes.use)]
-                #print(my.inds)
-                new.full.x[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
-                setTxtProgressBar(pb, i)  
-              }
-              close(pb)
-            }
-            my.cmd=paste("object@dr$",reduction.type,"@x.full = new.full.x",sep="")
-            #print(my.cmd)
-            eval(parse(text=my.cmd))
-            return(object)
-          }
-)
-
-#' Project Principal Components Analysis onto full dataset
-#'
-#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
-#' projects this onto the entire dataset (all genes). Note that the cell
-#' loadings (PCA rotation matrices) remains unchanged, but now there are gene
-#' scores for all genes.
-#'
-#'
-#' @param object Seurat object
-#' @param do.print Print top genes associated with the projected PCs
-#' @param pcs.print Number of PCs to print genes for
-#' @param pcs.store Number of PCs to store (default is 30)
-#' @param genes.print Number of genes with highest/lowest loadings to print for
-#' each PC
-#' @param replace.pc Replace the existing PCA (overwite object@@pca.x), not done
-#' by default.
-#' @param do.center Center the dataset prior to projection (should be set to TRUE)
-#' @return Returns Seurat object with the projected PCA values in
-#' object@@pca.x.full
-#' @export
-setGeneric("ProjectPCA", function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) standardGeneric("ProjectPCA"))
-#' @export
-setMethod("ProjectPCA", "seurat",
-          function(object,do.print=TRUE,pcs.print=5,pcs.store=30,genes.print=30,replace.pc=FALSE,do.center=FALSE) {
-            if (!(do.center)) {
-              genes.use=rownames(object@scale.data)
-              #object@pca.x.full=data.frame(as.matrix(object@scale.data)%*%as.matrix(object@pca.rot))
-              object.rot=as.matrix(object@pca.rot)
-              object@pca.x.full <- data.frame(matrix(NA, nrow = length(genes.use), ncol = ncol(object@pca.rot)))
-              rownames(object@pca.x.full) <- genes.use 
-              colnames(object@pca.x.full) <- colnames(object@pca.rot)
-             # dimnames(object@scale.data)=dimnames(data.use)
-
-                bin.size <- 1000
-                max.bin <- floor(length(genes.use)/bin.size) + 1
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-                for(i in 1:max.bin) {
-                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                  my.inds <- my.inds[my.inds <= length(genes.use)]
-                  #print(my.inds)
-                  object@pca.x.full[genes.use[my.inds], ] <- (object@scale.data[genes.use[my.inds], ])%*%object.rot
-                  setTxtProgressBar(pb, i)  
-                }
-                close(pb)
-              }
-              
-            if (do.center) object@pca.x.full=data.frame(scale(as.matrix(object@scale.data),center = TRUE,scale = FALSE)%*%as.matrix(object@pca.rot))
-            if (ncol(object@jackStraw.fakePC)>0) {
-              object@jackStraw.empP.full=data.frame(sapply(1:ncol(object@jackStraw.fakePC),function(x)unlist(lapply(abs(object@pca.x.full[,x]),empP,abs(object@jackStraw.fakePC[,x])))))
-              colnames(object@jackStraw.empP.full)=paste("PC",1:ncol(object@jackStraw.empP),sep="")
-              rownames(object@jackStraw.empP.full)=rownames(object@scale.data)
-            }
-            object@pca.x.full[is.na(object@pca.x.full)]=0
-
-            if (replace.pc==TRUE) {
-              object@jackStraw.empP=object@jackStraw.empP.full
-              object@pca.x=object@pca.x.full
-            }
-
-            if (do.print) {
-                PrintPCA(object,1:pcs.print,genes.print,TRUE)
-            }
-            return(object)
-          }
-)
-
-#' Run t-distributed Stochastic Neighbor Embedding
-#'
-#' Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
-#' dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
-#'
-#'
-#' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features
-#' @param k.seed Random seed for the t-SNE
-#' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
-#' faster, but is less flexible
-#' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top of this
-#' @param genes.use If set, run the tSNE on this subset of genes
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
-#' @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
-#' For example, set to 3 for a 3d tSNE
-#' @param \dots Additional arguments to the tSNE call. Most commonly used is
-#' perplexity (expected number of neighbors default is 30)
-#' @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
-#' @import Rtsne
-#' @import tsne
-#' @export
-setGeneric("RunTSNE", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) standardGeneric("RunTSNE"))
-#' @export
-setMethod("RunTSNE", "seurat",
-          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,...) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            if (is.null(genes.use)) {
-              dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
-              data.use=FetchData(object,dim.codes)
-            }
-            if (!is.null(genes.use)) {
-              genes.use=ainb(genes.use,rownames(object@data))
-              data.use=t(object@data[genes.use,cells.use])
-            }
-
-
-            #data.dist=as.dist(mahalanobis.dist(data.use))
-            if (do.fast) {
-              set.seed(k.seed); data.tsne=Rtsne(as.matrix(data.use),dims=dim_embed,...)
-              data.tsne=data.frame(data.tsne$Y)
-            }
-            if (!(do.fast)) {
-              set.seed(k.seed); data.tsne=data.frame(tsne(data.use,k=dim_embed,...))
-            }
-            if (add.iter > 0) {
-              data.tsne=data.frame(tsne(data.use,initial_config = as.matrix(data.tsne),max_iter = add.iter,...))
-            }
-            colnames(data.tsne)=paste("tSNE_",1:ncol(data.tsne),sep="")
-            rownames(data.tsne)=cells.use
-            object@tsne.rot=data.tsne
-            return(object)
-          }
-)
 
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
@@ -1553,84 +1384,6 @@ setMethod("FetchData","seurat",
             return(data.return)
           }
 )
-
-#' Visualize ICA genes
-#'
-#' Visualize top genes associated with principal components
-#'
-#'
-#' @param object Seurat object
-#' @param ics.use Number of ICs to display
-#' @param num.genes Number of genes to display
-#' @param font.size Font size
-#' @param nCol Number of columns to display
-#' @param do.balanced Return an equal number of genes with both + and - IC scores.
-#' If FALSE (by default), returns the top genes ranked by the score's absolute values
-#' @return Graphical, no return value
-#' @export
-setGeneric("VizICA", function(object,ics.use=1:5,num.genes=30,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("VizICA"))
-#' @export
-setMethod("VizICA", "seurat",
-          function(object,ics.use=1:5,num.genes=30,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
-            ic_scores=object@ica.x
-            if (is.null(nCol)) {
-              nCol=2
-              if (length(ics.use)>6) nCol=3
-              if (length(ics.use)>9) nCol=4
-            }
-            num.row=floor(length(ics.use)/nCol-1e-5)+1
-            par(mfrow=c(num.row,nCol))
-
-            for(i in ics.use) {
-              subset.use=ic_scores[ICTopGenes(object,i,num.genes,do.balanced),]
-              print(head(subset.use))
-              plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("ic",i,sep=""),yaxt="n",ylab="")
-              axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)
-            }
-            rp()
-          }
-)
-
-
-#' Visualize PCA genes
-#'
-#' Visualize top genes associated with principal components
-#'
-#'
-#' @param object Seurat object
-#' @param pcs.use Number of PCs to display
-#' @param num.genes Number of genes to display
-#' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
-#' @param font.size Font size
-#' @param nCol Number of columns to display
-#' @param do.balanced Return an equal number of genes with both + and - PC scores.
-#' If FALSE (by default), returns the top genes ranked by the score's absolute values
-#' @return Graphical, no return value
-#' @export
-setGeneric("VizPCA", function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) standardGeneric("VizPCA"))
-#' @export
-setMethod("VizPCA", "seurat",
-          function(object,pcs.use=1:5,num.genes=30,use.full=FALSE,font.size=0.5,nCol=NULL,do.balanced=FALSE) {
-            pc_scores=object@pca.x
-            if (use.full==TRUE) pc_scores = object@pca.x.full
-
-            if (is.null(nCol)) {
-              nCol=2
-              if (length(pcs.use)>6) nCol=3
-              if (length(pcs.use)>9) nCol=4
-            }
-            num.row=floor(length(pcs.use)/nCol-1e-5)+1
-            par(mfrow=c(num.row,nCol))
-
-            for(i in pcs.use) {
-              subset.use=pc_scores[PCTopGenes(object,i,num.genes,use.full,do.balanced),]
-              plot(subset.use[,i],1:nrow(subset.use),pch=16,col="blue",xlab=paste("PC",i,sep=""),yaxt="n",ylab="")
-              axis(2,at=1:nrow(subset.use),labels = rownames(subset.use),las=1,cex.axis=font.size)
-            }
-            rp()
-          }
-)
-
 
 setGeneric("GetWeightMatrix", function(object) standardGeneric("GetWeightMatrix"))
 setMethod("GetWeightMatrix", "seurat",
@@ -2869,75 +2622,6 @@ setMethod("FeatureHeatmap", "seurat",
           }
 )
 
-#' Plot tSNE map
-#'
-#' Graphs the output of a tSNE analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
-#' cluster is labeled
-#' @param pt.size Set the point size
-#' @param label.size Set the size of the text labels
-#' @param cells.use Vector of cell names to use in the plot.
-#' @param colors.use Manually set the color palette to use for the points
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @seealso DimPlot
-#' @export
-setGeneric("TSNEPlot", function(object,do.label=FALSE, pt.size=1, label.size = 4, cells.use = NULL, colors.use = NULL, ...) standardGeneric("TSNEPlot"))
-#' @export
-setMethod("TSNEPlot", "seurat",
-          function(object,do.label=FALSE, pt.size=1, label.size=4, cells.use = NULL, colors.use = NULL,...) {
-            cells.use=set.ifnull(cells.use,object@cell.names)
-            #print(head(cells.use))
-            cells.use=ainb(cells.use,object@cell.names)
-            if(length(object@tsne.rot) == 0) {
-              stop("tSNE has not been run for this object yet. Please call RunTSNE() first")
-            }
-            return(DimPlot(object,reduction.use = "tsne",cells.use = cells.use, pt.size = pt.size, do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
-          }
-)
-
-#' Plot ICA map
-#'
-#' Graphs the output of a ICA analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @export
-setGeneric("ICAPlot", function(object,...) standardGeneric("ICAPlot"))
-#' @export
-setMethod("ICAPlot", "seurat",
-          function(object,...) {
-            return(DimPlot(object,reduction.use = "ica",...))
-          }
-)
-
-#' Plot PCA map
-#'
-#' Graphs the output of a PCA analysis
-#' Cells are colored by their identity class.
-#'
-#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
-#' arguments which can be passed in here.
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
-#' @export
-setGeneric("PCAPlot", function(object,...) standardGeneric("PCAPlot"))
-#' @export
-setMethod("PCAPlot", "seurat",
-          function(object,...) {
-              return(DimPlot(object,reduction.use = "pca", label.size = 6, ...))
-          }
-)
 
 translate.dim.code=function(reduction.use) {
   return.code="PC"
@@ -2947,77 +2631,7 @@ translate.dim.code=function(reduction.use) {
   return(return.code)
 }
 
-#' Dimensional reduction plot
-#'
-#' Graphs the output of a dimensional reduction technique (PCA by default).
-#' Cells are colored by their identity class.
-#'
-#'
-#' @param object Seurat object
-#' @param reduction.use Which dimensionality reduction to use. Default is
-#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
-#' @param dim.1 Dimension for x-axis (default 1)
-#' @param dim.2 Dimension for y-axis (default 2)
-#' @param cells.use Vector of cells to plot (default is all cells)
-#' @param pt.size Adjust point size for plotting
-#' @param do.return Return a ggplot2 object (default : FALSE)
-#' @param do.bare Do only minimal formatting (default : FALSE)
-#' @param cols.use Vector of colors, each color corresponds to an identity
-#' class. By default, ggplot assigns colors.
-#' @param group.by Group (color) cells in different ways (for example, orig.ident)
-#' @param pt.shape If NULL, all points are circles (default). You can specify any
-#' cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
-#' @param do.label Whether to label the clusters
-#' @param label.size Sets size of labels
-#' @param no.legend Setting to TRUE will remove the legend
-#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
-#' graphical output.
-#' @importFrom dplyr summarize group_by
-#' @export
-setGeneric("DimPlot", function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) standardGeneric("DimPlot"))
-#' @export
-setMethod("DimPlot", "seurat",
-          function(object,reduction.use="pca",dim.1=1,dim.2=2,cells.use=NULL,pt.size=3,do.return=FALSE,do.bare=FALSE,cols.use=NULL,group.by="ident",pt.shape=NULL, do.label = FALSE, label.size = 1, no.legend = FALSE) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=FetchData(object,dim.codes,cells.use)
 
-            ident.use=as.factor(object@ident[cells.use])
-            if (group.by != "ident") ident.use=as.factor(FetchData(object,group.by)[,1])
-            data.plot$ident=ident.use
-            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
-            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            data.plot$pt.size=pt.size
-            p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident)),size=pt.size)
-            if (!is.null(pt.shape)) {
-              shape.val=FetchData(object,pt.shape)[cells.use,1]
-              if (is.numeric(shape.val)) {
-                shape.val=cut(shape.val,breaks = 5)
-              }
-              data.plot[,"pt.shape"]=shape.val
-              p=ggplot(data.plot,aes(x=x,y=y))+geom_point(aes(colour=factor(ident),shape=factor(pt.shape)),size=pt.size)
-            }
-            if (!is.null(cols.use)) {
-              p=p+scale_colour_manual(values=cols.use)
-            }
-            p2=p+xlab(x1)+ylab(x2)+scale_size(range = c(pt.size, pt.size))
-            p3=p2+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid
-            p3=p3+theme(legend.title=element_blank())
-            if (do.label) {
-              data.plot %>% dplyr::group_by(ident) %>% summarize(x = median(x), y = median(y)) -> centers
-              p3 <- p3 + geom_point(data = centers, aes(x=x, y=y), size=0, alpha=0) + geom_text(data=centers, aes(label=ident), size = label.size)
-            }
-            if (no.legend) {
-              p3 <- p3 + theme(legend.position = "none")
-            }
-            if (do.return) {
-              if (do.bare) return(p)
-              return(p3)
-            }
-            if (do.bare) print(p)
-            else print(p3)
-          }
-)
 
 #Cool, but not supported right now
 setGeneric("SpatialDe", function(object,marker.cells,genes.use=NULL,...) standardGeneric("SpatialDe"))
@@ -4053,50 +3667,6 @@ setMethod("JackStrawFull","seurat",
             return(object)
           }
 )
-
-#' Quickly Pick Relevant PCs
-#'
-#' Plots the standard deviations (or approximate singular values if running PCAFast)
-#' of the principle components for easy identification of an elbow in the graph. 
-#' This elbow often corresponds well with the significant PCs and is much faster to run.
-#'
-#'
-#' @param object Seurat object
-#' @param num.pc Number of PCs to plot
-#' @return Returns ggplot object
-#' @export
-setGeneric("PCElbowPlot", function(object,num.pc = 20)  standardGeneric("PCElbowPlot"))
-#' @export
-setMethod("PCElbowPlot","seurat",
-          function(object,num.pc = 20) {
-            if (length(object@pca.obj) == 0) {
-              stop("This object has no PCA associated with it. Please run PCA() and then retry.")
-            }
-            if(is.null(object@pca.obj[[1]]$sdev)){
-              if (length(object@pca.obj[[1]]$d) < num.pc) {
-                num.pc <- length(object@pca.obj[[1]]$d)
-                warning(paste("The object only has information for", num.pc, "PCs." ))
-              }
-              sv <- object@pca.obj[[1]]$d[1:num.pc]
-              pc <- 1:length(sv)
-              data <- data.frame(pc, sv)
-              plot <- ggplot(data, aes(pc, sv)) + geom_point() + labs(y = "Singular Value for PC", x = "PC")
-              return(plot)
-            }
-            else{
-              if (length(object@pca.obj[[1]]$sdev) < num.pc) {
-                num.pc <- length(object@pca.obj[[1]]$sdev)
-                warning(paste("The object only has information for", num.pc, "PCs." ))
-              }
-              sdev <- object@pca.obj[[1]]$sdev[1:num.pc]
-              pc <- 1:length(sdev)
-              data <- data.frame(pc, sdev)
-              plot <- ggplot(data, aes(pc, sdev)) + geom_point() + labs(y = "Standard Deviation of PC", x = "PC")
-              return (plot)
-            }
-          }
-)
-
 
 
 #' Identify variable genes

@@ -17,7 +17,7 @@ Imports:
     stringr,
     mixtools,
     lars,
-    fastICA,
+    ica,
     tsne,
     Rtsne,
     fpc,

@@ -4,7 +4,7 @@
 \alias{PCAFast}
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-PCAFast(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5,
+PCAFast(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5,
   pcs.store = 40, pcs.compute = 20, genes.print = 30, ...)
 }
 \arguments{
@@ -15,7 +15,7 @@ PCAFast(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5,
 \item{do.print}{Print the top genes associated with high/low loadings for
 the PCs}
 
-\item{pcs.print}{Number of PCs to print genes for}
+\item{pcs.print}{PCs to print genes for}
 
 \item{pcs.store}{Number of PCs to store}
 

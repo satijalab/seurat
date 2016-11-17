@@ -4,7 +4,7 @@
 \alias{ICA}
 \title{Run Independent Component Analysis on gene expression}
 \usage{
-ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 5,
+ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 1:5,
   ics.store = 50, genes.print = 50, use.imputed = FALSE, seed.use = 1,
   ...)
 }
@@ -13,10 +13,7 @@ ICA(object, ic.genes = NULL, do.print = TRUE, ics.print = 5,
 
 \item{ic.genes}{Genes to use as input for ICA. Default is object@var.genes}
 
-\item{do.print}{Print the top genes associated with high/low loadings for
-the ICs}
-
-\item{ics.print}{Number of ICs to print genes for}
+\item{ics.print}{ICs to print genes for}
 
 \item{ics.store}{Number of ICs to store}
 
@@ -24,9 +21,16 @@ the ICs}
 
 \item{use.imputed}{Run ICA on imputed values (FALSE by default)}
 
-\item{seed.use}{Random seed to use for fastICA}
+\item{seed.use}{Random seed to use for fastica}
 
-\item{\dots}{Additional arguments to be passed to fastICA}
+\item{ics.compute}{Number of ICs to compute}
+
+\item{rev.ica}{By default, computes the dimensional reduction on the cell x gene matrix. 
+Setting to true will compute it on the transpose (gene x cell matrix).}
+
+\item{print.results}{Print the top genes associated with each dimension}
+
+\item{\dots}{Additional arguments to be passed to fastica}
 }
 \value{
 Returns Seurat object with an ICA embedding (object@ica.rot) and
@@ -34,6 +38,6 @@ gene projection matrix (object@ica.x). The ICA object itself is stored in
 object@ica.obj[[1]]
 }
 \description{
-Run fastICA algorithm for ICA dimensionality reduction
+Run fastica algorithm from the ica package for ICA dimensionality reduction
 }
 
