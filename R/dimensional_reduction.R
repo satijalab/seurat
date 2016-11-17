@@ -77,7 +77,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   #if(reduction.type == "icafast") print("doit")
   
   if(print.results){
-    PrintDim(object, reduction.type = reduction.type, dims.print = dims.print,
+    PrintDim(object, reduction.type = reduction.type, dims.print = 1:dims.print,
              genes.print = genes.print)
   }
   return(object)
@@ -253,8 +253,8 @@ topGenesForDim=function(i,dim_scores,do.balanced=FALSE,num.genes=30,reduction.us
 #' @param do.balanced Return an equal number of genes with both + and - IC scores.
 #' @return Returns a vector of genes
 #' @export
-ICTopGenes <- function(object, ic.use = 1, num.genes = 30, do.balanced = FALSE) {
-  return(DimTopGenes(object, dim.use = ic.use, reduction.type = "ica", num.genes = num.genes,
+ICTopGenes <- function(object, ic.use = 1, num.genes = 30, use.full=F,do.balanced = FALSE) {
+  return(DimTopGenes(object, dim.use = ic.use, reduction.type = "ica", use.full = use.full,num.genes = num.genes,
                      do.balanced = do.balanced))
 }
 
@@ -289,6 +289,20 @@ PCTopCells <- function(object, pc.use = 1, num.cells = NULL, do.balanced = FALSE
                      do.balanced = do.balanced))
 }
 
+#' Find cells with highest ICA scores
+#'
+#' Return a list of genes with the strongest contribution to a set of principal components
+#'
+#' @param object Seurat object
+#' @param ic.use Independent component to use
+#' @param num.cells Number of cells to return
+#' @param do.balanced Return an equal number of cells with both + and - PC scores.
+#' @return Returns a vector of cells
+#' @export
+ICTopCells <- function(object, ic.use = 1, num.cells = NULL, do.balanced = FALSE) {
+  return(DimTopCells(object, dim.use = ic.use, reduction.type = "ica", num.cells = num.cells, 
+                     do.balanced = do.balanced))
+}
 
 #' Find cells with highest scores for a given dimensional reduction technique
 #'
@@ -449,7 +463,7 @@ PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.
 #'
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
 #' principal component scores. Allows for nice visualization of sources of heterogeneity 
-#' in the dataset.
+#' in the dataset."()
 #'
 #' @inheritParams DoHeatmap
 #' @inheritParams ICTopGenes
@@ -510,7 +524,22 @@ PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.pri
 #' @param genes.print Number of genes to print for each PC
 #' @return Only text output
 #' @export
+PrintICA <- function(object, ics.print = 1:5, genes.print = 30, use.full = FALSE) {
+  PrintDim(object, reduction.type = "ica", dims.print = ics.print, genes.print = genes.print, 
+           use.full = use.full)
+}
+
+#' Print the results of a PCA analysis
+#'
+#' Prints a set of genes that most strongly define a set of principal components
+#'
+#' @inheritParams VizPCA
+#' @param pcs.print Set of PCs to print genes for
+#' @param genes.print Number of genes to print for each PC
+#' @return Only text output
+#' @export
 PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE) {
   PrintDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = genes.print, 
            use.full = use.full)
 }
+
