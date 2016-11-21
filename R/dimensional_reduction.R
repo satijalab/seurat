@@ -39,12 +39,49 @@ GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
 #' @export
 DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = NULL) {
   object.rot <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
-  oject.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+  oject.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   cells.use <- set.ifnull(cells.use, object@cell.names)
   cells.use <- ainb(cells.use, rownames(object.rot))
   if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
   dims.use=set.ifnull(dims.use,colnames(object.rot))
   return(object.rot[cells.use,dims.use])
+}
+
+#' Dimensional Reduction Gene Loadings Accessor Function
+#' 
+#' Pull rotoation matrix for specified stored dimensional reduction analysis
+#' 
+#' @param object Seurat object
+#' @param reduction.type Dimensional reduction to use (default is PCA)
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param genes.use, Genes to include (default is all)
+#' @param use.full return projected gene loadings (default is F)
+#' @return Rotation matrix for given reduction, cells, and genes
+#' @export
+DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NULL,use.full=F) {
+  if (!(use.full)) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
+  if (use.full) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
+  oject.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+  genes.use <- set.ifnull(genes.use, rownames(object@data))
+  genes.use <- ainb(genes.use, rownames(object.x))
+  if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
+  dims.use=set.ifnull(dims.use,colnames(object.x))
+  return(object.x[genes.use,dims.use])
+}
+
+
+#' Diffusion Maps Rotation Accessor Function
+#' 
+#' Pull Diffusion maps rotation matrix
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param cells.use, Cells to include (default is all)
+#' @return Diffusion maps rotation matrix for given cells and DMs
+#' @export
+DMRot <- function(object, dims.use=NULL, cells.use=NULL) {
+  to.return=DimRot(object,"dm",dims.use,cells.use)
+  return(to.return)
 }
 
 #' PCA Rotation Accessor Function
@@ -58,6 +95,20 @@ DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = 
 #' @export
 PCARot <- function(object, dims.use=NULL, cells.use=NULL) {
   to.return=DimRot(object,"pca",dims.use,cells.use)
+  return(to.return)
+}
+
+#' PCA Gene Loadings Accessor Function
+#' 
+#' Pull PCA Gene Loadings
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param genes.use, Genes to include (default is all)
+#' @return PCA loading matrix for given genes and PCs
+#' @export
+PCAX <- function(object, dims.use=NULL, genes.use=NULL,use.full=F) {
+  to.return=DimX(object,"pca",dims.use,genes.use,use.full)
   return(to.return)
 }
 
@@ -75,6 +126,19 @@ ICARot <- function(object, dims.use=NULL, cells.use=NULL) {
   return(to.return)
 }
 
+#' ICA Gene Loadings Accessor Function
+#' 
+#' Pull ICA Gene Loadings
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param genes.use, Genes to include (default is all)
+#' @return ICA loading matrix for given genes and ICs
+#' @export
+ICAX <- function(object, dims.use=NULL, genes.use=NULL,use.full=F) {
+  to.return=DimX(object,"ica",dims.use,genes.use,use.full)
+  return(to.return)
+}
 
 
 
@@ -179,7 +243,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
              genes.print = genes.print)
   }
   return(object)
-} 
+  } 
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pca.results <- NULL
@@ -621,9 +685,9 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @export
 DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = NULL, 
-                                  num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
-                                  do.return = FALSE, col.use = pyCols, use.scale = TRUE,
-                                  do.balanced = FALSE, remove.key = FALSE, label.columns=NULL, ...){
+                       num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
+                       do.return = FALSE, col.use = pyCols, use.scale = TRUE,
+                       do.balanced = FALSE, remove.key = FALSE, label.columns=NULL, ...){
   
   num.row <- floor(length(dim.use) / 3.01) + 1
   orig_par <- par()$mfrow
@@ -643,7 +707,7 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
   for(ndim in dim.use){
     if (is.numeric((cells))) {
       cells.use <- DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type, 
-                            num.cells = cells,do.balanced = do.balanced)
+                               num.cells = cells,do.balanced = do.balanced)
     }
     else {
       cells.use <- set.ifnull(cells, object@cell.names)
@@ -702,9 +766,9 @@ PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.
                       label.columns = NULL, ...) {
   
   return(DimHeatmap(object, reduction.type = "pca", dim.use = pc.use, cells.use = cells.use, 
-             num.genes = num.genes, use.full = use.full, disp.min = disp.min, disp.max = disp.max,
-             do.return = do.return, col.use = col.use, use.scale = use.scale, 
-             do.balanced = do.balanced, remove.key = remove.key, label.columns = label.columns, ...))
+                    num.genes = num.genes, use.full = use.full, disp.min = disp.min, disp.max = disp.max,
+                    do.return = do.return, col.use = col.use, use.scale = use.scale, 
+                    do.balanced = do.balanced, remove.key = remove.key, label.columns = label.columns, ...))
   
 }
 
@@ -725,7 +789,7 @@ PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.
 ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp.min = -2.5, 
                       disp.max = 2.5, do.return = FALSE, col.use = pyCols, use.scale = TRUE, 
                       do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...) {
-            
+  
   return(DimHeatmap(object, reduction.type = "ica", dim.use = ic.use, cells.use = cells.use, 
                     num.genes = num.genes, disp.min = disp.min, disp.max = disp.max, 
                     do.return = do.return, col.use = col.use, use.scale = use.scale, 
@@ -969,6 +1033,20 @@ PCAPlot <- function(object,...) {
   return(DimPlot(object, reduction.use = "pca", label.size = 6, ...))
 }
 
+#' Plot Diffusion map
+#'
+#' Graphs the output of a Diffusion map analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
+#' arguments which can be passed in here.
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
+#' @export
+DMPlot <- function(object,...) {
+  return(DimPlot(object, reduction.use = "dm", label.size = 6, ...))
+}
 
 #' Plot ICA map
 #'
