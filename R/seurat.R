@@ -711,7 +711,7 @@ calc.drop.prob=function(x,a,b) {
 #'
 #' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
 #' @param node Node from which to start identifying split markers, default is top node.
-#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
+#' @param genes.use Genes to test. Default is to use all genes
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' @param test.use Denotes which test to use. Seurat currently implements
@@ -1560,7 +1560,7 @@ setMethod("FindMarkers", "seurat",
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
-#' @param genes.use Genes to test. Default is to use variable genes (object@@var.genes)
+#' @param genes.use Genes to test. Default is to all genes
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
