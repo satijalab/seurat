@@ -1148,10 +1148,10 @@ setMethod("ProjectSamples", "seurat",
 #' @import Rtsne
 #' @import tsne
 #' @export
-setGeneric("RunDiffusion", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,scale.clip=3,...) standardGeneric("RunDiffusion"))
+setGeneric("RunDiffusion", function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.01,max.dim=2,scale.clip=10,...) standardGeneric("RunDiffusion"))
 #' @export
 setMethod("RunDiffusion", "seurat",
-          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.05,max.dim=2,scale.clip=3,...) {
+          function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.01,max.dim=2,scale.clip=10,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             if (is.null(genes.use)) {
               dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
@@ -1159,7 +1159,7 @@ setMethod("RunDiffusion", "seurat",
             }
             if (!is.null(genes.use)) {
               genes.use=ainb(genes.use,rownames(object@scale.data))
-              data.use=minmax(t(object@scale.data[genes.use,cells.use]),-1*scale.clip,scale.clip)
+              data.use=minmax(t(object@data[genes.use,cells.use]),-1*scale.clip,scale.clip)
             }
             data.dist=dist(data.use)
             data.diffusion=data.frame(diffuse(data.dist,neigen = max.dim,maxdim = max.dim,...)$X)
