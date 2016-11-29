@@ -2540,8 +2540,13 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
   else{
     brewer.gran <- length(cols.use)
   }
-  data.cut=as.numeric(as.factor(cut(as.numeric(data.gene),breaks = brewer.gran)))
-  data.plot$col=as.factor(data.cut)
+  if(all(data.gene == 0)){
+    data.cut <- 0
+  }
+  else{
+    data.cut <- as.numeric(as.factor(cut(as.numeric(data.gene),breaks = brewer.gran)))
+  }
+  data.plot$col <- as.factor(data.cut)
   p <- ggplot(data.plot, aes(x,y))
   if(brewer.gran != 2){
     if(length(cols.use) == 1){
@@ -2554,8 +2559,14 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
     }
   }
   else{
-    p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) + theme(legend.position='none') +
-      scale_color_gradientn(colors=cols.use) 
+    if(all(data.plot$gene == data.plot$gene[1])){
+      warning(paste0("All cells have the same value of ", feature, "."))
+      p <- p + geom_point(color=cols.use[1], size=pt.size, shape=pch.use) + theme(legend.position='none') 
+    }
+    else{
+      p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) + theme(legend.position='none') +
+        scale_color_gradientn(colors=cols.use)  
+    }
   }
   if(no.axes){
     p <- p + labs(title = feature, x ="", y="") +  theme(axis.line=element_blank(),axis.text.x=element_blank(),
