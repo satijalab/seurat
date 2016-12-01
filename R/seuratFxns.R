@@ -943,8 +943,6 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       if (is.logical(Colv) && (Colv))
         dendrogram <- "column"
       else dedrogram <- "none"
-      warning("Discrepancy: Rowv is FALSE, while dendrogram is `",
-              dendrogram, "'. Omitting row dendogram.")
     }
   }
   if (!inherits(Colv, "dendrogram")) {
@@ -953,8 +951,6 @@ heatmap2NoKey=function (x, Rowv = TRUE, Colv = if (symm) "Rowv" else TRUE,
       if (is.logical(Rowv) && (Rowv))
         dendrogram <- "row"
       else dendrogram <- "none"
-      warning("Discrepancy: Colv is FALSE, while dendrogram is `",
-              dendrogram, "'. Omitting column dendogram.")
     }
   }
   if (inherits(Rowv, "dendrogram")) {

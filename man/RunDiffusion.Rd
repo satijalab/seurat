@@ -6,8 +6,8 @@
 \usage{
 RunDiffusion(object, cells.use = NULL, dims.use = 1:5, k.seed = 1,
   do.fast = FALSE, add.iter = 0, genes.use = NULL,
-  reduction.use = "pca", dim_embed = 2, q.use = 0.05, max.dim = 2,
-  scale.clip = 3, ...)
+  reduction.use = "pca", dim_embed = 2, q.use = 0.01, max.dim = 2,
+  scale.clip = 10, ...)
 }
 \arguments{
 \item{object}{Seurat object}
