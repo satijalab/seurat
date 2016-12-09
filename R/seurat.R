@@ -897,10 +897,13 @@ setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL, model.u
 #' @export
 setMethod("RegressOut", "seurat",
           function(object,latent.vars,genes.regress=NULL, model.use="linear", use.umi=F, do.scale = T, do.center = T, scale.max = 10) {
+            possible.models <- c("linear", "poisson", "negbinom")
+            if(!model.use %in% possible.models){
+              stop(paste0(model.use, " is not a valid model. Please use one the following: ", paste0(possible.models, collapse = ", "), "."))
+            }
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
-
             bin.size <- 100;
             if (model.use=="negbinom") bin.size=5;
             bin.ind <- ceiling(1:length(genes.regress)/bin.size)
