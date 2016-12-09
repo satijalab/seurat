@@ -2828,10 +2828,16 @@ setMethod("DoHeatmap","seurat",
             if (order.by.ident) {
               cells.use=cells.use[order(cells.ident)]
             }
-            data.use=object@scale.data[genes.use,cells.use]
-            if (!do.scale) data.use=as.matrix(object@data[genes.use,cells.use])
-
-            if (do.scale) data.use=minmax(data.use,min=disp.min,max=disp.max)
+            else{
+              cells.ident = factor(cells.ident, levels = as.vector(unique(cells.ident)))
+            }
+            if (!do.scale){
+              data.use <- as.matrix(object@data[genes.use, cells.use])
+            }
+            else {
+              data.use <- object@scale.data[genes.use, cells.use]
+              data.use <-minmax(data.use, min = disp.min, max = disp.max)
+            }
             vline.use=NULL;
             colsep.use=NULL
             hmFunction=heatmap.2
