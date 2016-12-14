@@ -949,10 +949,13 @@ setGeneric("RegressOut", function(object,latent.vars,genes.regress=NULL, model.u
 #' @export
 setMethod("RegressOut", "seurat",
           function(object,latent.vars,genes.regress=NULL, model.use="linear", use.umi=F, do.scale = T, do.center = T, scale.max = 10) {
+            possible.models <- c("linear", "poisson", "negbinom")
+            if(!model.use %in% possible.models){
+              stop(paste0(model.use, " is not a valid model. Please use one the following: ", paste0(possible.models, collapse = ", "), "."))
+            }
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             latent.data=FetchData(object,latent.vars)
-
             bin.size <- 100;
             if (model.use=="negbinom") bin.size=5;
             bin.ind <- ceiling(1:length(genes.regress)/bin.size)
@@ -2826,10 +2829,16 @@ setMethod("DoHeatmap","seurat",
             if (order.by.ident) {
               cells.use=cells.use[order(cells.ident)]
             }
-            data.use=object@scale.data[genes.use,cells.use]
-            if (!do.scale) data.use=as.matrix(object@data[genes.use,cells.use])
-
-            if (do.scale) data.use=minmax(data.use,min=disp.min,max=disp.max)
+            else{
+              cells.ident = factor(cells.ident, levels = as.vector(unique(cells.ident)))
+            }
+            if (!do.scale){
+              data.use <- as.matrix(object@data[genes.use, cells.use])
+            }
+            else {
+              data.use <- object@scale.data[genes.use, cells.use]
+              data.use <-minmax(data.use, min = disp.min, max = disp.max)
+            }
             vline.use=NULL;
             colsep.use=NULL
             hmFunction=heatmap.2
