@@ -1154,7 +1154,7 @@ setMethod("RunDiffusion", "seurat",
           function(object,cells.use=NULL,dims.use=1:5,k.seed=1,do.fast=FALSE,add.iter=0,genes.use=NULL,reduction.use="pca",dim_embed=2,q.use=0.01,max.dim=2,scale.clip=10,...) {
             cells.use=set.ifnull(cells.use,colnames(object@data))
             if (is.null(genes.use)) {
-              dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
+              dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,dims.use,sep="")
               data.use=FetchData(object,dim.codes)
             }
             if (!is.null(genes.use)) {
@@ -2365,7 +2365,7 @@ setMethod("AddSmoothedScore", "seurat",
             genes.fit=set.ifnull(genes.fit,object@var.genes)
             genes.fit=genes.fit[genes.fit%in%rownames(object@data)]
 
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes)
             knn.smooth=get.knn(data.plot,k)$nn.index
             avg.fxn=mean;
@@ -2515,7 +2515,7 @@ setMethod("FeaturePlot", "seurat",
             }
             num.row=floor(length(features.plot)/nCol-1e-5)+1
             par(mfrow=c(num.row,nCol))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes)
 
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
@@ -2611,7 +2611,7 @@ setMethod("FeatureHeatmap", "seurat",
             idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
             dim.code="PC"
             par(mfrow=c(length(features.plot),length(idents.use)))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=data.frame(FetchData(object,dim.codes))
 
             ident.use=as.factor(object@ident)
@@ -2635,11 +2635,9 @@ setMethod("FeatureHeatmap", "seurat",
 )
 
 
-translate.dim.code=function(reduction.use) {
-  return.code="PC"
-  if (reduction.use=="ica") return.code="IC"
-  if (reduction.use=="tsne") return.code="tSNE_"
-  if (reduction.use=="mds") return.code="MDS"
+translate.dim.code=function(object,reduction.use) {
+  if (!is.null(reduction.use)) return.code=object@dr[[reduction.use]]@key
+  else return.code="PC"
   return(return.code)
 }
 
@@ -2690,7 +2688,7 @@ setGeneric("DBClustDimension", function(object,dim.1=1,dim.2=2,reduction.use="ts
 #' @export
 setMethod("DBClustDimension", "seurat",
           function(object,dim.1=1,dim.2=2,reduction.use="tsne",G.use=NULL,set.ident=TRUE,seed.use=1,...) {
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
+            dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=FetchData(object,dim.codes)
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
