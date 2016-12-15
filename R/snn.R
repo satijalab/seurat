@@ -66,13 +66,13 @@ setMethod("BuildSNN", signature = "seurat",
                         print.output)
   }
   if (plot.SNN) {
-    if(length(object@tsne.rot) < 1) {
+    if(length(object@dr$tsne@rotation) < 1) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     }
     else{
       net <- graph.adjacency(w, mode = "undirected", weighted = TRUE,
                              diag = FALSE)
-      plot.igraph(net, layout = as.matrix(object@tsne.rot),
+      plot.igraph(net, layout = as.matrix(object@dr$tsne@rotation),
                   edge.width = E(net)$weight, vertex.label = NA,
                   vertex.size = 0)
     }
