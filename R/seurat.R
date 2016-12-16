@@ -1947,20 +1947,24 @@ setMethod("FindMarkers", "seurat",
             genes.use=set.ifnull(genes.use, rownames(object@data))
             
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
-            cells.1=WhichCells(object,ident.1)
             # in case the user passed in cells instead of identity classes
             if (length(as.vector(ident.1) > 1) && any(as.character(ident.1) %in% object@cell.names)) {
               cells.1=ainb(ident.1,object@cell.names)
+            } else {
+            cells.1=WhichCells(object,ident.1)
             }
+              
+            
             # if NULL for ident.2, use all other cells
-            if (is.null(ident.2)) {
-              cells.2=object@cell.names
-            }
-            else {
-              cells.2=WhichCells(object, ident = ident.2)
-            }
             if (length(as.vector(ident.2) > 1) && any(as.character(ident.2) %in% object@cell.names)) {
               cells.2=ainb(ident.2,object@cell.names)
+            } else {
+              if (is.null(ident.2)) {
+               cells.2=object@cell.names
+              }
+             else {
+               cells.2=WhichCells(object, ident = ident.2)
+             }
             }
             cells.2=anotinb(cells.2,cells.1)
 
