@@ -1357,21 +1357,29 @@ setMethod("FetchData","seurat",
                 data.expression = t(data.expression)
               }
             }
-            var.options=c("data.info","mix.probs","gene.scores", "tsne.rot")
-            dr.names=paste("dr$",names(object@dr),"@rotation",sep="")
+            var.options=c("data.info","mix.probs","gene.scores")
+            dr.options <- names(object@dr)
+            dr.names <- paste("dr$",names(object@dr),"@key",sep="")
+            dr.names <- sapply(dr.names, function(x) eval(parse(text=paste("object@",x,sep=""))))
+            names(dr.names) <- dr.options
             var.options=c(var.options,dr.names)
             object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
             for (my.var in vars.all) {
               data.use=data.frame()
               if (my.var %in% colnames(data.expression)) {
-                data.use=data.expression
+                data.use <- data.expression
               } else {
                 for(i in var.options) {
-                  eval(parse(text=paste("data.use = object@",i,sep="")))
-                  if (my.var %in% colnames(data.use)) {
+                  if (unlist(strsplit(my.var, "[0-9]+")) == i) {
+                    eval(parse(text=paste("data.use = object@dr$", 
+                                          names(var.options[which(i == var.options)]), "@rotation", 
+                                          sep="")))
                     break;
                   }
                 }
+              }
+              if(my.var %in% colnames(object@data.info)){
+                data.use <- object@data.info[, my.var, drop = F]
               }
               if (ncol(data.use)==0) {
                 stop(paste("Error : ", my.var, " not found", sep=""))
@@ -2529,7 +2537,7 @@ setMethod("FeaturePlot", "seurat",
             
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
             data.plot$pt.size=pt.size
-            data.use=data.frame(t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
+            data.use=t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed))
             pList=lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes))
             
             MultiPlotList(pList, cols = nCol)
@@ -2538,8 +2546,8 @@ setMethod("FeaturePlot", "seurat",
 )
 
 SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes){
-  data.gene=na.omit(data.frame(data.use[feature,]))
-  data.plot$gene = t(data.gene)
+  data.gene=na.omit(data.use[feature,])
+  data.plot$gene = data.gene
   brewer.gran <- 1
   if(length(cols.use) == 1){
     brewer.gran <- brewer.pal.info[cols.use,]$maxcolors
@@ -2547,7 +2555,7 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
   else{
     brewer.gran <- length(cols.use)
   }
-  if(all(data.gene == 0)){
+  if(any(as.matrix(data.gene) != 0)){
     data.cut <- 0
   }
   else{
