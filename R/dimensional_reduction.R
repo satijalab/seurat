@@ -61,7 +61,7 @@ DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = 
 DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NULL,use.full=F) {
   if (!(use.full)) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
   if (use.full) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
-  oject.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+  object.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   genes.use <- set.ifnull(genes.use, rownames(object@data))
   genes.use <- ainb(genes.use, rownames(object.x))
   if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
