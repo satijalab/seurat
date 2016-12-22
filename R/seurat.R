@@ -1288,10 +1288,10 @@ setMethod("AveragePCA", "seurat",
 #' @param ... Arguments to be passed to methods such as \code{\link{Setup}}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
-setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) standardGeneric("AverageExpression"))
+setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,...) standardGeneric("AverageExpression"))
 #' @export
 setMethod("AverageExpression", "seurat",
-          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,...) {
+          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,...) {
             genes.use=set.ifnull(genes.use,rownames(object@data))
             genes.use=unique(ainb(genes.use,rownames(object@data)))
             ident.use=object@ident
@@ -1301,12 +1301,24 @@ setMethod("AverageExpression", "seurat",
               object=SetIdent(object,rownames(new.data),new.ident)
             }
             data.all=data.frame(row.names = genes.use)
-            for(i in levels(object@ident)) {
-              temp.cells=WhichCells(object,i)
-              if (length(temp.cells)==1) data.temp=(object@data[genes.use,temp.cells])
-              if (length(temp.cells)>1) data.temp=apply(object@data[genes.use,temp.cells],1,expMean)
-              data.all=cbind(data.all,data.temp)
-              colnames(data.all)[ncol(data.all)]=i
+            if (!use.scale) {
+              for(i in levels(object@ident)) {
+                  temp.cells=WhichCells(object,i)
+                  if (length(temp.cells)==1) data.temp=(object@data[genes.use,temp.cells])
+                  if (length(temp.cells)>1) data.temp=apply(object@data[genes.use,temp.cells],1,expMean)
+                  data.all=cbind(data.all,data.temp)
+                  colnames(data.all)[ncol(data.all)]=i
+                }
+            }
+            if (use.scale) {
+              for(i in levels(object@ident)) {
+                temp.cells=WhichCells(object,i)
+                genes.use=unique(ainb(genes.use,rownames(object@scale.data)))
+                if (length(temp.cells)==1) data.temp=(object@scale.data[genes.use,temp.cells])
+                if (length(temp.cells)>1) data.temp=apply(object@scale.data[genes.use,temp.cells],1,mean)
+                data.all=cbind(data.all,data.temp)
+                colnames(data.all)[ncol(data.all)]=i
+              }
             }
             colnames(data.all)=levels(object@ident)
             if (return.seurat) {
