@@ -879,14 +879,14 @@ VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.
   
   if(is.null(nCol)) {
     nCol <- 2
-    if (length(pcs.use) > 6) nCol <- 3
-    if (length(pcs.use) > 9) nCol <- 4
+    if (length(dims.use) > 6) nCol <- 3
+    if (length(dims.use) > 9) nCol <- 4
   }
-  num.row <- floor(length(pcs.use) / nCol - 1e-5) + 1
+  num.row <- floor(length(dims.use) / nCol - 1e-5) + 1
   par(mfrow = c(num.row, nCol))
   
   for(i in dims.use){
-    subset.use <- dim.scores[DimTopGenes(object, i, num.genes, use.full, do.balanced), ]
+    subset.use <- dim.scores[DimTopGenes(object, i, reduction.type, num.genes, use.full, do.balanced), ]
     plot(subset.use[, i], 1:nrow(subset.use) ,pch = 16, col = "blue", xlab = paste0("PC", i), 
          yaxt="n", ylab="")
     axis(2, at = 1:nrow(subset.use), labels = rownames(subset.use), las = 1, cex.axis = font.size)
