@@ -357,7 +357,7 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
                     pcs.compute = 20, genes.print = 30, ...) {
   return(DimReduction(object, reduction.type = "pcafast", genes.use = pc.genes, 
                       print.results = do.print, dims.store = pcs.store, dims.compute = pcs.compute, 
-                      genes.print = genes.print))
+                      genes.print = genes.print,dims.print = pcs.print))
 }
 
 
