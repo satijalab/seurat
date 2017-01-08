@@ -39,7 +39,7 @@ GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
 #' @export
 DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = NULL) {
   object.rot <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
-  oject.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+  object.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   cells.use <- set.ifnull(cells.use, object@cell.names)
   cells.use <- ainb(cells.use, rownames(object.rot))
   if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
