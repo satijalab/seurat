@@ -2963,44 +2963,49 @@ setMethod("CalcNoiseModels","seurat",
 #' @param use.imputed Use imputed values for gene expression (default is FALSE)
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @param no.axes Remove axis labels
+#' @param no.legend Remove legend from the graph. Default is TRUE. 
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("FeaturePlot", function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE) standardGeneric("FeaturePlot"))
-#' @export
-setMethod("FeaturePlot", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,cells.use=NULL,pt.size=1,cols.use=c("yellow", "red"), pch.use=16,reduction.use="tsne",use.imputed=FALSE,nCol=NULL,no.axes=FALSE) {
-            cells.use=set.ifnull(cells.use,colnames(object@data))
-            dim.code="PC"
+FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1, 
+                        cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne", 
+                        use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE) {
+            cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
-              nCol=2
-              if (length(features.plot) == 1) ncol=1
-              if (length(features.plot)>6) nCol=3
-              if (length(features.plot)>9) nCol=4
+              nCol <- 2
+              if (length(features.plot) == 1) ncol <- 1
+              if (length(features.plot) > 6) nCol <- 3
+              if (length(features.plot) > 9) nCol <- 4
             }
-            num.row=floor(length(features.plot)/nCol-1e-5)+1
-            par(mfrow=c(num.row,nCol))
-            dim.code=translate.dim.code(reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=FetchData(object,dim.codes)
+            num.row <- floor(length(features.plot) / nCol - 1e-5) + 1
+            par(mfrow = c(num.row, nCol))
+            dim.code <- translate.dim.code(reduction.use)
+            dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
+            data.plot <- FetchData(object, dim.codes)
 
-            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
+            x1 <- paste(dim.code, dim.1, sep = "")
+            x2 <- paste(dim.code, dim.2, sep = "")
             
-            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            data.plot$pt.size=pt.size
-            data.use=data.frame(t(FetchData(object,features.plot,cells.use = cells.use,use.imputed = use.imputed)))
-            pList=lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes))
+            data.plot$x <- data.plot[, x1]
+            data.plot$y <- data.plot[, x2]
+            data.plot$pt.size <- pt.size
+            data.use <- data.frame(t(FetchData(object, features.plot, cells.use = cells.use, 
+                                               use.imputed = use.imputed)))
+            pList <- lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, 
+                                                                        pt.size, pch.use, cols.use, 
+                                                                        x1, x2, no.axes, no.legend))
             
             MultiPlotList(pList, cols = nCol)
             rp()
           }
-)
 
-SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, no.axes){
-  data.gene=na.omit(data.frame(data.use[feature,]))
-  data.plot$gene = t(data.gene)
+SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, 
+                              no.axes, no.legend){
+  data.gene <- na.omit(data.frame(data.use[feature, ]))
+  data.plot$gene <- t(data.gene)
   brewer.gran <- 1
   if(length(cols.use) == 1){
-    brewer.gran <- brewer.pal.info[cols.use,]$maxcolors
+    brewer.gran <- brewer.pal.info[cols.use, ]$maxcolors
   }
   else{
     brewer.gran <- length(cols.use)
@@ -3009,27 +3014,27 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
     data.cut <- 0
   }
   else{
-    data.cut <- as.numeric(as.factor(cut(as.numeric(data.gene),breaks = brewer.gran)))
+    data.cut <- as.numeric(as.factor(cut(as.numeric(data.gene), breaks = brewer.gran)))
   }
   data.plot$col <- as.factor(data.cut)
-  p <- ggplot(data.plot, aes(x,y))
+  p <- ggplot(data.plot, aes(x, y))
   if(brewer.gran != 2){
     if(length(cols.use) == 1){
-      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + theme(legend.position='none') + 
+      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + 
         scale_color_brewer(palette=cols.use)
     }
     else{
-      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + theme(legend.position='none') + 
+      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) +  
         scale_color_manual(values=cols.use)
     }
   }
   else{
     if(all(data.plot$gene == data.plot$gene[1])){
       warning(paste0("All cells have the same value of ", feature, "."))
-      p <- p + geom_point(color=cols.use[1], size=pt.size, shape=pch.use) + theme(legend.position='none') 
+      p <- p + geom_point(color=cols.use[1], size=pt.size, shape=pch.use) 
     }
     else{
-      p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) + theme(legend.position='none') +
+      p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) +
         scale_color_gradientn(colors=cols.use)  
     }
   }
@@ -3041,6 +3046,9 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
   }
   else{
     p <- p + labs(title = feature, x = x1, y = x2)
+  }
+  if(no.legend){
+    p <- p + theme(legend.position = 'none')
   }
   return(p)
 }
