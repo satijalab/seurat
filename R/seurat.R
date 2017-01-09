@@ -3221,7 +3221,7 @@ setMethod("DimPlot", "seurat",
             data.plot=FetchData(object,dim.codes,cells.use)
 
             ident.use=as.factor(object@ident[cells.use])
-            if (group.by != "ident") ident.use=as.factor(FetchData(object,group.by)[,1])
+            if (group.by != "ident") ident.use=as.factor(FetchData(object,group.by)[cells.use, 1])
             data.plot$ident=ident.use
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
             data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
