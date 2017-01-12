@@ -1370,11 +1370,13 @@ setMethod("FetchData","seurat",
               }
             }
             var.options=c("data.info","mix.probs","gene.scores")
-            dr.options <- names(object@dr)
-            dr.names <- paste("dr$",names(object@dr),"@key",sep="")
-            dr.names <- sapply(dr.names, function(x) eval(parse(text=paste("object@",x,sep=""))))
-            names(dr.names) <- dr.options
-            var.options=c(var.options,dr.names)
+            if(length(names(object@dr)) > 0){
+              dr.options <- names(object@dr)
+              dr.names <- paste("dr$",names(object@dr),"@key",sep="")
+              dr.names <- sapply(dr.names, function(x) eval(parse(text=paste("object@",x,sep=""))))
+              names(dr.names) <- dr.options
+              var.options=c(var.options,dr.names)
+            }
             object@data.info[,"ident"]=object@ident[rownames(object@data.info)]
             for (my.var in vars.all) {
               data.use=data.frame()
