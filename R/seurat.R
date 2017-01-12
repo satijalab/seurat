@@ -2543,7 +2543,7 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             }
             num.row <- floor(length(features.plot) / nCol - 1e-5) + 1
             par(mfrow = c(num.row, nCol))
-            dim.code <- translate.dim.code(reduction.use)
+            dim.code <- translate.dim.code(object, reduction.use)
             dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
             data.plot <- FetchData(object, dim.codes)
 
@@ -2553,8 +2553,8 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             data.plot$x <- data.plot[, x1]
             data.plot$y <- data.plot[, x2]
             data.plot$pt.size <- pt.size
-            data.use <- data.frame(t(FetchData(object, features.plot, cells.use = cells.use, 
-                                               use.imputed = use.imputed)))
+            data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
+                                               use.imputed = use.imputed))
             pList <- lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, 
                                                                         pt.size, pch.use, cols.use, 
                                                                         x1, x2, no.axes, no.legend))
@@ -2564,8 +2564,8 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
 
 SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, 
                               no.axes, no.legend){
-  data.gene <- na.omit(data.frame(data.use[feature, ]))
-  data.plot$gene <- t(data.gene)
+  data.gene <- na.omit(data.use[feature, ])
+  data.plot$gene <- data.gene
   brewer.gran <- 1
   if(length(cols.use) == 1){
     brewer.gran <- brewer.pal.info[cols.use, ]$maxcolors
