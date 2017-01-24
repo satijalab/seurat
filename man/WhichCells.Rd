@@ -5,7 +5,7 @@
 \title{Identify cells matching certain criteria}
 \usage{
 WhichCells(object, ident = NULL, cells.use = NULL, subset.name = NULL,
-  accept.low = -Inf, accept.high = Inf, accept.value,
+  accept.low = -Inf, accept.high = Inf, accept.value = NULL,
   max.cells.per.ident = Inf, random.seed = 1)
 }
 \arguments{

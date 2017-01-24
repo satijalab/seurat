@@ -477,22 +477,10 @@ ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.st
   if (do.center) {
     data.use <- scale(as.matrix(object@scale.data), center = TRUE, scale = FALSE)
   }
-  genes.use <- rownames(object@scale.data)
   rotation <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
-  new.full.x <- matrix(NA, nrow = length(genes.use), ncol = ncol(rotation))
-  rownames(new.full.x) <- genes.use 
+  new.full.x <- FastMatMult(data.use, rotation)
+  rownames(new.full.x) <- rownames(object@scale.data)
   colnames(new.full.x) <- colnames(rotation)
-  bin.size <- 1000
-  max.bin <- floor(length(genes.use)/bin.size) + 1
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-  for(i in 1:max.bin) {
-    my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-    my.inds <- my.inds[my.inds <= length(genes.use)]
-    new.full.x[genes.use[my.inds], ] <- (data.use[genes.use[my.inds], ]) %*% rotation
-    setTxtProgressBar(pb, i)  
-  }
-  close(pb)
-  new.full.x[is.na(new.full.x)] <- 0
   object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x.full", 
                             new.data = new.full.x)
   if(replace.dim == TRUE){

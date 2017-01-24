@@ -121,3 +121,10 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   }
   return data;
 }
+
+// [[Rcpp::export]]
+Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2){
+  Eigen::MatrixXd m3 = m1 * m2;
+  return(m3);
+}
+

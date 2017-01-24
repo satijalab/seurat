@@ -62,3 +62,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FastMatMult
+Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2);
+RcppExport SEXP Seurat_FastMatMult(SEXP m1SEXP, SEXP m2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m1(m1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m2(m2SEXP);
+    rcpp_result_gen = Rcpp::wrap(FastMatMult(m1, m2));
+    return rcpp_result_gen;
+END_RCPP
+}
