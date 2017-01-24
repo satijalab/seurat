@@ -121,4 +121,3 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   }
   return data;
 }
-

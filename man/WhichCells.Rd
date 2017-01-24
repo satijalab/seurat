@@ -5,8 +5,8 @@
 \title{Identify cells matching certain criteria}
 \usage{
 WhichCells(object, ident = NULL, cells.use = NULL, subset.name = NULL,
-  accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf,
-  random.seed = 1)
+  accept.low = -Inf, accept.high = Inf, accept.value,
+  max.cells.per.ident = Inf, random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -22,6 +22,8 @@ using FetchData}
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}
 
 \item{accept.high}{High cutoff for the parameter (default is Inf)}
+
+\item{accept.value}{Returns all cells with the subset name equal to this value}
 
 \item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
 

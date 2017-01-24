@@ -1908,14 +1908,14 @@ setMethod("DiffTTest", "seurat",
 #' using FetchData
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns all cells with the subset name equal to this value
 #' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
 #' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-setGeneric("WhichCells", function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) standardGeneric("WhichCells"))
 #' @export
-setMethod("WhichCells", "seurat",
-          function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, accept.high = Inf, max.cells.per.ident = Inf, random.seed = 1) {
+WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
+                   accept.high = Inf, accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
             cells.use <- set.ifnull(cells.use, object@cell.names)
             ident <- set.ifnull(ident, unique(object@ident))
@@ -1934,18 +1934,23 @@ setMethod("WhichCells", "seurat",
             }
             cells.use <- cells.to.use
               
-            if (!missing(subset.name)){
+            if (!is.null(subset.name)){
               data.use <- FetchData(object, subset.name, cells.use)
               if (length(data.use) == 0) {
                 stop(paste("Error : ", id, " not found"))
               }
               subset.data <- data.use[, subset.name]
-              pass.inds <- which((subset.data > accept.low) & (subset.data < accept.high))
+              if(!is.null(accept.value)){
+                pass.inds <- which(subset.data == accept.value)
+              }
+              else{
+                pass.inds <- which((subset.data > accept.low) & (subset.data < accept.high))
+              }
+
               cells.use <- rownames(data.use)[pass.inds]
             }
             return(cells.use)
-          }
-)
+}
 
 
 #' Switch identity class definition to another variable
@@ -2854,7 +2859,6 @@ setGeneric("DoHeatmap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-
 setMethod("DoHeatmap","seurat",
           function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
-            genes.use=ainb(genes.use,rownames(object@scale.data))
             cells.use=ainb(cells.use,object@cell.names)
             cells.ident=object@ident[cells.use]
             if (!is.null(group.by)) cells.ident=factor(FetchData(object,group.by)[,1])
@@ -2866,12 +2870,15 @@ setMethod("DoHeatmap","seurat",
               cells.ident = factor(cells.ident, levels = as.vector(unique(cells.ident)))
             }
             if (!do.scale){
+              genes.use <- ainb(genes.use, rownames(object@data))
               data.use <- as.matrix(object@data[genes.use, cells.use])
             }
             else {
+              genes.use <- ainb(genes.use, rownames(object@scale.data))
               data.use <- object@scale.data[genes.use, cells.use]
               data.use <-minmax(data.use, min = disp.min, max = disp.max)
             }
+            
             vline.use=NULL;
             colsep.use=NULL
             hmFunction=heatmap.2

@@ -5,7 +5,7 @@
 \title{Averaged gene expression by identity class}
 \usage{
 AverageExpression(object, genes.use = NULL, return.seurat = F,
-  add.ident = NULL, ...)
+  add.ident = NULL, use.scale = F, ...)
 }
 \arguments{
 \item{object}{Seurat object}
