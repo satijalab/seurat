@@ -1913,7 +1913,6 @@ setMethod("DiffTTest", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-#' @export
 WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
                    accept.high = Inf, accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
@@ -1927,6 +1926,7 @@ WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NUL
             for (id in ident){
               cells.in.ident <- object@ident[cells.use]
               cells.in.ident <- names(cells.in.ident[cells.in.ident == id])
+              cells.in.ident <- cells.in.ident[! is.na(cells.in.ident)]
               if (length(cells.in.ident) > max.cells.per.ident){
                 cells.in.ident <- sample(cells.in.ident, max.cells.per.ident)
               }
