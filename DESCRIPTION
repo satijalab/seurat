@@ -51,6 +51,7 @@ Collate:
     'cluster_validation.R'
     'deprecated_functions.R'
     'dimensional_reduction.R'
+    'plotting.R'
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'
