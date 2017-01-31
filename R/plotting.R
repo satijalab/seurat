@@ -32,7 +32,7 @@
 DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL, genes.use = NULL, 
                         disp.min = -2.5,  disp.max = 2.5, group.by = "ident", draw.line = TRUE, 
                         col.low = "#FF00FF", col.mid = "#000000", col.high = "#FFFF00", 
-                        slim.col.label = FALSE, remove.key = FALSE, cex.col = 10, cex.row = 10,
+                        slim.col.label = FALSE, remove.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
                         group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15, 
                         group.spacing = 0.15, do.plot = TRUE, ...) {
   
@@ -56,7 +56,7 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
   if (length(genes.use) == 0) {
     stop("No genes given to genes.use present in object")
   }
-  if (is.null(group.by) | group.by == "ident") {
+  if (is.null(group.by) || group.by == "ident") {
     cells.ident <- object@ident[cells.use]
   }
   else {
@@ -82,6 +82,8 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
   data.use$ident <- cells.ident[data.use$cell]
   breaks <- seq(min(data.use$expression), max(data.use$expression), length = length(pyCols)+1)
   data.use$gene <- with(data.use, factor(gene, levels = rev(unique(data.use$gene))))
+  data.use$cell <- with(data.use, factor(cell, levels = cells.use))
+  
   
   # might be a solution if we want discrete interval units, makes the legend clunky though
   #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = T)
@@ -96,7 +98,8 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
     scale_y_discrete(position = "right", labels = rev(genes.use)) + 
     theme(axis.line=element_blank(), axis.title.y=element_blank(), 
           axis.ticks.y = element_blank(), strip.text.x = element_text(size = group.cex), 
-          axis.text.y = element_text(size = cex.row), axis.text.x = element_text(size = cex.col))
+          axis.text.y = element_text(size = cex.row), axis.text.x = element_text(size = cex.col),
+          axis.title.x=element_blank())
   
   if (slim.col.label){
     heatmap <- heatmap + theme(axis.title.x=element_blank(), axis.text.x=element_blank(),
@@ -125,6 +128,9 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
   }
   if (remove.key){
     heatmap <- heatmap + theme(legend.position="none")
+  }
+  if (!is.null(title)){
+    heatmap <- heatmap + labs(title = title)
   }
   if(do.plot) {
     heatmap

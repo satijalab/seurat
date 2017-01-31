@@ -663,74 +663,94 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
 #' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams PCTopGenes
-#' @inheritParams VizPCA
-#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
-#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
-#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @param object Seurat object
+#' @param reduction.type Which dimensional reduction strategy to pull from
+#' @param dims.use Which dims to plot
+#' @param use.scaled Whether to use the data or scaled data if data.use is NULL 
+#' @param use.full Use the full dimensional reduction matrix (projected dim)
+#' @param cells.use Cells to include in the heatmap (default is all cells). Pass integer number to
+#' use the top N cells for each dimension.
+#' @param num.genes Number of genes to include in each heatmap
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param col.low Color for lowest expression value
+#' @param col.mid Color for mid expression value
+#' @param col.high Color for highest expression value
+#' @param slim.col.label display only the identity class name once for each group
+#' @param do.balanced Return an equal number of genes with both + and - scores
+#' @param remove.key Removes the color key from the plot.
+#' @param ncol Number of columns when plotting multiple dims
+#' @param cex.col Controls size of column labels (cells)
+#' @param cex.row Controls size of row labels (genes)
+#' @param group.label.loc Place group labels on bottom or top of plot.
+#' @param group.label.rot Whether to rotate the group label.
+#' @param group.cex Size of group label text
+#' @param group.spacing Controls amount of space between columns.
+#' @param return.plotlist Return the list of individual plots instead of compiled plot. 
+#' @param do.plot Whether to display the compiled plot.
+#' @return Returns a ggplot2 plot object
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
+#' @importFrom cowplot plot_grid
 #' @export
-DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = NULL, 
-                       num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
-                       do.return = FALSE, col.use = pyCols, use.scale = TRUE,
-                       do.balanced = FALSE, remove.key = FALSE, label.columns=NULL, ...){
+DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, use.scaled = TRUE, use.full = FALSE,
+                       cells.use = NULL, num.genes = 30, group.by = NULL, disp.min = -2.5, 
+                       disp.max = 2.5, col.low = "#FF00FF", col.mid = "#000000", col.high = "#FFFF00", 
+                       slim.col.label = TRUE, do.balanced = FALSE, remove.key = TRUE, ncol = NULL,
+                       cex.col = 10, cex.row = 10, group.label.loc = "bottom", 
+                       group.label.rot = FALSE, group.cex = 15, group.spacing = 0.15, 
+                       return.plotlist = FALSE, do.plot = TRUE,  ...){
+
+    ncol <- set.ifnull(ncol, min(length(dim.use), 3))
   
-  num.row <- floor(length(dim.use) / 3.01) + 1
-  orig_par <- par()$mfrow
-  par(mfrow=c(num.row, min(length(dim.use), 3)))
-  cells <- cells.use
-  plots <- c()
-  
-  if (is.null(label.columns)){
-    if (length(dim.use) > 1){
-      label.columns <- FALSE
-    }
-    else{
-      label.columns <- TRUE
-    }
-  }
-  
-  for(ndim in dim.use){
-    if (is.numeric((cells))) {
-      cells.use <- DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type, 
-                               num.cells = cells,do.balanced = do.balanced)
-    }
-    else {
-      cells.use <- set.ifnull(cells, object@cell.names)
-    }
-    genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
-                                 num.genes = num.genes, use.full = use.full, 
-                                 do.balanced = do.balanced))
-    dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
-    dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
-    cells.ordered <- cells.use[order(dim.scores[cells.use, paste(dim.key, ndim, sep = "")])]
-    data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- minmax(data.use, min = disp.min, max = disp.max)
-    if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
-    vline.use <- NULL
-    hmTitle <- paste(dim.key, ndim)
-    if (remove.key || length(dim.use) > 1){
-      hmFunction <- "heatmap2NoKey(data.use, Rowv = NA, Colv = NA, trace = \"none\", col = col.use, dimTitle = hmTitle, "
-    }
-    else{
-      hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
-    }
+    plots <- lapply(dim.use, PlotDim, object = object, reduction.type = reduction.type, 
+                    use.scaled = use.scaled, use.full = use.full, cells.use = cells.use, 
+                    num.genes = num.genes, group.by = group.by, disp.min = disp.min, 
+                    disp.max = disp.max, col.low = col.low, col.mid = col.mid, col.high = col.high,
+                    slim.col.label = slim.col.label, do.balanced = do.balanced,
+                    remove.key = remove.key, cex.col = cex.col, cex.row = cex.row, 
+                    group.label.loc = group.label.loc, group.label.rot = group.label.rot, 
+                    group.cex = group.cex, group.spacing = group.spacing)
     
-    if (!label.columns){
-      
-      hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
+    plots.combined = plot_grid(plotlist = plots, ncol = ncol)
+    if(do.plot){
+      plots.combined
     }
-    hmFunction <- paste(hmFunction, "...)", sep="")
-    #print(hmFunction)
-    eval(parse(text = hmFunction))
+    if(return.plotlist){
+      return(plots)
+    }
+    else{
+      return(plots.combined)
+    }
+}
+
+PlotDim <- function(ndim, object, reduction.type, use.scaled, use.full, cells.use, num.genes, 
+                    group.by, disp.min, disp.max, col.low, col.mid, col.high, slim.col.label, 
+                    do.balanced, remove.key, cex.col, cex.row, group.label.loc, group.label.rot, 
+                    group.cex, group.spacing){
+  if (is.numeric((cells.use))) {
+    cells.use <- DimTopCells(object = object, dim.use = ndim, reduction.type = reduction.type, 
+                             num.cells = cells.use ,do.balanced = do.balanced)
   }
-  if (do.return) {
-    return(data.use)
+  else {
+    cells.use <- set.ifnull(cells.use, object@cell.names)
   }
-  # reset graphics parameters
-  par(mfrow = orig_par)
+  genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
+                               num.genes = num.genes, use.full = use.full, 
+                               do.balanced = do.balanced))
+  dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+  dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+  data.use <- object@scale.data[genes.use, cells.ordered]
+  data.use <- minmax(data.use, min = disp.min, max = disp.max)
+  if (!(use.scaled)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
+  return(DoHeatmapGG(object, data.use = data.use, cells.use = cells.use, 
+              genes.use = genes.use, group.by = group.by, disp.min = disp.min, disp.max = disp.max,
+              col.low = col.low, col.mid = col.mid, col.high = col.high, 
+              slim.col.label = slim.col.label, remove.key = remove.key, cex.col = cex.col, 
+              cex.row = cex.row, group.label.loc = group.label.loc, group.label.rot = group.label.rot, 
+              group.cex = group.cex, group.spacing = group.spacing, title = paste0(dim.key, ndim), 
+              do.plot = FALSE))
 }
 
 
