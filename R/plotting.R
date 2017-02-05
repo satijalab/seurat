@@ -138,3 +138,122 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
   return(heatmap)
 }
 
+
+#' Single cell violin plot
+#'
+#' Draws a violin plot of single cell data (gene expression, metrics, PC
+#' scores, etc.)
+#'
+#' @param object Seurat object
+#' @param features.plot Features to plot (gene expression, metrics, PC scores,
+#' anything that can be retreived by FetchData)
+#' @param nCol Number of columns if multiple plots are displayed
+#' @param do.ret FALSE by default. If TRUE, returns a list of ggplot objects.
+#' @param do.sort Sort identity classes (on the x-axis) by the average
+#' expression of the attribute being potted
+#' @param size.x.use X axis title font size
+#' @param size.y.use Y axis title font size
+#' @param size.title.use Main title font size
+#' @param adjust.use Adjust parameter for geom_violin
+#' @param point.size.use Point size for geom_violin
+#' @param cols.use Colors to use for plotting
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param y.log plot Y axis on log scale
+#' @param x.lab.rot Rotate x-axis labels
+#' @param y.lab.rot Rotate y-axis labels
+#' @param legend.position Position the legend for the plot
+#' @param remove.legend Remove the legend from the plot
+#' @param return.plotlist Return the list of individual plots instead of compiled plot.
+#' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#' @import ggplot2
+#' @importFrom cowplot plot_grid
+#' @return By default, no return, only graphical output. If do.return=TRUE,
+#' returns a list of ggplot objects.
+#' @export
+VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort = FALSE, 
+                    size.x.use = 16, size.y.use = 16, size.title.use = 20, adjust.use = 1, 
+                    point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F, 
+                    x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right", 
+                    remove.legend = FALSE, return.plotlist = FALSE, ...){
+            
+            if (is.null(nCol)) {
+              nCol <- min(length(features.plot), 3)
+              if (length(features.plot) > 9) nCol <- 4
+            }
+
+            data.use <- data.frame(FetchData(object, features.plot, ...))
+            ident.use <- object@ident
+            if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[, 1])
+            gene.names <- colnames(data.use)[colnames(data.use) %in% rownames(object@data)]
+            plots <- lapply(features.plot, function(x) PlotVln(feature = x, 
+                                                               data = data.use[, x, drop = FALSE], 
+                                                               cell.ident = ident.use, 
+                                                               do.sort = do.sort,
+                                                               size.x.use = size.x.use, 
+                                                               size.y.use = size.y.use, 
+                                                               size.title.use = size.title.use,
+                                                               adjust.use = adjust.use, 
+                                                               point.size.use = point.size.use,
+                                                               cols.use = cols.use, 
+                                                               gene.names = gene.names, y.log = y.log,
+                                                               x.lab.rot = x.lab.rot, 
+                                                               y.lab.rot = y.lab.rot, 
+                                                               legend.position = legend.position,
+                                                               remove.legend = remove.legend))
+            
+            plots.combined <- plot_grid(plotlist = plots, ncol = nCol)
+            plots.combined
+            if(return.plotlist){
+              return(plots)
+            }
+            else{
+              return(plots.combined)
+            }
+}
+
+
+PlotVln <- function(feature, data, cell.ident, do.sort, size.x.use, size.y.use, size.title.use, 
+                    adjust.use, point.size.use, cols.use, gene.names, y.log, x.lab.rot, y.lab.rot,
+                    legend.position, remove.legend) {
+  set.seed(42)
+  data$ident <- cell.ident
+  if(do.sort) {
+    data$ident <- factor(data$ident, levels = names(rev(sort(tapply(data[, feature], data$ident, mean)))))
+  }
+  if (y.log){
+    noise <- rnorm(length(data[, feature])) / 200
+    data.melt[, feature] <- data[, feature] + 1
+  }
+  else{
+    noise <- rnorm(length(data[, feature])) / 100000
+  }
+  data[, feature] <- data[, feature] + noise
+  
+  plot <- ggplot(data, aes(factor(ident), eval(parse(text = feature)))) + 
+    geom_violin(scale = "width", adjust = adjust.use, trim = TRUE, aes(fill = factor(ident))) + 
+    theme(legend.position = legend.position, axis.title.x = element_text(face="bold", colour="#990000", size = size.x.use),
+          axis.title.y = element_text(face = "bold", colour = "#990000", size = size.y.use)) +
+    guides(fill = guide_legend(title = NULL)) + 
+    geom_jitter(height = 0, size = point.size.use) + xlab("Cell Type") + nogrid +
+    ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  
+  if (y.log) plot <- plot + scale_y_log10()
+  if(feature %in% gene.names){
+    if(y.log){
+      plot <- plot + ylab("Log Expression level")
+    }
+    else {
+      plot <- plot + ylab("Expression level")
+    }
+  }
+  else{
+    plot <- plot + ylab("")
+  }
+  if (!is.null(cols.use)) {
+    plot <- plot + scale_fill_manual(values = cols.use)
+  }
+  if(x.lab.rot) plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust=0.5))
+  if(y.lab.rot) plot <- plot + theme(axis.text.x = element_text(angle = 90))
+  if(remove.legend) plot <- plot + theme(legend.position="none")
+  return(plot)
+}

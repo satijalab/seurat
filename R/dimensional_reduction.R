@@ -712,7 +712,7 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, use.scaled =
                     group.label.loc = group.label.loc, group.label.rot = group.label.rot, 
                     group.cex = group.cex, group.spacing = group.spacing)
     
-    plots.combined = plot_grid(plotlist = plots, ncol = ncol)
+    plots.combined <- plot_grid(plotlist = plots, ncol = ncol)
     if(do.plot){
       plots.combined
     }
