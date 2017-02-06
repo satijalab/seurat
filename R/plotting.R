@@ -151,6 +151,8 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @param do.ret FALSE by default. If TRUE, returns a list of ggplot objects.
 #' @param do.sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
+#' @param y.max Maximum y axis value
+#' @param same.y.lims Set all the y-axis limits to the same values
 #' @param size.x.use X axis title font size
 #' @param size.y.use Y axis title font size
 #' @param size.title.use Main title font size
@@ -162,6 +164,7 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @param x.lab.rot Rotate x-axis labels
 #' @param y.lab.rot Rotate y-axis labels
 #' @param legend.position Position the legend for the plot
+#' @param single.legend Consolidate legend the legend for all plots
 #' @param remove.legend Remove the legend from the plot
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
@@ -170,11 +173,11 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
 #' @export
-VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort = FALSE, 
-                    size.x.use = 16, size.y.use = 16, size.title.use = 20, adjust.use = 1, 
-                    point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F, 
+VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort = FALSE, y.max = NULL,
+                    same.y.lims = F, size.x.use = 16, size.y.use = 16, size.title.use = 20, 
+                    adjust.use = 1, point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F, 
                     x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right", 
-                    remove.legend = FALSE, return.plotlist = FALSE, ...){
+                    single.legend = TRUE, remove.legend = FALSE, return.plotlist = FALSE, ...){
             
             if (is.null(nCol)) {
               nCol <- min(length(features.plot), 3)
@@ -185,10 +188,12 @@ VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort 
             ident.use <- object@ident
             if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[, 1])
             gene.names <- colnames(data.use)[colnames(data.use) %in% rownames(object@data)]
+            if(single.legend) remove.legend <- TRUE
+            if(same.y.lims && is.null(y.max)) y.max <- max(data.use)
             plots <- lapply(features.plot, function(x) PlotVln(feature = x, 
                                                                data = data.use[, x, drop = FALSE], 
                                                                cell.ident = ident.use, 
-                                                               do.sort = do.sort,
+                                                               do.sort = do.sort, y.max = y.max,
                                                                size.x.use = size.x.use, 
                                                                size.y.use = size.y.use, 
                                                                size.title.use = size.title.use,
@@ -200,8 +205,13 @@ VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort 
                                                                y.lab.rot = y.lab.rot, 
                                                                legend.position = legend.position,
                                                                remove.legend = remove.legend))
-            
-            plots.combined <- plot_grid(plotlist = plots, ncol = nCol)
+            plots.combined <- plot_grid(plotlist = plots,  ncol = nCol)
+            if(single.legend){
+              legend <- legend <- get_legend(plots[[1]] + theme(legend.position = legend.position))
+              if(legend.position == "bottom") plots.combined <- plot_grid(plots.combined, legend, ncol = 1, rel_heights = c(1, .2))
+              if(legend.position == "right") plots.combined <- plot_grid(plots.combined, legend, rel_widths = c(3, .3))
+              else warning("Shared legends must be at the bottom or right of the plot")
+            }
             plots.combined
             if(return.plotlist){
               return(plots)
@@ -212,7 +222,7 @@ VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort 
 }
 
 
-PlotVln <- function(feature, data, cell.ident, do.sort, size.x.use, size.y.use, size.title.use, 
+PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.y.use, size.title.use, 
                     adjust.use, point.size.use, cols.use, gene.names, y.log, x.lab.rot, y.lab.rot,
                     legend.position, remove.legend) {
   set.seed(42)
@@ -228,15 +238,15 @@ PlotVln <- function(feature, data, cell.ident, do.sort, size.x.use, size.y.use, 
     noise <- rnorm(length(data[, feature])) / 100000
   }
   data[, feature] <- data[, feature] + noise
-  
+  y.max <- set.ifnull(y.max, max(data[, feature]))
   plot <- ggplot(data, aes(factor(ident), eval(parse(text = feature)))) + 
     geom_violin(scale = "width", adjust = adjust.use, trim = TRUE, aes(fill = factor(ident))) + 
     theme(legend.position = legend.position, axis.title.x = element_text(face="bold", colour="#990000", size = size.x.use),
           axis.title.y = element_text(face = "bold", colour = "#990000", size = size.y.use)) +
     guides(fill = guide_legend(title = NULL)) + 
     geom_jitter(height = 0, size = point.size.use) + xlab("Cell Type") + nogrid +
-    ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold"))
-  
+    ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold")) +
+    ylim(min(data[, feature]), y.max)
   if (y.log) plot <- plot + scale_y_log10()
   if(feature %in% gene.names){
     if(y.log){

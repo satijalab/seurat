@@ -5,11 +5,12 @@
 \title{Single cell violin plot}
 \usage{
 VlnPlot(object, features.plot, nCol = NULL, do.ret = FALSE,
-  do.sort = FALSE, size.x.use = 16, size.y.use = 16,
-  size.title.use = 20, adjust.use = 1, point.size.use = 1,
-  cols.use = NULL, group.by = NULL, y.log = F, x.lab.rot = FALSE,
-  y.lab.rot = FALSE, legend.position = "right", remove.legend = FALSE,
-  return.plotlist = FALSE, ...)
+  do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16,
+  size.y.use = 16, size.title.use = 20, adjust.use = 1,
+  point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F,
+  x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right",
+  single.legend = TRUE, remove.legend = FALSE, return.plotlist = FALSE,
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,6 +24,10 @@ anything that can be retreived by FetchData)}
 
 \item{do.sort}{Sort identity classes (on the x-axis) by the average
 expression of the attribute being potted}
+
+\item{y.max}{Maximum y axis value}
+
+\item{same.y.lims}{Set all the y-axis limits to the same values}
 
 \item{size.x.use}{X axis title font size}
 
@@ -45,6 +50,8 @@ expression of the attribute being potted}
 \item{y.lab.rot}{Rotate y-axis labels}
 
 \item{legend.position}{Position the legend for the plot}
+
+\item{single.legend}{Consolidate legend the legend for all plots}
 
 \item{remove.legend}{Remove the legend from the plot}
 
