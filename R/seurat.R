@@ -230,7 +230,7 @@ setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale
 setMethod("ScaleData", "seurat",
           function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
-            genes.use=ainb(genes.use,rownames(object@data))
+            genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
             #rownames(object@scale.data) <- genes.use 
