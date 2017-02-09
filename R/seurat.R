@@ -1385,9 +1385,10 @@ setMethod("FetchData","seurat",
               } else {
                 for(i in var.options) {
                   if (unlist(strsplit(my.var, "[0-9]+")) == i) {
-                    eval(parse(text=paste("data.use = object@dr$", 
+                    eval(parse(text=paste("data.use <- object@dr$", 
                                           names(var.options[which(i == var.options)]), "@rotation", 
                                           sep="")))
+                    colnames(data.use) <- paste0(i, 1:ncol(data.use))
                     break;
                   }
                 }
