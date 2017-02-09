@@ -230,7 +230,7 @@ setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale
 setMethod("ScaleData", "seurat",
           function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
-            genes.use=ainb(genes.use,rownames(object@data))
+            genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
             #rownames(object@scale.data) <- genes.use 
@@ -1385,9 +1385,10 @@ setMethod("FetchData","seurat",
               } else {
                 for(i in var.options) {
                   if (unlist(strsplit(my.var, "[0-9]+")) == i) {
-                    eval(parse(text=paste("data.use = object@dr$", 
+                    eval(parse(text=paste("data.use <- object@dr$", 
                                           names(var.options[which(i == var.options)]), "@rotation", 
                                           sep="")))
+                    colnames(data.use) <- paste0(i, 1:ncol(data.use))
                     break;
                   }
                 }
@@ -1913,7 +1914,6 @@ setMethod("DiffTTest", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-#' @export
 WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
                    accept.high = Inf, accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
@@ -1927,6 +1927,7 @@ WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NUL
             for (id in ident){
               cells.in.ident <- object@ident[cells.use]
               cells.in.ident <- names(cells.in.ident[cells.in.ident == id])
+              cells.in.ident <- cells.in.ident[! is.na(cells.in.ident)]
               if (length(cells.in.ident) > max.cells.per.ident){
                 cells.in.ident <- sample(cells.in.ident, max.cells.per.ident)
               }
