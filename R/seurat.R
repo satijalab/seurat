@@ -1015,6 +1015,7 @@ setMethod("RegressOut", "seurat",
 #' column name in object@@data.info, etc. Any argument that can be retreived
 #' using FetchData
 #' @param ident.use Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for filtration)
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param do.center Recenter the new object@@scale.data
@@ -1025,13 +1026,18 @@ setMethod("RegressOut", "seurat",
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,ident.remove=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,ident.remove=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) {
             data.use=NULL
             cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
+              ident.use=anotinb(ident.use,ident.remove)
+              cells.use=WhichCells(object,ident.use)
+            }
+            if ((is.null(ident.use))&&!is.null(ident.remove)) {
+              ident.use=anotinb(unique(object@ident),ident.remove)
               cells.use=WhichCells(object,ident.use)
             }
             if (!is.null(subset.name)) {
@@ -1901,7 +1907,8 @@ setMethod("DiffTTest", "seurat",
 #' identity class, high/low values for particular PCs, ect..
 #'
 #' @param object Seurat object
-#' @param ident Identity class to subset. Default is all identities.
+#' @param ident Identity classes to subset. Default is all identities.
+#' @param ident.remove Indentity classes to remove. Default is NULL.
 #' @param cells.use Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
 #' column name in object@@data.info, etc. Any argument that can be retreived
@@ -1914,11 +1921,12 @@ setMethod("DiffTTest", "seurat",
 #' @return A vector of cell names
 #' @export
 #' @export
-WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
+WhichCells <- function(object, ident = NULL, ident.remove=NULL,cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
                    accept.high = Inf, accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
             cells.use <- set.ifnull(cells.use, object@cell.names)
             ident <- set.ifnull(ident, unique(object@ident))
+            ident=anotinb(ident,ident.remove)
             if (!all(ident %in% unique(object@ident))){
               bad.idents <- ident[!(ident %in% unique(object@ident))]
               stop(paste("Identity :", bad.idents, "not found.   "))
