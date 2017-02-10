@@ -1400,6 +1400,9 @@ setMethod("FetchData","seurat",
                 stop(paste("Error : ", my.var, " not found", sep=""))
               }
               cells.use=ainb(cells.use,rownames(data.use))
+              if(! my.var %in% colnames(data.use)){
+                stop(paste("Error : ", my.var, " not found", sep=""))
+              }
               data.add=data.use[cells.use,my.var]
               if (is.null(data.add)) {
                 stop(paste("Error : ", my.var, " not found", sep=""))
