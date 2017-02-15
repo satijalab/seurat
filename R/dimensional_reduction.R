@@ -965,7 +965,9 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   cells.use <- set.ifnull(cells.use, colnames(object@data))
   dim.code <- GetDimReduction(object, reduction.type = reduction.use, slot = "key")
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")[cells.use, dim.codes])
+  data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation"))
+  cells.use=intersect(cells.use,rownames(data.plot))
+  data.plot=data.plot[cells.use, dim.codes]
   ident.use <- as.factor(object@ident[cells.use])
   if (group.by != "ident") ident.use <- as.factor(FetchData(object, group.by)[cells.use, 1])
   data.plot$ident <- ident.use
