@@ -39,4 +39,3 @@ is a p-value for each gene's association with each principal component.
 \references{
 Inspired by Chung et al, Bioinformatics (2014)
 }
-

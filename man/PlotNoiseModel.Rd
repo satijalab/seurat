@@ -31,4 +31,3 @@ Plot the probability of detection vs average expression of a gene.
 \details{
 Assumes that this 'noise' model has been precomputed with CalcNoiseModels
 }
-

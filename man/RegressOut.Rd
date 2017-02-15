@@ -31,4 +31,3 @@ Returns Seurat object with the scale.data (object@scale.data) genes returning th
 \description{
 Remove unwanted effects from scale.data
 }
-

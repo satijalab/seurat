@@ -28,4 +28,3 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 a negative binomial generalized linear model
 }
-

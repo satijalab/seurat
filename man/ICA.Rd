@@ -40,4 +40,3 @@ object@ica.obj[[1]]
 \description{
 Run fastica algorithm from the ica package for ICA dimensionality reduction
 }
-

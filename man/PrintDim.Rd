@@ -24,4 +24,3 @@ Set of genes defining the components
 \description{
 Prints a set of genes that most strongly define a set of components
 }
-

@@ -24,4 +24,3 @@ Rotation matrix for given reduction, cells, and genes
 \description{
 Pull rotoation matrix for specified stored dimensional reduction analysis
 }
-

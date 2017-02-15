@@ -28,4 +28,3 @@ Method for determining confidence in specific bifurcations in
 the cluster tree. Use the Out of Bag (OOB) error of a random
 forest classifier to judge confidence.
 }
-

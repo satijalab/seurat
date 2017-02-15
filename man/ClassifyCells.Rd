@@ -28,4 +28,3 @@ Vector of cluster ids
 Classify new data based on the cluster information of the provided object.
 Random Forests are used as the basis of the classification.
 }
-
