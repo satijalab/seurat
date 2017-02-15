@@ -103,9 +103,6 @@ setMethod("Setup","seurat",
             num.mol=colSums(object@raw.data)
             cells.use <- names(num.genes[which(num.genes > min.genes)])
             object@data <- object@raw.data[, cells.use]
-            if (do.logNormalize) {
-              object@data=LogNormalize(object@data,scale.factor = total.expr)
-            }
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data <- matrix();
             genes.use <- rownames(object@data)
@@ -113,6 +110,9 @@ setMethod("Setup","seurat",
               num.cells <- rowSums(object@data > is.expr)
               genes.use <- names(num.cells[which(num.cells >= min.cells)])
               object@data <- object@data[genes.use, ]
+            }
+            if (do.logNormalize) {
+              object@data=LogNormalize(object@data,scale.factor = total.expr)
             }
             
             object@ident <- factor(unlist(lapply(colnames(object@data), extract_field, names.field, names.delim)))
@@ -234,7 +234,7 @@ setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale
 setMethod("ScaleData", "seurat",
           function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
-            genes.use=ainb(genes.use,rownames(object@data))
+            genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
             object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
             #rownames(object@scale.data) <- genes.use 

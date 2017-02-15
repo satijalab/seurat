@@ -42,4 +42,3 @@ Note that the tree is calculated for an 'average' cell, so gene expression
 or PC scores are averaged across all cells in an identity class before the
 tree is constructed.
 }
-

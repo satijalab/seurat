@@ -26,4 +26,3 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 a poisson generalized linear model
 }
-

@@ -28,4 +28,3 @@ Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster
 \description{
 Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN).
 }
-

@@ -27,4 +27,3 @@ Graphical, no return value
 \description{
 Visualize top genes associated with principal components
 }
-

@@ -15,4 +15,3 @@ Returns a matrix with genes as rows, identity classes as columns
 \description{
 Returns the PCA scores for an 'average' single cell in each identity class
 }
-

@@ -23,4 +23,3 @@ This function is useful to view where proportionally the clusters returned from
 classification map to the clusters present in the given object. Utilizes the FeaturePlot()
 function to color clusters in object.
 }
-

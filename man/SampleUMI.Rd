@@ -22,4 +22,3 @@ Matrix with downsampled data
 Downsample each cell to a specified number of UMIs. Includes
 an option to upsample cells below specified UMI as well.
 }
-

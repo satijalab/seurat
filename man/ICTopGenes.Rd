@@ -21,4 +21,3 @@ Returns a vector of genes
 \description{
 Return a list of genes with the strongest contribution to a set of indepdendent components
 }
-

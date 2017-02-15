@@ -27,4 +27,3 @@ A seurat object where the identity have been re-oredered based on the average.
 Re-assigns the identity classes according to the average expression of a particular feature (i.e, gene expression, or PC score)
 Very useful after clustering, to re-order cells, for example, based on PC scores
 }
-

@@ -25,4 +25,3 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
 }
-
