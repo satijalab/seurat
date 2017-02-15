@@ -99,9 +99,6 @@ setMethod("Setup","seurat",
             num.mol=colSums(object@raw.data)
             cells.use <- names(num.genes[which(num.genes > min.genes)])
             object@data <- object@raw.data[, cells.use]
-            if (do.logNormalize) {
-              object@data=LogNormalize(object@data,scale.factor = total.expr)
-            }
             #to save memory downstream, especially for large object
             if (!(save.raw)) object@raw.data <- matrix();
             genes.use <- rownames(object@data)
@@ -109,6 +106,10 @@ setMethod("Setup","seurat",
               num.cells <- rowSums(object@data > is.expr)
               genes.use <- names(num.cells[which(num.cells >= min.cells)])
               object@data <- object@data[genes.use, ]
+            }
+            
+            if (do.logNormalize) {
+              object@data=LogNormalize(object@data,scale.factor = total.expr)
             }
             
             object@ident <- factor(unlist(lapply(colnames(object@data), extract_field, names.field, names.delim)))

@@ -36,4 +36,3 @@ A vector of cell names
 Returns a list of cells that match a particular set of criteria such as 
 identity class, high/low values for particular PCs, ect..
 }
-

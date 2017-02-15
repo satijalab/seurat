@@ -41,4 +41,3 @@ No return, only graphical output
 Creates a scatter plot of two features (typically gene expression), across a
 set of single cells. Cells are colored by their identity class.
 }
-

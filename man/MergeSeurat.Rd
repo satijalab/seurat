@@ -54,4 +54,3 @@ Merged Seurat object
 \description{
 Merge two Seurat objects
 }
-

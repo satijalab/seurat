@@ -58,4 +58,3 @@ statistics (p-values, ROC score, etc.)
 \description{
 Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 }
-

@@ -18,4 +18,3 @@ Returns a sparse matrix with rows and columns labeled
 \description{
 Enables easy loading of sparse data matrices provided by 10X genomics.
 }
-

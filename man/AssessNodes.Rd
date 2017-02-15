@@ -23,4 +23,3 @@ Method for automating assessment of tree splits over all internal nodes,
 or a provided list of internal nodes. Uses AssessSplit() for calculation
 of Out of Bag error (proxy for confidence in split).
 }
-

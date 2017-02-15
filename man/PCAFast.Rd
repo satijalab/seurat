@@ -33,4 +33,3 @@ object@pca.obj[[1]]
 \description{
 Run Fast PCA dimensionality reduction
 }
-

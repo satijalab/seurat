@@ -19,4 +19,3 @@ Diffusion maps rotation matrix for given cells and DMs
 \description{
 Pull Diffusion maps rotation matrix
 }
-

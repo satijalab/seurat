@@ -27,4 +27,3 @@ Returns a seurat object with object@scale.data updated with scaled and/or center
 \description{
 Scale and center the data
 }
-

@@ -25,4 +25,3 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 the LRT model proposed in Mcdavid et al, Bioinformatics, 2011
 }
-
