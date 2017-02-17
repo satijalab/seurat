@@ -243,8 +243,8 @@ setMethod("ScaleData", "seurat",
             if(do.scale | do.center) {
               bin.size <- 1000
               max.bin <- floor(length(genes.use)/bin.size) + 1
-              print("Scaling data matrix")
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              cat("Scaling data matrix", file = stderr())
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
               for(i in 1:max.bin) {
                 my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                 my.inds <- my.inds[my.inds <= length(genes.use)]
@@ -283,7 +283,7 @@ setMethod("LogNormalize", "ANY",
             }
             # call Rcpp function to normalize
             if(display.progress){
-              print("Performing log-normalization")
+              cat("Performing log-normalization", file = stderr())
             }
             norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
             colnames(norm.data) <- colnames(data)
@@ -573,7 +573,7 @@ setMethod("ClassifyCells", "seurat",
             new.data <- rbind(new.data, data.to.add)
             new.data <- new.data[features, ]
             new.data <- as.matrix(t(new.data))
-            print("Running Classifier ...")
+            cat("Running Classifier ...", file = stderr())
             prediction <- predict(classifier, new.data)
             new.classes <- prediction$predictions
             return(new.classes)
@@ -603,7 +603,7 @@ setMethod("BuildRFClassifier", "seurat",
             training.genes <- set.ifnull(training.genes, rownames(object@data))
             training.data <- as.data.frame(as.matrix(t(object@data[training.genes, ])))
             training.data$class <- factor(training.classes)
-            if (verbose) print("Training Classifier ...")
+            if (verbose) cat("Training Classifier ...", file = stderr())
             classifier <- ranger(data = training.data, dependent.variable.name = "class", classification = T, 
                                  write.forest = T, ...)
             return(classifier)
@@ -906,7 +906,7 @@ setMethod("RegressOut", "seurat",
             bin.ind <- ceiling(1:length(genes.regress)/bin.size)
             max.bin <- max(bin.ind)
             print(paste("Regressing out",latent.vars))
-            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
             data.resid=c()
             data.use=object@data[genes.regress, , drop=FALSE];
             if (model.use != "linear") {
@@ -1098,7 +1098,7 @@ setMethod("ProjectPCA", "seurat",
 
                 bin.size <- 1000
                 max.bin <- floor(length(genes.use)/bin.size) + 1
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+                pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
                 for(i in 1:max.bin) {
                   my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                   my.inds <- my.inds[my.inds <= length(genes.use)]
@@ -2153,7 +2153,7 @@ setMethod("NegBinomDETest", "seurat",
               }
               # check that variance between groups is not 0
               if (var(to.test$GENE) == 0){
-                print("what")
+                cat("what", file = stderr())
                 warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
                 return(2)
               }
@@ -2206,7 +2206,7 @@ setMethod("PoissonDETest", "seurat",
               }
               # check that variance between groups is not 0
               if (var(to.test$GENE) == 0){
-                print("what")
+                cat("what", file = stderr())
                 warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
                 return(2)
               }
@@ -4501,8 +4501,8 @@ setMethod("MeanVarPlot", signature = "seurat",
     
                 bin.size <- 1000
                 max.bin <- floor(length(genes.use)/bin.size) + 1
-                print("Calculating gene dispersion")
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+                cat("Calculating gene dispersion", file = stderr())
+                pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
                 for(i in 1:max.bin) {
                   my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                   my.inds <- my.inds[my.inds <= length(genes.use)]

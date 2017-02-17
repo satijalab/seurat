@@ -102,8 +102,8 @@ CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
   #define the edge weights with Jaccard distance
   
   if (print.output)   {
-    print("Constructing SNN")
-    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+    cat("Constructing SNN", file = stderr())
+    pb <- txtProgressBar(min = 0, max = n.cells, style = 3, file = stderr())
   }
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
@@ -143,8 +143,8 @@ CalcSNNDense <- function(object, n.cells, nn.large, nn.ranked, prune.SNN,
   #cell and its 10*k.param-nearest neighbors
   #speed things up (don't have to calculate all pairwise distances)
   if (print.output){
-    print("Constructing SNN")
-    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+    cat("Constructing SNN", file = stderr())
+    pb <- txtProgressBar(min = 0, max = n.cells, style = 3, file = stderr())
   }
   for (i in 1:n.cells) {
     for (j in 1:ncol(nn.large)) {
