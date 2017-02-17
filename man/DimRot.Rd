@@ -9,15 +9,15 @@ DimRot(object, reduction.type = "pca", dims.use = NULL, cells.use = NULL)
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Dimensional reduction to use (default is PCA)}
+\item{reduction.type}{Type of dimensional reduction to fetch (default is PCA)}
 
-\item{dims.use, }{Dimensions to include (default is all stored dims)}
+\item{dims.use}{Dimensions to include (default is all stored dims)}
 
-\item{cells.use, }{Cells to include (default is all)}
+\item{cells.use}{Cells to include (default is all cells)}
 }
 \value{
 Rotation matrix for given reduction, cells, and dimensions
 }
 \description{
-Pull rotoation matrix for specified stored dimensional reduction analysis
+Pull rotation matrix for specified stored dimensional reduction analysis
 }

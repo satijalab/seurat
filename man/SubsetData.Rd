@@ -5,8 +5,9 @@
 \title{Return a subset of the Seurat object}
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
-  accept.low = -Inf, accept.high = Inf, do.center = F, do.scale = F,
-  max.cells.per.ident = Inf, random.seed = 1, ...)
+  ident.remove = NULL, accept.low = -Inf, accept.high = Inf,
+  do.center = F, do.scale = F, max.cells.per.ident = Inf,
+  random.seed = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +21,8 @@ column name in object@data.info, etc. Any argument that can be retreived
 using FetchData}
 
 \item{ident.use}{Create a cell subset based on the provided identity classes}
+
+\item{ident.remove}{Subtract out cells from these identity classes (used for filtration)}
 
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}
 
