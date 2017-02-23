@@ -1061,7 +1061,7 @@ setMethod("SubsetData","seurat",
                 object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
               }
             }
-            object@tsne.rot=object@tsne.rot[cells.use, ]
+            #object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
 
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)

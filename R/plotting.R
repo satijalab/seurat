@@ -147,8 +147,8 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @param object Seurat object
 #' @param features.plot Features to plot (gene expression, metrics, PC scores,
 #' anything that can be retreived by FetchData)
+#' @param ident.include Which classes to include in the plot (default is all) 
 #' @param nCol Number of columns if multiple plots are displayed
-#' @param do.ret FALSE by default. If TRUE, returns a list of ggplot objects.
 #' @param do.sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
 #' @param y.max Maximum y axis value
@@ -166,6 +166,7 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @param legend.position Position the legend for the plot
 #' @param single.legend Consolidate legend the legend for all plots
 #' @param remove.legend Remove the legend from the plot
+#' @param do.return Return a ggplot2 object (default : FALSE)
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #' @import ggplot2
@@ -173,11 +174,12 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
 #' @export
-VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort = FALSE, y.max = NULL,
-                    same.y.lims = F, size.x.use = 16, size.y.use = 16, size.title.use = 20, 
-                    adjust.use = 1, point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F, 
-                    x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right", 
-                    single.legend = TRUE, remove.legend = FALSE, return.plotlist = FALSE, ...){
+VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL, 
+                    do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16, size.y.use = 16, 
+                    size.title.use = 20, adjust.use = 1, point.size.use = 1, cols.use = NULL,
+                    group.by = NULL, y.log = F, x.lab.rot = FALSE, y.lab.rot = FALSE, 
+                    legend.position = "right", single.legend = TRUE, remove.legend = FALSE, 
+                    do.return = FALSE, return.plotlist = FALSE, ...){
             
             if (is.null(nCol)) {
               nCol <- min(length(features.plot), 3)
@@ -185,8 +187,15 @@ VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort 
             }
 
             data.use <- data.frame(FetchData(object, features.plot, ...))
-            ident.use <- object@ident
-            if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[, 1])
+            if(is.null(ident.include)){
+              cells.to.include <- object@cell.names
+            }
+            else{
+              cells.to.include <- WhichCells(object, ident = ident.include)
+            }
+            data.use <- data.use[cells.to.include, ,drop = F]
+            ident.use <- object@ident[cells.to.include]
+            if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[cells.to.include, 1, drop = F])
             gene.names <- colnames(data.use)[colnames(data.use) %in% rownames(object@data)]
             if(single.legend) remove.legend <- TRUE
             if(same.y.lims && is.null(y.max)) y.max <- max(data.use)
@@ -205,19 +214,26 @@ VlnPlot <- function(object, features.plot, nCol = NULL, do.ret = FALSE, do.sort 
                                                                y.lab.rot = y.lab.rot, 
                                                                legend.position = legend.position,
                                                                remove.legend = remove.legend))
-            plots.combined <- plot_grid(plotlist = plots,  ncol = nCol)
-            if(single.legend){
-              legend <- legend <- get_legend(plots[[1]] + theme(legend.position = legend.position))
-              if(legend.position == "bottom") plots.combined <- plot_grid(plots.combined, legend, ncol = 1, rel_heights = c(1, .2))
-              if(legend.position == "right") plots.combined <- plot_grid(plots.combined, legend, rel_widths = c(3, .3))
-              else warning("Shared legends must be at the bottom or right of the plot")
-            }
-            plots.combined
-            if(return.plotlist){
-              return(plots)
+            if(length(features.plot) > 1){
+              plots.combined <- plot_grid(plotlist = plots,  ncol = nCol)
+              if(single.legend && !remove.legend){
+                legend <- legend <- get_legend(plots[[1]] + theme(legend.position = legend.position))
+                if(legend.position == "bottom") plots.combined <- plot_grid(plots.combined, legend, ncol = 1, rel_heights = c(1, .2))
+                if(legend.position == "right") plots.combined <- plot_grid(plots.combined, legend, rel_widths = c(3, .3))
+                else warning("Shared legends must be at the bottom or right of the plot")
+              }
             }
             else{
-              return(plots.combined)
+              plots.combined <- plots
+            }
+            invisible(lapply(plots.combined, print))
+            if(do.return){
+              if(return.plotlist){
+                return(plots)
+              }
+              else{
+                return(plots.combined)
+              }
             }
 }
 

@@ -63,4 +63,3 @@ Returns a ggplot2 plot object
 \description{
 Draws a heatmap of single cell gene expression.
 }
-

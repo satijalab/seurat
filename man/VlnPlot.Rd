@@ -4,9 +4,9 @@
 \alias{VlnPlot}
 \title{Single cell violin plot}
 \usage{
-VlnPlot(object, features.plot, nCol = NULL, do.ret = FALSE,
-  do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16,
-  size.y.use = 16, size.title.use = 20, adjust.use = 1,
+VlnPlot(object, features.plot, ident.include = NULL, nCol = NULL,
+  do.ret = FALSE, do.sort = FALSE, y.max = NULL, same.y.lims = F,
+  size.x.use = 16, size.y.use = 16, size.title.use = 20, adjust.use = 1,
   point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F,
   x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right",
   single.legend = TRUE, remove.legend = FALSE, return.plotlist = FALSE,
@@ -17,6 +17,8 @@ VlnPlot(object, features.plot, nCol = NULL, do.ret = FALSE,
 
 \item{features.plot}{Features to plot (gene expression, metrics, PC scores,
 anything that can be retreived by FetchData)}
+
+\item{ident.include}{Which classes to include in the plot (default is all)}
 
 \item{nCol}{Number of columns if multiple plots are displayed}
 
