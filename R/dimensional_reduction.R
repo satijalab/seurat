@@ -553,18 +553,17 @@ ProjectPCA <- function(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30,
 #Internal, not documented for now
 topGenesForDim=function(i, dim.scores, do.balanced=FALSE, num.genes=30, reduction.type="pca", 
                         key = "") {
-  code <- paste0(key, i)
   if (do.balanced) {
     num.genes=round(num.genes/2)
-    sx=dim.scores[order(dim.scores[,code]),]
+    sx=dim.scores[order(dim.scores[, i]),]
     genes.1=(rownames(sx[1:num.genes,]))
     genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),]))
     return(c(genes.1,genes.2))
   }
   if (!(do.balanced)) {
-    sx=dim.scores[rev(order(abs(dim.scores[,code]))),]
+    sx=dim.scores[rev(order(abs(dim.scores[, i]))),]
     genes.1=(rownames(sx[1:num.genes,]))
-    genes.1=genes.1[order(dim.scores[genes.1,code])]
+    genes.1=genes.1[order(dim.scores[genes.1, i])]
     return(genes.1)
   }
 }

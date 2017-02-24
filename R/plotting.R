@@ -195,7 +195,7 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
             }
             data.use <- data.use[cells.to.include, ,drop = F]
             ident.use <- object@ident[cells.to.include]
-            if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[cells.to.include, 1, drop = F])
+            if (!is.null(group.by)) ident.use <- as.factor(FetchData(object, group.by)[cells.to.include, 1])
             gene.names <- colnames(data.use)[colnames(data.use) %in% rownames(object@data)]
             if(single.legend) remove.legend <- TRUE
             if(same.y.lims && is.null(y.max)) y.max <- max(data.use)
