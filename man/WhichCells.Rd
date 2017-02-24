@@ -4,14 +4,16 @@
 \alias{WhichCells}
 \title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, ident = NULL, cells.use = NULL, subset.name = NULL,
-  accept.low = -Inf, accept.high = Inf, accept.value = NULL,
-  max.cells.per.ident = Inf, random.seed = 1)
+WhichCells(object, ident = NULL, ident.remove = NULL, cells.use = NULL,
+  subset.name = NULL, accept.low = -Inf, accept.high = Inf,
+  accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{ident}{Identity class to subset. Default is all identities.}
+\item{ident}{Identity classes to subset. Default is all identities.}
+
+\item{ident.remove}{Indentity classes to remove. Default is NULL.}
 
 \item{cells.use}{Subset of cell names}
 

@@ -9,7 +9,7 @@ GetDimReduction(object, reduction.type = "pca", slot = "x")
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Type of dimensional reduction to fetch}
+\item{reduction.type}{Type of dimensional reduction to fetch (default is PCA)}
 
 \item{slot}{Specific information to pull (i.e. rotation, x, x.full, ...)}
 }

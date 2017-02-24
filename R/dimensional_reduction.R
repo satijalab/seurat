@@ -13,7 +13,7 @@ dim.reduction <- setClass("dim.reduction", slots = list(
 #' Pull information for specified stored dimensional reduction analysis
 #' 
 #' @param object Seurat object
-#' @param reduction.type Type of dimensional reduction to fetch
+#' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
 #' @param slot Specific information to pull (i.e. rotation, x, x.full, ...)
 #' @return Returns results from reduction technique
 #' @export
@@ -29,44 +29,82 @@ GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
 
 #' Dimensional Reduction Rotation Accessor Function
 #' 
-#' Pull rotoation matrix for specified stored dimensional reduction analysis
+#' Pull rotation matrix for specified stored dimensional reduction analysis
 #' 
 #' @param object Seurat object
-#' @param reduction.type Dimensional reduction to use (default is PCA)
-#' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param cells.use, Cells to include (default is all)
+#' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
+#' @param dims.use Dimensions to include (default is all stored dims)
+#' @param cells.use Cells to include (default is all cells)
 #' @return Rotation matrix for given reduction, cells, and dimensions
 #' @export
 DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = NULL) {
   object.rot <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
+  if(length(object.rot) == 0){
+    stop(paste0("Rotation slot for ", reduction.type, " is empty."))
+  }
+  cells.use <- set.ifnull(cells.use, rownames(object.rot))
+  if (any(!cells.use %in% rownames(object.rot))){
+    missing.cells <- paste0(cells.use[which(!cells.use %in% rownames(object.rot))], collapse = ", ")
+    warning(paste0("Could not find the following cell names: ", missing.cells))
+    cells.use <- ainb(cells.use, rownames(object.rot))
+  }
+  dims.use <- set.ifnull(dims.use, 1:ncol(object.rot))
+  if(any(!dims.use %in% 1:ncol(object.rot))){
+    missing.dims <- paste0(dims.use[which(!dims.use %in% 1:ncol(object.rot))], collapse = ", ")
+    stop(paste0("Could not find the following dimensions: ", missing.dims))
+  }
+  object.rot <- object.rot[cells.use, dims.use, drop = F]
   object.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
-  cells.use <- set.ifnull(cells.use, object@cell.names)
-  cells.use <- ainb(cells.use, rownames(object.rot))
-  if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
-  dims.use=set.ifnull(dims.use,colnames(object.rot))
-  return(object.rot[cells.use,dims.use])
+  if(length(object.key) == 0){
+    colnames(object.rot) <- NULL
+  }
+  else{
+    colnames(object.rot) <- paste0(object.key, dims.use)
+  }
+  return(object.rot)
 }
 
 #' Dimensional Reduction Gene Loadings Accessor Function
 #' 
-#' Pull rotoation matrix for specified stored dimensional reduction analysis
+#' Pull "x" matrix for specified stored dimensional reduction analysis. 
 #' 
 #' @param object Seurat object
-#' @param reduction.type Dimensional reduction to use (default is PCA)
-#' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param genes.use, Genes to include (default is all)
-#' @param use.full return projected gene loadings (default is F)
-#' @return Rotation matrix for given reduction, cells, and genes
+#' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
+#' @param dims.use Dimensions to include (default is all stored dims)
+#' @param genes.use Genes to include (default is all genes)
+#' @param use.full Return projected gene loadings (default is FALSE)
+#' @return X matrix for given reduction, cells, and genes
 #' @export
-DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NULL,use.full=F) {
-  if (!(use.full)) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
-  if (use.full) object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
+DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NULL, use.full=FALSE) {
+  if (use.full){
+    object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
+  }
+  else{
+    object.x <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
+  }
+  if(length(object.x) == 0){
+    stop(paste0("X slot for ", reduction.type, " is empty."))
+  }
+  genes.use <- set.ifnull(genes.use, rownames(object.x))
+  if (any(!genes.use %in% rownames(object.x))){
+    missing.genes <- paste0(genes.use[which(!genes.use %in% rownames(object.x))], collapse = ", ")
+    warning(paste0("Could not find the following gene names: ", missing.genes))
+    genes.use <- ainb(genes.use, rownames(object.x))
+  }
+  dims.use <- set.ifnull(dims.use, 1:ncol(object.x))
+  if(any(!dims.use %in% 1:ncol(object.x))){
+    missing.dims <- paste0(dims.use[which(!dims.use %in% 1:ncol(object.x))], collapse = ", ")
+    stop(paste0("Could not find the following dimensions: ", missing.dims))
+  }
+  object.x <- object.x[genes.use, dims.use, drop = F]
   object.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
-  genes.use <- set.ifnull(genes.use, rownames(object@data))
-  genes.use <- ainb(genes.use, rownames(object.x))
-  if (!(is.null(dims.use))) dims.use <- paste(object.key, dims.use, sep="")
-  dims.use=set.ifnull(dims.use,colnames(object.x))
-  return(object.x[genes.use,dims.use])
+  if(length(object.key) == 0){
+    colnames(object.x) <- NULL
+  }
+  else{
+    colnames(object.x) <- paste0(object.key, dims.use)
+  }
+  return(object.x)
 }
 
 
@@ -75,13 +113,12 @@ DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NU
 #' Pull Diffusion maps rotation matrix
 #' 
 #' @param object Seurat object
-#' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param cells.use, Cells to include (default is all)
+#' @param dims.use Dimensions to include (default is all stored dims)
+#' @param cells.use Cells to include (default is all cells)
 #' @return Diffusion maps rotation matrix for given cells and DMs
 #' @export
-DMRot <- function(object, dims.use=NULL, cells.use=NULL) {
-  to.return=DimRot(object,"dm",dims.use,cells.use)
-  return(to.return)
+DMRot <- function(object, dims.use = NULL, cells.use = NULL) {
+  return(DimRot(object = object, reduction.type = "dm", dims.use = dims.use, cells.use = cells.use))
 }
 
 #' PCA Rotation Accessor Function
@@ -90,26 +127,11 @@ DMRot <- function(object, dims.use=NULL, cells.use=NULL) {
 #' 
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param cells.use, Cells to include (default is all)
+#' @param cells.use, Cells to include (default is all cells)
 #' @return PCA rotation matrix for given cells and PCs
 #' @export
-PCARot <- function(object, dims.use=NULL, cells.use=NULL) {
-  to.return=DimRot(object,"pca",dims.use,cells.use)
-  return(to.return)
-}
-
-#' PCA Gene Loadings Accessor Function
-#' 
-#' Pull PCA Gene Loadings
-#' 
-#' @param object Seurat object
-#' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param genes.use, Genes to include (default is all)
-#' @return PCA loading matrix for given genes and PCs
-#' @export
-PCAX <- function(object, dims.use=NULL, genes.use=NULL,use.full=F) {
-  to.return=DimX(object,"pca",dims.use,genes.use,use.full)
-  return(to.return)
+PCARot <- function(object, dims.use = NULL, cells.use = NULL) {
+  return(DimRot(object = object, reduction.type = "pca", dims.use = dims.use, cells.use = cells.use))
 }
 
 #' ICA Rotation Accessor Function
@@ -118,12 +140,25 @@ PCAX <- function(object, dims.use=NULL, genes.use=NULL,use.full=F) {
 #' 
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
-#' @param cells.use, Cells to include (default is all)
+#' @param cells.use, Cells to include (default is all cells)
 #' @return ICA rotation matrix for given cells and ICs
 #' @export
-ICARot <- function(object, dims.use=NULL, cells.use=NULL) {
-  to.return=DimRot(object,"ica",dims.use,cells.use)
-  return(to.return)
+ICARot <- function(object, dims.use = NULL, cells.use = NULL) {
+  return(DimRot(object = object, reduction.type = "ica", dims.use = dims.use, cells.use = cells.use))
+}
+
+#' PCA Gene Loadings Accessor Function
+#' 
+#' Pull PCA Gene Loadings
+#' 
+#' @param object Seurat object
+#' @param dims.use, Dimensions to include (default is all stored dims)
+#' @param genes.use, Genes to include (default is all genes)
+#' @return PCA loading matrix for given genes and PCs
+#' @export
+PCAX <- function(object, dims.use = NULL, genes.use = NULL, use.full = FALSE) {
+  return(DimX(object = object, reduction.type = "pca", dims.use = dims.use, genes.use = genes.use,
+              use.full = use.full))
 }
 
 #' ICA Gene Loadings Accessor Function
@@ -135,13 +170,10 @@ ICARot <- function(object, dims.use=NULL, cells.use=NULL) {
 #' @param genes.use, Genes to include (default is all)
 #' @return ICA loading matrix for given genes and ICs
 #' @export
-ICAX <- function(object, dims.use=NULL, genes.use=NULL,use.full=F) {
-  to.return=DimX(object,"ica",dims.use,genes.use,use.full)
-  return(to.return)
+ICAX <- function(object, dims.use = NULL, genes.use = NULL, use.full = F) {
+  return(DimX(object = object, reduction.type = "ica", dims.use = dims.use, genes.use = genes.use,
+              use.full = use.full))
 }
-
-
-
 
 #' Dimensional Reduction Mutator Function
 #' 
@@ -171,8 +203,7 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 #' Various methods for dimensional reductions
 #' 
 #' @param object Seurat object
-#' @param reduction.type Type of dimensional reduction to run. Options include "pca", "pcafast", 
-#' "ica", "icafast" 
+#' @param reduction.type Type of dimensional reduction to run. Options include "pca", "pcafast", "ica" 
 #' @param genes.use Genes to use as input for the dimensional reduction technique. Default is 
 #' object@@var.genes.
 #' @param dims.store Number of dimensions to store
@@ -236,14 +267,12 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     object@dr$ica=icaobj
   }
   
-  #if(reduction.type == "icafast") print("doit")
-  
   if(print.results){
     PrintDim(object, reduction.type = reduction.type, dims.print = dims.print,
              genes.print = genes.print)
   }
   return(object)
-  } 
+} 
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pca.results <- NULL
@@ -702,7 +731,6 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, use.scaled =
                        return.plotlist = FALSE, do.plot = TRUE,  ...){
 
     ncol <- set.ifnull(ncol, min(length(dim.use), 3))
-  
     plots <- lapply(dim.use, PlotDim, object = object, reduction.type = reduction.type, 
                     use.scaled = use.scaled, use.full = use.full, cells.use = cells.use, 
                     num.genes = num.genes, group.by = group.by, disp.min = disp.min, 
@@ -985,7 +1013,9 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   cells.use <- set.ifnull(cells.use, colnames(object@data))
   dim.code <- GetDimReduction(object, reduction.type = reduction.use, slot = "key")
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")[cells.use, dim.codes])
+  data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation"))
+  cells.use=intersect(cells.use,rownames(data.plot))
+  data.plot=data.plot[cells.use, dim.codes]
   ident.use <- as.factor(object@ident[cells.use])
   if (group.by != "ident") ident.use <- as.factor(FetchData(object, group.by)[cells.use, 1])
   data.plot$ident <- ident.use

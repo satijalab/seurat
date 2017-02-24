@@ -226,36 +226,26 @@ setMethod("Read10X", "character", function(data.dir = NULL){
 #' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
 #' reduce the effects of genes that are only expressed in a very small number of cells. 
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
-setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) standardGeneric("ScaleData"))
 #' @export
-setMethod("ScaleData", "seurat",
-          function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
+ScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, 
+                      scale.max=10, display.progress = TRUE) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
             genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
-            object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
-            #rownames(object@scale.data) <- genes.use 
-            #colnames(object@scale.data) <- colnames(object@data)
-            dimnames(object@scale.data) <- dimnames(data.use)
-            if(do.scale | do.center) {
-              bin.size <- 1000
-              max.bin <- floor(length(genes.use)/bin.size) + 1
-              print("Scaling data matrix")
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-              for(i in 1:max.bin) {
-                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                my.inds <- my.inds[my.inds <= length(genes.use)]
-                #print(my.inds)
-                new.data <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
-                new.data[new.data>scale.max] <- scale.max
-                object@scale.data[genes.use[my.inds], ] <- new.data
-                setTxtProgressBar(pb, i)  
+            if(class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix"){
+              object@scale.data <- FastSparseRowScale(mat = data.use, scale = do.scale, center = do.center, 
+                                   scale_max = scale.max, display_progress = display.progress)
               }
-              close(pb)
+            else{
+              data.use <- as.matrix(data.use)
+              object@scale.data <- FastRowScale(mat = data.use, scale = do.scale, center = do.center,
+                                                scale_max = scale.max, display_progress = display.progress)
             }
+
+            dimnames(object@scale.data) <- dimnames(data.use)
             return(object)
-          }
-)
+}
+
 
 #' Normalize raw data
 #'
@@ -1016,6 +1006,7 @@ setMethod("RegressOut", "seurat",
 #' column name in object@@data.info, etc. Any argument that can be retreived
 #' using FetchData
 #' @param ident.use Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for filtration)
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param do.center Recenter the new object@@scale.data
@@ -1026,13 +1017,18 @@ setMethod("RegressOut", "seurat",
 #' use.imputed=TRUE)
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #' @export
-setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) standardGeneric("SubsetData"))
+setGeneric("SubsetData",  function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,ident.remove=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) standardGeneric("SubsetData"))
 #' @export
 setMethod("SubsetData","seurat",
-          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) {
+          function(object,cells.use=NULL,subset.name=NULL,ident.use=NULL,ident.remove=NULL,accept.low=-Inf, accept.high=Inf,do.center=F,do.scale=F,max.cells.per.ident=Inf, random.seed = 1,...) {
             data.use=NULL
             cells.use=set.ifnull(cells.use,object@cell.names)
             if (!is.null(ident.use)) {
+              ident.use=anotinb(ident.use,ident.remove)
+              cells.use=WhichCells(object,ident.use)
+            }
+            if ((is.null(ident.use))&&!is.null(ident.remove)) {
+              ident.use=anotinb(unique(object@ident),ident.remove)
               cells.use=WhichCells(object,ident.use)
             }
             if (!is.null(subset.name)) {
@@ -1906,7 +1902,8 @@ setMethod("DiffTTest", "seurat",
 #' identity class, high/low values for particular PCs, ect..
 #'
 #' @param object Seurat object
-#' @param ident Identity class to subset. Default is all identities.
+#' @param ident Identity classes to subset. Default is all identities.
+#' @param ident.remove Indentity classes to remove. Default is NULL.
 #' @param cells.use Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
 #' column name in object@@data.info, etc. Any argument that can be retreived
@@ -1918,11 +1915,12 @@ setMethod("DiffTTest", "seurat",
 #' @param random.seed Random seed for downsampling
 #' @return A vector of cell names
 #' @export
-WhichCells <- function(object, ident = NULL, cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
+WhichCells <- function(object, ident = NULL, ident.remove=NULL,cells.use = NULL, subset.name = NULL, accept.low = -Inf, 
                    accept.high = Inf, accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1) {
             set.seed(random.seed)
             cells.use <- set.ifnull(cells.use, object@cell.names)
             ident <- set.ifnull(ident, unique(object@ident))
+            ident=anotinb(ident,ident.remove)
             if (!all(ident %in% unique(object@ident))){
               bad.idents <- ident[!(ident %in% unique(object@ident))]
               stop(paste("Identity :", bad.idents, "not found.   "))

@@ -4,14 +4,14 @@
 \alias{PCAX}
 \title{PCA Gene Loadings Accessor Function}
 \usage{
-PCAX(object, dims.use = NULL, genes.use = NULL, use.full = F)
+PCAX(object, dims.use = NULL, genes.use = NULL, use.full = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{dims.use, }{Dimensions to include (default is all stored dims)}
 
-\item{genes.use, }{Genes to include (default is all)}
+\item{genes.use, }{Genes to include (default is all genes)}
 }
 \value{
 PCA loading matrix for given genes and PCs

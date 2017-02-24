@@ -9,9 +9,9 @@ DMRot(object, dims.use = NULL, cells.use = NULL)
 \arguments{
 \item{object}{Seurat object}
 
-\item{dims.use, }{Dimensions to include (default is all stored dims)}
+\item{dims.use}{Dimensions to include (default is all stored dims)}
 
-\item{cells.use, }{Cells to include (default is all)}
+\item{cells.use}{Cells to include (default is all cells)}
 }
 \value{
 Diffusion maps rotation matrix for given cells and DMs

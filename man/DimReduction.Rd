@@ -12,8 +12,7 @@ DimReduction(object, reduction.type = NULL, genes.use = NULL,
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Type of dimensional reduction to run. Options include "pca", "pcafast", 
-"ica", "icafast"}
+\item{reduction.type}{Type of dimensional reduction to run. Options include "pca", "pcafast", "ica"}
 
 \item{genes.use}{Genes to use as input for the dimensional reduction technique. Default is 
 object@var.genes.}

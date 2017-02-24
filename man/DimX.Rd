@@ -5,22 +5,22 @@
 \title{Dimensional Reduction Gene Loadings Accessor Function}
 \usage{
 DimX(object, reduction.type = "pca", dims.use = NULL, genes.use = NULL,
-  use.full = F)
+  use.full = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Dimensional reduction to use (default is PCA)}
+\item{reduction.type}{Type of dimensional reduction to fetch (default is PCA)}
 
-\item{dims.use, }{Dimensions to include (default is all stored dims)}
+\item{dims.use}{Dimensions to include (default is all stored dims)}
 
-\item{genes.use, }{Genes to include (default is all)}
+\item{genes.use}{Genes to include (default is all genes)}
 
-\item{use.full}{return projected gene loadings (default is F)}
+\item{use.full}{Return projected gene loadings (default is FALSE)}
 }
 \value{
-Rotation matrix for given reduction, cells, and genes
+X matrix for given reduction, cells, and genes
 }
 \description{
-Pull rotoation matrix for specified stored dimensional reduction analysis
+Pull "x" matrix for specified stored dimensional reduction analysis.
 }

@@ -11,7 +11,7 @@ PCARot(object, dims.use = NULL, cells.use = NULL)
 
 \item{dims.use, }{Dimensions to include (default is all stored dims)}
 
-\item{cells.use, }{Cells to include (default is all)}
+\item{cells.use, }{Cells to include (default is all cells)}
 }
 \value{
 PCA rotation matrix for given cells and PCs
