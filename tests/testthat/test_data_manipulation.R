@@ -56,16 +56,16 @@ test_that("Fast implementation of matrix multiply returns as expected", {
 # --------------------------------------------------------------------------------
 context("Fast Scale Data Functions")
 
-mat <- matrix(1:16, nrow = 4, ncol = 4)
+mat <- matrix(seq(0.001, 0.1, 0.001), nrow = 10, ncol = 10)
 
 # should be the equivalent of t(scale(t(mat)))
 test_that("Fast implementation of row scaling returns expected values", {
-  expect_equal(t(scale(t(mat))[1:4, 1:4]), FastRowScale(mat, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), center = FALSE))[1:4, 1:4], 
+  expect_equal(t(scale(t(mat))[1:10, 1:10]), FastRowScale(mat, display_progress = FALSE))
+  expect_equal(t(scale(t(mat), center = FALSE))[1:10, 1:10], 
                FastRowScale(mat, center = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE))[1:4, 1:4], 
+  expect_equal(t(scale(t(mat), scale = FALSE))[1:10, 1:10], 
                FastRowScale(mat, scale = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:4, 1:4], 
+  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:10], 
                FastRowScale(mat, scale = FALSE, center = F, display_progress = FALSE))
 })
 

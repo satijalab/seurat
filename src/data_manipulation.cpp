@@ -134,7 +134,7 @@ Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2){
 
 // [[Rcpp::export]]
 Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true, 
-                             bool display_progress = true){
+                             double scale_max = 10, bool display_progress = true){
   Progress p(mat.rows(), display_progress);
   Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
   for(int i=0; i < mat.rows(); ++i){
@@ -154,17 +154,23 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center
       rowMean = 0;
     }
     scaled_mat.row(i) = (r - rowMean) / rowSdev;
+    for(int s=0; s<scaled_mat.row(i).size(); ++s){
+      if(scaled_mat(i, s) > scale_max){
+        scaled_mat(i, s) = scale_max;
+      }
+    }
   }
   return scaled_mat;
 }
 
 // [[Rcpp::export]]
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true, 
-                                   bool display_progress = true){
+                                   double scale_max = 10, bool display_progress = true){
   mat = mat.transpose();
-  Progress p(mat.rows(), display_progress);
+  Progress p(mat.outerSize(), display_progress);
   Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
   for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
     double colMean = 0;
     double colSdev = 0; 
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
@@ -198,6 +204,11 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
     }
     Eigen::VectorXd col = Eigen::VectorXd(mat.col(k));
     scaled_mat.col(k) = (col.array() - colMean) / colSdev;
+    for(int s=0; s<scaled_mat.col(k).size(); ++s){
+      if(scaled_mat(s,k) > scale_max){
+        scaled_mat(s,k) = scale_max;
+      }
+    }
   }
   return scaled_mat.transpose();
 }

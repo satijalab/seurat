@@ -226,36 +226,26 @@ setMethod("Read10X", "character", function(data.dir = NULL){
 #' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
 #' reduce the effects of genes that are only expressed in a very small number of cells. 
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
-setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) standardGeneric("ScaleData"))
 #' @export
-setMethod("ScaleData", "seurat",
-          function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
+ScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, 
+                      scale.max=10, display.progress = TRUE) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
             genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
             data.use <- set.ifnull(data.use,object@data[genes.use, ])
-            object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
-            #rownames(object@scale.data) <- genes.use 
-            #colnames(object@scale.data) <- colnames(object@data)
-            dimnames(object@scale.data) <- dimnames(data.use)
-            if(do.scale | do.center) {
-              bin.size <- 1000
-              max.bin <- floor(length(genes.use)/bin.size) + 1
-              print("Scaling data matrix")
-              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-              for(i in 1:max.bin) {
-                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                my.inds <- my.inds[my.inds <= length(genes.use)]
-                #print(my.inds)
-                new.data <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
-                new.data[new.data>scale.max] <- scale.max
-                object@scale.data[genes.use[my.inds], ] <- new.data
-                setTxtProgressBar(pb, i)  
+            if(class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix"){
+              object@scale.data <- FastSparseRowScale(mat = data.use, scale = do.scale, center = do.center, 
+                                   scale_max = scale.max, display_progress = display.progress)
               }
-              close(pb)
+            else{
+              data.use <- as.matrix(data.use)
+              object@scale.data <- FastRowScale(mat = data.use, scale = do.scale, center = do.center,
+                                                scale_max = scale.max, display_progress = display.progress)
             }
+
+            dimnames(object@scale.data) <- dimnames(data.use)
             return(object)
-          }
-)
+}
+
 
 #' Normalize raw data
 #'
@@ -1067,7 +1057,7 @@ setMethod("SubsetData","seurat",
                 object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
               }
             }
-            object@tsne.rot=object@tsne.rot[cells.use, ]
+            #object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
 
             object@gene.scores=data.frame(object@gene.scores[cells.use,]); colnames(object@gene.scores)[1]="nGene"; rownames(object@gene.scores)=colnames(object@data)

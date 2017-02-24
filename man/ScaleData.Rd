@@ -5,7 +5,7 @@
 \title{Scale and center the data}
 \usage{
 ScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10)
+  do.center = TRUE, scale.max = 10, display.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -21,11 +21,11 @@ FastMatMult <- function(m1, m2) {
     .Call('Seurat_FastMatMult', PACKAGE = 'Seurat', m1, m2)
 }
 
-FastRowScale <- function(mat, scale = TRUE, center = TRUE, display_progress = TRUE) {
-    .Call('Seurat_FastRowScale', PACKAGE = 'Seurat', mat, scale, center, display_progress)
+FastRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
+    .Call('Seurat_FastRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }
 
-FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, display_progress = TRUE) {
-    .Call('Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, display_progress)
+FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
+    .Call('Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }
 
