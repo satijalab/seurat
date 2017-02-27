@@ -226,8 +226,54 @@ setMethod("Read10X", "character", function(data.dir = NULL){
 #' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
 #' reduce the effects of genes that are only expressed in a very small number of cells. 
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
+setGeneric("ScaleData", function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) standardGeneric("ScaleData"))
 #' @export
-ScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, 
+setMethod("ScaleData", "seurat",
+          function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, scale.max=10) {
+            genes.use <- set.ifnull(genes.use,rownames(object@data))
+            genes.use=ainb(genes.use,rownames(object@data))
+            data.use <- set.ifnull(data.use,object@data[genes.use, ])
+            object@scale.data <- matrix(NA, nrow = length(genes.use), ncol = ncol(object@data))
+            #rownames(object@scale.data) <- genes.use 
+            #colnames(object@scale.data) <- colnames(object@data)
+            dimnames(object@scale.data) <- dimnames(data.use)
+            if(do.scale | do.center) {
+              bin.size <- 1000
+              max.bin <- floor(length(genes.use)/bin.size) + 1
+              print("Scaling data matrix")
+              pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+              for(i in 1:max.bin) {
+                my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
+                my.inds <- my.inds[my.inds <= length(genes.use)]
+                #print(my.inds)
+                new.data <- t(scale(t(as.matrix(data.use[genes.use[my.inds], ])), center = do.center, scale = do.scale))
+                new.data[new.data>scale.max] <- scale.max
+                object@scale.data[genes.use[my.inds], ] <- new.data
+                setTxtProgressBar(pb, i)  
+              }
+              close(pb)
+            }
+            return(object)
+          }
+)
+
+
+#' Scale and center the data using C++
+#' 
+#' Note: will give slightly different results than R due to differences in numerical precision 
+#' between R and C++. This could cause the results of some stochastic processes like tSNE to change.
+#'
+#'
+#' @param object Seurat object
+#' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
+#' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
+#' @param do.scale Whether to scale the data. 
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
+#' reduce the effects of genes that are only expressed in a very small number of cells. 
+#' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
+#' @export
+FastScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, 
                       scale.max=10, display.progress = TRUE) {
             genes.use <- set.ifnull(genes.use,rownames(object@data))
             genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
