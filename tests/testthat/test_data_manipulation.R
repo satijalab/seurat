@@ -86,4 +86,14 @@ test_that("Fast implementation of row scaling returns expected values", {
                check.attributes = FALSE)
 })
 
-
+# Tests for fast basic stats functions
+# --------------------------------------------------------------------------------
+set.seed(42)
+mat <- replicate(10, rchisq(10, 4))
+fcv <- FastCov(mat)
+cv <- cov(mat)
+test_that("Fast implementation of covariance returns expected values", {
+  expect_equal(fcv[1,1], 9.451051142)
+  expect_equal(fcv[10,10], 5.6650068)
+  expect_equal(fcv, cv)
+})

@@ -6,6 +6,19 @@
 
 using namespace Rcpp;
 
+// CanonCor
+Eigen::MatrixXd CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+RcppExport SEXP Seurat_CanonCor(SEXP mat1SEXP, SEXP mat2SEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(CanonCor(mat1, mat2, center));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -101,6 +114,29 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(FastSparseRowScale(mat, scale, center, scale_max, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastCov
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat);
+RcppExport SEXP Seurat_FastCov(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCov(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastCovMats
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
+RcppExport SEXP Seurat_FastCovMats(SEXP mat1SEXP, SEXP mat2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCovMats(mat1, mat2));
     return rcpp_result_gen;
 END_RCPP
 }
