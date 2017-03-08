@@ -7,15 +7,14 @@
 using namespace Rcpp;
 
 // CanonCor
-Eigen::MatrixXd CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
-RcppExport SEXP Seurat_CanonCor(SEXP mat1SEXP, SEXP mat2SEXP, SEXP centerSEXP) {
+List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
+RcppExport SEXP Seurat_CanonCor(SEXP mat1SEXP, SEXP mat2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
-    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
-    rcpp_result_gen = Rcpp::wrap(CanonCor(mat1, mat2, center));
+    rcpp_result_gen = Rcpp::wrap(CanonCor(mat1, mat2));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -118,25 +117,27 @@ BEGIN_RCPP
 END_RCPP
 }
 // FastCov
-Eigen::MatrixXd FastCov(Eigen::MatrixXd mat);
-RcppExport SEXP Seurat_FastCov(SEXP matSEXP) {
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
+RcppExport SEXP Seurat_FastCov(SEXP matSEXP, SEXP centerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastCov(mat));
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCov(mat, center));
     return rcpp_result_gen;
 END_RCPP
 }
 // FastCovMats
-Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
-RcppExport SEXP Seurat_FastCovMats(SEXP mat1SEXP, SEXP mat2SEXP) {
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+RcppExport SEXP Seurat_FastCovMats(SEXP mat1SEXP, SEXP mat2SEXP, SEXP centerSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
-    rcpp_result_gen = Rcpp::wrap(FastCovMats(mat1, mat2));
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCovMats(mat1, mat2, center));
     return rcpp_result_gen;
 END_RCPP
 }

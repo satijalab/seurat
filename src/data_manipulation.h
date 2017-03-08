@@ -6,6 +6,8 @@
 #include <cmath>
 #include <unordered_map>
 
+using namespace Rcpp;
+
 //----------------------------------------------------
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, 
                                            bool upsample, bool display_progress);
@@ -24,7 +26,8 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, doubl
                              bool display_progress);
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, bool center, 
                                    double scale_max, bool display_progress);
-Eigen::MatrixXd FastCov(Eigen::MatrixXd mat);
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION

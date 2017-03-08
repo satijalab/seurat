@@ -2,21 +2,32 @@
 #include "data_manipulation.h"
 
 using namespace Rcpp;
-
+using namespace Eigen;
 
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
 
 
 // [[Rcpp::export]]
-Eigen::MatrixXd CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center = true){
-  Eigen::MatrixXd cmat1 = FastCov(mat1);
-  Eigen::MatrixXd cmat2 = FastCov(mat2);
-  Eigen::LDLT<Eigen::MatrixXd> cr1;
-  Eigen::LDLT<Eigen::MatrixXd> cr2;
+List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
+  mat1 = mat1.rowwise() - mat1.colwise().mean();
+  mat2 = mat2.rowwise() - mat2.colwise().mean();
   
-  cr1.compute(mat1);
-  cr2.compute(mat2);
+  Eigen::MatrixXd mat1_cov = FastCov(mat1, false);
+  Eigen::MatrixXd mat2_cov = FastCov(mat2, false);
+  Eigen::MatrixXd mat12_cov = FastCovMats(mat1, mat2, false);
   
-  return(mat1);
+  Eigen::MatrixXd h1 = mat1_cov.inverse().sqrt();
+  Eigen::MatrixXd h2 = mat2_cov.inverse().sqrt();
+  
+  Eigen::MatrixXd k = h1 * mat12_cov * h2;
+  Eigen::JacobiSVD<Eigen::MatrixXd> svd(k, ComputeThinU | ComputeThinV);
+  
+  Eigen::MatrixXd a = h1 * svd.matrixU();
+  Eigen::MatrixXd b = h2 * svd.matrixV();
+  List cc(3);
+  cc[0] = svd.singularValues();
+  cc[1] = (a.transpose() * mat1.transpose()).transpose();
+  cc[2] = (b.transpose() * mat2.transpose()).transpose();
+  return(cc);
 }

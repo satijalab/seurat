@@ -2,6 +2,8 @@
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
+
+using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
 
@@ -213,16 +215,20 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
 /* Note: May not handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
-Eigen::MatrixXd FastCov(Eigen::MatrixXd mat){
-  mat = mat.rowwise() - mat.colwise().mean();
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center = true){
+  if (center) {
+    mat = mat.rowwise() - mat.colwise().mean();
+  }
   Eigen::MatrixXd cov = (mat.adjoint() * mat) / double(mat.rows() - 1);
   return(cov);
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2 ){
-  mat1 = mat1.rowwise() - mat1.colwise().mean();
-  mat2 = mat2.rowwise() - mat2.colwise().mean();
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center = true){
+  if(center){
+    mat1 = mat1.rowwise() - mat1.colwise().mean();
+    mat2 = mat2.rowwise() - mat2.colwise().mean();
+  }
   Eigen::MatrixXd cov = (mat1.adjoint() * mat2) / double(mat1.rows() - 1);
   return(cov);
 }
