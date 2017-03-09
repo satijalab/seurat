@@ -688,8 +688,11 @@ setMethod("FindAllMarkersNode","seurat",
           function(object, node = NULL, genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
                    min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
                    do.print=FALSE, random.seed = 1, min.cells = 3) {
+                      if(length(object@cluster.tree) == 0){
+                        stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
+                      }
                       genes.use <- set.ifnull(genes.use, rownames(object@data))
-                      node <- set.ifnull(node, tree$edge[1,1])
+                      node <- set.ifnull(node, object@cluster.tree[[1]]$edge[1,1])
                       ident.use <- object@ident
                       tree.use <- object@cluster.tree[[1]]
                       descendants = DFT(tree.use, node, path = NULL, include.children = T)
