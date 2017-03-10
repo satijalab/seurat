@@ -5,12 +5,12 @@
 \title{Single cell violin plot}
 \usage{
 VlnPlot(object, features.plot, ident.include = NULL, nCol = NULL,
-  do.ret = FALSE, do.sort = FALSE, y.max = NULL, same.y.lims = F,
-  size.x.use = 16, size.y.use = 16, size.title.use = 20, adjust.use = 1,
+  do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16,
+  size.y.use = 16, size.title.use = 20, adjust.use = 1,
   point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = F,
   x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right",
-  single.legend = TRUE, remove.legend = FALSE, return.plotlist = FALSE,
-  ...)
+  single.legend = TRUE, remove.legend = FALSE, do.return = FALSE,
+  return.plotlist = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,8 +21,6 @@ anything that can be retreived by FetchData)}
 \item{ident.include}{Which classes to include in the plot (default is all)}
 
 \item{nCol}{Number of columns if multiple plots are displayed}
-
-\item{do.ret}{FALSE by default. If TRUE, returns a list of ggplot objects.}
 
 \item{do.sort}{Sort identity classes (on the x-axis) by the average
 expression of the attribute being potted}
@@ -56,6 +54,8 @@ expression of the attribute being potted}
 \item{single.legend}{Consolidate legend the legend for all plots}
 
 \item{remove.legend}{Remove the legend from the plot}
+
+\item{do.return}{Return a ggplot2 object (default : FALSE)}
 
 \item{return.plotlist}{Return the list of individual plots instead of compiled plot.}
 

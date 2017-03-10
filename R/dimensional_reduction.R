@@ -1175,7 +1175,6 @@ DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = 
   return (plot)
 }
 
-
 #' Quickly Pick Relevant PCs
 #'
 #' Plots the standard deviations (or approximate singular values if running PCAFast)
@@ -1189,4 +1188,120 @@ DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = 
 #' @export
 PCElbowPlot <- function(object, num.pc = 20) {
   return(DimElbowPlot(object, reduction.type = "pca", dims.plot = num.pc))
+}
+
+#' Perform Canonical Correlation Analysis
+#'
+#' Runs a canonical correlation analysis using the sparse implementation of CCA from the PMA package.
+#'
+#'
+#' @param object Seurat object
+#' @param object2 Optional second object. If object2 is passed, object with be considered as group1
+#' and object2 as group2.
+#' @param group1 First set of cells (or IDs) for CCA
+#' @param group2 Second set of cells (or IDs) for CCA
+#' @param group.by Factor to group by (column vector stored in object@@data.info)
+#' @param num.cc Number of canonical vectors to calculate
+#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If two objects are given,
+#' the default is the union of both variable gene sets that are also present in both objects.
+#' @param scale.data Use the scaled data from the object
+#' @param rescale.groups Rescale each set of cells independently
+#' @importFrom PMA CCA
+#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If one object is passed,
+#' the same object is returned. If two are passed, a combined object is returned. 
+#' @export
+RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes.use, 
+                   scale.data = TRUE, rescale.groups = FALSE) {
+  if(!missing(object2) && (!missing(group1) || !missing(group2))){
+    warning("Both object2 and group set. Continuing with objects defining the groups")
+  }
+  if(!missing(object2)){
+    if(missing(genes.use)){
+      genes.use <- union(object@var.genes, object2@var.genes)
+      if(scale.data){
+        possible.genes <- intersect(rownames(object@scale.data), rownames(object2@scale.data))
+        genes.use <- genes.use[genes.use %in% possible.genes]
+        data.use1 <- object@scale.data[genes.use, ]
+        data.use2 <- object2@scale.data[genes.use, ]
+      }
+      else{
+        possible.genes <- intersect(rownames(object@data), rownames(object2@data))
+        data.use1 <- object@data[genes.use, ]
+        data.use2 <- object2@data[genes.use, ]
+      }
+    }
+  }
+  else{
+    if(missing(group1)) stop("group1 not set")
+    if(missing(group2)) stop("group2 not set")
+    if(!missing(group.by)){
+      if(!group.by %in% colnames(object@data.info)) stop("invalid group.by parameter")
+    }
+    if(missing(genes.use)){
+      genes.use <- object@var.genes
+      if(length(genes.use) == 0) stop("No variable genes present. Run MeanVarPlot and retry")
+    }
+    if(missing(group.by)){
+      cells.1 <- CheckGroup(object, group = group1, group.id = "group1")
+      cells.2 <- CheckGroup(object, group = group2, group.id = "group2")
+    }
+    else{
+      object.current.ids <- object@ident
+      object <- SetAllIdent(object, id = group.by)
+      cells.1 <- CheckGroup(object, group = group1, group.id = "group1")
+      cells.2 <- CheckGroup(object, group = group2, group.id = "group2")
+      object <- SetIdent(object, cells.use = object@cell.names, ident.use = object.current.ids)
+    }
+    if(scale.data){
+      if(rescale.groups){
+        data.use1 <- ScaleData(object, data.use = object@data[genes.use, cells.1])
+        data.use1 <- data.use1@scale.data
+        data.use2 <- ScaleData(object, data.use = object@data[genes.use, cells.2])
+        data.use2 <- data.use2@scale.data
+      }
+      else{
+        data.use1 <- object@scale.data[genes.use, cells.1]
+        data.use2 <- object@scale.data[genes.use, cells.2]
+      }
+    }
+    else{
+      data.use1 <- object@data[genes.use, cells.1]
+      data.use2 <- object@data[genes.use, cells.2]
+    }
+  }
+  cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K= num.cc, 
+                     penaltyz = 1, penaltyx = 1, trace = F)
+  cca.data <- rbind(cca.results$u, cca.results$v)
+  rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  
+  if(!missing(object2)){
+    cat("Merging objects\n", file = stderr())
+    combined.object <- MergeSeurat(object, object2, do.scale = F, do.center = F)
+    combined.object <- FastScaleData(combined.object)
+    combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "rotation",
+                                       new.data = cca.data)
+    combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "key",
+                                       new.data = "CC")
+    return(combined.object)
+  }
+  else{
+    object <- SetDimReduction(object, reduction.type = "cc", slot = "rotation", new.data = cca.data)
+    object <- SetDimReduction(object, reduction.type = "cc", slot = "key", new.data = "CC")
+    return(object)
+  }
+}
+
+CheckGroup <- function(object, group, group.id){
+  if(all(group %in% unique(object@ident))) {
+    cells.use <- WhichCells(object, ident = group)
+  }
+  else{
+    if(all(group %in% object@cell.names)){
+      cells.use <- group
+    }
+    else{
+      stop(paste0(group.id, " must be either a vector of valid cell names or idents"))
+    }
+  }
+  return(cells.use)
 }
