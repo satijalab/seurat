@@ -2180,14 +2180,16 @@ setMethod("NegBinomDETest", "seurat",
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Optional vector of genes to use in test. Default is all genes 
+#' @param latent.vars effects to remove from comparison
+#' @param print.bar Prints progress bar
+#' @param min.cells Minimum number of cells in each group that express each gene 
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #' @importFrom pbapply pbapply
 #' @export
-setGeneric("PoissonDETest", function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) standardGeneric("PoissonDETest"))
-#' @export
-setMethod("PoissonDETest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE) {
+PoissonDETest <- function(object, cells.1, cells.2, genes.use = NULL, latent.vars = NULL, 
+                          print.bar = TRUE, min.cells = 3) {
             genes.use <- set.ifnull(genes.use, rownames(object@data))
             # check that the gene made it through the any filtering that was done
             genes.use <- genes.use[genes.use %in% rownames(object@data)]
@@ -2204,7 +2206,7 @@ setMethod("PoissonDETest", "seurat",
               to.test[,"GENE"] <- as.numeric(to.test.data[x, ])
               # check that gene is expressed in specified number of cells in one group
               if (sum(to.test$GENE[to.test$group == "A"]) < min.cells || sum(to.test$GENE[to.test$group == "B"]) < min.cells){
-                warning(paste0("Skipping gene ---", x, ". Fewer than", min.cells, "in at least one of the two clusters.", sep=" "))
+                warning(paste0("Skipping gene ---", x, ". Fewer than ", min.cells, "in at least one of the two clusters.", sep=" "))
                 return(2)
               }
               # check that variance between groups is not 0
@@ -2220,8 +2222,8 @@ setMethod("PoissonDETest", "seurat",
             p_val <- p_val[!p_val==2]
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
-          }
-)
+}
+
 
 #' Differential expression testing using Tobit models
 #'

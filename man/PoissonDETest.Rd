@@ -5,7 +5,7 @@
 \title{Poisson test for UMI-count based data}
 \usage{
 PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE)
+  latent.vars = NULL, print.bar = TRUE, min.cells = 3)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,9 +14,13 @@ PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{genes.use}{Genes to test. Default is to use all genes}
+\item{genes.use}{Optional vector of genes to use in test. Default is all genes}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+\item{latent.vars}{effects to remove from comparison}
+
+\item{print.bar}{Prints progress bar}
+
+\item{min.cells}{Minimum number of cells in each group that express each gene}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed
