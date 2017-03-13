@@ -162,6 +162,23 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center
   return scaled_mat;
 }
 
+/* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R. 
+ Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
+
+// [[Rcpp::export]]
+Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress = true){
+  Progress p(mat.cols(), display_progress);
+  Eigen::MatrixXd std_mat(mat.rows(), mat.cols());
+  for(int i=0; i < mat.cols(); ++i){
+    p.increment();
+    Eigen::ArrayXd r = mat.col(i).array();
+    double colMean = r.mean();
+    double colSdev = sqrt((r - colMean).square().sum() / (mat.rows() - 1));
+    std_mat.col(i) = (r - colMean) / colSdev;
+  }
+  return std_mat;
+}
+
 // [[Rcpp::export]]
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true, 
                                    double scale_max = 10, bool display_progress = true){
@@ -232,5 +249,3 @@ Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool cen
   Eigen::MatrixXd cov = (mat1.adjoint() * mat2) / double(mat1.rows() - 1);
   return(cov);
 }
-
-

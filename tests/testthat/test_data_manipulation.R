@@ -69,6 +69,11 @@ test_that("Fast implementation of row scaling returns expected values", {
                FastRowScale(mat, scale = FALSE, center = F, display_progress = FALSE))
 })
 
+# should be the equivalent of scale(mat, TRUE, apply(mat, 2, sd))
+test_that("Standardize returns expected values", {
+  expect_equal(Standardize(mat, display_progress = FALSE), scale(mat, TRUE, apply(mat, 2, sd)), 
+               check.attributes = FALSE)
+})
 
 # should be the equivalent of t(scale(t(mat)))
 mat <- rsparsematrix(10, 15, 0.1)

@@ -5,7 +5,7 @@
 \title{Perform Canonical Correlation Analysis}
 \usage{
 RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
-  scale.data = TRUE, rescale.groups = FALSE)
+  scale.data = TRUE, rescale.groups = FALSE, PMA.version = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,6 +27,8 @@ the default is the union of both variable gene sets that are also present in bot
 \item{scale.data}{Use the scaled data from the object}
 
 \item{rescale.groups}{Rescale each set of cells independently}
+
+\item{PMA.version}{Use PMA version of CCA}
 }
 \value{
 Returns Seurat object with the CCA stored in the @dr$cca slot. If one object is passed,

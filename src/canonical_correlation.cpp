@@ -1,6 +1,7 @@
 #include <RcppEigen.h>
 #include "data_manipulation.h"
 
+
 using namespace Rcpp;
 using namespace Eigen;
 

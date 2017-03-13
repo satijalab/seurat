@@ -6,9 +6,9 @@
 #include <cmath>
 #include <unordered_map>
 #include <data_manipulation.h>
-
 //----------------------------------------------------
-Eigen::MatrixXd CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+List SparseCanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool standardize, int k){
 //----------------------------------------------------
 
 #endif//CANONICAL_CORRELATION

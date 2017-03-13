@@ -29,6 +29,10 @@ FastRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, displ
     .Call('Seurat_FastRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }
 
+Standardize <- function(mat, display_progress = TRUE) {
+    .Call('Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress)
+}
+
 FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
     .Call('Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }

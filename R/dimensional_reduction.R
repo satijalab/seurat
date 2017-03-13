@@ -1205,13 +1205,14 @@ PCElbowPlot <- function(object, num.pc = 20) {
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If two objects are given,
 #' the default is the union of both variable gene sets that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
+#' @param PMA.version Use PMA version of CCA
 #' @param rescale.groups Rescale each set of cells independently
 #' @importFrom PMA CCA
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If one object is passed,
 #' the same object is returned. If two are passed, a combined object is returned. 
 #' @export
 RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes.use, 
-                   scale.data = TRUE, rescale.groups = FALSE) {
+                   scale.data = TRUE, rescale.groups = FALSE, PMA.version = FALSE) {
   if(!missing(object2) && (!missing(group1) || !missing(group2))){
     warning("Both object2 and group set. Continuing with objects defining the groups")
   }
@@ -1269,8 +1270,13 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
       data.use2 <- object@data[genes.use, cells.2]
     }
   }
-  cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K= num.cc, 
-                     penaltyz = 1, penaltyx = 1, trace = F)
+  if(PMA.version){
+    cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K = num.cc, 
+                       penaltyz = 1, penaltyx = 1, trace = F)
+  }
+  else{
+    cca.results <- SparseCanonCor(data.use1, data.use2, standardize = TRUE, k = num.cc)
+  }
   cca.data <- rbind(cca.results$u, cca.results$v)
   rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
   
@@ -1304,4 +1310,30 @@ CheckGroup <- function(object, group, group.id){
     }
   }
   return(cells.use)
+}
+
+# Note: not really "sparse" yet -- could add in the penalties discussed in Witten 
+
+SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+  if(standardize){
+    mat1 <- Standardize(mat1, FALSE)
+    mat2 <- Standardize(mat2, FALSE)
+  }
+  u.mat <- matrix(nrow = ncol(mat1), ncol = k)
+  v.mat <- matrix(nrow = ncol(mat2), ncol = k)
+  d <- numeric(k)
+  v.init <- svd(t(mat1) %*% mat2)$v
+  for (i in 1:k){
+    v <- v.init[,i]
+    u <- t(t(mat2 %*% v) %*% mat1)
+    u <- u / norm(u, "2")
+    v = t(t(mat1 %*% u) %*% mat2)
+    v = v / norm(v, "2")
+    u.mat[, i] <- u
+    v.mat[, i] <- v
+    d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
+    mat1 <- rbind(mat1, sqrt(d[i]) * t(u))
+    mat2 <- rbind(mat2, -sqrt(d[i]) * t(v))
+  }
+  return(list(u = u.mat, v = v.mat, d = d))
 }

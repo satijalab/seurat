@@ -28,6 +28,7 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, 
                                    double scale_max, bool display_progress);
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
 Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION
