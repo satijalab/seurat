@@ -226,7 +226,6 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
             else{
               plots.combined <- plots
             }
-            invisible(lapply(plots.combined, print))
             if(do.return){
               if(return.plotlist){
                 return(plots)
@@ -234,6 +233,9 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
               else{
                 return(plots.combined)
               }
+            }
+            else{
+              invisible(print(plots.combined))
             }
 }
 

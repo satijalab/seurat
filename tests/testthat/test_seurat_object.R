@@ -120,7 +120,7 @@ context("Plotting/Visualization")
 
 test_that("Violin plots (VlnPlot() ) return as expected", {
   expect_is(VlnPlot(nbt.test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
-  expect_equal(length(VlnPlot(nbt.test, c("ZYX", "AACS"), do.ret = T)), 2)
+  expect_equal(length(VlnPlot(nbt.test, c("ZYX", "AACS"), do.return = T, return.plotlist = T)), 2)
 
 })
 
