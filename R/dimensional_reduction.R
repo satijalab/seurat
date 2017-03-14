@@ -1326,9 +1326,9 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
   for (i in 1:k){
     v <- v.init[,i]
     u <- t(t(mat2 %*% v) %*% mat1)
-    u <- u / norm(u, "2")
+    u <- u / norm(as.vector(u), "2")
     v = t(t(mat1 %*% u) %*% mat2)
-    v = v / norm(v, "2")
+    v = v / norm(as.vector(v), "2")
     u.mat[, i] <- u
     v.mat[, i] <- v
     d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
