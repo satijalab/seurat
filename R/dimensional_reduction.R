@@ -1291,8 +1291,8 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
     return(combined.object)
   }
   else{
-    object <- SetDimReduction(object, reduction.type = "cc", slot = "rotation", new.data = cca.data)
-    object <- SetDimReduction(object, reduction.type = "cc", slot = "key", new.data = "CC")
+    object <- SetDimReduction(object, reduction.type = "cca", slot = "rotation", new.data = cca.data)
+    object <- SetDimReduction(object, reduction.type = "cca", slot = "key", new.data = "CC")
     return(object)
   }
 }
