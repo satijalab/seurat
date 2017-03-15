@@ -1337,3 +1337,71 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
   }
   return(list(u = u.mat, v = v.mat, d = d))
 }
+
+
+#' Shift dim scores
+#'
+#' Shifts dim scores so that they line up across grouping variable (only implemented for case with
+#' 2 categories in grouping.var)
+#'
+#'
+#' @param object Seurat object
+#' @param group.var Name of the grouping variable for which to shift the scores 
+#' @param reduction.type reduction to shift scores for 
+#' @param dims.shift Dims to shift, default is all
+#' @param ds.amt Number of cells in each group for downsampling
+#' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
+#' @export
+ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt) {
+  groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
+  cells.1 <- WhichCells(object, groups[1])
+  cells.2 <- WhichCells(object, groups[2])
+  if(missing(dims.shift)){
+    dims.shift <- 1:ncol(DimRot(object, reduction.type = reduction.type))
+  }
+  shifted.rot <- DimRot(object, reduction.type = reduction.type)
+  for (i in dims.shift){
+    dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i), 
+                  amt = ds.amt)
+    dim.2 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.2, dims.use = i),
+                  amt = ds.amt)
+    cells.use = c(names(dim.1), names(dim.2))
+    shifting.params <- optim(c(0, 1), fn = ShiftObj, 
+                             drrot = DimRot(object, reduction.type = reduction.type, dims.use = i, 
+                                            cells.use = cells.use), 
+                             ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
+    
+    shifted.rot[cells.1, i] <- shifting.params[1] + DimRot(object, reduction.type = reduction.type, 
+                                               cells.use = cells.1, dims.use = i) * shifting.params[2]
+    
+    object <- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
+                              slot = "rotation", new.data = shifted.rot)
+  }
+  object <- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
+                            slot = "key", new.data = 
+                              paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+                                                          slot = "key")))
+  return(object)
+}
+
+# Density dependent downsampling
+
+DDDS <- function(data, pct = 0.5, amt = 300){
+  data.approx <- approxfun(density(data))(data)
+  names(data.approx) <- rownames(data)
+  pct <- quantile(data.approx, pct)
+  data.downsampled <- sample(data.approx, size = amt, prob = 1/(data.approx + pct))
+  return(data.downsampled)
+}
+
+# Shifting objective function 
+
+ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
+  if(fun.opt == 1) drrot[cells.1, ] <- par[1] * drrot[cells.1, ]
+  else if(fun.opt == 2) drrot[cells.1, ] <- par[2]*drrot[cells.1, ] + par[1]
+  else stop("invalid objective function option")
+  drrot <- drrot[order(drrot),,drop=F]
+  drident <- as.numeric(ids[rownames(drrot)])
+  drmax <- max(rle(drident)$lengths)
+  return(drmax)
+}
