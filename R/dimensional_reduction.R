@@ -1349,28 +1349,27 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @param group.var Name of the grouping variable for which to shift the scores 
 #' @param reduction.type reduction to shift scores for 
 #' @param dims.shift Dims to shift, default is all
-#' @param ds.amt Number of cells in each group for downsampling
+#' @param ds.amt percent of cells in each group for downsampling
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @export
-ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt) {
+ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.1) {
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
-  cells.1 <- WhichCells(object, groups[1])
-  cells.2 <- WhichCells(object, groups[2])
+  cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
+  cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
   if(missing(dims.shift)){
     dims.shift <- 1:ncol(DimRot(object, reduction.type = reduction.type))
   }
   shifted.rot <- DimRot(object, reduction.type = reduction.type)
   for (i in dims.shift){
     dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i), 
-                  amt = ds.amt)
+                  amt = ds.amt * length(object@cell.names))
     dim.2 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.2, dims.use = i),
-                  amt = ds.amt)
+                  amt = ds.amt * length(object@cell.names))
     cells.use = c(names(dim.1), names(dim.2))
     shifting.params <- optim(c(0, 1), fn = ShiftObj, 
                              drrot = DimRot(object, reduction.type = reduction.type, dims.use = i, 
                                             cells.use = cells.use), 
                              ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
-    
     shifted.rot[cells.1, i] <- shifting.params[1] + DimRot(object, reduction.type = reduction.type, 
                                                cells.use = cells.1, dims.use = i) * shifting.params[2]
     

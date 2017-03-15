@@ -4,7 +4,7 @@
 \alias{ShiftDim}
 \title{Shift dim scores}
 \usage{
-ShiftDim(object, grouping.var, reduction.type, dims.shift, ds.amt)
+ShiftDim(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -13,7 +13,7 @@ ShiftDim(object, grouping.var, reduction.type, dims.shift, ds.amt)
 
 \item{dims.shift}{Dims to shift, default is all}
 
-\item{ds.amt}{Number of cells in each group for downsampling}
+\item{ds.amt}{percent of cells in each group for downsampling}
 
 \item{group.var}{Name of the grouping variable for which to shift the scores}
 }
