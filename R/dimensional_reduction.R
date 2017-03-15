@@ -1219,17 +1219,17 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   if(!missing(object2)){
     if(missing(genes.use)){
       genes.use <- union(object@var.genes, object2@var.genes)
-      if(scale.data){
-        possible.genes <- intersect(rownames(object@scale.data), rownames(object2@scale.data))
-        genes.use <- genes.use[genes.use %in% possible.genes]
-        data.use1 <- object@scale.data[genes.use, ]
-        data.use2 <- object2@scale.data[genes.use, ]
-      }
-      else{
-        possible.genes <- intersect(rownames(object@data), rownames(object2@data))
-        data.use1 <- object@data[genes.use, ]
-        data.use2 <- object2@data[genes.use, ]
-      }
+    }
+    if(scale.data){
+      possible.genes <- intersect(rownames(object@scale.data), rownames(object2@scale.data))
+      genes.use <- genes.use[genes.use %in% possible.genes]
+      data.use1 <- object@scale.data[genes.use, ]
+      data.use2 <- object2@scale.data[genes.use, ]
+    }
+    else{
+      possible.genes <- intersect(rownames(object@data), rownames(object2@data))
+      data.use1 <- object@data[genes.use, ]
+      data.use2 <- object2@data[genes.use, ]
     }
   }
   else{
@@ -1279,6 +1279,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   }
   cca.data <- rbind(cca.results$u, cca.results$v)
   rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  colnames(cca.data) <- paste0("CC", 1:num.cc)
   
   if(!missing(object2)){
     cat("Merging objects\n", file = stderr())
@@ -1372,10 +1373,12 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
                              ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
     shifted.rot[cells.1, i] <- shifting.params[1] + DimRot(object, reduction.type = reduction.type, 
                                                cells.use = cells.1, dims.use = i) * shifting.params[2]
-    
+    colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+                                                                     slot = "key"), i)
     object <- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
                               slot = "rotation", new.data = shifted.rot)
   }
+  
   object <- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
                             slot = "key", new.data = 
                               paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
