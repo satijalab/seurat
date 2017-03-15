@@ -1219,6 +1219,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   if(!missing(object2)){
     if(missing(genes.use)){
       genes.use <- union(object@var.genes, object2@var.genes)
+      if(length(genes.use) == 0) stop("No variable genes present. Run MeanVarPlot and retry")
     }
     if(scale.data){
       possible.genes <- intersect(rownames(object@scale.data), rownames(object2@scale.data))
@@ -1228,9 +1229,11 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
     }
     else{
       possible.genes <- intersect(rownames(object@data), rownames(object2@data))
+      genes.use <- genes.use[genes.use %in% possible.genes]
       data.use1 <- object@data[genes.use, ]
       data.use2 <- object2@data[genes.use, ]
     }
+    if(length(genes.use) == 0) stop("0 valid genes in genes.use")
   }
   else{
     if(missing(group1)) stop("group1 not set")
