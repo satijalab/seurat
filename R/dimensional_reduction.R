@@ -1280,7 +1280,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   cca.data <- rbind(cca.results$u, cca.results$v)
   rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
   colnames(cca.data) <- paste0("CC", 1:num.cc)
-  
+
   if(!missing(object2)){
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(object, object2, do.scale = F, do.center = F)
