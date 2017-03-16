@@ -1037,6 +1037,74 @@ setMethod("RegressOut", "seurat",
           }
 )
 
+#' Regress out technical effects and cell cycle using regularized Negative Binomial regression
+#'
+#' Remove unwanted effects from umi data and set scale.data to Pearson residuals
+#'
+#'
+#' @param object Seurat object
+#' @param latent.vars effects to regress out
+#' @param genes.regress gene to run regression for (default is all genes)
+#' @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
+#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
+#' @import Matrix
+#' @import MASS
+#' @import parallel
+#' @export
+setGeneric("RegressOutNBreg", function(object,latent.vars,genes.regress=NULL,pr.clip.range=c(-30, 30)) standardGeneric("RegressOutNBreg"))
+#' @export
+setMethod("RegressOutNBreg", "seurat",
+          function(object,latent.vars,genes.regress=NULL, pr.clip.range=c(-30, 30)) {
+            genes.regress=set.ifnull(genes.regress,rownames(object@data))
+            genes.regress=ainb(genes.regress,rownames(object@data))
+            cm <- object@raw.data[genes.regress, colnames(object@data), drop=FALSE]
+            latent.data=FetchData(object,latent.vars)
+            bin.size <- 128;
+            bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+            max.bin <- max(bin.ind)
+            print(paste("Regressing out",latent.vars))
+            print('First run Poisson regression (to get initial mean), and estimate theta per gene')
+            
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            theta.estimate <- c()
+            for(i in 1:max.bin) {
+              genes.bin.regress <- genes.regress[bin.ind == i]
+              bin.theta.estimate <- unlist(parallel::mclapply(genes.bin.regress, function(j) {
+                as.numeric(MASS::theta.ml(cm[j, ], glm(cm[j, ] ~ ., data = latent.data, family=poisson)$fitted))
+              }), use.names = FALSE)
+              theta.estimate <- c(theta.estimate, bin.theta.estimate)
+              setTxtProgressBar(pb, i)
+            }
+            close(pb)
+            UMI.mean <- apply(cm, 1, mean)
+            var.estimate <- UMI.mean + UMI.mean^2/theta.estimate
+            
+            fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=0.33)
+            theta.fit <- UMI.mean^2 / (10^fit$fitted - UMI.mean)
+            names(theta.fit) <- genes.regress
+            print('Second run NB regression with fixed theta')
+            
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            pr <- c()
+            for(i in 1:max.bin) {
+              genes.bin.regress <- genes.regress[bin.ind == i]
+              bin.pr.lst <- parallel::mclapply(genes.bin.regress, function(j) {
+                fit <- glm(cm[j, ] ~ ., data = latent.data, family=MASS::negative.binomial(theta.fit[j]))
+                residuals(fit, type='pearson')
+              })
+              pr <- rbind(pr, do.call(rbind, bin.pr.lst))
+              setTxtProgressBar(pb, i)
+            }
+            close(pb)
+            dimnames(pr) <- dimnames(cm)
+            
+            pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
+            pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
+            
+            object@scale.data=pr
+            return(object)
+          }
+)
 
 #' Return a subset of the Seurat object
 #'
