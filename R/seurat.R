@@ -1040,6 +1040,7 @@ setMethod("RegressOut", "seurat",
 #' Regress out technical effects and cell cycle using regularized Negative Binomial regression
 #'
 #' Remove unwanted effects from umi data and set scale.data to Pearson residuals
+#' Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
 #'
 #'
 #' @param object Seurat object
@@ -1051,10 +1052,10 @@ setMethod("RegressOut", "seurat",
 #' @import MASS
 #' @import parallel
 #' @export
-setGeneric("RegressOutNBreg", function(object,latent.vars,genes.regress=NULL,pr.clip.range=c(-30, 30)) standardGeneric("RegressOutNBreg"))
+setGeneric("RegressOutNBreg", function(object,latent.vars,genes.regress=NULL,pr.clip.range=c(-30, 30), min.theta=0.01) standardGeneric("RegressOutNBreg"))
 #' @export
 setMethod("RegressOutNBreg", "seurat",
-          function(object,latent.vars,genes.regress=NULL, pr.clip.range=c(-30, 30)) {
+          function(object,latent.vars,genes.regress=NULL, pr.clip.range=c(-30, 30), min.theta=0.01) {
             genes.regress=set.ifnull(genes.regress,rownames(object@data))
             genes.regress=ainb(genes.regress,rownames(object@data))
             cm <- object@raw.data[genes.regress, colnames(object@data), drop=FALSE]
@@ -1082,6 +1083,13 @@ setMethod("RegressOutNBreg", "seurat",
             fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=0.33)
             theta.fit <- UMI.mean^2 / (10^fit$fitted - UMI.mean)
             names(theta.fit) <- genes.regress
+            
+            to.fix <- theta.fit <= min.theta | is.infinite(theta.fit)
+            if (any(to.fix)) {
+              cat('Fitted theta below', min.theta, 'for', sum(to.fix), 'genes, setting them to', min.theta, '\n')
+              theta.fit[to.fix] <- min.theta
+            }
+            
             print('Second run NB regression with fixed theta')
             
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
@@ -1089,8 +1097,16 @@ setMethod("RegressOutNBreg", "seurat",
             for(i in 1:max.bin) {
               genes.bin.regress <- genes.regress[bin.ind == i]
               bin.pr.lst <- parallel::mclapply(genes.bin.regress, function(j) {
-                fit <- glm(cm[j, ] ~ ., data = latent.data, family=MASS::negative.binomial(theta.fit[j]))
-                residuals(fit, type='pearson')
+                fit <- 0
+                try(fit <- glm(cm[j, ] ~ ., data = latent.data, family=MASS::negative.binomial(theta.fit[j])), silent=TRUE)
+                if (class(fit)[1] == 'numeric') {
+                  message(sprintf('glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))', 
+                                  theta.fit[j], j))
+                  res <- scale(log10(cm[j, ]+1))[, 1]
+                } else {
+                  res <- residuals(fit, type='pearson')
+                }
+                res
               })
               pr <- rbind(pr, do.call(rbind, bin.pr.lst))
               setTxtProgressBar(pb, i)
