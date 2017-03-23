@@ -1366,9 +1366,17 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @param reduction.type reduction to shift scores for 
 #' @param dims.shift Dims to shift, default is all
 #' @param ds.amt percent of cells in each group for downsampling
+#' @param search.lower lower bounds on the grid search for optimal shifting parameters. Defaults to 
+#' 25% quantile for intercept parameter and 0.25 for slope
+#' @param search.upper upper bounds on the grid search for optimal shifting parameters. Defaults to 
+#' 75% quantile for intercept parameter and 4 for slope.
+#' @param search.levels Controls the fineness of the grid search. Larger number will evaulate more
+#' options
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
+#' @importFrom NMOF gridSearch
 #' @export
-ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4) {
+ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, 
+                     search.lower, search.upper, search.levels = 50) {
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
   cells.1.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
@@ -1377,29 +1385,28 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
   }
   shifted.rot <- DimRot(object, reduction.type = reduction.type)
   
-  object.all=object
-  object=SetAllIdent(object,grouping.var)
-  object=SubsetData(object,max.cells.per.ident = min(table(object@ident)))
+  object.all <- object
+  object <- SetAllIdent(object, grouping.var)
+  object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
   cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
-  
-  #grrr, we had discussed on the phone that:
-  #1. optim does not work here (need a grid search)
-  #2. need to downsample first to have equal representation from both
   
   for (i in dims.shift){
     dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i), 
                   amt = ds.amt * length(cells.1))
     dim.2 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.2, dims.use = i),
                   amt = ds.amt * length(cells.2))
-    cells.use = c(names(dim.1), names(dim.2))
+    cells.use <- c(names(dim.1), names(dim.2))
     #shifting.params <- optim(c(0, 1), fn = ShiftObj, 
     #                         drrot = DimRot(object, reduction.type = reduction.type, dims.use = i, 
     #                                        cells.use = cells.use), 
     #                         ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
-    
-    dimrot.use=DimRot(object, reduction.type = reduction.type, dims.use = i, cells.use = cells.use)
-    shifting.params=gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2,lower = c(-0.05,0.05),upper = c(0.5,2),npar = 2,n = 50)$minlevels
+    dimrot.use <- DimRot(object, reduction.type = reduction.type, dims.use = i, cells.use = cells.use)
+    if(missing(search.lower)) sl <- c(quantile(dimrot.use)[2], 0.25)
+    if(missing(search.upper)) su <- c(quantile(dimrot.use)[4], 4)
+    shifting.params <- suppressMessages(gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use], 
+                                  cells.1 = names(dim.1), fun.opt = 2, lower = sl, upper = su, 
+                                  npar = 2, n = search.levels)$minlevels)
     shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
     colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
                                                             slot = "key"), i)
@@ -1427,10 +1434,10 @@ DDDS <- function(data, pct = 0.5, amt = 300){
 
 ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
   if(fun.opt == 1) drrot[cells.1, ] <- par[1] * drrot[cells.1, ]
-  else if(fun.opt == 2) drrot[cells.1, ] <- par[2]*drrot[cells.1, ] + par[1]
+  else if(fun.opt == 2) drrot[cells.1, ] <- par[2] * drrot[cells.1, ] + par[1]
   else stop("invalid objective function option")
-  drrot <- drrot[order(drrot),,drop=F]
+  drrot <- drrot[order(drrot),, drop = F]
   drident <- as.numeric(ids[rownames(drrot)])
-  drmax <- max(rle(drident)$lengths,0.975)
+  drmax <- max(rle(drident)$lengths, 0.975)
   return(drmax)
 }

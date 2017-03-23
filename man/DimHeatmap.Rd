@@ -4,68 +4,41 @@
 \alias{DimHeatmap}
 \title{Dimensional reduction heatmap}
 \usage{
-DimHeatmap(object, reduction.type = "pca", dim.use = 1, use.scaled = TRUE,
-  use.full = FALSE, cells.use = NULL, num.genes = 30, group.by = NULL,
-  disp.min = -2.5, disp.max = 2.5, col.low = "#FF00FF",
-  col.mid = "#000000", col.high = "#FFFF00", slim.col.label = TRUE,
-  do.balanced = FALSE, remove.key = TRUE, ncol = NULL, cex.col = 10,
-  cex.row = 10, group.label.loc = "bottom", group.label.rot = FALSE,
-  group.cex = 15, group.spacing = 0.15, return.plotlist = FALSE,
-  do.plot = TRUE, ...)
+DimHeatmap(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
+  num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
+  do.return = FALSE, col.use = pyCols, use.scale = TRUE,
+  do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Which dimensional reduction strategy to pull from}
+\item{cells.use}{A list of cells to plot. If numeric, just plots the top cells.}
 
-\item{use.scaled}{Whether to use the data or scaled data if data.use is NULL}
+\item{num.genes}{Number of genes to return}
 
-\item{use.full}{Use the full dimensional reduction matrix (projected dim)}
-
-\item{cells.use}{Cells to include in the heatmap (default is all cells). Pass integer number to
-use the top N cells for each dimension.}
-
-\item{num.genes}{Number of genes to include in each heatmap}
+\item{use.full}{Use the full PCA (projected PCA). Default i s FALSE}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
-\item{col.low}{Color for lowest expression value}
+\item{do.return}{Default is FALSE. If TRUE, return a matrix of scaled values
+which would be passed to heatmap.2}
 
-\item{col.mid}{Color for mid expression value}
+\item{col.use}{Color palette to use}
 
-\item{col.high}{Color for highest expression value}
+\item{use.scale}{Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.}
 
-\item{slim.col.label}{display only the identity class name once for each group}
-
-\item{do.balanced}{Return an equal number of genes with both + and - scores}
+\item{do.balanced}{Return an equal number of genes with both + and - PC scores.}
 
 \item{remove.key}{Removes the color key from the plot.}
 
-\item{ncol}{Number of columns when plotting multiple dims}
+\item{label.columns}{Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC}
 
-\item{cex.col}{Controls size of column labels (cells)}
-
-\item{cex.row}{Controls size of row labels (genes)}
-
-\item{group.label.loc}{Place group labels on bottom or top of plot.}
-
-\item{group.label.rot}{Whether to rotate the group label.}
-
-\item{group.cex}{Size of group label text}
-
-\item{group.spacing}{Controls amount of space between columns.}
-
-\item{return.plotlist}{Return the list of individual plots instead of compiled plot.}
-
-\item{do.plot}{Whether to display the compiled plot.}
-
-\item{dims.use}{Which dims to plot}
+\item{...}{Additional parameters to heatmap.2. Common examples are cexRow
+and cexCol, which set row and column text sizes}
 }
 \value{
-Returns a ggplot2 plot object
-
 If do.return==TRUE, a matrix of scaled values which would be passed
 to heatmap.2. Otherwise, no return value, only a graphical output
 }
