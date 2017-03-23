@@ -504,6 +504,7 @@ getStat2=function(x,y=2) return(strsplit(x,"_")[[1]][y])
 #' @export
 getStat3=function(x,y=3) return(strsplit(x,"_")[[1]][y])
 
+#' @importFrom grid grid.newpage pushViewport viewport grid.layout
 #' @export
 MultiPlotList <- function(plots, file, cols=1, layout=NULL) {
 
