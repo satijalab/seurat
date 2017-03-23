@@ -1397,6 +1397,7 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
   if (constrain.var) {
     prior.proj <- FastMatMult(t(shifted.rot), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
     prior.var <- apply(prior.proj, 1, var)
+    print(prior.var)
   }
   cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
@@ -1417,11 +1418,13 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
     shifting.params <- suppressMessages(gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use], 
                                   cells.1 = names(dim.1), fun.opt = 2, lower = sl, upper = su, 
                                   npar = 2, n = search.levels)$minlevels)
+    print(i)
+    print(shifting.params)
     shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
     colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
                                                             slot = "key"), i)
-    shifted.rot <- scale(shifted.rot)
-    if (constrain.var) shifted.rot <- sweep(shifted.rot, MARGIN = 2, STATS = sqrt(prior.var), FUN = "*")
+    shifted.rot[,i] <- scale(shifted.rot[,i])
+    if (constrain.var) shifted.rot[,i] <- shifted.rot[,i]*prior.var[i]
     object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
                                   slot = "rotation", new.data = (shifted.rot))
   }
@@ -1434,11 +1437,11 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
 }
 # Density dependent downsampling
 
-DDDS <- function(data, pct = 0.5, amt = 300){
+DDDS <- function(data, pct = 0.0, amt = 300){
   data.approx <- approxfun(density(data))(data)
   names(data.approx) <- rownames(data)
   pct <- quantile(data.approx, pct)
-  data.downsampled <- sample(data.approx, size = amt, prob = 1/(data.approx + pct))
+  set.seed(1); data.downsampled <- sample(data.approx, size = amt, prob = 1/(data.approx + pct))
   return(data.downsampled)
 }
 
