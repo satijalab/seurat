@@ -1382,8 +1382,8 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @importFrom NMOF gridSearch
 #' @export
-ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, 
-                     constrain.var = T) {
+ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, search.lower, 
+                     search.upper, search.levels = 50, constrain.var = T) {
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
   cells.1.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
