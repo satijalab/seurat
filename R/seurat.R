@@ -1100,7 +1100,7 @@ setMethod("SubsetData","seurat",
             object@ident=drop.levels(object@ident[cells.use])
             if (length(object@dr) > 0){
               for (i in 1:length(object@dr)){
-                object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ]
+                object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ,drop=F]
               }
             }
             #object@tsne.rot=object@tsne.rot[cells.use, ]

@@ -555,14 +555,14 @@ topGenesForDim=function(i, dim.scores, do.balanced=FALSE, num.genes=30, reductio
                         key = "") {
   if (do.balanced) {
     num.genes=round(num.genes/2)
-    sx=dim.scores[order(dim.scores[, i]),]
-    genes.1=(rownames(sx[1:num.genes,]))
-    genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),]))
+    sx=dim.scores[order(dim.scores[, i]),,drop=F]
+    genes.1=(rownames(sx[1:num.genes,,drop=F]))
+    genes.2=(rownames(sx[(nrow(sx)-num.genes+1):nrow(sx),,drop=F]))
     return(c(genes.1,genes.2))
   }
   if (!(do.balanced)) {
-    sx=dim.scores[rev(order(abs(dim.scores[, i]))),]
-    genes.1=(rownames(sx[1:num.genes,]))
+    sx=dim.scores[rev(order(abs(dim.scores[, i]))),,drop=F]
+    genes.1=(rownames(sx[1:num.genes,,drop=F]))
     genes.1=genes.1[order(dim.scores[genes.1, i])]
     return(genes.1)
   }
@@ -1298,16 +1298,23 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   if(!missing(object2)){
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(object, object2, do.scale = F, do.center = F)
+    combined.object@var.genes <- genes.use
     combined.object <- FastScaleData(combined.object)
     combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "rotation",
                                        new.data = cca.data)
     combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "key",
                                        new.data = "CC")
+    combined.object <- ProjectDim(combined.object, reduction.type = "cca",do.print = F)
+    combined.object <- SetDimReduction(combined.object, reduction.type = "cca", "x", 
+                                       new.data = DimX(combined.object, reduction.type = "cca", 
+                                                       use.full = T, genes.use = genes.use))
     return(combined.object)
   }
   else{
     object <- SetDimReduction(object, reduction.type = "cca", slot = "rotation", new.data = cca.data)
     object <- SetDimReduction(object, reduction.type = "cca", slot = "key", new.data = "CC")
+    
+    object <- ProjectDim(object, reduction.type = "cca")
     return(object)
   }
 }
@@ -1376,7 +1383,7 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @importFrom NMOF gridSearch
 #' @export
 ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, 
-                     search.lower, search.upper, search.levels = 50) {
+                     constrain.var = T) {
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
   cells.1.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
@@ -1384,10 +1391,13 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
     dims.shift <- 1:ncol(DimRot(object, reduction.type = reduction.type))
   }
   shifted.rot <- DimRot(object, reduction.type = reduction.type)
-  
   object.all <- object
   object <- SetAllIdent(object, grouping.var)
   object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
+  if (constrain.var) {
+    prior.proj <- FastMatMult(t(shifted.rot), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
+    prior.var <- apply(prior.proj, 1, var)
+  }
   cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
   
@@ -1410,8 +1420,10 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
     shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
     colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
                                                             slot = "key"), i)
+    shifted.rot <- scale(shifted.rot)
+    if (constrain.var) shifted.rot <- sweep(shifted.rot, MARGIN = 2, STATS = sqrt(prior.var), FUN = "*")
     object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
-                                  slot = "rotation", new.data = scale(shifted.rot))
+                                  slot = "rotation", new.data = (shifted.rot))
   }
   
   object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
