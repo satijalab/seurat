@@ -235,7 +235,7 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
               }
             }
             else{
-              invisible(print(plots.combined))
+              invisible(lapply(plots.combined, print))
             }
 }
 
@@ -250,7 +250,7 @@ PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.
   }
   if (y.log){
     noise <- rnorm(length(data[, feature])) / 200
-    data.melt[, feature] <- data[, feature] + 1
+    data[, feature] <- data[, feature] + 1
   }
   else{
     noise <- rnorm(length(data[, feature])) / 100000
@@ -263,9 +263,9 @@ PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.
           axis.title.y = element_text(face = "bold", colour = "#990000", size = size.y.use)) +
     guides(fill = guide_legend(title = NULL)) + 
     geom_jitter(height = 0, size = point.size.use) + xlab("Cell Type") + nogrid +
-    ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold")) +
-    ylim(min(data[, feature]), y.max)
+    ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold"))
   if (y.log) plot <- plot + scale_y_log10()
+  else plot <- plot + ylim(min(data[, feature]), y.max)
   if(feature %in% gene.names){
     if(y.log){
       plot <- plot + ylab("Log Expression level")
