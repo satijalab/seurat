@@ -1511,7 +1511,7 @@ setMethod("FetchData","seurat",
                 data.use <- data.expression
               } else {
                 for(i in var.options) {
-                  if (unlist(strsplit(my.var, "[0-9]+")) == i) {
+                  if (all(unlist(strsplit(my.var, "[0-9]+")) == i)) {
                     eval(parse(text=paste("data.use <- object@dr$", 
                                           names(var.options[which(i == var.options)]), "@rotation", 
                                           sep="")))
@@ -2683,7 +2683,7 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             par(mfrow = c(num.row, nCol))
             dim.code <- translate.dim.code(object, reduction.use)
             dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
-            data.plot <- FetchData(object, dim.codes)
+            data.plot <- FetchData(object, dim.codes, cells.use = cells.use)
 
             x1 <- paste(dim.code, dim.1, sep = "")
             x2 <- paste(dim.code, dim.2, sep = "")
