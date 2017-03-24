@@ -2685,7 +2685,7 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             par(mfrow = c(num.row, nCol))
             dim.code <- translate.dim.code(object, reduction.use)
             dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
-            data.plot <- FetchData(object, dim.codes)
+            data.plot <- FetchData(object, dim.codes, cells.use = cells.use)
 
             x1 <- paste(dim.code, dim.1, sep = "")
             x2 <- paste(dim.code, dim.2, sep = "")
