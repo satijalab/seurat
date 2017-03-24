@@ -1374,11 +1374,12 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @param dims.shift Dims to shift, default is all
 #' @param ds.amt percent of cells in each group for downsampling
 #' @param search.lower lower bounds on the grid search for optimal shifting parameters. Defaults to 
-#' 25% quantile for intercept parameter and 0.25 for slope
+#' 1st quartile for intercept parameter and 0.25 for slope
 #' @param search.upper upper bounds on the grid search for optimal shifting parameters. Defaults to 
-#' 75% quantile for intercept parameter and 4 for slope.
+#' 3rd quartile for intercept parameter and 4 for slope.
 #' @param search.levels Controls the fineness of the grid search. Larger number will evaulate more
 #' options
+#' @param contrain.var Constrain variance to same amount as explained before shifting
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @importFrom NMOF gridSearch
 #' @export

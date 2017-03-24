@@ -17,15 +17,17 @@ ShiftDim(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4,
 \item{ds.amt}{percent of cells in each group for downsampling}
 
 \item{search.lower}{lower bounds on the grid search for optimal shifting parameters. Defaults to 
-25% quantile for intercept parameter and 0.25 for slope}
+25\% quantile for intercept parameter and 0.25 for slope}
 
 \item{search.upper}{upper bounds on the grid search for optimal shifting parameters. Defaults to 
-75% quantile for intercept parameter and 4 for slope.}
+75\% quantile for intercept parameter and 4 for slope.}
 
 \item{search.levels}{Controls the fineness of the grid search. Larger number will evaulate more
 options}
 
 \item{group.var}{Name of the grouping variable for which to shift the scores}
+
+\item{contrain.var}{Constrain variance to same amount as explained before shifting}
 }
 \value{
 Returns Seurat object with the dims shifted, stored in object@dr$reduction.type.shifted
