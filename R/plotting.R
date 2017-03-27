@@ -235,7 +235,8 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
               }
             }
             else{
-              invisible(lapply(plots.combined, print))
+              if(length(plots.combined) > 1) plots.combined
+              else invisible(lapply(plots.combined, print))
             }
 }
 
