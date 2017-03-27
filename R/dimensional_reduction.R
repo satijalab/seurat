@@ -1395,8 +1395,11 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
   object.all <- object
   object <- SetAllIdent(object, grouping.var)
   object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
+  shifted.rot.small <- DimRot(object, reduction.type = reduction.type)
+  
   if (constrain.var) {
-    prior.proj <- FastMatMult(t(shifted.rot), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
+    prior.proj <- FastMatMult(t(shifted.rot.small), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
+    #prior.proj = t(shifted.rot.small) %*% t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ])
     prior.var <- apply(prior.proj, 1, var)
     print(prior.var)
   }
