@@ -1983,8 +1983,8 @@ setMethod("FindMarkers", "seurat",
             
             #gene selection (based on percent expressed)
             thresh.min=object@is.expr
-            data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
-            data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.temp1=round(apply(as.matrix(object@data[genes.use,cells.1]),1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.temp2=round(apply(as.matrix(object@data[genes.use,cells.2]),1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
             alpha.diff=alpha.min-apply(data.alpha,1,min); 
