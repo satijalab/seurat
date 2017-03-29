@@ -1980,6 +1980,15 @@ setMethod("FindMarkers", "seurat",
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
               return(NULL)
             }
+
+            if (length(cells.1) < min.cells) {
+              print(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+              return(NULL)
+            }
+            if (length(cells.2) < min.cells) {
+              print(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+              return(NULL)
+            }
             
             #gene selection (based on percent expressed)
             thresh.min=object@is.expr
@@ -1990,8 +1999,8 @@ setMethod("FindMarkers", "seurat",
             alpha.diff=alpha.min-apply(data.alpha,1,min); 
             genes.use=names(which(alpha.min>min.pct&alpha.diff>min.diff.pct))
             #gene selection (based on average difference)
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
+            data.1=apply(as.matrix(object@data[genes.use,cells.1]),1,expMean)
+            data.2=apply(as.matrix(object@data[genes.use,cells.2]),1,expMean)
             total.diff=(data.1-data.2)
 
             genes.diff = names(which(abs(total.diff)>thresh.use))
