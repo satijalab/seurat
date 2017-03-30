@@ -2083,6 +2083,7 @@ setMethod("FindAllMarkers","seurat",
             gde.all=data.frame()
             for(i in 1:length(idents.all)) {
               gde=genes.de[[i]]
+              if (is.null(gde)) next;
               if (nrow(gde)>0) {
                 if (test.use=="roc") {
                   gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
