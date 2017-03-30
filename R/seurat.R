@@ -1050,7 +1050,7 @@ setMethod("RegressOut", "seurat",
 #' @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
 #' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #' @import Matrix
-#' @import MASS
+#' @importFrom MASS theta.ml negative.binomial 
 #' @import parallel
 #' @export
 setGeneric("RegressOutNBreg", function(object,latent.vars,genes.regress=NULL,pr.clip.range=c(-30, 30), min.theta=0.01) standardGeneric("RegressOutNBreg"))
