@@ -4,19 +4,14 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
-  min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
-  max.cells.per.ident = Inf, return.thresh = 0.01, do.print = FALSE,
-  random.seed = 1, min.cells = 3)
+FindAllMarkers(object, genes.use = NULL, thresh.use = 0.25,
+  test.use = "bimod", min.pct = 0.1, min.diff.pct = 0.05,
+  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
+  return.thresh = 0.01, do.print = FALSE, random.seed = 1,
+  min.cells = 3)
 }
 \arguments{
 \item{object}{Seurat object}
-
-\item{ident.1}{Identity class to define markers for}
-
-\item{ident.2}{A second identity class for comparison. If NULL (default) -
-use all other cells for comparison.}
 
 \item{genes.use}{Genes to test. Default is to all genes}
 
