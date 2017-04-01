@@ -1400,3 +1400,59 @@ nb.residuals <- function(fmla, regression.mat, gene) {
   return(residuals(fit, type='pearson'))
 }
 
+# given a UMI count matrix, estimate NB theta parameter for each gene
+# and use fit of relationship with mean to assign regularized theta to each gene
+theta.reg <- function(cm, latent.data, min.theta=0.01, bin.size=128) {
+  genes.regress <- rownames(cm)
+  bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+  max.bin <- max(bin.ind)
+  print('Running Poisson regression (to get initial mean), and theta estimation per gene')
+  
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  theta.estimate <- c()
+  for(i in 1:max.bin) {
+    genes.bin.regress <- genes.regress[bin.ind == i]
+    bin.theta.estimate <- unlist(parallel::mclapply(genes.bin.regress, function(j) {
+      as.numeric(MASS::theta.ml(cm[j, ], glm(cm[j, ] ~ ., data = latent.data, family=poisson)$fitted))
+    }), use.names = FALSE)
+    theta.estimate <- c(theta.estimate, bin.theta.estimate)
+    setTxtProgressBar(pb, i)
+  }
+  close(pb)
+  UMI.mean <- apply(cm, 1, mean)
+  var.estimate <- UMI.mean + UMI.mean^2/theta.estimate
+  
+  fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=0.33)
+  theta.fit <- UMI.mean^2 / (10^fit$fitted - UMI.mean)
+  names(theta.fit) <- genes.regress
+  
+  to.fix <- theta.fit <= min.theta | is.infinite(theta.fit)
+  if (any(to.fix)) {
+    cat('Fitted theta below', min.theta, 'for', sum(to.fix), 'genes, setting them to', min.theta, '\n')
+    theta.fit[to.fix] <- min.theta
+  }
+  return(theta.fit)
+}
+
+# compare two negative binomial regression models
+# model one uses only common factors (com.fac)
+# model two additionally uses group factor (grp.fac)
+de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
+  tab <- as.matrix(table(y > 0, latent.data[, grp.fac]))
+  freqs <- tab['TRUE', ] / apply(tab, 2, sum)
+  fit2 <- 0
+  fit4 <- 0
+  try(fit2 <- glm(y ~ ., data=latent.data[, com.fac, drop=FALSE], family=MASS::negative.binomial(theta=theta)), silent=TRUE)
+  try(fit4 <- glm(y ~ ., data=latent.data[, c(com.fac, grp.fac)], family=MASS::negative.binomial(theta=theta)), silent=TRUE)
+  if (class(fit2)[1] == 'numeric' | class(fit4)[1] == 'numeric') {
+    message('One of the glm.nb calls failed')
+    return(c(rep(NA, 5), freqs))
+  }
+  pval <- anova(fit2, fit4, test='Chisq')$'Pr(>Chi)'[2]
+  foi <- 2 + length(com.fac)
+  log.fc <- log2(exp(coef(fit4)[foi])) #log.fc <- log2(1/exp(coef(fit4)[foi]))
+  ret <- c(fit2$deviance, fit4$deviance, pval, coef(fit4)[foi], log.fc, freqs)
+  names(ret) <- c('dev1', 'dev2', 'pval', 'coef', 'log.fc', 'freq1', 'freq2')
+  return(ret)
+}
+

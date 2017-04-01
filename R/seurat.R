@@ -1060,38 +1060,16 @@ setMethod("RegressOutNBreg", "seurat",
             genes.regress=ainb(genes.regress,rownames(object@data))
             cm <- object@raw.data[genes.regress, colnames(object@data), drop=FALSE]
             latent.data=FetchData(object,latent.vars)
-            bin.size <- 128;
-            bin.ind <- ceiling(1:length(genes.regress)/bin.size)
-            max.bin <- max(bin.ind)
+            
             print(paste("Regressing out",latent.vars))
-            print('First run Poisson regression (to get initial mean), and estimate theta per gene')
-            
-            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-            theta.estimate <- c()
-            for(i in 1:max.bin) {
-              genes.bin.regress <- genes.regress[bin.ind == i]
-              bin.theta.estimate <- unlist(parallel::mclapply(genes.bin.regress, function(j) {
-                as.numeric(MASS::theta.ml(cm[j, ], glm(cm[j, ] ~ ., data = latent.data, family=poisson)$fitted))
-              }), use.names = FALSE)
-              theta.estimate <- c(theta.estimate, bin.theta.estimate)
-              setTxtProgressBar(pb, i)
-            }
-            close(pb)
-            UMI.mean <- apply(cm, 1, mean)
-            var.estimate <- UMI.mean + UMI.mean^2/theta.estimate
-            
-            fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=0.33)
-            theta.fit <- UMI.mean^2 / (10^fit$fitted - UMI.mean)
-            names(theta.fit) <- genes.regress
-            
-            to.fix <- theta.fit <= min.theta | is.infinite(theta.fit)
-            if (any(to.fix)) {
-              cat('Fitted theta below', min.theta, 'for', sum(to.fix), 'genes, setting them to', min.theta, '\n')
-              theta.fit[to.fix] <- min.theta
-            }
+  
+            theta.fit <- theta.reg(cm, latent.data, min.theta=0.01, bin.size=128)
             
             print('Second run NB regression with fixed theta')
             
+            bin.size <- 128
+            bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+            max.bin <- max(bin.ind)
             pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
             pr <- c()
             for(i in 1:max.bin) {
@@ -1859,6 +1837,67 @@ setMethod("NegBinomDETest", "seurat",
             p_val <- p_val[!p_val==2]
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
+          }
+)
+
+#' Negative binomial test for UMI-count based data (regularized version)
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' a likelihood ratio test of negative binomial generalized linear models where
+#' the overdispersion parameter theta is determined by pooling information
+#' across genes.
+#
+#'
+#' @inheritParams FindMarkers
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @return Returns a p-value ranked data frame of test results.
+#' @export
+setGeneric("NegBinomRegDETest", function(object, cells.1,cells.2, genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) standardGeneric("NegBinomRegDETest"))
+#' @export
+setMethod("NegBinomRegDETest", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) {
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            print(sprintf('NegBinomRegDETest for %d genes and %d and %d cells', length(genes.use), length(cells.1), length(cells.2)))
+            grp.fac <- factor(c(rep('A', length(cells.1)), rep('B', length(cells.2))))
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2), drop=FALSE]
+            print('Calculating mean per gene per group')
+            above.threshold <- pmax(apply(to.test.data[, cells.1]>0, 1, mean), apply(to.test.data[, cells.2]>0, 1, mean)) >= 0.02
+            print(sprintf('%d genes are detected in at least 2%% of the cells in at least one of the groups and will be tested', sum(above.threshold)))
+            genes.use <- genes.use[above.threshold]
+            to.test.data <- to.test.data[genes.use, , drop=FALSE]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = TRUE)
+            
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            
+            print(paste('Latent variables are', latent.vars))
+            # get regularized theta (ignoring group factor)
+            theta.fit <- theta.reg(to.test.data, to.test, min.theta=0.01, bin.size=128)
+            
+            print('Running NB regression model comparison')
+            to.test$NegBinomRegDETest.group <- grp.fac
+            bin.size <- 128
+            bin.ind <- ceiling(1:length(genes.use)/bin.size)
+            max.bin <- max(bin.ind)
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            res <- c()
+            for(i in 1:max.bin) {
+              genes.bin.use <- genes.use[bin.ind == i]
+              bin.out.lst <- parallel::mclapply(genes.bin.use, function(j) {
+                de.nb.reg(to.test.data[j, ], theta.fit[j], to.test, latent.vars, 'NegBinomRegDETest.group')
+              })
+              res <- rbind(res, do.call(rbind, bin.out.lst))
+              setTxtProgressBar(pb, i)
+            }
+            close(pb)
+            rownames(res) <- genes.use
+            res <- as.data.frame(res)
+            res$adj.pval <- p.adjust(res$pval, method='fdr')
+            res <- res[order(res$pval, -abs(res$log.fc)), ]
+            return(res)
           }
 )
 
