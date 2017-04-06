@@ -1360,7 +1360,71 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
   return(list(u = u.mat, v = v.mat, d = d))
 }
 
+#' Calculate the ratio of variance explained by PCA to CCA
+#' 
+#' @param object Seurat object
+#' @param grouping.var variable to group by 
+#' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for cca)
+#' @export 
+CalcVarExpRatio <- function(object, grouping.var, dims.use){
+  if(missing(grouping.var)) stop("Need to provide grouping variable")
+  if(missing(dims.use)){
+    dims.use <- 1:ncol(DimRot(object, reduction.type = "cca"))
+  }
+  groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
+  genes.use <- rownames(DimX(object, reduction.type = "cca"))
+  var.ratio <- data.frame()
+  for(group in groups){
+    cat(paste0("Calculating for ", group, "\n"), file = stderr())
+    group.cells <- WhichCells(object, subset.name = grouping.var, accept.value = group)
+    cat(paste0("\t Separating ", group, " cells \n"), file = stderr())
+    group.object <- SubsetData(object, cells.use = group.cells)
+    cat("\t Running PCA \n", file = stderr())
+    group.object <- PCAFast(group.object, pc.genes = genes.use, do.print = F)
+    group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
+                                     genes.use = genes.use)
+    group.object <- CalcProjectedVar(group.object, reduction.type = "cca", dims.use = dims.use,
+                                     genes.use = genes.use)
+    group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+    var.ratio <- rbind(var.ratio, group.var.ratio)
+  }
+  var.ratio$cell.name <- rownames(var.ratio)
+  colnames(var.ratio) <- c("var.ratio", "cell.name")
+  object@data.info$cell.name <- rownames(object@data.info)
+  object@data.info <- merge(object@data.info, var.ratio, by = "cell.name")
+  return(object)
+}
 
+
+#' Calculate percent variance explained
+#' 
+#' Projects dataset onto the orthonormal space defined by some dimensional reduction technique 
+#' (e.g. PCA, CCA) and calculates the percent of the variance in gene expression explained by each cell
+#' in that lower dimensional space.
+#'
+#' @param object Seurat object
+#' @param reduction.type Name of the reduction to use for the projection
+#' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for given technique)
+#' @param genes.use vector of genes to use in calculation
+#' @export
+CalcProjectedVar <- function(object, reduction.type = "pca", dims.use, genes.use ){
+  if(missing(dims.use)){
+    dims.use <- 1:ncol(DimRot(object, reduction.type = reduction.type))
+  }
+  x.vec <- DimX(object, reduction.type = reduction.type, dims.use = dims.use)
+  # form orthonormal basis via QR
+  x.norm <- scale(qr.Q(qr(x.vec)))
+  if(missing(genes.use)) genes.use <- rownames(x.vec)
+  data.use <- object@scale.data[genes.use, ]
+  # project data onto othronormal basis
+  projected.data <- t(data.use) %*% x.norm
+  # reconstruct data using only dims specified
+  low.dim.data <- x.norm %*% t(projected.data) 
+  projected.var <- apply(low.dim.data, 2, var)
+  calc.name <- paste0(reduction.type, ".var")
+  object <- AddMetaData(object, projected.var, col.name = calc.name)
+  return(object)
+}
 
 #' Shift dim scores
 #'
