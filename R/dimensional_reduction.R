@@ -1392,6 +1392,8 @@ CalcVarExpRatio <- function(object, grouping.var, dims.use){
   colnames(var.ratio) <- c("var.ratio", "cell.name")
   object@data.info$cell.name <- rownames(object@data.info)
   object@data.info <- merge(object@data.info, var.ratio, by = "cell.name")
+  rownames(object@data.info) <- object@data.info$cell.name
+  object@data.info$cell.name <- NULL
   return(object)
 }
 
