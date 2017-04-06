@@ -4,7 +4,7 @@
 \alias{CalcVarExpRatio}
 \title{Calculate the ratio of variance explained by PCA to CCA}
 \usage{
-CalcVarExpRatio(object, grouping.var, dims.use)
+CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
 }
 \arguments{
 \item{object}{Seurat object}

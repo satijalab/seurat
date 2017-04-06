@@ -1360,13 +1360,15 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
   return(list(u = u.mat, v = v.mat, d = d))
 }
 
-#' Calculate the ratio of variance explained by PCA to CCA
+#' Calculate the ratio of variance explained by ICA or PCA to CCA
 #' 
 #' @param object Seurat object
+#' @param reduction.type type of dimensional reduction to compare to CCA (pca, pcafast, ica)
 #' @param grouping.var variable to group by 
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for cca)
 #' @export 
-CalcVarExpRatio <- function(object, grouping.var, dims.use){
+
+CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.use){
   if(missing(grouping.var)) stop("Need to provide grouping variable")
   if(missing(dims.use)){
     dims.use <- 1:ncol(DimRot(object, reduction.type = "cca"))
@@ -1379,24 +1381,41 @@ CalcVarExpRatio <- function(object, grouping.var, dims.use){
     group.cells <- WhichCells(object, subset.name = grouping.var, accept.value = group)
     cat(paste0("\t Separating ", group, " cells \n"), file = stderr())
     group.object <- SubsetData(object, cells.use = group.cells)
-    cat("\t Running PCA \n", file = stderr())
-    group.object <- PCAFast(group.object, pc.genes = genes.use, do.print = F)
-    group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
-                                     genes.use = genes.use)
+    cat("\t Running Dimensional Reduction \n", file = stderr())
     group.object <- CalcProjectedVar(group.object, reduction.type = "cca", dims.use = dims.use,
                                      genes.use = genes.use)
-    group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+    if(reduction.type == "pca"){
+      group.object <- PCA(group.object, pc.genes = genes.use, do.print = F)
+      group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
+                                       genes.use = genes.use)
+      group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+    }
+    else if(reduction.type == "ica"){
+      group.object <- ICA(group.object, ic.genes = genes.use, print.results = F)
+      group.object <- CalcProjectedVar(group.object, reduction.type = "ica", dims.use = dims.use, 
+                                       genes.use = genes.use)
+      group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "ica.var", drop = F]
+    }
+    else if(reduction.type == "pcafast"){
+      group.object <- PCAFast(group.object, ic.genes = genes.use, do.print = F)
+      group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
+                                       genes.use = genes.use)
+      group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+    }
+    else{
+      stop(paste0("reduction.type ", reduction.type, " not supported")) 
+    }
     var.ratio <- rbind(var.ratio, group.var.ratio)
   }
   var.ratio$cell.name <- rownames(var.ratio)
-  colnames(var.ratio) <- c("var.ratio", "cell.name")
+  eval(parse(text = paste0("object@data.info$var.ratio.", reduction.type, "<- NULL")))
+  colnames(var.ratio) <- c(paste0("var.ratio.", reduction.type), "cell.name")
   object@data.info$cell.name <- rownames(object@data.info)
   object@data.info <- merge(object@data.info, var.ratio, by = "cell.name")
   rownames(object@data.info) <- object@data.info$cell.name
   object@data.info$cell.name <- NULL
   return(object)
 }
-
 
 #' Calculate percent variance explained
 #' 
