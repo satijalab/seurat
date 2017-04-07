@@ -1061,7 +1061,7 @@ setMethod("RegressOutNBreg", "seurat",
             cm <- object@raw.data[genes.regress, colnames(object@data), drop=FALSE]
             latent.data=FetchData(object,latent.vars)
             
-            print(paste("Regressing out",latent.vars))
+            cat(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(genes.regress)))
   
             theta.fit <- theta.reg(cm, latent.data, min.theta=0.01, bin.size=128)
             

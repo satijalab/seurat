@@ -1422,7 +1422,17 @@ theta.reg <- function(cm, latent.data, min.theta=0.01, bin.size=128) {
   UMI.mean <- apply(cm, 1, mean)
   var.estimate <- UMI.mean + UMI.mean^2/theta.estimate
   
-  fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=0.33)
+  for (span in c(1/3, 1/2, 3/4, 1)) {
+    fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span=span)
+    if (!any(is.na(fit$fitted))) {
+      cat(sprintf('Used loess with span %1.2f to fit mean-variance relationship\n', span))
+      break
+    }
+  }
+  if (any(is.na(fit$fitted))) {
+    stop('Problem when fitting NB gene variance in theta.reg - NA values were fitted.')
+  }
+  
   theta.fit <- UMI.mean^2 / (10^fit$fitted - UMI.mean)
   names(theta.fit) <- genes.regress
   
