@@ -1300,6 +1300,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
   if(!missing(object2)){
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(object, object2, do.scale = F, do.center = F)
+    combined.object@scale.data[which(is.na(combined.object@scale.data))] <- 0
     combined.object@var.genes <- genes.use
     combined.object <- FastScaleData(combined.object)
     combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "rotation",
@@ -1455,9 +1456,9 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
   if(missing(dims.use)){
     dims.use <- 1:ncol(DimRot(object, reduction.type = reduction.type))
   }
-  x.vec <- DimX(object, reduction.type = reduction.type, dims.use = dims.use)
+  x.vec <- DimX(object, reduction.type = reduction.type, dims.use = dims.use)[genes.use, ]
   # form orthonormal basis via QR
-  x.norm <- scale(qr.Q(qr(x.vec)))
+  x.norm <- qr.Q(qr(x.vec))
   if(missing(genes.use)) genes.use <- rownames(x.vec)
   data.use <- object@scale.data[genes.use, ]
   # project data onto othronormal basis
