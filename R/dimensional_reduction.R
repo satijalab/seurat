@@ -224,7 +224,6 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
                          dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
                          print.results = TRUE, dims.print = 1:5, genes.print = 30, ica.fxn = icafast,
                          seed.use = 1, ...){
-  
   if (length(object@scale.data) == 0){
     stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
   }
@@ -232,15 +231,19 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in 
          genes.use and retry.")
   }
-  
-  dims.store <- min(dims.store, dims.compute)
+  if(xor(missing(dims.store), missing(dims.compute))){
+    if(missing(dims.store)) dims.store <- dims.compute
+    if(missing(dims.compute)) dims.compute <- dims.store
+  }
+  else{
+    dims.store <- min(dims.store, dims.compute)
+  }
   if (use.imputed) {
     data.use <- t(scale(t(object@imputed)))
   }
   else{
     data.use <- object@scale.data
   }
-  
   genes.use <- set.ifnull(genes.use, object@var.genes)
   genes.use <- unique(genes.use[genes.use %in% rownames(data.use)])
   genes.var <- apply(data.use[genes.use, ], 1, var)
@@ -248,7 +251,6 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   genes.use <- genes.use[!is.na(genes.use)]
   
   data.use <- data.use[genes.use, ]
-  
   # call reduction technique
   reduction.type <- tolower(reduction.type)
   if(reduction.type == "pca"){
@@ -1367,7 +1369,6 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 #' @param grouping.var variable to group by 
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for cca)
 #' @export 
-
 CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.use){
   if(missing(grouping.var)) stop("Need to provide grouping variable")
   if(missing(dims.use)){
@@ -1376,42 +1377,55 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
   genes.use <- rownames(DimX(object, reduction.type = "cca"))
   var.ratio <- data.frame()
+  dr.corr <- data.frame()
   for(group in groups){
     cat(paste0("Calculating for ", group, "\n"), file = stderr())
     group.cells <- WhichCells(object, subset.name = grouping.var, accept.value = group)
     cat(paste0("\t Separating ", group, " cells \n"), file = stderr())
     group.object <- SubsetData(object, cells.use = group.cells)
     cat("\t Running Dimensional Reduction \n", file = stderr())
-    group.object <- CalcProjectedVar(group.object, reduction.type = "cca", dims.use = dims.use,
-                                     genes.use = genes.use)
+    ldp.cca <- CalcLDProj(group.object, reduction.type = "cca", dims.use = dims.use, genes.use = genes.use)
+    group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.cca, reduction.type = "cca", 
+                                     dims.use = dims.use, genes.use = genes.use)
     if(reduction.type == "pca"){
       group.object <- PCA(group.object, pc.genes = genes.use, do.print = F)
-      group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
-                                       genes.use = genes.use)
+      ldp.pca <- CalcLDProj(group.object, reduction.type = "pca", dims.use = dims.use, genes.use = genes.use)
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca", 
+                                       dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+      group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.pca[,x])), row.names = group.object@cell.names)
     }
     else if(reduction.type == "ica"){
       group.object <- ICA(group.object, ic.genes = genes.use, print.results = F)
-      group.object <- CalcProjectedVar(group.object, reduction.type = "ica", dims.use = dims.use, 
-                                       genes.use = genes.use)
+      ldp.ica <- CalcLDProj(group.object, reduction.type = "ica", dims.use = dims.use, genes.use = genes.use)
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.ica, reduction.type = "ica", 
+                                       dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "ica.var", drop = F]
+      group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.ica[,x])), row.names = group.object@cell.names)
     }
     else if(reduction.type == "pcafast"){
       group.object <- PCAFast(group.object, ic.genes = genes.use, do.print = F)
-      group.object <- CalcProjectedVar(group.object, reduction.type = "pca", dims.use = dims.use, 
-                                       genes.use = genes.use)
+      ldp.pca <- CalcLDProj(group.object, reduction.type = "pca", dims.use = dims.use, genes.use = genes.use)
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca", 
+                                       dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
+      group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.pca[,x])), row.names = group.object@cell.names)
     }
     else{
       stop(paste0("reduction.type ", reduction.type, " not supported")) 
     }
+    dr.corr <- rbind(dr.corr, group.corr)
     var.ratio <- rbind(var.ratio, group.var.ratio)
   }
   var.ratio$cell.name <- rownames(var.ratio)
+  dr.corr$cell.name <- rownames(dr.corr)
   eval(parse(text = paste0("object@data.info$var.ratio.", reduction.type, "<- NULL")))
+  eval(parse(text = paste0("object@data.info$dr.corr.", reduction.type, "<- NULL")))
   colnames(var.ratio) <- c(paste0("var.ratio.", reduction.type), "cell.name")
+  colnames(dr.corr) <- c(paste0("dr.corr.", reduction.type), "cell.name")
   object@data.info$cell.name <- rownames(object@data.info)
   object@data.info <- merge(object@data.info, var.ratio, by = "cell.name")
+  object@data.info <- merge(object@data.info, dr.corr, by = "cell.name")
   rownames(object@data.info) <- object@data.info$cell.name
   object@data.info$cell.name <- NULL
   return(object)
@@ -1428,7 +1442,16 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for given technique)
 #' @param genes.use vector of genes to use in calculation
 #' @export
-CalcProjectedVar <- function(object, reduction.type = "pca", dims.use, genes.use ){
+CalcProjectedVar <- function(object, low.dim.data, reduction.type = "pca", dims.use, genes.use ){
+  if(missing(low.dim.data)) low.dim.data <- CalcLDProj(object, reduction.type, dims.use, genes.use) 
+  projected.var <- apply(low.dim.data, 2, var)
+  calc.name <- paste0(reduction.type, ".var")
+  object <- AddMetaData(object, projected.var, col.name = calc.name)
+  return(object)
+}
+
+
+CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
   if(missing(dims.use)){
     dims.use <- 1:ncol(DimRot(object, reduction.type = reduction.type))
   }
@@ -1441,11 +1464,9 @@ CalcProjectedVar <- function(object, reduction.type = "pca", dims.use, genes.use
   projected.data <- t(data.use) %*% x.norm
   # reconstruct data using only dims specified
   low.dim.data <- x.norm %*% t(projected.data) 
-  projected.var <- apply(low.dim.data, 2, var)
-  calc.name <- paste0(reduction.type, ".var")
-  object <- AddMetaData(object, projected.var, col.name = calc.name)
-  return(object)
+  return(low.dim.data)
 }
+
 
 #' Shift dim scores
 #'
