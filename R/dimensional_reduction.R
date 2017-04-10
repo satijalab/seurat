@@ -1534,11 +1534,16 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
     shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
     colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
                                                             slot = "key"), i)
-    shifted.rot[,i] <- scale(shifted.rot[,i])
-    if (constrain.var) shifted.rot[,i] <- shifted.rot[,i]*prior.var[i]
-    object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
-                                  slot = "rotation", new.data = (shifted.rot))
+    #shifted.rot[,i] <- scale(shifted.rot[,i])
+    #if (constrain.var) shifted.rot[,i] <- shifted.rot[,i]*prior.var[i]
+
   }
+  
+  shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
+  shifted.rot=sweep(shifted.rot,MARGIN = 2,STATS = (shifted.length),FUN = "/")
+  shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
+  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
+                                slot = "rotation", new.data = (shifted.rot))
   
   object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
                                 slot = "key", new.data = 
