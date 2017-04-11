@@ -713,8 +713,8 @@ setMethod("FindAllMarkersNode","seurat",
                       }
                       gde.all=data.frame()
                       for(i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+                        if (is.null(unlist(genes.de[i]))) next;
                         gde=genes.de[[i]]
-                        if (is.null(gde)) next;
                         if (nrow(gde)>0) {
                           if (test.use=="roc") gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
                           if ((test.use=="bimod")||(test.use=="t")) {
@@ -2074,8 +2074,8 @@ FindAllMarkers <- function(object, genes.use = NULL, thresh.use = 0.25, test.use
             }
             gde.all=data.frame()
             for(i in 1:length(idents.all)) {
+              if (is.null(unlist(genes.de[i]))) next;
               gde=genes.de[[i]]
-              if (is.null(gde)) next;
               if (nrow(gde)>0) {
                 if (test.use=="roc") {
                   gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
