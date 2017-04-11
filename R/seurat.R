@@ -1943,12 +1943,12 @@ setMethod("FindMarkersNode", "seurat",
 #' @import VGAM
 #' @import pbapply
 #' @export
-setGeneric("FindMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1,min.diff.pct=-Inf, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) standardGeneric("FindMarkers"))
-#' @export
-setMethod("FindMarkers", "seurat",
-          function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25, test.use="bimod",min.pct=0.1,min.diff.pct=-Inf, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI", min.cells = 3) {
+FindMarkers <- function(object, ident.1, ident.2 = NULL, genes.use = NULL, thresh.use = 0.25, 
+                        test.use = "bimod", min.pct = 0.1, min.diff.pct = -Inf, print.bar = TRUE,
+                        only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1, 
+                        latent.vars = "nUMI", min.cells = 3) {
+  
             genes.use=set.ifnull(genes.use, rownames(object@data))
-            
             if (max.cells.per.ident < Inf) object=SubsetData(object,max.cells.per.ident = max.cells.per.ident,random.seed = random.seed)
             # in case the user passed in cells instead of identity classes
             if (length(as.vector(ident.1) > 1) && any(as.character(ident.1) %in% object@cell.names)) {
@@ -1956,7 +1956,6 @@ setMethod("FindMarkers", "seurat",
             } else {
             cells.1=WhichCells(object,ident.1)
             }
-              
             
             # if NULL for ident.2, use all other cells
             if (length(as.vector(ident.2) > 1) && any(as.character(ident.2) %in% object@cell.names)) {
@@ -1972,26 +1971,35 @@ setMethod("FindMarkers", "seurat",
             cells.2=anotinb(cells.2,cells.1)
 
             #error checking
-            if (length(cells.1)==0) {
+            if (length(cells.1) == 0) {
               print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
               return(NULL)
             }
-            if (length(cells.2)==0) {
+            if (length(cells.2) == 0) {
               print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
+              return(NULL)
+            }
+
+            if (length(cells.1) < min.cells) {
+              print(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+              return(NULL)
+            }
+            if (length(cells.2) < min.cells) {
+              print(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
               return(NULL)
             }
             
             #gene selection (based on percent expressed)
             thresh.min=object@is.expr
-            data.temp1=round(apply(object@data[genes.use,cells.1],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
-            data.temp2=round(apply(object@data[genes.use,cells.2],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.temp1=round(apply(object@data[genes.use, cells.1, drop = F],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
+            data.temp2=round(apply(object@data[genes.use, cells.2, drop = F],1,function(x)return(length(x[x>thresh.min])/length(x))),3)
             data.alpha=cbind(data.temp1,data.temp2); colnames(data.alpha)=c("pct.1","pct.2")
             alpha.min=apply(data.alpha,1,max); names(alpha.min)=rownames(data.alpha); genes.use=names(which(alpha.min>min.pct))
             alpha.diff=alpha.min-apply(data.alpha,1,min); 
             genes.use=names(which(alpha.min>min.pct&alpha.diff>min.diff.pct))
             #gene selection (based on average difference)
-            data.1=apply(object@data[genes.use,cells.1],1,expMean)
-            data.2=apply(object@data[genes.use,cells.2],1,expMean)
+            data.1=apply(object@data[genes.use,cells.1, drop = F],1,expMean)
+            data.2=apply(object@data[genes.use,cells.2, drop = F],1,expMean)
             total.diff=(data.1-data.2)
 
             genes.diff = names(which(abs(total.diff)>thresh.use))
@@ -2015,8 +2023,7 @@ setMethod("FindMarkers", "seurat",
             
             if(only.pos) to.return=subset(to.return,avg_diff>0)
             return(to.return)
-          }
-)
+}
 
 
 #' Gene expression markers for all identity classes
@@ -2025,9 +2032,6 @@ setMethod("FindMarkers", "seurat",
 #'
 #'
 #' @param object Seurat object
-#' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) -
-#' use all other cells for comparison.
 #' @param genes.use Genes to test. Default is to all genes
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
@@ -2052,13 +2056,10 @@ setMethod("FindMarkers", "seurat",
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
-                                      min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                      do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkers"))
-#' @export
-setMethod("FindAllMarkers","seurat",
-      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
-               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1, min.cells = 3) {
+FindAllMarkers <- function(object, genes.use = NULL, thresh.use = 0.25, test.use = "bimod",
+                                      min.pct = 0.1, min.diff.pct = 0.05, print.bar = TRUE, 
+                                      only.pos = FALSE, max.cells.per.ident = Inf, return.thresh = 1e-2,
+                                      do.print = FALSE, random.seed = 1, min.cells = 3) {
             genes.use=set.ifnull(genes.use, rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
@@ -2074,6 +2075,7 @@ setMethod("FindAllMarkers","seurat",
             gde.all=data.frame()
             for(i in 1:length(idents.all)) {
               gde=genes.de[[i]]
+              if (is.null(gde)) next;
               if (nrow(gde)>0) {
                 if (test.use=="roc") {
                   gde=subset(gde,(myAUC>return.thresh|myAUC<(1-return.thresh)))
@@ -2087,8 +2089,8 @@ setMethod("FindAllMarkers","seurat",
             }
             if(only.pos) return(subset(gde.all,avg_diff>0))
             return(gde.all)
-          }
-)
+}
+
 
 
 #' Likelihood ratio test for zero-inflated data
