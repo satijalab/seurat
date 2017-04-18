@@ -2,17 +2,19 @@
 % Please edit documentation in R/dimensional_reduction.R
 \name{CalcVarExpRatio}
 \alias{CalcVarExpRatio}
-\title{Calculate the ratio of variance explained by PCA to CCA}
+\title{Calculate the ratio of variance explained by ICA or PCA to CCA}
 \usage{
 CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
 }
 \arguments{
 \item{object}{Seurat object}
 
+\item{reduction.type}{type of dimensional reduction to compare to CCA (pca, pcafast, ica)}
+
 \item{grouping.var}{variable to group by}
 
 \item{dims.use}{Vector of dimensions to project onto (default is the 1:number stored for cca)}
 }
 \description{
-Calculate the ratio of variance explained by PCA to CCA
+Calculate the ratio of variance explained by ICA or PCA to CCA
 }

@@ -102,3 +102,10 @@ test_that("Fast implementation of covariance returns expected values", {
   expect_equal(fcv[10,10], 5.6650068)
   expect_equal(fcv, cv)
 })
+
+merged.mat <- FastRBind(mat, fcv)
+test_that("Fast implementation of rbind returns expected values", {
+  expect_equal(merged.mat, rbind(mat, fcv))
+  expect_equal(mat[1,1], merged.mat[1,1])
+  expect_equal(fcv[10,10], merged.mat[20,10])
+})

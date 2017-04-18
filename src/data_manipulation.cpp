@@ -249,3 +249,11 @@ Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool cen
   Eigen::MatrixXd cov = (mat1.adjoint() * mat2) / double(mat1.rows() - 1);
   return(cov);
 }
+
+/* Note: Faster than the R implementation but is not in-place */
+//[[Rcpp::export]]
+Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
+  Eigen::MatrixXd mat3(mat1.rows() + mat2.rows(), mat1.cols());
+  mat3 << mat1, mat2;
+  return(mat3);
+}

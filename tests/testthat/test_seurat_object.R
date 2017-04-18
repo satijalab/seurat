@@ -209,3 +209,17 @@ test_that("SubsetData works properly", {
   expect_equal(length(nbt.test.subset@ident), count)
 })
 
+# Test CCA procedure
+# --------------------------------------------------------------------------------
+context("CCA Alignment")
+scrambled.cells <- sample(nbt.test@cell.names)
+c1 <- SubsetData(nbt.test, cells.use = scrambled.cells[1:7])
+c2 <- SubsetData(nbt.test, cells.use = scrambled.cells[8:14])
+c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
+
+test_that("CCA returns the expected rotation matrix values", {
+  expect_equal(nrow(c3@dr$cca@rotation), 14)
+  expect_equal(ncol(c3@dr$cca@rotation), 3)
+  expect_equal(c3@dr$cca@rotation[1,1], -0.36186012)
+  expect_equal(c3@dr$cca@rotation[14,3], 0.41716606)
+})

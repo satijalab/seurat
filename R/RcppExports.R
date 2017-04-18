@@ -45,3 +45,7 @@ FastCovMats <- function(mat1, mat2, center = TRUE) {
     .Call('Seurat_FastCovMats', PACKAGE = 'Seurat', mat1, mat2, center)
 }
 
+FastRBind <- function(mat1, mat2) {
+    .Call('Seurat_FastRBind', PACKAGE = 'Seurat', mat1, mat2)
+}
+

@@ -4,7 +4,8 @@
 \alias{CalcProjectedVar}
 \title{Calculate percent variance explained}
 \usage{
-CalcProjectedVar(object, reduction.type = "pca", dims.use, genes.use)
+CalcProjectedVar(object, low.dim.data, reduction.type = "pca", dims.use,
+  genes.use)
 }
 \arguments{
 \item{object}{Seurat object}

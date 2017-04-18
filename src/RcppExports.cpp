@@ -153,3 +153,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FastRBind
+Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
+RcppExport SEXP Seurat_FastRBind(SEXP mat1SEXP, SEXP mat2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    rcpp_result_gen = Rcpp::wrap(FastRBind(mat1, mat2));
+    return rcpp_result_gen;
+END_RCPP
+}

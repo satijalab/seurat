@@ -588,7 +588,7 @@ setMethod("MergeSeurat", "seurat",
               object2@cell.names <- unlist(unname(object2.names[object2@cell.names]))
               rownames(object2@data.info) <- unlist(unname(object2.names[rownames(object2@data.info)]))
             }
-            merged.raw.data <- RowMergeSparseMatrices(object1@raw.data[,object1@cell.names], object2@raw.data[,object2@cell.names])
+            merged.raw.data <- RowMergeSparseMatrices(mat1 = object1@raw.data[,object1@cell.names], mat2 = object2@raw.data[,object2@cell.names])
             object1@data.info <- object1@data.info[object1@cell.names, ]
             object2@data.info <- object2@data.info[object2@cell.names, ]
             new.object <- new("seurat", raw.data = merged.raw.data)
@@ -608,11 +608,11 @@ setMethod("MergeSeurat", "seurat",
 )
 
 # Internal function for merging two matrices by rowname
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if(class(mat1) == "data.frame"){
+RowMergeSparseMatrices <- function(mat1 = mat1, mat2 = mat2){
+  if(inherits(mat1, "data.frame")){
     mat1 = as.matrix(mat1)
   }
-  if(class(mat2) == "data.frame"){
+  if(inherits(mat2, "data.frame")){
     mat2 = as.matrix(mat2)
   }
   mat1 <- as(mat1, "RsparseMatrix")
