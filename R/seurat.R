@@ -2726,13 +2726,8 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = Na
             dim.code <- translate.dim.code(object, reduction.use)
             dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
             data.plot <- FetchData(object, dim.codes, cells.use = cells.use)
-
-            x1 <- paste(dim.code, dim.1, sep = "")
-            x2 <- paste(dim.code, dim.2, sep = "")
-            
-            data.plot$x <- data.plot[, x1]
-            data.plot$y <- data.plot[, x2]
-            data.plot$pt.size <- pt.size
+            names(x = data.plot) <- c('x', 'y')
+            # data.plot$pt.size <- pt.size
             data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
                                                use.imputed = use.imputed))
             #   Check mins and maxes
@@ -2768,7 +2763,7 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = Na
             rp()
           }
 
-SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2,
+SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, dim.codes,
                               min.cutoff, max.cutoff, no.axes, no.legend){
   data.gene <- na.omit(data.use[feature, ])
   #   Mask any values below the minimum and above the maximum values
@@ -2817,7 +2812,7 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
                                                          axis.title.y=element_blank())
   }
   else{
-    p <- p + labs(title = feature, x = x1, y = x2)
+    p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
   }
   if(no.legend){
     p <- p + theme(legend.position = 'none')
