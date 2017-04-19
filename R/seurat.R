@@ -2807,7 +2807,7 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
     }
     else{
       p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) +
-        scale_color_gradientn(colors=cols.use)  
+        scale_color_gradientn(colors=cols.use, guide = guide_colorbar(title = feature))
     }
   }
   if(no.axes){
