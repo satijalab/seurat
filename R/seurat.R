@@ -2691,6 +2691,8 @@ setMethod("CalcNoiseModels","seurat",
 #'
 #' @param object Seurat object
 #' @param features.plot Vector of features to plot
+#' @param min.cutoff Vector of minimum cutoff values for each feature
+#' @param max.cutoff Vector of maximum cutoff values for each feature
 #' @param dim.1 Dimension for x-axis (default 1)
 #' @param dim.2 Dimension for y-axis (default 2)
 #' @param cells.use Vector of cells to plot (default is all cells)
@@ -2708,9 +2710,10 @@ setMethod("CalcNoiseModels","seurat",
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1, 
-                        cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne", 
-                        use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE) {
+FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = NaN, dim.1 = 1, dim.2 = 2,
+                        cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
+                        reduction.use = "tsne", use.imputed = FALSE, nCol = NULL, no.axes = FALSE,
+                        no.legend = TRUE) {
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
@@ -2732,16 +2735,45 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             data.plot$pt.size <- pt.size
             data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
                                                use.imputed = use.imputed))
-            pList <- lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, 
-                                                                        pt.size, pch.use, cols.use, 
-                                                                        x1, x2, no.axes, no.legend))
+            #   Check mins and maxes
+            if (is.na(x = as.logical(x = min.cutoff))) {
+                min.cutoff <- vapply(X = features.plot, FUN = function(x) { return(min(data.use[x, ]))}, FUN.VALUE = 1)
+            }
+            if (is.na(x = as.logical(x = max.cutoff))) {
+                max.cutoff <- vapply(X = features.plot, FUN = function(x) { return(max(data.use[x, ]))}, FUN.VALUE = 1)
+            }
+            check_lengths = unique(x = vapply(X = list(features.plot, min.cutoff, max.cutoff), FUN = length, FUN.VALUE = 1))
+            if (length(x = check_lengths) != 1) {
+                stop('There must be the same number of minimum and maximum cuttoffs as there are features')
+            }
+            #   Use mapply instead of lapply for multiple iterative variables.
+            pList <- mapply(
+                FUN = SingleFeaturePlot,
+                feature = features.plot,
+                min.cutoff = min.cutoff,
+                max.cutoff = max.cutoff,
+                MoreArgs = list( # Arguments that are not being repeated
+                    data.use = data.use,
+                    data.plot = data.plot,
+                    pt.size = pt.size,
+                    pch.use = pch.use,
+                    cols.use = cols.use,
+                    dim.codes = dim.codes,
+                    no.axes = no.axes,
+                    no.legend = no.legend
+                ),
+                SIMPLIFY = FALSE # Get list, not matrix
+            )
             MultiPlotList(pList, cols = nCol)
             rp()
           }
 
-SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, 
-                              no.axes, no.legend){
+SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2,
+                              min.cutoff, max.cutoff, no.axes, no.legend){
   data.gene <- na.omit(data.use[feature, ])
+  #   Mask any values below the minimum and above the maximum values
+  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
+  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
   data.plot$gene <- data.gene
   brewer.gran <- 1
   if(length(cols.use) == 1){
