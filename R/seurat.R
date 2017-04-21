@@ -2717,7 +2717,7 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = Na
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
-              if (length(features.plot) == 1) ncol <- 1
+              if (length(features.plot) == 1) nCol <- 1
               if (length(features.plot) > 6) nCol <- 3
               if (length(features.plot) > 9) nCol <- 4
             }
