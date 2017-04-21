@@ -1037,6 +1037,68 @@ setMethod("RegressOut", "seurat",
           }
 )
 
+#' Regress out technical effects and cell cycle using regularized Negative Binomial regression
+#'
+#' Remove unwanted effects from umi data and set scale.data to Pearson residuals
+#' Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
+#'
+#'
+#' @param object Seurat object
+#' @param latent.vars effects to regress out
+#' @param genes.regress gene to run regression for (default is all genes)
+#' @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
+#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
+#' @import Matrix
+#' @importFrom MASS theta.ml negative.binomial 
+#' @import parallel
+#' @export
+setGeneric("RegressOutNBreg", function(object,latent.vars,genes.regress=NULL,pr.clip.range=c(-30, 30), min.theta=0.01) standardGeneric("RegressOutNBreg"))
+#' @export
+setMethod("RegressOutNBreg", "seurat",
+          function(object,latent.vars,genes.regress=NULL, pr.clip.range=c(-30, 30), min.theta=0.01) {
+            genes.regress=set.ifnull(genes.regress,rownames(object@data))
+            genes.regress=ainb(genes.regress,rownames(object@data))
+            cm <- object@raw.data[genes.regress, colnames(object@data), drop=FALSE]
+            latent.data=FetchData(object,latent.vars)
+            
+            cat(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(genes.regress)))
+  
+            theta.fit <- theta.reg(cm, latent.data, min.theta=0.01, bin.size=128)
+            
+            print('Second run NB regression with fixed theta')
+            
+            bin.size <- 128
+            bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+            max.bin <- max(bin.ind)
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            pr <- c()
+            for(i in 1:max.bin) {
+              genes.bin.regress <- genes.regress[bin.ind == i]
+              bin.pr.lst <- parallel::mclapply(genes.bin.regress, function(j) {
+                fit <- 0
+                try(fit <- glm(cm[j, ] ~ ., data = latent.data, family=MASS::negative.binomial(theta.fit[j])), silent=TRUE)
+                if (class(fit)[1] == 'numeric') {
+                  message(sprintf('glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))', 
+                                  theta.fit[j], j))
+                  res <- scale(log10(cm[j, ]+1))[, 1]
+                } else {
+                  res <- residuals(fit, type='pearson')
+                }
+                res
+              })
+              pr <- rbind(pr, do.call(rbind, bin.pr.lst))
+              setTxtProgressBar(pb, i)
+            }
+            close(pb)
+            dimnames(pr) <- dimnames(cm)
+            
+            pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
+            pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
+            
+            object@scale.data=pr
+            return(object)
+          }
+)
 
 #' Regress out technical effects and cell cycle using regularized Negative Binomial regression
 #'
@@ -1864,6 +1926,67 @@ setMethod("NegBinomDETest", "seurat",
           }
 )
 
+#' Negative binomial test for UMI-count based data (regularized version)
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' a likelihood ratio test of negative binomial generalized linear models where
+#' the overdispersion parameter theta is determined by pooling information
+#' across genes.
+#
+#'
+#' @inheritParams FindMarkers
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @return Returns a p-value ranked data frame of test results.
+#' @export
+setGeneric("NegBinomRegDETest", function(object, cells.1,cells.2, genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) standardGeneric("NegBinomRegDETest"))
+#' @export
+setMethod("NegBinomRegDETest", "seurat",
+          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) {
+            genes.use <- set.ifnull(genes.use, rownames(object@data))
+            # check that the gene made it through the any filtering that was done
+            genes.use <- genes.use[genes.use %in% rownames(object@data)]
+            print(sprintf('NegBinomRegDETest for %d genes and %d and %d cells', length(genes.use), length(cells.1), length(cells.2)))
+            grp.fac <- factor(c(rep('A', length(cells.1)), rep('B', length(cells.2))))
+            to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2), drop=FALSE]
+            print('Calculating mean per gene per group')
+            above.threshold <- pmax(apply(to.test.data[, cells.1]>0, 1, mean), apply(to.test.data[, cells.2]>0, 1, mean)) >= 0.02
+            print(sprintf('%d genes are detected in at least 2%% of the cells in at least one of the groups and will be tested', sum(above.threshold)))
+            genes.use <- genes.use[above.threshold]
+            to.test.data <- to.test.data[genes.use, , drop=FALSE]
+            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = TRUE)
+            
+            to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+            
+            print(paste('Latent variables are', latent.vars))
+            # get regularized theta (ignoring group factor)
+            theta.fit <- theta.reg(to.test.data, to.test, min.theta=0.01, bin.size=128)
+            
+            print('Running NB regression model comparison')
+            to.test$NegBinomRegDETest.group <- grp.fac
+            bin.size <- 128
+            bin.ind <- ceiling(1:length(genes.use)/bin.size)
+            max.bin <- max(bin.ind)
+            pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+            res <- c()
+            for(i in 1:max.bin) {
+              genes.bin.use <- genes.use[bin.ind == i]
+              bin.out.lst <- parallel::mclapply(genes.bin.use, function(j) {
+                de.nb.reg(to.test.data[j, ], theta.fit[j], to.test, latent.vars, 'NegBinomRegDETest.group')
+              })
+              res <- rbind(res, do.call(rbind, bin.out.lst))
+              setTxtProgressBar(pb, i)
+            }
+            close(pb)
+            rownames(res) <- genes.use
+            res <- as.data.frame(res)
+            res$adj.pval <- p.adjust(res$pval, method='fdr')
+            res <- res[order(res$pval, -abs(res$log.fc)), ]
+            return(res)
+          }
+)
+
 #' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -2654,6 +2777,8 @@ setMethod("CalcNoiseModels","seurat",
 #'
 #' @param object Seurat object
 #' @param features.plot Vector of features to plot
+#' @param min.cutoff Vector of minimum cutoff values for each feature
+#' @param max.cutoff Vector of maximum cutoff values for each feature
 #' @param dim.1 Dimension for x-axis (default 1)
 #' @param dim.2 Dimension for y-axis (default 2)
 #' @param cells.use Vector of cells to plot (default is all cells)
@@ -2671,9 +2796,10 @@ setMethod("CalcNoiseModels","seurat",
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1, 
-                        cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne", 
-                        use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE) {
+FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = NaN, dim.1 = 1, dim.2 = 2,
+                        cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
+                        reduction.use = "tsne", use.imputed = FALSE, nCol = NULL, no.axes = FALSE,
+                        no.legend = TRUE) {
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
@@ -2693,18 +2819,49 @@ FeaturePlot <- function(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use =
             data.plot$x <- data.plot[, x1]
             data.plot$y <- data.plot[, x2]
             data.plot$pt.size <- pt.size
+            names(x = data.plot) <- c('x', 'y')
+            # data.plot$pt.size <- pt.size
             data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
                                                use.imputed = use.imputed))
-            pList <- lapply(features.plot,function(x) SingleFeaturePlot(data.use, x, data.plot, 
-                                                                        pt.size, pch.use, cols.use, 
-                                                                        x1, x2, no.axes, no.legend))
+            #   Check mins and maxes
+            if (is.na(x = as.logical(x = min.cutoff))) {
+                min.cutoff <- vapply(X = features.plot, FUN = function(x) { return(min(data.use[x, ]))}, FUN.VALUE = 1)
+            }
+            if (is.na(x = as.logical(x = max.cutoff))) {
+                max.cutoff <- vapply(X = features.plot, FUN = function(x) { return(max(data.use[x, ]))}, FUN.VALUE = 1)
+            }
+            check_lengths = unique(x = vapply(X = list(features.plot, min.cutoff, max.cutoff), FUN = length, FUN.VALUE = 1))
+            if (length(x = check_lengths) != 1) {
+                stop('There must be the same number of minimum and maximum cuttoffs as there are features')
+            }
+            #   Use mapply instead of lapply for multiple iterative variables.
+            pList <- mapply(
+                FUN = SingleFeaturePlot,
+                feature = features.plot,
+                min.cutoff = min.cutoff,
+                max.cutoff = max.cutoff,
+                MoreArgs = list( # Arguments that are not being repeated
+                    data.use = data.use,
+                    data.plot = data.plot,
+                    pt.size = pt.size,
+                    pch.use = pch.use,
+                    cols.use = cols.use,
+                    dim.codes = dim.codes,
+                    no.axes = no.axes,
+                    no.legend = no.legend
+                ),
+                SIMPLIFY = FALSE # Get list, not matrix
+            )
             MultiPlotList(pList, cols = nCol)
             rp()
           }
 
-SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, x1, x2, 
-                              no.axes, no.legend){
+SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, dim.codes,
+                              min.cutoff, max.cutoff, no.axes, no.legend){
   data.gene <- na.omit(data.use[feature, ])
+  #   Mask any values below the minimum and above the maximum values
+  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
+  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
   data.plot$gene <- data.gene
   brewer.gran <- 1
   if(length(cols.use) == 1){
@@ -2738,7 +2895,7 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
     }
     else{
       p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) +
-        scale_color_gradientn(colors=cols.use)  
+        scale_color_gradientn(colors=cols.use, guide = guide_colorbar(title = feature))
     }
   }
   if(no.axes){
@@ -2748,7 +2905,7 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
                                                          axis.title.y=element_blank())
   }
   else{
-    p <- p + labs(title = feature, x = x1, y = x2)
+    p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
   }
   if(no.legend){
     p <- p + theme(legend.position = 'none')

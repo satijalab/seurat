@@ -4,15 +4,19 @@
 \alias{FeaturePlot}
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
-FeaturePlot(object, features.plot, dim.1 = 1, dim.2 = 2, cells.use = NULL,
-  pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
-  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
-  no.axes = FALSE, no.legend = TRUE)
+FeaturePlot(object, features.plot, min.cutoff = NaN, max.cutoff = NaN,
+  dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1,
+  cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne",
+  use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{features.plot}{Vector of features to plot}
+
+\item{min.cutoff}{Vector of minimum cutoff values for each feature}
+
+\item{max.cutoff}{Vector of maximum cutoff values for each feature}
 
 \item{dim.1}{Dimension for x-axis (default 1)}
 
