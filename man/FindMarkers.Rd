@@ -53,3 +53,4 @@ Matrix containing a ranked list of putative markers, and associated statistics (
 \description{
 Finds markers (differentially expressed genes) for identity classes
 }
+

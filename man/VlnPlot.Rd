@@ -69,3 +69,4 @@ returns a list of ggplot objects.
 Draws a violin plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
+

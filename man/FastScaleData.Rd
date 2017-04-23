@@ -5,7 +5,8 @@
 \title{Scale and center the data using C++}
 \usage{
 FastScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10, display.progress = TRUE)
+  do.center = TRUE, scale.max = 10, display.progress = TRUE,
+  assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,8 +19,10 @@ FastScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
 
 \item{do.center}{Whether to center the data.}
 
-\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help 
+\item{scale.max}{Max value to return for scaled data. The default is 10. Setting this can help 
 reduce the effects of genes that are only expressed in a very small number of cells.}
+
+\item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.}
 }
 \value{
 Returns a seurat object with object@scale.data updated with scaled and/or centered data.
@@ -28,3 +31,4 @@ Returns a seurat object with object@scale.data updated with scaled and/or center
 Note: will give slightly different results than R due to differences in numerical precision 
 between R and C++. This could cause the results of some stochastic processes like tSNE to change.
 }
+

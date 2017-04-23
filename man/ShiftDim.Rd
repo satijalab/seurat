@@ -36,3 +36,4 @@ Returns Seurat object with the dims shifted, stored in object@dr$reduction.type.
 Shifts dim scores so that they line up across grouping variable (only implemented for case with
 2 categories in grouping.var)
 }
+

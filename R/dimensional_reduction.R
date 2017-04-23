@@ -680,7 +680,12 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
   }
   dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
   if (use.full) dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
+  
+  if ((is.null(dim.scores)) || (ncol(dim.scores)<2)) {
+    stop(paste("Gene loadings for ", reduction.type, " with use.full=",use.full, " have not been computed"))
+  }
   i <- dim.use
+  num.genes=min(num.genes,length(rownames(dim.scores)))
   key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   dim.top.genes <- unique(unlist(lapply(i, topGenesForDim, dim.scores, do.balanced, num.genes,
                                         reduction.type, key)))
@@ -737,9 +742,25 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
     dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
     dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste(dim.key, ndim, sep = "")])]
-    data.use <- object@scale.data[genes.use, cells.ordered]
+    
+    
+    #determine assay type
+    data.use=NULL
+    assays.use=c("RNA",names(object@assay))
+    slot.use="scale.data"
+    if (use.scale==F) slot.use="data"
+    for (assay.check in assays.use) {
+      data.assay=GetAssayData(object,assay.check,slot.use)  
+      genes.intersect=intersect(genes.use,rownames(data.assay))
+      new.data=data.assay[genes.intersect,cells.ordered]
+      if (!(is.matrix(new.data))) new.data=as.matrix(new.data)
+      data.use=rbind(data.use,new.data)
+
+    }
+    
+    #data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- minmax(data.use, min = disp.min, max = disp.max)
-    if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
+    #if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
     vline.use <- NULL
     hmTitle <- paste(dim.key, ndim)
     if (remove.key || length(dim.use) > 1){
@@ -859,10 +880,19 @@ ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp
 PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.print = 30, 
                      use.full = FALSE){
   
-  if(length(GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")) == 0 && use.full){
+  slot.use="x"; 
+  if (use.full) slot.use="x.full"
+  dim.scores=GetDimReduction(object, reduction.type = reduction.type, slot = slot.use)
+  dim.prefix=GetDimReduction(object, reduction.type = reduction.type, slot = "key")
+  dim.codes.exist=colnames(dim.scores)
+  dim.codes.input=paste0(dim.prefix,dims.print,sep="")
+  dims.print=dims.print[which(dim.codes.input%in%dim.codes.exist)]
+                         
+  if(length(dim.scores) == 0 && use.full){
     warning("Dimensions have not been projected. Setting use.full = FALSE")
     use.full <- FALSE
   }
+  
   for(i in dims.print) {
     code <- paste0(GetDimReduction(object, reduction.type = reduction.type, slot = "key"), i)
     sx <- DimTopGenes(object, dim.use = i, reduction.type = reduction.type, 

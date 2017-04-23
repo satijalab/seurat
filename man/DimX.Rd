@@ -24,3 +24,4 @@ X matrix for given reduction, cells, and genes
 \description{
 Pull "x" matrix for specified stored dimensional reduction analysis.
 }
+

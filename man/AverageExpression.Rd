@@ -5,7 +5,7 @@
 \title{Averaged gene expression by identity class}
 \usage{
 AverageExpression(object, genes.use = NULL, return.seurat = F,
-  add.ident = NULL, use.scale = F, ...)
+  add.ident = NULL, use.scale = F, use.raw = F, show.progress = T, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,7 +14,11 @@ AverageExpression(object, genes.use = NULL, return.seurat = F,
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is false.}
 
-\item{add.ident}{Add identity label to class}
+\item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)}
+
+\item{use.raw}{For gene expression, use raw values. Default is FALSE}
+
+\item{show.progress}{Show progress bar (default is T)}
 
 \item{...}{Arguments to be passed to methods such as \code{\link{Setup}}}
 }
@@ -27,3 +31,4 @@ Returns gene expression for an 'average' single cell in each identity class
 \details{
 Output is in log-space, but averaging is done in non-log space.
 }
+

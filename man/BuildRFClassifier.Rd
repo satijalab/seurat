@@ -24,3 +24,4 @@ Returns the random forest classifier
 \description{
 Train the random forest classifier
 }
+

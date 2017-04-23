@@ -56,3 +56,4 @@ to heatmap.2. Otherwise, no return value, only a graphical output
 \description{
 Draws a heatmap of single cell gene expression using the heatmap.2 function.
 }
+

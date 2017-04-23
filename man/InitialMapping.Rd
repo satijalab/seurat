@@ -19,3 +19,4 @@ in object@final.prob
 Probabilistically maps single cells based on (imputed) gene expression
 estimates, a set of mixture models, and an in situ spatial reference map.
 }
+

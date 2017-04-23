@@ -25,3 +25,4 @@ Takes an object, a marker list (output of FindAllMarkers), and a node
 and plots a heatmap where genes are ordered vertically by the splits present
 in the object@cluster.tree slot.
 }
+

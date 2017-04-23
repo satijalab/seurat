@@ -38,3 +38,4 @@ No return value (plots a scatter plot)
 \description{
 Creates a plot of scatter plot of genes across two single cells
 }
+

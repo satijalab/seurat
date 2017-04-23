@@ -25,6 +25,7 @@
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
 #'    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
+#'    \item{\code{assay}:}{\code{"list"}, List of additional assays for multimodal analysis. Named by technique }
 #'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
 #'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
@@ -47,7 +48,7 @@
 
 seurat <- setClass("seurat", slots =
                      c(raw.data = "ANY", data="ANY",scale.data="ANY",var.genes="vector",is.expr="numeric",
-                       ident="vector", dr="list",
+                       ident="vector", dr="list", assay="list",
                        emp.pval="data.frame",kmeans.obj="list",
                        gene.scores="data.frame", drop.coefs="data.frame",
                        wt.matrix="data.frame", drop.wt.matrix="data.frame",trusted.genes="vector",drop.expr="numeric",data.info="data.frame",
@@ -90,10 +91,11 @@ seurat <- setClass("seurat", slots =
 #' @import pbapply
 #' @importFrom Matrix colSums rowSums
 #' @export
-setGeneric("Setup", function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) standardGeneric("Setup"))
+setGeneric("Setup", function(object, project="default", min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) standardGeneric("Setup"))
 #' @export
 setMethod("Setup","seurat",
-          function(object, project, min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) {
+          function(object, project="default", min.cells=3, min.genes=1000, is.expr=0, do.logNormalize=T,total.expr=1e4,do.scale=TRUE, do.center=TRUE,names.field=1,names.delim="_",meta.data=NULL,save.raw=TRUE) {
+            object@project.name <- project
             object@is.expr <- is.expr
             num.genes <- colSums(object@raw.data > is.expr)
             num.mol=colSums(object@raw.data)
@@ -138,9 +140,8 @@ setMethod("Setup","seurat",
             rownames(object@gene.scores) <- colnames(object@data)
             
             object@data.info[names(object@ident),"orig.ident"] <- object@ident
-            object@project.name <- project
             object@scale.data <- matrix()
-
+            object@assay=list()
               if(do.scale | do.center) {
                 object <- ScaleData(object,do.scale = do.scale, do.center = do.center)
               }
@@ -269,26 +270,29 @@ setMethod("ScaleData", "seurat",
 #' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
 #' @param do.scale Whether to scale the data. 
 #' @param do.center Whether to center the data.
-#' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help 
+#' @param scale.max Max value to return for scaled data. The default is 10. Setting this can help 
 #' reduce the effects of genes that are only expressed in a very small number of cells. 
+#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analyses. 
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
 #' @export
 FastScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, do.center=TRUE, 
-                      scale.max=10, display.progress = TRUE) {
-            genes.use <- set.ifnull(genes.use,rownames(object@data))
-            genes.use <- as.vector(ainb(genes.use,rownames(object@data)))
-            data.use <- set.ifnull(data.use,object@data[genes.use, ])
+                      scale.max=10, display.progress = TRUE, assay.type="RNA") {
+            orig.data=GetAssayData(object,assay.type,"data")
+            genes.use <- set.ifnull(genes.use,rownames(orig.data))
+            genes.use <- as.vector(intersect(genes.use,rownames(orig.data)))
+            data.use <- set.ifnull(data.use,orig.data[genes.use, ])
             if(class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix"){
-              object@scale.data <- FastSparseRowScale(mat = data.use, scale = do.scale, center = do.center, 
+              data.scale <- FastSparseRowScale(mat = data.use, scale = do.scale, center = do.center, 
                                    scale_max = scale.max, display_progress = display.progress)
               }
             else{
               data.use <- as.matrix(data.use)
-              object@scale.data <- FastRowScale(mat = data.use, scale = do.scale, center = do.center,
+              data.scale<- FastRowScale(mat = data.use, scale = do.scale, center = do.center,
                                                 scale_max = scale.max, display_progress = display.progress)
             }
 
-            dimnames(object@scale.data) <- dimnames(data.use)
+            dimnames(data.scale) <- dimnames(data.use)
+            object=SetAssayData(object,assay.type = assay.type,slot = "scale.data",new.data = data.scale)
             return(object)
 }
 
@@ -1241,16 +1245,29 @@ setMethod("SubsetData","seurat",
                 object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
               }
             }
+            
+            
             if (do.scale) {
               object=ScaleData(object,do.scale = do.scale,do.center = do.center)
               object@scale.data=object@scale.data[complete.cases(object@scale.data),cells.use]
             }
             object@ident=drop.levels(object@ident[cells.use])
+            
             if (length(object@dr) > 0){
               for (i in 1:length(object@dr)){
                 object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ,drop=F]
               }
             }
+            
+            #handle multimodal casess
+            if(length(object@assay>0)) {
+              for(i in 1:length(object@assay)) {
+                if ((!is.null(object@assay[[i]]@raw.data))&&(ncol(object@assay[[i]]@raw.data)>1)) object@assay[[i]]@raw.data=object@assay[[i]]@raw.data[,cells.use]
+                if ((!is.null(object@assay[[i]]@data))&&(ncol(object@assay[[i]]@data)>1)) object@assay[[i]]@data=object@assay[[i]]@data[,cells.use]
+                if ((!is.null(object@assay[[i]]@scale.data))&&(ncol(object@assay[[i]]@scale.data)>1)) object@assay[[i]]@scale.data=object@assay[[i]]@scale.data[,cells.use]
+              }
+            }
+            
             #object@tsne.rot=object@tsne.rot[cells.use, ]
             object@cell.names=cells.use
 
@@ -1475,49 +1492,73 @@ setMethod("AveragePCA", "seurat",
 #' @param object Seurat object
 #' @param genes.use Genes to analyze. Default is all genes.
 #' @param return.seurat Whether to return the data as a Seurat object. Default is false.
-#' @param add.ident Add identity label to class
+#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)
+#' @inheritParams FetchData
+#' @param show.progress Show progress bar (default is T)
 #' @param ... Arguments to be passed to methods such as \code{\link{Setup}}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
-setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,...) standardGeneric("AverageExpression"))
+setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,use.raw=F,show.progress=T,...) standardGeneric("AverageExpression"))
 #' @export
 setMethod("AverageExpression", "seurat",
-          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,...) {
-            genes.use=set.ifnull(genes.use,rownames(object@data))
-            genes.use=unique(ainb(genes.use,rownames(object@data)))
+          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,use.raw=F,show.progress=T,...) {
+
             ident.use=object@ident
             if (!is.null(add.ident)) {
               new.data=FetchData(object,add.ident)
               new.ident=paste(object@ident[rownames(new.data)],new.data[,1],sep="_")
               object=SetIdent(object,rownames(new.data),new.ident)
             }
-            data.all=data.frame(row.names = genes.use)
-            if (!use.scale) {
-              for(i in levels(object@ident)) {
-                  temp.cells=WhichCells(object,i)
-                  if (length(temp.cells)==1) data.temp=(object@data[genes.use,temp.cells])
-                  if (length(temp.cells)>1) data.temp=apply(object@data[genes.use,temp.cells],1,expMean)
-                  data.all=cbind(data.all,data.temp)
-                  colnames(data.all)[ncol(data.all)]=i
-                }
-            }
+
+            assays.use=c("RNA",names(object@assay))
+            if (!return.seurat) assays.use="RNA"
+            slot.use="data"; fxn.average=expMean;
+            fxn.loop=pbsapply; 
+            if (!(show.progress)) fxn.loop=sapply
             if (use.scale) {
-              for(i in levels(object@ident)) {
-                temp.cells=WhichCells(object,i)
-                genes.use=unique(ainb(genes.use,rownames(object@scale.data)))
-                if (length(temp.cells)==1) data.temp=(object@scale.data[genes.use,temp.cells])
-                if (length(temp.cells)>1) data.temp=apply(object@scale.data[genes.use,temp.cells],1,mean)
-                data.all=cbind(data.all,data.temp)
-                colnames(data.all)[ncol(data.all)]=i
-              }
+              slot.use="scale.data";
+              fxn.average=mean;
             }
-            colnames(data.all)=levels(object@ident)
+            if (use.raw) {
+              slot.use="raw.data"
+              fxn.average=mean
+            }
+            
+            data.return=list()
+            for(i in 1:length(assays.use)) {
+              data.use=GetAssayData(object,assays.use[i],slot.use)
+              genes.assay=genes.use;
+              if (length(intersect(genes.use,rownames(data.use)))<1) genes.assay=rownames(data.use)
+             # print(genes.assay)
+              data.all=data.frame(row.names = genes.assay)
+              
+              for(j in levels(object@ident)) {
+                temp.cells=WhichCells(object,j)
+                genes.assay=unique(intersect(genes.assay,rownames(data.use)))
+                if (length(temp.cells)==1) data.temp=(data.use[genes.assay,temp.cells])
+                if (length(temp.cells)>1) data.temp=apply(data.use[genes.assay,temp.cells],1,fxn.average)
+                data.all=cbind(data.all,data.temp)
+                colnames(data.all)[ncol(data.all)]=j
+                if (show.progress) print(paste0("Finished averaging ", assays.use[i], " for cluster ", j, sep=""))
+              }
+              data.return[[i]]=data.all; names(data.return)[i]=assays.use[[i]]
+            }
+            
+            if (!return.seurat) {
+              return(data.return[[1]])
+            }
             if (return.seurat) {
-              toRet=new("seurat",raw.data=data.all)
+              toRet=new("seurat",raw.data=data.return[[1]])
               toRet=Setup(toRet,project = "Average",min.cells = 0,min.genes = 0,is.expr = 0,...)
+              
+              #for multimodal data
+              if (length(data.return)>1) {
+                for(i in 2:length(data.return)) {
+                  toRet=SetAssayData(toRet,names(data.return)[i],slot = "raw.data",new.data = data.return[[i]])
+                }
+              }
               return(toRet)
             }
-            return(data.all)
           }
 )
 
@@ -1530,9 +1571,9 @@ setMethod("AverageExpression", "seurat",
 #' @param object Seurat object
 #' @param vars.all List of all variables to fetch
 #' @param cells.use Cells to collect data for (default is all cells)
-#' @param use.imputed For gene expression, use imputed values
-#' @param use.scaled For gene expression, use scaled values
-#' @param use.raw For gene expression, use raw values
+#' @param use.imputed For gene expression, use imputed values. Default is FALSE
+#' @param use.scaled For gene expression, use scaled values. Default is FALSE
+#' @param use.raw For gene expression, use raw values. Default is FALSE
 #' @return A data frame with cells as rows and cellular data as columns
 #' @export
 setGeneric("FetchData",  function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE,use.raw=FALSE) standardGeneric("FetchData"))
@@ -1541,9 +1582,11 @@ setMethod("FetchData","seurat",
           function(object, vars.all=NULL,cells.use=NULL,use.imputed=FALSE, use.scaled=FALSE,use.raw=FALSE) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             data.return=data.frame(row.names = cells.use)
+            data.expression=as.matrix(data.frame(row.names = cells.use))
+            
             # if any vars passed are genes, subset expression data
             gene_check <- vars.all %in% rownames(object@data)
-            data.expression <- matrix()
+            #data.expression <- matrix()
             if (any(gene_check)){
               if (all(gene_check)){
                 if(use.imputed) data.expression = object@imputed[vars.all,cells.use ,drop=F]
@@ -1560,6 +1603,21 @@ setMethod("FetchData","seurat",
                 data.expression = t(data.expression)
               }
             }
+            
+            #now check for multimodal data 
+            if (length(object@assay)>0) {
+              data.types=names(object@assay)
+              slot.use="data";
+              if (use.scaled) slot.use="scale.data"
+              if (use.raw) slot.use="raw.data"
+              for (data.type in data.types) {
+                all_data=(GetAssayData(object,assay.type = data.type,slot = slot.use))
+                genes.include=intersect(vars.all,rownames(all_data))
+                data.expression=cbind(data.expression,t(all_data[genes.include,,drop=F]))
+              }
+            }
+            
+            
             var.options=c("data.info","mix.probs","gene.scores")
             if(length(names(object@dr)) > 0){
               dr.options <- names(object@dr)
@@ -3161,14 +3219,19 @@ setMethod("DoHeatmap","seurat",
             else{
               cells.ident = factor(cells.ident, levels = as.vector(unique(cells.ident)))
             }
-            if (!do.scale){
-              genes.use <- ainb(genes.use, rownames(object@data))
-              data.use <- as.matrix(object@data[genes.use, cells.use])
-            }
-            else {
-              genes.use <- ainb(genes.use, rownames(object@scale.data))
-              data.use <- object@scale.data[genes.use, cells.use]
-              data.use <-minmax(data.use, min = disp.min, max = disp.max)
+            
+            #determine assay type
+            data.use=NULL
+            assays.use=c("RNA",names(object@assay))
+            slot.use="scale.data"
+            if (do.scale==F) slot.use="data"
+            for (assay.check in assays.use) {
+              data.assay=GetAssayData(object,assay.check,slot.use)  
+              genes.intersect=intersect(genes.use,rownames(data.assay))
+              new.data=data.assay[genes.intersect,cells.use,drop=F]
+              if (!(is.matrix(new.data))) new.data=as.matrix(new.data)
+              data.use=rbind(data.use,new.data)
+              
             }
             
             vline.use=NULL;
@@ -3602,6 +3665,7 @@ setMethod("JackStrawPlot","seurat",
 #' set of single cells. Cells are colored by their identity class.
 #'
 #' @param object Seurat object
+#' @inheritParams FetchData
 #' @param gene1 First feature to plot. Typically gene expression but can also
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param gene2 Second feature to plot.
@@ -3617,13 +3681,14 @@ setMethod("JackStrawPlot","seurat",
 #' @return No return, only graphical output
 #' @export
 setGeneric("GenePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
+                                pch.use=16,cex.use=1,use.imputed=FALSE, use.scaled=F, use.raw=F,
+                                do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
 #' @export
 setMethod("GenePlot","seurat",
           function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                   pch.use=16,cex.use=1.5,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
+                   pch.use=16,cex.use=1,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
             cell.ids=set.ifnull(cell.ids,object@cell.names)
-            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed,...)))
+            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed,use.scaled = use.scaled,use.raw = use.raw)))
             g1=as.numeric(data.use[gene1,cell.ids])
             g2=as.numeric(data.use[gene2,cell.ids])
             ident.use=as.factor(object@ident[cell.ids])

@@ -59,3 +59,4 @@ Perform k=means clustering on both genes and single cells
 \details{
 K-means and heatmap are calculated on object@scale.data
 }
+

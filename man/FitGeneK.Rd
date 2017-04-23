@@ -34,3 +34,4 @@ cell is in the 'on' or 'off' state for any gene. Followed by a greedy
 k-means step where cells are allowed to flip states based on the overall
 structure of the data (see Manuscript for details)
 }
+

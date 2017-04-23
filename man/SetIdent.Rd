@@ -21,3 +21,4 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Sets the identity class value for a subset (or all) cells
 }
+

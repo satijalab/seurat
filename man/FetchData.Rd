@@ -14,11 +14,11 @@ FetchData(object, vars.all = NULL, cells.use = NULL, use.imputed = FALSE,
 
 \item{cells.use}{Cells to collect data for (default is all cells)}
 
-\item{use.imputed}{For gene expression, use imputed values}
+\item{use.imputed}{For gene expression, use imputed values. Default is FALSE}
 
-\item{use.scaled}{For gene expression, use scaled values}
+\item{use.scaled}{For gene expression, use scaled values. Default is FALSE}
 
-\item{use.raw}{For gene expression, use raw values}
+\item{use.raw}{For gene expression, use raw values. Default is FALSE}
 }
 \value{
 A data frame with cells as rows and cellular data as columns
@@ -27,3 +27,4 @@ A data frame with cells as rows and cellular data as columns
 Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
 of cells in a Seurat object
 }
+

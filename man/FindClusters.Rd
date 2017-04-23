@@ -67,3 +67,4 @@ the SNN graph. Then optimize the modularity function to determine clusters.
 For a full description of the algorithms, see Waltman and van Eck (2013) 
 \emph{The European Physical Journal B}.
 }
+

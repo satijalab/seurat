@@ -44,3 +44,4 @@ Returns a Seurat object with the dimensional reduction information stored
 \description{
 Various methods for dimensional reductions
 }
+

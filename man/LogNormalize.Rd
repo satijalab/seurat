@@ -19,3 +19,4 @@ Returns a matrix with the normalize and log transformed data
 \description{
 Normalize count data per cell and transform to log scale
 }
+

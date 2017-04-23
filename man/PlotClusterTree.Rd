@@ -17,3 +17,4 @@ Plots dendogram (must be precomputed using BuildClusterTree), returns no value
 \description{
 Plots previously computed phylogenetic tree (from BuildClusterTree)
 }
+

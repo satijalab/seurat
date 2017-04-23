@@ -41,21 +41,23 @@ Imports:
     RcppEigen,
     RcppProgress,
     tclust,
-    ranger
+    ranger,
+    compositions
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
-Collate: 
+Collate:
     'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
     'cluster_validation.R'
     'deprecated_functions.R'
     'dimensional_reduction.R'
+    'multi_modal.R'
     'plotting.R'
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'
     'zfRenderSeurat.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 5.0.1
 Suggests:
     testthat

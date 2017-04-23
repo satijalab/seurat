@@ -6,8 +6,19 @@
 \usage{
 RegressOutNBreg(object, latent.vars, genes.regress = NULL,
   pr.clip.range = c(-30, 30), min.theta = 0.01)
+
+RegressOutNBreg(object, latent.vars, genes.regress = NULL,
+  pr.clip.range = c(-30, 30), min.theta = 0.01)
 }
 \arguments{
+\item{object}{Seurat object}
+
+\item{latent.vars}{effects to regress out}
+
+\item{genes.regress}{gene to run regression for (default is all genes)}
+
+\item{pr.clip.range}{numeric of length two specifying the min and max values the results will be clipped to}
+
 \item{object}{Seurat object}
 
 \item{latent.vars}{effects to regress out}
@@ -18,8 +29,14 @@ RegressOutNBreg(object, latent.vars, genes.regress = NULL,
 }
 \value{
 Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
+
+Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 }
 \description{
 Remove unwanted effects from umi data and set scale.data to Pearson residuals
 Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
+
+Remove unwanted effects from umi data and set scale.data to Pearson residuals
+Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
 }
+

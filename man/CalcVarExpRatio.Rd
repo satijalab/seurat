@@ -18,3 +18,4 @@ CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
 \description{
 Calculate the ratio of variance explained by ICA or PCA to CCA
 }
+

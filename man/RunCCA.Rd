@@ -37,3 +37,4 @@ the same object is returned. If two are passed, a combined object is returned.
 \description{
 Runs a canonical correlation analysis using the sparse implementation of CCA from the PMA package.
 }
+

@@ -18,3 +18,4 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Switch identity class definition to another variable
 }
+

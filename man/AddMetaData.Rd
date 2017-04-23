@@ -26,3 +26,4 @@ alignment rate, experimental batch, or subpopulation identity). The
 advantage of adding it to the Seurat object is so that it can be
 analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
 }
+
