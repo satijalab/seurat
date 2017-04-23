@@ -497,20 +497,21 @@ RunTSNE <- function(object, reduction.use = "pca", cells.use = NULL, dims.use = 
 #' by default.
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #' @param do.print Print top genes associated with the projected dimensions
+#' @param assay.type Data type, RNA by default. Can be changed for multimodal datasets (i.e. project a PCA done on RNA, onto CITE-seq data)
 #' @return Returns Seurat object with the projected values in object@@dr$XXX@x.full
 #' @export
 ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.store = 30, 
-                       genes.print = 30, replace.dim = FALSE, do.center = FALSE, do.print = TRUE) {
+                       genes.print = 30, replace.dim = FALSE, do.center = FALSE, do.print = TRUE,assay.type="RNA") {
   if (!(reduction.type%in%names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
-  data.use <- object@scale.data
+  data.use <- GetAssayData(object,assay.type,"scale.data")
   if (do.center) {
-    data.use <- scale(as.matrix(object@scale.data), center = TRUE, scale = FALSE)
+    data.use <- scale(as.matrix(data.use), center = TRUE, scale = FALSE)
   }
   rotation <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
   new.full.x <- FastMatMult(data.use, rotation)
-  rownames(new.full.x) <- rownames(object@scale.data)
+  rownames(new.full.x) <- rownames(data.use)
   colnames(new.full.x) <- colnames(rotation)
   object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x.full", 
                             new.data = new.full.x)
@@ -887,7 +888,7 @@ PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.pri
   dim.codes.exist=colnames(dim.scores)
   dim.codes.input=paste0(dim.prefix,dims.print,sep="")
   dims.print=dims.print[which(dim.codes.input%in%dim.codes.exist)]
-                         
+  genes.print=min(genes.print,nrow(dim.scores))                       
   if(length(dim.scores) == 0 && use.full){
     warning("Dimensions have not been projected. Setting use.full = FALSE")
     use.full <- FALSE

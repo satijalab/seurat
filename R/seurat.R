@@ -1260,7 +1260,7 @@ setMethod("SubsetData","seurat",
             }
             
             #handle multimodal casess
-            if(length(object@assay>0)) {
+            if(length(object@assay)>0) {
               for(i in 1:length(object@assay)) {
                 if ((!is.null(object@assay[[i]]@raw.data))&&(ncol(object@assay[[i]]@raw.data)>1)) object@assay[[i]]@raw.data=object@assay[[i]]@raw.data[,cells.use]
                 if ((!is.null(object@assay[[i]]@data))&&(ncol(object@assay[[i]]@data)>1)) object@assay[[i]]@data=object@assay[[i]]@data[,cells.use]
@@ -1498,12 +1498,11 @@ setMethod("AveragePCA", "seurat",
 #' @param ... Arguments to be passed to methods such as \code{\link{Setup}}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
-setGeneric("AverageExpression", function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,use.raw=F,show.progress=T,...) standardGeneric("AverageExpression"))
-#' @export
-setMethod("AverageExpression", "seurat",
-          function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,use.raw=F,show.progress=T,...) {
+AverageExpression=function(object,genes.use=NULL,return.seurat=F,add.ident=NULL,use.scale=F,use.raw=F,show.progress=T,...) {
 
-            ident.use=object@ident
+            ident.orig=object@ident
+            orig.levels=levels(object@ident)
+            ident.new=c()
             if (!is.null(add.ident)) {
               new.data=FetchData(object,add.ident)
               new.ident=paste(object@ident[rownames(new.data)],new.data[,1],sep="_")
@@ -1540,10 +1539,14 @@ setMethod("AverageExpression", "seurat",
                 data.all=cbind(data.all,data.temp)
                 colnames(data.all)[ncol(data.all)]=j
                 if (show.progress) print(paste0("Finished averaging ", assays.use[i], " for cluster ", j, sep=""))
+                
+                if(i==1) {
+                  ident.new=c(ident.new,as.character(ident.orig[temp.cells[1]]))
+                }
               }
+              names(ident.new)=levels(object@ident)
               data.return[[i]]=data.all; names(data.return)[i]=assays.use[[i]]
             }
-            
             if (!return.seurat) {
               return(data.return[[1]])
             }
@@ -1557,10 +1560,13 @@ setMethod("AverageExpression", "seurat",
                   toRet=SetAssayData(toRet,names(data.return)[i],slot = "raw.data",new.data = data.return[[i]])
                 }
               }
+              
+              toRet=SetIdent(toRet,cells.use = toRet@cell.names,ident.new[toRet@cell.names])
+              toRet@ident=factor(toRet@ident,levels=as.character(orig.levels),ordered = T)
               return(toRet)
             }
-          }
-)
+}
+
 
 #' Access cellular data
 #'
