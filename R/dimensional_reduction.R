@@ -1573,3 +1573,95 @@ ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
   drmax <- max(rle(drident)$lengths, 0.975)
   return(drmax)
 }
+
+#' Shift dim scores using DTW
+#'
+#' Shifts dim scores so that they line up across grouping variable (only implemented for case with
+#' 2 categories in grouping.var)
+#'
+#'
+#' @param object Seurat object
+#' @param reduction.type reduction to shift scores for 
+#' @param group.var Name of the grouping variable for which to shift the scores 
+#' @param dims.shift Dims to shift, default is all
+#' @param num.genes Number of genes to use in construction of "metagene"
+#' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
+#' @importFrom dtw dtw
+#' @export
+ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 20){
+  groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
+  cat("Splitting into groups\n", file = stderr())
+  
+  cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
+  cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
+  
+  if(length(cells.2) > length(cells.1)){
+    obj.1 <- SubsetData(object, cells.use = cells.1)
+    obj.2 <- SubsetData(object, cells.use = cells.2)
+  }
+  else{
+    obj.1 <- SubsetData(object, cells.use = cells.2)
+    obj.2 <- SubsetData(object, cells.use = cells.1)
+  }
+  
+  # rescale each group separately
+  cat("Rescaling group 1\n", file = stderr())
+  obj.1 <- FastScaleData(obj.1)
+  obj.1@scale.data[is.na(obj.1@scale.data)] <- 0
+  cat("Rescaling group 2\n", file = stderr())
+  obj.2 <- FastScaleData(obj.2)
+  obj.2@scale.data[is.na(obj.2@scale.data)] <- 0
+  
+  obj.1 <- ProjectDim(obj.1, reduction.type = reduction.type, dims.print = 1, do.print = F)
+  obj.2 <- ProjectDim(obj.2, reduction.type = reduction.type, dims.print = 1, do.print = F)
+  
+  obj.1.x <- DimX(obj.1, reduction.type = reduction.type, use.full = T)
+  obj.2.x <- DimX(obj.2, reduction.type = reduction.type, use.full = T)
+  cat("Shifting Dims \n", file = stderr())
+  shifted.rot <- matrix(nrow = length(object@cell.names))
+  for(dim in dims.shift){
+    # define the "metagene"
+    genes.rank <- data.frame(rank(abs(obj.1.x[, dim])), rank(abs(obj.2.x[, dim])), obj.1.x[, dim], obj.2.x[, dim])
+    genes.rank$min <- apply(genes.rank[, 1:2], 1, min)
+    genes.rank <- genes.rank[order(genes.rank$min, decreasing = T), ]
+    genes.final <- rownames(genes.rank)[1:num.genes]
+    obj.1.data <- obj.1@scale.data[genes.final, DimTopCells(obj.1, reduction.type = reduction.type, dim.use = dim)]
+    obj.2.data <- obj.2@scale.data[genes.final, DimTopCells(obj.2, reduction.type = reduction.type, dim.use = dim)]
+    
+    obj.1.data <- sweep(obj.1.data, MARGIN = 1, sign(genes.rank[genes.final, 3]), FUN = "*")
+    obj.2.data <- sweep(obj.2.data, MARGIN = 1, sign(genes.rank[genes.final, 4]), FUN = "*")
+    obj.1.avg <- range01(apply(obj.1.data, 2, mean))
+    obj.2.avg <- range01(apply(obj.2.data, 2, mean))
+    
+    # perform alignment via DTW
+    alignment <- dtw(obj.1.avg, obj.2.avg, dist.method = "Euclidean", keep = TRUE);
+    mapping <- data.frame(alignment$index1, alignment$index2)
+    mapping <- mapping[!duplicated(mapping$alignment.index1), ]
+    
+    # shift dim
+    obj.1.rot <- DimRot(obj.1, reduction.type = reduction.type)[, dim][names(obj.1.avg)]
+    obj.2.rot <- DimRot(obj.2, reduction.type = reduction.type)[, dim][names(obj.2.avg)]
+    obj.1.rot.new <- obj.2.rot[mapping$alignment.index2]
+    names(obj.1.rot.new) <- names(obj.1.rot)
+    shifted.dim <- c(obj.1.rot.new, obj.2.rot)
+    shifted.dim <- shifted.dim[object@cell.names]
+    if(is.na(shifted.rot[1,1])) shifted.rot[, 1] <- shifted.dim
+    else shifted.rot <- cbind(shifted.rot, shifted.dim)
+  }
+  shifted.rot <- as.matrix(shifted.rot)
+  shifted.rot <- shifted.rot[object@cell.names, ]
+  colnames(shifted.rot) <- paste0(paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+                                                              slot = "key")), dims.shift)
+  object<- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
+                           slot = "rotation", new.data = (shifted.rot))
+  
+  object <- SetDimReduction(object, reduction.type = paste0(reduction.type, ".shifted"), 
+                            slot = "key", new.data = 
+                              paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+                                                          slot = "key")))
+  return(object)
+}
+
+range01 <- function(x){
+  (x - quantile(x, 0.025)) / (quantile(x, 0.975) - quantile(x, 0.025))
+}
