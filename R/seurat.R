@@ -2691,8 +2691,8 @@ setMethod("CalcNoiseModels","seurat",
 #'
 #' @param object Seurat object
 #' @param features.plot Vector of features to plot
-#' @param min.cutoff Vector of minimum cutoff values for each feature
-#' @param max.cutoff Vector of maximum cutoff values for each feature
+#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
 #' @param dim.1 Dimension for x-axis (default 1)
 #' @param dim.2 Dimension for y-axis (default 2)
 #' @param cells.use Vector of cells to plot (default is all cells)
@@ -2710,7 +2710,7 @@ setMethod("CalcNoiseModels","seurat",
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
-FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = NaN, dim.1 = 1, dim.2 = 2,
+FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA, dim.1 = 1, dim.2 = 2,
                         cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
                         reduction.use = "tsne", use.imputed = FALSE, nCol = NULL, no.axes = FALSE,
                         no.legend = TRUE) {
@@ -2731,10 +2731,10 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = Na
             data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
                                                use.imputed = use.imputed))
             #   Check mins and maxes
-            if (is.na(x = as.logical(x = min.cutoff))) {
+            if (is.na(x = min.cutoff)) {
                 min.cutoff <- vapply(X = features.plot, FUN = function(x) { return(min(data.use[x, ]))}, FUN.VALUE = 1)
             }
-            if (is.na(x = as.logical(x = max.cutoff))) {
+            if (is.na(x = max.cutoff)) {
                 max.cutoff <- vapply(X = features.plot, FUN = function(x) { return(max(data.use[x, ]))}, FUN.VALUE = 1)
             }
             check_lengths = unique(x = vapply(X = list(features.plot, min.cutoff, max.cutoff), FUN = length, FUN.VALUE = 1))
@@ -2766,6 +2766,16 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NaN, max.cutoff = Na
 SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, dim.codes,
                               min.cutoff, max.cutoff, no.axes, no.legend){
   data.gene <- na.omit(data.use[feature, ])
+  #   Check for quantiles
+  regex.quantile <- '^q[0-9]{1,2}$'
+  if (grepl(pattern = regex.quantile, x = as.character(x = min.cutoff), perl = TRUE)) {
+      min.quantile <- as.numeric(x = sub(pattern = 'q', replacement = '', x = as.character(x = min.cutoff))) / 100
+      min.cutoff <- quantile(x = unlist(x = data.gene), probs = min.quantile)
+  }
+  if (grepl(pattern = regex.quantile, x = as.character(x = max.cutoff), perl = TRUE)) {
+      max.quantile <- as.numeric(x = sub(pattern = 'q', replacement = '', x = as.character(x = max.cutoff))) / 100
+      max.cutoff <- quantile(x = unlist(x = data.gene), probs = max.quantile)
+  }
   #   Mask any values below the minimum and above the maximum values
   data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
   data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
