@@ -1634,7 +1634,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     obj.2.avg <- range01(apply(obj.2.data, 2, mean))
     
     # perform alignment via DTW
-    alignment <- dtw(obj.1.avg, obj.2.avg, dist.method = "Euclidean", keep = TRUE);
+    alignment <- dtw(obj.1.avg, obj.2.avg, dist.method = "cosine", keep = TRUE)
     mapping <- data.frame(alignment$index1, alignment$index2)
     mapping <- mapping[!duplicated(mapping$alignment.index1), ]
     
