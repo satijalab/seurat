@@ -137,7 +137,7 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
   d1 <- WhichCells(object, group1)
   d2 <- WhichCells(object, group2)
   y  <- as.numeric(object@ident[c(d1, d2)]) - 1
-  x  <- data.frame(t(object@data[pcTopGenes(object, pcs, num.genes),
+  x  <- data.frame(t(object@data[PCTopGenes(object, pcs, num.genes),
                                             c(d1, d2)]));
   xv <- apply(x, 2, var)
   x  <- x[, names(xv > 0)]

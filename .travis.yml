@@ -4,19 +4,4 @@ language: R
 sudo: false
 cache: packages
 warnings_are_errors: false
-
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-4.9
-      - g++-4.9
-      - gfortran-4.9
-
-before_install: |
-  mkdir ~/.R
-  cat <<EOF > ~/.R/Makevars
-  CXX=g++-4.9
-  CXX1X=g++-4.9
-  CXX1XSTD=-std=c++11
+dist: trusty
