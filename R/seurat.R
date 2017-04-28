@@ -2701,6 +2701,7 @@ setMethod("CalcNoiseModels","seurat",
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
 #' @param pch.use Pch for plotting
+#' @param overlay Plot two features overlayed one on top of the other
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param use.imputed Use imputed values for gene expression (default is FALSE)
@@ -2712,8 +2713,8 @@ setMethod("CalcNoiseModels","seurat",
 #' @export
 FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA, dim.1 = 1, dim.2 = 2,
                         cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
-                        reduction.use = "tsne", use.imputed = FALSE, nCol = NULL, no.axes = FALSE,
-                        no.legend = TRUE) {
+                        overlay = FALSE, reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+                        no.axes = FALSE, no.legend = TRUE) {
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
@@ -2741,24 +2742,42 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
             if (length(x = check_lengths) != 1) {
                 stop('There must be the same number of minimum and maximum cuttoffs as there are features')
             }
-            #   Use mapply instead of lapply for multiple iterative variables.
-            pList <- mapply(
-                FUN = SingleFeaturePlot,
-                feature = features.plot,
-                min.cutoff = min.cutoff,
-                max.cutoff = max.cutoff,
-                MoreArgs = list( # Arguments that are not being repeated
-                    data.use = data.use,
-                    data.plot = data.plot,
-                    pt.size = pt.size,
-                    pch.use = pch.use,
-                    cols.use = cols.use,
-                    dim.codes = dim.codes,
-                    no.axes = no.axes,
-                    no.legend = no.legend
-                ),
-                SIMPLIFY = FALSE # Get list, not matrix
-            )
+            if (overlay) {
+                #   Wrap as a list for MutiPlotList
+                pList <- list(
+                    BlendPlot(
+                        data.use = data.use,
+                        features.plot = features.plot,
+                        data.plot = data.plot,
+                        pt.size = pt.size,
+                        pch.use = pch.use,
+                        dim.codes = dim.codes,
+                        min.cutoff = min.cutoff,
+                        max.cutoff = max.cutoff,
+                        no.axes = no.axes,
+                        no.legend = no.legend
+                    )
+                )
+            } else {
+                #   Use mapply instead of lapply for multiple iterative variables.
+                pList <- mapply(
+                    FUN = SingleFeaturePlot,
+                    feature = features.plot,
+                    min.cutoff = min.cutoff,
+                    max.cutoff = max.cutoff,
+                    MoreArgs = list( # Arguments that are not being repeated
+                        data.use = data.use,
+                        data.plot = data.plot,
+                        pt.size = pt.size,
+                        pch.use = pch.use,
+                        cols.use = cols.use,
+                        dim.codes = dim.codes,
+                        no.axes = no.axes,
+                        no.legend = no.legend
+                    ),
+                    SIMPLIFY = FALSE # Get list, not matrix
+                )
+            }
             MultiPlotList(pList, cols = nCol)
             rp()
           }
@@ -2828,6 +2847,152 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
     p <- p + theme(legend.position = 'none')
   }
   return(p)
+}
+
+BlendPlot <- function(
+    data.use,
+    features.plot,
+    data.plot,
+    pt.size,
+    pch.use,
+    cols.use,
+    dim.codes,
+    min.cutoff,
+    max.cutoff,
+    no.axes,
+    no.legend
+) {
+    colors <- c(low = 'yellow', high1 = 'red', high2 = 'blue', highboth = blendColors('red', 'blue'))
+    if(length(x = features.plot) != 2) {
+        stop("An overlayed FeaturePlot only works with two features")# at this time")
+    }
+    data.gene <- na.omit(object = data.frame(data.use[features.plot, ]))
+    cell.names <- colnames(x = data.gene)
+    #   Minimum and maximum masking
+    data.gene <- matrix(
+        data = vapply(
+            X = data.gene,
+            FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x),
+            FUN.VALUE = c(1, 1)
+        ),
+        nrow = 2
+    )
+    data.gene <- matrix(
+        data = vapply(
+            X = as.data.frame(x = data.gene),
+            FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x),
+            FUN.VALUE = c(1, 1)
+        ),
+        nrow = 2
+    )
+    data.gene <- as.data.frame(x = data.gene)
+    rownames(x = data.gene) <- features.plot
+    colnames(x = data.gene) <- cell.names
+    #   Stuff for break points
+    if(all(data.gene ==0)) {
+        data.cut <- 0
+    } else {
+        #   Cut the expression of both features
+        cuts <- apply(X = data.gene, MARGIN = 1, FUN = cut, breaks = 2, labels = FALSE)
+        cuts.dim <- dim(cuts)
+        if (cuts.dim[1] > cuts.dim[2]){
+            cuts <- t(x = cuts)
+        }
+        #   Apply colors dependent on if the cell expresses
+        #   none, one, or both features
+        data.cut = apply(
+            X = cuts,
+            MARGIN = 2,
+            FUN = function(x) {
+                if((x[1] == 1) && (x[2] == 2)) { # Expression in 2
+                    'high2'
+                } else if((x[1] == 2) && (x[2] == 1)) { # Expression in 1
+                    'high1'
+                } else if ((x[1] == 2) && (x[2] == 2)) { # Expression in both
+                    'highboth'
+                } else { # Expression in neither
+                    'low'
+                }
+            }
+        )
+        data.cut <- as.factor(x = data.cut)
+    }
+    data.plot$colors <- data.cut
+    #   Start plotting
+    legend.names <- c('high1' = paste('High', features.plot[1]), 'high2' = paste('High', features.plot[2]), 'highboth' = 'High both')
+    title <- paste0(features.plot, collapse = ' x ')
+    p <- ggplot(data = data.plot, mapping = aes(x = x, y = y))
+    p <- p + geom_point(mapping = aes(color = colors), size = pt.size, shape = pch.use)
+    p <- p + scale_color_manual(
+        values = colors,
+        limits = c('high1', 'high2', 'highboth'),
+        labels = legend.names,
+        guide = guide_legend(title = NULL, override.aes = list(size = 2))
+    )
+    #   Deal with axes and legends
+    if(no.axes) {
+        p <- p + labs(title = title, x ="", y="") + theme(
+            axis.line = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank()
+        )
+    } else {
+        p <- p + labs(title = title, x = dim.codes[1], y = dim.codes[2])
+    }
+    if(no.legend){
+        p <- p + theme(legend.position = 'none')
+    }
+    return(p)
+}
+
+blendColors <- function(..., as.rgb = FALSE) {
+    #   Assemble the arguments passed into a character vector
+    colors <- as.character(x = c(...))
+    if (length(x = colors) < 2) {
+        stop("Please provide two or more colors to blend")
+    }
+    #   Check for hexadecimal values for automatic alpha blending
+    alpha.value <- 255
+    if (sum(sapply(X = colors, FUN = grepl, pattern = '^#')) != 0) {
+        hex <- colors[which(x = grepl(pattern = '^#', x = colors))]
+        hex.length <- sapply(X = hex, FUN = nchar)
+        #   9-character hexadecimal values specify alpha levels
+        if (9 %in% hex.length) {
+            hex.alpha <- hex[which(x = hex.length == 9)]
+            hex.vals <- sapply(X = hex.alpha, FUN = substr, start = 8, stop = 9)
+            dec.vals <- sapply(X = hex.vals, FUN = strtoi, base = 16)
+            dec.vals <- dec.vals / 255 # Convert to 0:1 scale for calculations
+            alpha.value <- dec.vals[1]
+            #   Blend alpha levels, going top-down
+            for (val in dec.vals[-1]) {
+                alpha.value <- alpha.value + (val * (1 - alpha.value))
+            }
+            alpha.value <- alpha.value * 255 # Convert back to 0:255 scale
+        }
+    }
+    #   Convert to a 3 by `length(colors)` matrix of RGB values
+    rgb.vals <- sapply(X = colors, FUN = col2rgb)
+    if (nrow(x = rgb.vals) != 3) {
+        rgb.vals <- t(x = rgb.vals)
+    }
+    #   Blend together using the additive method
+    #   Basically, resulting colors are the mean of the component colors
+    blend <- apply(X = rgb.vals, MARGIN = 1, FUN = function(component) mean(x = component))
+    #   If we're returning RGB values, convert to matrix, just like col2rgb
+    #   Otherwise, return as hexadecimal; can be used directly for plotting
+    if (as.rgb) {
+        result <- matrix(
+            data = blend,
+            nrow = 3,
+            dimnames = list(c('red', 'green', 'blue'), 'blend')
+        )
+    } else {
+        result <- rgb(matrix(data = blend, ncol = 3), alpha = alpha.value, maxColorValue = 255)
+    }
+    return(result)
 }
 
 #' Vizualization of multiple features

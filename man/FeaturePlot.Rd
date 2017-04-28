@@ -6,8 +6,9 @@
 \usage{
 FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1,
-  cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne",
-  use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE)
+  cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
+  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+  no.axes = FALSE, no.legend = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -31,6 +32,8 @@ the first color corresponding to low values, the second to high. Also accepts a 
 color scale or vector of colors. Note: this will bin the data into number of colors provided.}
 
 \item{pch.use}{Pch for plotting}
+
+\item{overlay}{Plot two features overlayed one on top of the other}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
