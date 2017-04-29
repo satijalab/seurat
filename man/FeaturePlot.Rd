@@ -4,19 +4,20 @@
 \alias{FeaturePlot}
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
-FeaturePlot(object, features.plot, min.cutoff = NaN, max.cutoff = NaN,
+FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1,
-  cols.use = c("yellow", "red"), pch.use = 16, reduction.use = "tsne",
-  use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE)
+  cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
+  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+  no.axes = FALSE, no.legend = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{features.plot}{Vector of features to plot}
 
-\item{min.cutoff}{Vector of minimum cutoff values for each feature}
+\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
 
-\item{max.cutoff}{Vector of maximum cutoff values for each feature}
+\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
 
 \item{dim.1}{Dimension for x-axis (default 1)}
 
@@ -31,6 +32,8 @@ the first color corresponding to low values, the second to high. Also accepts a 
 color scale or vector of colors. Note: this will bin the data into number of colors provided.}
 
 \item{pch.use}{Pch for plotting}
+
+\item{overlay}{Plot two features overlayed one on top of the other}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
