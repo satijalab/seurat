@@ -1604,7 +1604,7 @@ ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
   drmax <- max(rle(drident)$lengths, 0.975)
   return(drmax)
 }
-
+ 
 #' Shift dim scores using DTW
 #'
 #' Shifts dim scores so that they line up across grouping variable (only implemented for case with
