@@ -164,3 +164,65 @@ MultiModal_CCA <- function(object,assay.1="RNA",assay.2="CITE",features.1=NULL,f
   }
   return(object)
 }
+
+
+#' Run coinertia analysis on multimodal data
+#' 
+#' CIA finds a shared correlation structure betwen two different datasets, enabling integrated downstream analysis
+#' 
+#' @param object Seurat object
+#' @param assay.1 First assay for multimodal analysis. Default is RNA
+#' @param assay.2 Second assay for multimodal analysis. Default is CITE for CITE-Seq analysis.
+#' @param features.1 Features of assay 1 to consider (default is variable genes)
+#' @param features.2 Features of assay 2 to consider (default is all features, i.e. for CITE-Seq, all antibodies)
+#' @param num.axes Number of principal axes to compute and store. Default is 20, but will calculate less if either assay has <20 features.
+#' @param normalize.variance Return the normalized row scares, so each aexis contributes equally in downstream analysis (default is T)
+#' @importFrom cia made4
+#' @return Returns object after CIA, with results stored in dimensional reduction cia.assay1 (ie. cia.RNA) and cia.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cia.RNA")
+#' @export
+MultiModal_CIA <- function(object,assay.1="RNA",assay.2="CITE",features.1=NULL,features.2=NULL,num.axes=20,normalize.variance=T) {
+  
+  #first pull out data, define features
+  data.1=GetAssayData(object,assay.1,"scale.data")
+  data.2=GetAssayData(object,assay.2,"scale.data")
+  
+  if (is.null(features.1)) {
+    if ((assay.1=="RNA") && length(object@var.genes)>0) {
+      features.1=object@var.genes
+    } else {
+      features.1=rownames(data.1)
+    }
+  }
+  
+  features.2=set.ifnull(features.2,rownames(data.2))
+  
+  data.1=t(data.1[features.1,])
+  data.2=t(data.2[features.2,])
+  num.axes=min(20,min(length(features.1),length(features.2)))
+  cia.data=list(data.1,data.2)
+  names(cia.data)=c(assay.1,assay.2)
+  # now run cia
+  out=cia(t(cia.data[[1]]),t(cia.data[[2]]),cia.nf = num.axes)
+  out=out$coinertia
+  cia.output=list(as.matrix(out$c1),as.matrix(out$l1))
+  embeddings.cia.norm=list(as.matrix(out$mX),as.matrix(out$mY))
+  embeddings.cia=list(as.matrix(out$lX),as.matrix(out$lY))
+  
+  
+  for(i in 1:length(cia.data)) {
+    assay.use=names(cia.data)[i]
+    #rownames(cia.output[[i]])=colnames(cia.data[[i]])
+    if (normalize.variance) {
+      embeddings.cia[[i]]=(embeddings.cia.norm[[i]])
+    }
+    colnames(embeddings.cia[[i]])=paste0(assay.use,"CI",1:ncol( embeddings.cia[[i]]),sep="")
+    colnames(cia.output[[i]])=colnames(embeddings.cia[[i]])
+
+    
+    object=SetDimReduction(object,reduction.type = paste("cia",assay.use, sep="_"),slot = "rotation",new.data = embeddings.cia[[i]])
+    object=SetDimReduction(object,reduction.type = paste("cia",assay.use, sep="_"),slot = "key",new.data =  paste0(assay.use,"CI",sep=""))
+    object=SetDimReduction(object,reduction.type = paste("cia",assay.use, sep="_"),slot = "x",new.data =  cia.output[[i]])
+  }
+  return(object)
+}
+
