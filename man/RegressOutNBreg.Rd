@@ -2,6 +2,7 @@
 % Please edit documentation in R/seurat.R
 \name{RegressOutNBreg}
 \alias{RegressOutNBreg}
+\alias{RegressOutNBreg}
 \title{Regress out technical effects and cell cycle using regularized Negative Binomial regression}
 \usage{
 RegressOutNBreg(object, latent.vars, genes.regress = NULL,
