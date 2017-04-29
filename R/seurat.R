@@ -371,6 +371,10 @@ setMethod("MakeSparse", "seurat",
 #' @return Returns a Seurat object compatible with latest changes
 #' @export
 ConvertSeurat <- function(object) {
+  
+  if (!(.hasSlot(object,"assay"))) object@assay=list();
+  if ((.hasSlot(object,"dr"))) return(object)
+  
   object@dr <- list()
   pca.x <- matrix()
   pca.x.full <- matrix()
@@ -1260,6 +1264,7 @@ setMethod("SubsetData","seurat",
             }
             
             #handle multimodal casess
+            if (!.hasSlot(object,"assay")) object@assay=list()
             if(length(object@assay)>0) {
               for(i in 1:length(object@assay)) {
                 if ((!is.null(object@assay[[i]]@raw.data))&&(ncol(object@assay[[i]]@raw.data)>1)) object@assay[[i]]@raw.data=object@assay[[i]]@raw.data[,cells.use]

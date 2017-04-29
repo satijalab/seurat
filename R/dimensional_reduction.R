@@ -1623,12 +1623,14 @@ ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
 ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30, show.plots=F){
   library(WGCNA)
   library(dtw);
+  ident.orig=object@ident
   object=SetAllIdent(object,grouping.var)
   levels.split=names(sort(table(object@ident)))
   if (length(levels.split) != 2) {
     stop(paste("There are more than two options for", levels.split))
   }
   objects=list(SubsetData(object,ident.use = levels.split[1]),SubsetData(object,ident.use = levels.split[2]))
+  object@ident=ident.orig
   cc.loadings=list();
   scaled.data=list()
   cc.embeds=list()
