@@ -2751,6 +2751,7 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
                         data.plot = data.plot,
                         pt.size = pt.size,
                         pch.use = pch.use,
+                        cols.use = cols.use,
                         dim.codes = dim.codes,
                         min.cutoff = min.cutoff,
                         max.cutoff = max.cutoff,
@@ -2862,7 +2863,39 @@ BlendPlot <- function(
     no.axes,
     no.legend
 ) {
-    colors <- c(low = 'yellow', high1 = 'red', high2 = 'blue', highboth = blendColors('red', 'blue'))
+    num.cols <- length(x = cols.use)
+    #   Create a vector of colors that weren't provided
+    cols.not.provided <- colors(distinct = TRUE)
+    cols.not.provided <- cols.not.provided[!(grepl(pattern = paste(cols.use, collapse = '|'), x = cols.not.provided, ignore.case = TRUE))]
+    if (num.cols > 4) {
+        #   If provided more than four colors, take only the first four
+        cols.use <- cols.use[c(1:4)]
+    } else if ((num.cols == 2) || (num.cols == 3)) {
+        #   If two or three colors, use the last two as high values for blending
+        #   and add to our vector of colors
+        blend <- blendColors(cols.use[c(num.cols - 1, num.cols)])
+        cols.use <- c(cols.use, blend)
+        if (num.cols == 2) {
+            #   If two colors, provided,
+            #   we still need a low color
+            cols.use <- c(sample(x = cols.not.provided, size = 1), cols.use)
+        }
+    } else if ((num.cols == 1)) {
+        #   If only one color provided
+        if (cols.use %in% rownames(x = brewer.pal.info)) {
+            #   Was it a palette from RColorBrewer? If so, create
+            #   our colors based on the palette
+            palette <- brewer.pal(n = 3, name = cols.use)
+            cols.use <- c(palette, blendColors(palette[c(2, 3)]))
+        } else {
+            #   If not, randomly create our colors
+            cols.high <- sample(x = cols.not.provided, size = 2, replace = FALSE)
+            cols.use <- c(cols.use, cols.high, blendColors(cols.high))
+        }
+    } else if (num.cols <= 0) {
+        cols.use <- c('yellow','red', 'blue', blendColors('red', 'blue'))
+    }
+    names(x = cols.use) <- c('low', 'high1', 'high2', 'highboth')
     if(length(x = features.plot) != 2) {
         stop("An overlayed FeaturePlot only works with two features")# at this time")
     }
@@ -2924,7 +2957,7 @@ BlendPlot <- function(
     p <- ggplot(data = data.plot, mapping = aes(x = x, y = y))
     p <- p + geom_point(mapping = aes(color = colors), size = pt.size, shape = pch.use)
     p <- p + scale_color_manual(
-        values = colors,
+        values = cols.use,
         limits = c('high1', 'high2', 'highboth'),
         labels = legend.names,
         guide = guide_legend(title = NULL, override.aes = list(size = 2))
