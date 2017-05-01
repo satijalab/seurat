@@ -31,4 +31,3 @@ object@data
 Uses L1-constrained linear models (LASSO) to impute single cell gene
 expression values.
 }
-

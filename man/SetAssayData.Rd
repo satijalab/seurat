@@ -21,4 +21,3 @@ Seurat object with updated slot
 \description{
 Store information for specified assay, for multimodal analysis
 }
-

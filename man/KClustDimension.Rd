@@ -14,4 +14,3 @@ Find point clounds single cells in a low-dimensional space using k-means cluster
 \details{
 CAn be useful for smaller datasets, not documented here yet
 }
-

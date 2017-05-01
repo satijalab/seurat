@@ -4,7 +4,8 @@
 \alias{ShiftDimDTW}
 \title{Shift dim scores using DTW}
 \usage{
-ShiftDimDTW(object, reduction.type, grouping.var, dims.shift, num.genes = 20)
+ShiftDimDTW(object, reduction.type, grouping.var, dims.shift, num.genes = 30,
+  show.plots = F)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,6 +15,8 @@ ShiftDimDTW(object, reduction.type, grouping.var, dims.shift, num.genes = 20)
 \item{dims.shift}{Dims to shift, default is all}
 
 \item{num.genes}{Number of genes to use in construction of "metagene"}
+
+\item{show.plots}{show debugging plots}
 
 \item{group.var}{Name of the grouping variable for which to shift the scores}
 }

@@ -6,7 +6,7 @@
 \usage{
 ProjectDim(object, reduction.type = "pca", dims.print = 1:5,
   dims.store = 30, genes.print = 30, replace.dim = FALSE,
-  do.center = FALSE, do.print = TRUE)
+  do.center = FALSE, do.print = TRUE, assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -24,6 +24,8 @@ by default.}
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
 
 \item{do.print}{Print top genes associated with the projected dimensions}
+
+\item{assay.type}{Data type, RNA by default. Can be changed for multimodal datasets (i.e. project a PCA done on RNA, onto CITE-seq data)}
 }
 \value{
 Returns Seurat object with the projected values in object@dr$XXX@x.full
@@ -34,4 +36,3 @@ projects this onto the entire dataset (all genes). Note that the cell
 loadings (rotation matrices) remains unchanged, but now there are gene
 scores for all genes.
 }
-

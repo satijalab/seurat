@@ -17,4 +17,3 @@ Converts stored data matrices to sparse matrices to save space. Converts object@
 If the snn has been stored as a dense matrix, this will convert it to a sparse matrix, store it in object@snn.sparse and
 remove object@snn.dense.
 }
-

@@ -40,4 +40,3 @@ Uses mclapply; you can set the number of cores it will use to n with command opt
 Remove unwanted effects from umi data and set scale.data to Pearson residuals
 Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
 }
-

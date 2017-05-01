@@ -19,4 +19,3 @@ ICA rotation matrix for given cells and ICs
 \description{
 Pull ICA rotation matrix
 }
-

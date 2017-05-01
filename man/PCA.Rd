@@ -37,4 +37,3 @@ object@pca.obj[[1]]
 \description{
 Run prcomp for PCA dimensionality reduction
 }
-

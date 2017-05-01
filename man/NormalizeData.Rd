@@ -21,4 +21,3 @@ Returns object after normalization. Normalized data is stored in data or scale.d
 \description{
 Normalize data for a given assay
 }
-

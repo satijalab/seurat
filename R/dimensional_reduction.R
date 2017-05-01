@@ -1619,99 +1619,96 @@ ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
 #' @param show.plots show debugging plots 
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @importFrom dtw dtw
+#' @importFrom WGCNA bicor
+#' @importFrom pbapply pbapply
 #' @export
-ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30, show.plots=F){
-  library(WGCNA)
-  library(dtw);
-  ident.orig=object@ident
-  object=SetAllIdent(object,grouping.var)
-  levels.split=names(sort(table(object@ident)))
+ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30, 
+                        show.plots = F){
+  ident.orig <- object@ident
+  object <- SetAllIdent(object, grouping.var)
+  levels.split <- names(sort(table(object@ident)))
   if (length(levels.split) != 2) {
-    stop(paste("There are more than two options for", levels.split))
+    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", paste(levels.split, collapse = ", ")))
   }
-  objects=list(SubsetData(object,ident.use = levels.split[1]),SubsetData(object,ident.use = levels.split[2]))
-  object@ident=ident.orig
-  cc.loadings=list();
-  scaled.data=list()
-  cc.embeds=list()
+  objects <- list(SubsetData(object, ident.use = levels.split[1]), 
+                  SubsetData(object, ident.use = levels.split[2]))
+  object@ident <- ident.orig
+  cc.loadings <- list()
+  scaled.data <- list()
+  cc.embeds <- list()
   for(i in 1:2) {
-    objects[[i]]=FastScaleData(objects[[i]])
-    objects[[i]]@scale.data[is.na(objects[[i]]@scale.data)]=0
-    objects[[i]]=ProjectDim(objects[[i]],reduction.type = reduction.type,do.print = F)
-    cc.loadings[[i]]=DimX(objects[[i]],reduction.type = reduction.type,use.full = T)
-    cc.embeds[[i]]=DimRot(objects[[i]],reduction.type = reduction.type)
-    scaled.data[[i]]=objects[[i]]@scale.data
+    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    objects[[i]] <- FastScaleData(objects[[i]])
+    objects[[i]]@scale.data[is.na(objects[[i]]@scale.data)] <- 0
+    objects[[i]] <- ProjectDim(objects[[i]], reduction.type = reduction.type, do.print = F)
+    cc.loadings[[i]] <- DimX(objects[[i]],reduction.type = reduction.type, use.full = T)
+    cc.embeds[[i]] <- DimRot(objects[[i]],reduction.type = reduction.type)
+    scaled.data[[i]] <- objects[[i]]@scale.data
   }
   
-  cc.embeds.both=DimRot(object,reduction.type = reduction.type)
-  colnames(cc.embeds.both)=paste("S",colnames(cc.embeds.both),sep="")
-  
-  cc.embeds.orig=cc.embeds.both
-  library(pbapply)
-  
+  cc.embeds.both <- DimRot(object, reduction.type = reduction.type)
+  colnames(cc.embeds.both) <- paste0("S", colnames(cc.embeds.both))
+  cc.embeds.orig <- cc.embeds.both
+
   for(cc.use in dims.shift) {
-    print(paste("Shifting dimension", cc.use))
-    
-    genes.rank=data.frame(rank(abs(cc.loadings[[1]][,cc.use])),rank(abs(cc.loadings[[2]][,cc.use])),cc.loadings[[1]][,cc.use],cc.loadings[[2]][,cc.use])
-    genes.rank$min=apply(genes.rank[,1:2],1,min)
-    genes.rank=genes.rank[order(genes.rank$min,decreasing = T),]
-    genes.rank.save=genes.rank
-    genes.top=rownames(genes.rank)[1:200]
-    
+    cat(paste0("Shifting dimension ", cc.use, "\n"), file = stderr())
+    genes.rank <- data.frame(rank(abs(cc.loadings[[1]][, cc.use])), rank(abs(cc.loadings[[2]][, cc.use])),
+                             cc.loadings[[1]][, cc.use], cc.loadings[[2]][, cc.use])
+    genes.rank$min <- apply(genes.rank[,1:2], 1, min)
+    genes.rank <- genes.rank[order(genes.rank$min, decreasing = T), ]
+    genes.top <- rownames(genes.rank)[1:200]
     bicors=list()
     for(i in 1:2) {
-      cc.vals=cc.embeds[[i]][,cc.use]
-      bicors[[i]]=pbsapply(genes.top,function(x)bicor(cc.vals,scaled.data[[i]][x,]))
+      cc.vals <- cc.embeds[[i]][, cc.use]
+      bicors[[i]] <- pbsapply(genes.top, function(x) suppressWarnings(bicor(cc.vals, scaled.data[[i]][x, ])))
     }
-    
-    
-    genes.rank=data.frame(rank(abs(bicors[[1]])),rank(abs(bicors[[2]])),bicors[[1]],bicors[[2]])
-    genes.rank$min=apply(abs(genes.rank[,1:2]),1,min)
-    genes.rank$min2=apply(abs(genes.rank[,3:4]),1,min)
-    
-    genes.rank=genes.rank[order(genes.rank$min,decreasing = T),]
-    genes.use=rownames(genes.rank)[1:num.genes]
-    
-    metagenes=list()
-    multvar.data=list()
+    genes.rank <- data.frame(rank(abs(bicors[[1]])), rank(abs(bicors[[2]])), bicors[[1]], bicors[[2]])
+    genes.rank$min <- apply(abs(genes.rank[,1:2]), 1, min)
+    genes.rank <- genes.rank[order(genes.rank$min, decreasing = T), ]
+    genes.use <- rownames(genes.rank)[1:num.genes]
+    metagenes <- list()
+    multvar.data <- list()
     for(i in 1:2) {
-      scaled.use=sweep(scaled.data[[i]][genes.use,],1,sign(genes.rank[genes.use,i+2]),FUN = "*")
-      scaled.use=scaled.use[,names(sort(cc.embeds[[i]][,cc.use]))]
-      metagenes[[i]]=apply(scaled.use[genes.use,],2,mean,remove.na=T)
-      metagenes[[i]]=(cc.loadings[[i]][genes.use,cc.use] %*% scaled.data[[i]][genes.use,])[1,colnames(scaled.use)]
+      scaled.use <- sweep(scaled.data[[i]][genes.use, ], 1, sign(genes.rank[genes.use, i + 2]), 
+                          FUN = "*")
+      scaled.use <- scaled.use[, names(sort(cc.embeds[[i]][, cc.use]))]
+      metagenes[[i]] <- apply(scaled.use[genes.use, ], 2, mean, remove.na = T)
+      metagenes[[i]] <- (cc.loadings[[i]][genes.use, cc.use] %*% scaled.data[[i]][genes.use, ])[1, colnames(scaled.use)]
     }
 
-    mean.difference=(mean(range01(metagenes[[1]]))-mean(range01(metagenes[[2]])))
-    metric.use="Euclidean"
+    mean.difference <- mean(range01(metagenes[[1]])) - mean(range01(metagenes[[2]]))
+    metric.use <- "Euclidean"
+    alignment <- dtw(range01(metagenes[[1]]), range01(metagenes[[2]]), center = T, scale = F, 
+                     keep = TRUE, dist.method = metric.use)
     
-    alignment<-dtw(range01(metagenes[[1]]),range01(metagenes[[2]]),center = T,scale = F,keep=TRUE,dist.method = metric.use)
-    
-    alignment.map=data.frame(alignment$index1,alignment$index2)
-    alignment.map$cc_data1=sort(cc.embeds[[1]][,cc.use])[alignment$index1]
-    alignment.map$cc_data2=sort(cc.embeds[[2]][,cc.use])[alignment$index2]
-    alignment.map.orig=alignment.map
-    alignment.map=alignment.map[!duplicated(alignment.map$alignment.index1),]
-    cc.embeds.both[names(sort(cc.embeds[[1]][,cc.use])),cc.use]=alignment.map$cc_data2
+    alignment.map <- data.frame(alignment$index1, alignment$index2)
+    alignment.map$cc_data1 <- sort(cc.embeds[[1]][, cc.use])[alignment$index1]
+    alignment.map$cc_data2 <- sort(cc.embeds[[2]][, cc.use])[alignment$index2]
+    alignment.map.orig <- alignment.map
+    alignment.map <- alignment.map[!duplicated(alignment.map$alignment.index1), ]
+    cc.embeds.both[names(sort(cc.embeds[[1]][, cc.use])), cc.use] <- alignment.map$cc_data2
     if (show.plots) {
-      par(mfrow=c(3,2))
-      plot(range01(metagenes[[1]]),main=cc.use)
+      par(mfrow = c(3, 2))
+      plot(range01(metagenes[[1]]), main = cc.use)
       plot(range01(metagenes[[2]]))
-      plot(range01(metagenes[[1]])[(alignment.map.orig$alignment.index1)],pch=16)
-      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)],col="red",pch=16,cex=0.4)
+      plot(range01(metagenes[[1]])[(alignment.map.orig$alignment.index1)], pch = 16)
+      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)], col = "red", pch = 16, 
+             cex = 0.4)
       plot(density(alignment.map$cc_data2))
-      lines(density(sort(cc.embeds[[2]][,cc.use])),col="red")
+      lines(density(sort(cc.embeds[[2]][, cc.use])), col = "red")
       plot(alignment.map.orig$cc_data1)
-      points(alignment.map.orig$cc_data2,col="red")
+      points(alignment.map.orig$cc_data2, col = "red")
     }
   }
   
-  new.type=paste(reduction.type,".shifted",sep="")
-  new.key=paste("S",GetDimReduction(object,reduction.type,"key"),sep="")
-  object=SetDimReduction(object,new.type,"rotation",scale(cc.embeds.both))
-  object=SetDimReduction(object,new.type,"key",new.key)
+  new.type <- paste0(reduction.type, ".shifted")
+  new.key <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, slot = "key"))
+  object <- SetDimReduction(object, reduction.type = new.type, slot = "rotation", 
+                            new.data = scale(cc.embeds.both))
+  object <- SetDimReduction(object, reduction.type = new.type, slot = "key", new.data = new.key)
   return(object)
 }
 
-range01 <- function(x,lower=0.025,upper=0.975){
-  (x - quantile(x, lower)) / (quantile(x, upper) - quantile(x, lower))
+range01 <- function(x, lower = 0.025, upper = 0.975){
+  return((x - quantile(x, lower)) / (quantile(x, upper) - quantile(x, lower)))
 }

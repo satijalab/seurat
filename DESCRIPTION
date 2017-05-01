@@ -42,9 +42,14 @@ Imports:
     RcppProgress,
     tclust,
     ranger,
-    compositions
+    compositions,
+    NMOF,
+    PMA,
+    WGCNA,
+    dtw
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
+remotes: bioc::release/made4
 Collate:
     'RcppExports.R'
     'seurat.R'
@@ -58,6 +63,6 @@ Collate:
     'snn.R'
     'tSNE_project.R'
     'zfRenderSeurat.R'
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1
 Suggests:
     testthat

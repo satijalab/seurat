@@ -17,4 +17,3 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Stashes the identity in data.info to be retrieved later. Useful if, for example, testing multiple clustering parameters
 }
-

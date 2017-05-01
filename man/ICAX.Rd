@@ -19,4 +19,3 @@ ICA loading matrix for given genes and ICs
 \description{
 Pull ICA Gene Loadings
 }
-

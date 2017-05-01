@@ -47,4 +47,3 @@ Creates a Seurat object containing only a subset of the cells in the
 original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
-

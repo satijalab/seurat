@@ -21,4 +21,3 @@ Projects dataset onto the orthonormal space defined by some dimensional reductio
 (e.g. PCA, CCA) and calculates the percent of the variance in gene expression explained by each cell
 in that lower dimensional space.
 }
-

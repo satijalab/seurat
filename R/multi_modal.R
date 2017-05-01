@@ -177,7 +177,7 @@ MultiModal_CCA <- function(object,assay.1="RNA",assay.2="CITE",features.1=NULL,f
 #' @param features.2 Features of assay 2 to consider (default is all features, i.e. for CITE-Seq, all antibodies)
 #' @param num.axes Number of principal axes to compute and store. Default is 20, but will calculate less if either assay has <20 features.
 #' @param normalize.variance Return the normalized row scares, so each aexis contributes equally in downstream analysis (default is T)
-#' @importFrom cia made4
+#' @importFrom made4 cia
 #' @return Returns object after CIA, with results stored in dimensional reduction cia.assay1 (ie. cia.RNA) and cia.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cia.RNA")
 #' @export
 MultiModal_CIA <- function(object,assay.1="RNA",assay.2="CITE",features.1=NULL,features.2=NULL,num.axes=20,normalize.variance=T) {

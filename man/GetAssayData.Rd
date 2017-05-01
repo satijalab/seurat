@@ -19,4 +19,3 @@ Returns assay data
 \description{
 Pull information for specified stored dimensional reduction analysis
 }
-

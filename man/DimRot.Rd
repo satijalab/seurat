@@ -21,4 +21,3 @@ Rotation matrix for given reduction, cells, and dimensions
 \description{
 Pull rotation matrix for specified stored dimensional reduction analysis
 }
-

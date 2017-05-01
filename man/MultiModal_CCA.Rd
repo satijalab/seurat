@@ -29,4 +29,3 @@ Returns object after CCA, with results stored in dimensional reduction cca.assay
 \description{
 CCA finds a shared correlation structure betwen two different datasets, enabling integrated downstream analysis
 }
-

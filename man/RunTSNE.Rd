@@ -41,4 +41,3 @@ Returns a Seurat object with a tSNE embedding in object@dr$tsne@rotation
 Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
 dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
 }
-

@@ -31,4 +31,3 @@ Returns a seurat object with object@scale.data updated with scaled and/or center
 Note: will give slightly different results than R due to differences in numerical precision 
 between R and C++. This could cause the results of some stochastic processes like tSNE to change.
 }
-

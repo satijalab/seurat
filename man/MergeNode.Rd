@@ -14,4 +14,3 @@ MergeNode(object, node.use = NULL)
 \description{
 Merge the subchilden of a node into a single identity class
 }
-

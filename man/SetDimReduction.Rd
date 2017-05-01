@@ -21,4 +21,3 @@ Seurat object with updated slot
 \description{
 Set information for specified stored dimensional reduction analysis
 }
-
