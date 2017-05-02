@@ -3391,10 +3391,10 @@ setMethod("PCASigGenes", "seurat",
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @importFrom gplots heatmap.2
 #' @export
-setGeneric("DoHeatmap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) standardGeneric("DoHeatmap"))
+setGeneric("DoHeatmap", function(object,cells.use=NULL,genes.use=NULL,disp.min=NULL,disp.max=NULL,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) standardGeneric("DoHeatmap"))
 #' @export
 setMethod("DoHeatmap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=NULL,disp.max=NULL,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             cells.use=ainb(cells.use,object@cell.names)
             cells.ident=object@ident[cells.use]
@@ -3411,7 +3411,20 @@ setMethod("DoHeatmap","seurat",
             data.use=NULL
             assays.use=c("RNA",names(object@assay))
             slot.use="scale.data"
-            if (do.scale==F) slot.use="data"
+            if (do.scale==F) {
+              slot.use="data"
+              if ((is.null(disp.min) || is.null(disp.max))) {
+                disp.min=-Inf
+                disp.max=Inf
+              }
+            }
+              
+            if (do.scale==T) {
+              if ((is.null(disp.min) || is.null(disp.max))) {
+                disp.min=-2.5
+                disp.max=2.5
+              }
+            }
             for (assay.check in assays.use) {
               data.assay=GetAssayData(object,assay.check,slot.use)  
               genes.intersect=intersect(genes.use,rownames(data.assay))
@@ -3420,6 +3433,7 @@ setMethod("DoHeatmap","seurat",
               data.use=rbind(data.use,new.data)
               
             }
+            data.use=minmax(data.use, disp.min, disp.max)
             
             vline.use=NULL;
             colsep.use=NULL
