@@ -2787,15 +2787,8 @@ SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, co
                               min.cutoff, max.cutoff, no.axes, no.legend){
   data.gene <- na.omit(data.use[feature, ])
   #   Check for quantiles
-  regex.quantile <- '^q[0-9]{1,2}$'
-  if (grepl(pattern = regex.quantile, x = as.character(x = min.cutoff), perl = TRUE)) {
-      min.quantile <- as.numeric(x = sub(pattern = 'q', replacement = '', x = as.character(x = min.cutoff))) / 100
-      min.cutoff <- quantile(x = unlist(x = data.gene), probs = min.quantile)
-  }
-  if (grepl(pattern = regex.quantile, x = as.character(x = max.cutoff), perl = TRUE)) {
-      max.quantile <- as.numeric(x = sub(pattern = 'q', replacement = '', x = as.character(x = max.cutoff))) / 100
-      max.cutoff <- quantile(x = unlist(x = data.gene), probs = max.quantile)
-  }
+  min.cutoff <- setQuantile(cutoff = min.cutoff, data = data.gene)
+  max.cutoff <- setQuantile(cutoff = max.cutoff, data = data.gene)
   #   Mask any values below the minimum and above the maximum values
   data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
   data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
@@ -2896,9 +2889,18 @@ BlendPlot <- function(
         cols.use <- c('yellow','red', 'blue', blendColors('red', 'blue'))
     }
     names(x = cols.use) <- c('low', 'high1', 'high2', 'highboth')
-    if(length(x = features.plot) != 2) {
-        stop("An overlayed FeaturePlot only works with two features")# at this time")
+    if((length(x = features.plot) != 2) || (length(x = min.cutoff) != 2) || (length(x = max.cutoff) != 2)) {
+        stop("An overlayed FeaturePlot only works with two features and requires two minimum and maximum cutoffs")
     }
+    #   Check for quantiles
+    min.cutoff <- c(
+        setQuantile(cutoff = min.cutoff[1], data = data.gene[features.plot[1], ]),
+        setQuantile(cutoff = min.cutoff[2], data = data.gene[features.plot[2], ])
+    )
+    max.cutoff <- c(
+        setQuantile(cutoff = max.cutoff[1], data = data.gene[features.plot[1], ]),
+        setQuantile(cutoff = max.cutoff[2], data = data.gene[features.plot[2], ])
+    )
     data.gene <- na.omit(object = data.frame(data.use[features.plot, ]))
     cell.names <- colnames(x = data.gene)
     #   Minimum and maximum masking
@@ -3026,6 +3028,15 @@ blendColors <- function(..., as.rgb = FALSE) {
         result <- rgb(matrix(data = blend, ncol = 3), alpha = alpha.value, maxColorValue = 255)
     }
     return(result)
+}
+
+setQuantile <- function(cutoff, data) {
+    regex.quantile <- '^q[0-9]{1,2}$'
+    if (grepl(pattern = regex.quantile, x = as.character(x = cutoff), perl = TRUE)) {
+        this.quantile <- as.numeric(x = sub(pattern = 'q', replacement = '', x = as.character(x = cutoff))) / 100
+        cutoff <- quantile(x = unlist(x = data), probs = this.quantile)
+    }
+    return(as.numeric(x = cutoff))
 }
 
 #' Vizualization of multiple features
