@@ -2732,12 +2732,28 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
             data.use <- t(FetchData(object, features.plot, cells.use = cells.use, 
                                                use.imputed = use.imputed))
             #   Check mins and maxes
-            if (is.na(x = min.cutoff)) {
-                min.cutoff <- vapply(X = features.plot, FUN = function(x) { return(min(data.use[x, ]))}, FUN.VALUE = 1)
-            }
-            if (is.na(x = max.cutoff)) {
-                max.cutoff <- vapply(X = features.plot, FUN = function(x) { return(max(data.use[x, ]))}, FUN.VALUE = 1)
-            }
+            min.cutoff <- mapply(
+                FUN = function(cutoff, feature) {
+                    ifelse(
+                        test = is.na(x = cutoff),
+                        yes = min(data.use[feature, ]),
+                        no = cutoff
+                    )
+                },
+                cutoff = min.cutoff,
+                feature = features.plot
+            )
+            max.cutoff <- mapply(
+                FUN = function(cutoff, feature) {
+                    ifelse(
+                        test = is.na(x = cutoff),
+                        yes = max(data.use[feature, ]),
+                        no = cutoff
+                    )
+                },
+                cutoff = max.cutoff,
+                feature = features.plot
+            )
             check_lengths = unique(x = vapply(X = list(features.plot, min.cutoff, max.cutoff), FUN = length, FUN.VALUE = 1))
             if (length(x = check_lengths) != 1) {
                 stop('There must be the same number of minimum and maximum cuttoffs as there are features')
