@@ -1349,6 +1349,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
     object <- SetDimReduction(object, reduction.type = "cca", slot = "key", new.data = "CC")
     
     object <- ProjectDim(object, reduction.type = "cca")
+    object@scale.data[is.na(object@scale.data)]=0
     return(object)
   }
 }
@@ -1679,7 +1680,16 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
 
     mean.difference <- mean(range01(metagenes[[1]])) - mean(range01(metagenes[[2]]))
     metric.use <- "Euclidean"
-    alignment <- dtw(range01(metagenes[[1]]), range01(metagenes[[2]]), center = T, scale = F, 
+    align.1=range01(metagenes[[1]])
+    align.2=range01(metagenes[[2]])
+    a1q=sapply(seq(0,1,0.001),function(x)quantile(align.1,x))
+    a2q=sapply(seq(0,1,0.001),function(x)quantile(align.2,x))
+    iqr=(a1q-a2q)[100:900]
+    iqr.x=which.min(abs(iqr))
+    iqrmin=iqr[iqr.x]
+    if (show.plots) print(iqrmin)
+    align.2=align.2+iqrmin
+    alignment <- dtw(align.1,align.2, 
                      keep = TRUE, dist.method = metric.use)
     
     alignment.map <- data.frame(alignment$index1, alignment$index2)

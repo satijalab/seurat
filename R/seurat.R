@@ -3236,18 +3236,20 @@ blendColors <- function(..., as.rgb = FALSE) {
 #' @param pch.use Pch for plotting
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param group.by Group cells in different ways (for example, orig.ident)
 #' @return No return value, only a graphical output
 #' @export
-setGeneric("FeatureHeatmap", function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") standardGeneric("FeatureHeatmap"))
+setGeneric("FeatureHeatmap", function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne",group.by=NULL) standardGeneric("FeatureHeatmap"))
 #' @export
 setMethod("FeatureHeatmap", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne") {
+          function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne",group.by=NULL) {
+            if (!is.null(group.by)) object=SetAllIdent(object,group.by)
             idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
             dim.code="PC"
             par(mfrow=c(length(features.plot),length(idents.use)))
             dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
             data.plot=data.frame(FetchData(object,dim.codes))
-
+            
             ident.use=as.factor(object@ident)
             data.plot$ident=ident.use
             x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
@@ -3261,13 +3263,12 @@ setMethod("FeatureHeatmap", "seurat",
             data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
             #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
             p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
-
+            
             p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
             p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
             print(p2)
           }
 )
-
 
 translate.dim.code=function(object,reduction.use) {
   if (!is.null(reduction.use)) return.code=object@dr[[reduction.use]]@key
@@ -3447,10 +3448,10 @@ setMethod("PCASigGenes", "seurat",
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @importFrom gplots heatmap.2
 #' @export
-setGeneric("DoHeatmap", function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) standardGeneric("DoHeatmap"))
+setGeneric("DoHeatmap", function(object,cells.use=NULL,genes.use=NULL,disp.min=NULL,disp.max=NULL,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) standardGeneric("DoHeatmap"))
 #' @export
 setMethod("DoHeatmap","seurat",
-          function(object,cells.use=NULL,genes.use=NULL,disp.min=-2.5,disp.max=2.5,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
+          function(object,cells.use=NULL,genes.use=NULL,disp.min=NULL,disp.max=NULL,draw.line=TRUE,do.return=FALSE,order.by.ident=TRUE,col.use=pyCols,slim.col.label=FALSE,group.by=NULL,remove.key=FALSE,cex.col=NULL,do.scale=TRUE,...) {
             cells.use=set.ifnull(cells.use,object@cell.names)
             cells.use=ainb(cells.use,object@cell.names)
             cells.ident=object@ident[cells.use]
@@ -3467,7 +3468,20 @@ setMethod("DoHeatmap","seurat",
             data.use=NULL
             assays.use=c("RNA",names(object@assay))
             slot.use="scale.data"
-            if (do.scale==F) slot.use="data"
+            if (do.scale==F) {
+              slot.use="data"
+              if ((is.null(disp.min) || is.null(disp.max))) {
+                disp.min=-Inf
+                disp.max=Inf
+              }
+            }
+              
+            if (do.scale==T) {
+              if ((is.null(disp.min) || is.null(disp.max))) {
+                disp.min=-2.5
+                disp.max=2.5
+              }
+            }
             for (assay.check in assays.use) {
               data.assay=GetAssayData(object,assay.check,slot.use)  
               genes.intersect=intersect(genes.use,rownames(data.assay))
@@ -3476,6 +3490,7 @@ setMethod("DoHeatmap","seurat",
               data.use=rbind(data.use,new.data)
               
             }
+            data.use=minmax(data.use, disp.min, disp.max)
             
             vline.use=NULL;
             colsep.use=NULL
