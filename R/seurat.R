@@ -1844,6 +1844,63 @@ setMethod("FindMarkers", "seurat",
 )
 
 
+#' Finds markers that are conserved between the two groups
+#'
+#' @param object Seurat object
+#' @param ident.1 Identity class to define markers for
+#' @param ident.2 A second identity class for comparison. If NULL (default) - use all other cells 
+#' for comparison.
+#' @param grouping.var grouping variable
+#' @param \dots parameters to pass to FindMarkers
+#' @return Matrix containing a ranked list of putative conserved markers, and associated statistics 
+#' (p-values within each group and a combined p-value (fisher_pval), percentage of cells expressing 
+#' the marker, average differences)
+#' @export 
+FindConservedMarkers <- function(object, ident.1, ident.2 = NULL, grouping.var, ...) {
+  object.var <- FetchData(object, grouping.var)
+  object <- SetIdent(object, object@cell.names, paste(object@ident, object.var[, 1], sep = "_"))
+  levels.split <- names(sort(table(object.var[, 1])))
+  if (length(levels.split) != 2) {
+    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", 
+                paste(levels.split, collapse = ", ")))
+  }
+  cells <- list()
+  for(i in 1:2)  cells[[i]] <- rownames(object.var[object.var[, 1] == levels.split[i], ,drop = F])
+  marker.test <- list()
+  # do marker tests
+  for(i in 1:2) {
+    level.use <- levels.split[i]
+    ident.use.1 <- paste(ident.1, level.use, sep = "_")
+    cells.1 <- WhichCells(object, ident = ident.use.1)
+    if (is.null(ident.2)) {
+      cells.2 <- anotinb(cells[[i]], cells.1)
+      ident.use.2 <- names(which(table(object@ident[cells.2]) > 0))
+      if(length(ident.use.2) == 0) stop(paste0("Only one identity class present: ", ident.1))
+    }
+    if (!is.null(ident.2)) ident.use.2 <- paste(ident.2, level.use, sep = "_")
+    cat(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n"), file = stderr())
+    marker.test[[i]] <- FindMarkers(object, ident.use.1, ident.use.2, ...)
+  }
+  genes.conserved <- intersect(rownames(marker.test[[1]]), rownames(marker.test[[2]]))
+  markers.conserved <- list()
+  for(i in 1:2) {
+    markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
+    colnames(markers.conserved[[i]]) <- paste(levels.split[i], colnames(markers.conserved[[i]]), 
+                                              sep="_")
+  }
+  markers.combined <- cbind(markers.conserved[[1]], markers.conserved[[2]])
+  pval.codes <- paste(levels.split, "p_val", sep = "_")
+  markers.combined$max_pval <- apply(markers.combined[ , pval.codes], 1, max)
+  markers.combined$fisher_pval <- apply(markers.combined[, pval.codes], 1, fisher.integrate)
+  markers.combined <- markers.combined[order(markers.combined$fisher_pval), ]
+  return(markers.combined)
+}
+
+fisher.integrate <- function(pvals){
+  return (1 - pchisq(-2 * sum(log(pvals)), df = 2 * length(pvals)))
+} 
+
+
 #' Gene expression markers for all identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset

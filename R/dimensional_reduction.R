@@ -1628,7 +1628,8 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
   object <- SetAllIdent(object, grouping.var)
   levels.split <- names(sort(table(object@ident)))
   if (length(levels.split) != 2) {
-    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", paste(levels.split, collapse = ", ")))
+    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", 
+                paste(levels.split, collapse = ", ")))
   }
   objects <- list(SubsetData(object, ident.use = levels.split[1]), 
                   SubsetData(object, ident.use = levels.split[2]))
