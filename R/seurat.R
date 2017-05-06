@@ -3297,38 +3297,54 @@ setQuantile <- function(cutoff, data) {
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
+#' @param sep.scale Scale each group separately. Default is FALSE.
 #' @return No return value, only a graphical output
+#' @importFrom dplyr %>%
 #' @export
-setGeneric("FeatureHeatmap", function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne",group.by=NULL) standardGeneric("FeatureHeatmap"))
-#' @export
-setMethod("FeatureHeatmap", "seurat",
-          function(object,features.plot,dim.1=1,dim.2=2,idents.use=NULL,pt.size=2,cols.use=rev(heat.colors(10)),pch.use=16,reduction.use="tsne",group.by=NULL) {
-            if (!is.null(group.by)) object=SetAllIdent(object,group.by)
-            idents.use=set.ifnull(idents.use,sort(unique(object@ident)))
-            dim.code="PC"
-            par(mfrow=c(length(features.plot),length(idents.use)))
-            dim.code=translate.dim.code(object,reduction.use); dim.codes=paste(dim.code,c(dim.1,dim.2),sep="")
-            data.plot=data.frame(FetchData(object,dim.codes))
-            
-            ident.use=as.factor(object@ident)
-            data.plot$ident=ident.use
-            x1=paste(dim.code,dim.1,sep=""); x2=paste(dim.code,dim.2,sep="")
-            data.plot$x=data.plot[,x1]; data.plot$y=data.plot[,x2]
-            data.plot$pt.size=pt.size
-            data.use=data.frame(t(data.frame(FetchData(object,features.plot))))
-            data.scale=apply(t(data.use),2,function(x)(factor(cut(x,breaks=length(cols.use),labels = FALSE),levels=1:length(cols.use),ordered=TRUE)))
-            data.plot.all=data.frame(cbind(data.plot,data.scale))
-            data.reshape=melt((data.plot.all),id = colnames(data.plot))
-            data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
-            data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
-            #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
-            p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
-            
-            p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
-            p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
-            print(p2)
-          }
-)
+FeatureHeatmap <- function(object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
+                           cols.use = rev(heat.colors(10)), pch.use = 16, reduction.use = "tsne",
+                           group.by = NULL, sep.scale = FALSE) {
+  if (!is.null(group.by)) object <- SetAllIdent(object, group.by)
+  idents.use <- set.ifnull(idents.use, sort(unique(object@ident)))
+  par(mfrow = c(length(features.plot), length(idents.use)))
+  dim.code <- translate.dim.code(object,reduction.use)
+  dim.codes <- paste(dim.code,c(dim.1,dim.2),sep="")
+  data.plot <- data.frame(FetchData(object, dim.codes))
+  
+  ident.use <- as.factor(object@ident)
+  data.plot$ident <- ident.use
+  x1 <- paste(dim.code,dim.1,sep="")
+  x2 <- paste(dim.code,dim.2,sep="")
+  data.plot$x <- data.plot[,x1]
+  data.plot$y <- data.plot[,x2]
+  data.plot$pt.size <- pt.size
+  data.use <- data.frame(data.frame(FetchData(object, features.plot)))
+  if(sep.scale){
+    data.use$ident <- data.plot$ident
+    cutVals <- function(x){
+      return(factor(cut(x,breaks=length(cols.use),labels = FALSE), 
+                    levels=1:length(cols.use),ordered=TRUE))
+    }
+    
+    data.use %>% group_by(ident) %>% mutate_each(funs(cutVals)) %>% ungroup %>% select(-ident) -> data.scale
+    data.scale <- as.matrix(data.scale)
+  }
+  else{
+    data.use <- t(data.use)
+    data.scale <- apply(t(data.use), 2 , function(x)(factor(cut(x,breaks=length(cols.use),labels = FALSE), 
+                                                            levels=1:length(cols.use),ordered=TRUE)))
+  }
+  data.plot.all=data.frame(cbind(data.plot,data.scale))
+  data.reshape=melt((data.plot.all),id = colnames(data.plot))
+  data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
+  data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
+  #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
+  p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
+  
+  p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
+  p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
+  print(p2)
+}
 
 translate.dim.code=function(object,reduction.use) {
   if (!is.null(reduction.use)) return.code=object@dr[[reduction.use]]@key
