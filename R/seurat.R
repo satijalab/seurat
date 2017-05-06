@@ -3299,7 +3299,7 @@ setQuantile <- function(cutoff, data) {
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
 #' @return No return value, only a graphical output
-#' @importFrom dplyr %>%
+#' @importFrom dplyr %>% mutate_each group_by select ungroup
 #' @export
 FeatureHeatmap <- function(object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
                            cols.use = rev(heat.colors(10)), pch.use = 16, reduction.use = "tsne",
