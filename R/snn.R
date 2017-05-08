@@ -17,6 +17,7 @@ NULL
 #' @param do.sparse Whether to compute and return the SNN graph as a sparse
 #' matrix or not
 #' @param print.output Whether or not to print output to the console
+#' @param distance.matrix Build SNN from distance matrix (experimental)
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
@@ -24,18 +25,13 @@ NULL
 #' object@@snn.dense or object@@snn.sparse filled depending on the option
 #' set
 #' @export
-setGeneric("BuildSNN", function(object, genes.use = NULL, reduction.type="pca", pc.use = NULL,
-                                k.param = 10, k.scale = 10, plot.SNN = FALSE,
-                                prune.SNN = 1/15, do.sparse = FALSE, 
-                                print.output = TRUE)
-standardGeneric("BuildSNN"))
-#' @export
-setMethod("BuildSNN", signature = "seurat",
-          function(object, genes.use = NULL, reduction.type="pca", pc.use = NULL, k.param = 10,
+BuildSNN=function(object, genes.use = NULL, reduction.type="pca", pc.use = NULL, k.param = 10,
                    k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
-                   do.sparse = FALSE, print.output = TRUE) {
+                   do.sparse = FALSE, print.output = TRUE,distance.matrix=NULL) {
 
-  if (is.null(genes.use) && is.null(pc.use)) {
+  if (!is.null(distance.matrix)) {
+    data.use=distance.matrix
+  } else if (is.null(genes.use) && is.null(pc.use)) {
     genes.use <- object@var.genes
     data.use <- t(as.matrix(object@data[genes.use, ]))
   } else if (!is.null(pc.use)) {
@@ -55,9 +51,25 @@ setMethod("BuildSNN", signature = "seurat",
   }
 
   #find the k-nearest neighbors for each single cell
-  my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells - 1))
-  nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
-  nn.large <- my.knn$nn.index
+  if (is.null(distance.matrix)) {
+    my.knn <- get.knn(as.matrix(data.use), k = min(k.scale * k.param, n.cells - 1))
+    nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
+    nn.large <- my.knn$nn.index
+  }
+  if (!is.null(distance.matrix)) {
+    warning("Building SNN based on a provided distance matrix")
+    
+    n = nrow(distance.matrix)
+    k.for.nn=k.param*k.scale
+    knn.mat = matrix(0, ncol = k.for.nn, nrow = n)
+    knd.mat = knn.mat
+    for(i in 1:n){
+      knn.mat[i,] = order(data.use[i,])[1:k.for.nn]
+      knd.mat[i,] = data.use[i,knn.mat[i,]]
+    }
+    nn.large=knn.mat
+    nn.ranked=knn.mat[,2:k.param]
+  }
   if (do.sparse){
     w <- CalcSNNSparse(object, n.cells, k.param, nn.large, nn.ranked, prune.SNN,
                        print.output)
@@ -88,7 +100,7 @@ setMethod("BuildSNN", signature = "seurat",
     object@snn.sparse <- sparseMatrix(1, 1, x = 1)
   }
   return(object)
-})
+}
 
 CalcSNNSparse <- function(object, n.cells, k.param, nn.large, nn.ranked,
                          prune.SNN, print.output) {

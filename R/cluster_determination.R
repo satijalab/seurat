@@ -34,6 +34,7 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param print.output Whether or not to print output to the console
 #' @param temp.file.location Directory where intermediate files will be written. Specify the 
+#' @param distance.matrix Build SNN from distance matrix (experimental)
 #' ABSOLUTE path.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
@@ -48,7 +49,7 @@ setGeneric("FindClusters", function(object, genes.use = NULL, reduction.type="pc
                                     do.sparse = FALSE, modularity.fxn = 1, 
                                     resolution = 0.8, algorithm = 1, 
                                     n.start = 100, n.iter = 10, random.seed = 0,
-                                    print.output = TRUE, temp.file.location = NULL)
+                                    print.output = TRUE, temp.file.location = NULL, distance.matrix=NULL)
   standardGeneric("FindClusters"))
 #' @export
 setMethod("FindClusters", signature = "seurat",
@@ -57,7 +58,7 @@ setMethod("FindClusters", signature = "seurat",
                    save.SNN = FALSE, reuse.SNN = FALSE, do.sparse = FALSE, 
                    modularity.fxn = 1, resolution = 0.8, algorithm = 1,
                    n.start = 100, n.iter = 10, random.seed = 0, print.output = TRUE,
-                   temp.file.location = NULL){
+                   temp.file.location = NULL,distance.matrix=NULL){
             
           # for older objects without the snn.k slot
           if(typeof(validObject(object, test = T)) == "character"){
@@ -91,7 +92,7 @@ setMethod("FindClusters", signature = "seurat",
           # if any SNN building parameters are provided or it hasn't been built, build a new SNN
           else{
             object <- BuildSNN(object, genes.use, reduction.type, pc.use, k.param, k.scale,
-                               plot.SNN, prune.SNN, do.sparse, print.output)
+                               plot.SNN, prune.SNN, do.sparse, print.output,distance.matrix)
           }
           
           # deal with sparse SNNs

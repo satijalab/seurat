@@ -444,12 +444,14 @@ ICA <- function(object, ic.genes = NULL, ics.store = 40, ics.compute = 50, use.i
 #' For example, set to 3 for a 3d tSNE
 #' @param \dots Additional arguments to the tSNE call. Most commonly used is
 #' perplexity (expected number of neighbors default is 30)
+#' @param distance.matrix If set, tuns tSNE on the inputted distance matrix instead of data matrix (experimental)
 #' @return Returns a Seurat object with a tSNE embedding in object@@dr$tsne@rotation
 #' @importFrom Rtsne Rtsne
 #' @importFrom tsne tsne
 #' @export
 RunTSNE <- function(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5, genes.use = NULL,
-                    seed.use = 1, do.fast = FALSE, add.iter = 0, dim.embed = 2, ...) {
+                    seed.use = 1, do.fast = FALSE, add.iter = 0, dim.embed = 2, distance.matrix=NULL,...) {
+  if (!is.null(distance.matrix)) genes.use=rownames(object@data)
   if (is.null(genes.use)) {
     data.use <- GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")[, dims.use]
     
@@ -464,7 +466,8 @@ RunTSNE <- function(object, reduction.use = "pca", cells.use = NULL, dims.use = 
   }
   set.seed(seed.use)
   if (do.fast) {
-    data.tsne <- Rtsne(as.matrix(data.use), dims = dim.embed, ...)
+    if (is.null(distance.matrix)) data.tsne <- Rtsne(as.matrix(data.use), dims = dim.embed, ...)
+    if (!is.null(distance.matrix)) data.tsne <- Rtsne(as.matrix(distance.matrix), dims = dim.embed, is_distance=TRUE)
     data.tsne <- data.tsne$Y
   }
   else{
