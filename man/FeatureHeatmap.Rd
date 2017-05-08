@@ -6,7 +6,8 @@
 \usage{
 FeatureHeatmap(object, features.plot, dim.1 = 1, dim.2 = 2,
   idents.use = NULL, pt.size = 2, cols.use = rev(heat.colors(10)),
-  pch.use = 16, reduction.use = "tsne")
+  pch.use = 16, reduction.use = "tsne", group.by = NULL,
+  sep.scale = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -29,6 +30,10 @@ heat.colors(10).}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
+
+\item{group.by}{Group cells in different ways (for example, orig.ident)}
+
+\item{sep.scale}{Scale each group separately. Default is FALSE.}
 }
 \value{
 No return value, only a graphical output
