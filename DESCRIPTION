@@ -41,7 +41,8 @@ Imports:
     RcppEigen,
     RcppProgress,
     tclust,
-    ranger
+    ranger,
+    SDMTools
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate:
