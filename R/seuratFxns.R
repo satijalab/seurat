@@ -290,6 +290,9 @@ point.locator <- function(plot, recolor=TRUE, ...) {
     #   Convert the ggplot object to a data.frame
     plot.data <- ggpoint_to_base(plot = plot, ...)
     npoints <- nrow(x = plot.data)
+    cat("Click around the cluster of points you wish to select\n")
+    cat("ie. select the vertecies of a shape around the cluster you\n")
+    cat("are interested in. Press <Esc> when finished.\n\n")
     polygon <- locator(n = npoints, type = 'l')
     polygon <- data.frame(polygon)
     #   pnt.in.poly returns a data.frame of points
