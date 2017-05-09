@@ -46,7 +46,8 @@ Imports:
     NMOF,
     PMA,
     WGCNA,
-    dtw
+    dtw,
+    SDMTools
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 remotes: bioc::release/made4

@@ -9,7 +9,7 @@ FindClusters(object, genes.use = NULL, reduction.type = "pca",
   prune.SNN = 1/15, save.SNN = FALSE, reuse.SNN = FALSE,
   do.sparse = FALSE, modularity.fxn = 1, resolution = 0.8,
   algorithm = 1, n.start = 100, n.iter = 10, random.seed = 0,
-  print.output = TRUE, temp.file.location = NULL)
+  print.output = TRUE, temp.file.location = NULL, distance.matrix = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -53,7 +53,9 @@ algorithm; 2 = Louvain algorithm with multilevel refinement;
 
 \item{print.output}{Whether or not to print output to the console}
 
-\item{temp.file.location}{Directory where intermediate files will be written. Specify the 
+\item{temp.file.location}{Directory where intermediate files will be written. Specify the}
+
+\item{distance.matrix}{Build SNN from distance matrix (experimental)
 ABSOLUTE path.}
 }
 \value{

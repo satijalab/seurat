@@ -4008,44 +4008,81 @@ setMethod("JackStrawPlot","seurat",
 #' @param pch.use Pch argument for plotting
 #' @param cex.use Cex argument for plotting
 #' @param use.imputed Use imputed values for gene expression (Default is FALSE)
-#' @param do.ident False by default. If TRUE,
+#' @param use.scaled Use scaled data
+#' @param use.raw Use raw data
+#' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
 #' @param spline.span spline span in loess function call
 #' @param \dots Additional arguments to be passed to plot.
 #' @return No return, only graphical output
 #' @export
 setGeneric("GenePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1,use.imputed=FALSE, use.scaled=F, use.raw=F,
-                                do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.identify=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
 #' @export
 setMethod("GenePlot","seurat",
-          function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                   pch.use=16,cex.use=1,use.imputed=FALSE,do.ident=FALSE,do.spline=FALSE,spline.span=0.75,...) {
-            cell.ids=set.ifnull(cell.ids,object@cell.names)
-            data.use=as.data.frame(t(FetchData(object,c(gene1,gene2),cells.use = cell.ids,use.imputed=use.imputed,use.scaled = use.scaled,use.raw = use.raw)))
-            g1=as.numeric(data.use[gene1,cell.ids])
-            g2=as.numeric(data.use[gene2,cell.ids])
-            ident.use=as.factor(object@ident[cell.ids])
-            if (length(col.use)>1) {
-              col.use=col.use[as.numeric(ident.use)]
-            }
-            else {
-              col.use=set.ifnull(col.use,as.numeric(ident.use))
-            }
-            gene.cor=round(cor(g1,g2),2)
-            plot(g1,g2,xlab=gene1,ylab=gene2,col=col.use,cex=cex.use,main=gene.cor,pch=pch.use,...)
-            if (do.spline) {
-              spline.fit=smooth.spline(g1,g2,df = 4)
-              #lines(spline.fit$x,spline.fit$y,lwd=3)
-              #spline.fit=smooth.spline(g1,g2,df = 4)
-              loess.fit=loess(g2~g1,span=spline.span)
-              #lines(spline.fit$x,spline.fit$y,lwd=3)
-              points(g1,loess.fit$fitted,col="darkblue")
-            }
-            if (do.ident) {
-              return(identify(g1,g2,labels = cell.ids))
-            }
-          }
+    function(
+        object,
+        gene1,
+        gene2,
+        cell.ids = NULL,
+        col.use = NULL,
+        pch.use = 16,
+        cex.use = 1.5,
+        use.imputed = FALSE,
+        use.scaled = FALSE,
+        use.raw = FALSE,
+        do.identify = FALSE,
+        do.spline = FALSE,
+        spline.span = 0.75,
+        ...
+    ) {
+        cell.ids <- set.ifnull(cell.ids,object@cell.names)
+        #   Don't transpose the data.frame for better compatability with feature.locator and the rest of Seurat
+        data.use <- as.data.frame(x = FetchData(object = object, vars.all = c(gene1, gene2), cells.use = cell.ids, use.imputed = use.imputed, use.scaled = use.scaled, use.raw = use.raw))
+        #   Ensure that our data is only the cells we're working with and
+        #   the genes we want. This step seems kind of redundant though...
+        data.plot <- data.use[cell.ids, c(gene1, gene2)]
+        #   Set names to 'x' and 'y' for easy calling later on
+        names(x = data.plot) <- c('x', 'y')
+        ident.use <- as.factor(object@ident[cell.ids])
+        if (length(x = col.use) > 1) {
+            col.use <- col.use[as.numeric(x = ident.use)]
+        }
+        else {
+            col.use <- set.ifnull(x = col.use,y = as.numeric(x = ident.use))
+        }
+        gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
+        #   Plot the data
+        plot(
+            x = data.plot$x,
+            y = data.plot$y,
+            xlab = gene1,
+            ylab = gene2,
+            col = col.use,
+            cex = cex.use,
+            main = gene.cor,
+            pch = pch.use,
+            ...
+        )
+        if (do.spline) {
+            # spline.fit <- smooth.spline(x = g1, y = g2, df = 4)
+            spline.fit <- smooth.spline(x = data.plot$x, y = data.plot$y, df = 4)
+            #lines(spline.fit$x,spline.fit$y,lwd=3)
+            #spline.fit=smooth.spline(g1,g2,df = 4)
+            # loess.fit <- loess(formula = g2 ~ g1, span=spline.span)
+            loess.fit <- loess(formula = y ~ x, data = data.plot, span = spline.span)
+            #lines(spline.fit$x,spline.fit$y,lwd=3)
+            # points(x = g1, y = loess.fit$fitted, col="darkblue")
+            points(x = data.plot$x, y = loess.fit$fitted, col = 'darkblue')
+        }
+        if (do.identify) {
+            #   This is where that untransposed renamed data.frame comes in handy
+            p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
+            p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
+            p <- p + labs(title = gene.cor, x = gene1, y = gene2)
+            return(feature.locator(plot = p, data.plot = data.plot))
+        }
+    }
 )
 
 #' @export
@@ -4096,24 +4133,57 @@ setMethod("GeneScorePlot","seurat",
 #' @param nrpoints.use Parameter for smoothScatter
 #' @param pch.use Point symbol to use
 #' @param cex.use Point size
-#' @param do.ident FALSE by default. If TRUE, allows you to click on individual
+#' @param do.identify Opens a locator session to identify clusters of cells.
 #' points to reveal gene names (hit ESC to stop)
 #' @param \dots Additional arguments to pass to smoothScatter
 #' @return No return value (plots a scatter plot)
 #' @export
-setGeneric("CellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...)  standardGeneric("CellPlot"))
+setGeneric("CellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.identify=FALSE,...)  standardGeneric("CellPlot"))
 #' @export
 setMethod("CellPlot","seurat",
-          function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.ident=FALSE,...) {
-            gene.ids=set.ifnull(gene.ids,rownames(object@data))
-            c1=as.numeric(object@data[gene.ids,cell1])
-            c2=as.numeric(object@data[gene.ids,cell2])
-            gene.cor=round(cor(c1,c2),2)
-            smoothScatter(c1,c2,xlab=cell1,ylab=cell2,col=col.use,nrpoints=nrpoints.use,pch=pch.use,cex=cex.use,main=gene.cor)
-            if (do.ident) {
-              identify(c1,c2,labels = gene.ids)
-            }
-          }
+    function(
+        object,
+        cell1,
+        cell2,
+        gene.ids = NULL,
+        col.use = "black",
+        nrpoints.use = Inf,
+        pch.use = 16,
+        cex.use = 0.5,
+        do.identify = FALSE,
+        ...
+    ) {
+        gene.ids <- set.ifnull(x = gene.ids,y = rownames(x = object@data))
+        #   Transpose this data.frame so that the genes are in the row for
+        #   easy selecting with do.identify
+        data.plot <- as.data.frame(x = t(x = FetchData(
+            object = object,
+            vars.all = gene.ids,
+            cells.use = c(cell1, cell2)
+        )))
+        #   Set names for easy calling with ggplot
+        names(x = data.plot) <- c('x', 'y')
+        gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
+        smoothScatter(
+            x = data.plot$x,
+            y = data.plot$y,
+            xlab = cell1,
+            ylab = cell2,
+            col = col.use,
+            nrpoints = nrpoints.use,
+            pch = pch.use,
+            cex = cex.use,
+            main = gene.cor
+        )
+        if (do.identify) {
+            #   Build the ggplot object for feature.locator
+            p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
+            p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
+            p <- p + labs(title = gene.cor, x = cell1, y = cell2)
+            #   Return the selected genes, using a smooth scatterplot
+            return(feature.locator(plot = p, data.plot = data.plot, smooth = TRUE, nrpoints = nrpoints.use, main = gene.cor))
+        }
+    }
 )
 
 #' @export

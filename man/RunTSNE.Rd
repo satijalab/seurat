@@ -6,7 +6,7 @@
 \usage{
 RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
   genes.use = NULL, seed.use = 1, do.fast = FALSE, add.iter = 0,
-  dim.embed = 2, ...)
+  dim.embed = 2, distance.matrix = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,6 +30,8 @@ current tSNE to seed the algorithm and then adds additional iterations on top of
 
 \item{dim.embed}{The dimensional space of the resulting tSNE embedding (default is 2).
 For example, set to 3 for a 3d tSNE}
+
+\item{distance.matrix}{If set, tuns tSNE on the inputted distance matrix instead of data matrix (experimental)}
 
 \item{\dots}{Additional arguments to the tSNE call. Most commonly used is
 perplexity (expected number of neighbors default is 30)}

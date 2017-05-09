@@ -6,7 +6,7 @@
 \usage{
 BuildSNN(object, genes.use = NULL, reduction.type = "pca", pc.use = NULL,
   k.param = 10, k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
-  do.sparse = FALSE, print.output = TRUE)
+  do.sparse = FALSE, print.output = TRUE, distance.matrix = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,6 +28,8 @@ BuildSNN(object, genes.use = NULL, reduction.type = "pca", pc.use = NULL,
 matrix or not}
 
 \item{print.output}{Whether or not to print output to the console}
+
+\item{distance.matrix}{Build SNN from distance matrix (experimental)}
 }
 \value{
 Returns the object with object@snn.k and either

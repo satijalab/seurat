@@ -5,9 +5,9 @@
 \title{Scatter plot of single cell data}
 \usage{
 GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
-  pch.use = 16, cex.use = 1, use.imputed = FALSE, use.scaled = F,
-  use.raw = F, do.ident = FALSE, do.spline = FALSE, spline.span = 0.75,
-  ...)
+  pch.use = 16, cex.use = 1.5, use.imputed = FALSE, use.scaled = FALSE,
+  use.raw = FALSE, do.identify = FALSE, do.spline = FALSE,
+  spline.span = 0.75, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,11 +27,11 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{use.imputed}{Use imputed values for gene expression (Default is FALSE)}
 
-\item{use.scaled}{For gene expression, use scaled values. Default is FALSE}
+\item{use.scaled}{Use scaled data}
 
-\item{use.raw}{For gene expression, use raw values. Default is FALSE}
+\item{use.raw}{Use raw data}
 
-\item{do.ident}{False by default. If TRUE,}
+\item{do.identify}{Opens a locator session to identify clusters of cells.}
 
 \item{do.spline}{Add a spline (currently hardwired to df=4, to be improved)}
 
