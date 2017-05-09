@@ -251,7 +251,7 @@ shuffleMatRow=function(x) {
 
 #   Functions for converting ggplot2 objects
 #   to standard plots for use with locator
-plot.ggplot.build <- function(plot.data, smooth = FALSE) {
+plot.ggplot.build <- function(plot.data, smooth = FALSE, ...) {
     #   Do we use a smooth scatterplot?
     #   Take advantage of functions as first class objects
     #   to dynamically choose normal vs smooth scatterplot
@@ -260,11 +260,13 @@ plot.ggplot.build <- function(plot.data, smooth = FALSE) {
     } else {
         myplot <- plot
     }
+    # stop(plot.data$cex)
     myplot(
         plot.data[, c(1, 2)],
         col = plot.data$color,
         pch = plot.data$pch,
-        cex = plot.data$cex
+        cex = vapply(X = plot.data$cex, FUN = function(x) return(max(x / 2, 0.5)), FUN.VALUE = numeric(1)),
+        ...
     )
 }
 
