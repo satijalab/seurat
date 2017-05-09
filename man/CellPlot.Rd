@@ -5,7 +5,7 @@
 \title{Cell-cell scatter plot}
 \usage{
 CellPlot(object, cell1, cell2, gene.ids = NULL, col.use = "black",
-  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5, do.ident = FALSE,
+  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5, do.identify = FALSE,
   ...)
 }
 \arguments{
@@ -27,7 +27,7 @@ object@cell.names)}
 
 \item{cex.use}{Point size}
 
-\item{do.ident}{FALSE by default. If TRUE, allows you to click on individual
+\item{do.identify}{Opens a locator session to identify clusters of cells.
 points to reveal gene names (hit ESC to stop)}
 
 \item{\dots}{Additional arguments to pass to smoothScatter}
