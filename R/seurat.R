@@ -4011,8 +4011,7 @@ setMethod("CellPlot","seurat",
         data.plot <- as.data.frame(x = t(x = FetchData(
             object = object,
             vars.all = gene.ids,
-            cells.use = c(cell1, cell2),
-            ...
+            cells.use = c(cell1, cell2)
         )))
         #   Set names for easy calling with ggplot
         names(x = data.plot) <- c('x', 'y')
@@ -4034,7 +4033,7 @@ setMethod("CellPlot","seurat",
             p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
             p <- p + labs(title = gene.cor, x = cell1, y = cell2)
             #   Return the selected genes, using a smooth scatterplot
-            return(feature.locator(plot = p, data.plot = data.plot, smooth = TRUE))
+            return(feature.locator(plot = p, data.plot = data.plot, smooth = TRUE, nrpoints = nrpoints.use, main = gene.cor))
         }
     }
 )
