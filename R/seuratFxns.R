@@ -251,21 +251,28 @@ shuffleMatRow=function(x) {
 
 #   Functions for converting ggplot2 objects
 #   to standard plots for use with locator
-plot.ggplot.build <- function(plot.data) {
-    plot(
+plot.ggplot.build <- function(plot.data, smooth = FALSE) {
+    #   Do we use a smooth scatterplot?
+    #   Take advantage of functions as first class objects
+    #   to dynamically choose normal vs smooth scatterplot
+    if (smooth) {
+        myplot <- smoothScatter
+    } else {
+        myplot <- plot
+    }
+    myplot(
         plot.data[, c(1, 2)],
-        type = 'p',
         col = plot.data$color,
         pch = plot.data$pch,
         cex = plot.data$cex
     )
 }
 
-ggpoint_to_base <- function(plot, do.plot = TRUE) {
+ggpoint_to_base <- function(plot, do.plot = TRUE, ...) {
     plot.build <- ggplot2::ggplot_build(plot = plot)
     build.data <- plot.build$data[[1]]
     plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
-    names(plot.data) <- c(
+    names(x = plot.data) <- c(
         plot.build$plot$labels$x,
         plot.build$plot$labels$y,
         'color',
@@ -273,15 +280,15 @@ ggpoint_to_base <- function(plot, do.plot = TRUE) {
         'cex'
     )
     if (do.plot) {
-        plot.ggplot.build(plot.data = plot.data)
+        plot.ggplot.build(plot.data = plot.data, ...)
     }
     return(plot.data)
 }
 
 #   Locate points on a plot and return them
-point.locator <- function(plot, recolor=TRUE) {
+point.locator <- function(plot, recolor=TRUE, ...) {
     #   Convert the ggplot object to a data.frame
-    plot.data <- ggpoint_to_base(plot = plot)
+    plot.data <- ggpoint_to_base(plot = plot, ...)
     npoints <- nrow(x = plot.data)
     polygon <- locator(n = npoints, type = 'l')
     polygon <- data.frame(polygon)
@@ -296,7 +303,7 @@ point.locator <- function(plot, recolor=TRUE) {
     if(recolor) {
         points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = 'black')
         plot.data$color <- points.all$color
-        plot.ggplot.build(plot.data = plot.data)
+        plot.ggplot.build(plot.data = plot.data, ...)
     }
     return(points.located[, c(1, 2)])
 }
