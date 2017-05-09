@@ -5,7 +5,7 @@
 \title{Scatter plot of single cell data}
 \usage{
 GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
-  pch.use = 16, cex.use = 1.5, use.imputed = FALSE, do.ident = FALSE,
+  pch.use = 16, cex.use = 1.5, use.imputed = FALSE, do.identify = FALSE,
   do.spline = FALSE, spline.span = 0.75, ...)
 }
 \arguments{
@@ -26,7 +26,7 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{use.imputed}{Use imputed values for gene expression (Default is FALSE)}
 
-\item{do.ident}{False by default. If TRUE,}
+\item{do.identify}{Opens a locator session to identify clusters of cells.}
 
 \item{do.spline}{Add a spline (currently hardwired to df=4, to be improved)}
 
