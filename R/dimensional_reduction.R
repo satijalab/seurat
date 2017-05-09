@@ -988,7 +988,7 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' @export
 DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.use = NULL, 
                     pt.size = 3, do.return = FALSE, do.bare = FALSE, cols.use = NULL, 
-                    group.by = "ident", pt.shape = NULL, do.idenfity = FALSE, do.label = FALSE, label.size = 1, 
+                    group.by = "ident", pt.shape = NULL, do.identify = FALSE, do.label = FALSE, label.size = 1, 
                     no.legend = FALSE, ...) {
   if(length(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")) == 0) {
     stop(paste0(reduction.use, "has not been run for this object yet."))
@@ -1030,7 +1030,7 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   if (no.legend) {
     p3 <- p3 + theme(legend.position = "none")
   }
-  if (do.idenfity) {
+  if (do.identify) {
       if (do.bare) {
           plot.use <- p
       } else {
