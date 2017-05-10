@@ -4178,12 +4178,13 @@ setMethod("GeneScorePlot","seurat",
 #' @param nrpoints.use Parameter for smoothScatter
 #' @param pch.use Point symbol to use
 #' @param cex.use Point size
+#' @param do.hover Enable hovering over points to view information
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' points to reveal gene names (hit ESC to stop)
 #' @param \dots Additional arguments to pass to smoothScatter
 #' @return No return value (plots a scatter plot)
 #' @export
-setGeneric("CellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.identify=FALSE,...)  standardGeneric("CellPlot"))
+setGeneric("CellPlot", function(object, cell1, cell2, gene.ids=NULL,col.use="black",nrpoints.use=Inf,pch.use=16,cex.use=0.5,do.hover=FALSE,do.identify=FALSE,...)  standardGeneric("CellPlot"))
 #' @export
 setMethod("CellPlot","seurat",
     function(
@@ -4195,6 +4196,7 @@ setMethod("CellPlot","seurat",
         nrpoints.use = Inf,
         pch.use = 16,
         cex.use = 0.5,
+        do.hover = FALSE,
         do.identify = FALSE,
         ...
     ) {
@@ -4220,13 +4222,17 @@ setMethod("CellPlot","seurat",
             cex = cex.use,
             main = gene.cor
         )
-        if (do.identify) {
-            #   Build the ggplot object for feature.locator
+        if (do.identify | do.hover) {
+            #   This is where that untransposed renamed data.frame comes in handy
             p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
             p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
             p <- p + labs(title = gene.cor, x = cell1, y = cell2)
-            #   Return the selected genes, using a smooth scatterplot
-            return(feature.locator(plot = p, data.plot = data.plot, smooth = TRUE, nrpoints = nrpoints.use, main = gene.cor))
+            if (do.identify) {
+                return(feature.locator(plot = p, data.plot = data.plot))
+            } else if (do.hover) {
+                names(x = data.plot) <- c(cell1, cell2)
+                return(hover.locator(plot = p, data.plot = data.plot))
+            }
         }
     }
 )

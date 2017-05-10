@@ -5,8 +5,8 @@
 \title{Cell-cell scatter plot}
 \usage{
 CellPlot(object, cell1, cell2, gene.ids = NULL, col.use = "black",
-  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5, do.identify = FALSE,
-  ...)
+  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5, do.hover = FALSE,
+  do.identify = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +26,8 @@ object@cell.names)}
 \item{pch.use}{Point symbol to use}
 
 \item{cex.use}{Point size}
+
+\item{do.hover}{Enable hovering over points to view information}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.
 points to reveal gene names (hit ESC to stop)}
