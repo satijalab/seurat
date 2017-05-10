@@ -323,7 +323,7 @@ feature.locator <- function(plot, data.plot, ...) {
 }
 
 #   Use plotly for hovering
-hover.locator <- function(plot, data.plot) {
+hover.locator <- function(plot, data.plot, ...) {
     #   Use ggpoint_to_base because we already have ggplot objects
     #   with colors (which are annoying in plotly)
     plot.build <- ggpoint_to_base(plot = plot, do.plot = FALSE)
@@ -353,7 +353,7 @@ hover.locator <- function(plot, data.plot) {
         color = ~I(color),
         hoverinfo = 'text',
         text = ~feature
-    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis)
+    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis, ...)
 }
 
 
