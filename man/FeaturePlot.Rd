@@ -7,7 +7,7 @@
 FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1,
   cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
-  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+  do.identify, reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
   no.axes = FALSE, no.legend = TRUE)
 }
 \arguments{
@@ -34,6 +34,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{pch.use}{Pch for plotting}
 
 \item{overlay}{Plot two features overlayed one on top of the other}
+
+\item{do.identify}{Opens a locator session to identify clusters of cells}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}

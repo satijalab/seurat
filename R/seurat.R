@@ -2914,6 +2914,7 @@ setMethod("CalcNoiseModels","seurat",
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
 #' @param pch.use Pch for plotting
 #' @param overlay Plot two features overlayed one on top of the other
+#' @param do.identify Opens a locator session to identify clusters of cells
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param use.imputed Use imputed values for gene expression (default is FALSE)
@@ -2925,8 +2926,8 @@ setMethod("CalcNoiseModels","seurat",
 #' @export
 FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA, dim.1 = 1, dim.2 = 2,
                         cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
-                        overlay = FALSE, reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
-                        no.axes = FALSE, no.legend = TRUE) {
+                        overlay = FALSE, do.identify, reduction.use = "tsne", use.imputed = FALSE,
+                        nCol = NULL, no.axes = FALSE, no.legend = TRUE) {
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
@@ -2935,6 +2936,10 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
               if (length(features.plot) > 9) nCol <- 4
             }
             num.row <- floor(length(features.plot) / nCol - 1e-5) + 1
+            if (overlay) {
+                num.row <- 1
+                nCol <- 1
+            }
             par(mfrow = c(num.row, nCol))
             dim.code <- translate.dim.code(object, reduction.use)
             dim.codes <- paste(dim.code, c(dim.1, dim.2), sep = "")
@@ -3014,7 +3019,15 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
                     SIMPLIFY = FALSE # Get list, not matrix
                 )
             }
-            MultiPlotList(pList, cols = nCol)
+            if (do.identify) {
+                if (length(x = pList) != 1) {
+                    stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
+                }
+                #   Use pList[[1]] to properly extract the ggplot out of the plot list
+                return(feature.locator(plot = pList[[1]], data.plot = data.plot))
+            } else {
+                MultiPlotList(pList, cols = nCol)
+            }
             rp()
           }
 
