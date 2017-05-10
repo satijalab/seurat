@@ -4048,6 +4048,7 @@ setMethod("JackStrawPlot","seurat",
 #' @param use.imputed Use imputed values for gene expression (Default is FALSE)
 #' @param use.scaled Use scaled data
 #' @param use.raw Use raw data
+#' @param do.hover Enable hovering over points to view information
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
 #' @param spline.span spline span in loess function call
@@ -4055,7 +4056,7 @@ setMethod("JackStrawPlot","seurat",
 #' @return No return, only graphical output
 #' @export
 setGeneric("GenePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.identify=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.hover=FALSE,do.identify=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
 #' @export
 setMethod("GenePlot","seurat",
     function(
@@ -4069,6 +4070,7 @@ setMethod("GenePlot","seurat",
         use.imputed = FALSE,
         use.scaled = FALSE,
         use.raw = FALSE,
+        do.hover = FALSE,
         do.identify = FALSE,
         do.spline = FALSE,
         spline.span = 0.75,
@@ -4113,12 +4115,17 @@ setMethod("GenePlot","seurat",
             # points(x = g1, y = loess.fit$fitted, col="darkblue")
             points(x = data.plot$x, y = loess.fit$fitted, col = 'darkblue')
         }
-        if (do.identify) {
+        if (do.identify | do.hover) {
             #   This is where that untransposed renamed data.frame comes in handy
             p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
             p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
             p <- p + labs(title = gene.cor, x = gene1, y = gene2)
-            return(feature.locator(plot = p, data.plot = data.plot))
+            if (do.identify) {
+                return(feature.locator(plot = p, data.plot = data.plot))
+            } else if (do.hover) {
+                names(x = data.plot) <- c(gene1, gene2)
+                return(hover.locator(plot = p, data.plot = data.plot))
+            }
         }
     }
 )

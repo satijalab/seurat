@@ -6,8 +6,8 @@
 \usage{
 GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
   pch.use = 16, cex.use = 1.5, use.imputed = FALSE, use.scaled = FALSE,
-  use.raw = FALSE, do.identify = FALSE, do.spline = FALSE,
-  spline.span = 0.75, ...)
+  use.raw = FALSE, do.hover = FALSE, do.identify = FALSE,
+  do.spline = FALSE, spline.span = 0.75, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,6 +30,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{use.scaled}{Use scaled data}
 
 \item{use.raw}{Use raw data}
+
+\item{do.hover}{Enable hovering over points to view information}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 
