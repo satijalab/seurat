@@ -47,7 +47,8 @@ Imports:
     PMA,
     WGCNA,
     dtw,
-    SDMTools
+    SDMTools,
+    plotly
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 remotes: bioc::release/made4
