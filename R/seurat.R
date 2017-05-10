@@ -3018,64 +3018,81 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
             rp()
           }
 
-SingleFeaturePlot <- function(data.use, feature, data.plot, pt.size, pch.use, cols.use, dim.codes,
-                              min.cutoff, max.cutoff, no.axes, no.legend){
-  data.gene <- na.omit(data.use[feature, ])
-  #   Check for quantiles
-  min.cutoff <- setQuantile(cutoff = min.cutoff, data = data.gene)
-  max.cutoff <- setQuantile(cutoff = max.cutoff, data = data.gene)
-  #   Mask any values below the minimum and above the maximum values
-  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
-  data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
-  data.plot$gene <- data.gene
-  brewer.gran <- 1
-  if(length(cols.use) == 1){
-    brewer.gran <- brewer.pal.info[cols.use, ]$maxcolors
-  }
-  else{
-    brewer.gran <- length(cols.use)
-  }
-  if(any(as.matrix(data.gene) != 0)){
-    data.cut <- 0
-  }
-  else{
-    data.cut <- as.numeric(as.factor(cut(as.numeric(data.gene), breaks = brewer.gran)))
-  }
-  data.plot$col <- as.factor(data.cut)
-  p <- ggplot(data.plot, aes(x, y))
-  if(brewer.gran != 2){
+SingleFeaturePlot <- function(
+    data.use,
+    feature,
+    data.plot,
+    pt.size,
+    pch.use,
+    cols.use,
+    dim.codes,
+    min.cutoff,
+    max.cutoff,
+    no.axes,
+    no.legend
+) {
+    data.gene <- na.omit(object = data.frame(data.use[feature, ]))
+    #   Check for quantiles
+    min.cutoff <- setQuantile(cutoff = min.cutoff, data = data.gene)
+    max.cutoff <- setQuantile(cutoff = max.cutoff, data = data.gene)
+    #   Mask any values below the minimum and above the maximum values
+    data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
+    data.gene <- sapply(X = data.gene, FUN = function(x) ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
+    data.plot$gene <- data.gene
+    #   Stuff for break points
     if(length(cols.use) == 1){
-      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) + 
-        scale_color_brewer(palette=cols.use)
+        brewer.gran <- brewer.pal.info[cols.use, ]$maxcolors
     }
     else{
-      p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) +  
-        scale_color_manual(values=cols.use)
+        brewer.gran <- length(cols.use)
     }
-  }
-  else{
-    if(all(data.plot$gene == data.plot$gene[1])){
-      warning(paste0("All cells have the same value of ", feature, "."))
-      p <- p + geom_point(color=cols.use[1], size=pt.size, shape=pch.use) 
+    #   Cut points
+    if(all(data.gene == 0)){
+        data.cut <- 0
     }
     else{
-      p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) +
-        scale_color_gradientn(colors=cols.use, guide = guide_colorbar(title = feature))
+        data.cut <- as.numeric(x = as.factor(x = cut(x = as.numeric(x = data.gene), breaks = brewer.gran)))
     }
-  }
-  if(no.axes){
-    p <- p + labs(title = feature, x ="", y="") +  theme(axis.line=element_blank(),axis.text.x=element_blank(),
-                                                         axis.text.y=element_blank(),axis.ticks=element_blank(),
-                                                         axis.title.x=element_blank(),
-                                                         axis.title.y=element_blank())
-  }
-  else{
-    p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
-  }
-  if(no.legend){
-    p <- p + theme(legend.position = 'none')
-  }
-  return(p)
+    data.plot$col <- as.factor(x = data.cut)
+    #   Start plotting
+    p <- ggplot(data.plot, aes(x, y))
+    if(brewer.gran != 2){
+        if(length(cols.use) == 1){
+            p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) +
+                scale_color_brewer(palette=cols.use)
+        }
+        else{
+            p <- p + geom_point(aes(color=col), size=pt.size, shape=pch.use) +
+                scale_color_manual(values=cols.use)
+        }
+    }
+    else{
+        if(all(data.plot$gene == data.plot$gene[1])){
+            warning(paste0("All cells have the same value of ", feature, "."))
+            p <- p + geom_point(color=cols.use[1], size=pt.size, shape=pch.use)
+        }
+        else{
+            p <- p + geom_point(aes(color=gene), size=pt.size, shape=pch.use) +
+                scale_color_gradientn(colors=cols.use, guide = guide_colorbar(title = feature))
+        }
+    }
+    if(no.axes){
+        p <- p + labs(title = feature, x ="", y="") + theme(
+            axis.line = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank()
+        )
+    }
+    else{
+        p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
+    }
+    if(no.legend){
+        p <- p + theme(legend.position = 'none')
+    }
+    return(p)
 }
 
 BlendPlot <- function(
