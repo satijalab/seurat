@@ -3025,7 +3025,7 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
                     stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
                 }
                 #   Use pList[[1]] to properly extract the ggplot out of the plot list
-                return(hover.locator(plot = pList[[1]], data.plot = data.plot))
+                return(hover.locator(plot = pList[[1]], data.plot = data.plot, title = features.plot))
                 # invisible(readline(prompt = 'Press <Enter> to continue\n'))
             } else if (do.identify) {
                 if (length(x = pList) != 1) {
@@ -4124,7 +4124,7 @@ setMethod("GenePlot","seurat",
                 return(feature.locator(plot = p, data.plot = data.plot))
             } else if (do.hover) {
                 names(x = data.plot) <- c(gene1, gene2)
-                return(hover.locator(plot = p, data.plot = data.plot))
+                return(hover.locator(plot = p, data.plot = data.plot, title = gene.cor))
             }
         }
     }
@@ -4231,7 +4231,7 @@ setMethod("CellPlot","seurat",
                 return(feature.locator(plot = p, data.plot = data.plot))
             } else if (do.hover) {
                 names(x = data.plot) <- c(cell1, cell2)
-                return(hover.locator(plot = p, data.plot = data.plot))
+                return(hover.locator(plot = p, data.plot = data.plot, title = gene.cor))
             }
         }
     }
