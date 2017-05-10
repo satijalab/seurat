@@ -322,6 +322,40 @@ feature.locator <- function(plot, data.plot, ...) {
     return(rownames(x = selected))
 }
 
+#   Use plotly for hovering
+hover.locator <- function(plot, data.plot) {
+    #   Use ggpoint_to_base because we already have ggplot objects
+    #   with colors (which are annoying in plotly)
+    plot.build <- ggpoint_to_base(plot = plot, do.plot = FALSE)
+    #   Reset the names to 'x' and 'y'
+    names(x = plot.build) <- c(
+        'x',
+        'y',
+        names(x = plot.build)[3:length(x = plot.build)]
+    )
+    #   Add the names we're looking for (eg. cell name, gene name)
+    plot.build$feature <- rownames(x = data.plot)
+    #   Set up axis labels here
+    #   Also, a bunch of stuff to get axis lines done properly
+    xaxis <- list(title = names(x = data.plot)[1], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
+    yaxis <- list(title = names(x = data.plot)[2], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
+    #   Start plotly and pipe it into layout for axis modifications
+    #   The `~' means pull from the data passed (this is why we reset the names)
+    #   Use I() to get plotly to accept the colors from the data as is
+    #   Set hoverinfo to 'text' to override the default hover information
+    #   rather than append to it
+    plotly::plot_ly(
+        data = plot.build,
+        x = ~x,
+        y = ~y,
+        type = 'scatter',
+        mode = 'markers',
+        color = ~I(color),
+        hoverinfo = 'text',
+        text = ~feature
+    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis)
+}
+
 
 #' @export
 logMeanMinus= function(x)log(mean(exp(as.numeric(x))-1)+1)
