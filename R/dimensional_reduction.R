@@ -1042,6 +1042,7 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' @param pt.shape If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both different colors and 
 #' different shapes on cells.
+#' @param do.hover Enable hovering over points to view information
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
@@ -1053,7 +1054,7 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' @export
 DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.use = NULL, 
                     pt.size = 3, do.return = FALSE, do.bare = FALSE, cols.use = NULL, 
-                    group.by = "ident", pt.shape = NULL, do.identify = FALSE, do.label = FALSE, label.size = 1, 
+                    group.by = "ident", pt.shape = NULL, do.hover = FALSE, do.identify = FALSE, do.label = FALSE, label.size = 1, 
                     no.legend = FALSE, ...) {
   if(length(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")) == 0) {
     stop(paste0(reduction.use, "has not been run for this object yet."))
@@ -1095,13 +1096,17 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   if (no.legend) {
     p3 <- p3 + theme(legend.position = "none")
   }
-  if (do.identify) {
+  if (do.identify | do.hover) {
       if (do.bare) {
           plot.use <- p
       } else {
           plot.use <- p3
       }
-      return(feature.locator(plot = plot.use, data.plot = data.plot, ...))
+      if (do.identify) {
+          return(feature.locator(plot = plot.use, data.plot = data.plot, ...))
+      } else if (do.hover) {
+          return(hover.locator(plot = plot.use, data.plot = data.plot))
+      }
   }
   if (do.return) {
     if (do.bare) return(p)
