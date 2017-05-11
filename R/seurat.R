@@ -1821,7 +1821,7 @@ setMethod("FindMarkers", "seurat",
 
             genes.diff = names(which(abs(total.diff)>thresh.use))
             genes.use=ainb(genes.use,genes.diff)
-            
+
             #perform DR
             if (test.use=="bimod") to.return=DiffExpTest(object,cells.1,cells.2,genes.use,print.bar)
             if (test.use=="roc") to.return=MarkerTest(object,cells.1,cells.2,genes.use,print.bar)
@@ -2010,18 +2010,16 @@ setMethod("DiffExpTest", "seurat",
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
 #' @export
-setGeneric("NegBinomDETest", function(object, cells.1,cells.2, genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) standardGeneric("NegBinomDETest"))
-#' @export
-setMethod("NegBinomDETest", "seurat",
-          function(object, cells.1,cells.2,genes.use=NULL,latent.vars=NULL,print.bar=TRUE, min.cells = 3) {
+NegBinomDETest <- function(object, cells.1, cells.2, genes.use = NULL, latent.vars = NULL, 
+                           print.bar = TRUE, min.cells = 3) {
             genes.use <- set.ifnull(genes.use, rownames(object@data))
             # check that the gene made it through the any filtering that was done
             genes.use <- genes.use[genes.use %in% rownames(object@data)]
-            my.latent <- FetchData(object,latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
+            my.latent <- FetchData(object, latent.vars, cells.use = c(cells.1, cells.2), use.raw = T)
             to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
             to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
-            to.test[cells.1,"group"]="A"
-            to.test[cells.2,"group"]="B"
+            to.test[cells.1, "group"] <- "A"
+            to.test[cells.2, "group"] <- "B"
             to.test$group <- factor(to.test$group)
             latent.vars <- c("group", latent.vars)
             iterate.fxn <- lapply
@@ -2035,19 +2033,19 @@ setMethod("NegBinomDETest", "seurat",
               }
               # check that variance between groups is not 0
               if (var(to.test$GENE) == 0){
-                print("what")
                 warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
                 return(2)
               }
-              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
-              return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
+              fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.vars, collapse = "+")))
+              try(p.estimate <- summary(glm.nb(fmla,data = to.test))$coef[2,4], silent = T)
+              if(is.numeric(p.estimate)) return(p.estimate)
+              else return(2)
             }))
             genes.use <- genes.use[-which(p_val==2)]
             p_val <- p_val[!p_val==2]
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
-)
 
 #' Negative binomial test for UMI-count based data (regularized version)
 #'
@@ -2919,13 +2917,14 @@ setMethod("CalcNoiseModels","seurat",
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @param no.axes Remove axis labels
 #' @param no.legend Remove legend from the graph. Default is TRUE.
+#' @param do.return return the ggplot2 object
 #' @importFrom RColorBrewer brewer.pal.info
 #' @return No return value, only a graphical output
 #' @export
 FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA, dim.1 = 1, dim.2 = 2,
                         cells.use = NULL, pt.size = 1, cols.use = c("yellow", "red"), pch.use = 16,
                         overlay = FALSE, do.hover = FALSE, do.identify = FALSE, reduction.use = "tsne", use.imputed = FALSE,
-                        nCol = NULL, no.axes = FALSE, no.legend = TRUE) {
+                        nCol = NULL, no.axes = FALSE, no.legend = TRUE, do.return = FALSE) {
             cells.use <- set.ifnull(cells.use, colnames(object@data))
             if (is.null(nCol)) {
               nCol <- 2
@@ -3034,6 +3033,9 @@ FeaturePlot <- function(object, features.plot, min.cutoff = NA, max.cutoff = NA,
                 MultiPlotList(pList, cols = nCol)
             }
             rp()
+            if(do.return){
+              return(pList)
+            }
           }
 
 SingleFeaturePlot <- function(
