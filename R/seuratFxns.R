@@ -260,7 +260,6 @@ plot.ggplot.build <- function(plot.data, smooth = FALSE, ...) {
     } else {
         myplot <- plot
     }
-    # stop(plot.data$cex)
     myplot(
         plot.data[, c(1, 2)],
         col = plot.data$color,
