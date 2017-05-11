@@ -1931,17 +1931,14 @@ fisher.integrate <- function(pvals){
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param latent.vars remove the effects of these variables 
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @export
-setGeneric("FindAllMarkers", function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
-                                      min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
-                                      do.print=FALSE, random.seed = 1, min.cells = 3) standardGeneric("FindAllMarkers"))
-#' @export
-setMethod("FindAllMarkers","seurat",
-      function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, min.diff.pct=0.05, 
-               print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf,return.thresh=1e-2,do.print=FALSE, random.seed = 1, min.cells = 3) {
-            genes.use=set.ifnull(genes.use, rownames(object@data))
+FindAllMarkers <- function(object, ident.1,ident.2=NULL,genes.use=NULL,thresh.use=0.25,test.use="bimod",min.pct=0.1, 
+                            min.diff.pct=0.05, print.bar=TRUE,only.pos=FALSE, max.cells.per.ident = Inf, return.thresh=1e-2,
+                            do.print=FALSE, random.seed = 1, min.cells = 3, latent.vars = "nUMI"){
+          genes.use=set.ifnull(genes.use, rownames(object@data))
             ident.use=object@ident
             if ((test.use=="roc") && (return.thresh==1e-2)) return.thresh=0.7
             idents.all=sort(unique(object@ident))
@@ -1950,7 +1947,8 @@ setMethod("FindAllMarkers","seurat",
             
             for(i in 1:length(idents.all)) {
               genes.de[[i]]=FindMarkers(object,ident.1 = idents.all[i], ident.2 = NULL, genes.use = genes.use, thresh.use = thresh.use, 
-                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar, min.cells = min.cells)
+                                        test.use = test.use, min.pct = min.pct, min.diff.pct = min.diff.pct, print.bar = print.bar, min.cells = min.cells,
+                                        latent.vars = latent.vars)
               if (do.print) print(paste("Calculating cluster", idents.all[i]))
             }
             gde.all=data.frame()
@@ -1970,7 +1968,6 @@ setMethod("FindAllMarkers","seurat",
             if(only.pos) return(subset(gde.all,avg_diff>0))
             return(gde.all)
           }
-)
 
 
 #' Likelihood ratio test for zero-inflated data

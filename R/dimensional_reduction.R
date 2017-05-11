@@ -1047,6 +1047,7 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
 #' @param no.legend Setting to TRUE will remove the legend
+#' @param no.axes Setting to TRUE will remove the axes
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #' @import SDMTools
@@ -1055,7 +1056,7 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.use = NULL, 
                     pt.size = 3, do.return = FALSE, do.bare = FALSE, cols.use = NULL, 
                     group.by = "ident", pt.shape = NULL, do.hover = FALSE, do.identify = FALSE, do.label = FALSE, label.size = 1, 
-                    no.legend = FALSE, ...) {
+                    no.legend = FALSE, no.axes = FALSE, ...) {
   if(length(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")) == 0) {
     stop(paste0(reduction.use, "has not been run for this object yet."))
   }
@@ -1095,6 +1096,14 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   }
   if (no.legend) {
     p3 <- p3 + theme(legend.position = "none")
+  }
+  if (no.axes) {
+    p3 <- p3 + theme(axis.line=element_blank(),axis.text.x=element_blank(),
+                     axis.text.y=element_blank(),axis.ticks=element_blank(),
+                     axis.title.x=element_blank(),
+                     axis.title.y=element_blank(),
+                     panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+                     panel.grid.minor=element_blank(),plot.background=element_blank())
   }
   if (do.identify | do.hover) {
       if (do.bare) {

@@ -8,7 +8,7 @@ DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
   do.hover = FALSE, do.identify = FALSE, do.label = FALSE,
-  label.size = 1, no.legend = FALSE, ...)
+  label.size = 1, no.legend = FALSE, no.axes = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -46,6 +46,8 @@ different shapes on cells.}
 \item{label.size}{Sets size of labels}
 
 \item{no.legend}{Setting to TRUE will remove the legend}
+
+\item{no.axes}{Setting to TRUE will remove the axes}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only
