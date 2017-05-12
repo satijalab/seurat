@@ -293,7 +293,7 @@ point.locator <- function(plot, recolor=TRUE, ...) {
     npoints <- nrow(x = plot.data)
     cat("Click around the cluster of points you wish to select\n")
     cat("ie. select the vertecies of a shape around the cluster you\n")
-    cat("are interested in. Press <Esc> when finished.\n\n")
+    cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
     polygon <- locator(n = npoints, type = 'l')
     polygon <- data.frame(polygon)
     #   pnt.in.poly returns a data.frame of points
