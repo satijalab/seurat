@@ -2037,9 +2037,9 @@ NegBinomDETest <- function(object, cells.1, cells.2, genes.use = NULL, latent.va
                 return(2)
               }
               fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.vars, collapse = "+")))
+              p.estimate <- 2
               try(p.estimate <- summary(glm.nb(fmla,data = to.test))$coef[2,4], silent = T)
-              if(is.numeric(p.estimate)) return(p.estimate)
-              else return(2)
+              return(p.estimate)
             }))
             genes.use <- genes.use[-which(p_val==2)]
             p_val <- p_val[!p_val==2]

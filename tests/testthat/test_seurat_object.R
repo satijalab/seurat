@@ -137,9 +137,11 @@ test_that("MeanVarPlot works as expected", {
 })
 
 test_that("FeaturePlot works as expected", {
-  expect_is(FeaturePlot(nbt.test, "DLX1"), "list")
-  expect_is(FeaturePlot(nbt.test, c("DLX1", "nGene")), "list")
-  expect_is(FeaturePlot(nbt.test, "DLX1", cols.use = "Purples"), "list")
+  expect_is(FeaturePlot(nbt.test, "DLX1"), "NULL")
+  plot <- FeaturePlot(nbt.test, c("DLX1", "nGene"), do.return = T)
+  expect_is(plot, "list")
+  expect_equal(length(plot), 2)
+  expect_is(FeaturePlot(nbt.test, "DLX1", cols.use = "Purples"), "NULL")
 })
 
 
