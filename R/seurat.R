@@ -2041,8 +2041,10 @@ NegBinomDETest <- function(object, cells.1, cells.2, genes.use = NULL, latent.va
               try(p.estimate <- summary(glm.nb(fmla,data = to.test))$coef[2,4], silent = T)
               return(p.estimate)
             }))
-            genes.use <- genes.use[-which(p_val==2)]
-            p_val <- p_val[!p_val==2]
+            if(length(which(p_val == 2)) > 0){
+              genes.use <- geqqnes.use[-which(p_val==2)]
+              p_val <- p_val[!p_val==2]
+            }
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
@@ -2154,8 +2156,10 @@ setMethod("PoissonDETest", "seurat",
               fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm(fmla,data = to.test,family = "poisson"))$coef[2,4])
             }))
-            genes.use <- genes.use[-which(p_val==2)]
-            p_val <- p_val[!p_val==2]
+            if(length(which(p_val == 2)) > 0){
+              genes.use <- geqqnes.use[-which(p_val==2)]
+              p_val <- p_val[!p_val==2]
+            }
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
