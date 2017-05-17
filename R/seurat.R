@@ -2162,11 +2162,14 @@ setMethod("NegBinomDETest", "seurat",
                 warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
                 return(2)
               }
-              fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
+              p.estimate <- 2
+              try(p.estimate <- summary(glm.nb(fmla,data = to.test))$coef[2,4], silent = T)
               return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
             }))
-            genes.use <- genes.use[-which(p_val==2)]
-            p_val <- p_val[!p_val==2]
+            if(length(which(p_val == 2)) > 0){
+              genes.use <- geqqnes.use[-which(p_val==2)]
+              p_val <- p_val[!p_val==2]
+            }
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
           }
@@ -2220,8 +2223,10 @@ PoissonDETest <- function(object, cells.1, cells.2, genes.use = NULL, latent.var
               fmla <- as.formula(paste("GENE ", " ~ ", paste(latent.vars, collapse="+"), sep=""))
               return(summary(glm(fmla,data = to.test,family = "poisson"))$coef[2,4])
             }))
-            genes.use <- genes.use[-which(p_val==2)]
-            p_val <- p_val[!p_val==2]
+            if(length(which(p_val == 2)) > 0){
+              genes.use <- geqqnes.use[-which(p_val==2)]
+              p_val <- p_val[!p_val==2]
+            }
             to.return <- data.frame(p_val, row.names = genes.use)
             return(to.return)
 }
