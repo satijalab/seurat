@@ -18,6 +18,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// CalcPartialCCA
+List CalcPartialCCA(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, int k, Eigen::MatrixXd v_init);
+RcppExport SEXP Seurat_CalcPartialCCA(SEXP mat1SEXP, SEXP mat2SEXP, SEXP kSEXP, SEXP v_initSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    Rcpp::traits::input_parameter< int >::type k(kSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type v_init(v_initSEXP);
+    rcpp_result_gen = Rcpp::wrap(CalcPartialCCA(mat1, mat2, k, v_init));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {

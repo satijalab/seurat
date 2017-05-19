@@ -1349,6 +1349,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
                        penaltyz = 1, penaltyx = 1, trace = F)
   }
   else{
+    browser()
     cca.results <- CanonCor(data.use1, data.use2, standardize = TRUE, k = num.cc)
   }
   cca.data <- rbind(cca.results$u, cca.results$v)
@@ -1399,32 +1400,47 @@ CheckGroup <- function(object, group, group.id){
 }
 
 # Note: not sparse yet -- could add in the penalties discussed in Witten 
+# R Version
+#CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+#  set.seed(42)
+#  if(standardize){
+#    mat1 <- Standardize(mat1, FALSE)
+#    mat2 <- Standardize(mat2, FALSE)
+#  }
+#  u.mat <- matrix(nrow = ncol(mat1), ncol = k)
+#  v.mat <- matrix(nrow = ncol(mat2), ncol = k)
+#  cors <- numeric(k)
+#  d <- numeric(k)
+#  mat3 <- FastMatMult(t(mat1), mat2)
+#  v.init <- irlba(mat3, nv = k)$v
+#  for (i in 1:k){
+#    v <- v.init[,i]
+#    u <- t(t(mat2 %*% v) %*% mat1)
+#    u <- u / norm(as.vector(u), "2")
+#    v <- t(t(mat1 %*% u) %*% mat2)
+#    v <- v / norm(as.vector(v), "2")
+#    u.mat[, i] <- u
+#    v.mat[, i] <- v
+#    d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
+#    cors[i] <- cor(mat1 %*% u, mat2 %*% v)
+#    mat1 <- FastRBind(mat1, sqrt(d[i]) * t(u))
+#    mat2 <- FastRBind(mat2, -sqrt(d[i]) * t(v))
+#  }
+#  return(list(u = u.mat, v = v.mat, d = d, cors = cors))
+#}
+
 CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+  set.seed(42)
   if(standardize){
     mat1 <- Standardize(mat1, FALSE)
     mat2 <- Standardize(mat2, FALSE)
   }
-  u.mat <- matrix(nrow = ncol(mat1), ncol = k)
-  v.mat <- matrix(nrow = ncol(mat2), ncol = k)
-  cors <- numeric(k)
-  d <- numeric(k)
   mat3 <- FastMatMult(t(mat1), mat2)
   v.init <- irlba(mat3, nv = k)$v
-  for (i in 1:k){
-    v <- v.init[,i]
-    u <- t(t(mat2 %*% v) %*% mat1)
-    u <- u / norm(as.vector(u), "2")
-    v <- t(t(mat1 %*% u) %*% mat2)
-    v <- v / norm(as.vector(v), "2")
-    u.mat[, i] <- u
-    v.mat[, i] <- v
-    d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
-    cors[i] <- cor(mat1 %*% u, mat2 %*% v)
-    mat1 <- FastRBind(mat1, sqrt(d[i]) * t(u))
-    mat2 <- FastRBind(mat2, -sqrt(d[i]) * t(v))
-  }
-  return(list(u = u.mat, v = v.mat, d = d, cors = cors))
+  cca.results <- CalcPartialCCA(mat1 = mat1, mat2 = mat2, k = k, v_init = v.init)
+  return(list(u = cca.results[[1]], v = cca.results[[2]], d = cca.results[[3]]))
 }
+
 
 #' Calculate the ratio of variance explained by ICA or PCA to CCA
 #' 
