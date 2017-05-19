@@ -3,10 +3,10 @@
 #' Draws a heatmap of single cell gene expression.
 #'
 #' @param object Seurat object
-#' @param data.use Option to pass in data to use in the heatmap. Default will pick from either 
+#' @param data.use Option to pass in data to use in the heatmap. Default will pick from either
 #' object@@data or object@@scale.data depending on use.scaled parameter. Should have cells as columns
-#' and genes as rows. 
-#' @param use.scaled Whether to use the data or scaled data if data.use is NULL 
+#' and genes as rows.
+#' @param use.scaled Whether to use the data or scaled data if data.use is NULL
 #' @param cells.use Cells to include in the heatmap (default is all cells)
 #' @param genes.use Genes to include in the heatmap (ordered)
 #' @param disp.min Minimum display value (all values below are clipped)
@@ -24,27 +24,27 @@
 #' @param group.label.rot Whether to rotate the group label.
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
-#' @param do.plot Whether to display the plot. 
+#' @param do.plot Whether to display the plot.
 #' @return Returns a ggplot2 plot object
 #' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
 #' @export
-DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL, genes.use = NULL, 
-                        disp.min = -2.5,  disp.max = 2.5, group.by = "ident", draw.line = TRUE, 
-                        col.low = "#FF00FF", col.mid = "#000000", col.high = "#FFFF00", 
+DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL, genes.use = NULL,
+                        disp.min = -2.5,  disp.max = 2.5, group.by = "ident", draw.line = TRUE,
+                        col.low = "#FF00FF", col.mid = "#000000", col.high = "#FFFF00",
                         slim.col.label = FALSE, remove.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
-                        group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15, 
+                        group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
                         group.spacing = 0.15, do.plot = TRUE, ...) {
-  
+
   if (is.null(data.use)){
     if (use.scaled){
-      data.use <- object@scale.data 
+      data.use <- object@scale.data
     }
     else{
       data.use <- object@data
     }
   }
-  
+
   # note: data.use should have cells as column names, genes as row names
   cells.use <- set.ifnull(cells.use, object@cell.names)
   cells.use <- ainb(cells.use, colnames(data.use))
@@ -64,46 +64,46 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
     names(cells.ident) <- cells.use
   }
   cells.ident <- factor(cells.ident, labels = ainb(levels(cells.ident), cells.ident))
-  
+
   data.use <- data.use[genes.use, cells.use]
   if(use.scaled){
     data.use <- minmax(data.use, min = disp.min, max = disp.max)
   }
-  
+
   data.use <- as.data.frame(t(data.use))
   data.use$cell <- rownames(data.use)
-  
+
   colnames(data.use) <- make.unique(colnames(data.use))
-  
+
   data.use %>% melt(id.vars = "cell") -> data.use
   names(data.use)[names(data.use) == 'variable'] <- 'gene'
   names(data.use)[names(data.use) == 'value'] <- 'expression'
-  
+
   data.use$ident <- cells.ident[data.use$cell]
   breaks <- seq(min(data.use$expression), max(data.use$expression), length = length(pyCols)+1)
   data.use$gene <- with(data.use, factor(gene, levels = rev(unique(data.use$gene))))
   data.use$cell <- with(data.use, factor(cell, levels = cells.use))
-  
-  
+
+
   # might be a solution if we want discrete interval units, makes the legend clunky though
   #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = T)
   #heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
-  #                  scale_fill_manual(values = pyCols, name= "Expression") + 
-  #                  scale_y_discrete(position = "right", labels = rev(genes.use)) + 
-  #                  theme(axis.line=element_blank(), axis.title.y=element_blank(), 
+  #                  scale_fill_manual(values = pyCols, name= "Expression") +
+  #                  scale_y_discrete(position = "right", labels = rev(genes.use)) +
+  #                  theme(axis.line=element_blank(), axis.title.y=element_blank(),
   #                        axis.ticks.y = element_blank())
-  
+
   heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
-    scale_fill_gradient2(low = col.low, mid = col.mid, high = col.high, name= "Expression") + 
-    scale_y_discrete(position = "right", labels = rev(genes.use)) + 
-    theme(axis.line=element_blank(), axis.title.y=element_blank(), 
-          axis.ticks.y = element_blank(), strip.text.x = element_text(size = group.cex), 
+    scale_fill_gradient2(low = col.low, mid = col.mid, high = col.high, name= "Expression") +
+    scale_y_discrete(position = "right", labels = rev(genes.use)) +
+    theme(axis.line=element_blank(), axis.title.y=element_blank(),
+          axis.ticks.y = element_blank(), strip.text.x = element_text(size = group.cex),
           axis.text.y = element_text(size = cex.row), axis.text.x = element_text(size = cex.col),
           axis.title.x=element_blank())
-  
+
   if (slim.col.label){
     heatmap <- heatmap + theme(axis.title.x=element_blank(), axis.text.x=element_blank(),
-                               axis.ticks.x=element_blank(), axis.line=element_blank(), 
+                               axis.ticks.x=element_blank(), axis.line=element_blank(),
                                axis.title.y=element_blank(), axis.ticks.y = element_blank())
   }
   else{
@@ -147,7 +147,7 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @param object Seurat object
 #' @param features.plot Features to plot (gene expression, metrics, PC scores,
 #' anything that can be retreived by FetchData)
-#' @param ident.include Which classes to include in the plot (default is all) 
+#' @param ident.include Which classes to include in the plot (default is all)
 #' @param nCol Number of columns if multiple plots are displayed
 #' @param do.sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
@@ -174,13 +174,13 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
 #' @export
-VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL, 
-                    do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16, size.y.use = 16, 
+VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
+                    do.sort = FALSE, y.max = NULL, same.y.lims = F, size.x.use = 16, size.y.use = 16,
                     size.title.use = 20, adjust.use = 1, point.size.use = 1, cols.use = NULL,
-                    group.by = NULL, y.log = F, x.lab.rot = FALSE, y.lab.rot = FALSE, 
-                    legend.position = "right", single.legend = TRUE, remove.legend = FALSE, 
+                    group.by = NULL, y.log = F, x.lab.rot = FALSE, y.lab.rot = FALSE,
+                    legend.position = "right", single.legend = TRUE, remove.legend = FALSE,
                     do.return = FALSE, return.plotlist = FALSE, ...){
-            
+
             if (is.null(nCol)) {
               nCol <- min(length(features.plot), 3)
               if (length(features.plot) > 9) nCol <- 4
@@ -199,19 +199,19 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
             gene.names <- colnames(data.use)[colnames(data.use) %in% rownames(object@data)]
             if(single.legend) remove.legend <- TRUE
             if(same.y.lims && is.null(y.max)) y.max <- max(data.use)
-            plots <- lapply(features.plot, function(x) PlotVln(feature = x, 
-                                                               data = data.use[, x, drop = FALSE], 
-                                                               cell.ident = ident.use, 
+            plots <- lapply(features.plot, function(x) PlotVln(feature = x,
+                                                               data = data.use[, x, drop = FALSE],
+                                                               cell.ident = ident.use,
                                                                do.sort = do.sort, y.max = y.max,
-                                                               size.x.use = size.x.use, 
-                                                               size.y.use = size.y.use, 
+                                                               size.x.use = size.x.use,
+                                                               size.y.use = size.y.use,
                                                                size.title.use = size.title.use,
-                                                               adjust.use = adjust.use, 
+                                                               adjust.use = adjust.use,
                                                                point.size.use = point.size.use,
-                                                               cols.use = cols.use, 
+                                                               cols.use = cols.use,
                                                                gene.names = gene.names, y.log = y.log,
-                                                               x.lab.rot = x.lab.rot, 
-                                                               y.lab.rot = y.lab.rot, 
+                                                               x.lab.rot = x.lab.rot,
+                                                               y.lab.rot = y.lab.rot,
                                                                legend.position = legend.position,
                                                                remove.legend = remove.legend))
             if(length(features.plot) > 1){
@@ -240,8 +240,55 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
             }
 }
 
+#' Dark Theme
+#'
+#' Add a dark theme to ggplot objects
+#'
+#' @param ... Extra parameters to be passed to theme()
+#' @import ggplot2
+#' @return A ggplot2 theme object
+#' @seealso \code{\link{theme}}
+#' @export
+#'
+DarkTheme <- function(...) {
+    #   Some constants for easier changing in the future
+    black.background <- element_rect(fill = 'black')
+    black.background.no.border <- element_rect(fill = 'black', size = 0)
+    font.margin <- 4
+    white.text <- element_text(colour = 'white', margin = margin(t = font.margin, r = font.margin, b = font.margin, l = font.margin))
+    white.line <- element_line(colour = 'white', size = 1)
+    no.line <- element_line(size = 0)
+    #   Create the dark theme
+    dark.theme <- theme(
+        #   Set background colors
+        plot.background = black.background,
+        panel.background = black.background,
+        legend.background = black.background,
+        legend.box.background = black.background.no.border,
+        legend.key = black.background.no.border,
+        #   Set text colors
+        plot.title = white.text,
+        plot.subtitle = white.text,
+        axis.title = white.text,
+        axis.text = white.text,
+        legend.title = white.text,
+        legend.text = white.text,
+        #   Set line colors
+        axis.line.x = white.line,
+        axis.line.y = white.line,
+        panel.grid = no.line,
+        panel.grid.minor = no.line,
+        #   Make this a complete theme and validate it
+        complete = TRUE,
+        validate = TRUE,
+        #   Extra parameters
+        ...
+    )
+    return(dark.theme)
+}
 
-PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.y.use, size.title.use, 
+
+PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.y.use, size.title.use,
                     adjust.use, point.size.use, cols.use, gene.names, y.log, x.lab.rot, y.lab.rot,
                     legend.position, remove.legend) {
   set.seed(42)
@@ -258,11 +305,11 @@ PlotVln <- function(feature, data, cell.ident, do.sort, y.max, size.x.use, size.
   }
   data[, feature] <- data[, feature] + noise
   y.max <- set.ifnull(y.max, max(data[, feature]))
-  plot <- ggplot(data, aes(factor(ident), eval(parse(text = feature)))) + 
-    geom_violin(scale = "width", adjust = adjust.use, trim = TRUE, aes(fill = factor(ident))) + 
+  plot <- ggplot(data, aes(factor(ident), eval(parse(text = feature)))) +
+    geom_violin(scale = "width", adjust = adjust.use, trim = TRUE, aes(fill = factor(ident))) +
     theme(legend.position = legend.position, axis.title.x = element_text(face="bold", colour="#990000", size = size.x.use),
           axis.title.y = element_text(face = "bold", colour = "#990000", size = size.y.use)) +
-    guides(fill = guide_legend(title = NULL)) + 
+    guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) + xlab("Cell Type") + nogrid +
     ggtitle(feature) + theme(plot.title = element_text(size = size.title.use, face = "bold"))
   if (y.log) plot <- plot + scale_y_log10()
