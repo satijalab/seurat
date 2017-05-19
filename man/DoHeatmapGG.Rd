@@ -15,7 +15,7 @@ DoHeatmapGG(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
 \arguments{
 \item{object}{Seurat object}
 
-\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either 
+\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either
 object@data or object@scale.data depending on use.scaled parameter. Should have cells as columns
 and genes as rows.}
 
