@@ -1349,7 +1349,6 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
                        penaltyz = 1, penaltyx = 1, trace = F)
   }
   else{
-    browser()
     cca.results <- CanonCor(data.use1, data.use2, standardize = TRUE, k = num.cc)
   }
   cca.data <- rbind(cca.results$u, cca.results$v)
