@@ -382,7 +382,21 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
     return(points.located[, c(1, 2)])
 }
 
-#   Identify points that were selected by using PointLocator
+#' Feature Locator
+#'
+#' Select points on a scatterplot and get information about them
+#'
+#' @param plot A ggplot2 plot
+#' @param data.plot The oridinal data that went into the ggplot2 plot
+#' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
+#' recoloring based on selected cells, or using a smooth scatterplot, respectively
+#'
+#' @return The names of the points selected
+#'
+#' @seealso \code{\link{locator}}
+#' @seealso \code{\link{ggplot2::ggplot_build}}
+#' @export
+#'
 FeatureLocator <- function(plot, data.plot, ...) {
     points.located <- PointLocator(plot = plot, ...)
     #   The rownames for points.located correspond to the row indecies
@@ -391,7 +405,20 @@ FeatureLocator <- function(plot, data.plot, ...) {
     return(rownames(x = selected))
 }
 
-#   Use plotly for hovering
+#' Hover Locator
+#'
+#' Get quick information from a scatterplot by hovering over points
+#'
+#' @param plot A ggplot2 plot
+#' @param data.plot The oridinal data that went into the ggplot2 plot
+#' @param features.info An optional dataframe or matrix of extra information to be displayed on hover
+#' @param dark.theme Plot using a dark theme?
+#' @param ... Extra parameters to be passed to plotly::layout
+#'
+#' @seealso \code{\link{plotly::layout}}
+#' @seealso \code{\link{ggplot2::ggplot_build}}
+#' @export
+#'
 HoverLocator <- function(plot, data.plot, features.info = NULL, dark.theme = FALSE, ...) {
     #   Use GGpointToBase because we already have ggplot objects
     #   with colors (which are annoying in plotly)
