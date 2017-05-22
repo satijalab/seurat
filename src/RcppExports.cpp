@@ -165,3 +165,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+
+static const R_CallMethodDef CallEntries[] = {
+    {"Seurat_CanonCor", (DL_FUNC) &Seurat_CanonCor, 2},
+    {"Seurat_RunUMISampling", (DL_FUNC) &Seurat_RunUMISampling, 4},
+    {"Seurat_RunUMISamplingPerCell", (DL_FUNC) &Seurat_RunUMISamplingPerCell, 4},
+    {"Seurat_RowMergeMatrices", (DL_FUNC) &Seurat_RowMergeMatrices, 5},
+    {"Seurat_LogNorm", (DL_FUNC) &Seurat_LogNorm, 3},
+    {"Seurat_FastMatMult", (DL_FUNC) &Seurat_FastMatMult, 2},
+    {"Seurat_FastRowScale", (DL_FUNC) &Seurat_FastRowScale, 5},
+    {"Seurat_Standardize", (DL_FUNC) &Seurat_Standardize, 2},
+    {"Seurat_FastSparseRowScale", (DL_FUNC) &Seurat_FastSparseRowScale, 5},
+    {"Seurat_FastCov", (DL_FUNC) &Seurat_FastCov, 2},
+    {"Seurat_FastCovMats", (DL_FUNC) &Seurat_FastCovMats, 3},
+    {"Seurat_FastRBind", (DL_FUNC) &Seurat_FastRBind, 2},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_Seurat(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}
