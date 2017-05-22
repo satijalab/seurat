@@ -4204,7 +4204,13 @@ setMethod("GenePlot","seurat",
                 } else {
                     features.info <- FetchData(object = object, vars.all = data.hover)
                 }
-                return(HoverLocator(plot = p, data.plot = data.plot, features.info = features.info, title = gene.cor))
+                return(HoverLocator(
+                    plot = p,
+                    data.plot = data.plot,
+                    features.info = features.info,
+                    dark.theme = dark.theme,
+                    title = gene.cor
+                ))
             } else if (do.identify) {
                 return(FeatureLocator(plot = p, data.plot = data.plot, dark.theme = dark.theme))
             }
