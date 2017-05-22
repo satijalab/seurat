@@ -11,7 +11,7 @@ FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var, ...)
 
 \item{ident.1}{Identity class to define markers for}
 
-\item{ident.2}{A second identity class for comparison. If NULL (default) - use all other cells 
+\item{ident.2}{A second identity class for comparison. If NULL (default) - use all other cells
 for comparison.}
 
 \item{grouping.var}{grouping variable}
@@ -19,8 +19,8 @@ for comparison.}
 \item{\dots}{parameters to pass to FindMarkers}
 }
 \value{
-Matrix containing a ranked list of putative conserved markers, and associated statistics 
-(p-values within each group and a combined p-value (fisher_pval), percentage of cells expressing 
+Matrix containing a ranked list of putative conserved markers, and associated statistics
+(p-values within each group and a combined p-value (fisher_pval), percentage of cells expressing
 the marker, average differences)
 }
 \description{

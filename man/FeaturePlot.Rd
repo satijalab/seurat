@@ -9,7 +9,7 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
   do.hover = FALSE, do.identify = FALSE, reduction.use = "tsne",
   use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE,
-  do.return = FALSE)
+  dark.theme = FALSE, do.return = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -50,6 +50,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{no.axes}{Remove axis labels}
 
 \item{no.legend}{Remove legend from the graph. Default is TRUE.}
+
+\item{dark.theme}{Plot in a dark theme}
 
 \item{do.return}{return the ggplot2 object}
 }

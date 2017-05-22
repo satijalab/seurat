@@ -7,7 +7,7 @@
 VizClassification(object, clusters, ...)
 }
 \arguments{
-\item{object}{Seurat object on which the classifier was trained and 
+\item{object}{Seurat object on which the classifier was trained and
 onto which the classification results will be highlighted}
 
 \item{clusters}{vector of cluster ids (output of ClassifyCells)}
@@ -19,7 +19,7 @@ Returns a feature plot with clusters highlighted by proportion of cells
 mapping to that cluster
 }
 \description{
-This function is useful to view where proportionally the clusters returned from 
+This function is useful to view where proportionally the clusters returned from
 classification map to the clusters present in the given object. Utilizes the FeaturePlot()
 function to color clusters in object.
 }

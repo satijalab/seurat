@@ -22,7 +22,7 @@ RegressOut(object, latent.vars, genes.regress = NULL, model.use = "linear",
 
 \item{do.center}{Whether to center the data.}
 
-\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help 
+\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help
 reduce the effects of genes that are only expressed in a very small number of cells.}
 }
 \value{

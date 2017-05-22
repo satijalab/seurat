@@ -35,6 +35,6 @@ using FetchData}
 A vector of cell names
 }
 \description{
-Returns a list of cells that match a particular set of criteria such as 
+Returns a list of cells that match a particular set of criteria such as
 identity class, high/low values for particular PCs, ect..
 }
