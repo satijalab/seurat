@@ -4,14 +4,14 @@ NULL
 # Set up dim.reduction class
 
 dim.reduction <- setClass("dim.reduction", slots = list(
-  rotation = "matrix", x = "matrix", x.full = "matrix", sdev = "numeric", key = "character", 
+  rotation = "matrix", x = "matrix", x.full = "matrix", sdev = "numeric", key = "character",
   misc = "ANY"
 ))
 
 #' Dimensional Reduction Accessor Function
-#' 
+#'
 #' Pull information for specified stored dimensional reduction analysis
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
 #' @param slot Specific information to pull (i.e. rotation, x, x.full, ...)
@@ -28,9 +28,9 @@ GetDimReduction <- function(object, reduction.type = "pca", slot = "x") {
 }
 
 #' Dimensional Reduction Rotation Accessor Function
-#' 
+#'
 #' Pull rotation matrix for specified stored dimensional reduction analysis
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
 #' @param dims.use Dimensions to include (default is all stored dims)
@@ -65,9 +65,9 @@ DimRot <- function(object, reduction.type = "pca", dims.use = NULL, cells.use = 
 }
 
 #' Dimensional Reduction Gene Loadings Accessor Function
-#' 
-#' Pull "x" matrix for specified stored dimensional reduction analysis. 
-#' 
+#'
+#' Pull "x" matrix for specified stored dimensional reduction analysis.
+#'
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
 #' @param dims.use Dimensions to include (default is all stored dims)
@@ -109,9 +109,9 @@ DimX <- function(object, reduction.type = "pca", dims.use = NULL, genes.use = NU
 
 
 #' Diffusion Maps Rotation Accessor Function
-#' 
+#'
 #' Pull Diffusion maps rotation matrix
-#' 
+#'
 #' @param object Seurat object
 #' @param dims.use Dimensions to include (default is all stored dims)
 #' @param cells.use Cells to include (default is all cells)
@@ -122,9 +122,9 @@ DMRot <- function(object, dims.use = NULL, cells.use = NULL) {
 }
 
 #' PCA Rotation Accessor Function
-#' 
+#'
 #' Pull PCA rotation matrix
-#' 
+#'
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
 #' @param cells.use, Cells to include (default is all cells)
@@ -135,9 +135,9 @@ PCARot <- function(object, dims.use = NULL, cells.use = NULL) {
 }
 
 #' ICA Rotation Accessor Function
-#' 
+#'
 #' Pull ICA rotation matrix
-#' 
+#'
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
 #' @param cells.use, Cells to include (default is all cells)
@@ -148,9 +148,9 @@ ICARot <- function(object, dims.use = NULL, cells.use = NULL) {
 }
 
 #' PCA Gene Loadings Accessor Function
-#' 
+#'
 #' Pull PCA Gene Loadings
-#' 
+#'
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
 #' @param genes.use, Genes to include (default is all genes)
@@ -162,9 +162,9 @@ PCAX <- function(object, dims.use = NULL, genes.use = NULL, use.full = FALSE) {
 }
 
 #' ICA Gene Loadings Accessor Function
-#' 
+#'
 #' Pull ICA Gene Loadings
-#' 
+#'
 #' @param object Seurat object
 #' @param dims.use, Dimensions to include (default is all stored dims)
 #' @param genes.use, Genes to include (default is all)
@@ -176,9 +176,9 @@ ICAX <- function(object, dims.use = NULL, genes.use = NULL, use.full = F) {
 }
 
 #' Dimensional Reduction Mutator Function
-#' 
+#'
 #' Set information for specified stored dimensional reduction analysis
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to set
 #' @param slot Specific information to set (i.e. rotation, x, x.full, ...)
@@ -199,12 +199,12 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 
 
 #' Dimensional Reduction
-#' 
+#'
 #' Various methods for dimensional reductions
-#' 
+#'
 #' @param object Seurat object
-#' @param reduction.type Type of dimensional reduction to run. Options include "pca", "pcafast", "ica" 
-#' @param genes.use Genes to use as input for the dimensional reduction technique. Default is 
+#' @param reduction.type Type of dimensional reduction to run. Options include "pca", "pcafast", "ica"
+#' @param genes.use Genes to use as input for the dimensional reduction technique. Default is
 #' object@@var.genes.
 #' @param dims.store Number of dimensions to store
 #' @param dims.compute Number of dimensions to compute (for fast approximations)
@@ -217,18 +217,18 @@ SetDimReduction <- function(object, reduction.type, slot, new.data) {
 #' @param ica.fxn Function to use if calculating ica
 #' @param seed.use Random seed
 #' @param ... Additional arguments to be passed to specific reduction technique
-#' @return Returns a Seurat object with the dimensional reduction information stored 
+#' @return Returns a Seurat object with the dimensional reduction information stored
 #' @importFrom ica icafast icaimax icajade
 #' @export
-DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40, 
-                         dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE, 
+DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.store = 40,
+                         dims.compute = 40, use.imputed = FALSE, rev.reduction = FALSE,
                          print.results = TRUE, dims.print = 1:5, genes.print = 30, ica.fxn = icafast,
                          seed.use = 1, ...){
   if (length(object@scale.data) == 0){
     stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
   }
   if (length(object@var.genes) == 0 && is.null(genes.use)) {
-    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in 
+    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector of genes names in
          genes.use and retry.")
   }
   if(xor(missing(dims.store), missing(dims.compute))){
@@ -249,7 +249,7 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
   genes.var <- apply(data.use[genes.use, ], 1, var)
   genes.use <- genes.use[genes.var > 0]
   genes.use <- genes.use[!is.na(genes.use)]
-  
+
   data.use <- data.use[genes.use, ]
   # call reduction technique
   reduction.type <- tolower(reduction.type)
@@ -258,23 +258,23 @@ DimReduction <- function(object, reduction.type = NULL, genes.use = NULL, dims.s
     object@dr$pca <- pcaobj
   }
   if(reduction.type == "pcafast") {
-    pcafastobj <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store, 
+    pcafastobj <- RunPCAFast(data.use = data.use, rev.pca = rev.reduction, pcs.store = dims.store,
                              pcs.compute = dims.compute, ...)
     object@dr$pca <- pcafastobj
     reduction.type <- "pca"
   }
   if(reduction.type == "ica") {
-    icaobj=RunICA(data.use = data.use, ics.compute = dims.store, rev.ica = rev.reduction, 
+    icaobj=RunICA(data.use = data.use, ics.compute = dims.store, rev.ica = rev.reduction,
                   ics.store = dims.store, ica.fxn = ica.fxn, seed.use = seed.use, ...)
     object@dr$ica=icaobj
   }
-  
+
   if(print.results){
     PrintDim(object, reduction.type = reduction.type, dims.print = dims.print,
              genes.print = genes.print)
   }
   return(object)
-} 
+}
 
 RunPCA <- function(data.use, rev.pca, pcs.store, ...){
   pca.results <- NULL
@@ -291,7 +291,7 @@ RunPCA <- function(data.use, rev.pca, pcs.store, ...){
     rotation <- pca.results$x[, 1:pcs.store]
   }
   pca.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = pca.results$sdev, key = "PC")
-  return(pca.obj)  
+  return(pca.obj)
 }
 
 
@@ -307,13 +307,13 @@ RunICA <- function(data.use, ics.compute, rev.ica, ica.fxn = icafast, ics.store,
     ica.results <- ica.fxn(t(data.use), nc = ics.compute,...)
     rotation <- ica.results$S[, 1:ics.store]
   }
-  
+
   x <- (as.matrix(data.use )%*% as.matrix(rotation))
   colnames(x) <- paste0("IC", 1:ncol(x))
   colnames(rotation) <- paste0("IC", 1:ncol(x))
-  
+
   ica.obj <- new("dim.reduction", x = x, rotation = rotation, sdev = sqrt(ica.results$vafs), key = "IC")
-  return(ica.obj)  
+  return(ica.obj)
 }
 
 RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
@@ -329,7 +329,7 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
     pca.results <- irlba(t(data.use), nv = pcs.compute, ...)
     x <- pca.results$v[, 1:pcs.store]
     rotation <- pca.results$u[, 1:pcs.store]
-    
+
   }
   rownames(x) <- rownames(data.use)
   colnames(x) <- paste0("PC", 1:pcs.compute)
@@ -351,17 +351,17 @@ RunPCAFast <- function(data.use, rev.pca, pcs.store, pcs.compute, ...){
 #' @param pcs.store Number of PCs to store
 #' @param genes.print Number of genes to print for each PC
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will 
-#' compute it on gene x cell matrix. 
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to true will
+#' compute it on gene x cell matrix.
 #' @param \dots Additional arguments to be passed to prcomp
 #' @return Returns Seurat object with an PCA embedding (object@@pca.rot) and
 #' gene projection matrix (object@@pca.x). The PCA object itself is stored in
 #' object@@pca.obj[[1]]
 #' @export
-PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.store = 40, 
+PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.store = 40,
                 genes.print = 30, use.imputed = FALSE, rev.pca = FALSE, ...) {
   return(DimReduction(object, reduction.type = "pca", genes.use = pc.genes, print.results = do.print,
-                      dims.store = pcs.store, genes.print = genes.print, use.imputed = use.imputed, 
+                      dims.store = pcs.store, genes.print = genes.print, use.imputed = use.imputed,
                       rev.reduction = rev.pca, ...))
 }
 
@@ -384,10 +384,10 @@ PCA <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5, pcs.sto
 #' object@@pca.obj[[1]]
 #' @importFrom irlba irlba
 #' @export
-PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, pcs.store = 40, 
+PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, pcs.store = 40,
                     pcs.compute = 20, genes.print = 30, ...) {
-  return(DimReduction(object, reduction.type = "pcafast", genes.use = pc.genes, 
-                      print.results = do.print, dims.store = pcs.store, dims.compute = pcs.compute, 
+  return(DimReduction(object, reduction.type = "pcafast", genes.use = pc.genes,
+                      print.results = do.print, dims.store = pcs.store, dims.compute = pcs.compute,
                       genes.print = genes.print,dims.print = pcs.print))
 }
 
@@ -402,7 +402,7 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 #' @param ics.store Number of ICs to store
 #' @param ics.compute Number of ICs to compute
 #' @param use.imputed Run ICA on imputed values (FALSE by default)
-#' @param rev.ica By default, computes the dimensional reduction on the cell x gene matrix. 
+#' @param rev.ica By default, computes the dimensional reduction on the cell x gene matrix.
 #' Setting to true will compute it on the transpose (gene x cell matrix).
 #' @param print.results Print the top genes associated with each dimension
 #' @param ics.print ICs to print genes for
@@ -414,11 +414,11 @@ PCAFast <- function(object, pc.genes = NULL, do.print = TRUE, pcs.print = 1:5, p
 #' object@@ica.obj[[1]]
 #' @export
 ICA <- function(object, ic.genes = NULL, ics.store = 40, ics.compute = 50, use.imputed = FALSE,
-                rev.ica = FALSE, print.results = TRUE, ics.print = 1:5, genes.print = 50, 
+                rev.ica = FALSE, print.results = TRUE, ics.print = 1:5, genes.print = 50,
                 seed.use = 1, ...) {
-  return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.compute, 
-                      dims.compute = ics.compute, use.imputed = use.imputed, rev.reduction = rev.ica, 
-                      print.results = print.results, dims.print = ics.print, genes.print = genes.print, 
+  return(DimReduction(object, reduction.type = "ica", genes.use = ic.genes, dims.store = ics.compute,
+                      dims.compute = ics.compute, use.imputed = use.imputed, rev.reduction = rev.ica,
+                      print.results = print.results, dims.print = ics.print, genes.print = genes.print,
                       seed.use = seed.use, ... ))
 }
 
@@ -454,7 +454,7 @@ RunTSNE <- function(object, reduction.use = "pca", cells.use = NULL, dims.use = 
   if (!is.null(distance.matrix)) genes.use=rownames(object@data)
   if (is.null(genes.use)) {
     data.use <- GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")[, dims.use]
-    
+
   }
   if (!is.null(genes.use)) {
     if (length(object@scale.data) == 0){
@@ -503,7 +503,7 @@ RunTSNE <- function(object, reduction.use = "pca", cells.use = NULL, dims.use = 
 #' @param assay.type Data type, RNA by default. Can be changed for multimodal datasets (i.e. project a PCA done on RNA, onto CITE-seq data)
 #' @return Returns Seurat object with the projected values in object@@dr$XXX@x.full
 #' @export
-ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.store = 30, 
+ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.store = 30,
                        genes.print = 30, replace.dim = FALSE, do.center = FALSE, do.print = TRUE,assay.type="RNA") {
   if (!(reduction.type%in%names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
@@ -516,13 +516,13 @@ ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.st
   new.full.x <- FastMatMult(data.use, rotation)
   rownames(new.full.x) <- rownames(data.use)
   colnames(new.full.x) <- colnames(rotation)
-  object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x.full", 
+  object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x.full",
                             new.data = new.full.x)
   if(replace.dim == TRUE){
-    object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x", 
+    object <- SetDimReduction(object, reduction.type = reduction.type, slot = "x",
                               new.data = new.full.x)
   }
-  if(do.print) PrintDim(object, reduction.type = reduction.type, genes.print = genes.print, 
+  if(do.print) PrintDim(object, reduction.type = reduction.type, genes.print = genes.print,
                         use.full = TRUE, dims.print = dims.print)
   return(object)
 }
@@ -550,14 +550,14 @@ ProjectDim <- function(object, reduction.type = "pca", dims.print = 1:5, dims.st
 #' @export
 ProjectPCA <- function(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30, genes.print = 30,
                        replace.pc = FALSE, do.center = FALSE) {
-  return(ProjectDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = 30, 
+  return(ProjectDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = 30,
                     replace.dim = replace.pc, do.center = do.center, do.print = do.print,
                     dims.store = pcs.store))
 }
 
 
 #Internal, not documented for now
-topGenesForDim=function(i, dim.scores, do.balanced=FALSE, num.genes=30, reduction.type="pca", 
+topGenesForDim=function(i, dim.scores, do.balanced=FALSE, num.genes=30, reduction.type="pca",
                         key = "") {
   if (do.balanced) {
     num.genes=round(num.genes/2)
@@ -617,7 +617,7 @@ PCTopGenes <- function(object, pc.use = 1, num.genes = 30, use.full = FALSE, do.
 #' @return Returns a vector of cells
 #' @export
 PCTopCells <- function(object, pc.use = 1, num.cells = NULL, do.balanced = FALSE) {
-  return(DimTopCells(object, dim.use = pc.use, reduction.type = "pca", num.cells = num.cells, 
+  return(DimTopCells(object, dim.use = pc.use, reduction.type = "pca", num.cells = num.cells,
                      do.balanced = do.balanced))
 }
 
@@ -632,7 +632,7 @@ PCTopCells <- function(object, pc.use = 1, num.cells = NULL, do.balanced = FALSE
 #' @return Returns a vector of cells
 #' @export
 ICTopCells <- function(object, ic.use = 1, num.cells = NULL, do.balanced = FALSE) {
-  return(DimTopCells(object, dim.use = ic.use, reduction.type = "ica", num.cells = num.cells, 
+  return(DimTopCells(object, dim.use = ic.use, reduction.type = "ica", num.cells = num.cells,
                      do.balanced = do.balanced))
 }
 
@@ -647,7 +647,7 @@ ICTopCells <- function(object, ic.use = 1, num.cells = NULL, do.balanced = FALSE
 #' @param do.balanced Return an equal number of cells with both + and - scores.
 #' @return Returns a vector of cells
 #' @export
-DimTopCells <- function(object, dim.use = 1, reduction.type = "pca", num.cells = NULL, 
+DimTopCells <- function(object, dim.use = 1, reduction.type = "pca", num.cells = NULL,
                         do.balanced=FALSE) {
   #note that we use topGenesForDim, but it still works
   #error checking
@@ -658,7 +658,7 @@ DimTopCells <- function(object, dim.use = 1, reduction.type = "pca", num.cells =
   dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
   key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   i <- dim.use
-  dim.top.cells <- unique(unlist(lapply(i, topGenesForDim, dim.scores, do.balanced, num.cells, 
+  dim.top.cells <- unique(unlist(lapply(i, topGenesForDim, dim.scores, do.balanced, num.cells,
                                         reduction.type, key)))
   return(dim.top.cells)
 }
@@ -684,7 +684,7 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
   }
   dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
   if (use.full) dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x.full")
-  
+
   if ((is.null(dim.scores)) || (ncol(dim.scores)<2)) {
     stop(paste("Gene loadings for ", reduction.type, " with use.full=",use.full, " have not been computed"))
   }
@@ -700,7 +700,7 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
 
 #' Dimensional reduction heatmap
 #'
-#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
 #' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
 #' @inheritParams DoHeatmap
@@ -712,17 +712,17 @@ DimTopGenes <- function(object, dim.use = 1, reduction.type = "pca", num.genes =
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @export
-DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = NULL, 
+DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
                        num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
                        do.return = FALSE, col.use = pyCols, use.scale = TRUE,
                        do.balanced = FALSE, remove.key = FALSE, label.columns=NULL, ...){
-  
+
   num.row <- floor(length(dim.use) / 3.01) + 1
   orig_par <- par()$mfrow
   par(mfrow=c(num.row, min(length(dim.use), 3)))
   cells <- cells.use
   plots <- c()
-  
+
   if (is.null(label.columns)){
     if (length(dim.use) > 1){
       label.columns <- FALSE
@@ -731,37 +731,37 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
       label.columns <- TRUE
     }
   }
-  
+
   for(ndim in dim.use){
     if (is.numeric((cells))) {
-      cells.use <- DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type, 
+      cells.use <- DimTopCells(object = object,dim.use = ndim, reduction.type = reduction.type,
                                num.cells = cells,do.balanced = do.balanced)
     }
     else {
       cells.use <- set.ifnull(cells, object@cell.names)
     }
     genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
-                                 num.genes = num.genes, use.full = use.full, 
+                                 num.genes = num.genes, use.full = use.full,
                                  do.balanced = do.balanced))
     dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
     dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste(dim.key, ndim, sep = "")])]
-    
-    
+
+
     #determine assay type
     data.use=NULL
     assays.use=c("RNA",names(object@assay))
     slot.use="scale.data"
     if (use.scale==F) slot.use="data"
     for (assay.check in assays.use) {
-      data.assay=GetAssayData(object,assay.check,slot.use)  
+      data.assay=GetAssayData(object,assay.check,slot.use)
       genes.intersect=intersect(genes.use,rownames(data.assay))
       new.data=data.assay[genes.intersect,cells.ordered]
       if (!(is.matrix(new.data))) new.data=as.matrix(new.data)
       data.use=rbind(data.use,new.data)
 
     }
-    
+
     #data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- minmax(data.use, min = disp.min, max = disp.max)
     #if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
@@ -773,9 +773,9 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
     else{
       hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
     }
-    
+
     if (!label.columns){
-      
+
       hmFunction <- paste(hmFunction, "labCol=\"\", ", sep="")
     }
     hmFunction <- paste(hmFunction, "...)", sep="")
@@ -789,19 +789,19 @@ DimHeatmap <- function(object, reduction.type = "pca", dim.use = 1, cells.use = 
   par(mfrow = orig_par)
 }
 
-PlotDim <- function(ndim, object, reduction.type, use.scaled, use.full, cells.use, num.genes, 
-                    group.by, disp.min, disp.max, col.low, col.mid, col.high, slim.col.label, 
-                    do.balanced, remove.key, cex.col, cex.row, group.label.loc, group.label.rot, 
+PlotDim <- function(ndim, object, reduction.type, use.scaled, use.full, cells.use, num.genes,
+                    group.by, disp.min, disp.max, col.low, col.mid, col.high, slim.col.label,
+                    do.balanced, remove.key, cex.col, cex.row, group.label.loc, group.label.rot,
                     group.cex, group.spacing){
   if (is.numeric((cells.use))) {
-    cells.use <- DimTopCells(object = object, dim.use = ndim, reduction.type = reduction.type, 
+    cells.use <- DimTopCells(object = object, dim.use = ndim, reduction.type = reduction.type,
                              num.cells = cells.use ,do.balanced = do.balanced)
   }
   else {
     cells.use <- set.ifnull(cells.use, object@cell.names)
   }
   genes.use <- rev(DimTopGenes(object = object,dim.use = ndim, reduction.type = reduction.type,
-                               num.genes = num.genes, use.full = use.full, 
+                               num.genes = num.genes, use.full = use.full,
                                do.balanced = do.balanced))
   dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "rotation")
   dim.key <- GetDimReduction(object, reduction.type = reduction.type, slot = "key")
@@ -809,12 +809,12 @@ PlotDim <- function(ndim, object, reduction.type, use.scaled, use.full, cells.us
   data.use <- object@scale.data[genes.use, cells.ordered]
   data.use <- minmax(data.use, min = disp.min, max = disp.max)
   if (!(use.scaled)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
-  return(DoHeatmapGG(object, data.use = data.use, cells.use = cells.use, 
+  return(DoHeatmapGG(object, data.use = data.use, cells.use = cells.use,
               genes.use = genes.use, group.by = group.by, disp.min = disp.min, disp.max = disp.max,
-              col.low = col.low, col.mid = col.mid, col.high = col.high, 
-              slim.col.label = slim.col.label, remove.key = remove.key, cex.col = cex.col, 
-              cex.row = cex.row, group.label.loc = group.label.loc, group.label.rot = group.label.rot, 
-              group.cex = group.cex, group.spacing = group.spacing, title = paste0(dim.key, ndim), 
+              col.low = col.low, col.mid = col.mid, col.high = col.high,
+              slim.col.label = slim.col.label, remove.key = remove.key, cex.col = cex.col,
+              cex.row = cex.row, group.label.loc = group.label.loc, group.label.rot = group.label.rot,
+              group.cex = group.cex, group.spacing = group.spacing, title = paste0(dim.key, ndim),
               do.plot = FALSE))
 }
 
@@ -833,23 +833,23 @@ PlotDim <- function(ndim, object, reduction.type, use.scaled, use.full, cells.us
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @export
-PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.full = FALSE, 
+PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.full = FALSE,
                       disp.min = -2.5, disp.max = 2.5, do.return = FALSE, col.use=pyCols,
-                      use.scale = TRUE, do.balanced = FALSE, remove.key = FALSE, 
+                      use.scale = TRUE, do.balanced = FALSE, remove.key = FALSE,
                       label.columns = NULL, ...) {
-  
-  return(DimHeatmap(object, reduction.type = "pca", dim.use = pc.use, cells.use = cells.use, 
+
+  return(DimHeatmap(object, reduction.type = "pca", dim.use = pc.use, cells.use = cells.use,
                     num.genes = num.genes, use.full = use.full, disp.min = disp.min, disp.max = disp.max,
-                    do.return = do.return, col.use = col.use, use.scale = use.scale, 
+                    do.return = do.return, col.use = col.use, use.scale = use.scale,
                     do.balanced = do.balanced, remove.key = remove.key, label.columns = label.columns, ...))
-  
+
 }
 
 
 #' Independent component heatmap
 #'
-#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their 
-#' principal component scores. Allows for nice visualization of sources of heterogeneity 
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
+#' principal component scores. Allows for nice visualization of sources of heterogeneity
 #' in the dataset."()
 #'
 #' @inheritParams DoHeatmap
@@ -859,52 +859,52 @@ PCHeatmap <- function(object, pc.use = 1, cells.use = NULL, num.genes = 30, use.
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #' @export
-ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp.min = -2.5, 
-                      disp.max = 2.5, do.return = FALSE, col.use = pyCols, use.scale = TRUE, 
+ICHeatmap <- function(object, ic.use = 1, cells.use = NULL, num.genes = 30, disp.min = -2.5,
+                      disp.max = 2.5, do.return = FALSE, col.use = pyCols, use.scale = TRUE,
                       do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...) {
-  
-  return(DimHeatmap(object, reduction.type = "ica", dim.use = ic.use, cells.use = cells.use, 
-                    num.genes = num.genes, disp.min = disp.min, disp.max = disp.max, 
-                    do.return = do.return, col.use = col.use, use.scale = use.scale, 
-                    do.balanced = do.balanced, remove.key = remove.key, 
+
+  return(DimHeatmap(object, reduction.type = "ica", dim.use = ic.use, cells.use = cells.use,
+                    num.genes = num.genes, disp.min = disp.min, disp.max = disp.max,
+                    do.return = do.return, col.use = col.use, use.scale = use.scale,
+                    do.balanced = do.balanced, remove.key = remove.key,
                     label.columns = label.columns, ...))
 }
 
 #' Print the results of a dimensional reduction analysis
-#' 
+#'
 #' Prints a set of genes that most strongly define a set of components
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type Reduction technique to print results for
 #' @param dims.print Number of dimensions to display
 #' @param genes.print Number of genes to display
 #' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
-#' @return Set of genes defining the components 
-#' @export 
-PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.print = 30, 
+#' @return Set of genes defining the components
+#' @export
+PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.print = 30,
                      use.full = FALSE){
-  
-  slot.use="x"; 
+
+  slot.use="x";
   if (use.full) slot.use="x.full"
   dim.scores=GetDimReduction(object, reduction.type = reduction.type, slot = slot.use)
   dim.prefix=GetDimReduction(object, reduction.type = reduction.type, slot = "key")
   dim.codes.exist=colnames(dim.scores)
   dim.codes.input=paste0(dim.prefix,dims.print,sep="")
   dims.print=dims.print[which(dim.codes.input%in%dim.codes.exist)]
-  genes.print=min(genes.print,nrow(dim.scores))                       
+  genes.print=min(genes.print,nrow(dim.scores))
   if(length(dim.scores) == 0 && use.full){
     warning("Dimensions have not been projected. Setting use.full = FALSE")
     use.full <- FALSE
   }
-  
+
   for(i in dims.print) {
     code <- paste0(GetDimReduction(object, reduction.type = reduction.type, slot = "key"), i)
-    sx <- DimTopGenes(object, dim.use = i, reduction.type = reduction.type, 
+    sx <- DimTopGenes(object, dim.use = i, reduction.type = reduction.type,
                       num.genes = genes.print * 2, use.full = use.full, do.balanced = TRUE)
     print(code)
     print((sx[1:genes.print]))
     print ("")
-    
+
     print(rev((sx[(length(sx)-genes.print+1):length(sx)])))
     print ("")
     print ("")
@@ -921,7 +921,7 @@ PrintDim <- function(object, reduction.type = "pca", dims.print = 1:5, genes.pri
 #' @return Only text output
 #' @export
 PrintICA <- function(object, ics.print = 1:5, genes.print = 30, use.full = FALSE) {
-  PrintDim(object, reduction.type = "ica", dims.print = ics.print, genes.print = genes.print, 
+  PrintDim(object, reduction.type = "ica", dims.print = ics.print, genes.print = genes.print,
            use.full = use.full)
 }
 
@@ -935,14 +935,14 @@ PrintICA <- function(object, ics.print = 1:5, genes.print = 30, use.full = FALSE
 #' @return Only text output
 #' @export
 PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE) {
-  PrintDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = genes.print, 
+  PrintDim(object, reduction.type = "pca", dims.print = pcs.print, genes.print = genes.print,
            use.full = use.full)
 }
 
 #' Visualize Dimensional Reduction genes
 #'
 #' Visualize top genes associated with reduction components
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type Reduction technique to visualize results for
 #' @param dims.use Number of dimensions to display
@@ -953,12 +953,12 @@ PrintPCA <- function(object, pcs.print = 1:5, genes.print = 30, use.full = FALSE
 #' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
 #' the top genes ranked by the scores absolute values
 #' @return Graphical, no return value
-#' @export 
-VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.genes = 30, 
+#' @export
+VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.genes = 30,
                             use.full = FALSE, font.size = 0.5, nCol = NULL, do.balanced = FALSE) {
   dim.scores <- GetDimReduction(object, reduction.type = reduction.type, slot = "x")
   if(use.full == TRUE) dim.scores <- GetDimReduction(object, reduction.type = reduction.type, "x.full")
-  
+
   if(is.null(nCol)) {
     nCol <- 2
     if (length(dims.use) > 6) nCol <- 3
@@ -966,10 +966,10 @@ VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.
   }
   num.row <- floor(length(dims.use) / nCol - 1e-5) + 1
   par(mfrow = c(num.row, nCol))
-  
+
   for(i in dims.use){
     subset.use <- dim.scores[DimTopGenes(object, i, reduction.type, num.genes, use.full, do.balanced), ]
-    plot(subset.use[, i], 1:nrow(subset.use) ,pch = 16, col = "blue", xlab = paste0("PC", i), 
+    plot(subset.use[, i], 1:nrow(subset.use) ,pch = 16, col = "blue", xlab = paste0("PC", i),
          yaxt="n", ylab="")
     axis(2, at = 1:nrow(subset.use), labels = rownames(subset.use), las = 1, cex.axis = font.size)
   }
@@ -992,9 +992,9 @@ VizDimReduction <- function(object, reduction.type = "pca", dims.use = 1:5, num.
 #' If FALSE (by default), returns the top genes ranked by the score's absolute values
 #' @return Graphical, no return value
 #' @export
-VizPCA <- function(object, pcs.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5, 
+VizPCA <- function(object, pcs.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5,
                    nCol = NULL, do.balanced = FALSE){
-  VizDimReduction(object, reduction.type = "pca", dims.use = pcs.use, num.genes = num.genes, 
+  VizDimReduction(object, reduction.type = "pca", dims.use = pcs.use, num.genes = num.genes,
                   use.full = use.full, font.size = font.size, nCol = nCol, do.balanced = do.balanced)
 }
 
@@ -1014,9 +1014,9 @@ VizPCA <- function(object, pcs.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' If FALSE (by default), returns the top genes ranked by the score's absolute values
 #' @return Graphical, no return value
 #' @export
-VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5, 
+VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font.size = 0.5,
                    nCol = NULL, do.balanced = FALSE) {
-  VizDimReduction(object, reduction.type = "ica", dims.use = pcs.use, num.genes = num.genes, 
+  VizDimReduction(object, reduction.type = "ica", dims.use = pcs.use, num.genes = num.genes,
                   use.full = use.full, font.size = font.size, nCol = nCol, do.balanced = do.balanced)
 }
 
@@ -1040,9 +1040,10 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' class. By default, ggplot assigns colors.
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any
-#' cell attribute (that can be pulled with FetchData) allowing for both different colors and 
+#' cell attribute (that can be pulled with FetchData) allowing for both different colors and
 #' different shapes on cells.
 #' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
@@ -1054,10 +1055,10 @@ VizICA <- function(object, ics.use = 1:5, num.genes = 30, use.full = FALSE, font
 #' @import SDMTools
 #' @importFrom dplyr summarize group_by
 #' @export
-DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.use = NULL, 
-                    pt.size = 3, do.return = FALSE, do.bare = FALSE, cols.use = NULL, 
-                    group.by = "ident", pt.shape = NULL, do.hover = FALSE, do.identify = FALSE, do.label = FALSE, label.size = 1, 
-                    no.legend = FALSE, no.axes = FALSE, dark.theme = FALSE, ...) {
+DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.use = NULL,
+                    pt.size = 3, do.return = FALSE, do.bare = FALSE, cols.use = NULL,
+                    group.by = "ident", pt.shape = NULL, do.hover = FALSE, data.hover=NULL, do.identify = FALSE, do.label = FALSE,
+                    label.size = 1, no.legend = FALSE, no.axes = FALSE, dark.theme = FALSE, ...) {
   if(length(GetDimReduction(object, reduction.type = reduction.use, slot = "rotation")) == 0) {
     stop(paste0(reduction.use, "has not been run for this object yet."))
   }
@@ -1080,7 +1081,7 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
       shape.val <- cut(shape.val, breaks = 5)
     }
     data.plot[,"pt.shape"] <- shape.val
-    p <- ggplot(data.plot, aes(x = x, y = y)) + geom_point(aes(colour = factor(ident), 
+    p <- ggplot(data.plot, aes(x = x, y = y)) + geom_point(aes(colour = factor(ident),
                                                                shape = factor(pt.shape)), size = pt.size)
   }
   if (!is.null(cols.use)) {
@@ -1092,7 +1093,7 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
   p3 <- p3 + theme(legend.title = element_blank())
   if (do.label) {
     data.plot %>% dplyr::group_by(ident) %>% summarize(x = median(x), y = median(y)) -> centers
-    p3 <- p3 + geom_point(data = centers, aes(x = x, y = y), size = 0, alpha = 0) + 
+    p3 <- p3 + geom_point(data = centers, aes(x = x, y = y), size = 0, alpha = 0) +
       geom_text(data = centers, aes(label = ident), size = label.size)
   }
   if (no.legend) {
@@ -1117,7 +1118,12 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
           plot.use <- p3
       }
       if (do.hover) {
-          return(HoverLocator(plot = plot.use, data.plot = data.plot))
+          if (is.null(x = data.hover)) {
+              features.info <- NULL
+          } else {
+              features.info <- FetchData(object = object, vars.all = data.hover)
+          }
+          return(HoverLocator(plot = plot.use, data.plot = data.plot, features.info = features.info))
       } else if (do.identify) {
           return(FeatureLocator(plot = plot.use, data.plot = data.plot, dark.theme = dark.theme, ...))
       }
@@ -1196,7 +1202,7 @@ ICAPlot <- function(object,...) {
 #' @seealso DimPlot
 #' @export
 TSNEPlot <- function(object, do.label = FALSE, pt.size=1, label.size=4, cells.use = NULL, colors.use = NULL,...) {
-  return(DimPlot(object, reduction.use = "tsne", cells.use = cells.use, pt.size = pt.size, 
+  return(DimPlot(object, reduction.use = "tsne", cells.use = cells.use, pt.size = pt.size,
                  do.label = do.label, label.size = label.size, cols.use = colors.use, ...))
 }
 
@@ -1205,20 +1211,20 @@ TSNEPlot <- function(object, do.label = FALSE, pt.size=1, label.size=4, cells.us
 #' Quickly Pick Relevant Dimensions
 #'
 #' Plots the standard deviations (or approximate singular values if running PCAFast)
-#' of the principle components for easy identification of an elbow in the graph. 
-#' This elbow often corresponds well with the significant dims and is much faster to run than 
+#' of the principle components for easy identification of an elbow in the graph.
+#' This elbow often corresponds well with the significant dims and is much faster to run than
 #' Jackstraw
 #'
 #'
 #' @param object Seurat object
 #' @param reduction.type  Type of dimensional reduction to plot data for
-#' @param dims.plot Number of dimensions to plot sd for 
+#' @param dims.plot Number of dimensions to plot sd for
 #' @param xlab X axis label
 #' @param ylab Y axis label
 #' @param title Plot title
 #' @return Returns ggplot object
 #' @export
-DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = "", ylab = "", 
+DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = "", ylab = "",
                          title = "") {
   if(length(GetDimReduction(object, reduction.type = reduction.type, slot = "sdev")) == 0) {
     stop(paste0("No standard deviation info stored for", reduction.use))
@@ -1232,20 +1238,20 @@ DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = 
   dims <- 1:length(data.use)
   data.plot <- data.frame(dims, data.use)
   if(reduction.type == "pca"){
-    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of PC", 
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of PC",
                                                                          x = "PC", title = title)
   }
   else if(reduction.type == "pcafast"){
-    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Eigen values of PC", 
-                                                                         x = "Eigen value", 
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Eigen values of PC",
+                                                                         x = "Eigen value",
                                                                          title = title)
   }
   else if(reduction.type == "ica"){
-    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of IC", 
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = "Standard Deviation of IC",
                                                                          x = "IC", title = title)
   }
   else{
-    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = ylab, x = xlab, 
+    plot <- ggplot(data.plot, aes(dims, data.use)) + geom_point() + labs(y = ylab, x = xlab,
                                                                          title = title)
   }
   return (plot)
@@ -1254,7 +1260,7 @@ DimElbowPlot <- function(object, reduction.type = "pca", dims.plot = 20, xlab = 
 #' Quickly Pick Relevant PCs
 #'
 #' Plots the standard deviations (or approximate singular values if running PCAFast)
-#' of the principle components for easy identification of an elbow in the graph. 
+#' of the principle components for easy identification of an elbow in the graph.
 #' This elbow often corresponds well with the significant PCs and is much faster to run.
 #'
 #'
@@ -1285,9 +1291,9 @@ PCElbowPlot <- function(object, num.pc = 20) {
 #' @param rescale.groups Rescale each set of cells independently
 #' @importFrom PMA CCA
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If one object is passed,
-#' the same object is returned. If two are passed, a combined object is returned. 
+#' the same object is returned. If two are passed, a combined object is returned.
 #' @export
-RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes.use, 
+RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
                    scale.data = TRUE, rescale.groups = FALSE, PMA.version = FALSE) {
   if(!missing(object2) && (!missing(group1) || !missing(group2))){
     warning("Both object2 and group set. Continuing with objects defining the groups")
@@ -1350,7 +1356,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
     }
   }
   if(PMA.version){
-    cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K = num.cc, 
+    cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K = num.cc,
                        penaltyz = 1, penaltyx = 1, trace = F)
   }
   else{
@@ -1371,15 +1377,15 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
     combined.object <- SetDimReduction(combined.object, reduction.type = "cca", slot = "key",
                                        new.data = "CC")
     combined.object <- ProjectDim(combined.object, reduction.type = "cca",do.print = F)
-    combined.object <- SetDimReduction(combined.object, reduction.type = "cca", "x", 
-                                       new.data = DimX(combined.object, reduction.type = "cca", 
+    combined.object <- SetDimReduction(combined.object, reduction.type = "cca", "x",
+                                       new.data = DimX(combined.object, reduction.type = "cca",
                                                        use.full = T, genes.use = genes.use))
     return(combined.object)
   }
   else{
     object <- SetDimReduction(object, reduction.type = "cca", slot = "rotation", new.data = cca.data)
     object <- SetDimReduction(object, reduction.type = "cca", slot = "key", new.data = "CC")
-    
+
     object <- ProjectDim(object, reduction.type = "cca")
     object@scale.data[is.na(object@scale.data)]=0
     return(object)
@@ -1401,7 +1407,7 @@ CheckGroup <- function(object, group, group.id){
   return(cells.use)
 }
 
-# Note: not really "sparse" yet -- could add in the penalties discussed in Witten 
+# Note: not really "sparse" yet -- could add in the penalties discussed in Witten
 
 SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
   if(standardize){
@@ -1429,12 +1435,12 @@ SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
 }
 
 #' Calculate the ratio of variance explained by ICA or PCA to CCA
-#' 
+#'
 #' @param object Seurat object
 #' @param reduction.type type of dimensional reduction to compare to CCA (pca, pcafast, ica)
-#' @param grouping.var variable to group by 
+#' @param grouping.var variable to group by
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number stored for cca)
-#' @export 
+#' @export
 CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.use){
   if(missing(grouping.var)) stop("Need to provide grouping variable")
   if(missing(dims.use)){
@@ -1451,12 +1457,12 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
     group.object <- SubsetData(object, cells.use = group.cells)
     cat("\t Running Dimensional Reduction \n", file = stderr())
     ldp.cca <- CalcLDProj(group.object, reduction.type = "cca", dims.use = dims.use, genes.use = genes.use)
-    group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.cca, reduction.type = "cca", 
+    group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.cca, reduction.type = "cca",
                                      dims.use = dims.use, genes.use = genes.use)
     if(reduction.type == "pca"){
       group.object <- PCA(group.object, pc.genes = genes.use, do.print = F)
       ldp.pca <- CalcLDProj(group.object, reduction.type = "pca", dims.use = dims.use, genes.use = genes.use)
-      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca", 
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca",
                                        dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
       group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.pca[,x])), row.names = group.object@cell.names)
@@ -1464,7 +1470,7 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
     else if(reduction.type == "ica"){
       group.object <- ICA(group.object, ic.genes = genes.use, print.results = F)
       ldp.ica <- CalcLDProj(group.object, reduction.type = "ica", dims.use = dims.use, genes.use = genes.use)
-      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.ica, reduction.type = "ica", 
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.ica, reduction.type = "ica",
                                        dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "ica.var", drop = F]
       group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.ica[,x])), row.names = group.object@cell.names)
@@ -1472,13 +1478,13 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
     else if(reduction.type == "pcafast"){
       group.object <- PCAFast(group.object, ic.genes = genes.use, do.print = F)
       ldp.pca <- CalcLDProj(group.object, reduction.type = "pca", dims.use = dims.use, genes.use = genes.use)
-      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca", 
+      group.object <- CalcProjectedVar(group.object, low.dim.data = ldp.pca, reduction.type = "pca",
                                        dims.use = dims.use, genes.use = genes.use)
       group.var.ratio <- group.object@data.info[, "cca.var", drop = F] / group.object@data.info[, "pca.var", drop = F]
       group.corr <- data.frame(corr = sapply(1:length(group.object@cell.names), function(x) cor(ldp.cca[,x], ldp.pca[,x])), row.names = group.object@cell.names)
     }
     else{
-      stop(paste0("reduction.type ", reduction.type, " not supported")) 
+      stop(paste0("reduction.type ", reduction.type, " not supported"))
     }
     dr.corr <- rbind(dr.corr, group.corr)
     var.ratio <- rbind(var.ratio, group.var.ratio)
@@ -1498,8 +1504,8 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
 }
 
 #' Calculate percent variance explained
-#' 
-#' Projects dataset onto the orthonormal space defined by some dimensional reduction technique 
+#'
+#' Projects dataset onto the orthonormal space defined by some dimensional reduction technique
 #' (e.g. PCA, CCA) and calculates the percent of the variance in gene expression explained by each cell
 #' in that lower dimensional space.
 #'
@@ -1509,7 +1515,7 @@ CalcVarExpRatio <- function(object, reduction.type = "pca", grouping.var, dims.u
 #' @param genes.use vector of genes to use in calculation
 #' @export
 CalcProjectedVar <- function(object, low.dim.data, reduction.type = "pca", dims.use, genes.use ){
-  if(missing(low.dim.data)) low.dim.data <- CalcLDProj(object, reduction.type, dims.use, genes.use) 
+  if(missing(low.dim.data)) low.dim.data <- CalcLDProj(object, reduction.type, dims.use, genes.use)
   projected.var <- apply(low.dim.data, 2, var)
   calc.name <- paste0(reduction.type, ".var")
   object <- AddMetaData(object, projected.var, col.name = calc.name)
@@ -1529,7 +1535,7 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
   # project data onto othronormal basis
   projected.data <- t(data.use) %*% x.norm
   # reconstruct data using only dims specified
-  low.dim.data <- x.norm %*% t(projected.data) 
+  low.dim.data <- x.norm %*% t(projected.data)
   return(low.dim.data)
 }
 
@@ -1541,13 +1547,13 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
 #'
 #'
 #' @param object Seurat object
-#' @param group.var Name of the grouping variable for which to shift the scores 
-#' @param reduction.type reduction to shift scores for 
+#' @param group.var Name of the grouping variable for which to shift the scores
+#' @param reduction.type reduction to shift scores for
 #' @param dims.shift Dims to shift, default is all
 #' @param ds.amt percent of cells in each group for downsampling
-#' @param search.lower lower bounds on the grid search for optimal shifting parameters. Defaults to 
+#' @param search.lower lower bounds on the grid search for optimal shifting parameters. Defaults to
 #' 1st quartile for intercept parameter and 0.25 for slope
-#' @param search.upper upper bounds on the grid search for optimal shifting parameters. Defaults to 
+#' @param search.upper upper bounds on the grid search for optimal shifting parameters. Defaults to
 #' 3rd quartile for intercept parameter and 4 for slope.
 #' @param search.levels Controls the fineness of the grid search. Larger number will evaulate more
 #' options
@@ -1555,7 +1561,7 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @importFrom NMOF gridSearch
 #' @export
-ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, search.lower, 
+ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, search.lower,
                      search.upper, search.levels = 50, constrain.var = T) {
   groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
   cells.1.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
@@ -1568,7 +1574,7 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
   object <- SetAllIdent(object, grouping.var)
   object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
   shifted.rot.small <- DimRot(object, reduction.type = reduction.type)
-  
+
   if (constrain.var) {
     prior.proj <- FastMatMult(t(shifted.rot.small), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
     #prior.proj = t(shifted.rot.small) %*% t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ])
@@ -1577,42 +1583,42 @@ ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 
   }
   cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
   cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
-  
+
   for (i in dims.shift){
-    dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i), 
+    dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i),
                   amt = ds.amt * length(cells.1))
     dim.2 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.2, dims.use = i),
                   amt = ds.amt * length(cells.2))
     cells.use <- c(names(dim.1), names(dim.2))
-    #shifting.params <- optim(c(0, 1), fn = ShiftObj, 
-    #                         drrot = DimRot(object, reduction.type = reduction.type, dims.use = i, 
-    #                                        cells.use = cells.use), 
+    #shifting.params <- optim(c(0, 1), fn = ShiftObj,
+    #                         drrot = DimRot(object, reduction.type = reduction.type, dims.use = i,
+    #                                        cells.use = cells.use),
     #                         ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
     dimrot.use <- DimRot(object, reduction.type = reduction.type, dims.use = i, cells.use = cells.use)
     if(missing(search.lower)) sl <- c(quantile(dimrot.use)[2], 0.25)
     if(missing(search.upper)) su <- c(quantile(dimrot.use)[4], 4)
-    shifting.params <- suppressMessages(gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use], 
-                                  cells.1 = names(dim.1), fun.opt = 2, lower = sl, upper = su, 
+    shifting.params <- suppressMessages(gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use],
+                                  cells.1 = names(dim.1), fun.opt = 2, lower = sl, upper = su,
                                   npar = 2, n = search.levels)$minlevels)
     print(i)
     print(shifting.params)
     shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
-    colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+    colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type,
                                                             slot = "key"), i)
     #shifted.rot[,i] <- scale(shifted.rot[,i])
     #if (constrain.var) shifted.rot[,i] <- shifted.rot[,i]*prior.var[i]
 
   }
-  
+
   shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
   shifted.rot=sweep(shifted.rot,MARGIN = 2,STATS = (shifted.length),FUN = "/")
   shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
-  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
+  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"),
                                 slot = "rotation", new.data = (shifted.rot))
-  
-  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"), 
-                                slot = "key", new.data = 
-                                  paste0("S", GetDimReduction(object, reduction.type = reduction.type, 
+
+  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"),
+                                slot = "key", new.data =
+                                  paste0("S", GetDimReduction(object, reduction.type = reduction.type,
                                                               slot = "key")))
   return(object.all)
 }
@@ -1626,7 +1632,7 @@ DDDS <- function(data, pct = 0.0, amt = 300){
   return(data.downsampled)
 }
 
-# Shifting objective function 
+# Shifting objective function
 
 ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
   if(fun.opt == 1) drrot[cells.1, ] <- par[1] * drrot[cells.1, ]
@@ -1645,26 +1651,26 @@ ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
 #'
 #'
 #' @param object Seurat object
-#' @param reduction.type reduction to shift scores for 
-#' @param group.var Name of the grouping variable for which to shift the scores 
+#' @param reduction.type reduction to shift scores for
+#' @param group.var Name of the grouping variable for which to shift the scores
 #' @param dims.shift Dims to shift, default is all
 #' @param num.genes Number of genes to use in construction of "metagene"
-#' @param show.plots show debugging plots 
+#' @param show.plots show debugging plots
 #' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
 #' @importFrom dtw dtw
 #' @importFrom WGCNA bicor
 #' @importFrom pbapply pbapply
 #' @export
-ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30, 
+ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30,
                         show.plots = F){
   ident.orig <- object@ident
   object <- SetAllIdent(object, grouping.var)
   levels.split <- names(sort(table(object@ident)))
   if (length(levels.split) != 2) {
-    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", 
+    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ",
                 paste(levels.split, collapse = ", ")))
   }
-  objects <- list(SubsetData(object, ident.use = levels.split[1]), 
+  objects <- list(SubsetData(object, ident.use = levels.split[1]),
                   SubsetData(object, ident.use = levels.split[2]))
   object@ident <- ident.orig
   cc.loadings <- list()
@@ -1679,7 +1685,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     cc.embeds[[i]] <- DimRot(objects[[i]],reduction.type = reduction.type)
     scaled.data[[i]] <- objects[[i]]@scale.data
   }
-  
+
   cc.embeds.both <- DimRot(object, reduction.type = reduction.type)
   colnames(cc.embeds.both) <- paste0("S", colnames(cc.embeds.both))
   cc.embeds.orig <- cc.embeds.both
@@ -1703,7 +1709,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     metagenes <- list()
     multvar.data <- list()
     for(i in 1:2) {
-      scaled.use <- sweep(scaled.data[[i]][genes.use, ], 1, sign(genes.rank[genes.use, i + 2]), 
+      scaled.use <- sweep(scaled.data[[i]][genes.use, ], 1, sign(genes.rank[genes.use, i + 2]),
                           FUN = "*")
       scaled.use <- scaled.use[, names(sort(cc.embeds[[i]][, cc.use]))]
       metagenes[[i]] <- apply(scaled.use[genes.use, ], 2, mean, remove.na = T)
@@ -1721,9 +1727,9 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     iqrmin=iqr[iqr.x]
     if (show.plots) print(iqrmin)
     align.2=align.2+iqrmin
-    alignment <- dtw(align.1,align.2, 
+    alignment <- dtw(align.1,align.2,
                      keep = TRUE, dist.method = metric.use)
-    
+
     alignment.map <- data.frame(alignment$index1, alignment$index2)
     alignment.map$cc_data1 <- sort(cc.embeds[[1]][, cc.use])[alignment$index1]
     alignment.map$cc_data2 <- sort(cc.embeds[[2]][, cc.use])[alignment$index2]
@@ -1735,7 +1741,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
       plot(range01(metagenes[[1]]), main = cc.use)
       plot(range01(metagenes[[2]]))
       plot(range01(metagenes[[1]])[(alignment.map.orig$alignment.index1)], pch = 16)
-      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)], col = "red", pch = 16, 
+      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)], col = "red", pch = 16,
              cex = 0.4)
       plot(density(alignment.map$cc_data2))
       lines(density(sort(cc.embeds[[2]][, cc.use])), col = "red")
@@ -1743,10 +1749,10 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
       points(alignment.map.orig$cc_data2, col = "red")
     }
   }
-  
+
   new.type <- paste0(reduction.type, ".shifted")
   new.key <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, slot = "key"))
-  object <- SetDimReduction(object, reduction.type = new.type, slot = "rotation", 
+  object <- SetDimReduction(object, reduction.type = new.type, slot = "rotation",
                             new.data = scale(cc.embeds.both))
   object <- SetDimReduction(object, reduction.type = new.type, slot = "key", new.data = new.key)
   return(object)

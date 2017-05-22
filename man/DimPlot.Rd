@@ -7,8 +7,8 @@
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
-  do.hover = FALSE, do.identify = FALSE, do.label = FALSE,
-  label.size = 1, no.legend = FALSE, no.axes = FALSE,
+  do.hover = FALSE, data.hover = NULL, do.identify = FALSE,
+  do.label = FALSE, label.size = 1, no.legend = FALSE, no.axes = FALSE,
   dark.theme = FALSE, ...)
 }
 \arguments{
@@ -35,10 +35,12 @@ class. By default, ggplot assigns colors.}
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
 \item{pt.shape}{If NULL, all points are circles (default). You can specify any
-cell attribute (that can be pulled with FetchData) allowing for both different colors and 
+cell attribute (that can be pulled with FetchData) allowing for both different colors and
 different shapes on cells.}
 
 \item{do.hover}{Enable hovering over points to view information}
+
+\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 

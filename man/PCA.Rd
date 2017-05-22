@@ -24,7 +24,7 @@ the PCs}
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
-\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to true will 
+\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to true will
 compute it on gene x cell matrix.}
 
 \item{\dots}{Additional arguments to be passed to prcomp}

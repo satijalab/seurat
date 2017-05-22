@@ -14,7 +14,7 @@ DimReduction(object, reduction.type = NULL, genes.use = NULL,
 
 \item{reduction.type}{Type of dimensional reduction to run. Options include "pca", "pcafast", "ica"}
 
-\item{genes.use}{Genes to use as input for the dimensional reduction technique. Default is 
+\item{genes.use}{Genes to use as input for the dimensional reduction technique. Default is
 object@var.genes.}
 
 \item{dims.store}{Number of dimensions to store}
