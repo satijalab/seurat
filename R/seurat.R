@@ -4157,6 +4157,7 @@ setMethod("GenePlot","seurat",
             } else if (do.identify) {
                 return(FeatureLocator(plot = p, data.plot = data.plot))
             }
+        }
     }
 )
 
