@@ -4087,7 +4087,7 @@ setMethod("JackStrawPlot","seurat",
 #' @return No return, only graphical output
 #' @export
 setGeneric("GenePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.hover=FALSE,do.identify=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.hover=FALSE,do.identify=FALSE,dark.theme=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
 #' @export
 setMethod("GenePlot","seurat",
     function(
@@ -4103,6 +4103,7 @@ setMethod("GenePlot","seurat",
         use.raw = FALSE,
         do.hover = FALSE,
         do.identify = FALSE,
+        dark.theme = FALSE,
         do.spline = FALSE,
         spline.span = 0.75,
         ...
@@ -4123,6 +4124,22 @@ setMethod("GenePlot","seurat",
             col.use <- set.ifnull(x = col.use,y = as.numeric(x = ident.use))
         }
         gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
+        if (dark.theme) {
+            par(bg = 'black')
+            col.use <- sapply(
+                X = col.use,
+                FUN = function(color) ifelse(
+                    test = all(col2rgb(color) == 0),
+                    yes = 'white',
+                    no = color
+                )
+            )
+            axes = FALSE
+            col.lab = 'white'
+        } else {
+            axes = TRUE
+            col.lab = 'black'
+        }
         #   Plot the data
         plot(
             x = data.plot$x,
@@ -4133,8 +4150,27 @@ setMethod("GenePlot","seurat",
             cex = cex.use,
             main = gene.cor,
             pch = pch.use,
+            axes = axes,
+            col.lab = col.lab,
+            col.main = col.lab,
             ...
         )
+        if (dark.theme) {
+            axis(
+                side = 1,
+                at = NULL,
+                labels = TRUE,
+                col.axis = col.lab,
+                col = col.lab
+            )
+            axis(
+                side = 2,
+                at = NULL,
+                labels = TRUE,
+                col.axis = col.lab,
+                col = col.lab
+            )
+        }
         if (do.spline) {
             # spline.fit <- smooth.spline(x = g1, y = g2, df = 4)
             spline.fit <- smooth.spline(x = data.plot$x, y = data.plot$y, df = 4)
@@ -4155,7 +4191,7 @@ setMethod("GenePlot","seurat",
                 names(x = data.plot) <- c(gene1, gene2)
                 return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
             } else if (do.identify) {
-                return(FeatureLocator(plot = p, data.plot = data.plot))
+                return(FeatureLocator(plot = p, data.plot = data.plot, dark.theme = dark.theme))
             }
         }
     }
