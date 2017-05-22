@@ -1111,10 +1111,10 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
       } else {
           plot.use <- p3
       }
-      if (do.identify) {
-          return(feature.locator(plot = plot.use, data.plot = data.plot, ...))
-      } else if (do.hover) {
-          return(hover.locator(plot = plot.use, data.plot = data.plot))
+      if (do.hover) {
+          return(HoverLocator(plot = plot.use, data.plot = data.plot))
+      } else if (do.identify) {
+          return(FeatureLocator(plot = plot.use, data.plot = data.plot, ...))
       }
   }
   if (do.return) {

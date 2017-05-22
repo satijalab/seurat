@@ -3046,14 +3046,14 @@ FeaturePlot <- function(
             stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
         }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
-        return(hover.locator(plot = pList[[1]], data.plot = data.plot, title = features.plot))
+        return(HoverLocator(plot = pList[[1]], data.plot = data.plot, title = features.plot))
         # invisible(readline(prompt = 'Press <Enter> to continue\n'))
     } else if (do.identify) {
         if (length(x = pList) != 1) {
             stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
         }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
-        return(feature.locator(plot = pList[[1]], data.plot = data.plot))
+        return(FeatureLocator(plot = pList[[1]], data.plot = data.plot))
     } else {
         MultiPlotList(pList, cols = nCol)
     }
@@ -4108,7 +4108,7 @@ setMethod("GenePlot","seurat",
         ...
     ) {
         cell.ids <- set.ifnull(cell.ids,object@cell.names)
-        #   Don't transpose the data.frame for better compatability with feature.locator and the rest of Seurat
+        #   Don't transpose the data.frame for better compatability with FeatureLocator and the rest of Seurat
         data.use <- as.data.frame(x = FetchData(object = object, vars.all = c(gene1, gene2), cells.use = cell.ids, use.imputed = use.imputed, use.scaled = use.scaled, use.raw = use.raw))
         #   Ensure that our data is only the cells we're working with and
         #   the genes we want. This step seems kind of redundant though...
@@ -4151,13 +4151,12 @@ setMethod("GenePlot","seurat",
             p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
             p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
             p <- p + labs(title = gene.cor, x = gene1, y = gene2)
-            if (do.identify) {
-                return(feature.locator(plot = p, data.plot = data.plot))
-            } else if (do.hover) {
+            if (do.hover) {
                 names(x = data.plot) <- c(gene1, gene2)
-                return(hover.locator(plot = p, data.plot = data.plot, title = gene.cor))
+                return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
+            } else if (do.identify) {
+                return(FeatureLocator(plot = p, data.plot = data.plot))
             }
-        }
     }
 )
 
@@ -4258,11 +4257,11 @@ setMethod("CellPlot","seurat",
             p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
             p <- p + geom_point(mapping = aes(color = colors), size = cex.use, shape = pch.use, color = col.use)
             p <- p + labs(title = gene.cor, x = cell1, y = cell2)
-            if (do.identify) {
-                return(feature.locator(plot = p, data.plot = data.plot))
-            } else if (do.hover) {
+            if (do.hover) {
                 names(x = data.plot) <- c(cell1, cell2)
-                return(hover.locator(plot = p, data.plot = data.plot, title = gene.cor))
+                return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
+            } else if (do.identify) {
+                return(FeatureLocator(plot = p, data.plot = data.plot))
             }
         }
     }

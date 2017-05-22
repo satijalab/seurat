@@ -289,7 +289,7 @@ DarkTheme <- function(...) {
 
 #   Functions for converting ggplot2 objects
 #   to standard plots for use with locator
-plot.ggplot.build <- function(plot.data, smooth = FALSE, ...) {
+PlotBuild <- function(plot.data, smooth = FALSE, ...) {
     #   Do we use a smooth scatterplot?
     #   Take advantage of functions as first class objects
     #   to dynamically choose normal vs smooth scatterplot
@@ -307,7 +307,7 @@ plot.ggplot.build <- function(plot.data, smooth = FALSE, ...) {
     )
 }
 
-ggpoint_to_base <- function(plot, do.plot = TRUE, ...) {
+GGpointToBase <- function(plot, do.plot = TRUE, ...) {
     plot.build <- ggplot2::ggplot_build(plot = plot)
     build.data <- plot.build$data[[1]]
     plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
@@ -319,15 +319,15 @@ ggpoint_to_base <- function(plot, do.plot = TRUE, ...) {
         'cex'
     )
     if (do.plot) {
-        plot.ggplot.build(plot.data = plot.data, ...)
+        PlotBuild(plot.data = plot.data, ...)
     }
     return(plot.data)
 }
 
 #   Locate points on a plot and return them
-point.locator <- function(plot, recolor=TRUE, ...) {
+PointLocator <- function(plot, recolor=TRUE, ...) {
     #   Convert the ggplot object to a data.frame
-    plot.data <- ggpoint_to_base(plot = plot, ...)
+    plot.data <- GGpointToBase(plot = plot, ...)
     npoints <- nrow(x = plot.data)
     cat("Click around the cluster of points you wish to select\n")
     cat("ie. select the vertecies of a shape around the cluster you\n")
@@ -345,14 +345,14 @@ point.locator <- function(plot, recolor=TRUE, ...) {
     if(recolor) {
         points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = 'black')
         plot.data$color <- points.all$color
-        plot.ggplot.build(plot.data = plot.data, ...)
+        PlotBuild(plot.data = plot.data, ...)
     }
     return(points.located[, c(1, 2)])
 }
 
-#   Identify points that were selected by using point.locator
-feature.locator <- function(plot, data.plot, ...) {
-    points.located <- point.locator(plot = plot, ...)
+#   Identify points that were selected by using PointLocator
+FeatureLocator <- function(plot, data.plot, ...) {
+    points.located <- PointLocator(plot = plot, ...)
     #   The rownames for points.located correspond to the row indecies
     #   of data.plot thanks to the way the ggplot object was made
     selected <- data.plot[as.numeric(x = rownames(x = points.located)), ]
@@ -360,10 +360,10 @@ feature.locator <- function(plot, data.plot, ...) {
 }
 
 #   Use plotly for hovering
-hover.locator <- function(plot, data.plot, ...) {
-    #   Use ggpoint_to_base because we already have ggplot objects
+HoverLocator <- function(plot, data.plot, ...) {
+    #   Use GGpointToBase because we already have ggplot objects
     #   with colors (which are annoying in plotly)
-    plot.build <- ggpoint_to_base(plot = plot, do.plot = FALSE)
+    plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
     #   Reset the names to 'x' and 'y'
     names(x = plot.build) <- c(
         'x',
