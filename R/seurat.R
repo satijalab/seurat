@@ -3053,7 +3053,7 @@ FeaturePlot <- function(
             stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
         }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
-        return(FeatureLocator(plot = pList[[1]], data.plot = data.plot))
+        return(FeatureLocator(plot = pList[[1]], data.plot = data.plot, dark.theme = dark.theme))
     } else {
         MultiPlotList(pList, cols = nCol)
     }
