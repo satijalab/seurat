@@ -1123,7 +1123,12 @@ DimPlot <- function(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2, cells.u
           } else {
               features.info <- FetchData(object = object, vars.all = data.hover)
           }
-          return(HoverLocator(plot = plot.use, data.plot = data.plot, features.info = features.info))
+          return(HoverLocator(
+              plot = plot.use,
+              data.plot = data.plot,
+              features.info = features.info,
+              dark.theme = dark.theme
+          ))
       } else if (do.identify) {
           return(FeatureLocator(plot = plot.use, data.plot = data.plot, dark.theme = dark.theme, ...))
       }
