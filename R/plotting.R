@@ -392,10 +392,11 @@ FeatureLocator <- function(plot, data.plot, ...) {
 }
 
 #   Use plotly for hovering
-HoverLocator <- function(plot, data.plot, ...) {
+HoverLocator <- function(plot, data.plot, features.info = NULL, ...) {
     #   Use GGpointToBase because we already have ggplot objects
     #   with colors (which are annoying in plotly)
     plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
+    rownames(x = plot.build) <- rownames(data.plot)
     #   Reset the names to 'x' and 'y'
     names(x = plot.build) <- c(
         'x',
@@ -403,7 +404,21 @@ HoverLocator <- function(plot, data.plot, ...) {
         names(x = plot.build)[3:length(x = plot.build)]
     )
     #   Add the names we're looking for (eg. cell name, gene name)
-    plot.build$feature <- rownames(x = data.plot)
+    if (is.null(x = features.info)) {
+        plot.build$feature <- rownames(x = data.plot)
+    } else {
+        info <- apply(
+            X = features.info,
+            MARGIN = 1,
+            FUN = paste,
+            collapse = '</br>'
+        )
+        data.info <- data.frame(
+            feature = paste(rownames(x = features.info), info, sep = '</br>'),
+            row.names = rownames(x = features.info)
+        )
+        plot.build <- merge(x = plot.build, y = data.info, by = 0)
+    }
     #   Set up axis labels here
     #   Also, a bunch of stuff to get axis lines done properly
     xaxis <- list(title = names(x = data.plot)[1], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
