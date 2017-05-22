@@ -4081,6 +4081,7 @@ setMethod("JackStrawPlot","seurat",
 #' @param use.raw Use raw data
 #' @param do.hover Enable hovering over points to view information
 #' @param do.identify Opens a locator session to identify clusters of cells.
+#' @param dark.theme Use a dark theme for the plot
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
 #' @param spline.span spline span in loess function call
 #' @param \dots Additional arguments to be passed to plot.

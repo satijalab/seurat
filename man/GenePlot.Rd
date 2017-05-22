@@ -35,6 +35,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 
+\item{dark.theme}{Use a dark theme for the plot}
+
 \item{do.spline}{Add a spline (currently hardwired to df=4, to be improved)}
 
 \item{spline.span}{spline span in loess function call}
