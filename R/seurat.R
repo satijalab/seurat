@@ -3047,7 +3047,11 @@ FeaturePlot <- function(
         if (length(x = pList) != 1) {
             stop("'do.hover' only works on a single feature or an overlayed FeaturePlot")
         }
-        features.info <- FetchData(object = object, vars.all = data.hover)
+        if (is.null(x = data.hover)) {
+            features.info <- NULL
+        } else {
+            features.info <- FetchData(object = object, vars.all = data.hover)
+        }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
         return(HoverLocator(plot = pList[[1]], data.plot = data.plot, features.info = features.info, title = features.plot))
         # invisible(readline(prompt = 'Press <Enter> to continue\n'))
@@ -4083,6 +4087,7 @@ setMethod("JackStrawPlot","seurat",
 #' @param use.scaled Use scaled data
 #' @param use.raw Use raw data
 #' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param dark.theme Use a dark theme for the plot
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
@@ -4091,7 +4096,7 @@ setMethod("JackStrawPlot","seurat",
 #' @return No return, only graphical output
 #' @export
 setGeneric("GenePlot", function(object, gene1, gene2, cell.ids=NULL,col.use=NULL,
-                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.hover=FALSE,do.identify=FALSE,dark.theme=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
+                                pch.use=16,cex.use=1.5,use.imputed=FALSE, use.scaled=FALSE, use.raw=FALSE,do.hover=FALSE,data.hover=NULL,do.identify=FALSE,dark.theme=FALSE,do.spline=FALSE,spline.span=0.75,...)  standardGeneric("GenePlot"))
 #' @export
 setMethod("GenePlot","seurat",
     function(
@@ -4106,6 +4111,7 @@ setMethod("GenePlot","seurat",
         use.scaled = FALSE,
         use.raw = FALSE,
         do.hover = FALSE,
+        data.hover = NULL,
         do.identify = FALSE,
         dark.theme = FALSE,
         do.spline = FALSE,
@@ -4193,7 +4199,12 @@ setMethod("GenePlot","seurat",
             p <- p + labs(title = gene.cor, x = gene1, y = gene2)
             if (do.hover) {
                 names(x = data.plot) <- c(gene1, gene2)
-                return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
+                if (is.null(x = data.hover)) {
+                    features.info <- NULL
+                } else {
+                    features.info <- FetchData(object = object, vars.all = data.hover)
+                }
+                return(HoverLocator(plot = p, data.plot = data.plot, features.info = features.info, title = gene.cor))
             } else if (do.identify) {
                 return(FeatureLocator(plot = p, data.plot = data.plot, dark.theme = dark.theme))
             }
