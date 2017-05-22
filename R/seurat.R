@@ -3043,7 +3043,7 @@ FeaturePlot <- function(
     }
     if (do.hover) {
         if (length(x = pList) != 1) {
-            stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
+            stop("'do.hover' only works on a single feature or an overlayed FeaturePlot")
         }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
         return(HoverLocator(plot = pList[[1]], data.plot = data.plot, title = features.plot))
