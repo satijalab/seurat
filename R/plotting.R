@@ -392,7 +392,7 @@ FeatureLocator <- function(plot, data.plot, ...) {
 }
 
 #   Use plotly for hovering
-HoverLocator <- function(plot, data.plot, features.info = NULL, ...) {
+HoverLocator <- function(plot, data.plot, features.info = NULL, dark.theme = FALSE, ...) {
     #   Use GGpointToBase because we already have ggplot objects
     #   with colors (which are annoying in plotly)
     plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
@@ -423,6 +423,16 @@ HoverLocator <- function(plot, data.plot, features.info = NULL, ...) {
     #   Also, a bunch of stuff to get axis lines done properly
     xaxis <- list(title = names(x = data.plot)[1], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
     yaxis <- list(title = names(x = data.plot)[2], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
+    #   Check for dark theme
+    if (dark.theme) {
+        title <- list(color = 'white')
+        xaxis <- c(xaxis, color = 'white')
+        yaxis <- c(yaxis, color = 'white')
+        plotbg <- 'black'
+    } else {
+        title = list(color = 'black')
+        plotbg = 'white'
+    }
     #   Start plotly and pipe it into layout for axis modifications
     #   The `~' means pull from the data passed (this is why we reset the names)
     #   Use I() to get plotly to accept the colors from the data as is
@@ -437,7 +447,7 @@ HoverLocator <- function(plot, data.plot, features.info = NULL, ...) {
         color = ~I(color),
         hoverinfo = 'text',
         text = ~feature
-    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis, ...)
+    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis, titlefont = title, paper_bgcolor = plotbg, plot_bgcolor = plotbg, ...)
 }
 
 
