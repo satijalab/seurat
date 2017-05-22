@@ -4262,7 +4262,7 @@ setMethod("CellPlot","seurat",
                 names(x = data.plot) <- c(cell1, cell2)
                 return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
             } else if (do.identify) {
-                return(FeatureLocator(plot = p, data.plot = data.plot))
+                return(FeatureLocator(plot = p, data.plot = data.plot, ...))
             }
         }
     }
