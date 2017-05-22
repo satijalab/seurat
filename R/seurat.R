@@ -2914,6 +2914,7 @@ setMethod("CalcNoiseModels","seurat",
 #' @param pch.use Pch for plotting
 #' @param overlay Plot two features overlayed one on top of the other
 #' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
 #' @param do.identify Opens a locator session to identify clusters of cells
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
@@ -2939,6 +2940,7 @@ FeaturePlot <- function(
     pch.use = 16,
     overlay = FALSE,
     do.hover = FALSE,
+    data.hover = NULL,
     do.identify = FALSE,
     reduction.use = "tsne",
     use.imputed = FALSE,
@@ -3045,8 +3047,9 @@ FeaturePlot <- function(
         if (length(x = pList) != 1) {
             stop("'do.hover' only works on a single feature or an overlayed FeaturePlot")
         }
+        features.info <- FetchData(object = object, vars.all = data.hover)
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
-        return(HoverLocator(plot = pList[[1]], data.plot = data.plot, title = features.plot))
+        return(HoverLocator(plot = pList[[1]], data.plot = data.plot, features.info = features.info, title = features.plot))
         # invisible(readline(prompt = 'Press <Enter> to continue\n'))
     } else if (do.identify) {
         if (length(x = pList) != 1) {
