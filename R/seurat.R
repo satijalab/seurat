@@ -3053,7 +3053,7 @@ FeaturePlot <- function(
             features.info <- FetchData(object = object, vars.all = data.hover)
         }
         #   Use pList[[1]] to properly extract the ggplot out of the plot list
-        return(HoverLocator(plot = pList[[1]], data.plot = data.plot, features.info = features.info, title = features.plot))
+        return(HoverLocator(plot = pList[[1]], data.plot = data.plot, features.info = features.info, dark.theme = dark.theme, title = features.plot))
         # invisible(readline(prompt = 'Press <Enter> to continue\n'))
     } else if (do.identify) {
         if (length(x = pList) != 1) {
