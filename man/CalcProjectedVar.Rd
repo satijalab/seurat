@@ -17,7 +17,7 @@ CalcProjectedVar(object, low.dim.data, reduction.type = "pca", dims.use,
 \item{genes.use}{vector of genes to use in calculation}
 }
 \description{
-Projects dataset onto the orthonormal space defined by some dimensional reduction technique 
+Projects dataset onto the orthonormal space defined by some dimensional reduction technique
 (e.g. PCA, CCA) and calculates the percent of the variance in gene expression explained by each cell
 in that lower dimensional space.
 }

@@ -16,10 +16,10 @@ ShiftDim(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4,
 
 \item{ds.amt}{percent of cells in each group for downsampling}
 
-\item{search.lower}{lower bounds on the grid search for optimal shifting parameters. Defaults to 
+\item{search.lower}{lower bounds on the grid search for optimal shifting parameters. Defaults to
 1st quartile for intercept parameter and 0.25 for slope}
 
-\item{search.upper}{upper bounds on the grid search for optimal shifting parameters. Defaults to 
+\item{search.upper}{upper bounds on the grid search for optimal shifting parameters. Defaults to
 3rd quartile for intercept parameter and 4 for slope.}
 
 \item{search.levels}{Controls the fineness of the grid search. Larger number will evaulate more

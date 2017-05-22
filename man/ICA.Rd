@@ -19,7 +19,7 @@ ICA(object, ic.genes = NULL, ics.store = 40, ics.compute = 50,
 
 \item{use.imputed}{Run ICA on imputed values (FALSE by default)}
 
-\item{rev.ica}{By default, computes the dimensional reduction on the cell x gene matrix. 
+\item{rev.ica}{By default, computes the dimensional reduction on the cell x gene matrix.
 Setting to true will compute it on the transpose (gene x cell matrix).}
 
 \item{print.results}{Print the top genes associated with each dimension}
