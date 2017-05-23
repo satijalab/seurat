@@ -2162,9 +2162,10 @@ setMethod("NegBinomDETest", "seurat",
                 warning(paste0("Skipping gene --", x, ". No variance in expression between the two clusters.", sep = " "))
                 return(2)
               }
+              fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.vars, collapse = "+")))		
               p.estimate <- 2
               try(p.estimate <- summary(glm.nb(fmla,data = to.test))$coef[2,4], silent = T)
-              return(summary(glm.nb(fmla,data = to.test))$coef[2,4])
+              return(p.estimate)
             }))
             if(length(which(p_val == 2)) > 0){
               genes.use <- genes.use[-which(p_val==2)]
@@ -4518,7 +4519,7 @@ setMethod("MeanVarPlot", signature = "seurat",
                 for(i in 1:max.bin) {
                   my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
                   my.inds <- my.inds[my.inds <= length(genes.use)]
-                  genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,]
+                  genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,, drop = F]
                   data.x[genes.iter]=apply(data.iter,1,fxn.x); data.y[genes.iter]=apply(data.iter,1,fxn.y)
                   setTxtProgressBar(pb, i)  
                 }
