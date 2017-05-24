@@ -1464,3 +1464,6 @@ de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
   return(ret)
 }
 
+PercentAbove <- function(x, threshold){
+  return(length(x[x > threshold])/length(x))
+}

@@ -3930,49 +3930,6 @@ setMethod("show", "seurat",
           }
 )
 
-
-#' Dot plot visualization
-#'
-#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
-#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
-#' AverageExpression level of 'expressing' cells (green is high).
-#'
-#' @param genes.plot Input vector of genes
-#' @param cex.use Scaling factor for the dots (scales all dot sizes)
-#' @param thresh.col The raw data value which corresponds to a red dot (lowest expression)
-#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05)
-#' @inheritParams VlnPlot
-#' @return Only graphical output
-#' @export
-setGeneric("DotPlot", function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL,...)  standardGeneric("DotPlot"))
-#' @export
-setMethod("DotPlot","seurat",
-          function(object,genes.plot,cex.use=2,cols.use=NULL,thresh.col=2.5,dot.min=0.05,group.by=NULL,...) {
-            if (!(is.null(group.by))) object=SetAllIdent(object,id = group.by)
-            #object@data=object@data[genes.plot,]
-            object@data=data.frame(t(FetchData(object,genes.plot)))
-
-            #this line is in case there is a '-' in the cell name
-            colnames(object@data)=object@cell.names
-            avg.exp=AverageExpression(object)
-            avg.alpha=ClusterAlpha(object)
-            cols.use=set.ifnull(cols.use,myPalette(low = "red",high="green"))
-            exp.scale=t(scale(t(avg.exp)))
-            exp.scale=minmax(exp.scale,max=thresh.col,min=(-1)*thresh.col)
-            n.col=length(cols.use)
-            data.y=rep(1:ncol(avg.exp),nrow(avg.exp))
-            data.x=unlist(lapply(1:nrow(avg.exp),rep,ncol(avg.exp)))
-            data.avg=unlist(lapply(1:length(data.y),function(x) exp.scale[data.x[x],data.y[x]]))
-            exp.col=cols.use[floor(n.col*(data.avg+thresh.col)/(2*thresh.col)+.5)]
-            data.cex=unlist(lapply(1:length(data.y),function(x) avg.alpha[data.x[x],data.y[x]]))*cex.use+dot.min
-            plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="",yaxt="n")
-            axis(1,at = 1:length(genes.plot),genes.plot)
-            axis(2,at=1:ncol(avg.alpha),colnames(avg.alpha),las=1)
-          }
-
-)
-
-
 #' Add Metadata
 #'
 #' Adds additional data for single cells to the Seurat object. Can be any piece

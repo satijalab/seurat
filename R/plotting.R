@@ -240,6 +240,94 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
             }
 }
 
+#' Dot plot visualization
+#'
+#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
+#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
+#' AverageExpression level of 'expressing' cells (green is high).
+#'
+#' @param object Seurat object
+#' @param genes.plot Input vector of genes
+#' @param cex.use Scaling factor for the dots (scales all dot sizes)
+#' @param cols.use colors to plot 
+#' @param thresh.col The raw data value which corresponds to a red dot (lowest expression)
+#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05)
+#' @param group.by Factor to group the cells by 
+#' @return Only graphical output
+#' @export
+DotPlot <- function(object, genes.plot, cex.use = 2, cols.use = NULL, thresh.col = 2.5, 
+                    dot.min = 0.05, group.by=NULL, ...) {
+            if (!(is.null(group.by))) object=SetAllIdent(object,id = group.by)
+            #object@data=object@data[genes.plot,]
+            object@data=data.frame(t(FetchData(object,genes.plot)))
+            
+            #this line is in case there is a '-' in the cell name
+            colnames(object@data)=object@cell.names
+            avg.exp=AverageExpression(object)
+            avg.alpha=ClusterAlpha(object)
+            cols.use=set.ifnull(cols.use,myPalette(low = "red",high="green"))
+            exp.scale=t(scale(t(avg.exp)))
+            exp.scale=minmax(exp.scale,max=thresh.col,min=(-1)*thresh.col)
+            n.col=length(cols.use)
+            data.y=rep(1:ncol(avg.exp),nrow(avg.exp))
+            data.x=unlist(lapply(1:nrow(avg.exp),rep,ncol(avg.exp)))
+            data.avg=unlist(lapply(1:length(data.y),function(x) exp.scale[data.x[x],data.y[x]]))
+            exp.col=cols.use[floor(n.col*(data.avg+thresh.col)/(2*thresh.col)+.5)]
+            data.cex=unlist(lapply(1:length(data.y),function(x) avg.alpha[data.x[x],data.y[x]]))*cex.use+dot.min
+            plot(data.x,data.y,cex=data.cex,pch=16,col=exp.col,xaxt="n",xlab="",ylab="",yaxt="n")
+            axis(1,at = 1:length(genes.plot),genes.plot)
+            axis(2,at=1:ncol(avg.alpha),colnames(avg.alpha),las=1)
+}
+
+#' Dot plot visualization
+#'
+#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
+#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
+#' AverageExpression level of 'expressing' cells (green is high).
+#'
+#' @param object Seurat object
+#' @param genes.plot Input vector of genes
+#' @param cols.use colors to plot 
+#' @param col.min Minimum scaled average expression threshold (everything smaller will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05).
+#' @param dot.breaks Number of breaks for dot sizes to display in the legend
+#' @param group.by Factor to group the cells by 
+#' @param plot.legend plots the legends
+#' @param x.lab.rot Rotate x-axis labels
+#' @param do.return Return ggplot2 object
+#' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
+#' @importFrom dplyr %>% group_by summarize_each
+#' @importFrom tidyr gather
+#' @export
+DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
+                    dot.min = 0.05, dot.breaks = 11, group.by, plot.legend = FALSE, do.return = FALSE,
+                    x.lab.rot = FALSE) {
+  if (!missing(group.by)){
+    object <- SetAllIdent(object, id = group.by)
+  }
+  data.to.plot <- data.frame(FetchData(object, genes.plot))
+  data.to.plot$cell <- rownames(data.to.plot)
+  data.to.plot$id <- object@ident
+  data.to.plot %>% gather(key = genes.plot, value = expression, -c(cell, id)) -> data.to.plot
+  data.to.plot %>% group_by(id, genes.plot) %>% 
+    summarize(avg.exp = expMean(expression), pct.exp = PercentAbove(expression, 0)) -> data.to.plot
+  data.to.plot %>% ungroup() %>% group_by(genes.plot) %>% mutate(avg.exp = as.numeric(scale(avg.exp))) %>%
+    mutate(avg.exp.scale = minmax(avg.exp, max = col.max, min = col.min)) ->  data.to.plot
+  data.to.plot$genes.plot <- factor(data.to.plot$genes.plot, levels = rev(sub("-", ".", genes.plot)))
+  data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
+  p <- ggplot(data.to.plot, aes(genes.plot, id)) + geom_point(aes(size = pct.exp, color = avg.exp.scale)) +
+              scale_size_continuous(breaks = seq(1e-10, 1, length.out = dot.breaks)) + 
+              scale_color_gradient(low = cols.use[1], high = cols.use[2]) + 
+              theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+  if(!plot.legend) p <- p + theme(legend.position="none")
+  if(x.lab.rot) p <- p + theme(axis.text.x = element_text(angle = 90, vjust=0.5))
+  suppressWarnings(print(p))
+  if(do.return){
+    return(p)
+  }
+}
+
 #' Dark Theme
 #'
 #' Add a dark theme to ggplot objects
