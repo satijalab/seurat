@@ -1365,7 +1365,7 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
                        penaltyz = 1, penaltyx = 1, trace = F)
   }
   else{
-    cca.results <- SparseCanonCor(data.use1, data.use2, standardize = TRUE, k = num.cc)
+    cca.results <- CanonCor(data.use1, data.use2, standardize = TRUE, k = num.cc)
   }
   cca.data <- rbind(cca.results$u, cca.results$v)
   rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
@@ -1412,32 +1412,47 @@ CheckGroup <- function(object, group, group.id){
   return(cells.use)
 }
 
-# Note: not really "sparse" yet -- could add in the penalties discussed in Witten
+# Note: not sparse yet -- could add in the penalties discussed in Witten 
+# R Version
+#CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+#  set.seed(42)
+#  if(standardize){
+#    mat1 <- Standardize(mat1, FALSE)
+#    mat2 <- Standardize(mat2, FALSE)
+#  }
+#  u.mat <- matrix(nrow = ncol(mat1), ncol = k)
+#  v.mat <- matrix(nrow = ncol(mat2), ncol = k)
+#  cors <- numeric(k)
+#  d <- numeric(k)
+#  mat3 <- FastMatMult(t(mat1), mat2)
+#  v.init <- irlba(mat3, nv = k)$v
+#  for (i in 1:k){
+#    v <- v.init[,i]
+#    u <- t(t(mat2 %*% v) %*% mat1)
+#    u <- u / norm(as.vector(u), "2")
+#    v <- t(t(mat1 %*% u) %*% mat2)
+#    v <- v / norm(as.vector(v), "2")
+#    u.mat[, i] <- u
+#    v.mat[, i] <- v
+#    d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
+#    cors[i] <- cor(mat1 %*% u, mat2 %*% v)
+#    mat1 <- FastRBind(mat1, sqrt(d[i]) * t(u))
+#    mat2 <- FastRBind(mat2, -sqrt(d[i]) * t(v))
+#  }
+#  return(list(u = u.mat, v = v.mat, d = d, cors = cors))
+#}
 
-SparseCanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20){
+  set.seed(42)
   if(standardize){
     mat1 <- Standardize(mat1, FALSE)
     mat2 <- Standardize(mat2, FALSE)
   }
-  u.mat <- matrix(nrow = ncol(mat1), ncol = k)
-  v.mat <- matrix(nrow = ncol(mat2), ncol = k)
-  d <- numeric(k)
   mat3 <- FastMatMult(t(mat1), mat2)
-  v.init <- irlba(mat3, nv = k)$v
-  for (i in 1:k){
-    v <- v.init[,i]
-    u <- t(t(mat2 %*% v) %*% mat1)
-    u <- u / norm(as.vector(u), "2")
-    v <- t(t(mat1 %*% u) %*% mat2)
-    v <- v / norm(as.vector(v), "2")
-    u.mat[, i] <- u
-    v.mat[, i] <- v
-    d[i] <- sum((mat1 %*% u) * (mat2 %*% v))
-    mat1 <- FastRBind(mat1, sqrt(d[i]) * t(u))
-    mat2 <- FastRBind(mat2, -sqrt(d[i]) * t(v))
-  }
-  return(list(u = u.mat, v = v.mat, d = d))
+  cca.svd <- irlba(mat3, nv = k)
+  return(list(u = cca.svd$u, v = cca.svd$v, d = cca.svd$d))
 }
+
 
 #' Calculate the ratio of variance explained by ICA or PCA to CCA
 #'
@@ -1544,138 +1559,33 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use){
   return(low.dim.data)
 }
 
-
-#' Shift dim scores
+#' Align subspaces using dynamic time warping (DTW)
 #'
-#' Shifts dim scores so that they line up across grouping variable (only implemented for case with
+#' Aligns subspaces so that they line up across grouping variable (only implemented for case with
 #' 2 categories in grouping.var)
 #'
 #'
 #' @param object Seurat object
-#' @param group.var Name of the grouping variable for which to shift the scores
-#' @param reduction.type reduction to shift scores for
-#' @param dims.shift Dims to shift, default is all
-#' @param ds.amt percent of cells in each group for downsampling
-#' @param search.lower lower bounds on the grid search for optimal shifting parameters. Defaults to
-#' 1st quartile for intercept parameter and 0.25 for slope
-#' @param search.upper upper bounds on the grid search for optimal shifting parameters. Defaults to
-#' 3rd quartile for intercept parameter and 4 for slope.
-#' @param search.levels Controls the fineness of the grid search. Larger number will evaulate more
-#' options
-#' @param contrain.var Constrain variance to same amount as explained before shifting
-#' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
-#' @importFrom NMOF gridSearch
-#' @export
-ShiftDim <- function(object, grouping.var, reduction.type, dims.shift, ds.amt = 0.4, search.lower,
-                     search.upper, search.levels = 50, constrain.var = T) {
-  groups <- as.vector(unique(FetchData(object, grouping.var)[, 1]))
-  cells.1.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
-  cells.2.all <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
-  if(missing(dims.shift)){
-    dims.shift <- 1:ncol(DimRot(object, reduction.type = reduction.type))
-  }
-  shifted.rot <- DimRot(object, reduction.type = reduction.type)
-  object.all <- object
-  object <- SetAllIdent(object, grouping.var)
-  object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
-  shifted.rot.small <- DimRot(object, reduction.type = reduction.type)
-
-  if (constrain.var) {
-    prior.proj <- FastMatMult(t(shifted.rot.small), t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ]))
-    #prior.proj = t(shifted.rot.small) %*% t(object@scale.data[rownames(DimX(object, reduction.type = reduction.type)), ])
-    prior.var <- apply(prior.proj, 1, var)
-    print(prior.var)
-  }
-  cells.1 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[1])
-  cells.2 <- WhichCells(object, subset.name = grouping.var, accept.value = groups[2])
-
-  for (i in dims.shift){
-    dim.1 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.1, dims.use = i),
-                  amt = ds.amt * length(cells.1))
-    dim.2 <- DDDS(DimRot(object, reduction.type = reduction.type, cells.use = cells.2, dims.use = i),
-                  amt = ds.amt * length(cells.2))
-    cells.use <- c(names(dim.1), names(dim.2))
-    #shifting.params <- optim(c(0, 1), fn = ShiftObj,
-    #                         drrot = DimRot(object, reduction.type = reduction.type, dims.use = i,
-    #                                        cells.use = cells.use),
-    #                         ids = object@ident[cells.use], cells.1 = names(dim.1), fun.opt = 2)$par
-    dimrot.use <- DimRot(object, reduction.type = reduction.type, dims.use = i, cells.use = cells.use)
-    if(missing(search.lower)) sl <- c(quantile(dimrot.use)[2], 0.25)
-    if(missing(search.upper)) su <- c(quantile(dimrot.use)[4], 4)
-    shifting.params <- suppressMessages(gridSearch(ShiftObj, drrot = dimrot.use, ids = object@ident[cells.use],
-                                  cells.1 = names(dim.1), fun.opt = 2, lower = sl, upper = su,
-                                  npar = 2, n = search.levels)$minlevels)
-    print(i)
-    print(shifting.params)
-    shifted.rot[cells.1.all, i] <- shifting.params[1] + shifted.rot[cells.1.all, i] * shifting.params[2]
-    colnames(shifted.rot)[i] <- paste0("S", GetDimReduction(object, reduction.type = reduction.type,
-                                                            slot = "key"), i)
-    #shifted.rot[,i] <- scale(shifted.rot[,i])
-    #if (constrain.var) shifted.rot[,i] <- shifted.rot[,i]*prior.var[i]
-
-  }
-
-  shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
-  shifted.rot=sweep(shifted.rot,MARGIN = 2,STATS = (shifted.length),FUN = "/")
-  shifted.length=apply(shifted.rot,2,function(x)sqrt(sum(x^2)))
-  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"),
-                                slot = "rotation", new.data = (shifted.rot))
-
-  object.all <- SetDimReduction(object.all, reduction.type = paste0(reduction.type, ".shifted"),
-                                slot = "key", new.data =
-                                  paste0("S", GetDimReduction(object, reduction.type = reduction.type,
-                                                              slot = "key")))
-  return(object.all)
-}
-# Density dependent downsampling
-
-DDDS <- function(data, pct = 0.0, amt = 300){
-  data.approx <- approxfun(density(data))(data)
-  names(data.approx) <- rownames(data)
-  pct <- quantile(data.approx, pct)
-  set.seed(1); data.downsampled <- sample(data.approx, size = amt, prob = 1/(data.approx + pct))
-  return(data.downsampled)
-}
-
-# Shifting objective function
-
-ShiftObj <- function(par, drrot, ids, cells.1, fun.opt = 2) {
-  if(fun.opt == 1) drrot[cells.1, ] <- par[1] * drrot[cells.1, ]
-  else if(fun.opt == 2) drrot[cells.1, ] <- par[2] * drrot[cells.1, ] + par[1]
-  else stop("invalid objective function option")
-  drrot <- drrot[order(drrot),, drop = F]
-  drident <- as.numeric(ids[rownames(drrot)])
-  drmax <- max(rle(drident)$lengths, 0.975)
-  return(drmax)
-}
-
-#' Shift dim scores using DTW
-#'
-#' Shifts dim scores so that they line up across grouping variable (only implemented for case with
-#' 2 categories in grouping.var)
-#'
-#'
-#' @param object Seurat object
-#' @param reduction.type reduction to shift scores for
-#' @param group.var Name of the grouping variable for which to shift the scores
-#' @param dims.shift Dims to shift, default is all
+#' @param reduction.type reduction to align scores for 
+#' @param group.var Name of the grouping variable for which to align the scores 
+#' @param dims.align Dims to align, default is all
 #' @param num.genes Number of genes to use in construction of "metagene"
-#' @param show.plots show debugging plots
-#' @return Returns Seurat object with the dims shifted, stored in object@@dr$reduction.type.shifted
+#' @param show.plots show debugging plots 
+#' @return Returns Seurat object with the dims aligned, stored in object@@dr$reduction.type.aligned
 #' @importFrom dtw dtw
 #' @importFrom WGCNA bicor
 #' @importFrom pbapply pbapply
 #' @export
-ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.genes = 30,
+AlignSubspace <- function(object, reduction.type, grouping.var, dims.align, num.genes = 30, 
                         show.plots = F){
   ident.orig <- object@ident
   object <- SetAllIdent(object, grouping.var)
   levels.split <- names(sort(table(object@ident)))
   if (length(levels.split) != 2) {
-    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ",
+    stop(paste0("There are not two options for ", grouping.var, ". \n Current groups include: ", 
                 paste(levels.split, collapse = ", ")))
   }
-  objects <- list(SubsetData(object, ident.use = levels.split[1]),
+  objects <- list(SubsetData(object, ident.use = levels.split[1]), 
                   SubsetData(object, ident.use = levels.split[2]))
   object@ident <- ident.orig
   cc.loadings <- list()
@@ -1690,13 +1600,13 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     cc.embeds[[i]] <- DimRot(objects[[i]],reduction.type = reduction.type)
     scaled.data[[i]] <- objects[[i]]@scale.data
   }
-
+  
   cc.embeds.both <- DimRot(object, reduction.type = reduction.type)
-  colnames(cc.embeds.both) <- paste0("S", colnames(cc.embeds.both))
+  colnames(cc.embeds.both) <- paste0("A", colnames(cc.embeds.both))
   cc.embeds.orig <- cc.embeds.both
 
-  for(cc.use in dims.shift) {
-    cat(paste0("Shifting dimension ", cc.use, "\n"), file = stderr())
+  for(cc.use in dims.align) {
+    cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
     genes.rank <- data.frame(rank(abs(cc.loadings[[1]][, cc.use])), rank(abs(cc.loadings[[2]][, cc.use])),
                              cc.loadings[[1]][, cc.use], cc.loadings[[2]][, cc.use])
     genes.rank$min <- apply(genes.rank[,1:2], 1, min)
@@ -1714,7 +1624,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
     metagenes <- list()
     multvar.data <- list()
     for(i in 1:2) {
-      scaled.use <- sweep(scaled.data[[i]][genes.use, ], 1, sign(genes.rank[genes.use, i + 2]),
+      scaled.use <- sweep(scaled.data[[i]][genes.use, ], 1, sign(genes.rank[genes.use, i + 2]), 
                           FUN = "*")
       scaled.use <- scaled.use[, names(sort(cc.embeds[[i]][, cc.use]))]
       metagenes[[i]] <- apply(scaled.use[genes.use, ], 2, mean, remove.na = T)
@@ -1723,18 +1633,16 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
 
     mean.difference <- mean(range01(metagenes[[1]])) - mean(range01(metagenes[[2]]))
     metric.use <- "Euclidean"
-    align.1=range01(metagenes[[1]])
-    align.2=range01(metagenes[[2]])
-    a1q=sapply(seq(0,1,0.001),function(x)quantile(align.1,x))
-    a2q=sapply(seq(0,1,0.001),function(x)quantile(align.2,x))
-    iqr=(a1q-a2q)[100:900]
-    iqr.x=which.min(abs(iqr))
-    iqrmin=iqr[iqr.x]
+    align.1 <- range01(metagenes[[1]])
+    align.2 <- range01(metagenes[[2]])
+    a1q <- sapply(seq(0, 1, 0.001), function(x) quantile(align.1, x))
+    a2q <- sapply(seq(0, 1, 0.001), function(x) quantile(align.2, x))
+    iqr <- (a1q - a2q)[100:900]
+    iqr.x <- which.min(abs(iqr))
+    iqrmin <- iqr[iqr.x]
     if (show.plots) print(iqrmin)
-    align.2=align.2+iqrmin
-    alignment <- dtw(align.1,align.2,
-                     keep = TRUE, dist.method = metric.use)
-
+    align.2 <- align.2+iqrmin
+    alignment <- dtw(align.1,align.2, keep = TRUE, dist.method = metric.use)
     alignment.map <- data.frame(alignment$index1, alignment$index2)
     alignment.map$cc_data1 <- sort(cc.embeds[[1]][, cc.use])[alignment$index1]
     alignment.map$cc_data2 <- sort(cc.embeds[[2]][, cc.use])[alignment$index2]
@@ -1746,7 +1654,7 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
       plot(range01(metagenes[[1]]), main = cc.use)
       plot(range01(metagenes[[2]]))
       plot(range01(metagenes[[1]])[(alignment.map.orig$alignment.index1)], pch = 16)
-      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)], col = "red", pch = 16,
+      points(range01(metagenes[[2]])[(alignment.map.orig$alignment.index2)], col = "red", pch = 16, 
              cex = 0.4)
       plot(density(alignment.map$cc_data2))
       lines(density(sort(cc.embeds[[2]][, cc.use])), col = "red")
@@ -1754,10 +1662,10 @@ ShiftDimDTW <- function(object, reduction.type, grouping.var, dims.shift, num.ge
       points(alignment.map.orig$cc_data2, col = "red")
     }
   }
-
-  new.type <- paste0(reduction.type, ".shifted")
-  new.key <- paste0("S", GetDimReduction(object, reduction.type = reduction.type, slot = "key"))
-  object <- SetDimReduction(object, reduction.type = new.type, slot = "rotation",
+  
+  new.type <- paste0(reduction.type, ".aligned")
+  new.key <- paste0("A", GetDimReduction(object, reduction.type = reduction.type, slot = "key"))
+  object <- SetDimReduction(object, reduction.type = new.type, slot = "rotation", 
                             new.data = scale(cc.embeds.both))
   object <- SetDimReduction(object, reduction.type = new.type, slot = "key", new.data = new.key)
   return(object)

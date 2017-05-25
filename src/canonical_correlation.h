@@ -8,7 +8,7 @@
 #include <data_manipulation.h>
 //----------------------------------------------------
 List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
-List SparseCanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool standardize, int k){
+List CalcPartialCCA(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, int k, Eigen::MatrixXd v_init);
 //----------------------------------------------------
 
 #endif//CANONICAL_CORRELATION

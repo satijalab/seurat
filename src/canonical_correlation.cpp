@@ -32,3 +32,28 @@ List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
   cc[2] = (b.transpose() * mat2.transpose()).transpose();
   return(cc);
 }
+
+// [[Rcpp::export]]
+List CalcPartialCCA(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, int k, Eigen::MatrixXd v_init) {
+  Eigen::MatrixXd u_mat(mat1.cols(), k);
+  Eigen::MatrixXd v_mat(mat2.cols(), k);
+  Eigen::VectorXd d(k);
+  
+  for (int i = 0; i < k; ++i){
+    Eigen::VectorXd v = v_init.col(i);
+    Eigen::VectorXd u = ((mat2 * v).transpose() * mat1).transpose();
+    u = u.array() / u.norm();
+    v = ((mat1 * u).transpose() * mat2).transpose();
+    v = v.array() / v.norm();
+    u_mat.col(i) = u;
+    v_mat.col(i) = v;
+    d[i] = ((mat1 * u).array() * (mat2 * v).array()).sum();
+    mat1 = FastRBind(mat1, sqrt(d[i]) * u.transpose().array());
+    mat2 = FastRBind(mat2, -1 * sqrt(d[i]) * v.transpose().array());
+  }
+  List cc(3);
+  cc[0] = u_mat;
+  cc[1] = v_mat;
+  cc[2] = d;
+  return(cc);
+}
