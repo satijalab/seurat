@@ -297,7 +297,7 @@ DotPlot <- function(object, genes.plot, cex.use = 2, cols.use = NULL, thresh.col
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
 #' @export
 DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
