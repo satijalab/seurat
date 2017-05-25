@@ -291,7 +291,7 @@ DotPlot <- function(object, genes.plot, cex.use = 2, cols.use = NULL, thresh.col
 #' @param col.min Minimum scaled average expression threshold (everything smaller will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05).
-#' @param dot.breaks Number of breaks for dot sizes to display in the legend
+#' @param dot.scale Scale the size of the points, similar to cex
 #' @param group.by Factor to group the cells by 
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
@@ -301,7 +301,7 @@ DotPlot <- function(object, genes.plot, cex.use = 2, cols.use = NULL, thresh.col
 #' @importFrom tidyr gather
 #' @export
 DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
-                    dot.min = 0.05, dot.breaks = 11, group.by, plot.legend = FALSE, do.return = FALSE,
+                    dot.min = 0, dot.scale = 6, group.by, plot.legend = FALSE, do.return = FALSE,
                     x.lab.rot = FALSE) {
   if (!missing(group.by)){
     object <- SetAllIdent(object, id = group.by)
@@ -317,7 +317,7 @@ DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min 
   data.to.plot$genes.plot <- factor(data.to.plot$genes.plot, levels = rev(sub("-", ".", genes.plot)))
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   p <- ggplot(data.to.plot, aes(genes.plot, id)) + geom_point(aes(size = pct.exp, color = avg.exp.scale)) +
-              scale_size_continuous(breaks = seq(1e-10, 1, length.out = dot.breaks)) + 
+              scale_radius(range=c(0, dot.scale)) + 
               scale_color_gradient(low = cols.use[1], high = cols.use[2]) + 
               theme(axis.title.x=element_blank(), axis.title.y=element_blank())
   if(!plot.legend) p <- p + theme(legend.position="none")

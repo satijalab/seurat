@@ -5,7 +5,7 @@
 \title{Dot plot visualization}
 \usage{
 DotPlotGG(object, genes.plot, cols.use = c("green", "red"), col.min = -2.5,
-  col.max = 2.5, dot.min = 0.05, dot.breaks = 11, group.by,
+  col.max = 2.5, dot.min = 0, dot.scale = 6, group.by,
   plot.legend = FALSE, do.return = FALSE, x.lab.rot = FALSE)
 }
 \arguments{
@@ -21,7 +21,7 @@ DotPlotGG(object, genes.plot, cols.use = c("green", "red"), col.min = -2.5,
 
 \item{dot.min}{The fraction of cells at which to draw the smallest dot (default is 0.05).}
 
-\item{dot.breaks}{Number of breaks for dot sizes to display in the legend}
+\item{dot.scale}{Scale the size of the points, similar to cex}
 
 \item{group.by}{Factor to group the cells by}
 
