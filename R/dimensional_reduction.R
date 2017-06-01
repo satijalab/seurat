@@ -1360,6 +1360,10 @@ RunCCA <- function(object, object2, group1, group2, group.by, num.cc = 20, genes
       data.use2 <- object@data[genes.use, cells.2]
     }
   }
+  genes.use <- CheckGenes(data.use1, genes.use)
+  genes.use <- CheckGenes(data.use2, genes.use)
+  data.use1 <- data.use1[genes.use, ]
+  data.use2 <- data.use2[genes.use, ]
   if(PMA.version){
     cca.results <- CCA(data.use1, data.use2, typex = "standard", typez = "standard", K = num.cc,
                        penaltyz = 1, penaltyx = 1, trace = F)
@@ -1410,6 +1414,13 @@ CheckGroup <- function(object, group, group.id){
     }
   }
   return(cells.use)
+}
+
+CheckGenes <- function(data.use, genes.use){
+  genes.var <- apply(data.use[genes.use, ], 1, var)
+  genes.use <- genes.use[genes.var > 0]
+  genes.use <- genes.use[!is.na(genes.use)]
+  return(genes.use)
 }
 
 # Note: not sparse yet -- could add in the penalties discussed in Witten 
