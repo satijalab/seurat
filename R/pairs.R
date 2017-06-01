@@ -64,10 +64,8 @@ FindGeneMarkerPairs <- function(object, g1.cells, g2m.cells, s.cells, genes.list
 #' @param s.pairs A data frame of gene pairs marking S phase
 #' @param genes.training A list of genes that the model was trained on,
 #' will assemble from pairs data frames if not provided
-#' @param null Which phase is considered the 'null' phase when allocating scores
-#' ie. which phase is not compared for score allocation. See Scialdone et al (2015) for more details
-#' @param score.threshold Threshold for comparing scores. If neither comapred score is above this
-#' threshold, then the 'null' phase is assigned.
+#' @param null ...
+#' @param score.threshold ...
 #' @param num.replicates The number of times we should repeat our testing
 #' @param random.threshold The minimum number of times a randomly selected
 #' pair of genes provides a significant hit
