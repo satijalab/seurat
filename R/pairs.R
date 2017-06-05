@@ -352,8 +352,8 @@ AssignScore <- function(
     if (any(num.pairs < couples.threshold)) {
         couples.threshold <- min(num.pairs)
         warning(
-            paste(
-                "There are fewer marker pairs than 'couples.threshold', using",
+            paste0(
+                "There are fewer marker pairs than 'couples.threshold', using ",
                 couples.threshold,
                 ", the minimum number of marker pairs as 'couples.threshold', instead"
             )
