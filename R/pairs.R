@@ -73,6 +73,8 @@ FindGeneMarkerPairs <- function(object, g1.cells, g2m.cells, s.cells, genes.list
 #' pair of genes provides a significant hit
 #' @param couples.threshold The minimum number of gene pairs that provide a significant hit
 #' @param num.cores The number of cores to run on
+#' @param set.ident Set the identity of the new object to cell-cycle assignment,
+#' will stash old identity as 'old.ident'
 #'
 #' @return A Seurat object with cell-cycle scores and allocations added to object@data.info
 #'
@@ -92,7 +94,8 @@ PredictCellCyclePhases <- function(
     num.replicates = 1000,
     random.threshold = 100,
     couples.threshold = 10,
-    num.cores = NULL
+    num.cores = NULL,
+    set.ident = FALSE
 ) {
     expression.data <- object@scale.data
     #   Quality control
@@ -162,7 +165,15 @@ PredictCellCyclePhases <- function(
         null = scores.allocation$null,
         score.threshold = score.threshold
     )
+    #   Add the cell-cycle scores and assignment information to object@data.info
     object <- Seurat::AddMetaData(object = object, metadata = scores)
+    #   If we're setting the identity to cell-cycle phase
+    #   first, stash the current identity as 'old.ident'
+    #   then, set the identity to the normalized assignment
+    if (set.ident) {
+        object <- Seurat::StashIdent(object = object, save.name = 'old.ident')
+        object <- Seurat::SetAllIdent(object = object, id = 'norm.assignment')
+    }
     return(object)
 }
 
