@@ -64,7 +64,7 @@ FindGeneMarkerPairs <- function(object, g1.cells, g2m.cells, s.cells, genes.list
 #' @param s.pairs A data frame of gene pairs marking S phase
 #' @param genes.training A list of genes that the model was trained on,
 #' will assemble from pairs data frames if not provided
-#' @param null Which phase is considered the 'null' phase when allocating scores
+#' @param null.phase Which phase is considered the 'null' phase when allocating scores
 #' ie. which phase is not compared for score allocation. See Scialdone et al (2015) for more details
 #' @param score.threshold Threshold for comparing scores. If neither comapred score is above this
 #' threshold, then the 'null' phase is assigned.
@@ -87,7 +87,7 @@ PredictCellCyclePhases <- function(
     g2m.pairs,
     s.pairs,
     genes.training = NULL,
-    null = 'G1',
+    null.phase = 'G1',
     score.threshold = 0.5,
     num.replicates = 1000,
     random.threshold = 100,
@@ -96,15 +96,20 @@ PredictCellCyclePhases <- function(
 ) {
     expression.data <- object@scale.data
     #   Quality control
-    null <- toupper(x = null)
+    #   Figure out what the null phase is and
+    #   what scores columns we use for score allocation
+    null.phase <- base::toupper(x = null.phase)
     scores.allocation <- switch(
-        EXPR = null,
+        EXPR = null.phase,
         'G1' = list(first = 'G2M', second = 'S', scores.cols = c(2, 3), norm.cols = c(5, 6)),
         'G2M' = list(first = 'G1', second = 'S', scores.cols = c(1, 3), norm.cols = c(4, 6)),
         'S' = list(first = 'G1', second = 'G2M', scores.cols = c(1, 2), norm.cols = c(4, 5)),
         stop("'null' must be one of 'G1', 'G2M' or 'S'")
     )
-    scores.allocation$null <- null
+    scores.allocation$null <- null.phase
+    #   If no genes.training was provided,
+    #   make it out of the unique genes from
+    #   the pairs data frames
     if (is.null(x = genes.training)) {
         genes.training <- unique(
             x = as.character(
@@ -119,16 +124,22 @@ PredictCellCyclePhases <- function(
         )
     }
     #   Get scores
-    scores <- AssignScore(
-        data = expression.data,
-        g1.marker.pairs = g1.pairs,
-        g2m.marker.pairs = g2m.pairs,
-        s.marker.pairs = s.pairs,
-        genes.training = genes.training,
-        num.replicates = num.replicates,
-        random.threshold = random.threshold,
-        couples.threshold = couples.threshold,
-        num.cores = num.cores
+    tryCatch(
+        expr = scores <- AssignScore(
+            data = expression.data,
+            g1.marker.pairs = g1.pairs,
+            g2m.marker.pairs = g2m.pairs,
+            s.marker.pairs = s.pairs,
+            genes.training = genes.training,
+            num.replicates = num.replicates,
+            random.threshold = random.threshold,
+            couples.threshold = couples.threshold,
+            num.cores = num.cores
+        ),
+        interrupt = function(condition) {
+            sfStop()
+            stop('killed')
+        }
     )
     #   Assemble the scores
     scores <- AssembleScores(results = scores)
@@ -225,10 +236,14 @@ FindMarkerPairs <- function(
 SingleClassification <- function(cell, markers, couples.threshold) {
     #   Find the difference between every marker in this cell
     differences <- unlist(x = cell[markers[, 1]] - cell[markers[, 2]])
+    #   Note: summing a vector of booleans is the same as
+    #   subsetting a vector and taking the length of it based
+    #   on a condition eg. sum(x > 0) == length(x[x > 0])
+    #   except it's about twice as fast
     #   Get the 'hits', where gene1 is greater than gene2
-    hits <- length(x = differences[differences > 0])
+    hits <- sum(differences > 0)
     #   Find all differences
-    total.diffs <- length(x = differences[differences != 0])
+    total.diffs <- sum(differences != 0)
     #   Test to see if we've met our minimum threshold
     if(total.diffs >= couples.threshold) { #min number of couples that can be used
         return(hits / total.diffs)

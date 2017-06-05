@@ -5,7 +5,7 @@
 \title{Predict cell cycle phases}
 \usage{
 PredictCellCyclePhases(object, g1.pairs, g2m.pairs, s.pairs,
-  genes.training = NULL, null = "G1", score.threshold = 0.5,
+  genes.training = NULL, null.phase = "G1", score.threshold = 0.5,
   num.replicates = 1000, random.threshold = 100, couples.threshold = 10,
   num.cores = NULL)
 }
@@ -21,7 +21,7 @@ PredictCellCyclePhases(object, g1.pairs, g2m.pairs, s.pairs,
 \item{genes.training}{A list of genes that the model was trained on,
 will assemble from pairs data frames if not provided}
 
-\item{null}{Which phase is considered the 'null' phase when allocating scores
+\item{null.phase}{Which phase is considered the 'null' phase when allocating scores
 ie. which phase is not compared for score allocation. See Scialdone et al (2015) for more details}
 
 \item{score.threshold}{Threshold for comparing scores. If neither comapred score is above this
