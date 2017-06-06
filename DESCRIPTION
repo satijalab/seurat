@@ -9,7 +9,8 @@ URL: http://www.satijalab.org/seurat
 Depends:
     R (>= 3.2.0),
     ggplot2,
-    cowplot
+    cowplot,
+    snowfall
 SystemRequirements: Java (>= 1.6)
 Imports:
     methods,
@@ -52,7 +53,7 @@ Imports:
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 remotes: bioc::release/made4
-Collate:
+Collate: 
     'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
@@ -60,6 +61,7 @@ Collate:
     'deprecated_functions.R'
     'dimensional_reduction.R'
     'multi_modal.R'
+    'pairs.R'
     'plotting.R'
     'seuratFxns.R'
     'snn.R'
