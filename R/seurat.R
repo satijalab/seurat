@@ -3374,12 +3374,13 @@ setQuantile <- function(cutoff, data) {
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
+#' @param do.return Return the ggplot2 object
 #' @return No return value, only a graphical output
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #' @export
 FeatureHeatmap <- function(object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
                            cols.use = rev(heat.colors(10)), pch.use = 16, reduction.use = "tsne",
-                           group.by = NULL, sep.scale = FALSE) {
+                           group.by = NULL, sep.scale = FALSE, do.return = FALSE) {
   if (!is.null(group.by)) object <- SetAllIdent(object, group.by)
   idents.use <- set.ifnull(idents.use, sort(unique(object@ident)))
   par(mfrow = c(length(features.plot), length(idents.use)))
@@ -3420,6 +3421,9 @@ FeatureHeatmap <- function(object, features.plot, dim.1 = 1, dim.2 = 2, idents.u
   p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
   p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
   print(p2)
+  if(do.return){
+    return(p2)
+  }
 }
 
 translate.dim.code=function(object,reduction.use) {
