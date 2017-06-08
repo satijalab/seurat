@@ -362,6 +362,9 @@ SplitDotPlotGG <- function(object, grouping.var, genes.plot, cols.use = c("green
   grouping.data=FetchData(object,grouping.var)[names(object@ident),1]
   idents.old=levels(object@ident)
   object@ident=paste(object@ident,grouping.data,sep="_")
+  object@ident=factor(object@ident,levels = unlist(lapply(idents.old,function(x)c(paste(x,unique(grouping.data)[1],sep="_"),paste(x,unique(grouping.data)[2],sep="_")))),ordered = T)
+  
+  
   data.to.plot <- data.frame(FetchData(object, genes.plot))
   data.to.plot$cell <- rownames(data.to.plot)
   data.to.plot$id <- object@ident
