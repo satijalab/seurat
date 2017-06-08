@@ -328,6 +328,78 @@ DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min 
   }
 }
 
+
+#' Split Dot plot visualization
+#'
+#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
+#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
+#' AverageExpression level of 'expressing' cells (green is high). Splits the cells into two groups based on a 
+#' grouping variable.
+#' Still in BETA
+#'
+#' @param object Seurat object
+#' @param grouping.var Grouping variable for splitting the dataset
+#' @param genes.plot Input vector of genes
+#' @param cols.use colors to plot 
+#' @param col.min Minimum scaled average expression threshold (everything smaller will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05).
+#' @param dot.scale Scale the size of the points, similar to cex
+#' @param group.by Factor to group the cells by 
+#' @param plot.legend plots the legends
+#' @param x.lab.rot Rotate x-axis labels
+#' @param do.return Return ggplot2 object
+#' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#' @importFrom tidyr gather
+#' @export
+SplitDotPlotGG <- function(object, grouping.var, genes.plot, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
+                           dot.min = 0, dot.scale = 6, group.by, plot.legend = FALSE, do.return = FALSE,
+                           x.lab.rot = FALSE) {
+  if (!missing(group.by)){
+    object <- SetAllIdent(object, id = group.by)
+  }
+  grouping.data=FetchData(object,grouping.var)[names(object@ident),1]
+  idents.old=levels(object@ident)
+  object@ident=paste(object@ident,grouping.data,sep="_")
+  data.to.plot <- data.frame(FetchData(object, genes.plot))
+  data.to.plot$cell <- rownames(data.to.plot)
+  data.to.plot$id <- object@ident
+  data.to.plot %>% gather(key = genes.plot, value = expression, -c(cell, id)) -> data.to.plot
+  data.to.plot %>% group_by(id, genes.plot) %>% 
+    summarize(avg.exp = expMean(expression), pct.exp = PercentAbove(expression, 0)) -> data.to.plot
+  
+  ids.2=paste(idents.old,as.character(unique(grouping.data)[2]),sep="_")
+  vals.2=which(data.to.plot$id%in%ids.2)
+  ids.1=paste(idents.old,as.character(unique(grouping.data)[1]),sep="_")
+  vals.1=which(data.to.plot$id%in%ids.1)
+  
+  #data.to.plot[vals.2,3]=-1*data.to.plot[vals.2,3]
+  
+  data.to.plot %>% ungroup() %>% group_by(genes.plot) %>% mutate(avg.exp = scale(avg.exp)) %>%
+    mutate(avg.exp.scale = as.numeric(cut(minmax(avg.exp, max = col.max, min = col.min),breaks = 20)))  ->  data.to.plot
+  data.to.plot$genes.plot <- factor(data.to.plot$genes.plot, levels = rev(sub("-", ".", genes.plot)))
+  data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
+  
+  palette.1<-myPalette(low = "grey",high = "blue",k = 20)
+  palette.2<-myPalette(low = "grey",high = "red",k = 20)
+  data.to.plot$ptcolor="grey"
+  data.to.plot[vals.1,"ptcolor"]=palette.1[as.matrix(data.to.plot[vals.1,"avg.exp.scale"])[,1]]
+  data.to.plot[vals.2,"ptcolor"]=palette.2[as.matrix(data.to.plot[vals.2,"avg.exp.scale"])[,1]]
+  
+  p <- ggplot(data.to.plot, aes(genes.plot, id)) + geom_point(aes(size = pct.exp, color = ptcolor)) +
+    scale_radius(range=c(0, dot.scale)) + 
+    #scale_color_gradient(low = cols.use[1], high = cols.use[2]) + 
+    scale_color_identity() +
+    theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+  if(!plot.legend) p <- p + theme(legend.position="none")
+  if(x.lab.rot) p <- p + theme(axis.text.x = element_text(angle = 90, vjust=0.5))
+  suppressWarnings(print(p))
+  if(do.return){
+    return(p)
+  }
+}
+
 #' Dark Theme
 #'
 #' Add a dark theme to ggplot objects
