@@ -72,7 +72,7 @@ FindGeneMarkerPairs <- function(object, g1.cells, g2m.cells, s.cells, genes.list
 #' @param random.threshold The minimum number of times a randomly selected
 #' pair of genes provides a significant hit
 #' @param couples.threshold The minimum number of gene pairs that provide a significant hit
-#' @param num.cores The number of cores to run on
+#' @param num.cores The number of cores to run on, set as 0 to use all available cores
 #' @param set.ident Set the identity of the new object to cell-cycle assignment,
 #' will stash old identity as 'old.ident'
 #'
@@ -94,7 +94,7 @@ PredictCellCyclePhases <- function(
     num.replicates = 1000,
     random.threshold = 100,
     couples.threshold = 10,
-    num.cores = NULL,
+    num.cores = 1,
     set.ident = FALSE
 ) {
     expression.data <- object@scale.data
@@ -350,7 +350,7 @@ AssignScore <- function(
     num.replicates = 1000,
     random.threshold = 100,
     couples.threshold = 10,
-    num.cores = NULL
+    num.cores = 1
 ) {
     #   Quality control
     #   ensure that 'couples.threshold' is less than the smallest number of pairs
@@ -402,11 +402,12 @@ AssignScore <- function(
     print(sprintf("Number of S pairs: %d", nrow(x = s.markers)))
     #run the allocation algorithm
     #   Applied by cell
-    if (is.null(x = num.cores)) {
+    if (num.cores == 0) {
         num.cores <- parallel::detectCores()
     }
     sfInit(parallel = TRUE, cpus = num.cores, type = 'SOCK')
     sfExportAll()
+    print("Calculcating G1-phase scores")
     scores.g1 <- sfApply(
         x = data,
         margin = 2,
@@ -416,6 +417,7 @@ AssignScore <- function(
         random.threshold = random.threshold,
         couples.threshold = couples.threshold
     )
+    print("Calculcating G2M-phase scores")
     scores.g2m <- sfApply(
         x = data,
         margin = 2,
@@ -425,6 +427,7 @@ AssignScore <- function(
         random.threshold = random.threshold,
         couples.threshold = couples.threshold
     )
+    print("Calculcating S-phase scores")
     scores.s <- sfApply(
         x = data,
         margin = 2,

@@ -7,7 +7,7 @@
 PredictCellCyclePhases(object, g1.pairs, g2m.pairs, s.pairs,
   genes.training = NULL, null.phase = "G1", score.threshold = 0.5,
   num.replicates = 1000, random.threshold = 100, couples.threshold = 10,
-  num.cores = NULL, set.ident = FALSE)
+  num.cores = 1, set.ident = FALSE)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -34,7 +34,7 @@ pair of genes provides a significant hit}
 
 \item{couples.threshold}{The minimum number of gene pairs that provide a significant hit}
 
-\item{num.cores}{The number of cores to run on}
+\item{num.cores}{The number of cores to run on, set as 0 to use all available cores}
 
 \item{set.ident}{Set the identity of the new object to cell-cycle assignment,
 will stash old identity as 'old.ident'}
