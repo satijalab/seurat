@@ -3374,56 +3374,59 @@ setQuantile <- function(cutoff, data) {
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
+#' @param max.exp Max cutoff for scaled expression value
+#' @param min.exp Min cutoff for scaled expression value
+#' @param rotate.key rotate the legend
 #' @param do.return Return the ggplot2 object
 #' @return No return value, only a graphical output
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #' @export
 FeatureHeatmap <- function(object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
-                           cols.use = rev(heat.colors(10)), pch.use = 16, reduction.use = "tsne",
-                           group.by = NULL, sep.scale = FALSE, do.return = FALSE) {
+                           cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
+                           group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf, 
+                           max.exp = Inf, rotate.key = F) {
   if (!is.null(group.by)) object <- SetAllIdent(object, group.by)
   idents.use <- set.ifnull(idents.use, sort(unique(object@ident)))
   par(mfrow = c(length(features.plot), length(idents.use)))
   dim.code <- translate.dim.code(object,reduction.use)
   dim.codes <- paste(dim.code,c(dim.1,dim.2),sep="")
-  data.plot <- data.frame(FetchData(object, dim.codes))
-
-  ident.use <- as.factor(object@ident)
-  data.plot$ident <- ident.use
-  x1 <- paste(dim.code,dim.1,sep="")
-  x2 <- paste(dim.code,dim.2,sep="")
-  data.plot$x <- data.plot[,x1]
-  data.plot$y <- data.plot[,x2]
-  data.plot$pt.size <- pt.size
-  data.use <- data.frame(data.frame(FetchData(object, features.plot)))
+  data.plot <- data.frame(FetchData(object, c(dim.codes, features.plot)))
+  colnames(data.plot)[1:2] <- c("dim1", "dim2")
+  data.plot$ident <- as.character(object@ident)
+  data.plot$cell <- rownames(data.plot)
+  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
   if(sep.scale){
-    data.use$ident <- data.plot$ident
-    cutVals <- function(x){
-      return(factor(cut(x,breaks=length(cols.use),labels = FALSE),
-                    levels=1:length(cols.use),ordered=TRUE))
-    }
-
-    data.use %>% group_by(ident) %>% mutate_each(funs(cutVals)) %>% ungroup %>% select(-ident) -> data.scale
-    data.scale <- as.matrix(data.scale)
+    data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
   else{
-    data.use <- t(data.use)
-    data.scale <- apply(t(data.use), 2 , function(x)(factor(cut(x,breaks=length(cols.use),labels = FALSE),
-                                                            levels=1:length(cols.use),ordered=TRUE)))
+    data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
-  data.plot.all=data.frame(cbind(data.plot,data.scale))
-  data.reshape=melt((data.plot.all),id = colnames(data.plot))
-  data.reshape=data.reshape[data.reshape$ident%in%idents.use,]
-  data.reshape$value=factor(data.reshape$value,levels=1:length(cols.use),ordered=TRUE)
-  #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
-  p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=value,size=pt.size)) + scale_colour_manual(values=cols.use)
-
-  p=p + facet_grid(variable~ident) + scale_size(range = c(pt.size, pt.size))
-  p2=p+gg.xax()+gg.yax()+gg.legend.pts(6)+gg.legend.text(12)+no.legend.title+theme_bw()+nogrid+theme(legend.title=element_blank())
-  print(p2)
+  data.plot$gene <- factor(data.plot$gene, levels = features.plot)
+  data.plot$scaled.expression <- minmax(data.plot$scaled.expression, min = min.exp, max = max.exp)
+  if(rotate.key){
+    key.direction <- "horizontal"
+    key.title.pos <- "top"
+  }
+  else {
+    key.direction <- "vertical"
+    key.title.pos <- "left"
+  }
+  p <- ggplot(data.plot, aes(dim1, dim2)) + geom_point(aes(colour=scaled.expression), size = pt.size)
+  if(rotate.key){
+    p <- p +scale_colour_gradient(low = cols.use[1], high = cols.use[2],
+                                  guide = guide_colorbar(direction = key.direction, title.position = key.title.pos,
+                                                         title = "Scaled Expression"))
+  }
+  else{
+    p <- p +scale_colour_gradient(low = cols.use[1], high = cols.use[2], 
+                                  guide = guide_colorbar(title = "Scaled Expression"))
+  }
+  p <- p + facet_grid(gene~ident) 
+  p2 <- p +theme_bw()+nogrid + ylab(dim.codes[2]) + xlab(dim.codes[1]) 
   if(do.return){
     return(p2)
   }
+  print(p2)
 }
 
 translate.dim.code=function(object,reduction.use) {
