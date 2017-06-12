@@ -281,6 +281,9 @@ FastScaleData <- function(object, genes.use=NULL, data.use=NULL, do.scale=TRUE, 
             genes.use <- set.ifnull(genes.use,rownames(orig.data))
             genes.use <- as.vector(intersect(genes.use,rownames(orig.data)))
             data.use <- set.ifnull(data.use,orig.data[genes.use, ])
+            if(ncol(data.use) > 50000) return(ScaleData(object = object, genes.use = genes.use, 
+                                                        data.use = data.use, do.scale = do.scale,
+                                                        do.center = do.center, scale.max = scale.max))
             if(class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix"){
               data.scale <- FastSparseRowScale(mat = data.use, scale = do.scale, center = do.center,
                                    scale_max = scale.max, display_progress = display.progress)
