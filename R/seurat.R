@@ -2279,6 +2279,22 @@ setMethod("DiffTTest", "seurat",
           }
 )
 
+#' FastWhichCells
+#' Identify cells matching certain criteria (limited to character values)
+#' @param object Seurat object
+#' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@data.info
+#' @param subset.value  Return cells matching this value
+#' @param invert invert cells to return.FALSE by default
+#' @export
+FastWhichCells=function(object,group.by,subset.value,invert=FALSE) {
+  object=SetAllIdent(object,group.by)
+  cells.return=WhichCells(object,subset.value)
+  if (invert) cells.return=setdiff(object@cell.names,cells.return)
+  return(cells.return)
+}
+
+
+
 #' Identify cells matching certain criteria
 #'
 #' Returns a list of cells that match a particular set of criteria such as
