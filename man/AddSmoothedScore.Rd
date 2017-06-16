@@ -5,7 +5,7 @@
 \title{Calculate smoothed expression values}
 \usage{
 AddSmoothedScore(object, genes.fit = NULL, dim.1 = 1, dim.2 = 2,
-  reduction.use = "tsne", k = 30, do.log = FALSE, do.print = FALSE)
+  reduction.use = "tSNE", k = 30, do.log = FALSE, do.print = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

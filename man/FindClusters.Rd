@@ -66,6 +66,6 @@ Returns a Seurat object and optionally the SNN matrix,
 Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
 based clustering algorithm. First calculate k-nearest neighbors and construct
 the SNN graph. Then optimize the modularity function to determine clusters.
-For a full description of the algorithms, see Waltman and van Eck (2013) 
+For a full description of the algorithms, see Waltman and van Eck (2013)
 \emph{The European Physical Journal B}.
 }

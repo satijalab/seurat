@@ -5,9 +5,10 @@
 \title{Merge Seurat Objects}
 \usage{
 MergeSeurat(object1, object2, project = NULL, min.cells = 0,
-  min.genes = 0, is.expr = 0, do.logNormalize = T, total.expr = 10000,
-  do.scale = TRUE, do.center = TRUE, names.field = 1, names.delim = "_",
-  save.raw = T, add.cell.id1 = NULL, add.cell.id2 = NULL)
+  min.genes = 0, is.expr = 0, do.logNormalize = TRUE,
+  total.expr = 10000, do.scale = TRUE, do.center = TRUE,
+  names.field = 1, names.delim = "_", save.raw = TRUE,
+  add.cell.id1 = NULL, add.cell.id2 = NULL)
 }
 \arguments{
 \item{object1}{First Seurat object to merge}

@@ -4,7 +4,7 @@
 \alias{LogNormalize}
 \title{Normalize raw data}
 \usage{
-LogNormalize(data, scale.factor = 10000, display.progress = T)
+LogNormalize(data, scale.factor = 10000, display.progress = TRUE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
