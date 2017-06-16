@@ -372,6 +372,16 @@ FastScaleData <- function(
     )
   )
   data.use <- set.ifnull(data.use, orig.data[genes.use, ])
+  if (ncol(x = data.use) > 50000) {
+    return(ScaleData(
+      object = object,
+      genes.use = genes.use,
+      data.use = data.use,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max
+    ))
+  }
   if (class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix") {
     data.scale <- FastSparseRowScale(
       mat = data.use,
@@ -3481,6 +3491,22 @@ DiffTTest <- function(
   return(to.return)
 }
 
+#' FastWhichCells
+#' Identify cells matching certain criteria (limited to character values)
+#' @param object Seurat object
+#' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@data.info
+#' @param subset.value  Return cells matching this value
+#' @param invert invert cells to return.FALSE by default
+#' @export
+FastWhichCells=function(object,group.by,subset.value,invert=FALSE) {
+  object=SetAllIdent(object,group.by)
+  cells.return=WhichCells(object,subset.value)
+  if (invert) cells.return=setdiff(object@cell.names,cells.return)
+  return(cells.return)
+}
+
+
+
 #' Identify cells matching certain criteria
 #'
 #' Returns a list of cells that match a particular set of criteria such as
@@ -5040,6 +5066,9 @@ setQuantile <- function(cutoff, data) {
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
+#' @param max.exp Max cutoff for scaled expression value
+#' @param min.exp Min cutoff for scaled expression value
+#' @param rotate.key rotate the legend
 #' @param do.return Return the ggplot2 object
 #'
 #' @return No return value, only a graphical output
@@ -5049,18 +5078,10 @@ setQuantile <- function(cutoff, data) {
 #' @export
 #'
 FeatureHeatmap <- function(
-  object,
-  features.plot,
-  dim.1 = 1,
-  dim.2 = 2,
-  idents.use = NULL,
-  pt.size = 2,
-  cols.use = rev(x = heat.colors(n = 10)),
-  pch.use = 16,
-  reduction.use = "tsne",
-  group.by = NULL,
-  sep.scale = FALSE,
-  do.return = FALSE
+  object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
+  cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
+  group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf,
+  max.exp = Inf, rotate.key = F
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -5069,67 +5090,61 @@ FeatureHeatmap <- function(
   par(mfrow = c(length(x = features.plot), length(x = idents.use)))
   dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- data.frame(FetchData(object = object, vars.all = dim.codes))
-  ident.use <- as.factor(x = object@ident)
-  data.plot$ident <- ident.use
-  x1 <- paste0(dim.code, dim.1)
-  x2 <- paste0(dim.code, dim.2)
-  data.plot$x <- data.plot[, x1]
-  data.plot$y <- data.plot[, x2]
-  data.plot$pt.size <- pt.size
-  data.use <- data.frame(data.frame(FetchData(object = object, vars.all = features.plot)))
+  data.plot <- data.frame(FetchData(
+    object = object,
+    vars.all = c(dim.codes, features.plot)
+  ))
+  colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
+  data.plot$ident <- as.character(x = object@ident)
+  data.plot$cell <- rownames(x = data.plot)
+  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
   if (sep.scale) {
-    data.use$ident <- data.plot$ident
-    cutVals <- function(x) {
-      return(factor(
-        x = cut(x = x, breaks = length(x = cols.use),labels = FALSE),
-        levels = 1:length(x = cols.use), ordered=TRUE
-      ))
-    }
-    data.use %>% group_by(ident) %>% mutate_each(funs(cutVals)) %>% ungroup %>% select(-ident) -> data.scale
-    data.scale <- as.matrix(x = data.scale)
+    data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   } else {
-    data.use <- t(x = data.use)
-    data.scale <- apply(
-      X = t(x = data.use),
-      MARGIN = 2,
-      FUN = function(x) {
-        return(factor(
-          x = cut(x = x, breaks = length(x = cols.use),labels = FALSE),
-          levels = 1:length(x = cols.use),
-          ordered = TRUE
-        ))
-      }
+    data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
+  }
+  data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
+  data.plot$scaled.expression <- minmax(
+    data = data.plot$scaled.expression,
+    min = min.exp,
+    max = max.exp
+  )
+  if (rotate.key) {
+    key.direction <- "horizontal"
+    key.title.pos <- "top"
+  } else {
+    key.direction <- "vertical"
+    key.title.pos <- "left"
+  }
+  p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+  if (rotate.key) {
+    p <- p + scale_colour_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(
+        direction = key.direction,
+        title.position = key.title.pos,
+        title = "Scaled Expression"
+      )
+    )
+  } else {
+    p <- p + scale_colour_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(title = "Scaled Expression")
     )
   }
-  data.plot.all <- data.frame(cbind(data.plot, data.scale))
-  data.reshape <- melt((data.plot.all), id = colnames(x = data.plot))
-  data.reshape <- data.reshape[data.reshape$ident %in% idents.use, ]
-  data.reshape$value <- factor(
-    x = data.reshape$value,
-    levels = 1:length(x = cols.use),
-    ordered = TRUE
-  )
-  #p <- ggplot(data.reshape, aes(x,y)) + geom_point(aes(colour=reorder(value,1:length(cols.use)),size=pt.size)) + scale_colour_manual(values=cols.use)
-  p <- ggplot(data = data.reshape, mapping = aes(x,y)) +
-    geom_point(mapping = aes(colour = value, size = pt.size)) +
-    scale_colour_manual(values = cols.use)
-  p <- p +
-    facet_grid(facets = variable ~ ident) +
-    scale_size(range = c(pt.size, pt.size))
+  p <- p + facet_grid(gene~ident)
   p2 <- p +
-    gg.xax() +
-    gg.yax() +
-    gg.legend.pts(x = 6) +
-    gg.legend.text(x = 12) +
-    no.legend.title +
     theme_bw() +
     nogrid +
-    theme(legend.title = element_blank())
-  print(p2)
-  if(do.return){
+    ylab(label = dim.codes[2]) +
+    xlab(label = dim.codes[1])
+  if (do.return) {
     return(p2)
   }
+  print(p2)
 }
 
 # Documentation

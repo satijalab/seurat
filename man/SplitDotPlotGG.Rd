@@ -4,9 +4,10 @@
 \alias{SplitDotPlotGG}
 \title{Split Dot plot visualization}
 \usage{
-SplitDotPlotGG(object, grouping.var, genes.plot, cols.use = c("green", "red"),
-  col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6, group.by,
-  plot.legend = FALSE, do.return = FALSE, x.lab.rot = FALSE)
+SplitDotPlotGG(object, grouping.var, genes.plot, gene.groups,
+  cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5,
+  dot.min = 0, dot.scale = 6, group.by, plot.legend = FALSE,
+  do.return = FALSE, x.lab.rot = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,6 +15,8 @@ SplitDotPlotGG(object, grouping.var, genes.plot, cols.use = c("green", "red"),
 \item{grouping.var}{Grouping variable for splitting the dataset}
 
 \item{genes.plot}{Input vector of genes}
+
+\item{gene.groups}{Add labeling bars to the top of the plot}
 
 \item{cols.use}{colors to plot}
 

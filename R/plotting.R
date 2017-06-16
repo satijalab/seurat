@@ -18,6 +18,7 @@
 #' @param col.high Color for highest expression value
 #' @param slim.col.label display only the identity class name once for each group
 #' @param remove.key Removes the color key from the plot.
+#' @param rotate.key Rotate color scale horizantally
 #' @param cex.col Controls size of column labels (cells)
 #' @param cex.row Controls size of row labels (genes)
 #' @param group.label.loc Place group labels on bottom or top of plot.
@@ -32,9 +33,9 @@
 DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL, genes.use = NULL,
                         disp.min = -2.5,  disp.max = 2.5, group.by = "ident", draw.line = TRUE,
                         col.low = "#FF00FF", col.mid = "#000000", col.high = "#FFFF00",
-                        slim.col.label = FALSE, remove.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
-                        group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
-                        group.spacing = 0.15, do.plot = TRUE, ...) {
+                        slim.col.label = FALSE, remove.key = FALSE, rotate.key = FALSE,title = NULL, 
+                        cex.col = 10, cex.row = 10, group.label.loc = "bottom", group.label.rot = FALSE, 
+                        group.cex = 15, group.spacing = 0.15, do.plot = TRUE, ...) {
 
   if (is.null(data.use)){
     if (use.scaled){
@@ -93,8 +94,17 @@ DoHeatmapGG <- function(object, data.use = NULL, use.scaled = TRUE, cells.use = 
   #                  theme(axis.line=element_blank(), axis.title.y=element_blank(),
   #                        axis.ticks.y = element_blank())
 
+  if(rotate.key){
+    key.direction <- "horizontal"
+    key.title.pos <- "top"
+  }
+  else {
+    key.direction <- "vertical"
+    key.title.pos <- "left"
+  }
   heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
-    scale_fill_gradient2(low = col.low, mid = col.mid, high = col.high, name= "Expression") +
+    scale_fill_gradient2(low = col.low, mid = col.mid, high = col.high, name= "Expression", 
+                         guide = guide_colorbar(direction = key.direction, title.position = key.title.pos)) +
     scale_y_discrete(position = "right", labels = rev(genes.use)) +
     theme(axis.line=element_blank(), axis.title.y=element_blank(),
           axis.ticks.y = element_blank(), strip.text.x = element_text(size = group.cex),
@@ -349,11 +359,12 @@ DotPlotGG <- function(object, genes.plot, cols.use = c("green", "red"), col.min 
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
+#' @param gene.groups Add labeling bars to the top of the plot
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
 #' @export
-SplitDotPlotGG <- function(object, grouping.var, genes.plot, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
+SplitDotPlotGG <- function(object, grouping.var, genes.plot, gene.groups, cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5, 
                            dot.min = 0, dot.scale = 6, group.by, plot.legend = FALSE, do.return = FALSE,
                            x.lab.rot = FALSE) {
   if (!missing(group.by)){
@@ -363,7 +374,6 @@ SplitDotPlotGG <- function(object, grouping.var, genes.plot, cols.use = c("green
   idents.old=levels(object@ident)
   object@ident=paste(object@ident,grouping.data,sep="_")
   object@ident=factor(object@ident,levels = unlist(lapply(idents.old,function(x)c(paste(x,unique(grouping.data)[1],sep="_"),paste(x,unique(grouping.data)[2],sep="_")))),ordered = T)
-  
   
   data.to.plot <- data.frame(FetchData(object, genes.plot))
   data.to.plot$cell <- rownames(data.to.plot)
@@ -389,12 +399,18 @@ SplitDotPlotGG <- function(object, grouping.var, genes.plot, cols.use = c("green
   data.to.plot$ptcolor="grey"
   data.to.plot[vals.1,"ptcolor"]=palette.1[as.matrix(data.to.plot[vals.1,"avg.exp.scale"])[,1]]
   data.to.plot[vals.2,"ptcolor"]=palette.2[as.matrix(data.to.plot[vals.2,"avg.exp.scale"])[,1]]
-  
+  if(!missing(gene.groups)){
+    names(gene.groups) <- genes.plot
+    data.to.plot %>% mutate(gene.groups = gene.groups[genes.plot]) -> data.to.plot
+  }
   p <- ggplot(data.to.plot, aes(genes.plot, id)) + geom_point(aes(size = pct.exp, color = ptcolor)) +
     scale_radius(range=c(0, dot.scale)) + 
-    #scale_color_gradient(low = cols.use[1], high = cols.use[2]) + 
     scale_color_identity() +
     theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+  if(!missing(gene.groups)){
+    p <- p + facet_grid(~gene.groups, scales = "free_x", space = "free_x", switch = "y") + 
+      theme(panel.spacing = unit(1, "lines"), strip.background = element_blank(), strip.placement = "outside")
+  }
   if(!plot.legend) p <- p + theme(legend.position="none")
   if(x.lab.rot) p <- p + theme(axis.text.x = element_text(angle = 90, vjust=0.5))
   suppressWarnings(print(p))
