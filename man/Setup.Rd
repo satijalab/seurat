@@ -5,8 +5,8 @@
 \title{Setup Seurat object}
 \usage{
 Setup(object, project = "default", min.cells = 3, min.genes = 1000,
-  is.expr = 0, do.logNormalize = T, total.expr = 10000, do.scale = TRUE,
-  do.center = TRUE, names.field = 1, names.delim = "_",
+  is.expr = 0, do.logNormalize = TRUE, total.expr = 10000,
+  do.scale = TRUE, do.center = TRUE, names.field = 1, names.delim = "_",
   meta.data = NULL, save.raw = TRUE)
 }
 \arguments{

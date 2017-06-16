@@ -4,10 +4,10 @@
 \alias{DoKMeans}
 \title{K-Means Clustering}
 \usage{
-DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = NULL,
+DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = 0,
   k.seed = 1, do.plot = TRUE, data.cut = 2.5, k.cols = pyCols,
   pc.row.order = NULL, pc.col.order = NULL, rev.pc.order = FALSE,
-  use.imputed = FALSE, set.ident = TRUE, do.constrained = F, ...)
+  use.imputed = FALSE, set.ident = TRUE, do.constrained = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -49,6 +49,7 @@ class to its K-means cluster (default is TRUE)}
 }
 \value{
 Seurat object where the k-means results for genes is stored in
+
 object@kmeans.obj[[1]], and the k-means results for cells is stored in
 object@kmeans.col[[1]]. The cluster for each cell is stored in object@data.info[,"kmeans.ident"]
 and also object@ident (if set.ident=TRUE)

@@ -5,7 +5,7 @@
 \title{Vizualization of multiple features}
 \usage{
 FeatureHeatmap(object, features.plot, dim.1 = 1, dim.2 = 2,
-  idents.use = NULL, pt.size = 2, cols.use = rev(heat.colors(10)),
+  idents.use = NULL, pt.size = 2, cols.use = rev(x = heat.colors(n = 10)),
   pch.use = 16, reduction.use = "tsne", group.by = NULL,
   sep.scale = FALSE, do.return = FALSE)
 }

@@ -4,8 +4,9 @@
 \alias{AverageExpression}
 \title{Averaged gene expression by identity class}
 \usage{
-AverageExpression(object, genes.use = NULL, return.seurat = F,
-  add.ident = NULL, use.scale = F, use.raw = F, show.progress = T, ...)
+AverageExpression(object, genes.use = NULL, return.seurat = FALSE,
+  add.ident = NULL, use.scale = FALSE, use.raw = FALSE,
+  show.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -6,7 +6,7 @@
 \usage{
 MeanVarPlot(object, fxn.x = expMean, fxn.y = logVarDivMean,
   do.plot = TRUE, set.var.genes = TRUE, do.text = TRUE,
-  x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 2,
+  x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, cex.use = 0.5, cex.text.use = 0.5,
   do.spike = FALSE, pch.use = 16, col.use = "black",
   spike.col.use = "red", plot.both = FALSE, do.contour = TRUE,

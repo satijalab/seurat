@@ -5,7 +5,7 @@
 \title{Regress out technical effects and cell cycle}
 \usage{
 RegressOut(object, latent.vars, genes.regress = NULL, model.use = "linear",
-  use.umi = F, do.scale = T, do.center = T, scale.max = 10)
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE, scale.max = 10)
 }
 \arguments{
 \item{object}{Seurat object}
