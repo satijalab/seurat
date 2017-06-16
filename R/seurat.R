@@ -2060,7 +2060,7 @@ ClusterAlpha <- function(object, thresh.min = 0) {
       X = object@data[, temp.cells],
       MARGIN = 1,
       FUN = function(x) {
-        return(sum(x > thresh.min])/length(x = x))
+        return(sum(x > thresh.min)/length(x = x))
       }
     )
     data.all <- cbind(data.all, data.temp)
@@ -4169,7 +4169,7 @@ FitGeneK <- function(
   object@mix.probs <- cbind(new.mix.probs, norm.probs)
   if (do.plot) {
     nCol <- 2
-    num.row <- floor(x = (do.k + 1) / nCol - 1e - 5) + 1
+    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
     hist(
       x = as.numeric(x = data.use),
       probability = TRUE,
@@ -4259,7 +4259,7 @@ FitGeneMix <- function(
   #o#bject@mu.alpha =rbind(minusr(object@mu.alpha,gene), mixtools.alpha);
   if (do.plot) {
     nCol <- 2
-    num.row <- floor(x = (do.k + 1) / nCol - 1e - 5) + 1
+    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
     par(mfrow = c(num.row, nCol))
     plot.mixEM(x = mixtools.fit, which = 2)
     plot.data <- as.numeric(x = object@imputed[gene, ])
