@@ -222,6 +222,6 @@ c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
 test_that("CCA returns the expected rotation matrix values", {
   expect_equal(nrow(c3@dr$cca@rotation), 14)
   expect_equal(ncol(c3@dr$cca@rotation), 3)
-  expect_equal(c3@dr$cca@rotation[1,1], -0.36186012)
-  expect_equal(c3@dr$cca@rotation[14,3], 0.41716606)
+  expect_equal(c3@dr$cca@rotation[1,1], 0.26555816)
+  expect_equal(c3@dr$cca@rotation[14,3], 0.71504785)
 })
