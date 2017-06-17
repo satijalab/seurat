@@ -3545,8 +3545,8 @@ WhichCells <- function(
   cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
   ident <- set.ifnull(x = ident, y = unique(x = object@ident))
   ident <- anotinb(x = ident, y = ident.remove)
-  if (! all(ident %in% unique(incomparables = object@ident))) {
-    bad.idents <- ident[! (ident %in% unique(incomparables = object@ident))]
+  if (! all(ident %in% unique(x = object@ident))) {
+    bad.idents <- ident[! (ident %in% unique(x = object@ident))]
     stop(paste("Identity :", bad.idents, "not found.   "))
   }
   cells.to.use <- character()
