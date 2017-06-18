@@ -558,7 +558,7 @@ ConvertSeurat <- function(object) {
             FUN = function(ica) {
                 return(length(x = ica) > 1)
             },
-            FUN.VALUE = logical(0)
+            FUN.VALUE = logical(1)
         ),
         length(x = ica.sdev) > 0,
         ! is.null(x = ica.misc)
