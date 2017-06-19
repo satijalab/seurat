@@ -6838,6 +6838,7 @@ JackStrawFull <- function(
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
+#' @param sort.results If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion
 #'
 #' @importFrom MASS kde2d
 #'
@@ -6869,7 +6870,8 @@ MeanVarPlot <- function(
   contour.col = "white",
   contour.lty = 2,
   num.bin = 20,
-  do.recalc = TRUE
+  do.recalc = TRUE,
+  sort.results=TRUE
 ) {
   data=object@data
 
@@ -7004,6 +7006,9 @@ MeanVarPlot <- function(
   }
   if (set.var.genes) {
     object@var.genes <- pass.cutoff
+    if (sort.results) {
+      object@mean.var=object@mean.var[order(object@mean.var$data.y,decreasing = T),]
+    }
     return(object)
   } else {
     return(pass.cutoff)
