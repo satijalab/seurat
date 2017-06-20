@@ -5069,6 +5069,8 @@ setQuantile <- function(cutoff, data) {
 #' @param max.exp Max cutoff for scaled expression value
 #' @param min.exp Min cutoff for scaled expression value
 #' @param rotate.key rotate the legend
+#' @param plot.horiz rotate the plot such that the features are columns, groups are the rows
+#' @param key.position position of the legend ("top", "right", "bottom", "left")
 #' @param do.return Return the ggplot2 object
 #'
 #' @return No return value, only a graphical output
@@ -5081,7 +5083,7 @@ FeatureHeatmap <- function(
   object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
   cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
   group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf,
-  max.exp = Inf, rotate.key = F
+  max.exp = Inf, rotate.key = F, plot.horiz = FALSE, key.position = "right"
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -5136,12 +5138,18 @@ FeatureHeatmap <- function(
       guide = guide_colorbar(title = "Scaled Expression")
     )
   }
-  p <- p + facet_grid(gene~ident)
+  if(plot.horiz){
+    p <- p + facet_grid(ident ~ gene)
+  }
+  else{
+    p <- p + facet_grid(gene ~ ident)
+  }
   p2 <- p +
     theme_bw() +
     nogrid +
     ylab(label = dim.codes[2]) +
     xlab(label = dim.codes[1])
+  p2 <- p2 + theme(legend.position = key.position)
   if (do.return) {
     return(p2)
   }
