@@ -33,8 +33,8 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param print.output Whether or not to print output to the console
 #' @param temp.file.location Directory where intermediate files will be written. Specify the
+#'        ABSOLUTE path.
 #' @param distance.matrix Build SNN from distance matrix (experimental)
-#' ABSOLUTE path.
 #'
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist

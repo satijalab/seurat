@@ -53,10 +53,10 @@ algorithm; 2 = Louvain algorithm with multilevel refinement;
 
 \item{print.output}{Whether or not to print output to the console}
 
-\item{temp.file.location}{Directory where intermediate files will be written. Specify the}
-
-\item{distance.matrix}{Build SNN from distance matrix (experimental)
+\item{temp.file.location}{Directory where intermediate files will be written. Specify the
 ABSOLUTE path.}
+
+\item{distance.matrix}{Build SNN from distance matrix (experimental)}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

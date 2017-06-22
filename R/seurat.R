@@ -558,7 +558,7 @@ ConvertSeurat <- function(object) {
             FUN = function(ica) {
                 return(length(x = ica) > 1)
             },
-            FUN.VALUE = logical(0)
+            FUN.VALUE = logical(1)
         ),
         length(x = ica.sdev) > 0,
         ! is.null(x = ica.misc)
@@ -2630,7 +2630,7 @@ FindMarkers <- function(
   if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
     cells.1 <- ainb(a = ident.1, b = object@cell.names)
   } else {
-    cells.1 <- WhichCells(object = object, object = ident.1)
+    cells.1 <- WhichCells(object = object, ident = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2) > 1) && any(as.character(x = ident.2) %in% object@cell.names)) {
@@ -2642,7 +2642,7 @@ FindMarkers <- function(
       cells.2 <- WhichCells(object = object, ident = ident.2)
     }
   }
-  cells.2 <- anotinb(x = cells.2,y = cells.1)
+  cells.2 <- anotinb(x = cells.2, y = cells.1)
   #error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
@@ -2687,7 +2687,7 @@ FindMarkers <- function(
   )
   #gene selection (based on average difference)
   data.1 <- apply(X = object@data[genes.use, cells.1], MARGIN = 1, FUN = expMean)
-  data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1,FUN = expMean)
+  data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1, FUN = expMean)
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
   genes.use <- ainb(a = genes.use, b = genes.diff)
@@ -3545,8 +3545,8 @@ WhichCells <- function(
   cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
   ident <- set.ifnull(x = ident, y = unique(x = object@ident))
   ident <- anotinb(x = ident, y = ident.remove)
-  if (! all(ident %in% unique(incomparables = object@ident))) {
-    bad.idents <- ident[! (ident %in% unique(incomparables = object@ident))]
+  if (! all(ident %in% unique(x = object@ident))) {
+    bad.idents <- ident[! (ident %in% unique(x = object@ident))]
     stop(paste("Identity :", bad.idents, "not found.   "))
   }
   cells.to.use <- character()
@@ -5069,6 +5069,8 @@ setQuantile <- function(cutoff, data) {
 #' @param max.exp Max cutoff for scaled expression value
 #' @param min.exp Min cutoff for scaled expression value
 #' @param rotate.key rotate the legend
+#' @param plot.horiz rotate the plot such that the features are columns, groups are the rows
+#' @param key.position position of the legend ("top", "right", "bottom", "left")
 #' @param do.return Return the ggplot2 object
 #'
 #' @return No return value, only a graphical output
@@ -5081,7 +5083,7 @@ FeatureHeatmap <- function(
   object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
   cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
   group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf,
-  max.exp = Inf, rotate.key = F
+  max.exp = Inf, rotate.key = F, plot.horiz = FALSE, key.position = "right"
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -5097,6 +5099,7 @@ FeatureHeatmap <- function(
   colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
   data.plot$ident <- as.character(x = object@ident)
   data.plot$cell <- rownames(x = data.plot)
+  features.plot <- gsub('-', '\\.', features.plot)
   data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
   if (sep.scale) {
     data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
@@ -5135,12 +5138,18 @@ FeatureHeatmap <- function(
       guide = guide_colorbar(title = "Scaled Expression")
     )
   }
-  p <- p + facet_grid(gene~ident)
+  if(plot.horiz){
+    p <- p + facet_grid(ident ~ gene)
+  }
+  else{
+    p <- p + facet_grid(gene ~ ident)
+  }
   p2 <- p +
     theme_bw() +
     nogrid +
     ylab(label = dim.codes[2]) +
     xlab(label = dim.codes[1])
+  p2 <- p2 + theme(legend.position = key.position)
   if (do.return) {
     return(p2)
   }
@@ -6838,6 +6847,7 @@ JackStrawFull <- function(
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
+#' @param sort.results If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion
 #'
 #' @importFrom MASS kde2d
 #'
@@ -6869,7 +6879,8 @@ MeanVarPlot <- function(
   contour.col = "white",
   contour.lty = 2,
   num.bin = 20,
-  do.recalc = TRUE
+  do.recalc = TRUE,
+  sort.results=TRUE
 ) {
   data=object@data
 
@@ -7004,6 +7015,9 @@ MeanVarPlot <- function(
   }
   if (set.var.genes) {
     object@var.genes <- pass.cutoff
+    if (sort.results) {
+      object@mean.var=object@mean.var[order(object@mean.var$data.y,decreasing = T),]
+    }
     return(object)
   } else {
     return(pass.cutoff)

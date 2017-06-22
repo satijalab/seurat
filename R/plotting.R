@@ -234,7 +234,7 @@ VlnPlot <- function(object, features.plot, ident.include = NULL, nCol = NULL,
               }
             }
             else{
-              plots.combined <- plots
+              plots.combined <- plots[[1]]
             }
             if(do.return){
               if(return.plotlist){
