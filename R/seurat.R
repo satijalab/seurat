@@ -392,7 +392,7 @@ FastScaleData <- function(
     )
   } else {
     data.use <- as.matrix(x = data.use)
-    data.scale<- FastRowScale(
+    data.scale <- FastRowScale(
       mat = data.use,
       scale = do.scale,
       center = do.center,
@@ -3072,7 +3072,7 @@ NegBinomDETest <- function(
     use.raw = TRUE
   )
   to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
-  to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
   to.test[cells.1, "group"] <- "A"
   to.test[cells.2, "group"] <- "B"
   to.test$group <- factor(x = to.test$group)
@@ -3266,7 +3266,7 @@ PoissonDETest <- function(
     use.raw = TRUE
   )
   to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
-  to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
   to.test[cells.1,"group"] <- "A"
   to.test[cells.2,"group"] <- "B"
   to.test$group <- factor(x = to.test$group)
@@ -3497,11 +3497,15 @@ DiffTTest <- function(
 #' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@data.info
 #' @param subset.value  Return cells matching this value
 #' @param invert invert cells to return.FALSE by default
+#'
 #' @export
-FastWhichCells=function(object,group.by,subset.value,invert=FALSE) {
-  object=SetAllIdent(object,group.by)
-  cells.return=WhichCells(object,subset.value)
-  if (invert) cells.return=setdiff(object@cell.names,cells.return)
+#'
+FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
+  object <- SetAllIdent(object = object, id = group.by)
+  cells.return <- WhichCells(object = object, ident = subset.value)
+  if (invert) {
+    cells.return <- setdiff(x = object@cell.names, y = cells.return)
+  }
   return(cells.return)
 }
 
@@ -6660,7 +6664,7 @@ JackStraw <- function(
     FUN = function(x) {
       return(as.numeric(x = unlist(x = lapply(
         X = 1:num.replicate,
-        FUN =function(y) {
+        FUN = function(y) {
           return(fake.pcVals.raw[[y]][, x])
         }
       ))))
