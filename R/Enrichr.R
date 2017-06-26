@@ -18,7 +18,7 @@
 #' @export
 #'
 
-RunEnrichr=function(
+RunEnrichr <- function(
   GeneList = NULL,
   EnrichrID = NULL,
   GeneSetLib = "GO_Biological_Process_2017",
