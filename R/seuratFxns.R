@@ -18,7 +18,7 @@ getLeftDecendants <- function(tree, node) {
 }
 
 getRightDecendants <- function(tree, node) {
-  daughters<-tree$edge[which(x = tree$edge[, 1] == node), 2]
+  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
   if (daughters[2] <= (tree$Nnode + 1)) {
     return(daughters[2])
   }
@@ -27,12 +27,12 @@ getRightDecendants <- function(tree, node) {
   return(daughter.use)
 }
 
-getDescendants<-function(tree, node, curr = NULL) {
+getDescendants <- function(tree, node, curr = NULL) {
   if (is.null(x = curr)) {
     curr <- vector()
   }
   daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
-  curr<-c(curr, daughters)
+  curr <- c(curr, daughters)
   w <- which(x = daughters >= length(x = tree$tip))
   if (length(x = w) > 0) {
     for (i in 1:length(x = w)) {
@@ -473,7 +473,7 @@ cell.centroid <- function(cell.probs) {
 cell.centroid.x <- function(cell.probs) {
   centroid.x <- round(x = sum(sapply(
     X = 1:64,
-    FUN =function(x) {
+    FUN = function(x) {
       return((x - 1) %% 8 + 1)
     }
   ) * cell.probs))
