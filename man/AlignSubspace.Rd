@@ -5,7 +5,7 @@
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
 AlignSubspace(object, reduction.type, grouping.var, dims.align,
-  num.genes = 30, show.plots = F)
+  num.genes = 30, show.plots = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

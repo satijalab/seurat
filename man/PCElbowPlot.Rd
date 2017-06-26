@@ -4,12 +4,12 @@
 \alias{PCElbowPlot}
 \title{Quickly Pick Relevant PCs}
 \usage{
-PCElbowPlot(object, num.pc = 20)
+PCElbowPlot(objectobject, num.pc = 20)
 }
 \arguments{
-\item{object}{Seurat object}
-
 \item{num.pc}{Number of PCs to plot}
+
+\item{object}{Seurat object}
 }
 \value{
 Returns ggplot object
