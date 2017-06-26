@@ -5,9 +5,10 @@
 \title{Vizualization of multiple features}
 \usage{
 FeatureHeatmap(object, features.plot, dim.1 = 1, dim.2 = 2,
-  idents.use = NULL, pt.size = 2, cols.use = rev(heat.colors(10)),
+  idents.use = NULL, pt.size = 2, cols.use = c("grey", "red"),
   pch.use = 16, reduction.use = "tsne", group.by = NULL,
-  sep.scale = FALSE)
+  sep.scale = FALSE, do.return = FALSE, min.exp = -Inf, max.exp = Inf,
+  rotate.key = F, plot.horiz = FALSE, key.position = "right")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -34,6 +35,18 @@ heat.colors(10).}
 \item{group.by}{Group cells in different ways (for example, orig.ident)}
 
 \item{sep.scale}{Scale each group separately. Default is FALSE.}
+
+\item{do.return}{Return the ggplot2 object}
+
+\item{min.exp}{Min cutoff for scaled expression value}
+
+\item{max.exp}{Max cutoff for scaled expression value}
+
+\item{rotate.key}{rotate the legend}
+
+\item{plot.horiz}{rotate the plot such that the features are columns, groups are the rows}
+
+\item{key.position}{position of the legend ("top", "right", "bottom", "left")}
 }
 \value{
 No return value, only a graphical output

@@ -5,6 +5,10 @@ CanonCor <- function(mat1, mat2) {
     .Call('Seurat_CanonCor', PACKAGE = 'Seurat', mat1, mat2)
 }
 
+CalcPartialCCA <- function(mat1, mat2, k, v_init) {
+    .Call('Seurat_CalcPartialCCA', PACKAGE = 'Seurat', mat1, mat2, k, v_init)
+}
+
 RunUMISampling <- function(data, sample_val, upsample = FALSE, display_progress = TRUE) {
     .Call('Seurat_RunUMISampling', PACKAGE = 'Seurat', data, sample_val, upsample, display_progress)
 }

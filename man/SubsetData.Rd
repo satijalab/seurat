@@ -6,7 +6,7 @@
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   ident.remove = NULL, accept.low = -Inf, accept.high = Inf,
-  do.center = F, do.scale = F, max.cells.per.ident = Inf,
+  do.center = FALSE, do.scale = FALSE, max.cells.per.ident = Inf,
   random.seed = 1, ...)
 }
 \arguments{

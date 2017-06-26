@@ -28,8 +28,8 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
 al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'. 
-The latter two options should only be used on UMI datasets, and assume an underlying 
+as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
+The latter two options should only be used on UMI datasets, and assume an underlying
 poisson or negative-binomial distribution}
 
 \item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells

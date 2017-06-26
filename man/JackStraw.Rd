@@ -19,7 +19,7 @@ replicate}
 
 \item{do.print}{Print the number of replicates that have been processed.}
 
-\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to 
+\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to
 true will compute it on gene x cell matrix. This should match what was set when the intial PCA was run.}
 
 \item{do.fast}{Compute the PCA using the fast approximate calculation from the IRLBA package. Values stored with object

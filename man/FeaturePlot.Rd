@@ -7,8 +7,9 @@
 FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   dim.1 = 1, dim.2 = 2, cells.use = NULL, pt.size = 1,
   cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
-  do.hover = FALSE, do.identify = FALSE, reduction.use = "tsne",
-  use.imputed = FALSE, nCol = NULL, no.axes = FALSE, no.legend = TRUE,
+  do.hover = FALSE, data.hover = NULL, do.identify = FALSE,
+  reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
+  no.axes = FALSE, no.legend = TRUE, dark.theme = FALSE,
   do.return = FALSE)
 }
 \arguments{
@@ -38,6 +39,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{do.hover}{Enable hovering over points to view information}
 
+\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name}
+
 \item{do.identify}{Opens a locator session to identify clusters of cells}
 
 \item{reduction.use}{Which dimensionality reduction to use. Default is
@@ -50,6 +53,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{no.axes}{Remove axis labels}
 
 \item{no.legend}{Remove legend from the graph. Default is TRUE.}
+
+\item{dark.theme}{Plot in a dark theme}
 
 \item{do.return}{return the ggplot2 object}
 }

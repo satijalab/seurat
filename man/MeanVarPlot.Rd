@@ -6,12 +6,12 @@
 \usage{
 MeanVarPlot(object, fxn.x = expMean, fxn.y = logVarDivMean,
   do.plot = TRUE, set.var.genes = TRUE, do.text = TRUE,
-  x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 2,
+  x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, cex.use = 0.5, cex.text.use = 0.5,
   do.spike = FALSE, pch.use = 16, col.use = "black",
   spike.col.use = "red", plot.both = FALSE, do.contour = TRUE,
   contour.lwd = 3, contour.col = "white", contour.lty = 2, num.bin = 20,
-  do.recalc = TRUE)
+  do.recalc = TRUE, sort.results = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -63,6 +63,8 @@ take the standard deviation of all values/}
 is 20)}
 
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
+
+\item{sort.results}{If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion}
 }
 \value{
 Returns a Seurat object, placing variable genes in object@var.genes.

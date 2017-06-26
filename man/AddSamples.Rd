@@ -5,9 +5,9 @@
 \title{Add samples into existing Seurat object.}
 \usage{
 AddSamples(object, new.data, project = NULL, min.cells = 3,
-  min.genes = 1000, is.expr = 0, do.logNormalize = T,
+  min.genes = 1000, is.expr = 0, do.logNormalize = TRUE,
   total.expr = 10000, do.scale = TRUE, do.center = TRUE,
-  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = T,
+  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
   add.cell.id = NULL)
 }
 \arguments{

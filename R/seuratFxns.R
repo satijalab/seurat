@@ -249,113 +249,6 @@ shuffleMatRow=function(x) {
   return(x2)
 }
 
-#   Functions for converting ggplot2 objects
-#   to standard plots for use with locator
-plot.ggplot.build <- function(plot.data, smooth = FALSE, ...) {
-    #   Do we use a smooth scatterplot?
-    #   Take advantage of functions as first class objects
-    #   to dynamically choose normal vs smooth scatterplot
-    if (smooth) {
-        myplot <- smoothScatter
-    } else {
-        myplot <- plot
-    }
-    myplot(
-        plot.data[, c(1, 2)],
-        col = plot.data$color,
-        pch = plot.data$pch,
-        cex = vapply(X = plot.data$cex, FUN = function(x) return(max(x / 2, 0.5)), FUN.VALUE = numeric(1)),
-        ...
-    )
-}
-
-ggpoint_to_base <- function(plot, do.plot = TRUE, ...) {
-    plot.build <- ggplot2::ggplot_build(plot = plot)
-    build.data <- plot.build$data[[1]]
-    plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
-    names(x = plot.data) <- c(
-        plot.build$plot$labels$x,
-        plot.build$plot$labels$y,
-        'color',
-        'pch',
-        'cex'
-    )
-    if (do.plot) {
-        plot.ggplot.build(plot.data = plot.data, ...)
-    }
-    return(plot.data)
-}
-
-#   Locate points on a plot and return them
-point.locator <- function(plot, recolor=TRUE, ...) {
-    #   Convert the ggplot object to a data.frame
-    plot.data <- ggpoint_to_base(plot = plot, ...)
-    npoints <- nrow(x = plot.data)
-    cat("Click around the cluster of points you wish to select\n")
-    cat("ie. select the vertecies of a shape around the cluster you\n")
-    cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
-    polygon <- locator(n = npoints, type = 'l')
-    polygon <- data.frame(polygon)
-    #   pnt.in.poly returns a data.frame of points
-    points.all <- SDMTools::pnt.in.poly(
-        pnts = plot.data[, c(1, 2)],
-        poly.pnts = polygon
-    )
-    #   Find the located points
-    points.located <- points.all[which(x = points.all$pip == 1), ]
-    #   If we're recoloring, do the recolor
-    if(recolor) {
-        points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = 'black')
-        plot.data$color <- points.all$color
-        plot.ggplot.build(plot.data = plot.data, ...)
-    }
-    return(points.located[, c(1, 2)])
-}
-
-#   Identify points that were selected by using point.locator
-feature.locator <- function(plot, data.plot, ...) {
-    points.located <- point.locator(plot = plot, ...)
-    #   The rownames for points.located correspond to the row indecies
-    #   of data.plot thanks to the way the ggplot object was made
-    selected <- data.plot[as.numeric(x = rownames(x = points.located)), ]
-    return(rownames(x = selected))
-}
-
-#   Use plotly for hovering
-hover.locator <- function(plot, data.plot, ...) {
-    #   Use ggpoint_to_base because we already have ggplot objects
-    #   with colors (which are annoying in plotly)
-    plot.build <- ggpoint_to_base(plot = plot, do.plot = FALSE)
-    #   Reset the names to 'x' and 'y'
-    names(x = plot.build) <- c(
-        'x',
-        'y',
-        names(x = plot.build)[3:length(x = plot.build)]
-    )
-    #   Add the names we're looking for (eg. cell name, gene name)
-    plot.build$feature <- rownames(x = data.plot)
-    #   Set up axis labels here
-    #   Also, a bunch of stuff to get axis lines done properly
-    xaxis <- list(title = names(x = data.plot)[1], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
-    yaxis <- list(title = names(x = data.plot)[2], showgrid = FALSE, zeroline = FALSE, showline = TRUE)
-    #   Start plotly and pipe it into layout for axis modifications
-    #   The `~' means pull from the data passed (this is why we reset the names)
-    #   Use I() to get plotly to accept the colors from the data as is
-    #   Set hoverinfo to 'text' to override the default hover information
-    #   rather than append to it
-    plotly::plot_ly(
-        data = plot.build,
-        x = ~x,
-        y = ~y,
-        type = 'scatter',
-        mode = 'markers',
-        color = ~I(color),
-        hoverinfo = 'text',
-        text = ~feature
-    ) %>% plotly::layout(xaxis = xaxis, yaxis = yaxis, ...)
-}
-
-
 #' @export
 logMeanMinus= function(x)log(mean(exp(as.numeric(x))-1)+1)
 #' @export
@@ -1571,3 +1464,6 @@ de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
   return(ret)
 }
 
+PercentAbove <- function(x, threshold){
+  return(length(x[x > threshold])/length(x))
+}

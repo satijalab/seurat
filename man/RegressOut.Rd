@@ -5,7 +5,7 @@
 \title{Regress out technical effects and cell cycle}
 \usage{
 RegressOut(object, latent.vars, genes.regress = NULL, model.use = "linear",
-  use.umi = F, do.scale = T, do.center = T, scale.max = 10)
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE, scale.max = 10)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -22,7 +22,7 @@ RegressOut(object, latent.vars, genes.regress = NULL, model.use = "linear",
 
 \item{do.center}{Whether to center the data.}
 
-\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help 
+\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help
 reduce the effects of genes that are only expressed in a very small number of cells.}
 }
 \value{

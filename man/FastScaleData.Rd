@@ -19,7 +19,7 @@ FastScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
 
 \item{do.center}{Whether to center the data.}
 
-\item{scale.max}{Max value to return for scaled data. The default is 10. Setting this can help 
+\item{scale.max}{Max value to return for scaled data. The default is 10. Setting this can help
 reduce the effects of genes that are only expressed in a very small number of cells.}
 
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.}
@@ -28,6 +28,6 @@ reduce the effects of genes that are only expressed in a very small number of ce
 Returns a seurat object with object@scale.data updated with scaled and/or centered data.
 }
 \description{
-Note: will give slightly different results than R due to differences in numerical precision 
+Note: will give slightly different results than R due to differences in numerical precision
 between R and C++. This could cause the results of some stochastic processes like tSNE to change.
 }

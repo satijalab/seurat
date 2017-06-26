@@ -8,14 +8,14 @@ DoHeatmapGG(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
   genes.use = NULL, disp.min = -2.5, disp.max = 2.5, group.by = "ident",
   draw.line = TRUE, col.low = "#FF00FF", col.mid = "#000000",
   col.high = "#FFFF00", slim.col.label = FALSE, remove.key = FALSE,
-  title = NULL, cex.col = 10, cex.row = 10, group.label.loc = "bottom",
-  group.label.rot = FALSE, group.cex = 15, group.spacing = 0.15,
-  do.plot = TRUE, ...)
+  rotate.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
+  group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
+  group.spacing = 0.15, do.plot = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either 
+\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either
 object@data or object@scale.data depending on use.scaled parameter. Should have cells as columns
 and genes as rows.}
 
@@ -42,6 +42,8 @@ and genes as rows.}
 \item{slim.col.label}{display only the identity class name once for each group}
 
 \item{remove.key}{Removes the color key from the plot.}
+
+\item{rotate.key}{Rotate color scale horizantally}
 
 \item{cex.col}{Controls size of column labels (cells)}
 

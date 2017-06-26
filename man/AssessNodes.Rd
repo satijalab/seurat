@@ -12,10 +12,11 @@ AssessNodes(object, node.list, all.below = FALSE)
 \item{node.list}{List of internal nodes to assess and return}
 
 \item{all.below}{If single node provided in node.list, assess all splits below (and including)
-provided node.}
+provided node
+.}
 }
 \value{
-Returns the Out of Bag error for a random forest classifiers trained on 
+Returns the Out of Bag error for a random forest classifiers trained on
 each internal node split or each split provided in the node list.
 }
 \description{

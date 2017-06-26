@@ -53,10 +53,10 @@ algorithm; 2 = Louvain algorithm with multilevel refinement;
 
 \item{print.output}{Whether or not to print output to the console}
 
-\item{temp.file.location}{Directory where intermediate files will be written. Specify the}
-
-\item{distance.matrix}{Build SNN from distance matrix (experimental)
+\item{temp.file.location}{Directory where intermediate files will be written. Specify the
 ABSOLUTE path.}
+
+\item{distance.matrix}{Build SNN from distance matrix (experimental)}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,
@@ -66,6 +66,6 @@ Returns a Seurat object and optionally the SNN matrix,
 Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
 based clustering algorithm. First calculate k-nearest neighbors and construct
 the SNN graph. Then optimize the modularity function to determine clusters.
-For a full description of the algorithms, see Waltman and van Eck (2013) 
+For a full description of the algorithms, see Waltman and van Eck (2013)
 \emph{The European Physical Journal B}.
 }
