@@ -4557,3 +4557,71 @@ setMethod("MeanVarPlot", signature = "seurat",
             }
           }
 )
+
+#' Calculate enrichment scores for gene expression programs in single cells
+#'
+#' Calculate the average expression levels of each program (cluster) on single cell level, 
+#' subtracted by the aggregated expression of control gene sets. 
+#' All analyzed genes are binned based on averaged expression, and the control genes are 
+#' randomly selected from each bin.
+#'
+#' @param object Seurat object
+#' @param genes.list Gene expression programs in list
+#' @param n.bin Number of bins of aggregate expression levels for all analyzed genes
+#' @param seed.use Random seed for sampling
+#' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
+#' @param use.k Use gene clusters returned from DoKMeans()
+#' @param enrich.name Name for the expression programs 
+#' @return Returns a Seurat object with enrichment scores added to object@data.info
+#' @importFrom Hmisc
+#' @references Tirosh et al, Science (2016)
+#' @export
+setGeneric("AddEnrichScore", function(object,genes.list=NULL,n.bin=20,seed.use=1,ctrl.size=20,use.k=F,enrich.name="Cluster")  standardGeneric("AddEnrichScore"))
+#' @export
+setMethod("AddEnrichScore","seurat",
+          function(object,genes.list=NULL,n.bin=20,seed.use=1,ctrl.size=20,use.k=F,enrich.name="Cluster") {
+            if (!use.k){
+              if (is.null(genes.list)) stop("Missing input gene list")
+              genes.k <- ainb(unique(unlist(genes.list)),rownames(object@data))
+              cluster.length <- length(genes.list)
+            }
+            else{
+              genes.k <- names(object@kmeans.obj[[1]]$cluster)
+              genes.list <- list()
+              for (i in as.numeric(names(table(object@kmeans.obj[[1]]$cluster)))){
+                genes.list[[i]] <- names(which(object@kmeans.obj[[1]]$cluster==i))
+              }
+              cluster.length <- length(genes.list)
+            }
+            
+            data.avg <- apply(object@data[genes.k,],1,mean);data.avg <- data.avg[order(data.avg)]
+            data.cut <- as.numeric(cut2(data.avg,m = round(length(data.avg)/n.bin)))
+            names(data.cut) <- names(data.avg)
+            
+            ctrl.use <- vector("list",cluster.length)
+            for (i in 1:cluster.length){
+              genes.use <- genes.list[[i]]
+              for (j in 1:length(genes.use)) ctrl.use[[i]] <- c(ctrl.use[[i]],names(sample(data.cut[which(data.cut==data.cut[genes.use[j]])],size = ctrl.size,replace = F)))
+            }
+            ctrl.use <- lapply(ctrl.use,unique)
+            
+            ctrl.scores <- c()
+            for (i in 1:length(ctrl.use)){
+              genes.use <- ctrl.use[[i]]
+              ctrl.scores <- rbind(ctrl.scores,apply(object@data[genes.use,],2,mean))
+            }
+            
+            genes.scores <- c()
+            for (i in 1:cluster.length){
+              genes.use <- genes.list[[i]]
+              genes.scores <- rbind(genes.scores,apply(object@data[genes.use,],2,mean))
+            }
+            
+            genes.scores.use <- genes.scores-ctrl.scores
+            rownames(genes.scores.use) <- paste(enrich.name,1:cluster.length,sep = "")
+            genes.scores.use <- t(as.data.frame(genes.scores.use))
+            
+            object <- AddMetaData(object,genes.scores.use,colnames(genes.scores.use))
+            return (object)
+          }
+)
