@@ -5651,7 +5651,7 @@ DoKMeans <- function(
   kmeans.data <- data.use[genes.use, cells.use]
   if (do.constrained) {
     set.seed(seed = k.seed)
-    kmeans.obj <- tkmeans(objectkmeans.data, k = k.genes, ...)
+    kmeans.obj <- tkmeans(kmeans.data, k = k.genes, ...)
   } else {
     set.seed(seed = k.seed)
     kmeans.obj <- kmeans(x = kmeans.data, centers = k.genes, ...)
