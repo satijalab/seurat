@@ -65,6 +65,7 @@ Collate:
     'interaction.R'
     'multi_modal.R'
     'pairs.R'
+    'pairs_internal.R'
     'plotting.R'
     'plotting_internal.R'
     'seuratFxns.R'
