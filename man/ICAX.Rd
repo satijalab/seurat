@@ -4,7 +4,7 @@
 \alias{ICAX}
 \title{ICA Gene Loadings Accessor Function}
 \usage{
-ICAX(object, dims.use = NULL, genes.use = NULL, use.full = F)
+ICAX(object, dims.use = NULL, genes.use = NULL, use.full = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

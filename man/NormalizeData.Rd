@@ -6,7 +6,7 @@
 \usage{
 NormalizeData(object, assay.type = "RNA",
   normalization.method = "LogNormalize", slot = "data",
-  scale.factor = 10000, display.progress = T, ...)
+  scale.factor = 10000, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

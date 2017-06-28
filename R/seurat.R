@@ -7045,7 +7045,7 @@ MeanVarPlot <- function(
 #'
 #' @return Returns a Seurat object with enrichment scores added to object@data.info
 #'
-#' @importFrom Hmisc
+#' @importFrom Hmisc cut2
 #'
 #' @references Tirosh et al, Science (2016)
 #'

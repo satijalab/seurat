@@ -589,9 +589,10 @@ TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
   p_val <- unlist(x = lapply(
     X = mygenes,
     FUN = function(x) {
-      return(diffTobit())
-      x1 = as.numeric(x = data1[x, ]),
-      x2 = as.numeric(x = data2[x, ])}
+      return(diffTobit(
+      	x1 = as.numeric(x = data1[x, ]),
+      	x2 = as.numeric(x = data2[x, ])
+    ))}
   ))
   p_val[is.na(x = p_val)] <- 1
   if (print.bar) {
