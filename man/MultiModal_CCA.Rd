@@ -6,7 +6,7 @@
 \usage{
 MultiModal_CCA(object, assay.1 = "RNA", assay.2 = "CITE",
   features.1 = NULL, features.2 = NULL, num.cc = 20,
-  normalize.variance = T)
+  normalize.variance = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

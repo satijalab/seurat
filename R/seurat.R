@@ -392,7 +392,7 @@ FastScaleData <- function(
     )
   } else {
     data.use <- as.matrix(x = data.use)
-    data.scale<- FastRowScale(
+    data.scale <- FastRowScale(
       mat = data.use,
       scale = do.scale,
       center = do.center,
@@ -3072,7 +3072,7 @@ NegBinomDETest <- function(
     use.raw = TRUE
   )
   to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
-  to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
   to.test[cells.1, "group"] <- "A"
   to.test[cells.2, "group"] <- "B"
   to.test$group <- factor(x = to.test$group)
@@ -3266,7 +3266,7 @@ PoissonDETest <- function(
     use.raw = TRUE
   )
   to.test.data <- object@raw.data[genes.use, c(cells.1, cells.2)]
-  to.test<- data.frame(my.latent, row.names = c(cells.1, cells.2))
+  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
   to.test[cells.1,"group"] <- "A"
   to.test[cells.2,"group"] <- "B"
   to.test$group <- factor(x = to.test$group)
@@ -3497,11 +3497,15 @@ DiffTTest <- function(
 #' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@data.info
 #' @param subset.value  Return cells matching this value
 #' @param invert invert cells to return.FALSE by default
+#'
 #' @export
-FastWhichCells=function(object,group.by,subset.value,invert=FALSE) {
-  object=SetAllIdent(object,group.by)
-  cells.return=WhichCells(object,subset.value)
-  if (invert) cells.return=setdiff(object@cell.names,cells.return)
+#'
+FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
+  object <- SetAllIdent(object = object, id = group.by)
+  cells.return <- WhichCells(object = object, ident = subset.value)
+  if (invert) {
+    cells.return <- setdiff(x = object@cell.names, y = cells.return)
+  }
   return(cells.return)
 }
 
@@ -6660,7 +6664,7 @@ JackStraw <- function(
     FUN = function(x) {
       return(as.numeric(x = unlist(x = lapply(
         X = 1:num.replicate,
-        FUN =function(y) {
+        FUN = function(y) {
           return(fake.pcVals.raw[[y]][, x])
         }
       ))))
@@ -6855,86 +6859,6 @@ JackStrawFull <- function(
 #' The result of all analysis is stored in object@@mean.var
 #'
 #' @export
-
-setGeneric("MeanVarPlot", function(object, fxn.x=expMean, fxn.y=logVarDivMean,do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                                     x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=2,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
-                                     pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
-                                     contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) standardGeneric("MeanVarPlot"))
-#' @export
-setMethod("MeanVarPlot", signature = "seurat",
-          function(object, fxn.x=expMean, fxn.y=logVarDivMean, do.plot=TRUE,set.var.genes=TRUE,do.text=TRUE,
-                   x.low.cutoff=0.1,x.high.cutoff=8,y.cutoff=1,y.high.cutoff=Inf,cex.use=0.5,cex.text.use=0.5,do.spike=FALSE,
-                   pch.use=16, col.use="black", spike.col.use="red",plot.both=FALSE,do.contour=TRUE,
-                   contour.lwd=3, contour.col="white", contour.lty=2,num.bin=20,do.recalc=TRUE) {
-            data=object@data
-            
-            if (do.recalc) {    
-                genes.use <- rownames(object@data)
-                data.x=rep(0,length(genes.use)); names(data.x)=genes.use; data.y=data.x; data.norm.y=data.x;
-    
-                bin.size <- 1000
-                max.bin <- floor(length(genes.use)/bin.size) + 1
-                print("Calculating gene dispersion")
-                pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-                for(i in 1:max.bin) {
-                  my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1))+1
-                  my.inds <- my.inds[my.inds <= length(genes.use)]
-                  genes.iter=genes.use[my.inds]; data.iter=data[genes.iter,]
-                  data.x[genes.iter]=apply(data.iter,1,fxn.x); data.y[genes.iter]=apply(data.iter,1,fxn.y)
-                  setTxtProgressBar(pb, i)  
-                }
-                close(pb)
-                data.y[is.na(data.y)]=0
-                data.x[is.na(data.x)]=0
-                
-                data_x_bin=cut(data.x,num.bin)
-                names(data_x_bin)=names(data.x)
-                mean_y=tapply(data.y,data_x_bin,mean)
-                sd_y=tapply(data.y,data_x_bin,sd)
-                data.norm.y=(data.y-mean_y[as.numeric(data_x_bin)])/sd_y[as.numeric(data_x_bin)]
-                #data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
-                #data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
-                
-                data.norm.y[is.na(data.norm.y)]=0
-                names(data.norm.y)=names(data.x)
-                
-                mv.df=data.frame(data.x,data.y,data.norm.y)
-                rownames(mv.df)=rownames(data)
-                object@mean.var=mv.df
-            }
-            data.x=object@mean.var[,1]; data.y=object@mean.var[,2]; data.norm.y=object@mean.var[,3]; 
-            names(data.x)=names(data.y)=names(data.norm.y)=rownames(object@data)
-            
-            pass.cutoff=names(data.x)[which(((data.x>x.low.cutoff) & (data.x<x.high.cutoff)) & (data.norm.y>y.cutoff) & (data.norm.y < y.high.cutoff))]
-            if (do.spike) spike.genes=rownames(subr(data,"^ERCC"))
-            if (do.plot) {
-              if (plot.both) {
-                par(mfrow=c(1,2))
-                smoothScatter(data.x,data.y,pch=pch.use,cex=cex.use,col=col.use,xlab="Average expression",ylab="Dispersion",nrpoints=Inf)
-
-                if (do.contour) {
-                  data.kde=kde2d(data.x,data.y)
-                  contour(data.kde,add=TRUE,lwd=contour.lwd,col=contour.col,lty=contour.lty)
-                }
-                if (do.spike) points(data.x[spike.genes],data.y[spike.genes],pch=16,cex=cex.use,col=spike.col.use)
-                if(do.text) text(data.x[pass.cutoff],data.y[pass.cutoff],pass.cutoff,cex=cex.text.use)
-              }
-              smoothScatter(data.x,data.norm.y,pch=pch.use,cex=cex.use,col=col.use,xlab="Average expression",ylab="Dispersion",nrpoints=Inf)
-              if (do.contour) {
-                data.kde=kde2d(data.x,data.norm.y)
-                contour(data.kde,add=TRUE,lwd=contour.lwd,col=contour.col,lty=contour.lty)
-              }
-              if (do.spike) points(data.x[spike.genes],data.norm.y[spike.genes],pch=16,cex=cex.use,col=spike.col.use,nrpoints=Inf)
-              if(do.text) text(data.x[pass.cutoff],data.norm.y[pass.cutoff],pass.cutoff,cex=cex.text.use)
-            }
-            if (set.var.genes) {
-              object@var.genes=pass.cutoff
-              return(object)
-              if (!set.var.genes) return(pass.cutoff)
-            }
-          }
-)
-
 #'
 MeanVarPlot <- function(
   object,
@@ -6962,8 +6886,7 @@ MeanVarPlot <- function(
   do.recalc = TRUE,
   sort.results=TRUE
 ) {
-  data=object@data
-
+  data <- object@data
   if (do.recalc) {
     genes.use <- rownames(x = object@data)
     data.x <- rep(x = 0, length(x = genes.use))
@@ -6990,7 +6913,8 @@ MeanVarPlot <- function(
     names(x = data_x_bin) <- names(x = data.x)
     mean_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = mean)
     sd_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = sd)
-    data.norm.y <- (data.y - mean_y[as.numeric(x = data_x_bin)]) / sd_y[as.numeric(x = data_x_bin)]
+    data.norm.y <- (data.y - mean_y[as.numeric(x = data_x_bin)]) /
+      sd_y[as.numeric(x = data_x_bin)]
     #data.x=apply(data,1,fxn.x); data.y=apply(data,1,fxn.y); data.x[is.na(data.x)]=0
     #data.norm.y=meanNormFunction(data,fxn.x,fxn.y,num.bin)
     data.norm.y[is.na(x = data.norm.y)] <- 0
@@ -7106,9 +7030,9 @@ MeanVarPlot <- function(
 
 #' Calculate enrichment scores for gene expression programs in single cells
 #'
-#' Calculate the average expression levels of each program (cluster) on single cell level, 
-#' subtracted by the aggregated expression of control gene sets. 
-#' All analyzed genes are binned based on averaged expression, and the control genes are 
+#' Calculate the average expression levels of each program (cluster) on single cell level,
+#' subtracted by the aggregated expression of control gene sets.
+#' All analyzed genes are binned based on averaged expression, and the control genes are
 #' randomly selected from each bin.
 #'
 #' @param object Seurat object
@@ -7117,57 +7041,88 @@ MeanVarPlot <- function(
 #' @param seed.use Random seed for sampling
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
 #' @param use.k Use gene clusters returned from DoKMeans()
-#' @param enrich.name Name for the expression programs 
+#' @param enrich.name Name for the expression programs
+#'
 #' @return Returns a Seurat object with enrichment scores added to object@data.info
-#' @importFrom Hmisc
+#'
+#' @importFrom Hmisc cut2
+#'
 #' @references Tirosh et al, Science (2016)
+#'
 #' @export
-setGeneric("AddEnrichScore", function(object,genes.list=NULL,n.bin=20,seed.use=1,ctrl.size=20,use.k=F,enrich.name="Cluster")  standardGeneric("AddEnrichScore"))
-#' @export
-setMethod("AddEnrichScore","seurat",
-          function(object,genes.list=NULL,n.bin=20,seed.use=1,ctrl.size=20,use.k=F,enrich.name="Cluster") {
-            if (!use.k){
-              if (is.null(genes.list)) stop("Missing input gene list")
-              genes.k <- ainb(unique(unlist(genes.list)),rownames(object@data))
-              cluster.length <- length(genes.list)
-            }
-            else{
-              genes.k <- names(object@kmeans.obj[[1]]$cluster)
-              genes.list <- list()
-              for (i in as.numeric(names(table(object@kmeans.obj[[1]]$cluster)))){
-                genes.list[[i]] <- names(which(object@kmeans.obj[[1]]$cluster==i))
-              }
-              cluster.length <- length(genes.list)
-            }
-            
-            data.avg <- apply(object@data[genes.k,],1,mean);data.avg <- data.avg[order(data.avg)]
-            data.cut <- as.numeric(cut2(data.avg,m = round(length(data.avg)/n.bin)))
-            names(data.cut) <- names(data.avg)
-            
-            ctrl.use <- vector("list",cluster.length)
-            for (i in 1:cluster.length){
-              genes.use <- genes.list[[i]]
-              for (j in 1:length(genes.use)) ctrl.use[[i]] <- c(ctrl.use[[i]],names(sample(data.cut[which(data.cut==data.cut[genes.use[j]])],size = ctrl.size,replace = F)))
-            }
-            ctrl.use <- lapply(ctrl.use,unique)
-            
-            ctrl.scores <- c()
-            for (i in 1:length(ctrl.use)){
-              genes.use <- ctrl.use[[i]]
-              ctrl.scores <- rbind(ctrl.scores,apply(object@data[genes.use,],2,mean))
-            }
-            
-            genes.scores <- c()
-            for (i in 1:cluster.length){
-              genes.use <- genes.list[[i]]
-              genes.scores <- rbind(genes.scores,apply(object@data[genes.use,],2,mean))
-            }
-            
-            genes.scores.use <- genes.scores-ctrl.scores
-            rownames(genes.scores.use) <- paste(enrich.name,1:cluster.length,sep = "")
-            genes.scores.use <- t(as.data.frame(genes.scores.use))
-            
-            object <- AddMetaData(object,genes.scores.use,colnames(genes.scores.use))
-            return (object)
-          }
-)
+#'
+AddEnrichScore <- function(
+  object,
+  genes.list = NULL,
+  n.bin = 20,
+  seed.use = 1,
+  ctrl.size = 20,
+  use.k = FALSE,
+  enrich.name = "Cluster"
+) {
+  if (use.k) {
+    genes.k <- names(x = object@kmeans.obj[[1]]$cluster)
+    genes.list <- list()
+    for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
+      genes.list[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
+    }
+    cluster.length <- length(x = genes.list)
+  } else {
+    if (is.null(x = genes.list)) {
+      stop("Missing input gene list")
+    }
+    genes.k <- ainb(
+      a = unique(x = unlist(x = genes.list)),
+      b = rownames(x = object@data)
+    )
+    cluster.length <- length(x = genes.list)
+  }
+  data.avg <- apply(X = object@data[genes.k, ], MARGIN = 1, FUN = mean)
+  data.avg <- data.avg[order(data.avg)]
+  data.cut <- as.numeric(x = cut2(
+    x = data.avg,
+    m = round(x = length(x = data.avg) / n.bin)
+  ))
+  names(x = data.cut) <- names(x = data.avg)
+  ctrl.use <- vector("list", cluster.length)
+  for (i in 1:cluster.length) {
+    genes.use <- genes.list[[i]]
+    for (j in 1:length(x = genes.use)) {
+      ctrl.use[[i]] <- c(
+        ctrl.use[[i]],
+        names(x = sample(
+          x = data.cut[which(x = data.cut == data.cut[genes.use[j]])],
+          size = ctrl.size,
+          replace = FALSE
+        ))
+      )
+    }
+  }
+  ctrl.use <- lapply(X = ctrl.use, FUN = unique)
+  ctrl.scores <- c()
+  for (i in 1:length(ctrl.use)) {
+    genes.use <- ctrl.use[[i]]
+    ctrl.scores <- rbind(
+      ctrl.scores,
+      apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
+    )
+  }
+  genes.scores <- c()
+  for (i in 1:cluster.length) {
+    genes.use <- genes.list[[i]]
+    genes.scores <- rbind(
+      genes.scores,
+      apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
+    )
+  }
+
+  genes.scores.use <- genes.scores - ctrl.scores
+  rownames(x = genes.scores.use) <- paste0(enrich.name, 1:cluster.length)
+  genes.scores.use <- t(x = as.data.frame(x = genes.scores.use))
+  object <- AddMetaData(
+    object = object,
+    metadata = genes.scores.use,
+    col.name = colnames(x = genes.scores.use)
+  )
+  return (object)
+}
