@@ -915,10 +915,23 @@ FeaturePlot <- function(
 #' @export
 #'
 FeatureHeatmap <- function(
-  object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
-  cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
-  group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf,
-  max.exp = Inf, rotate.key = F, plot.horiz = FALSE, key.position = "right"
+  object,
+  features.plot,
+  dim.1 = 1,
+  dim.2 = 2,
+  idents.use = NULL,
+  pt.size = 2,
+  cols.use = c("grey", "red"),
+  pch.use = 16,
+  reduction.use = "tsne",
+  group.by = NULL,
+  sep.scale = FALSE,
+  do.return = FALSE,
+  min.exp = -Inf,
+  max.exp = Inf,
+  rotate.key = FALSE,
+  plot.horiz = FALSE,
+  key.position = "right"
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)

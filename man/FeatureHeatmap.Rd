@@ -8,7 +8,7 @@ FeatureHeatmap(object, features.plot, dim.1 = 1, dim.2 = 2,
   idents.use = NULL, pt.size = 2, cols.use = c("grey", "red"),
   pch.use = 16, reduction.use = "tsne", group.by = NULL,
   sep.scale = FALSE, do.return = FALSE, min.exp = -Inf, max.exp = Inf,
-  rotate.key = F, plot.horiz = FALSE, key.position = "right")
+  rotate.key = FALSE, plot.horiz = FALSE, key.position = "right")
 }
 \arguments{
 \item{object}{Seurat object}
