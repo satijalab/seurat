@@ -54,7 +54,6 @@ LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 remotes: bioc::release/made4
 Collate: 
-    'Enrichr.R'
     'RcppExports.R'
     'seurat.R'
     'cluster_determination.R'
@@ -62,6 +61,7 @@ Collate:
     'deprecated_functions.R'
     'differential_expression.R'
     'dimensional_reduction.R'
+    'enrichr.R'
     'interaction.R'
     'multi_modal.R'
     'pairs.R'
