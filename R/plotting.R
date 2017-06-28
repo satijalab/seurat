@@ -672,6 +672,823 @@ SplitDotPlotGG <- function(
   }
 }
 
+#' Visualize 'features' on a dimensional reduction plot
+#'
+#' Colors single cells on a dimensional reduction plot according to a 'feature'
+#' (i.e. gene expression, PC scores, number of genes detected, etc.)
+#'
+#'
+#' @param object Seurat object
+#' @param features.plot Vector of features to plot
+#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+#' @param cols.use The two colors to form the gradient over. Provide as string vector with
+#' the first color corresponding to low values, the second to high. Also accepts a Brewer
+#' color scale or vector of colors. Note: this will bin the data into number of colors provided.
+#' @param pch.use Pch for plotting
+#' @param overlay Plot two features overlayed one on top of the other
+#' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param do.identify Opens a locator session to identify clusters of cells
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param use.imputed Use imputed values for gene expression (default is FALSE)
+#' @param nCol Number of columns to use when plotting multiple features.
+#' @param no.axes Remove axis labels
+#' @param no.legend Remove legend from the graph. Default is TRUE.
+#' @param dark.theme Plot in a dark theme
+#' @param do.return return the ggplot2 object
+#'
+#' @importFrom RColorBrewer brewer.pal.info
+#'
+#' @return No return value, only a graphical output
+#'
+#' @export
+#'
+FeaturePlot <- function(
+  object,
+  features.plot,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  dim.1 = 1,
+  dim.2 = 2,
+  cells.use = NULL,
+  pt.size = 1,
+  cols.use = c("yellow", "red"),
+  pch.use = 16,
+  overlay = FALSE,
+  do.hover = FALSE,
+  data.hover = NULL,
+  do.identify = FALSE,
+  reduction.use = "tsne",
+  use.imputed = FALSE,
+  nCol = NULL,
+  no.axes = FALSE,
+  no.legend = TRUE,
+  dark.theme = FALSE,
+  do.return = FALSE
+) {
+  cells.use <- set.ifnull(cells.use, colnames(object@data))
+  if (is.null(x = nCol)) {
+    nCol <- 2
+    if (length(x = features.plot) == 1) {
+      nCol <- 1
+    }
+    if (length(x = features.plot) > 6) {
+      nCol <- 3
+    }
+    if (length(x = features.plot) > 9) {
+      nCol <- 4
+    }
+  }
+  num.row <- floor(x = length(x = features.plot) / nCol - 1e-5) + 1
+  if (overlay | do.hover) {
+    num.row <- 1
+    nCol <- 1
+  }
+  par(mfrow = c(num.row, nCol))
+  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- FetchData(
+    object = object,
+    vars.all = dim.codes,
+    cells.use = cells.use
+  )
+  x1 <- paste0(dim.code, dim.1)
+  x2 <- paste0(dim.code, dim.2)
+  data.plot$x <- data.plot[, x1]
+  data.plot$y <- data.plot[, x2]
+  data.plot$pt.size <- pt.size
+  names(x = data.plot) <- c('x', 'y')
+  # data.plot$pt.size <- pt.size
+  data.use <- t(x = FetchData(
+    object = object,
+    vars.all = features.plot,
+    cells.use = cells.use,
+    use.imputed = use.imputed
+  ))
+  #   Check mins and maxes
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      ifelse(
+        test = is.na(x = cutoff),
+        yes = min(data.use[feature, ]),
+        no = cutoff
+      )
+    },
+    cutoff = min.cutoff,
+    feature = features.plot
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      ifelse(
+        test = is.na(x = cutoff),
+        yes = max(data.use[feature, ]),
+        no = cutoff
+      )
+    },
+    cutoff = max.cutoff,
+    feature = features.plot
+  )
+  check_lengths = unique(x = vapply(
+    X = list(features.plot, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check_lengths) != 1) {
+    stop('There must be the same number of minimum and maximum cuttoffs as there are features')
+  }
+  if (overlay) {
+    #   Wrap as a list for MutiPlotList
+    pList <- list(
+      BlendPlot(
+        data.use = data.use,
+        features.plot = features.plot,
+        data.plot = data.plot,
+        pt.size = pt.size,
+        pch.use = pch.use,
+        cols.use = cols.use,
+        dim.codes = dim.codes,
+        min.cutoff = min.cutoff,
+        max.cutoff = max.cutoff,
+        no.axes = no.axes,
+        no.legend = no.legend,
+        dark.theme = dark.theme
+      )
+    )
+  } else {
+    #   Use mapply instead of lapply for multiple iterative variables.
+    pList <- mapply(
+      FUN = SingleFeaturePlot,
+      feature = features.plot,
+      min.cutoff = min.cutoff,
+      max.cutoff = max.cutoff,
+      MoreArgs = list( # Arguments that are not being repeated
+        data.use = data.use,
+        data.plot = data.plot,
+        pt.size = pt.size,
+        pch.use = pch.use,
+        cols.use = cols.use,
+        dim.codes = dim.codes,
+        no.axes = no.axes,
+        no.legend = no.legend,
+        dark.theme = dark.theme
+      ),
+      SIMPLIFY = FALSE # Get list, not matrix
+    )
+  }
+  if (do.hover) {
+    if (length(x = pList) != 1) {
+      stop("'do.hover' only works on a single feature or an overlayed FeaturePlot")
+    }
+    if (is.null(x = data.hover)) {
+      features.info <- NULL
+    } else {
+      features.info <- FetchData(object = object, vars.all = data.hover)
+    }
+    #   Use pList[[1]] to properly extract the ggplot out of the plot list
+    return(HoverLocator(
+      plot = pList[[1]],
+      data.plot = data.plot,
+      features.info = features.info,
+      dark.theme = dark.theme,
+      title = features.plot
+    ))
+    # invisible(readline(prompt = 'Press <Enter> to continue\n'))
+  } else if (do.identify) {
+    if (length(x = pList) != 1) {
+      stop("'do.identify' only works on a single feature or an overlayed FeaturePlot")
+    }
+    #   Use pList[[1]] to properly extract the ggplot out of the plot list
+    return(FeatureLocator(
+      plot = pList[[1]],
+      data.plot = data.plot,
+      dark.theme = dark.theme
+    ))
+  } else {
+    MultiPlotList(pList, cols = nCol)
+  }
+  rp()
+  if (do.return){
+    return(pList)
+  }
+}
+
+#' Vizualization of multiple features
+#'
+#' Similar to FeaturePlot, however, also splits the plot by visualizing each
+#' identity class separately.
+#'
+#' Particularly useful for seeing if the same groups of cells co-exhibit a
+#' common feature (i.e. co-express a gene), even within an identity class. Best
+#' understood by example.
+#'
+#' @param object Seurat object
+#' @param features.plot Vector of features to plot
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param idents.use Which identity classes to display (default is all identity
+#' classes)
+#' @param pt.size Adjust point size for plotting
+#' @param cols.use Ordered vector of colors to use for plotting. Default is
+#' heat.colors(10).
+#' @param pch.use Pch for plotting
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param group.by Group cells in different ways (for example, orig.ident)
+#' @param sep.scale Scale each group separately. Default is FALSE.
+#' @param max.exp Max cutoff for scaled expression value
+#' @param min.exp Min cutoff for scaled expression value
+#' @param rotate.key rotate the legend
+#' @param plot.horiz rotate the plot such that the features are columns, groups are the rows
+#' @param key.position position of the legend ("top", "right", "bottom", "left")
+#' @param do.return Return the ggplot2 object
+#'
+#' @return No return value, only a graphical output
+#'
+#' @importFrom dplyr %>% mutate_each group_by select ungroup
+#'
+#' @export
+#'
+FeatureHeatmap <- function(
+  object, features.plot, dim.1 = 1, dim.2 = 2, idents.use = NULL, pt.size = 2,
+  cols.use = c("grey", "red"), pch.use = 16, reduction.use = "tsne",
+  group.by = NULL, sep.scale = FALSE, do.return = FALSE, min.exp = -Inf,
+  max.exp = Inf, rotate.key = F, plot.horiz = FALSE, key.position = "right"
+) {
+  if (! is.null(x = group.by)) {
+    object <- SetAllIdent(object = object, id = group.by)
+  }
+  idents.use <- set.ifnull(x = idents.use, y = sort(x = unique(x = object@ident)))
+  par(mfrow = c(length(x = features.plot), length(x = idents.use)))
+  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- data.frame(FetchData(
+    object = object,
+    vars.all = c(dim.codes, features.plot)
+  ))
+  colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
+  data.plot$ident <- as.character(x = object@ident)
+  data.plot$cell <- rownames(x = data.plot)
+  features.plot <- gsub('-', '\\.', features.plot)
+  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
+  if (sep.scale) {
+    data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
+  } else {
+    data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
+  }
+  data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
+  data.plot$scaled.expression <- minmax(
+    data = data.plot$scaled.expression,
+    min = min.exp,
+    max = max.exp
+  )
+  if (rotate.key) {
+    key.direction <- "horizontal"
+    key.title.pos <- "top"
+  } else {
+    key.direction <- "vertical"
+    key.title.pos <- "left"
+  }
+  p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+  if (rotate.key) {
+    p <- p + scale_colour_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(
+        direction = key.direction,
+        title.position = key.title.pos,
+        title = "Scaled Expression"
+      )
+    )
+  } else {
+    p <- p + scale_colour_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(title = "Scaled Expression")
+    )
+  }
+  if(plot.horiz){
+    p <- p + facet_grid(ident ~ gene)
+  }
+  else{
+    p <- p + facet_grid(gene ~ ident)
+  }
+  p2 <- p +
+    theme_bw() +
+    nogrid +
+    ylab(label = dim.codes[2]) +
+    xlab(label = dim.codes[1])
+  p2 <- p2 + theme(legend.position = key.position)
+  if (do.return) {
+    return(p2)
+  }
+  print(p2)
+}
+
+#' Gene expression heatmap
+#'
+#' Draws a heatmap of single cell gene expression using the heatmap.2 function.
+#'
+#' @param object Seurat object
+#' @param cells.use Cells to include in the heatmap (default is all cells)
+#' @param genes.use Genes to include in the heatmap (ordered)
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param draw.line Draw vertical lines delineating cells in different identity
+#' classes.
+#' @param do.return Default is FALSE. If TRUE, return a matrix of scaled values
+#' which would be passed to heatmap.2
+#' @param order.by.ident Order cells in the heatmap by identity class (default
+#' is TRUE). If FALSE, cells are ordered based on their order in cells.use
+#' @param col.use Color palette to use
+#' @param slim.col.label if (order.by.ident==TRUE) then instead of displaying
+#' every cell name on the heatmap, display only the identity class name once
+#' for each group
+#' @param group.by If (order.by.ident==TRUE) default,  you can group cells in
+#' different ways (for example, orig.ident)
+#' @param remove.key Removes the color key from the plot.
+#' @param cex.col positive numbers, used as cex.axis in for the column axis labeling.
+#' The defaults currently only use number of columns
+#' @param do.scale whether to use the data or scaled data
+#' @param ... Additional parameters to heatmap.2. Common examples are cexRow
+#' and cexCol, which set row and column text sizes
+#'
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#'
+#' @importFrom gplots heatmap.2
+#'
+#' @export
+#'
+DoHeatmap <- function(
+  object,
+  cells.use = NULL,
+  genes.use = NULL,
+  disp.min = NULL,
+  disp.max = NULL,
+  draw.line = TRUE,
+  do.return = FALSE,
+  order.by.ident = TRUE,
+  col.use = pyCols,
+  slim.col.label = FALSE,
+  group.by = NULL,
+  remove.key = FALSE,
+  cex.col = NULL,
+  do.scale = TRUE,
+  ...
+) {
+  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  cells.use <- ainb(a = cells.use, b = object@cell.names)
+  cells.ident <- object@ident[cells.use]
+  if (! is.null(x = group.by)) {
+    cells.ident <- factor(x = FetchData(
+      object = object,
+      vars.all = group.by
+    )[, 1])
+  }
+  cells.ident <- factor(
+    x = cells.ident,
+    labels = ainb(a = levels(x = cells.ident), b = cells.ident)
+  )
+  if (order.by.ident) {
+    cells.use <- cells.use[order(cells.ident)]
+  } else {
+    cells.ident <- factor(
+      x = cells.ident,
+      levels = as.vector(x = unique(x = cells.ident))
+    )
+  }
+  #determine assay type
+  data.use <- NULL
+  assays.use <- c("RNA", names(x = object@assay))
+  if (do.scale) {
+    slot.use <- "scale.data"
+    if ((is.null(x = disp.min) || is.null(x = disp.max))) {
+      disp.min <- -2.5
+      disp.max <- 2.5
+    }
+  } else {
+    slot.use <- "data"
+    if ((is.null(x = disp.min) || is.null(x = disp.max))) {
+      disp.min <- -Inf
+      disp.max <- Inf
+    }
+  }
+  for (assay.check in assays.use) {
+    data.assay <- GetAssayData(
+      object = object,
+      assay.type = assay.check,
+      slot = slot.use
+    )
+    genes.intersect <- intersect(x = genes.use, y = rownames(x = data.assay))
+    new.data <- data.assay[genes.intersect, cells.use, drop = FALSE]
+    if (! (is.matrix(x = new.data))) {
+      new.data <- as.matrix(x = new.data)
+    }
+    data.use <- rbind(data.use, new.data)
+  }
+  data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+  vline.use <- NULL
+  colsep.use <- NULL
+  if (remove.key) {
+    hmFunction <- heatmap2NoKey
+  } else {
+    hmFunction <- heatmap.2
+  }
+  if (draw.line) {
+    colsep.use <- cumsum(x = table(cells.ident))
+  }
+  if (slim.col.label && order.by.ident) {
+    col.lab <- rep("", length(x = cells.use))
+    col.lab[round(x = cumsum(x = table(cells.ident)) - table(cells.ident) / 2) + 1] <- levels(x = cells.ident)
+    cex.col <- set.ifnull(
+      x = cex.col,
+      y = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
+    )
+    hmFunction(
+      data.use,
+      Rowv = NA,
+      Colv = NA,
+      trace = "none",
+      col = col.use,
+      colsep = colsep.use,
+      labCol = col.lab,
+      cexCol = cex.col,
+      ...
+    )
+  } else if (slim.col.label) {
+    col.lab = rep("", length(x = cells.use))
+    cex.col <- set.ifnull(
+      x = cex.col,
+      y = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
+    )
+    hmFunction(
+      data.use,
+      Rowv = NA,
+      Colv = NA,
+      trace = "none",
+      col = col.use,
+      colsep = colsep.use,
+      labCol = col.lab,
+      cexCol = cex.col,
+      ...
+    )
+  } else {
+    hmFunction(
+      data.use,
+      Rowv = NA,
+      Colv = NA,
+      trace = "none",
+      col = col.use,
+      colsep = colsep.use,
+      ...
+    )
+  }
+  if (do.return) {
+    return(data.use)
+  }
+}
+
+#' JackStraw Plot
+#'
+#' Plots the results of the JackStraw analysis for PCA significance. For each
+#' PC, plots a QQ-plot comparing the distribution of p-values for all genes
+#' across each PC, compared with a uniform distribution. Also determines a
+#' p-value for the overall significance of each PC (see Details).
+#'
+#' Significant PCs should show a p-value distribution (black curve) that is
+#' strongly skewed to the left compared to the null distribution (dashed line)
+#' The p-value for each PC is based on a proportion test comparing the number
+#' of genes with a p-value below a particular threshold (score.thresh), compared with the
+#' proportion of genes expected under a uniform distribution of p-values.
+#'
+#' @param object Seurat plot
+#' @param PCs Which PCs to examine
+#' @param nCol Number of columns
+#' @param score.thresh Threshold to use for the proportion test of PC
+#' significance (see Details)
+#' @param plot.x.lim X-axis maximum on each QQ plot.
+#' @param plot.y.lim Y-axis maximum on each QQ plot.
+#'
+#' @return A ggplot object
+#'
+#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#'
+#' @import gridExtra
+#'
+#' @export
+#'
+JackStrawPlot <- function(
+  object,
+  PCs = 1:5,
+  nCol = 3,
+  score.thresh = 1e-5,
+  plot.x.lim = 0.1,
+  plot.y.lim = 0.3
+) {
+  pAll <- object@jackStraw.empP
+  pAll <- pAll[, PCs, drop = FALSE]
+  pAll$Contig <- rownames(x = pAll)
+  pAll.l <- melt(data = pAll, id.vars = "Contig")
+  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
+  qq.df <- NULL
+  score.df <- NULL
+  for (i in PCs) {
+    q <- qqplot(x = pAll[, i], y = runif(n = 1000), plot.it = FALSE)
+    #pc.score=mean(q$y[which(q$x <=score.thresh)])
+    pc.score <- prop.test(
+      x = c(
+        length(x = which(x = pAll[, i] <= score.thresh)),
+        floor(x = nrow(x = pAll) * score.thresh)
+      ),
+      n = c(nrow(pAll), nrow(pAll))
+    )$p.val
+    if (length(x = which(x = pAll[, i] <= score.thresh)) == 0) {
+      pc.score <- 1
+    }
+    if (is.null(x = score.df)) {
+      score.df <- data.frame(PC = paste0("PC", i), Score = pc.score)
+    } else {
+      score.df <- rbind(score.df, data.frame(PC = paste0("PC",i), Score = pc.score))
+    }
+    if (is.null(x = qq.df)) {
+      qq.df <- data.frame(x = q$x, y = q$y, PC = paste0("PC", i))
+    } else {
+      qq.df <- rbind(qq.df, data.frame(x = q$x, y = q$y, PC = paste0("PC", i)))
+    }
+  }
+  # create new dataframe column to wrap on that includes the PC number and score
+  pAll.l$PC.Score <- rep(
+    x = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)),
+    each = length(x = unique(x = pAll.l$Contig))
+  )
+  pAll.l$PC.Score <- factor(
+    x = pAll.l$PC.Score,
+    levels = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score))
+  )
+  gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
+    stat_qq(distribution = qunif) +
+    facet_wrap("PC.Score", ncol = nCol) +
+    labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
+    xlim(0, plot.y.lim) +
+    ylim(0, plot.x.lim) +
+    coord_flip() +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
+    theme_bw()
+  return(gp)
+}
+
+#' Scatter plot of single cell data
+#'
+#' Creates a scatter plot of two features (typically gene expression), across a
+#' set of single cells. Cells are colored by their identity class.
+#'
+#' @param object Seurat object
+#' @inheritParams FetchData
+#' @param gene1 First feature to plot. Typically gene expression but can also
+#' be metrics, PC scores, etc. - anything that can be retreived with FetchData
+#' @param gene2 Second feature to plot.
+#' @param cell.ids Cells to include on the scatter plot.
+#' @param col.use Colors to use for identity class plotting.
+#' @param pch.use Pch argument for plotting
+#' @param cex.use Cex argument for plotting
+#' @param use.imputed Use imputed values for gene expression (Default is FALSE)
+#' @param use.scaled Use scaled data
+#' @param use.raw Use raw data
+#' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param do.identify Opens a locator session to identify clusters of cells.
+#' @param dark.theme Use a dark theme for the plot
+#' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
+#' @param spline.span spline span in loess function call
+#' @param \dots Additional arguments to be passed to plot.
+#'
+#' @return No return, only graphical output
+#'
+#' @export
+#'
+GenePlot <- function(
+  object,
+  gene1,
+  gene2,
+  cell.ids = NULL,
+  col.use = NULL,
+  pch.use = 16,
+  cex.use = 1.5,
+  use.imputed = FALSE,
+  use.scaled = FALSE,
+  use.raw = FALSE,
+  do.hover = FALSE,
+  data.hover = NULL,
+  do.identify = FALSE,
+  dark.theme = FALSE,
+  do.spline = FALSE,
+  spline.span = 0.75,
+  ...
+) {
+  cell.ids <- set.ifnull(x = cell.ids, y = object@cell.names)
+  #   Don't transpose the data.frame for better compatability with FeatureLocator and the rest of Seurat
+  data.use <- as.data.frame(
+    x = FetchData(
+      object = object,
+      vars.all = c(gene1, gene2),
+      cells.use = cell.ids,
+      use.imputed = use.imputed,
+      use.scaled = use.scaled,
+      use.raw = use.raw
+    )
+  )
+  #   Ensure that our data is only the cells we're working with and
+  #   the genes we want. This step seems kind of redundant though...
+  data.plot <- data.use[cell.ids, c(gene1, gene2)]
+  #   Set names to 'x' and 'y' for easy calling later on
+  names(x = data.plot) <- c('x', 'y')
+  ident.use <- as.factor(x = object@ident[cell.ids])
+  if (length(x = col.use) > 1) {
+    col.use <- col.use[as.numeric(x = ident.use)]
+  } else {
+    col.use <- set.ifnull(x = col.use,y = as.numeric(x = ident.use))
+  }
+  gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
+  if (dark.theme) {
+    par(bg = 'black')
+    col.use <- sapply(
+      X = col.use,
+      FUN = function(color) ifelse(
+        test = all(col2rgb(color) == 0),
+        yes = 'white',
+        no = color
+      )
+    )
+    axes = FALSE
+    col.lab = 'white'
+  } else {
+    axes = TRUE
+    col.lab = 'black'
+  }
+  #   Plot the data
+  plot(
+    x = data.plot$x,
+    y = data.plot$y,
+    xlab = gene1,
+    ylab = gene2,
+    col = col.use,
+    cex = cex.use,
+    main = gene.cor,
+    pch = pch.use,
+    axes = axes,
+    col.lab = col.lab,
+    col.main = col.lab,
+    ...
+  )
+  if (dark.theme) {
+    axis(
+      side = 1,
+      at = NULL,
+      labels = TRUE,
+      col.axis = col.lab,
+      col = col.lab
+    )
+    axis(
+      side = 2,
+      at = NULL,
+      labels = TRUE,
+      col.axis = col.lab,
+      col = col.lab
+    )
+  }
+  if (do.spline) {
+    # spline.fit <- smooth.spline(x = g1, y = g2, df = 4)
+    spline.fit <- smooth.spline(x = data.plot$x, y = data.plot$y, df = 4)
+    #lines(spline.fit$x,spline.fit$y,lwd=3)
+    #spline.fit=smooth.spline(g1,g2,df = 4)
+    # loess.fit <- loess(formula = g2 ~ g1, span=spline.span)
+    loess.fit <- loess(formula = y ~ x, data = data.plot, span = spline.span)
+    #lines(spline.fit$x,spline.fit$y,lwd=3)
+    # points(x = g1, y = loess.fit$fitted, col="darkblue")
+    points(x = data.plot$x, y = loess.fit$fitted, col = 'darkblue')
+  }
+  if (do.identify | do.hover) {
+    #   This is where that untransposed renamed data.frame comes in handy
+    p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
+    p <- p + geom_point(
+      mapping = aes(color = colors),
+      size = cex.use,
+      shape = pch.use,
+      color = col.use
+    )
+    p <- p + labs(title = gene.cor, x = gene1, y = gene2)
+    if (do.hover) {
+      names(x = data.plot) <- c(gene1, gene2)
+      if (is.null(x = data.hover)) {
+        features.info <- NULL
+      } else {
+        features.info <- FetchData(object = object, vars.all = data.hover)
+      }
+      return(HoverLocator(
+        plot = p,
+        data.plot = data.plot,
+        features.info = features.info,
+        dark.theme = dark.theme,
+        title = gene.cor
+      ))
+    } else if (do.identify) {
+      return(FeatureLocator(
+        plot = p,
+        data.plot = data.plot,
+        dark.theme = dark.theme
+      ))
+    }
+  }
+}
+
+#' Cell-cell scatter plot
+#'
+#' Creates a plot of scatter plot of genes across two single cells
+#'
+#' @param object Seurat object
+#' @param cell1 Cell 1 name (can also be a number, representing the position in
+#' object@@cell.names)
+#' @param cell2 Cell 2 name (can also be a number, representing the position in
+#' object@@cell.names)
+#' @param gene.ids Genes to plot (default, all genes)
+#' @param col.use Colors to use for the points
+#' @param nrpoints.use Parameter for smoothScatter
+#' @param pch.use Point symbol to use
+#' @param cex.use Point size
+#' @param do.hover Enable hovering over points to view information
+#' @param do.identify Opens a locator session to identify clusters of cells.
+#' points to reveal gene names (hit ESC to stop)
+#' @param \dots Additional arguments to pass to smoothScatter
+#'
+#' @return No return value (plots a scatter plot)
+#'
+#' @export
+#'
+CellPlot <- function(
+  object,
+  cell1,
+  cell2,
+  gene.ids = NULL,
+  col.use = "black",
+  nrpoints.use = Inf,
+  pch.use = 16,
+  cex.use = 0.5,
+  do.hover = FALSE,
+  do.identify = FALSE,
+  ...
+) {
+  gene.ids <- set.ifnull(x = gene.ids, y = rownames(x = object@data))
+  #   Transpose this data.frame so that the genes are in the row for
+  #   easy selecting with do.identify
+  data.plot <- as.data.frame(
+    x = t(
+      x = FetchData(
+        object = object,
+        vars.all = gene.ids,
+        cells.use = c(cell1, cell2)
+      )
+    )
+  )
+  #   Set names for easy calling with ggplot
+  names(x = data.plot) <- c('x', 'y')
+  gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
+  smoothScatter(
+    x = data.plot$x,
+    y = data.plot$y,
+    xlab = cell1,
+    ylab = cell2,
+    col = col.use,
+    nrpoints = nrpoints.use,
+    pch = pch.use,
+    cex = cex.use,
+    main = gene.cor
+  )
+  if (do.identify | do.hover) {
+    #   This is where that untransposed renamed data.frame comes in handy
+    p <- ggplot2::ggplot(data = data.plot, mapping = aes(x = x, y = y))
+    p <- p + geom_point(
+      mapping = aes(color = colors),
+      size = cex.use,
+      shape = pch.use,
+      color = col.use
+    )
+    p <- p + labs(title = gene.cor, x = cell1, y = cell2)
+    if (do.hover) {
+      names(x = data.plot) <- c(cell1, cell2)
+      return(HoverLocator(plot = p, data.plot = data.plot, title = gene.cor))
+    } else if (do.identify) {
+      return(FeatureLocator(plot = p, data.plot = data.plot, ...))
+    }
+  }
+}
+
 #' Dark Theme
 #'
 #' Add a dark theme to ggplot objects
@@ -765,7 +1582,13 @@ FeatureLocator <- function(plot, data.plot, ...) {
 #' @seealso \code{\link{ggplot2::ggplot_build}}
 #' @export
 #'
-HoverLocator <- function(plot, data.plot, features.info = NULL, dark.theme = FALSE, ...) {
+HoverLocator <- function(
+  plot,
+  data.plot,
+  features.info = NULL,
+  dark.theme = FALSE,
+  ...
+) {
   #   Use GGpointToBase because we already have ggplot objects
   #   with colors (which are annoying in plotly)
   plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
