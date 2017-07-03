@@ -1,3 +1,148 @@
+#' Merge Seurat Objects
+#'
+#' Merge two Seurat objects
+#'
+#' @param object1 First Seurat object to merge
+#' @param object2 Second Seurat object to merge
+#' @param min.cells Include genes with detected expression in at least this
+#' many cells
+#' @param min.genes Include cells where at least this many genes are detected
+#' @param is.expr Expression threshold for 'detected' gene
+#' @param do.logNormalize whether to normalize the expression data per cell and transform to log space.
+#' @param total.expr scale factor in the log normalization
+#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
+#' z-score)
+#' @param do.center In object@@scale.data, perform row-centering (gene-based
+#' centering)
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name
+#' @param meta.data Additional metadata to add to the Seurat object. Should be
+#' a data frame where the rows are cell names, and the columns are additional
+#' metadata fields
+#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
+#' which will save memory downstream for large datasets
+#' @param add.cell.id1 String to be appended to the names of all cells in object1
+#' @param add.cell.id2 String to be appended to the names of all cells in object2
+#'
+#' @return Merged Seurat object
+#'
+#' @import Matrix
+#' @importFrom dplyr full_join filter
+#'
+#' @export
+#'
+MergeSeurat <- function(
+  object1,
+  object2,
+  project = NULL,
+  min.cells = 0,
+  min.genes = 0,
+  is.expr = 0,
+  do.logNormalize = TRUE,
+  total.expr = 1e4,
+  do.scale = TRUE,
+  do.center = TRUE,
+  names.field = 1,
+  names.delim = "_",
+  save.raw = TRUE,
+  add.cell.id1 = NULL,
+  add.cell.id2 = NULL
+) {
+  if (length(x = object1@raw.data) < 2) {
+    stop("First object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+  }
+  if (length(x = object2@raw.data) < 2) {
+    stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+  }
+  if (! missing(add.cell.id1)) {
+    object1@cell.names <- paste(object1@cell.names, add.cell.id1, sep = ".")
+    colnames(x = object1@raw.data) <- paste(
+      colnames(x = object1@raw.data),
+      add.cell.id1,
+      sep = "."
+    )
+    rownames(x = object1@data.info) <- paste(
+      rownames(x = object1@data.info),
+      add.cell.id1,
+      sep = "."
+    )
+  }
+  if (! missing(add.cell.id2)) {
+    object2@cell.names <- paste(object2@cell.names, add.cell.id2, sep = ".")
+    colnames(x = object2@raw.data) <- paste(
+      colnames(x = object2@raw.data),
+      add.cell.id2,
+      sep = "."
+    )
+    rownames(x = object2@data.info) <- paste(
+      rownames(x = object2@data.info),
+      add.cell.id2,
+      sep = "."
+    )
+  }
+  if (any(object1@cell.names %in% object2@cell.names)) {
+    warning("Duplicate cell names, enforcing uniqueness via make.unique()")
+    object2.names <- as.list(
+      x = make.unique(
+        names = c(
+          colnames(x = object1@raw.data),
+          colnames(x = object2@raw.data)
+        )
+      )[(ncol(x = object1@raw.data) + 1):(ncol(x = object1@raw.data) + ncol(x = object2@raw.data))]
+    )
+    names(x = object2.names) <- colnames(x = object2@raw.data)
+    colnames(x = object2@raw.data) <- object2.names
+    object2@cell.names <- unlist(
+      x = unname(
+        obj = object2.names[object2@cell.names]
+      )
+    )
+    rownames(x = object2@data.info) <- unlist(
+      x = unname(
+        obj = object2.names[rownames(x = object2@data.info)]
+      )
+    )
+  }
+  merged.raw.data <- RowMergeSparseMatrices(
+    mat1 = object1@raw.data[,object1@cell.names],
+    mat2 = object2@raw.data[,object2@cell.names]
+  )
+  object1@data.info <- object1@data.info[object1@cell.names, ]
+  object2@data.info <- object2@data.info[object2@cell.names, ]
+  new.object <- new(Class = "seurat", raw.data = merged.raw.data)
+  project <- set.ifnull(project, object1@project.name)
+  object1@data.info$cell.name <- rownames(x = object1@data.info)
+  object2@data.info$cell.name <- rownames(x = object2@data.info)
+  merged.meta.data <- suppressMessages(
+    suppressWarnings(
+      full_join(x = object1@data.info, y = object2@data.info)
+    )
+  )
+  merged.object <- Setup(
+    new.object,
+    project = project,
+    min.cells = min.cells,
+    min.genes = min.genes,
+    is.expr = is.expr,
+    do.logNormalize = do.logNormalize,
+    total.expr = total.expr,
+    do.scale = do.scale,
+    do.center = do.center,
+    names.field = names.field,
+    names.delim = names.delim,
+    save.raw = save.raw
+  )
+  merged.meta.data %>% filter(
+    cell.name %in% merged.object@cell.names
+  ) -> merged.meta.data
+  rownames(x= merged.meta.data) <- merged.object@cell.names
+  merged.meta.data$cell.name <- NULL
+  merged.object@data.info <- merged.meta.data
+  return(merged.object)
+}
+
 #' Add samples into existing Seurat object.
 #'
 #' @param object Seurat object
