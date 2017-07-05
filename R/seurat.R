@@ -34,8 +34,7 @@
 #'    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
 #'    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
 #'    phylogenetic tree relating different identity classes }
-#'    \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
-#'    \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
+#'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
 #'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
 #'
 #'}
@@ -82,8 +81,7 @@ seurat <- setClass(
     tsne.rot = "data.frame",
     cell.names = "vector",
     cluster.tree = "list",
-    snn.sparse = "dgCMatrix",
-    snn.dense = "matrix",
+    snn = "dgCMatrix",
     snn.k="numeric"
   )
 )
@@ -444,16 +442,11 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
 
 #' Make object sparse
 #'
-#' Converts stored data matrices to sparse matrices to save space. Converts object@@raw.data and object@@data to sparse matrices.
-#' If the snn has been stored as a dense matrix, this will convert it to a sparse matrix, store it in object@@snn.sparse and
-#' remove object@@snn.dense.
-#'
+#' Converts stored data matrices to sparse matrices to save space. Converts 
+#' object@@raw.data and object@@data to sparse matrices.
 #' @param object Seurat object
-#'
 #' @return Returns a seurat object with data converted to sparse matrices.
-#'
 #' @import Matrix
-#'
 #' @export
 #'
 MakeSparse <- function(object) {
@@ -463,13 +456,6 @@ MakeSparse <- function(object) {
   if (class(object@data) == "data.frame") {
     object@data <- as.matrix(x = object@data)
   }
-  if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-    if (class(object@snn.dense) == "data.frame") {
-      object@snn.dense <- as.matrix(x = object@snn.dense)
-    }
-    object@snn.sparse <- as(object = object@snn.dense, Class = "dgCMatrix")
-    object@snn.dense <- matrix()
-  }
   object@raw.data <- as(object = object@raw.data, Class = "dgCMatrix")
   object@data <- as(object = object@data, Class = "dgCMatrix")
   return(object)
@@ -477,7 +463,8 @@ MakeSparse <- function(object) {
 
 #' Convert old Seurat object to accomodate new features
 #'
-#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA analyses to new slot
+#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA 
+#' analyses to new slot. Moves snn to new slot.
 #'
 #' @param object Seurat object
 #'
@@ -586,6 +573,15 @@ ConvertSeurat <- function(object) {
             key = "tSNE_"
         )
         object@dr$tsne <- tsne.obj
+    }
+    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
+      if (class(object@snn.dense) == "data.frame") {
+        object@snn.dense <- as.matrix(x = object@snn.dense)
+      }
+      object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
+    }
+    else{
+      object@snn <- object@snn.sparse
     }
     return(object)
 }

@@ -31,10 +31,8 @@ ValidateClusters <- function(
   verbose = TRUE
 ) {
   #probably should refactor to make cleaner
-  if (length(x = object@snn.dense) > 1) {
-    SNN.use <- object@snn.dense
-  } else if (length(x = object@snn.sparse) > 1){
-    SNN.use <- object@snn.sparse
+  if (length(x = object@snn) > 1) {
+    SNN.use <- object@snn
   } else {
     stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in the object slot")
   }

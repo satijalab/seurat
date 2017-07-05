@@ -119,7 +119,7 @@ test_that("tSNE plots correctly", {
 context("Plotting/Visualization")
 
 test_that("Violin plots (VlnPlot() ) return as expected", {
-  expect_is(VlnPlot(nbt.test, "ZYX", do.ret = T)[[1]]$layers[[1]]$geom, "GeomViolin" )
+  expect_is(VlnPlot(nbt.test, "ZYX", do.ret = T)$layers[[1]]$geom, "GeomViolin" )
   expect_equal(length(VlnPlot(nbt.test, c("ZYX", "AACS"), do.return = T, return.plotlist = T)), 2)
 
 })
@@ -150,25 +150,16 @@ test_that("FeaturePlot works as expected", {
 context("Clustering Functions")
 
 test_that("SNN calculations are correct and handled properly", {
-  expect_true(length(nbt.test@snn.dense) == 0)
-  expect_true(length(nbt.test@snn.sparse) == 0)
+  expect_true(length(nbt.test@snn) == 0)
 
-  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
-  expect_true(length(nbt.test@snn.dense) > 1)
-  expect_equal(nbt.test@snn.dense[2,9], 0.6)
-
-  nbt.test <- FindClusters(nbt.test, pc.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, do.sparse = T, 
-                           save.SNN = T, n.iter = 1, n.start = 1 )
-
-  expect_true(length(nbt.test@snn.dense) == 1)
-  expect_true(length(nbt.test@snn.sparse) > 1)
-  expect_equal(nbt.test@snn.sparse[2,9], 0.6)
+  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  expect_true(length(nbt.test@snn) > 1)
+  expect_equal(nbt.test@snn[2,9], 0.6)
   
   nbt.test <- FindClusters(nbt.test, resolution = 1, print.output = 0)
   
   expect_warning(FindClusters(nbt.test, k.param = 4, reuse.SNN = T, resolution = 1, n.iter = 1, n.start = 1, print.output = 0))
-  nbt.test@snn.sparse <- sparseMatrix(1, 1, x = 1)
-  nbt.test@snn.dense <- matrix()
+  nbt.test@snn <- sparseMatrix(1, 1, x = 1)
   expect_error(FindClusters(nbt.test, resolution = 1, reuse.SNN = T))
   
 })
@@ -182,8 +173,7 @@ test_that("Clustering over multiple resolution values handled correctly", {
                            n.start = 1)
   expect_equal(length(nbt.test@data.info$res.1), ncol(nbt.test@data))
   expect_equal(length(nbt.test@data.info$res.2), ncol(nbt.test@data))
-  expect_equal(length(nbt.test@snn.sparse), 1)
-  expect_equal(length(nbt.test@snn.dense), 1)
+  expect_equal(length(nbt.test@snn), 1)
 })
 
 # Test subsetting functionality

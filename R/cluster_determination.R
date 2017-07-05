@@ -9,18 +9,27 @@ NULL
 #' \emph{The European Physical Journal B}.
 #'
 #' @param object Seurat object
-#' @param genes.use Gene expression data
-#' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param genes.use A vector of gene names to use in construction of SNN graph 
+#' if building directly based on expression data rather than a dimensionally
+#' reduced representation (i.e. PCs).
+#' @param reduction.type Name of dimensional reduction technique to use in 
+#' construction of SNN graph. (e.g. "pca", "ica")
+#' @param dims.use A vector of the dimensions to use in construction of the SNN 
+#' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale granularity option for k.param
+#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
-#'        1 - prune everything)
-#' @param save.SNN Whether to save the SNN in an object slot
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when 
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN 
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 --- 
+#' prune everything). 
+#' @param print.output Whether or not to print output to the console
+#' @param distance.matrix Build SNN from distance matrix (experimental)
+#' @param save.SNN Saves the SNN matrix associated with the calculation in 
+#' object@@snn
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
-#' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
-#'        May be necessary datasets containing a large number of cells.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #'        (below) 1.0 if you want to obtain a larger (smaller) number of
@@ -31,11 +40,8 @@ NULL
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param print.output Whether or not to print output to the console
 #' @param temp.file.location Directory where intermediate files will be written. Specify the
 #'        ABSOLUTE path.
-#' @param distance.matrix Build SNN from distance matrix (experimental)
-#'
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
@@ -49,41 +55,35 @@ FindClusters <- function(
   object,
   genes.use = NULL,
   reduction.type = "pca",
-  pc.use = NULL,
+  dims.use = NULL,
   k.param = 30,
   k.scale = 25,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
+  print.output = TRUE,
+  distance.matrix = NULL,
   save.SNN = FALSE,
   reuse.SNN = FALSE,
-  do.sparse = FALSE,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
   n.start = 100,
   n.iter = 10,
   random.seed = 0,
-  print.output = TRUE,
-  temp.file.location = NULL,
-  distance.matrix = NULL
+  temp.file.location = NULL
 ) {
   # for older objects without the snn.k slot
   if(typeof(x = validObject(object = object, test = TRUE)) == "character") {
     object@snn.k <- numeric()
   }
   snn.built <- FALSE
-  if (.hasSlot(object = object, name = "snn.dense")) {
-    if (length(x = object@snn.dense) > 1) {
-      snn.built <- TRUE
-    }
-  }
-  if (.hasSlot(object = object, name = "snn.sparse")) {
-    if (length(x = object@snn.sparse) > 1) {
+  if (.hasSlot(object = object, name = "snn")) {
+    if (length(x = object@snn) > 1) {
       snn.built <- TRUE
     }
   }
   if ((
-    missing(x = genes.use) && missing(x = pc.use) && missing(x = k.param) &&
+    missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
     missing(x = k.scale) && missing(x = prune.SNN) && snn.built
   ) || reuse.SNN) {
     save.SNN <- TRUE
@@ -91,7 +91,7 @@ FindClusters <- function(
       stop("No SNN stored to reuse.")
     }
     if (reuse.SNN && (
-      ! missing(x = genes.use) || ! missing(x = pc.use) || ! missing(x = k.param)
+      ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
       || ! missing(x = k.scale) || ! missing(x = prune.SNN)
     )) {
       warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
@@ -102,26 +102,19 @@ FindClusters <- function(
       object = object,
       genes.use = genes.use,
       reduction.type = reduction.type,
-      pc.use = pc.use,
+      dims.use = dims.use,
       k.param = k.param,
       k.scale = k.scale,
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
-      do.sparse = do.sparse,
       print.output = print.output,
       distance.matrix = distance.matrix
     )
   }
-  # deal with sparse SNNs
-  if (length(x = object@snn.sparse) > 1) {
-    SNN.use <- object@snn.sparse
-  } else {
-    SNN.use <- object@snn.dense
-  }
   for (r in resolution) {
     object <- RunModularityClustering(
       object = object,
-      SNN = SNN.use,
+      SNN = object@snn,
       modularity = modularity.fxn,
       resolution = r,
       algorithm = algorithm,
@@ -131,13 +124,12 @@ FindClusters <- function(
       print.output = print.output,
       temp.file.location = temp.file.location
     )
-    object <- GroupSingletons(object = object, SNN = SNN.use)
+    object <- GroupSingletons(object = object, SNN = object@snn)
     name <- paste0("res.", r)
     object <- StashIdent(object = object, save.name = name)
   }
   if (!save.SNN) {
-    object@snn.sparse <- sparseMatrix(1, 1, x = 1)
-    object@snn.dense <- matrix()
+    object@snn <- sparseMatrix(1, 1, x = 1)
     object@snn.k <- integer()
   }
   return(object)

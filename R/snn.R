@@ -2,54 +2,60 @@
 NULL
 #' SNN Graph Construction
 #'
-#' Construct a Shared Nearest Neighbor (SNN) Graph for a given
-#' dataset.
-#'
+#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We 
+#' first determine the k-nearest neighbors of each cell (defined by k.param * 
+#' k.scale). We use this knn graph to construct the SNN graph by calculating the 
+#' neighborhood overlap (Jaccard distance) between every cell and its k.param * 
+#' k.scale nearest neighbors (defining the neighborhood for each cell as the 
+#' k.param nearest neighbors). 
 #'
 #' @param object Seurat object
-#' @param genes.use Gene expression data
-#' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param genes.use A vector of gene names to use in construction of SNN graph 
+#' if building directly based on expression data rather than a dimensionally
+#' reduced representation (i.e. PCs).
+#' @param reduction.type Name of dimensional reduction technique to use in 
+#' construction of SNN graph. (e.g. "pca", "ica")
+#' @param dims.use A vector of the dimensions to use in construction of the SNN 
+#' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale granularity option for k.param
+#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
-#'        1 - prune everything)
-#' @param do.sparse Whether to compute and return the SNN graph as a sparse
-#' matrix or not
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when 
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN 
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 --- 
+#' prune everything). 
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the object with object@@snn.k and either
-#' object@@snn.dense or object@@snn.sparse filled depending on the option
-#' set
+#' @return Returns the object with object@@snn.k and object@@snn filled 
 #' @export
 BuildSNN <- function(
   object,
   genes.use = NULL,
   reduction.type="pca",
-  pc.use = NULL,
+  dims.use = NULL,
   k.param = 10,
   k.scale = 10,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
-  do.sparse = FALSE,
   print.output = TRUE,
   distance.matrix = NULL
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
-  } else if (is.null(x = genes.use) && is.null(x = pc.use)) {
+  } else if (is.null(x = genes.use) && is.null(x = dims.use)) {
     genes.use <- object@var.genes
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
-  } else if (! is.null(x = pc.use)) {
-    #data.use <- as.matrix(object@pca.rot[, pc.use])
+  } else if (! is.null(x = dims.use)) {
+    # data.use <- as.matrix(object@pca.rot[, dims.use])
     dim_scores <- eval(expr = parse(
       text = paste0("object@dr$", reduction.type, "@rotation")
     ))
-    data.use <- dim_scores[, pc.use]
-  } else if (!is.null(genes.use) && is.null(pc.use)) {
+    data.use <- dim_scores[, dims.use]
+  } else if (!is.null(genes.use) && is.null(dims.use)) {
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
   } else {
       stop("Data error!")
@@ -59,7 +65,7 @@ BuildSNN <- function(
     warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
     k.param <- n.cells - 1
   }
-  #find the k-nearest neighbors for each single cell
+  # find the k-nearest neighbors for each single cell
   if (is.null(x = distance.matrix)) {
     my.knn <- get.knn(
       data <- as.matrix(x = data.use),
@@ -80,26 +86,16 @@ BuildSNN <- function(
     nn.large <- knn.mat
     nn.ranked <- knn.mat[, 2:k.param]
   }
-  if (do.sparse) {
-    w <- CalcSNNSparse(
-      object = object,
-      n.cells = n.cells,
-      k.param = k.param,
-      nn.large = nn.large,
-      nn.ranked = nn.ranked,
-      prune.SNN = prune.SNN,
-      print.output = print.output
-    )
-  } else {
-      w <- CalcSNNDense(
-        object = object,
-        n.cells = n.cells,
-        nn.large = nn.large,
-        nn.ranked = nn.ranked,
-        prune.SNN = prune.SNN,
-        print.output = print.output
-      )
-  }
+  w <- CalcSNNSparse(
+    cell.names = object@cell.names,
+    k.param = k.param,
+    nn.large = nn.large,
+    nn.ranked = nn.ranked,
+    prune.SNN = prune.SNN,
+    print.output = print.output
+  )
+  object@snn.k <- k.param
+  object@snn <- w
   if (plot.SNN) {
     if (length(x = object@dr$tsne@rotation) < 1) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
@@ -119,36 +115,48 @@ BuildSNN <- function(
       )
     }
   }
-  #only allow one of the snn matrix slots to be filled
-  object@snn.k <- k.param
-  if (do.sparse) {
-    object@snn.sparse <- w
-    object@snn.dense <- matrix()
-  } else {
-    object@snn.dense <- w
-    object@snn.sparse <- sparseMatrix(i = 1, j = 1, x = 1)
-  }
   return(object)
 }
 
+# Function to convert the knn graph into the snn graph. Stored in a sparse 
+# representation. 
+
+# @param cell.names    A vector of cell names which will correspond to the row/
+#                      column names of the SNN
+# @param k.param       Defines nearest neighborhood when computing NN graph
+# @param nn.large      Full KNN graph (computed with get.knn with k set to 
+#                      k.param * k.scale)
+# @param nn.ranked     Subset of full KNN graph that only contains the first 
+#                      k.param nearest neighbors. Used to define Jaccard 
+#                      distances between any two cells
+# @param prune.snn     Sets the cutoff for acceptable Jaccard distances when 
+#                      computing the neighborhood overlap for the SNN 
+#                      construction. Any edges with values less than or equal to 
+#                      this will be set to 0 and removed from the SNN graph. 
+#                      Essentially sets the strigency of pruning (0 --- no 
+#                      pruning, 1 --- prune everything). 
+# @param print.output  Whether or not to print output to the console
+# @return              Returns an adjacency matrix representation of the SNN 
+#                      graph
+
 CalcSNNSparse <- function(
-  object,
-  n.cells,
+  cell.names,
   k.param,
   nn.large,
   nn.ranked,
   prune.SNN,
   print.output
 ) {
+  n.cells <- length(cell.names)
   counter <- 1
   idx1 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
   idx2 <- vector(mode = "integer", length = n.cells ^ 2 / k.param)
   edge.weight <- vector(mode = "double", length = n.cells ^ 2 / k.param)
   id <- 1
-  #fill out the adjacency matrix w with edge weights only between your target
-  #cell and its 10*k.param-nearest neighbors
-  #speed things up (don't have to calculate all pairwise distances)
-  #define the edge weights with Jaccard distance
+  # fill out the adjacency matrix w with edge weights only between your target
+  # cell and its k.scale*k.param-nearest neighbors
+  # speed things up (don't have to calculate all pairwise distances)
+  # define the edge weights with Jaccard distance
   if (print.output) {
     print("Constructing SNN")
     pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
@@ -182,53 +190,18 @@ CalcSNNSparse <- function(
     dims = c(n.cells, n.cells)
   )
   diag(x = w) <- 1
-  rownames(x = w) <- object@cell.names
-  colnames(x = w) <- object@cell.names
+  rownames(x = w) <- cell.names
+  colnames(x = w) <- cell.names
   return(w)
 }
 
-CalcSNNDense <- function(
-  object,
-  n.cells,
-  nn.large,
-  nn.ranked,
-  prune.SNN,
-  print.output = TRUE
-) {
-  counter <- 1
-  w <- matrix(data = 0, nrow = n.cells, ncol = n.cells)
-  rownames(x = w) <- object@cell.names
-  colnames(x = w) <- object@cell.names
-  diag(x = w) <- 1
-  #fill out the adjacency matrix w with edge weights only between your target
-  #cell and its 10*k.param-nearest neighbors
-  #speed things up (don't have to calculate all pairwise distances)
-  if (print.output){
-    print("Constructing SNN")
-    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
-  }
-  for (i in 1:n.cells) {
-    for (j in 1:ncol(x = nn.large)) {
-      s <- intersect(x = nn.ranked[i, ], y = nn.ranked[nn.large[i, j], ])
-      u <- union(nn.ranked[i, ], nn.ranked[nn.large[i, j], ])
-      e <- length(x = s) / length(x = u)
-      if (e > prune.SNN) {
-        w[i, nn.large[i, j]] <- e
-      } else {
-        w[i,nn.large[i, j]] <- 0
-      }
-    }
-    if (print.output) {
-      setTxtProgressBar(pb = pb, value = i)
-    }
-  }
-  if (print.output) {
-    close(con = pb)
-  }
-  return(w)
-}
+# This function calculates the pairwise connectivity of clusters. 
 
-CalcConnectivity <- function(object, SNN) {
+# @param object  Seurat object containing the snn graph and cluster assignments
+# @return        matrix with all pairwise connectivities calculated
+
+CalcConnectivity <- function(object) {
+  SNN <- object@snn
   cluster.names <- unique(x = object@ident)
   num.clusters <- length(x = cluster.names)
   connectivity <- matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
