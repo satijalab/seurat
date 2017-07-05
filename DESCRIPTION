@@ -49,7 +49,8 @@ Imports:
     WGCNA,
     dtw,
     SDMTools,
-    plotly
+    plotly,
+    enrichR
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 remotes: bioc::release/made4
