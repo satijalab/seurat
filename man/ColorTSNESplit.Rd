@@ -18,7 +18,15 @@ ColorTSNESplit(object, node, color1 = "red", color2 = "blue",
 
 \item{color3}{Color for all other cells}
 
-\item{...}{Additional parameters for TSNEPlot()}
+\item{...}{Arguments passed on to \code{TSNEPlot}
+\describe{
+  \item{do.label}{FALSE by default. If TRUE, plots an alternate view where the center of each
+cluster is labeled}
+  \item{pt.size}{Set the point size}
+  \item{label.size}{Set the size of the text labels}
+  \item{cells.use}{Vector of cell names to use in the plot.}
+  \item{colors.use}{Manually set the color palette to use for the points}
+}}
 }
 \value{
 Returns a tSNE plot

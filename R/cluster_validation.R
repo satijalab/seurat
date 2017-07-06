@@ -2,26 +2,21 @@
 NULL
 #' Cluster Validation
 #'
-#' Methods for validating the legitimacy of clusters using
-#' classification. SVMs are used as the basis for the classification.
-#' Merging is done based on the connectivity from an SNN graph.
-#'
+#' Methods for validating the legitimacy of clusters using classification. SVMs 
+#' are used as the basis for the classification. Merging is done based on the 
+#' connectivity from an SNN graph.
 #'
 #' @param object Seurat object
-#' @param pc.use Which PCs to use for model construction
-#' @param top.genes Use the top X genes for model construction
-#' @param min.connectivity Threshold of connectedness for comparison
-#' of two clusters
+#' @param pc.use Which PCs to use to define genes in model construction
+#' @param top.genes Use the top X genes for each PC in model construction
+#' @param min.connectivity Threshold of connectedness for comparison of two 
+#' clusters
 #' @param acc.cutoff Accuracy cutoff for classifier
-#' @param verbose Controls whether to display progress and merge results
-#'
+#' @param verbose Controls whether to display progress and merging results
 #' @importFrom caret trainControl train
-#'
-#' @return Returns a Seurat object, object@@ident has been updated with
-#' new cluster info
-#'
+#' @return Returns a Seurat object, object@@ident has been updated with new 
+#' cluster info
 #' @export
-#'
 ValidateClusters <- function(
   object,
   pc.use = NULL,
@@ -30,23 +25,27 @@ ValidateClusters <- function(
   acc.cutoff = 0.9,
   verbose = TRUE
 ) {
-  #probably should refactor to make cleaner
+  # probably should refactor to make cleaner
   if (length(x = object@snn) > 1) {
     SNN.use <- object@snn
   } else {
-    stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in the object slot")
+    stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in 
+         the object slot")
+  }
+  if (is.null(pc.use)){
+    stop("pc.use not set. Please choose PCs.")
   }
   num.clusters.orig <- length(x = unique(x = object@ident))
   still_merging <- TRUE
   if (verbose) {
-    connectivity <- CalcConnectivity(object = object, SNN = SNN.use)
+    connectivity <- CalcConnectivity(object = object)
     end <- length(x = connectivity[connectivity > min.connectivity])
     progress <- end
     status <- 0
   }
   # find connectedness of every two clusters
   while (still_merging) {
-    connectivity <- CalcConnectivity(object = object, SNN = SNN.use)
+    connectivity <- CalcConnectivity(object = object)
     merge.done <- FALSE
     while (! merge.done) {
       m <- max(connectivity, na.rm = TRUE)
@@ -85,8 +84,8 @@ ValidateClusters <- function(
           if (verbose & status == 5) {
             print(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
-              "% complete --- Last 5 cluster comparisons failed to merge",
-              " ,still checking possible merges ..."
+              "% complete --- Last 5 cluster comparisons failed to merge, ",
+              "still checking possible merges ..."
             ))
             status <- 0
           }
@@ -124,14 +123,10 @@ ValidateClusters <- function(
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
 #' @param acc.cutoff Accuracy cutoff for classifier
-#'
 #' @importFrom caret trainControl train
-#'
 #' @return Returns a Seurat object, object@@ident has been updated with
 #' new cluster info
-#'
 #' @export
-#'
 ValidateSpecificClusters <- function(
   object,
   cluster1 = NULL,
@@ -167,23 +162,33 @@ ValidateSpecificClusters <- function(
   return(object)
 }
 
-# Documentation
-###############
+# Train an SVM classifier and return the accuracy after 5 fold CV
+#
+# @param object     Seurat object
+# @param group1     One identity to train classifier on
+# @param group2     Second identity to train classifier on
+# @param pcs        Vector of PCs on which to base genes to train classifier on.
+#                   Pulls top num.genes genes associated with these PCs
+# @param num.genes  Number of genes to pull for each PC
+# @return           Returns the accuracy of the classifier after CV
+
 RunClassifier <- function(object, group1, group2, pcs, num.genes) {
   d1 <- WhichCells(object = object, ident = group1)
   d2 <- WhichCells(object = object, ident = group2)
   y  <- as.numeric(x = object@ident[c(d1, d2)]) - 1
-  x  <- data.frame(t(
-    x = object@data[pcTopGenes(object, pcs, num.genes), c(d1, d2)] # Isnt' this deprecated
-    ))
+  x  <- data.frame(as.matrix(t(
+    x = object@data[PCTopGenes(object = object, pc.use = pcs, num.genes = 
+                                 num.genes), c(d1, d2)] 
+    )))
   xv <- apply(X = x, MARGIN = 2, FUN = var)
-  x  <- x[, names(x = xv > 0)]
+  x  <- x[, names(x = which(xv > 0))]
   # run k-fold cross validation
   ctrl <- trainControl(method = "repeatedcv", repeats = 5)
   set.seed(seed = 1500)
   model <- train(
-    as.factor(x = y) ~ .,
-    data = x,
+    x = x,
+    y = as.factor(x = y),
+    formula = as.factor(x = y) ~ .,
     method = "svmLinear",
     trControl = ctrl
   )
@@ -206,7 +211,6 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #' each internal node split or each split provided in the node list.
 #'
 #' @export
-#'
 AssessNodes <- function(object, node.list, all.below = FALSE) {
   tree <- object@cluster.tree[[1]]
   if (missing(x = node.list)) {
@@ -248,13 +252,10 @@ AssessNodes <- function(object, node.list, all.below = FALSE) {
 #' @param cluster1 First cluster to compare
 #' @param cluster2 Second cluster to compare
 #' @param print.output Print the OOB error for the classifier
-#' @param ... additional parameters to pass to BuildRFClassifier
-#'
+#' @inheritDotParams BuildRFClassifier -object
 #' @return Returns the Out of Bag error for a random forest classifier
 #' trained on the split from the given node
-#'
 #' @export
-#'
 AssessSplit <- function(
   object,
   node,
@@ -327,12 +328,9 @@ AssessSplit <- function(
 #' @param color1 Color for the left side of the split
 #' @param color2 Color for the right side of the split
 #' @param color3 Color for all other cells
-#' @param ... Additional parameters for TSNEPlot()
-#'
+#' @inheritDotParams TSNEPlot -object
 #' @return Returns a tSNE plot
-#'
 #' @export
-#'
 ColorTSNESplit <- function(
   object,
   node,

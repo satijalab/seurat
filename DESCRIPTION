@@ -28,6 +28,7 @@ Imports:
     igraph,
     FNN,
     caret,
+    e1071,
     plyr,
     dplyr,
     RColorBrewer,
