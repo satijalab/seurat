@@ -167,8 +167,6 @@ NormalizeData <- function(
 #' @param num.cc Number of canonical correlations to compute and store. Default is 20, but will calculate less if either assay has <20 features.
 #' @param normalize.variance Z-score the embedding of each CC to 1, so each CC contributes equally in downstream analysis (default is T)
 #'
-#' @importFrom PMA CCA
-#'
 #' @return Returns object after CCA, with results stored in dimensional reduction cca.assay1 (ie. cca.RNA) and cca.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cca.RNA")
 #'
 #' @export
@@ -207,15 +205,10 @@ MultiModal_CCA <- function(
   cca.data <- list(data.1, data.2)
   names(x = cca.data) <- c(assay.1, assay.2)
   # now run CCA
-  out <- CCA(
-    x = cca.data[[1]],
-    z = cca.data[[2]],
-    typex = "standard",
-    typez = "standard",
-    K = num.cc,
-    penaltyz = 1,
-    penaltyx = 1
-  )
+  out <- CanonCor(mat1 = cca.data[[1]],
+                  mat2 = cca.data[[2]],
+                  standardize = TRUE,
+                  k = num.cc)
   cca.output <- list(out$u, out$v)
   embeddings.cca <- list()
   for (i in 1:length(x = cca.data)) {
