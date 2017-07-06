@@ -63,6 +63,7 @@ Collate:
     'enrichr.R'
     'interaction.R'
     'multi_modal.R'
+    'nbreg_internal.R'
     'pairs.R'
     'pairs_internal.R'
     'plotting.R'
@@ -72,6 +73,7 @@ Collate:
     'snn.R'
     'tSNE_project.R'
     'utilities.R'
+    'utilities_internal.R'
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
