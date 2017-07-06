@@ -211,27 +211,6 @@ ConvertSeurat <- function(object) {
     return(object)
 }
 
-# Internal function for merging two matrices by rowname
-RowMergeSparseMatrices <- function(mat1, mat2){
-  if (inherits(mat1, "data.frame")) {
-    mat1 = as.matrix(mat1)
-  }
-  if (inherits(mat2, "data.frame")) {
-    mat2 = as.matrix(mat2)
-  }
-  mat1 <- as(mat1, "RsparseMatrix")
-  mat2 <- as(mat2, "RsparseMatrix")
-  mat1.names <- rownames(mat1)
-  mat2.names <- rownames(mat2)
-  all.names <- union(mat1.names, mat2.names)
-  new.mat <- RowMergeMatrices(mat1 = mat1, mat2 = mat2, mat1_rownames = mat1.names, mat2_rownames = mat2.names, all_rownames = all.names)
-  rownames(new.mat) <- make.unique(all.names)
-  #colnames(mat2) <- sprintf('%s_2', colnames(mat2))
-  colnames(new.mat) <- make.unique(c(colnames(mat1), colnames(mat2)))
-  return(new.mat)
-}
-
-
 #' Classify New Data
 #'
 #' Classify new data based on the cluster information of the provided object.
