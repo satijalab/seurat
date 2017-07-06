@@ -50,11 +50,8 @@ BuildSNN <- function(
     genes.use <- object@var.genes
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
   } else if (! is.null(x = dims.use)) {
-    # data.use <- as.matrix(object@pca.rot[, dims.use])
-    dim_scores <- eval(expr = parse(
-      text = paste0("object@dr$", reduction.type, "@rotation")
-    ))
-    data.use <- dim_scores[, dims.use]
+    data.use <- GetCellEmbeddings(object, reduction.type = reduction.type, 
+                                    dims.use = dims.use)
   } else if (!is.null(genes.use) && is.null(dims.use)) {
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
   } else {
@@ -97,7 +94,7 @@ BuildSNN <- function(
   object@snn.k <- k.param
   object@snn <- w
   if (plot.SNN) {
-    if (length(x = object@dr$tsne@rotation) < 1) {
+    if (length(x = object@dr$tsne@cell.embeddings) < 1) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
       net <- graph.adjacency(
@@ -108,7 +105,7 @@ BuildSNN <- function(
       )
       plot.igraph(
         x = net,
-        layout = as.matrix(x = object@dr$tsne@rotation),
+        layout = as.matrix(x = object@dr$tsne@cell.embeddings),
         edge.width = E(graph = net)$weight,
         vertex.label = NA,
         vertex.size = 0

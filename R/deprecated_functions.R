@@ -91,6 +91,8 @@
 #'   \code{jackStraw.permutation.test} \tab now a synonym for \code{\link{JackStrawPermutationTest}}\cr
 #'   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
 #'   \code{jackStrawFull} \tab now a synonym for \code{\link{JackStrawFull}}\cr
+#'   \code{PCAFast} \tab now a synonym for \code{\link{PCA}}\cr
+
 #' }
 #'
 
@@ -505,4 +507,9 @@ jackStrawMC <- function(...) {
 jackStrawFull <- function(...) {
     .Deprecated("JackStrawFull ", package="Seurat")
     JackStrawFull(...)
+}
+
+PCAFast <- function(...) {
+  .Deprecated("PCA", package= "Seurat")
+  PCA(...)
 }

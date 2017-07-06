@@ -19,14 +19,14 @@ ProjectPCA(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30,
 \item{genes.print}{Number of genes with highest/lowest loadings to print for
 each PC}
 
-\item{replace.pc}{Replace the existing PCA (overwite object@pca.x), not done
-by default.}
+\item{replace.pc}{Replace the existing PCA (overwite 
+object@dr$pca@gene.loadings), not done by default.}
 
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
 }
 \value{
 Returns Seurat object with the projected PCA values in
-object@pca.x.full
+object@dr$pca@gene.loadings.full
 }
 \description{
 Takes a pre-computed PCA (typically calculated on a subset of genes) and

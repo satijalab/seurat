@@ -516,9 +516,9 @@ ConvertSeurat <- function(object) {
     if (all(pca.checks)) {
         pca.obj <- new(
             Class = "dim.reduction",
-            x = pca.x,
-            x.full = pca.x.full,
-            rotation = pca.rotation,
+            gene.loadings = pca.x,
+            gene.loadings.full = pca.x.full,
+            cell.embeddings = pca.rotation,
             sdev = pca.sdev,
             key = "PC",
             misc = pca.misc
@@ -554,8 +554,8 @@ ConvertSeurat <- function(object) {
     if (all(ica.checks)) {
         ica.obj <- new(
             "dim.reduction",
-            x = ica.x,
-            rotation = ica.rotation,
+            gene.loadings = ica.x,
+            cell.embeddings = ica.rotation,
             sdev = ica.sdev,
             key = "IC",
             misc = "ica.misc"
@@ -569,7 +569,7 @@ ConvertSeurat <- function(object) {
     if (length(x = tsne.rotation) > 1) {
         tsne.obj <- new(
             "dim.reduction",
-            rotation = tsne.rotation,
+            cell.embeddings = tsne.rotation,
             key = "tSNE_"
         )
         object@dr$tsne <- tsne.obj
@@ -1572,7 +1572,7 @@ RunDiffusion <- function(
   object <- SetDimReduction(
     object = object,
     reduction.type = "dm",
-    slot = "rotation",
+    slot = "cell.embeddings",
     new.data = as.matrix(x = data.diffusion)
   )
   object <- SetDimReduction(

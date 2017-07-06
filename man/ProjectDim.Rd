@@ -18,21 +18,23 @@ ProjectDim(object, reduction.type = "pca", dims.print = 1:5,
 \item{genes.print}{Number of genes with highest/lowest loadings to print for
 each PC}
 
-\item{replace.dim}{Replace the existing data (overwite object@dr$XXX@x), not done
-by default.}
+\item{replace.dim}{Replace the existing data (overwrite 
+object@dr$XXX@gene.loadings), not done by default.}
 
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
 
 \item{do.print}{Print top genes associated with the projected dimensions}
 
-\item{assay.type}{Data type, RNA by default. Can be changed for multimodal datasets (i.e. project a PCA done on RNA, onto CITE-seq data)}
+\item{assay.type}{Data type, RNA by default. Can be changed for multimodal 
+datasets (i.e. project a PCA done on RNA, onto CITE-seq data)}
 }
 \value{
-Returns Seurat object with the projected values in object@dr$XXX@x.full
+Returns Seurat object with the projected values in 
+object@dr$XXX@gene.loadings.full
 }
 \description{
-Takes a pre-computed dimensional reduction (typically calculated on a subset of genes) and
-projects this onto the entire dataset (all genes). Note that the cell
-loadings (rotation matrices) remains unchanged, but now there are gene
-scores for all genes.
+Takes a pre-computed dimensional reduction (typically calculated on a subset 
+of genes) and projects this onto the entire dataset (all genes). Note that 
+the cell loadings will remain unchanged, but now there are gene loadings for 
+all genes.
 }

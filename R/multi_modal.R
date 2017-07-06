@@ -227,7 +227,7 @@ MultiModal_CCA <- function(
     object <- SetDimReduction(
       object = object,
       reduction.type = paste0(assay.use, "CCA"),
-      slot = "rotation",
+      slot = "cell.embeddings",
       new.data = embeddings.cca[[i]]
     )
     object <- SetDimReduction(
@@ -322,7 +322,7 @@ MultiModal_CIA <- function(
     object <- SetDimReduction(
       object = object,
       reduction.type = paste("cia", assay.use, sep="_"),
-      slot = "rotation",
+      slot = "cell.embeddings",
       new.data = embeddings.cia[[i]]
     )
     object <- SetDimReduction(

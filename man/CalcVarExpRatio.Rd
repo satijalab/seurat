@@ -9,11 +9,13 @@ CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{type of dimensional reduction to compare to CCA (pca, pcafast, ica)}
+\item{reduction.type}{type of dimensional reduction to compare to CCA (pca, 
+pcafast, ica)}
 
 \item{grouping.var}{variable to group by}
 
-\item{dims.use}{Vector of dimensions to project onto (default is the 1:number stored for cca)}
+\item{dims.use}{Vector of dimensions to project onto (default is the 1:number
+stored for cca)}
 }
 \description{
 Calculate the ratio of variance explained by ICA or PCA to CCA

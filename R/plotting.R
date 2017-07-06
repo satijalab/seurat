@@ -1775,3 +1775,824 @@ PlotVln <- function(
   }
   return(plot)
 }
+
+#' Dimensional reduction heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
+#' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams PCTopGenes
+#' @inheritParams VizPCA
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#'
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#'
+#' @export
+#'
+DimHeatmap <- function(
+  object,
+  reduction.type = "pca",
+  dim.use = 1,
+  cells.use = NULL,
+  num.genes = 30,
+  use.full = FALSE,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  do.return = FALSE,
+  col.use = pyCols,
+  use.scale = TRUE,
+  do.balanced = FALSE,
+  remove.key = FALSE,
+  label.columns = NULL,
+  ...
+) {
+  num.row <- floor(x = length(x = dim.use) / 3.01) + 1
+  orig_par <- par()$mfrow
+  par(mfrow = c(num.row, min(length(x = dim.use), 3)))
+  cells <- cells.use
+  plots <- c()
+  
+  if (is.null(x = label.columns)) {
+    label.columns <- ! (length(x = dim.use) > 1)
+  }
+  for (ndim in dim.use) {
+    if (is.numeric(x = (cells))) {
+      cells.use <- DimTopCells(
+        object = object,
+        dim.use = ndim,
+        reduction.type = reduction.type,
+        num.cells = cells,
+        do.balanced = do.balanced
+      )
+    } else {
+      cells.use <- set.ifnull(x = cells, y = object@cell.names)
+    }
+    genes.use <- rev(x = DimTopGenes(
+      object = object,
+      dim.use = ndim,
+      reduction.type = reduction.type,
+      num.genes = num.genes,
+      use.full = use.full,
+      do.balanced = do.balanced
+    ))
+    dim.scores <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.type,
+      slot = "cell.embeddings"
+    )
+    dim.key <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.type,
+      slot = "key"
+    )
+    cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+    #determine assay type
+    data.use <- NULL
+    assays.use <- c("RNA", names(x = object@assay))
+    if (! use.scale) {
+      slot.use="data"
+    } else {
+      slot.use <- "scale.data"
+    }
+    for (assay.check in assays.use) {
+      data.assay <- GetAssayData(
+        object = object,
+        assay.type = assay.check,
+        slot = slot.use
+      )
+      genes.intersect <- intersect(x = genes.use, y = rownames(x = data.assay))
+      new.data <- data.assay[genes.intersect, cells.ordered]
+      if (! is.matrix(x = new.data)) {
+        new.data <- as.matrix(x = new.data)
+      }
+      data.use <- rbind(data.use, new.data)
+    }
+    #data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    #if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
+    vline.use <- NULL
+    hmTitle <- paste(dim.key, ndim)
+    if (remove.key || length(dim.use) > 1) {
+      hmFunction <- "heatmap2NoKey(data.use, Rowv = NA, Colv = NA, trace = \"none\", col = col.use, dimTitle = hmTitle, "
+    } else {
+      hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
+    }
+    if (! label.columns) {
+      hmFunction <- paste0(hmFunction, "labCol='', ")
+    }
+    hmFunction <- paste0(hmFunction, "...)")
+    #print(hmFunction)
+    eval(expr = parse(text = hmFunction))
+  }
+  if (do.return) {
+    return(data.use)
+  }
+  # reset graphics parameters
+  par(mfrow = orig_par)
+}
+
+PlotDim <- function(
+  ndim,
+  object,
+  reduction.type,
+  use.scaled,
+  use.full,
+  cells.use,
+  num.genes,
+  group.by,
+  disp.min,
+  disp.max,
+  col.low,
+  col.mid,
+  col.high,
+  slim.col.label,
+  do.balanced,
+  remove.key,
+  cex.col,
+  cex.row,
+  group.label.loc,
+  group.label.rot,
+  group.cex,
+  group.spacing
+) {
+  if (is.numeric(x = (cells.use))) {
+    cells.use <- DimTopCells(
+      object = object,
+      dim.use = ndim,
+      reduction.type = reduction.type,
+      num.cells = cells.use,
+      do.balanced = do.balanced
+    )
+  } else {
+    cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  }
+  genes.use <- rev(x = DimTopGenes(
+    object = object,
+    dim.use = ndim,
+    reduction.type = reduction.type,
+    num.genes = num.genes,
+    use.full = use.full,
+    do.balanced = do.balanced
+  ))
+  dim.scores <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "cell.embeddings"
+  )
+  dim.key <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "key"
+  )
+  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+  if (! use.scaled) {
+    data.use <- as.matrix(object@data[genes.use, cells.ordered])
+  } else {
+    data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+  }
+  return(DoHeatmapGG(
+    object = object,
+    data.use = data.use,
+    cells.use = cells.use,
+    genes.use = genes.use,
+    group.by = group.by,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    col.low = col.low,
+    col.mid = col.mid,
+    col.high = col.high,
+    slim.col.label = slim.col.label,
+    remove.key = remove.key,
+    cex.col = cex.col,
+    cex.row = cex.row,
+    group.label.loc = group.label.loc,
+    group.label.rot = group.label.rot,
+    group.cex = group.cex,
+    group.spacing = group.spacing,
+    title = paste0(dim.key, ndim),
+    do.plot = FALSE
+  ))
+}
+
+#' Principal component heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
+#' Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams PCTopGenes
+#' @inheritParams VizPCA
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#'
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#'
+#' @export
+#'
+PCHeatmap <- function(
+  object,
+  pc.use = 1,
+  cells.use = NULL,
+  num.genes = 30,
+  use.full = FALSE,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  do.return = FALSE,
+  col.use = pyCols,
+  use.scale = TRUE,
+  do.balanced = FALSE,
+  remove.key = FALSE,
+  label.columns = NULL,
+  ...
+) {
+  return(DimHeatmap(
+    object,
+    reduction.type = "pca",
+    dim.use = pc.use,
+    cells.use = cells.use,
+    num.genes = num.genes,
+    use.full = use.full,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    do.return = do.return,
+    col.use = col.use,
+    use.scale = use.scale,
+    do.balanced = do.balanced,
+    remove.key = remove.key,
+    label.columns = label.columns,
+    ...
+  ))
+}
+
+#' Independent component heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
+#' principal component scores. Allows for nice visualization of sources of heterogeneity
+#' in the dataset."()
+#'
+#' @inheritParams DoHeatmap
+#' @inheritParams ICTopGenes
+#' @inheritParams VizICA
+#' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#'
+#' @return If do.return==TRUE, a matrix of scaled values which would be passed
+#' to heatmap.2. Otherwise, no return value, only a graphical output
+#'
+#' @export
+#'
+ICHeatmap <- function(
+  object,
+  ic.use = 1,
+  cells.use = NULL,
+  num.genes = 30,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  do.return = FALSE,
+  col.use = pyCols,
+  use.scale = TRUE,
+  do.balanced = FALSE,
+  remove.key = FALSE,
+  label.columns = NULL,
+  ...
+) {
+  return(DimHeatmap(
+    object = object,
+    reduction.type = "ica",
+    dim.use = ic.use,
+    cells.use = cells.use,
+    num.genes = num.genes,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    do.return = do.return,
+    col.use = col.use,
+    use.scale = use.scale,
+    do.balanced = do.balanced,
+    remove.key = remove.key,
+    label.columns = label.columns,
+    ...
+  ))
+}
+
+
+#' Visualize Dimensional Reduction genes
+#'
+#' Visualize top genes associated with reduction components
+#'
+#' @param object Seurat object
+#' @param reduction.type Reduction technique to visualize results for
+#' @param dims.use Number of dimensions to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use reduction values for full dataset (i.e. projected dimensional reduction values)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
+#' the top genes ranked by the scores absolute values
+#'
+#' @return Graphical, no return value
+#'
+#' @export
+#'
+VizDimReduction <- function(
+  object,
+  reduction.type = "pca",
+  dims.use = 1:5,
+  num.genes = 30,
+  use.full = FALSE,
+  font.size = 0.5,
+  nCol = NULL,
+  do.balanced = FALSE
+) {
+  if (use.full) {
+    dim.scores <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.type,
+      slot = "x.full"
+    )
+  } else {
+    dim.scores <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.type,
+      slot = "x"
+    )
+  }
+  if (is.null(x = nCol)) {
+    if (length(x = dims.use) > 6) {
+      nCol <- 3
+    } else if (length(x = dims.use) > 9) {
+      nCol <- 4
+    } else {
+      nCol <- 2
+    }
+  }
+  num.row <- floor(x = length(x = dims.use) / nCol - 1e-5) + 1
+  par(mfrow = c(num.row, nCol))
+  for (i in dims.use) {
+    subset.use <- dim.scores[DimTopGenes(
+      object = object,
+      dim.use = i,
+      reduction.type = reduction.type,
+      num.genes = num.genes,
+      use.full = use.full,
+      do.balanced = do.balanced
+    ), ]
+    plot(
+      x = subset.use[, i],
+      y = 1:nrow(x = subset.use),
+      pch = 16,
+      col = "blue",
+      xlab = paste0("PC", i),
+      yaxt="n",
+      ylab=""
+    )
+    axis(
+      side = 2,
+      at = 1:nrow(x = subset.use),
+      labels = rownames(x = subset.use),
+      las = 1,
+      cex.axis = font.size
+    )
+  }
+  rp()
+}
+
+#' Visualize PCA genes
+#'
+#' Visualize top genes associated with principal components
+#'
+#' @param object Seurat object
+#' @param pcs.use Number of PCs to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - PC scores.
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values
+#'
+#' @return Graphical, no return value
+#'
+#' @export
+#'
+VizPCA <- function(
+  object,
+  pcs.use = 1:5,
+  num.genes = 30,
+  use.full = FALSE,
+  font.size = 0.5,
+  nCol = NULL,
+  do.balanced = FALSE
+) {
+  VizDimReduction(
+    object = object,
+    reduction.type = "pca",
+    dims.use = pcs.use,
+    num.genes = num.genes,
+    use.full = use.full,
+    font.size = font.size,
+    nCol = nCol,
+    do.balanced = do.balanced
+  )
+}
+
+#' Visualize ICA genes
+#'
+#' Visualize top genes associated with principal components
+#'
+#' @param object Seurat object
+#' @param ics.use Number of ICs to display
+#' @param num.genes Number of genes to display
+#' @param use.full Use full ICA (i.e. the projected ICA, by default FALSE)
+#' @param font.size Font size
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with both + and - IC scores.
+#' If FALSE (by default), returns the top genes ranked by the score's absolute values
+#'
+#' @return Graphical, no return value
+#'
+#' @export
+#'
+VizICA <- function(
+  object,
+  ics.use = 1:5,
+  num.genes = 30,
+  use.full = FALSE,
+  font.size = 0.5,
+  nCol = NULL,
+  do.balanced = FALSE
+) {
+  VizDimReduction(
+    object = object,
+    reduction.type = "ica",
+    dims.use = pcs.use,
+    num.genes = num.genes,
+    use.full = use.full,
+    font.size = font.size,
+    nCol = nCol,
+    do.balanced = do.balanced
+  )
+}
+
+#' Dimensional reduction plot
+#'
+#' Graphs the output of a dimensional reduction technique (PCA by default).
+#' Cells are colored by their identity class.
+#'
+#' @param object Seurat object
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
+#' @param dim.1 Dimension for x-axis (default 1)
+#' @param dim.2 Dimension for y-axis (default 2)
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+#' @param do.return Return a ggplot2 object (default : FALSE)
+#' @param do.bare Do only minimal formatting (default : FALSE)
+#' @param cols.use Vector of colors, each color corresponds to an identity
+#' class. By default, ggplot assigns colors.
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param pt.shape If NULL, all points are circles (default). You can specify any
+#' cell attribute (that can be pulled with FetchData) allowing for both different colors and
+#' different shapes on cells.
+#' @param do.hover Enable hovering over points to view information
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param do.identify Opens a locator session to identify clusters of cells.
+#' @param do.label Whether to label the clusters
+#' @param label.size Sets size of labels
+#' @param no.legend Setting to TRUE will remove the legend
+#' @param no.axes Setting to TRUE will remove the axes
+#' @param dark.theme Use a dark theme for the plot
+#'
+#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
+#' graphical output.
+#'
+#' @import SDMTools
+#' @importFrom dplyr summarize group_by
+#'
+#' @export
+#'
+DimPlot <- function(
+  object,
+  reduction.use = "pca",
+  dim.1 = 1,
+  dim.2 = 2,
+  cells.use = NULL,
+  pt.size = 3,
+  do.return = FALSE,
+  do.bare = FALSE,
+  cols.use = NULL,
+  group.by = "ident",
+  pt.shape = NULL,
+  do.hover = FALSE,
+  data.hover=NULL,
+  do.identify = FALSE,
+  do.label = FALSE,
+  label.size = 1,
+  no.legend = FALSE,
+  no.axes = FALSE,
+  dark.theme = FALSE,
+  ...
+) {
+  embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
+  if (length(x = embeddings.use) == 0) {
+    stop(paste(reduction.use, "has not been run for this object yet."))
+  }
+  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@data))
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = "key"
+  )
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- as.data.frame(x = embeddings.use)
+  # data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = ""))
+  cells.use <- intersect(x = cells.use, y = rownames(x = data.plot))
+  data.plot <- data.plot[cells.use, dim.codes]
+  ident.use <- as.factor(x = object@ident[cells.use])
+  if (group.by != "ident") {
+    ident.use <- as.factor(x = FetchData(
+      object = object,
+      vars.all = group.by
+    )[cells.use, 1])
+  }
+  data.plot$ident <- ident.use
+  data.plot$x <- data.plot[, dim.codes[1]]
+  data.plot$y <- data.plot[, dim.codes[2]]
+  data.plot$pt.size <- pt.size
+  p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
+    geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
+  if (! is.null(x = pt.shape)) {
+    shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
+    if (is.numeric(shape.val)) {
+      shape.val <- cut(x = shape.val, breaks = 5)
+    }
+    data.plot[, "pt.shape"] <- shape.val
+    p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
+      geom_point(
+        mapping = aes(colour = factor(x = ident), shape = factor(x = pt.shape)),
+        size = pt.size
+      )
+  }
+  if (! is.null(x = cols.use)) {
+    p <- p + scale_colour_manual(values = cols.use)
+  }
+  p2 <- p +
+    xlab(label = dim.codes[[1]]) +
+    ylab(label = dim.codes[[2]]) +
+    scale_size(range = c(pt.size, pt.size))
+  p3 <- p2 +
+    gg.xax() +
+    gg.yax() +
+    gg.legend.pts(x = 6) +
+    gg.legend.text(x = 12) +
+    no.legend.title +
+    theme_bw() +
+    NoGrid
+  p3 <- p3 + theme(legend.title = element_blank())
+  if (do.label) {
+    data.plot %>%
+      dplyr::group_by(ident) %>%
+      summarize(x = median(x = x), y = median(x = y)) -> centers
+    p3 <- p3 +
+      geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
+      geom_text(data = centers, mapping = aes(label = ident), size = label.size)
+  }
+  if (no.legend) {
+    p3 <- p3 + theme(legend.position = "none")
+  }
+  if (dark.theme) {
+    p <- p + DarkTheme()
+    p3 <- p3 + DarkTheme()
+  }
+  if (no.axes) {
+    p3 <- p3 + theme(
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.background = element_blank()
+    )
+  }
+  if (do.identify || do.hover) {
+    if (do.bare) {
+      plot.use <- p
+    } else {
+      plot.use <- p3
+    }
+    if (do.hover) {
+      if (is.null(x = data.hover)) {
+        features.info <- NULL
+      } else {
+        features.info <- FetchData(object = object, vars.all = data.hover)
+      }
+      return(HoverLocator(
+        plot = plot.use,
+        data.plot = data.plot,
+        features.info = features.info,
+        dark.theme = dark.theme
+      ))
+    } else if (do.identify) {
+      return(FeatureLocator(
+        plot = plot.use,
+        data.plot = data.plot,
+        dark.theme = dark.theme,
+        ...
+      ))
+    }
+  }
+  if (do.return) {
+    if (do.bare) {
+      return(p)
+    } else {
+      return(p3)
+    }
+  }
+  if (do.bare) {
+    print(p)
+  } else {
+    print(p3)
+  }
+}
+
+#' Plot PCA map
+#'
+#' Graphs the output of a PCA analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
+#' arguments which can be passed in here.
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
+#'
+#' @export
+#'
+PCAPlot <- function(object, ...) {
+  return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
+}
+
+#' Plot Diffusion map
+#'
+#' Graphs the output of a Diffusion map analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
+#' arguments which can be passed in here.
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
+#'
+#' @export
+DMPlot <- function(object, ...) {
+  return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
+}
+
+#' Plot ICA map
+#'
+#' Graphs the output of a ICA analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
+#' arguments which can be passed in here.
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
+#'
+#' @export
+#'
+ICAPlot <- function(object, ...) {
+  return(DimPlot(object = object, reduction.use = "ica", ...))
+}
+
+#' Plot tSNE map
+#'
+#' Graphs the output of a tSNE analysis
+#' Cells are colored by their identity class.
+#'
+#' This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
+#' arguments which can be passed in here.
+#'
+#' @param object Seurat object
+#' @param do.label FALSE by default. If TRUE, plots an alternate view where the center of each
+#' cluster is labeled
+#' @param pt.size Set the point size
+#' @param label.size Set the size of the text labels
+#' @param cells.use Vector of cell names to use in the plot.
+#' @param colors.use Manually set the color palette to use for the points
+#' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
+#'
+#' @seealso DimPlot
+#'
+#' @export
+#'
+TSNEPlot <- function(
+  object,
+  do.label = FALSE,
+  pt.size=1,
+  label.size=4,
+  cells.use = NULL,
+  colors.use = NULL,
+  ...
+) {
+  return(DimPlot(
+    object = object,
+    reduction.use = "tsne",
+    cells.use = cells.use,
+    pt.size = pt.size,
+    do.label = do.label,
+    label.size = label.size,
+    cols.use = colors.use,
+    ...
+  ))
+}
+
+#' Quickly Pick Relevant Dimensions
+#'
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph.
+#' This elbow often corresponds well with the significant dims and is much faster to run than
+#' Jackstraw
+#'
+#'
+#' @param object Seurat object
+#' @param reduction.type  Type of dimensional reduction to plot data for
+#' @param dims.plot Number of dimensions to plot sd for
+#' @param xlab X axis label
+#' @param ylab Y axis label
+#' @param title Plot title
+#'
+#' @return Returns ggplot object
+#'
+#' @export
+#'
+DimElbowPlot <- function(
+  object,
+  reduction.type = "pca",
+  dims.plot = 20,
+  xlab = "",
+  ylab = "",
+  title = ""
+) {
+  data.use <- GetDimReduction(object = object, reduction.type = reduction.type, slot = "sdev")
+  if (length(data.use) == 0) {
+    stop(paste("No standard deviation info stored for", reduction.use))
+  }
+  if (length(x = data.use) < dims.plot) {
+    warning(paste(
+      "The object only has information for",
+      length(x = data.use),
+      "PCs."
+    ))
+    dims.plot <- length(x = data.use)
+  }
+  data.use <- data.use[1:dims.plot]
+  dims <- 1:length(x = data.use)
+  data.plot <- data.frame(dims, data.use)
+  plot <- ggplot(data = data.plot, mapping = aes(x = dims, y = data.use)) +
+    geom_point()
+  if (reduction.type == "pca") {
+    plot <- plot +
+      labs(y = "Standard Deviation of PC", x = "PC", title = title)
+  } else if (reduction.type == "pcafast"){
+    plot <- plot +
+      labs(y = "Eigen values of PC", x = "Eigen value", title = title)
+  } else if(reduction.type == "ica"){
+    plot <- plot +
+      labs(y = "Standard Deviation of IC", x = "IC", title = title)
+  } else {
+    plot <- plot +
+      labs(y = ylab, x = xlab, title = title)
+  }
+  return(plot)
+}
+
+#' Quickly Pick Relevant PCs
+#'
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph.
+#' This elbow often corresponds well with the significant PCs and is much faster to run.
+#'
+#' @param object Seurat object
+#' @param num.pc Number of PCs to plot
+#'
+#' @return Returns ggplot object
+#'
+#' @export
+#'
+PCElbowPlot <- function(objectobject, num.pc = 20) {
+  return(DimElbowPlot(
+    object = object,
+    reduction.type = "pca",
+    dims.plot = num.pc
+  ))
+}

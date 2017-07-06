@@ -347,7 +347,7 @@ SubsetData <- function(
   object@ident <- drop.levels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
-      object@dr[[i]]@rotation <- object@dr[[i]]@rotation[cells.use, ,drop = FALSE]
+      object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
     }
   }
   # handle multimodal casess
@@ -596,7 +596,7 @@ FetchData <- function(
               text = paste0(
                 "data.use <- object@dr$",
                 names(x = var.options[which(i == var.options)]),
-                "@rotation"
+                "@cell.embeddings"
               )
             )
           )

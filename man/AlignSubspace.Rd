@@ -21,9 +21,10 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 \item{group.var}{Name of the grouping variable for which to align the scores}
 }
 \value{
-Returns Seurat object with the dims aligned, stored in object@dr$reduction.type.aligned
+Returns Seurat object with the dims aligned, stored in
+ object@dr$reduction.type.aligned
 }
 \description{
-Aligns subspaces so that they line up across grouping variable (only implemented for case with
-2 categories in grouping.var)
+Aligns subspaces so that they line up across grouping variable (only 
+implemented for case with 2 categories in grouping.var)
 }

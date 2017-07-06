@@ -79,24 +79,23 @@ context("PCA dimensional reduction")
 
 nbt.test <- MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
 pcs.compute <- 4
-nbt.test <- PCAFast(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
+nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, scale.by.varexp = F)
 
-test_that("PCAFast returns expected data", {
-  expect_equal(abs(nbt.test@dr$pca@rotation[1,1]), 0.1442809, tolerance = 1e-6)
-  expect_equal(abs(nbt.test@dr$pca@x[1,1]), 0.4362582, tolerance = 1e-6)
-  expect_equal(ncol(nbt.test@dr$pca@x), pcs.compute)
-  expect_equal(ncol(nbt.test@dr$pca@rotation), pcs.compute)
+test_that("PCA returns expected data when not scaling", {
+  expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 0.1442809, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@dr$pca@gene.loadings[1,1]), 0.4362582, tolerance = 1e-6)
+  expect_equal(ncol(nbt.test@dr$pca@gene.loadings), pcs.compute)
+  expect_equal(ncol(nbt.test@dr$pca@cell.embeddings), pcs.compute)
   
 })
 
-nbt.test <- PCA(nbt.test, do.print = FALSE)
-test_that("PCA returns expected data", {
-  expect_true(nrow(nbt.test@dr$pca@rotation) == ncol(nbt.test@data))
-  expect_true(nrow(nbt.test@dr$pca@x) == length(nbt.test@var.genes))
-  expect_equal(nbt.test@dr$pca@rotation[1,1], -0.8723915, tolerance = 1e-6)
-  expect_equal(nbt.test@dr$pca@x[1,1], 0.4362582, tolerance = 1e-6 )
+nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
+test_that("PCA returns expected data when scaling by variance explained", {
+  expect_true(nrow(nbt.test@dr$pca@cell.embeddings) == ncol(nbt.test@data))
+  expect_true(nrow(nbt.test@dr$pca@gene.loadings) == length(nbt.test@var.genes))
+  expect_equal(nbt.test@dr$pca@cell.embeddings[1,1], -0.8723915, tolerance = 1e-6)
+  expect_equal(nbt.test@dr$pca@gene.loadings[1,1], 0.4362582, tolerance = 1e-6 )
 })
-
 
 # Tests for tSNE
 # --------------------------------------------------------------------------------
@@ -104,8 +103,8 @@ context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 
 test_that("tSNE is run correctly", {
-  expect_equal(nrow(nbt.test@dr$tsne@rotation), ncol(nbt.test@data))
-  expect_equal(unname(nbt.test@dr$tsne@rotation[1, 1]), 12.118800, tolerance = 1e-6)
+  expect_equal(nrow(nbt.test@dr$tsne@cell.embeddings), ncol(nbt.test@data))
+  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), 7.228236, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {
@@ -185,7 +184,6 @@ test_that("WhichCells subsets properly", {
   expect_equal(length(WhichCells(nbt.test, c(1,2))), 6)
   expect_error(WhichCells(nbt.test, 10))
   expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
-  
   expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
   expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -0.8, accept.low = -0.9), "Hi_GW21.2_3")
   
@@ -209,9 +207,9 @@ c1 <- SubsetData(nbt.test, cells.use = scrambled.cells[1:7])
 c2 <- SubsetData(nbt.test, cells.use = scrambled.cells[8:14])
 c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
 
-test_that("CCA returns the expected rotation matrix values", {
-  expect_equal(nrow(c3@dr$cca@rotation), 14)
-  expect_equal(ncol(c3@dr$cca@rotation), 3)
-  expect_equal(c3@dr$cca@rotation[1,1], 0.26555816)
-  expect_equal(c3@dr$cca@rotation[14,3], 0.71504785)
+test_that("CCA returns the expected cell.embeddings matrix values", {
+  expect_equal(nrow(c3@dr$cca@cell.embeddings), 14)
+  expect_equal(ncol(c3@dr$cca@cell.embeddings), 3)
+  expect_equal(c3@dr$cca@cell.embeddings[1,1], 0.26555816)
+  expect_equal(c3@dr$cca@cell.embeddings[14,3], 0.71504785)
 })

@@ -11,7 +11,8 @@ RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Which dimensional reduction (e.g. PCA, ICA) to use for the tSNE. Default is PCA}
+\item{reduction.use}{Which dimensional reduction (e.g. PCA, ICA) to use for 
+the tSNE. Default is PCA}
 
 \item{cells.use}{Which cells to analyze (default, all cells)}
 
@@ -26,20 +27,24 @@ RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
 faster, but is less flexible}
 
 \item{add.iter}{If an existing tSNE has already been computed, uses the
-current tSNE to seed the algorithm and then adds additional iterations on top of this}
+current tSNE to seed the algorithm and then adds additional iterations on top 
+of this}
 
-\item{dim.embed}{The dimensional space of the resulting tSNE embedding (default is 2).
-For example, set to 3 for a 3d tSNE}
+\item{dim.embed}{The dimensional space of the resulting tSNE embedding 
+(default is 2). For example, set to 3 for a 3d tSNE}
 
-\item{distance.matrix}{If set, tuns tSNE on the inputted distance matrix instead of data matrix (experimental)}
+\item{distance.matrix}{If set, tuns tSNE on the given distance matrix 
+instead of data matrix (experimental)}
 
 \item{\dots}{Additional arguments to the tSNE call. Most commonly used is
 perplexity (expected number of neighbors default is 30)}
 }
 \value{
-Returns a Seurat object with a tSNE embedding in object@dr$tsne@rotation
+Returns a Seurat object with a tSNE embedding in 
+object@dr$tsne@cell.embeddings
 }
 \description{
-Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
-dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
+Run t-SNE dimensionality reduction on selected features. Has the option of 
+running in a reduced dimensional space (i.e. spectral tSNE, recommended), 
+or running based on a set of genes
 }

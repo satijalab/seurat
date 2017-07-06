@@ -57,3 +57,18 @@ RemoveFromTable <- function(to.remove, data) {
     return(data[-remove.indecies, ])
   }
 }
+
+# Calculate position along a defined reference range for a given vector of 
+# numerics. Will range from 0 to 1. 
+#
+# @param x      Vector of numeric type 
+# @param lower  Lower end of reference range
+# @param upper  Upper end of reference range
+#
+# @return       Returns a vector that describes the position of each element in 
+#               x along the defined reference range
+
+ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
+  return((x - quantile(x = x, probs = lower)) /
+           (quantile(x = x, probs = upper) - quantile(x = x, probs = lower)))
+}

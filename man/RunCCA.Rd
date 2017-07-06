@@ -35,5 +35,5 @@ one object is passed, the same object is returned. If two are passed, a
 combined object is returned.
 }
 \description{
-Runs a canonical correlation analysis using a diagnoal implementation of CCA.
+Runs a canonical correlation analysis using a diagonal implementation of CCA.
 }

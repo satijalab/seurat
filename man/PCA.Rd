@@ -2,38 +2,40 @@
 % Please edit documentation in R/dimensional_reduction.R
 \name{PCA}
 \alias{PCA}
-\title{Run Principal Component Analysis on gene expression}
+\title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-PCA(object, pc.genes = NULL, do.print = TRUE, pcs.print = 5,
-  pcs.store = 40, genes.print = 30, use.imputed = FALSE,
-  rev.pca = FALSE, ...)
+PCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
+  rev.pca = FALSE, scale.by.varexp = TRUE, do.print = TRUE,
+  pcs.print = 1:5, genes.print = 30, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{pc.genes}{Genes to use as input for PCA. Default is object@var.genes}
 
-\item{do.print}{Print the top genes associated with high/low loadings for
-the PCs}
-
-\item{pcs.print}{Number of PCs to print genes for}
-
-\item{pcs.store}{Number of PCs to store}
-
-\item{genes.print}{Number of genes to print for each PC}
+\item{pcs.compute}{Total Number of PCs to compute and store}
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
-\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting to true will
-compute it on gene x cell matrix.}
+\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting 
+to true will compute it on gene x cell matrix.}
 
-\item{\dots}{Additional arguments to be passed to prcomp}
+\item{scale.by.varexp}{Scale the gene loadings by the variance explained by 
+each PC (scales the cell embeddings if rev.pca is TRUE)}
+
+\item{do.print}{Print the top genes associated with high/low loadings for
+the PCs}
+
+\item{pcs.print}{PCs to print genes for}
+
+\item{genes.print}{Number of genes to print for each PC}
+
+\item{\dots}{Additional arguments to be passed to IRLBA}
 }
 \value{
-Returns Seurat object with an PCA embedding (object@pca.rot) and
-gene projection matrix (object@pca.x). The PCA object itself is stored in
-object@pca.obj[[1]]
+Returns Seurat object with the PCA calculation stored in 
+object@dr$pca.
 }
 \description{
-Run prcomp for PCA dimensionality reduction
+Run a PCA dimensionality reduction
 }
