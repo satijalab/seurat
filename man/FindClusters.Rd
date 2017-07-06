@@ -49,12 +49,11 @@ throw an error.}
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
 \item{resolution}{Value of the resolution parameter, use a value above
-(below) 1.0 if you want to obtain a larger (smaller) number of
-communities.}
+(below) 1.0 if you want to obtain a larger (smaller) number of communities.}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
-algorithm; 2 = Louvain algorithm with multilevel refinement;
-3 = SLM algorithm).}
+algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM 
+algorithm).}
 
 \item{n.start}{Number of random starts.}
 
@@ -62,17 +61,17 @@ algorithm; 2 = Louvain algorithm with multilevel refinement;
 
 \item{random.seed}{Seed of the random number generator.}
 
-\item{temp.file.location}{Directory where intermediate files will be written. Specify the
-ABSOLUTE path.}
+\item{temp.file.location}{Directory where intermediate files will be written. 
+Specify the ABSOLUTE path.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,
         object@ident has been updated with new cluster info
 }
 \description{
-Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
-based clustering algorithm. First calculate k-nearest neighbors and construct
-the SNN graph. Then optimize the modularity function to determine clusters.
-For a full description of the algorithms, see Waltman and van Eck (2013)
-\emph{The European Physical Journal B}.
+Identify clusters of cells by a shared nearest neighbor (SNN) modularity 
+optimization based clustering algorithm. First calculate k-nearest neighbors 
+and construct the SNN graph. Then optimize the modularity function to 
+determine clusters. For a full description of the algorithms, see Waltman and 
+van Eck (2013) \emph{The European Physical Journal B}.
 }

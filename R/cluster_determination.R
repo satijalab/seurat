@@ -2,11 +2,11 @@
 NULL
 #' Cluster Determination
 #'
-#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
-#' based clustering algorithm. First calculate k-nearest neighbors and construct
-#' the SNN graph. Then optimize the modularity function to determine clusters.
-#' For a full description of the algorithms, see Waltman and van Eck (2013)
-#' \emph{The European Physical Journal B}.
+#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity 
+#' optimization based clustering algorithm. First calculate k-nearest neighbors 
+#' and construct the SNN graph. Then optimize the modularity function to 
+#' determine clusters. For a full description of the algorithms, see Waltman and 
+#' van Eck (2013) \emph{The European Physical Journal B}.
 #'
 #' @param object Seurat object
 #' @param genes.use A vector of gene names to use in construction of SNN graph 
@@ -32,20 +32,18 @@ NULL
 #' throw an error.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
-#'        (below) 1.0 if you want to obtain a larger (smaller) number of
-#'        communities.
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#'        algorithm; 2 = Louvain algorithm with multilevel refinement;
-#'        3 = SLM algorithm).
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM 
+#' algorithm).
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param temp.file.location Directory where intermediate files will be written. Specify the
-#'        ABSOLUTE path.
+#' @param temp.file.location Directory where intermediate files will be written. 
+#' Specify the ABSOLUTE path.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#'
 #' @return Returns a Seurat object and optionally the SNN matrix,
 #'         object@@ident has been updated with new cluster info
 #'
@@ -94,10 +92,12 @@ FindClusters <- function(
       ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
       || ! missing(x = k.scale) || ! missing(x = prune.SNN)
     )) {
-      warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
-                      warning, remove all SNN building parameters.")
+      warning("SNN was not be rebuilt with new parameters. Continued with stored 
+               SNN. To suppress this warning, remove all SNN building parameters.")
     }
-  } else { # if any SNN building parameters are provided or it hasn't been built, build a new SNN
+  } else { 
+    # if any SNN building parameters are provided or it hasn't been built, build 
+    # a new SNN
     object <- BuildSNN(
       object = object,
       genes.use = genes.use,
@@ -135,71 +135,28 @@ FindClusters <- function(
   return(object)
 }
 
-# Documentation
-###############
-#' @export
-#'
-GetClusters <- function(object) {
-  return(data.frame(object@ident))
-}
+# Runs the modularity optimizer java program (ModularityOptimizer.jar)
+# 
+#
+# @param object               Seurat object
+# @param SNN SNN              matrix to use as input for the clustering 
+#                             algorithms
+# @param modularity           Modularity function to use in clustering (1 = 
+#                             standard; 2 = alternative).
+# @param resolution           Value of the resolution parameter, use a value 
+#                             above (below) 1.0 if you want to obtain a larger 
+#                             (smaller) number of communities.
+# @param algorithm            Algorithm for modularity optimization (1 = 
+#                             original Louvain algorithm; 2 = Louvain algorithm 
+#                             with multilevel refinement; 3 = SLM algorithm)
+# @param n.start              Number of random starts.
+# @param n.iter               Maximal number of iterations per random start.
+# @param random.seed          Seed of the random number generator
+# @param print.output         Whether or not to print output to the console
+# @param temp.file.location   Directory where intermediate files will be written. 
+# @return                     Seurat object with identities set to the results
+#                             of the clustering procedure.
 
-# Documentation
-###############
-#' @export
-#'
-SetClusters <- function(object, clusters = NULL) {
-  cells.use <- rownames(x = clusters)
-  ident.use <- as.numeric(x = clusters[, 1])
-  object <- SetIdent(
-    object = object,
-    cells.use = cells.use,
-    ident.use = ident.use
-  )
-  return(object)
-}
-
-# Documentation
-###############
-#' @export
-#'
-SaveClusters <- function(object, file) {
-  my.clusters <- GetClusters(object = object)
-  write.table(my.clusters, file = file, sep="\t", quote = FALSE)
-}
-
-
-# Documentation
-###############
-#' @export
-#'
-NumberClusters <- function(object) {
-  clusters <- unique(x = object@ident)
-  if (typeof(x = clusters) == "integer") {
-    n <- as.numeric(x = max(clusters)) + 1
-    for (i in clusters) {
-      object <- SetIdent(
-        object = object,
-        cells.use = WhichCells(object = object, ident = i),
-        ident.use = n
-      )
-      n <- n + 1
-    }
-    clusters <- unique(x = object@ident)
-  }
-  n <- 1
-  for (i in clusters) {
-    object <- SetIdent(
-      object,
-      cells.use = WhichCells(object = object, ident = i),
-      ident.use = n
-    )
-    n <- n + 1
-  }
-  return(object)
-}
-
-# Documentation
-###############
 RunModularityClustering <- function(
   object,
   SNN = matrix(),
@@ -284,8 +241,14 @@ RunModularityClustering <- function(
   return (object)
 }
 
-# Documentation
-###############
+# Group single cells that make up their own cluster in with the cluster they are
+# most connected to.
+#
+# @param object  Seurat object
+# @param SNN     SNN graph used in clustering
+# @return        Returns Seurat object with all singletons merged with most 
+#                connected cluster
+
 GroupSingletons <- function(object, SNN) {
   # identify singletons
   singletons <- c()
@@ -307,7 +270,7 @@ GroupSingletons <- function(object, SNN) {
         match(
           x = WhichCells(object = object, ident = j),
           table = colnames(x = SNN)
-        ) # Column
+        ) 
       ]
       if (is.object(x = subSNN)) {
         connectivity[j] <- sum(subSNN) / (nrow(x = subSNN) * ncol(x = subSNN))
@@ -331,6 +294,95 @@ GroupSingletons <- function(object, SNN) {
       length(x = unique(object@ident)),
       "final clusters."
     ))
+  }
+  return(object)
+}
+
+#' Get Cluster Assignments 
+#' 
+#' Retrieve cluster IDs as a dataframe. First column will be the cell name,
+#' second column will be the current cluster identity (pulled from object@ident).
+
+#' @param object Seurat object with cluster assignments
+#' @return Returns a dataframe with cell names and cluster assignments
+#' @export
+#'
+GetClusters <- function(object) {
+  clusters <- data.frame(cell.name = names(object@ident), cluster = object@ident)
+  rownames(clusters) <- NULL
+  clusters$cell.name <- as.character(clusters$cell.name)
+  return(clusters)
+}
+
+#' Set Cluster Assignments 
+#' 
+#' Easily set the cluster assignments using the output of GetClusters() ---
+#' a dataframe with cell names as the first column and cluster assignments as 
+#' the second.
+#' 
+#' @param object Seurat object
+#' @param clusters A dataframe containing the cell names and cluster assignments
+#' to set for the object.
+#' @return Returns a Seurat object with the identities set to the cluster 
+#' assignments that were passed.
+#' @export
+#'
+SetClusters <- function(object, clusters = NULL) {
+  if(!(all(c("cell.name", "cluster") %in% colnames(clusters)))){
+    stop("The clusters parameter must be the output from GetClusters (i.e. 
+         Columns must be cell.name and cluster)")
+  }
+  cells.use <- clusters$cell.name
+  ident.use <- clusters$cluster
+  object <- SetIdent(
+    object = object,
+    cells.use = cells.use,
+    ident.use = ident.use
+  )
+  return(object)
+  }
+
+#' Save cluster assignments to a TSV file
+#' 
+#' @param object Seurat object with cluster assignments
+#' @param file Path to file to write cluster assignments to
+#' @return No return value. Writes clusters assignments to specified file.
+#' @export
+#'
+SaveClusters <- function(object, file) {
+  my.clusters <- GetClusters(object = object)
+  write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = F)
+}
+
+#' Convert the cluster labels to a numeric representation
+#' 
+#' @param object Seurat object
+#' @return Returns a Seurat object with the identities relabeled numerically
+#' starting from 1.
+#'
+#' @export
+NumberClusters <- function(object) {
+  clusters <- unique(x = object@ident)
+  if (typeof(x = clusters) == "integer") {
+    n <- as.numeric(x = max(clusters)) + 1
+    for (i in clusters) {
+      object <- SetIdent(
+        object = object,
+        cells.use = WhichCells(object = object, ident = i),
+        ident.use = n
+      )
+      n <- n + 1
+    }
+    clusters <- unique(x = object@ident)
+  }
+  n <- 1
+  for (i in clusters) {
+    object <- SetIdent(
+      object,
+      cells.use = WhichCells(object = object, ident = i),
+      ident.use = n
+    )
+    n <- n + 1
   }
   return(object)
 }
