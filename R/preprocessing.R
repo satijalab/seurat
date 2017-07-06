@@ -535,3 +535,209 @@ RegressOut <- function(
   object@scale.data[is.na(x = object@scale.data)] <- 0
   return(object)
 }
+
+#' Identify variable genes
+#'
+#' Identifies genes that are outliers on a 'mean variability plot'. First, uses
+#' a function to calculate average expression (fxn.x) and dispersion (fxn.y)
+#' for each gene. Next, divides genes into num.bin (deafult 20) bins based on
+#' their average expression, and calculates z-scores for dispersion within each
+#' bin. The purpose of this is to identify variable genes while controlling for
+#' the strong relationship between variability and average expression.
+#'
+#' Exact parameter settings may vary empirically from dataset to dataset, and
+#' based on visual inspection of the plot.
+#' Setting the y.cutoff parameter to 2 identifies genes that are more than two standard
+#' deviations away from the average dispersion within a bin. The default X-axis function
+#' is the mean expression level, and for Y-axis it is the log(Variance/mean). All mean/variance
+#' calculations are not performed in log-space, but the results are reported in log-space -
+#' see relevant functions for exact details.
+#'
+#' @param object Seurat object
+#' @param fxn.x Function to compute x-axis value (average expression). Default
+#' is to take the mean of the detected (i.e. non-zero) values
+#' @param fxn.y Function to compute y-axis value (dispersion). Default is to
+#' take the standard deviation of all values/
+#' @param do.plot Plot the average/dispersion relationship
+#' @param set.var.genes Set object@@var.genes to the identified variable genes
+#' (default is TRUE)
+#' @param x.low.cutoff Bottom cutoff on x-axis for identifying variable genes
+#' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
+#' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
+#' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
+#' @param num.bin Total number of bins to use in the scaled analysis (default
+#' is 20)
+#' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
+#' @param sort.results If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion
+#' @param ... Extra parameters to VariableGenePlot
+#' @inheritParams VariableGenePlot
+#'
+#' @importFrom MASS kde2d
+#'
+#' @return Returns a Seurat object, placing variable genes in object@@var.genes.
+#' The result of all analysis is stored in object@@mean.var
+#'
+#' @seealso \code{\link{VariableGenePlot}}
+#'
+#' @export
+#'
+FindVariableGenes <- function(
+  object,
+  fxn.x = expMean,
+  fxn.y = logVarDivMean,
+  do.plot = TRUE,
+  set.var.genes = TRUE,
+  x.low.cutoff = 0.1,
+  x.high.cutoff = 8,
+  y.cutoff = 1,
+  y.high.cutoff = Inf,
+  num.bin = 20,
+  do.recalc = TRUE,
+  sort.results = TRUE,
+  ...
+) {
+  data <- object@data
+  if (do.recalc) {
+    genes.use <- rownames(x = object@data)
+    data.x <- rep(x = 0, length(x = genes.use))
+    names(x = data.x) <- genes.use
+    data.y <- data.x
+    data.norm.y <- data.x
+    bin.size <- 1000
+    max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
+    print("Calculating gene dispersion")
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    for (i in 1:max.bin) {
+      my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
+      my.inds <- my.inds[my.inds <= length(x = genes.use)]
+      genes.iter <- genes.use[my.inds]
+      data.iter <- data[genes.iter, ]
+      data.x[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = fxn.x)
+      data.y[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = fxn.y)
+      setTxtProgressBar(pb = pb, value = i)
+    }
+    close(con = pb)
+    data.y[is.na(x = data.y)] <- 0
+    data.x[is.na(x = data.x)] <- 0
+    data_x_bin <- cut(x = data.x, breaks = num.bin)
+    names(x = data_x_bin) <- names(x = data.x)
+    mean_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = mean)
+    sd_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = sd)
+    data.norm.y <- (data.y - mean_y[as.numeric(x = data_x_bin)]) /
+      sd_y[as.numeric(x = data_x_bin)]
+    data.norm.y[is.na(x = data.norm.y)] <- 0
+    names(x = data.norm.y) <- names(x = data.x)
+    mv.df <- data.frame(data.x, data.y, data.norm.y)
+    rownames(x = mv.df) <- rownames(x = data)
+    object@mean.var <- mv.df
+  }
+  data.x <- object@mean.var[, 1]
+  data.y <- object@mean.var[, 2]
+  data.norm.y <- object@mean.var[, 3]
+  names(x = data.x) <- names(x = data.y) <- names(x = data.norm.y) <- rownames(x = object@data)
+  pass.cutoff <- names(x = data.x)[which(
+    x = (
+      (data.x > x.low.cutoff) & (data.x < x.high.cutoff)
+    ) &
+      (data.norm.y > y.cutoff) &
+      (data.norm.y < y.high.cutoff)
+  )]
+  if (do.plot) {
+    VariableGenePlot(
+      object = object,
+      ...
+    )
+  }
+  # if (do.plot) {
+  #   if (plot.both) {
+  #     par(mfrow = c(1, 2))
+  #     smoothScatter(
+  #       x = data.x,
+  #       y = data.y,
+  #       pch = pch.use,
+  #       cex = cex.use,
+  #       col = col.use,
+  #       xlab = "Average expression",
+  #       ylab = "Dispersion",
+  #       nrpoints = Inf
+  #     )
+  #     if (do.contour) {
+  #       data.kde <- kde2d(x = data.x, y = data.y)
+  #       contour(
+  #         x = data.kde,
+  #         add = TRUE,
+  #         lwd = contour.lwd,
+  #         col = contour.col,
+  #         lty = contour.lty
+  #       )
+  #     }
+  #     if (do.spike) {
+  #       points(
+  #         x = data.x[spike.genes],
+  #         y = data.y[spike.genes],
+  #         pch = 16,
+  #         cex = cex.use,
+  #         col = spike.col.use
+  #       )
+  #     }
+  #     if (do.text) {
+  #       text(
+  #         x = data.x[pass.cutoff],
+  #         y = data.y[pass.cutoff],
+  #         labels = pass.cutoff,
+  #         cex = cex.text.use
+  #       )
+  #     }
+  #   }
+  #   smoothScatter(
+  #     x = data.x,
+  #     y = data.norm.y,
+  #     pch = pch.use,
+  #     cex = cex.use,
+  #     col = col.use,
+  #     xlab = "Average expression",
+  #     ylab = "Dispersion",
+  #     nrpoints = Inf
+  #   )
+  #   if (do.contour) {
+  #     data.kde <- kde2d(x = data.x, y = data.norm.y)
+  #     contour(
+  #       x = data.kde,
+  #       add = TRUE,
+  #       lwd = contour.lwd,
+  #       col = contour.col,
+  #       lty = contour.lty
+  #     )
+  #   }
+  #   if (do.spike) {
+  #     points(
+  #       x = data.x[spike.genes],
+  #       y = data.norm.y[spike.genes],
+  #       pch = 16,
+  #       cex = cex.use,
+  #       col = spike.col.use,
+  #       nrpoints = Inf
+  #     )
+  #   }
+  #   if (do.text) {
+  #     text(
+  #       x = data.x[pass.cutoff],
+  #       y = data.norm.y[pass.cutoff],
+  #       labels = pass.cutoff,
+  #       cex = cex.text.use
+  #     )
+  #   }
+  # }
+  if (set.var.genes) {
+    object@var.genes <- pass.cutoff
+    if (sort.results) {
+      object@mean.var <- object@mean.var[order(
+        object@mean.var$data.y,
+        decreasing = TRUE
+      ),]
+    }
+    return(object)
+  } else {
+    return(pass.cutoff)
+  }
+}

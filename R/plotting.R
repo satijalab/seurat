@@ -1775,3 +1775,189 @@ PlotVln <- function(
   }
   return(plot)
 }
+
+#' View variable genes
+#'
+#' @param object Seurat object
+#' @param do.text Add text names of variable genes to plot (default is TRUE)
+#' @param cex.use Point size
+#' @param cex.text.use Text size
+#' @param do.spike FALSE by default. If TRUE, color all genes starting with ^ERCC a different color
+#' @param pch.use Pch value for points
+#' @param col.use Color to use
+#' @param spike.col.use if do.spike, color for spike-in genes
+#' @param plot.both Plot both the scaled and non-scaled graphs.
+#' @param do.contour Draw contour lines calculated based on all genes
+#' @param contour.lwd Contour line width
+#' @param contour.col Contour line color
+#' @param contour.lty Contour line type
+#' @param x.low.cutoff Bottom cutoff on x-axis for identifying variable genes
+#' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
+#' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
+#' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
+#'
+#' @export
+#'
+VariableGenePlot <- function(
+  object,
+  do.text = TRUE,
+  cex.use = 0.5,
+  cex.text.use = 0.5,
+  do.spike = FALSE,
+  pch.use = 16,
+  col.use = "black",
+  spike.col.use = "red",
+  plot.both = FALSE,
+  do.contour = TRUE,
+  contour.lwd = 3,
+  contour.col = "white",
+  contour.lty = 2,
+  x.low.cutoff = 0.1,
+  x.high.cutoff = 8,
+  y.cutoff = 1,
+  y.high.cutoff = Inf
+) {
+  data.x <- object@mean.var[, 1]
+  data.y <- object@mean.var[, 2]
+  data.norm.y <- object@mean.var[, 3]
+  names(x = data.x) <- names(x = data.y) <- names(x = data.norm.y) <- rownames(x = object@data)
+  pass.cutoff <- names(x = data.x)[which(
+    x = (
+      (data.x > x.low.cutoff) & (data.x < x.high.cutoff)
+    ) &
+      (data.norm.y > y.cutoff) &
+      (data.norm.y < y.high.cutoff)
+  )]
+  if (do.spike) {
+    spike.genes <- rownames(x = subr(data = object@data, code = "^ERCC"))
+  }
+  if (plot.both) {
+    par(mfrow = c(1, 2))
+    smoothScatter(
+      x = data.x,
+      y = data.y,
+      pch = pch.use,
+      cex = cex.use,
+      col = col.use,
+      xlab = "Average expression",
+      ylab = "Dispersion",
+      nrpoints = Inf
+    )
+    if (do.contour) {
+      data.kde <- kde2d(x = data.x, y = data.y)
+      contour(
+        x = data.kde,
+        add = TRUE,
+        lwd = contour.lwd,
+        col = contour.col,
+        lty = contour.lty
+      )
+    }
+    if (do.spike) {
+      points(
+        x = data.x[spike.genes],
+        y = data.y[spike.genes],
+        pch = 16,
+        cex = cex.use,
+        col = spike.col.use
+      )
+    }
+    if (do.text) {
+      text(
+        x = data.x[pass.cutoff],
+        y = data.y[pass.cutoff],
+        labels = pass.cutoff,
+        cex = cex.text.use
+      )
+    }
+  }
+  smoothScatter(
+    x = data.x,
+    y = data.norm.y,
+    pch = pch.use,
+    cex = cex.use,
+    col = col.use,
+    xlab = "Average expression",
+    ylab = "Dispersion",
+    nrpoints = Inf
+  )
+  if (do.contour) {
+    data.kde <- kde2d(x = data.x, y = data.norm.y)
+    contour(
+      x = data.kde,
+      add = TRUE,
+      lwd = contour.lwd,
+      col = contour.col,
+      lty = contour.lty
+    )
+  }
+  if (do.spike) {
+    points(
+      x = data.x[spike.genes],
+      y = data.norm.y[spike.genes],
+      pch = 16,
+      cex = cex.use,
+      col = spike.col.use,
+      nrpoints = Inf
+    )
+  }
+  if (do.text) {
+    text(
+      x = data.x[pass.cutoff],
+      y = data.norm.y[pass.cutoff],
+      labels = pass.cutoff,
+      cex = cex.text.use
+    )
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
