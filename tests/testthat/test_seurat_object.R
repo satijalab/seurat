@@ -77,7 +77,7 @@ test_that("nGene calculations are consistent" , {
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
-nbt.test <- MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
+nbt.test <- FindVariableGenes(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
 pcs.compute <- 4
 nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, scale.by.varexp = F)
 
@@ -129,10 +129,6 @@ test_that("CellPlots return as expected", {
 
 test_that("GenePlots return as expected", {
   expect_equal(GenePlot(nbt.test,"DLX1","DLX2"), NULL)
-})
-
-test_that("MeanVarPlot works as expected", {
-  expect_is(MeanVarPlot(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean), "seurat")
 })
 
 test_that("FeaturePlot works as expected", {

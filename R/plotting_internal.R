@@ -513,3 +513,23 @@ SetQuantile <- function(cutoff, data) {
   }
   return(as.numeric(x = cutoff))
 }
+
+# No Grid
+#
+# Remove the grid lines from a ggplot2 plot
+#
+# @param ... Extra parameters to be passed to theme()
+# @import ggplot2
+# @return A ggplot2 theme object
+# @seealso \code{\link{theme}}
+# @import ggplot2
+# @export
+#
+NoGrid <- function(...) {
+  no.grid <- theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    ...
+  )
+  return(no.grid)
+}

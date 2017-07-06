@@ -86,6 +86,9 @@
 \alias{jackStraw.permutation.test}
 \alias{jackStrawMC}
 \alias{jackStrawFull}
+\alias{writ.table}
+\alias{jackRandom}
+\alias{MeanVarPlot}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 setup(...)
@@ -183,6 +186,9 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
   \code{jackStrawFull} \tab now a synonym for \code{\link{JackStrawFull}}\cr
   \code{PCAFast} \tab now a synonym for \code{\link{PCA}}\cr
+  \code{writ.table} \tab is delteded without replacement\cr
+  \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
+  \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
 }
 }
 

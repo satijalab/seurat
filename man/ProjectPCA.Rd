@@ -31,6 +31,6 @@ object@dr$pca@gene.loadings.full
 \description{
 Takes a pre-computed PCA (typically calculated on a subset of genes) and
 projects this onto the entire dataset (all genes). Note that the cell
-loadings (PCA rotation matrices) remains unchanged, but now there are gene
-scores for all genes.
+loadings remains unchanged, but now there are gene loading scores for all 
+genes.
 }

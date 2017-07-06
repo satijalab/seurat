@@ -72,3 +72,24 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
   return((x - quantile(x = x, probs = lower)) /
            (quantile(x = x, probs = upper) - quantile(x = x, probs = lower)))
 }
+
+#' Make object sparse
+#'
+#' Converts stored data matrices to sparse matrices to save space. Converts
+#' object@@raw.data and object@@data to sparse matrices.
+#' @param object Seurat object
+#' @return Returns a seurat object with data converted to sparse matrices.
+#' @import Matrix
+#' @export
+#'
+MakeSparse <- function(object) {
+  if (class(object@raw.data) == "data.frame") {
+    object@raw.data <- as.matrix(x = object@raw.data)
+  }
+  if (class(object@data) == "data.frame") {
+    object@data <- as.matrix(x = object@data)
+  }
+  object@raw.data <- as(object = object@raw.data, Class = "dgCMatrix")
+  object@data <- as(object = object@data, Class = "dgCMatrix")
+  return(object)
+}

@@ -378,19 +378,19 @@ ProjectPCA <- function(
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
 #' 
 #' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object with be 
+#' @param object2 Optional second object. If object2 is passed, object2 will be 
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
 #' @param group.by Factor to group by (column vector stored in object@@data.info)
 #' @param num.cc Number of canonical vectors to calculate
-#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If 
-#' two objects are given, the default is the union of both variable gene sets 
+#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
+#' two objects are given, the default is the union of both variable gene sets
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
-#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If 
-#' one object is passed, the same object is returned. If two are passed, a 
+#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
+#' one object is passed, the same object is returned. If two are passed, a
 #' combined object is returned.
 #' @export
 RunCCA <- function(
