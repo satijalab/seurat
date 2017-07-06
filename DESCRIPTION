@@ -62,6 +62,7 @@ Collate:
     'dimensional_reduction.R'
     'enrichr.R'
     'interaction.R'
+    'jackstraw.R'
     'multi_modal.R'
     'nbreg_internal.R'
     'pairs.R'
