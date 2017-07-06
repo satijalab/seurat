@@ -1,7 +1,3 @@
-sort.column <- function(x, col) {
-  return(x[order(x[, col]), ])
-}
-
 getLeftDecendants <- function(tree, node) {
   daughters <- tree$edge[which(tree$edge[, 1] == node), 2]
   if (daughters[1] <= (tree$Nnode+1)) {
