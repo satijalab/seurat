@@ -994,7 +994,7 @@ FeatureHeatmap <- function(
   }
   p2 <- p +
     theme_bw() +
-    nogrid +
+    NoGrid +
     ylab(label = dim.codes[2]) +
     xlab(label = dim.codes[1])
   p2 <- p2 + theme(legend.position = key.position)
@@ -1744,7 +1744,7 @@ PlotVln <- function(
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
     xlab("Cell Type") +
-    nogrid +
+    NoGrid +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
   if (y.log) {

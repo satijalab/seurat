@@ -1,4 +1,4 @@
-nogrid <- theme(
+NoGrid <- theme(
   panel.grid.major = element_blank(),
   panel.grid.minor = element_blank()
 )
