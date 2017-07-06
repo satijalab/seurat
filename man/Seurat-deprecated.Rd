@@ -86,6 +86,7 @@
 \alias{jackStraw.permutation.test}
 \alias{jackStrawMC}
 \alias{jackStrawFull}
+\alias{writ.table}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 setup(...)
@@ -182,6 +183,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{jackStraw.permutation.test} \tab now a synonym for \code{\link{JackStrawPermutationTest}}\cr
   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
   \code{jackStrawFull} \tab now a synonym for \code{\link{JackStrawFull}}\cr
+  \code{writ.table} \tab is delteded without replacement\cr
 }
 }
 

@@ -714,7 +714,7 @@ plotVln <- function(
   data = dc2,
   code = "rsem",
   mmax = 12,
-  getStat = getStat1,
+  getStaty = 1,
   doRet = FALSE,
   doSort = FALSE
 ) {
@@ -724,7 +724,11 @@ plotVln <- function(
     c(colnames(x = data)[grep(pattern = code, x = colnames(x = data))], "GENE")
   ]
   a2 <- melt(a1, id = "GENE")
-  a2$stat <- unlist(x = lapply(X = as.character(a2$variable), FUN = getStat))
+  a2$stat <- unlist(x = lapply(
+    X = as.character(a2$variable),
+    FUN = getStat,
+    y = getStaty
+  ))
   noise <- rnorm(n = length(x = a2$value)) / 100000
   a2$value <- a2$value + noise
   if (doSort) {
@@ -776,11 +780,6 @@ extract_field <- function(string, field = 1, delim = "_") {
 }
 
 #' @export
-getStat1 <- function(x) {
-  return(strsplit(x = x, split = "_")[[1]][1])
-}
-
-#' @export
 genes.ca.range <- function(object, my.min, my.max) {
   ca <- ClusterAlpha(object = object)
   ca.min <- apply(X = ca, MARGIN = 1, FUN = min)
@@ -792,16 +791,6 @@ genes.ca.range <- function(object, my.min, my.max) {
 
 #' @export
 getStat <- function(x, y = 1) {
-  return(strsplit(x = x, split = "_")[[1]][y])
-}
-
-#' @export
-getStat2 <- function(x, y = 2) {
-  return(strsplit(x = x, split = "_")[[1]][y])
-}
-
-#' @export
-getStat3 <- function(x, y = 3) {
   return(strsplit(x = x, split = "_")[[1]][y])
 }
 
@@ -975,58 +964,6 @@ getSmooth <- function(
   return(smooth)
 }
 
-genCols <- function(al = 50) {
-  cols <- c(
-    "darkblue",
-    "darkred",
-    "darkgreen",
-    "black",
-    "orange",
-    "purple",
-    "khaki",
-    "grey",
-    "gold4",
-    "seagreen3",
-    "chocolate"
-  )
-  tcols <- c()
-  for (i in 1:6) {
-    tcols <- c(
-      tcols,
-      rgb(t(x = col2rgb(col = cols[i])), alpha = al, maxColorValue = 255)
-    )
-  }
-  return(tcols)
-}
-
-init <- function() {
-  opt <- opts(
-    legend.title = theme_blank(), # switch off the legend title
-    legend.text = theme_text(size = 12, face = "bold"),
-    legend.key.size = unit(x = 2.5, units = "lines"),
-    legend.key = theme_blank(),
-    axis.title.x = theme_text(size = 14, vjust = -0.5),
-    axis.title.y = theme_text(size = 14, angle = 90),
-    axis.text.x = theme_text(size = 12),
-    axis.text.y = theme_text(size = 12),
-    plot.title = theme_text(size = 18, vjust = 2.5, face = "bold"),
-    plot.margin = unit(x = c(2, 2, 0.75, 0.75), units = "lines")
-  )
-  lwid <- 2
-}
-
-#' @export
-writ.table <- function(a, b) {
-  write.table(
-    x = a,
-    file = b,
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE,
-    sep = "\t"
-  )
-}
-
 calcTP <- function(cutoff, data, score, real, nTP) {
   return(length(x = which(x = (data[, score] > cutoff) & (data[, real] > 0))) / nTP)
 }
@@ -1149,11 +1086,15 @@ getCoefs <- function(data, nbin = 20, mycut = 1) {
 
 makeScorePlot2 <- function(
   allscores,
-  getStatFxn = getStat2,
+  getStaty = 2,
   mytitle = "Title"
 ) {
   alls <- data.frame(allscores)
-  alls$stat <- unlist(x = lapply(X = names(x = allscores), FUN = getStatFxn))
+  alls$stat <- unlist(x = lapply(
+    X = names(x = allscores),
+    FUN = getStat,
+    y = getStaty
+  ))
   p <- ggplot(data = alls, mapping = aes(x = factor(x = stat), y = allscores))
   p2 <- p +
     geom_violin(
@@ -1985,12 +1926,6 @@ set.ifnull <- function(x, y) {
     return(y)
   }
   return(x)
-}
-
-kill.ifnull <- function(x, message = "Error:Execution Halted") {
-  if (is.null(x = x)) {
-    stop(message)
-  }
 }
 
 expAlpha <- function(mu, coefs) {
