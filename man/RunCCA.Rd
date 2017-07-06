@@ -10,7 +10,7 @@ RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
 \arguments{
 \item{object}{Seurat object}
 
-\item{object2}{Optional second object. If object2 is passed, object with be 
+\item{object2}{Optional second object. If object2 is passed, object with be
 considered as group1 and object2 as group2.}
 
 \item{group1}{First set of cells (or IDs) for CCA}
@@ -21,8 +21,8 @@ considered as group1 and object2 as group2.}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
-\item{genes.use}{Set of genes to use in CCA. Default is object@var.genes. If 
-two objects are given, the default is the union of both variable gene sets 
+\item{genes.use}{Set of genes to use in CCA. Default is object@var.genes. If
+two objects are given, the default is the union of both variable gene sets
 that are also present in both objects.}
 
 \item{scale.data}{Use the scaled data from the object}
@@ -30,8 +30,8 @@ that are also present in both objects.}
 \item{rescale.groups}{Rescale each set of cells independently}
 }
 \value{
-Returns Seurat object with the CCA stored in the @dr$cca slot. If 
-one object is passed, the same object is returned. If two are passed, a 
+Returns Seurat object with the CCA stored in the @dr$cca slot. If
+one object is passed, the same object is returned. If two are passed, a
 combined object is returned.
 }
 \description{

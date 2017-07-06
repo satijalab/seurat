@@ -67,6 +67,7 @@ Collate:
     'pairs_internal.R'
     'plotting.R'
     'plotting_internal.R'
+    'preprocessing.R'
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'

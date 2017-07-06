@@ -1821,7 +1821,7 @@ DimPlot <- function(
     gg.legend.text(x = 12) +
     no.legend.title +
     theme_bw() +
-    NoGrid + ()
+    NoGrid()
   p3 <- p3 + theme(legend.title = element_blank())
   if (do.label) {
     data.plot %>%
