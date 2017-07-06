@@ -5,13 +5,13 @@
 \title{Perform Canonical Correlation Analysis}
 \usage{
 RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
-  scale.data = TRUE, rescale.groups = FALSE, PMA.version = FALSE)
+  scale.data = TRUE, rescale.groups = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{object2}{Optional second object. If object2 is passed, object with be considered as group1
-and object2 as group2.}
+\item{object2}{Optional second object. If object2 is passed, object with be 
+considered as group1 and object2 as group2.}
 
 \item{group1}{First set of cells (or IDs) for CCA}
 
@@ -21,19 +21,19 @@ and object2 as group2.}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
-\item{genes.use}{Set of genes to use in CCA. Default is object@var.genes. If two objects are given,
-the default is the union of both variable gene sets that are also present in both objects.}
+\item{genes.use}{Set of genes to use in CCA. Default is object@var.genes. If 
+two objects are given, the default is the union of both variable gene sets 
+that are also present in both objects.}
 
 \item{scale.data}{Use the scaled data from the object}
 
 \item{rescale.groups}{Rescale each set of cells independently}
-
-\item{PMA.version}{Use PMA version of CCA}
 }
 \value{
-Returns Seurat object with the CCA stored in the @dr$cca slot. If one object is passed,
-the same object is returned. If two are passed, a combined object is returned.
+Returns Seurat object with the CCA stored in the @dr$cca slot. If 
+one object is passed, the same object is returned. If two are passed, a 
+combined object is returned.
 }
 \description{
-Runs a canonical correlation analysis using the sparse implementation of CCA from the PMA package.
+Runs a canonical correlation analysis using a diagnoal implementation of CCA.
 }
