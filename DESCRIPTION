@@ -29,7 +29,6 @@ Imports:
     FNN,
     caret,
     e1071,
-    plyr,
     dplyr,
     RColorBrewer,
     MASS,
@@ -72,6 +71,7 @@ Collate:
     'seuratFxns.R'
     'snn.R'
     'tSNE_project.R'
+    'utilities.R'
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:

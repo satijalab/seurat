@@ -669,7 +669,6 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #'
 #' @import Matrix
 #' @importFrom ranger ranger
-#' @importFrom plyr mapvalues
 #'
 #' @export
 #'
@@ -723,7 +722,6 @@ ClassifyCells <- function(
 #'
 #' @import Matrix
 #' @importFrom ranger ranger
-#' @importFrom plyr mapvalues
 #'
 #' @export
 #'
@@ -849,7 +847,7 @@ FindAllMarkersNode <- function(
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
   all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-  descendants <- suppressMessages(mapvalues(descendants, from = all.children, to = tree.use$tip.label))
+  descendants1 <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
   drop.children <- setdiff(tree.use$tip.label, descendants)
   keep.children <- setdiff(tree.use$tip.label, drop.children)
   orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
@@ -894,7 +892,7 @@ FindAllMarkersNode <- function(
       }
       if ( (test.use == 'bimod') || (test.use == 't')) {
         gde <- gde[order(gde$p_val,-gde$avg_diff), ]
-        gde <- subset(data = gde, subset = p_val < return.thresh)
+        gde <- subset(x = gde, subset = p_val < return.thresh)
       }
       if (nrow(x = gde) > 0) {
         gde$cluster <- i
@@ -905,10 +903,9 @@ FindAllMarkersNode <- function(
       }
     }
   }
-  gde.all$cluster <- mapvalues(
-    x = gde.all$cluster,
-    from = new.nodes,
-    to = orig.nodes
+  gde.all$cluster <- MapVals(v = gde.all$cluster,
+                             from = new.nodes,
+                             to = orig.nodes
   )
   return(gde.all)
 }
