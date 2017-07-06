@@ -2069,28 +2069,24 @@ PCElbowPlot <- function(objectobject, num.pc = 20) {
 
 #' Perform Canonical Correlation Analysis
 #'
-#' Runs a canonical correlation analysis using the sparse implementation of CCA from the PMA package.
-#'
+#' Runs a canonical correlation analysis using a diagnoal implementation of CCA.
+#' 
 #' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object with be considered as group1
-#' and object2 as group2.
+#' @param object2 Optional second object. If object2 is passed, object with be 
+#' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
 #' @param group.by Factor to group by (column vector stored in object@@data.info)
 #' @param num.cc Number of canonical vectors to calculate
-#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If two objects are given,
-#' the default is the union of both variable gene sets that are also present in both objects.
+#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If 
+#' two objects are given, the default is the union of both variable gene sets 
+#' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
-#' @param PMA.version Use PMA version of CCA
 #' @param rescale.groups Rescale each set of cells independently
-#'
-#' @importFrom PMA CCA
-#'
-#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If one object is passed,
-#' the same object is returned. If two are passed, a combined object is returned.
-#'
+#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If 
+#' one object is passed, the same object is returned. If two are passed, a 
+#' combined object is returned.
 #' @export
-#'
 RunCCA <- function(
   object,
   object2,
@@ -2100,8 +2096,7 @@ RunCCA <- function(
   num.cc = 20,
   genes.use,
   scale.data = TRUE,
-  rescale.groups = FALSE,
-  PMA.version = FALSE
+  rescale.groups = FALSE
 ) {
   if (! missing(x = object2) && (! missing(x = group1) || ! missing(x = group2))) {
     warning("Both object2 and group set. Continuing with objects defining the groups")
@@ -2190,25 +2185,12 @@ RunCCA <- function(
   genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
-  if (PMA.version) {
-    cca.results <- CCA(
-      x = data.use1,
-      z = data.use2,
-      typex = "standard",
-      typez = "standard",
-      K = num.cc,
-      penaltyz = 1,
-      penaltyx = 1,
-      trace = FALSE
-    )
-  } else {
-    cca.results <- CanonCor(
+  cca.results <- CanonCor(
       mat1 = data.use1,
       mat2 = data.use2,
       standardize = TRUE,
       k = num.cc
-    )
-  }
+  )
   cca.data <- rbind(cca.results$u, cca.results$v)
   rownames(x = cca.data) <- c(colnames(x = data.use1), colnames(x = data.use2))
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
