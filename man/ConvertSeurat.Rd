@@ -13,6 +13,6 @@ ConvertSeurat(object)
 Returns a Seurat object compatible with latest changes
 }
 \description{
-Adds the object@dr slot to older objects and moves the stored PCA/ICA 
+Adds the object@dr slot to older objects and moves the stored PCA/ICA
 analyses to new slot. Moves snn to new slot.
 }
