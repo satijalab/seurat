@@ -314,38 +314,6 @@ BuildRFClassifier <- function(
   return(classifier)
 }
 
-#' Highlight classification results
-#'
-#' This function is useful to view where proportionally the clusters returned from
-#' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
-#' function to color clusters in object.
-#'
-#' @param object Seurat object on which the classifier was trained and
-#' onto which the classification results will be highlighted
-#' @param clusters vector of cluster ids (output of ClassifyCells)
-#' @param ... additional parameters to pass to FeaturePlot()
-#'
-#' @return Returns a feature plot with clusters highlighted by proportion of cells
-#' mapping to that cluster
-#'
-#' @export
-#'
-VizClassification <- function(object, clusters, ...) {
-  cluster.dist <- prop.table(x = table(out)) # What is out?
-  object@data.info$Classification <- numeric(nrow(x = object@data.info))
-  for (cluster in 1:length(x = cluster.dist)) {
-    cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
-    if (length(x = cells.to.highlight) > 0) {
-      object@data.info[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
-    }
-  }
-  if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
-    return(FeaturePlot(object, "Classification", ...))
-  }
-  cols.use = c("#f6f6f6", "black")
-  return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
-}
-
 #   Documentation...
 ####################
 calc.drop.prob <- function(x, a, b) {
@@ -608,91 +576,6 @@ BuildClusterTree <- function(
     PlotClusterTree(object)
   }
   return(object)
-}
-
-#' Plot phylogenetic tree
-#'
-#' Plots previously computed phylogenetic tree (from BuildClusterTree)
-#'
-#' @param object Seurat object
-#' @param \dots Additional arguments for plotting the phylogeny
-#'
-#' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
-#'
-#' @importFrom ape plot.phylo
-#' @importFrom ape nodelabels
-#'
-#' @export
-#'
-PlotClusterTree <- function(object, ...) {
-  if (length(x = object@cluster.tree) == 0) {
-    stop("Phylogenetic tree does not exist, build using BuildClusterTree")
-  }
-  data.tree <- object@cluster.tree[[1]]
-  plot.phylo(x = data.tree, direction = "downwards", ...)
-  nodelabels()
-}
-
-#' Visualize expression/dropout curve
-#'
-#' Plot the probability of detection vs average expression of a gene.
-#'
-#' Assumes that this 'noise' model has been precomputed with CalcNoiseModels
-#'
-#' @param object Seurat object
-#' @param cell.ids Cells to use
-#' @param col.use Color code or name
-#' @param lwd.use Line width for curve
-#' @param do.new Create a new plot (default) or add to existing
-#' @param x.lim Maximum value for X axis
-#' @param \dots Additional arguments to pass to lines function
-#' @return Returns no value, displays a plot
-#'
-#' @export
-#'
-PlotNoiseModel <- function(
-  object,
-  cell.ids = c(1, 2),
-  col.use = 'black',
-  lwd.use = 2,
-  do.new = TRUE,
-  x.lim = 10,
-  ...
-) {
-  cell.coefs <- object@drop.coefs[cell.ids,]
-  if (do.new) {
-    plot(
-      x = 1,
-      y = 1,
-      pch = 16,
-      type = 'n',
-      xlab = 'Average expression',
-      ylab = 'Probability of detection',
-      xlim = c(0, x.lim),
-      ylim =c(0, 1)
-    )
-  }
-  unlist(
-    x = lapply(
-      X = 1:length(x = cell.ids),
-      FUN = function(y) {
-        x.vals <- seq(from = 0, to = x.lim, by = 0.05)
-        y.vals <- unlist(x = lapply(
-          X = x.vals,
-          FUN = calc.drop.prob,
-          a = cell.coefs[y, 1],
-          b = cell.coefs[y, 2])
-        )
-        lines(
-          x = x.vals,
-          y = y.vals,
-          lwd = lwd.use,
-          col = col.use,
-          ...
-        )
-      }
-    )
-  )
 }
 
 #   Documentation
