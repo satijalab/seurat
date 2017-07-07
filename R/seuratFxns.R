@@ -1,37 +1,3 @@
-getLeftDecendants <- function(tree, node) {
-  daughters <- tree$edge[which(tree$edge[, 1] == node), 2]
-  if (daughters[1] <= (tree$Nnode+1)) {
-      return(daughters[1])
-  }
-  daughter.use <- getDescendants(tree, daughters[1])
-  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
-  return(daughter.use)
-}
-
-getRightDecendants <- function(tree, node) {
-  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
-  if (daughters[2] <= (tree$Nnode + 1)) {
-    return(daughters[2])
-  }
-  daughter.use <- getDescendants(tree = tree, node = daughters[2])
-  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
-  return(daughter.use)
-}
-
-getDescendants <- function(tree, node, curr = NULL) {
-  if (is.null(x = curr)) {
-    curr <- vector()
-  }
-  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
-  curr <- c(curr, daughters)
-  w <- which(x = daughters >= length(x = tree$tip))
-  if (length(x = w) > 0) {
-    for (i in 1:length(x = w)) {
-      curr <- getDescendants(tree = tree, node = daughters[w[i]], curr = curr)
-    }
-  }
-  return(curr)
-}
 
 situ3d <- function(data, label = NULL, ...) {
   # Call Seurat function to get the in situ values out.
@@ -1955,68 +1921,6 @@ same <- function(x) {
   return(x)
 }
 
-DFT <- function(
-  tree,
-  node,
-  path = NULL,
-  include.children = FALSE,
-  only.children = FALSE
-) {
-  if (only.children) {
-    include.children = TRUE
-  }
-  children <- which(x = tree$edge[, 1] == node)
-  child1 <- tree$edge[children[1], 2]
-  child2 <- tree$edge[children[2], 2]
-  if (child1 %in% tree$edge[, 1]) {
-    if(! only.children){
-      path <- c(path, child1)
-    }
-    path <- DFT(
-      tree = tree,
-      node = child1,
-      path = path,
-      include.children = include.children,
-      only.children = only.children
-    )
-  } else {
-    if (include.children) {
-      path <-c(path, child1)
-    }
-  }
-  if (child2 %in% tree$edge[, 1]) {
-    if (! only.children) {
-      path <- c(path, child2)
-    }
-    path <- DFT(
-      tree = tree,
-      node = child2,
-      path = path,
-      include.children = include.children,
-      only.children = only.children
-    )
-  } else {
-    if (include.children) {
-      path <- c(path, child2)
-    }
-  }
-  return(path)
-}
-
-NodeHasChild <- function(tree, node) {
-  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
-  return(any(children %in% tree$edge[, 2] && ! children %in% tree$edge[, 1]))
-}
-
-NodeHasOnlyChildren <- function(tree, node) {
-  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
-  return(! any(children %in% tree$edge[, 1]))
-}
-
-GetAllInternalNodes <- function(tree) {
-  return(c(tree$edge[1, 1], DFT(tree = tree, node = tree$edge[1, 1])))
-}
-
 nb.residuals <- function(fmla, regression.mat, gene) {
   fit <- 0
   try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
@@ -2157,8 +2061,4 @@ de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
     'freq2'
   )
   return(ret)
-}
-
-PercentAbove <- function(x, threshold){
-  return(length(x = x[x > threshold]) / length(x = x))
 }

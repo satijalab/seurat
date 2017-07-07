@@ -31,3 +31,201 @@ RowMergeSparseMatrices <- function(mat1, mat2){
   ))
   return(new.mat)
 }
+
+# Calculate the percentage of a vector above some threshold
+#
+# @param x          Vector of values
+# @param threshold  Threshold to use when calculating percentage
+#
+# @return           Returns the percentage of `x` values above the given 
+#                   threshold
+#
+PercentAbove <- function(x, threshold){
+  return(length(x = x[x > threshold]) / length(x = x))
+}
+
+# Calculate position along a defined reference range for a given vector of 
+# numerics. Will range from 0 to 1. 
+#
+# @param x      Vector of numeric type 
+# @param lower  Lower end of reference range
+# @param upper  Upper end of reference range
+#
+# @return       Returns a vector that describes the position of each element in 
+#               x along the defined reference range
+
+ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
+  return((x - quantile(x = x, probs = lower)) /
+           (quantile(x = x, probs = upper) - quantile(x = x, probs = lower)))
+}
+
+# Function to map values in a vector `v` as defined in `from`` to the values
+# defined in `to`.
+#
+# @param v     vector of values to map
+# @param from  vector of original values
+# @param to    vector of values to map original values to (should be of equal
+#              length as from)
+
+MapVals <- function(v, from, to){
+  if (length(from) != length(to)) {
+    stop("from and to vectors are not the equal length.")
+  }
+  vals.to.match <- match(v, from)
+  vals.to.match.idx  <- !is.na(vals.to.match)
+  v[vals.to.match.idx] <- to[vals.to.match[vals.to.match.idx]]
+  return(v)
+}
+
+
+####################### Tree Related Utilities #################################
+
+# Function to get all the descendants on a tree left of a given node
+#
+# @param tree  Tree object (from ape package) 
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants left of the given node
+#
+getLeftDecendants <- function(tree, node) {
+  daughters <- tree$edge[which(tree$edge[, 1] == node), 2]
+  if (daughters[1] <= (tree$Nnode+1)) {
+    return(daughters[1])
+  }
+  daughter.use <- getDescendants(tree, daughters[1])
+  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
+  return(daughter.use)
+}
+
+# Function to get all the descendants on a tree right of a given node
+#
+# @param tree  Tree object (from ape package) 
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants right of the given node
+#
+getRightDecendants <- function(tree, node) {
+  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
+  if (daughters[2] <= (tree$Nnode + 1)) {
+    return(daughters[2])
+  }
+  daughter.use <- getDescendants(tree = tree, node = daughters[2])
+  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
+  return(daughter.use)
+}
+
+# Function to get all the descendants on a tree of a given node
+#
+# @param tree  Tree object (from ape package) 
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants of the given node
+#
+getDescendants <- function(tree, node, curr = NULL) {
+  if (is.null(x = curr)) {
+    curr <- vector()
+  }
+  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
+  curr <- c(curr, daughters)
+  w <- which(x = daughters >= length(x = tree$tip))
+  if (length(x = w) > 0) {
+    for (i in 1:length(x = w)) {
+      curr <- getDescendants(tree = tree, node = daughters[w[i]], curr = curr)
+    }
+  }
+  return(curr)
+}
+
+# Depth first traversal path of a given tree
+#
+# @param tree              Tree object (from ape package) 
+# @param node              Internal node in the tree
+# @param path              Path through the tree (for recursion)
+# @param include.children  Include children in the output path
+# @param only.children     Only include children in the output path
+# @return                  Returns a vector representing the depth first 
+#                          traversal path
+#
+DFT <- function(
+  tree,
+  node,
+  path = NULL,
+  include.children = FALSE,
+  only.children = FALSE
+) {
+  if (only.children) {
+    include.children = TRUE
+  }
+  children <- which(x = tree$edge[, 1] == node)
+  child1 <- tree$edge[children[1], 2]
+  child2 <- tree$edge[children[2], 2]
+  if (child1 %in% tree$edge[, 1]) {
+    if(! only.children){
+      path <- c(path, child1)
+    }
+    path <- DFT(
+      tree = tree,
+      node = child1,
+      path = path,
+      include.children = include.children,
+      only.children = only.children
+    )
+  } else {
+    if (include.children) {
+      path <-c(path, child1)
+    }
+  }
+  if (child2 %in% tree$edge[, 1]) {
+    if (! only.children) {
+      path <- c(path, child2)
+    }
+    path <- DFT(
+      tree = tree,
+      node = child2,
+      path = path,
+      include.children = include.children,
+      only.children = only.children
+    )
+  } else {
+    if (include.children) {
+      path <- c(path, child2)
+    }
+  }
+  return(path)
+}
+
+# Function to check whether a given node in a tree has a child (leaf node)
+#
+# @param tree   Tree object (from ape package) 
+# @param node   Internal node in the tree
+#
+# @return       Returns a Boolean of whether the given node is connected to a 
+#               terminal leaf node
+
+NodeHasChild <- function(tree, node) {
+  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
+  return(any(children %in% tree$edge[, 2] && ! children %in% tree$edge[, 1]))
+}
+
+# Function to check whether a given node in a tree has only children(leaf nodes)
+#
+# @param tree   Tree object (from ape package) 
+# @param node   Internal node in the tree
+#
+# @return       Returns a Boolean of whether the given node is connected to only 
+#               terminal leaf nodes
+
+NodeHasOnlyChildren <- function(tree, node) {
+  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
+  return(! any(children %in% tree$edge[, 1]))
+}
+
+# Function to return all internal (non-terminal) nodes in a given tree
+#
+# @param tree   Tree object (from ape package) 
+#
+# @return       Returns a vector of all internal nodes for the given tree
+#
+GetAllInternalNodes <- function(tree) {
+  return(c(tree$edge[1, 1], DFT(tree = tree, node = tree$edge[1, 1])))
+}
