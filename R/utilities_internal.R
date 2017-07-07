@@ -87,12 +87,12 @@ MapVals <- function(v, from, to){
 #
 # @return      Returns all descendants left of the given node
 #
-getLeftDecendants <- function(tree, node) {
+GetLeftDescendants <- function(tree, node) {
   daughters <- tree$edge[which(tree$edge[, 1] == node), 2]
   if (daughters[1] <= (tree$Nnode+1)) {
     return(daughters[1])
   }
-  daughter.use <- getDescendants(tree, daughters[1])
+  daughter.use <- GetDescendants(tree, daughters[1])
   daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
   return(daughter.use)
 }
@@ -104,12 +104,12 @@ getLeftDecendants <- function(tree, node) {
 #
 # @return      Returns all descendants right of the given node
 #
-getRightDecendants <- function(tree, node) {
+GetRightDescendants <- function(tree, node) {
   daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
   if (daughters[2] <= (tree$Nnode + 1)) {
     return(daughters[2])
   }
-  daughter.use <- getDescendants(tree = tree, node = daughters[2])
+  daughter.use <- GetDescendants(tree = tree, node = daughters[2])
   daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
   return(daughter.use)
 }
@@ -121,7 +121,7 @@ getRightDecendants <- function(tree, node) {
 #
 # @return      Returns all descendants of the given node
 #
-getDescendants <- function(tree, node, curr = NULL) {
+GetDescendants <- function(tree, node, curr = NULL) {
   if (is.null(x = curr)) {
     curr <- vector()
   }
@@ -130,7 +130,7 @@ getDescendants <- function(tree, node, curr = NULL) {
   w <- which(x = daughters >= length(x = tree$tip))
   if (length(x = w) > 0) {
     for (i in 1:length(x = w)) {
-      curr <- getDescendants(tree = tree, node = daughters[w[i]], curr = curr)
+      curr <- GetDescendants(tree = tree, node = daughters[w[i]], curr = curr)
     }
   }
   return(curr)

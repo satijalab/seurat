@@ -585,7 +585,7 @@ BuildClusterTree <- function(
   if (do.reorder) {
     old.ident.order <- sort(x = unique(x = object@ident))
     data.tree <- object@cluster.tree[[1]]
-    all.desc <- getDescendants(tree = data.tree, node = (data.tree$Nnode + 2))
+    all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 2))
     all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 1)]]
     object@ident <- factor(x = object@ident, levels = all.desc, ordered = TRUE)
     if (reorder.numeric) {
@@ -1141,8 +1141,8 @@ FindMarkersNode <- function(
   genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
   tree <- set.ifnull(x = tree.use, y = object@cluster.tree[[1]])
   ident.order <- tree$tip.label
-  nodes.1 <- ident.order[getLeftDecendants(tree = tree, node = node)]
-  nodes.2 <- ident.order[getRightDecendants(tree = tree, node = node)]
+  nodes.1 <- ident.order[GetLeftDescendants(tree = tree, node = node)]
+  nodes.2 <- ident.order[GetRightDescendants(tree = tree, node = node)]
   #print(nodes.1)
   #print(nodes.2)
   to.return <- FindMarkers(
@@ -2771,7 +2771,7 @@ HeatmapNode <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     }
   }
   #gene.list <- rev(unique(rev(gene.list)))
-  descendants <- getDescendants(tree = tree, node = node)
+  descendants <- GetDescendants(tree = tree, node = node)
   children <- descendants[!descendants %in% tree$edge[, 1]]
   all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[, 1]]
   DoHeatmap(
