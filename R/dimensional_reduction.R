@@ -2210,7 +2210,6 @@ RunCCA <- function(
     )
   }
   cca.data <- rbind(cca.results$u, cca.results$v)
-  rownames(x = cca.data) <- c(colnames(x = data.use1), colnames(x = data.use2))
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
   if (! missing(x = object2)) {
     cat("Merging objects\n", file = stderr())
@@ -2223,6 +2222,7 @@ RunCCA <- function(
     combined.object@scale.data[which(x = is.na(x = combined.object@scale.data))] <- 0
     combined.object@var.genes <- genes.use
     combined.object <- FastScaleData(object = combined.object)
+    rownames(cca.data) <- colnames(combined.object@data)
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
