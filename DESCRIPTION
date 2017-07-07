@@ -74,6 +74,7 @@ Collate:
     'preprocessing.R'
     'seuratFxns.R'
     'snn.R'
+    'spatial.R'
     'tSNE_project.R'
     'utilities.R'
     'utilities_internal.R'
