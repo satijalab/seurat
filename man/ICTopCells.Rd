@@ -19,6 +19,6 @@ ICTopCells(object, ic.use = 1, num.cells = NULL, do.balanced = FALSE)
 Returns a vector of cells
 }
 \description{
-Return a list of genes with the strongest contribution to a set of principal 
+Return a list of genes with the strongest contribution to a set of principal
 components
 }

@@ -12,7 +12,7 @@ SetDimReduction(object, reduction.type, slot, new.data)
 \item{reduction.type}{Type of dimensional reduction to set}
 
 \item{slot}{Specific information to set (must be one of the following:
-"cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key", 
+"cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key",
 "misc")}
 
 \item{new.data}{New data to set}

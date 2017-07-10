@@ -20,6 +20,6 @@ ICTopGenes(object, ic.use = 1, num.genes = 30, use.full = FALSE,
 Returns a vector of genes
 }
 \description{
-Return a list of genes with the strongest contribution to a set of 
+Return a list of genes with the strongest contribution to a set of
 indepdendent components
 }

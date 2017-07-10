@@ -22,6 +22,6 @@ PCTopGenes(object, pc.use = 1, num.genes = 30, use.full = FALSE,
 Returns a vector of genes
 }
 \description{
-Return a list of genes with the strongest contribution to a set of principal 
+Return a list of genes with the strongest contribution to a set of principal
 components
 }
