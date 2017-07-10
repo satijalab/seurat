@@ -386,3 +386,106 @@ NumberClusters <- function(object) {
   }
   return(object)
 }
+
+#' Classify New Data
+#'
+#' Classify new data based on the cluster information of the provided object.
+#' Random Forests are used as the basis of the classification.
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param classifier Random Forest classifier from BuildRFClassifier. If not provided,
+#' it will be built from the training data provided.
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param new.data New data to classify
+#' @param ... additional parameters passed to ranger
+#'
+#' @return Vector of cluster ids
+#'
+#' @import Matrix
+#' @importFrom ranger ranger
+#'
+#' @export
+#'
+ClassifyCells <- function(
+  object,
+  classifier,
+  training.genes = NULL,
+  training.classes = NULL,
+  new.data = NULL,
+  ...
+) {
+  # build the classifier
+  if (missing(classifier)){
+    classifier <- BuildRFClassifier(
+      object = object,
+      training.genes = training.genes,
+      training.classes = training.classes,
+      ...
+    )
+  }
+  # run the classifier on the new data
+  features <- classifier$forest$independent.variable.names
+  genes.to.add <- setdiff(x = features, y = rownames(x = new.data))
+  data.to.add <- matrix(
+    data = 0,
+    nrow = length(x = genes.to.add),
+    ncol = ncol(x = new.data)
+  )
+  rownames(x = data.to.add) <- genes.to.add
+  new.data <- rbind(new.data, data.to.add)
+  new.data <- new.data[features, ]
+  new.data <- as.matrix(x = t(x = new.data))
+  print("Running Classifier ...")
+  prediction <- predict(classifier, new.data)
+  new.classes <- prediction$predictions
+  return(new.classes)
+}
+
+#' Build Random Forest Classifier
+#'
+#' Train the random forest classifier
+#'
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param verbose Additional progress print statements
+#' @param ... additional parameters passed to ranger
+#'
+#' @return Returns the random forest classifier
+#'
+#' @import Matrix
+#' @importFrom ranger ranger
+#'
+#' @export
+#'
+BuildRFClassifier <- function(
+  object,
+  training.genes = NULL,
+  training.classes = NULL,
+  verbose = TRUE,
+  ...
+) {
+  training.classes <- as.vector(x = training.classes)
+  training.genes <- set.ifnull(training.genes, rownames(x = object@data))
+  training.data <- as.data.frame(
+    x = as.matrix(
+      x = t(
+        x = object@data[training.genes, ]
+      )
+    )
+  )
+  training.data$class <- factor(x = training.classes)
+  if (verbose) {
+    print("Training Classifier ...")
+  }
+  classifier <- ranger(
+    data = training.data,
+    dependent.variable.name = "class",
+    classification = TRUE,
+    write.forest = TRUE,
+    ...
+  )
+  return(classifier)
+}
