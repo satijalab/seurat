@@ -127,10 +127,9 @@ RunEnrichr <- function(
   ...
 ) {
   if (is.null(x = EnrichrID)) {
-    EnrichrID <- AddGeneList(GeneList = GeneList)[[2]]
+    EnrichrID <- AddGeneList(GeneList = GeneList)$id
   }
-  Enrichrlibs <- listEnrichrDbs()$libraryName
-  if (! GeneSetLib %in% Enrichrlibs) {
+  if (! GeneSetLib %in% EnrichrLibs()) {
     stop("Error getting Enrichr libraries")
   }
   path.use <- "Enrichr/export"
@@ -151,7 +150,7 @@ RunEnrichr <- function(
     stop("Error fetching enrichment results")
   }
   if (PrintList) {
-    ViewGeneList(EnrichrID = EnrichrID)
+    print(GetGeneList(EnrichrID = EnrichrID))
   }
   if (PrintID) {
     print(EnrichrID)
@@ -163,60 +162,10 @@ RunEnrichr <- function(
   }
 }
 
-PrintLibs <- function() {
+#' View Enrichr libraries
+#'
+#' @return A vector of Enrichr Libraries
+#'
+EnrichrLibs <- function() {
   return (listEnrichrDbs()$libraryName)
-}
-
-AddGeneList <- function(GeneList = NULL, Description = "Example gene list") {
-  path.use <- "Enrichr/addList"
-  if (is.null(x = GeneList)) {
-    stop("Missing gene list")
-  }
-  genes.use <- paste(GeneList, collapse = "\n")
-  query.use <- list(list = genes.use, description = Description)
-  api.post <- POST(
-    url = "http://amp.pharm.mssm.edu/",
-    path = path.use,
-    body = query.use
-  )
-  api.status <- status_code(x = api.post)
-  if (api.status != 200) {
-    stop("Error analyzing gene list")
-  }
-  api.data <- content(x = api.post, as = "text")
-  enrichr.id <- extract_field(extract_field(api.data, 3, "\n"), 2, ": ")
-  return(list(api.data, enrichr.id))
-}
-
-ViewGeneList <- function(EnrichrID) {
-  path.use <- "Enrichr/view"
-  api.get <- GET(
-    url = "http://amp.pharm.mssm.edu/",
-    path = path.use,
-    query = list(userListId = EnrichrID)
-  )
-  api.status <- status_code(x = api.get)
-  if (api.status != 200) {
-    stop("Error getting gene list")
-  }
-  api.data <- content(x = api.get)$genes
-  print(sort(x = unlist(x = api.data)))
-}
-
-FindGeneTerms <- function(QueryGene = NULL) {
-  if (is.null(x = QueryGene)) {
-    stop("Missing query gene")
-  }
-  path.use <- "Enrichr/genemap"
-  api.get <- GET(
-    url = "http://amp.pharm.mssm.edu/",
-    path = path.use,
-    query = list(gene = QueryGene)
-  )
-  api.status <- status_code(x = api.get)
-  if (api.status != 200) {
-    stop("Error searching for terms")
-  }
-  api.data <- content(x = api.get)
-  return (api.data)
 }
