@@ -102,6 +102,17 @@ FillSlot <- function(slot.name, old.object, new.object){
 }
 
 
+# Use Fisher's method (Fisher's combined probability test) to combine p-values
+# into single statistic
+#
+# @param pvals vector of p-values
+#
+# @returns integrated value
+#
+FisherIntegrate <- function(pvals) {
+  return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
+}
+
 ####################### Tree Related Utilities #################################
 
 # Function to get all the descendants on a tree left of a given node
