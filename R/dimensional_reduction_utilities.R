@@ -3,32 +3,31 @@
 #' Dimensional Reduction Accessor Function
 #'
 #' General accessor function for dimensional reduction objects. Pulls slot
-#' contents for specified stored dimensional reduction analysis. 
+#' contents for specified stored dimensional reduction analysis.
 #'
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
 #' @param slot Specific information to pull (must be one of the following:
 #'  "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key", "misc")
-#'  
+#'
 #' @return Returns specified slot results from given reduction technique
-#' 
+#'
 #' @export
 #'
 GetDimReduction <- function(
-  object, 
-  reduction.type = "pca", 
+  object,
+  reduction.type = "pca",
   slot = "gene.loadings"
 ) {
-  if (!(reduction.type %in% names(object@dr))) {
+  if (! (reduction.type %in% names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
-  if (! (slot %in% slotNames(
-    x = eval(expr = parse(text = paste0("object@dr$", reduction.type)))
-  ))) {
+  reduction <- paste0("object@dr$", reduction.type)
+  reduction.slots <- slotNames(x = eval(expr = parse(text = reduction)))
+  if (! (slot %in% reduction.slots)) {
     stop(paste0(slot, " slot doesn't exist"))
   }
-  return(eval(expr = parse(text = paste0("object@dr$", reduction.type, "@", 
-                                         slot))))
+  return(eval(expr = parse(text = paste0(reduction, "@", slot))))
 }
 
 #' Dimensional Reduction Cell Embeddings Accessor Function
@@ -162,15 +161,15 @@ GetGeneLoadings <- function(
 #' @param object Seurat object
 #' @param reduction.type Type of dimensional reduction to set
 #' @param slot Specific information to set (must be one of the following:
-#' "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key", 
+#' "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key",
 #' "misc")
 #' @param new.data New data to set
 #' @return Seurat object with updated slot
 #' @export
 SetDimReduction <- function(
-  object, 
-  reduction.type, 
-  slot, 
+  object,
+  reduction.type,
+  slot,
   new.data
 ) {
   if (reduction.type %in% names(x = object@dr)) {
@@ -204,8 +203,8 @@ SetDimReduction <- function(
 #' @export
 #'
 DMEmbed <- function(
-  object, 
-  dims.use = NULL, 
+  object,
+  dims.use = NULL,
   cells.use = NULL
 ) {
   return(GetCellEmbeddings(
@@ -229,8 +228,8 @@ DMEmbed <- function(
 #' @export
 #'
 PCAEmbed <- function(
-  object, 
-  dims.use = NULL, 
+  object,
+  dims.use = NULL,
   cells.use = NULL
 ) {
   return(GetCellEmbeddings(
@@ -254,8 +253,8 @@ PCAEmbed <- function(
 #' @export
 #'
 ICAEmbed <- function(
-  object, 
-  dims.use = NULL, 
+  object,
+  dims.use = NULL,
   cells.use = NULL
 ) {
   return(GetCellEmbeddings(
@@ -279,9 +278,9 @@ ICAEmbed <- function(
 #' @export
 #'
 PCALoad <- function(
-  object, 
-  dims.use = NULL, 
-  genes.use = NULL, 
+  object,
+  dims.use = NULL,
+  genes.use = NULL,
   use.full = FALSE
 ) {
   return(GetGeneLoadings(
@@ -306,9 +305,9 @@ PCALoad <- function(
 #' @export
 #'
 ICALoad <- function(
-  object, 
-  dims.use = NULL, 
-  genes.use = NULL, 
+  object,
+  dims.use = NULL,
+  genes.use = NULL,
   use.full = FALSE
 ) {
   return(GetGeneLoadings(
@@ -333,9 +332,9 @@ ICALoad <- function(
 #' @export
 #'
 DMLoad <- function(
-  object, 
-  dims.use = NULL, 
-  genes.use = NULL, 
+  object,
+  dims.use = NULL,
+  genes.use = NULL,
   use.full = FALSE
 ) {
   return(GetGeneLoadings(
@@ -419,7 +418,7 @@ DimTopGenes <- function(
 
 #' Find genes with highest PCA scores
 #'
-#' Return a list of genes with the strongest contribution to a set of principal 
+#' Return a list of genes with the strongest contribution to a set of principal
 #' components
 #'
 #' @param object Seurat object
@@ -451,7 +450,7 @@ PCTopGenes <- function(
 
 #' Find genes with highest ICA scores
 #'
-#' Return a list of genes with the strongest contribution to a set of 
+#' Return a list of genes with the strongest contribution to a set of
 #' indepdendent components
 #'
 #' @param object Seurat object
@@ -560,7 +559,7 @@ PCTopCells <- function(
 
 #' Find cells with highest ICA scores
 #'
-#' Return a list of genes with the strongest contribution to a set of principal 
+#' Return a list of genes with the strongest contribution to a set of principal
 #' components
 #'
 #' @param object Seurat object
