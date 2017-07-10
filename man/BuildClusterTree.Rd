@@ -15,7 +15,7 @@ variable genes (object@var.genes). Assumes pcs.use=NULL (tree calculated in
 gene expression space)}
 
 \item{pcs.use}{If set, tree is calculated in PCA space, using the
-eigenvalue-weighted euclidean distance across these PC scores.}
+eigenvalue-WeightedEucleideanDist distance across these PC scores.}
 
 \item{SNN.use}{If SNN is passed, build tree based on SNN graph connectivity between clusters}
 
