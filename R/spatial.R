@@ -18,7 +18,7 @@
 #' @export
 #'
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@final.prob))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@final.prob))
   #Error checking
   cell.names <- ainb(a = cells.use, b = colnames(x = object@final.prob))
   if (length(x = cell.names) != length(x = cells.use)) {
@@ -141,7 +141,7 @@ RefinedMapping <- function(object, genes.use) {
 #' @export
 #'
 InitialMapping <- function(object, cells.use = NULL) {
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   every.prob <- sapply(
     X = cells.use,
     FUN = function(x) {

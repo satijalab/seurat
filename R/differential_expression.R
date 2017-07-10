@@ -49,7 +49,7 @@ FindMarkers <- function(
   latent.vars = "nUMI",
   min.cells = 3
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   if (max.cells.per.ident < Inf) {
     object <- SubsetData(
       object = object,
@@ -250,7 +250,7 @@ FindAllMarkers <- function(
   min.cells = 3,
   latent.vars = "nUMI"
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   ident.use <- object@ident
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
     return.thresh = 0.7
@@ -335,8 +335,8 @@ FindMarkersNode <- function(
   test.use = "bimod",
   ...
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
-  tree <- set.ifnull(x = tree.use, y = object@cluster.tree[[1]])
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
+  tree <- SetIfNull(x = tree.use, default = object@cluster.tree[[1]])
   ident.order <- tree$tip.label
   nodes.1 <- ident.order[GetLeftDescendants(tree = tree, node = node)]
   nodes.2 <- ident.order[GetRightDescendants(tree = tree, node = node)]
@@ -402,8 +402,8 @@ FindAllMarkersNode <- function(
   random.seed = 1,
   min.cells = 3
 ) {
-  genes.use <- set.ifnull(genes.use, rownames(object@data))
-  node <- set.ifnull(node, tree$edge[1,1])
+  genes.use <- SetIfNull(x = genes.use, default = rownames(object@data))
+  node <- SetIfNull(x = node, default = tree$edge[1,1])
   ident.use <- object@ident
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
@@ -598,7 +598,7 @@ DiffExpTest <- function(
   genes.use = NULL,
   print.bar = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   if (print.bar) {
     iterate.fxn <- pblapply
   } else {
@@ -649,7 +649,7 @@ NegBinomDETest <- function(
   print.bar = TRUE,
   min.cells = 3
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
   my.latent <- FetchData(
@@ -740,7 +740,7 @@ NegBinomRegDETest <- function(
   print.bar = TRUE,
   min.cells = 3
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
   print(
@@ -843,7 +843,7 @@ PoissonDETest <- function(
   latent.vars = NULL,
   print.bar = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
   my.latent <- FetchData(
@@ -933,7 +933,7 @@ TobitTest <- function(
   genes.use = NULL,
   print.bar = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   #print(genes.diff)
   to.return <- TobitDiffExpTest(
     data1 = object@data[, cells.1],
@@ -975,7 +975,7 @@ MarkerTest <- function(
   genes.use = NULL,
   print.bar = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   to.return <- marker.auc.test(
     data1 = object@data[, cells.1],
     data2 = object@data[, cells.2],
@@ -1009,7 +1009,7 @@ DiffTTest <- function(
   genes.use = NULL,
   print.bar = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   data.use <- object@data
   if (print.bar) {
     iterate.fxn=pblapply

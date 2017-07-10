@@ -1805,13 +1805,6 @@ heatmap2NoKey <- function (
   par(mar = oldMar)
 }
 
-set.ifnull <- function(x, y) {
-  if (is.null(x = x)) {
-    return(y)
-  }
-  return(x)
-}
-
 expAlpha <- function(mu, coefs) {
   logA <- coefs$a
   logB <- coefs$b

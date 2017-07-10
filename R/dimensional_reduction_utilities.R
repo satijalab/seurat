@@ -58,7 +58,7 @@ GetCellEmbeddings <- function(
   if (length(x = object.embed) == 0) {
     stop(paste0("Cell embeddings slot for ", reduction.type, " is empty."))
   }
-  cells.use <- set.ifnull(x = cells.use, y = rownames(x = object.embed))
+  cells.use <- SetIfNull(x = cells.use, default = rownames(x = object.embed))
   if (any(! cells.use %in% rownames(x = object.embed))) {
     missing.cells <- paste0(
       cells.use[which(x = ! cells.use %in% rownames(x = object.embed))],
@@ -67,7 +67,7 @@ GetCellEmbeddings <- function(
     warning(paste0("Could not find the following cell names: ", missing.cells))
     cells.use <- ainb(a = cells.use, b = rownames(x = object.embed))
   }
-  dims.use <- set.ifnull(x = dims.use, y = 1:ncol(x = object.embed))
+  dims.use <- SetIfNull(x = dims.use, default = 1:ncol(x = object.embed))
   if (any(!dims.use %in% 1:ncol(x = object.embed))) {
     missing.dims <- paste0(
       dims.use[which(x = ! dims.use %in% 1:ncol(x = object.embed))],
@@ -123,7 +123,7 @@ GetGeneLoadings <- function(
   if (length(x = gene.loadings) == 0) {
     stop(paste("gene loadings slot for", reduction.type, "is empty."))
   }
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = gene.loadings))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = gene.loadings))
   if (any(! genes.use %in% rownames(x = gene.loadings))) {
     missing.genes <- paste0(
       genes.use[which(x = ! genes.use %in% rownames(x = gene.loadings))],
@@ -132,7 +132,7 @@ GetGeneLoadings <- function(
     warning(paste("Could not find the following gene names:", missing.genes))
     genes.use <- ainb(a = genes.use, b = rownames(x = gene.loadings))
   }
-  dims.use <- set.ifnull(x = dims.use, y = 1:ncol(x = gene.loadings))
+  dims.use <- SetIfNull(x = dims.use, default = 1:ncol(x = gene.loadings))
   if (any(! dims.use %in% 1:ncol(x = gene.loadings))) {
     missing.dims <- paste0(
       dims.use[which(x = ! dims.use %in% 1:ncol(x = gene.loadings))],
@@ -505,7 +505,7 @@ DimTopCells <- function(
   if (! reduction.type %in% names(x = object@dr)) {
     stop(paste(reduction.type, "dimensional reduction has not been computed"))
   }
-  num.cells <- set.ifnull(x = num.cells, y = length(x = object@cell.names))
+  num.cells <- SetIfNull(x = num.cells, default = length(x = object@cell.names))
   dim.scores <- GetDimReduction(
     object = object,
     reduction.type = reduction.type,

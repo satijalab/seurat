@@ -198,7 +198,7 @@ MultiModal_CCA <- function(
       features.1 <- rownames(x = data.1)
     }
   }
-  features.2 <- set.ifnull(x = features.2, y = rownames(x = data.2))
+  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
   data.1 <- t(x = data.1[features.1, ])
   data.2 <- t(x = data.2[features.2, ])
   num.cc <- min(20, min(length(x = features.1), length(x = features.2)))
@@ -291,7 +291,7 @@ MultiModal_CIA <- function(
       features.1 <- rownames(x = data.1)
     }
   }
-  features.2 <- set.ifnull(x = features.2, y = rownames(x = data.2))
+  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
   data.1 <- t(x = data.1[features.1, ])
   data.2 <- t(x = data.2[features.2, ])
   num.axes <- min(20, min(length(x = features.1), length(x = features.2)))

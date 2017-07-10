@@ -43,7 +43,7 @@ PrepDR <- function(
   } else {
     data.use <- object@scale.data
   }
-  genes.use <- set.ifnull(x = genes.use, y = object@var.genes)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
   genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
   genes.use <- genes.use[genes.var > 0]

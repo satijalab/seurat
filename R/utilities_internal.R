@@ -277,3 +277,18 @@ WeightedEuclideanDistance <- function(x, y, w) {
   v.dist <- sum(sqrt(x = w * (x - y) ^ 2))
   return(v.dist)
 }
+
+# Set a default value if an object is null
+#
+# @param x An object to set if it's null
+# @param default The value to provide if x is null
+#
+# @return default if x is null, else x
+#
+SetIfNull <- function(x, default) {
+  return(ifelse(
+    test = is.null(x = x),
+    yes = default,
+    no = x
+  ))
+}

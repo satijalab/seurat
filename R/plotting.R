@@ -64,12 +64,12 @@ DoHeatmapGG <- function(
     }
   }
   # note: data.use should have cells as column names, genes as row names
-  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   cells.use <- ainb(a = cells.use, b = colnames(x = data.use))
   if (length(x = cells.use) == 0) {
     stop("No cells given to cells.use present in object")
   }
-  genes.use <- set.ifnull(x = genes.use, rownames(y = data.use))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(y = data.use))
   genes.use <- ainb(a = genes.use, b = rownames(x = data.use))
   if (length(x = genes.use) == 0) {
     stop("No genes given to genes.use present in object")
@@ -409,7 +409,7 @@ DotPlot <- function(
   colnames(x = object@data) <- object@cell.names
   avg.exp <- AverageExpression(object = object)
   avg.alpha <- ClusterAlpha(object = object)
-  cols.use <- set.ifnull(x = cols.use, y = myPalette(low = "red", high = "green"))
+  cols.use <- SetIfNull(x = cols.use, default = myPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
   exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
   n.col <- length(x = cols.use)
@@ -732,7 +732,7 @@ FeaturePlot <- function(
   dark.theme = FALSE,
   do.return = FALSE
 ) {
-  cells.use <- set.ifnull(cells.use, colnames(object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = nCol)) {
     nCol <- 2
     if (length(x = features.plot) == 1) {
@@ -940,7 +940,7 @@ FeatureHeatmap <- function(
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
-  idents.use <- set.ifnull(x = idents.use, y = sort(x = unique(x = object@ident)))
+  idents.use <- SetIfNull(x = idents.use, default = sort(x = unique(x = object@ident)))
   par(mfrow = c(length(x = features.plot), length(x = idents.use)))
   dim.code <- GetDimReduction(
     object = object,
@@ -1064,7 +1064,7 @@ DoHeatmap <- function(
   do.scale = TRUE,
   ...
 ) {
-  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   cells.use <- ainb(a = cells.use, b = object@cell.names)
   cells.ident <- object@ident[cells.use]
   if (! is.null(x = group.by)) {
@@ -1128,9 +1128,9 @@ DoHeatmap <- function(
   if (slim.col.label && order.by.ident) {
     col.lab <- rep("", length(x = cells.use))
     col.lab[round(x = cumsum(x = table(cells.ident)) - table(cells.ident) / 2) + 1] <- levels(x = cells.ident)
-    cex.col <- set.ifnull(
+    cex.col <- SetIfNull(
       x = cex.col,
-      y = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
+      default = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
     )
     hmFunction(
       data.use,
@@ -1145,9 +1145,9 @@ DoHeatmap <- function(
     )
   } else if (slim.col.label) {
     col.lab = rep("", length(x = cells.use))
-    cex.col <- set.ifnull(
+    cex.col <- SetIfNull(
       x = cex.col,
-      y = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
+      default = 0.2 + 1 / log10(x = length(x = unique(x = cells.ident)))
     )
     hmFunction(
       data.use,
@@ -1313,7 +1313,7 @@ GenePlot <- function(
   spline.span = 0.75,
   ...
 ) {
-  cell.ids <- set.ifnull(x = cell.ids, y = object@cell.names)
+  cell.ids <- SetIfNull(x = cell.ids, default = object@cell.names)
   #   Don't transpose the data.frame for better compatability with FeatureLocator and the rest of Seurat
   data.use <- as.data.frame(
     x = FetchData(
@@ -1334,7 +1334,7 @@ GenePlot <- function(
   if (length(x = col.use) > 1) {
     col.use <- col.use[as.numeric(x = ident.use)]
   } else {
-    col.use <- set.ifnull(x = col.use,y = as.numeric(x = ident.use))
+    col.use <- SetIfNull(x = col.use, default = as.numeric(x = ident.use))
   }
   gene.cor <- round(x = cor(x = data.plot$x, y = data.plot$y), digits = 2)
   if (dark.theme) {
@@ -1465,7 +1465,7 @@ CellPlot <- function(
   do.identify = FALSE,
   ...
 ) {
-  gene.ids <- set.ifnull(x = gene.ids, y = rownames(x = object@data))
+  gene.ids <- SetIfNull(x = gene.ids, default = rownames(x = object@data))
   #   Transpose this data.frame so that the genes are in the row for
   #   easy selecting with do.identify
   data.plot <- as.data.frame(
@@ -1722,7 +1722,7 @@ PlotVln <- function(
     noise <- rnorm(n = length(x = data[, feature])) / 100000
   }
   data[, feature] <- data[, feature] + noise
-  y.max <- set.ifnull(x = y.max, y = max(data[, feature]))
+  y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
   plot <- ggplot(
     data = data,
     mapping = aes(
@@ -1838,7 +1838,7 @@ DimHeatmap <- function(
         do.balanced = do.balanced
       )
     } else {
-      cells.use <- set.ifnull(x = cells, y = object@cell.names)
+      cells.use <- SetIfNull(x = cells, default = object@cell.names)
     }
     genes.use <- rev(x = DimTopGenes(
       object = object,
@@ -1937,7 +1937,7 @@ PlotDim <- function(
       do.balanced = do.balanced
     )
   } else {
-    cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   }
   genes.use <- rev(x = DimTopGenes(
     object = object,
@@ -2310,7 +2310,7 @@ DimPlot <- function(
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
   }
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   dim.code <- GetDimReduction(
     object = object,
     reduction.type = reduction.use,

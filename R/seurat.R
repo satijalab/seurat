@@ -146,7 +146,7 @@ BuildClusterTree <- function(
     do.reorder = FALSE,
     reorder.numeric = FALSE
 ) {
-  genes.use <- set.ifnull(genes.use,object@var.genes)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {
     genes.use <- ainb(genes.use, rownames(x = object@data))
@@ -291,7 +291,7 @@ RunDiffusion <- function(
   scale.clip = 10,
   ...
 ) {
-  cells.use <- set.ifnull(cells.use, colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
     dim.code <- GetDimReduction(
       object = object,
@@ -356,7 +356,7 @@ add_tsne <- function(
   add.iter = 1000,
   ...
 ) {
-  cells.use <- set.ifnull(cells.use, colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   data.use <- object@pca.rot[cells.use, pcs.use]
   #data.dist=as.dist(mahalanobis.dist(data.use))
   set.seed(seed = k.seed)
@@ -628,7 +628,7 @@ RegulatorScore <- function(
   score.name,
   cells.use = NULL
 ) {
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   candidate.reg <- candidate.reg[candidate.reg %in% rownames(x = object@data)]
   my.score <- retreiveScore(object, score.name)[cells.use]
   my.data <- object@data[, cells.use]
@@ -673,7 +673,7 @@ BatchGene <- function(
   thresh.use = 0
 ) {
   batch.genes <- c()
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, y = rownames(x = object@data))
   for (ident in idents.use) {
     cells.1 <- names(x = object@ident)[object@ident == ident]
     cells.2 <- names(x = object@ident)[object@ident != ident]
@@ -870,7 +870,7 @@ CalcInsitu <- function(
   use.imputed = FALSE,
   bleach.use = 0
 ) {
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@final.prob))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@final.prob))
   probs.use <- object@final.prob
   if (use.imputed) {
     data.use <- exp(x = object@imputed) - 1
@@ -977,7 +977,7 @@ FitGeneK <- function(
   data.use <- data[gene, ]
   names(x = data.use) <- colnames(x = data.use)
   scale.data <- t(x = scale(x = t(x = object@imputed)))
-  genes.use <- set.ifnull(x = genes.use,y = rownames(x = scale.data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = scale.data))
   genes.use <- genes.use[genes.use %in% rownames(x = scale.data)]
   scale.data <- scale.data[genes.use, ]
   data.cut <- as.numeric(x = data.use[gene, ])
@@ -1220,7 +1220,7 @@ AddSmoothedScore <- function(
   do.log = FALSE,
   do.print = FALSE
 ) {
-  genes.fit <- set.ifnull(x = genes.fit, y = object@var.genes)
+  genes.fit <- SetIfNull(x = genes.fit, default = object@var.genes)
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
   dim.code <- GetDimReduction(
     object = object,
@@ -1292,8 +1292,8 @@ AddImputedScore <- function(
   do.print = FALSE,
   gram = TRUE
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = object@var.genes)
-  genes.fit <- set.ifnull(x = genes.fit, y = object@var.genes)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  genes.fit <- SetIfNull(x = genes.fit, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
   lasso.input <- t(x = object@data[genes.use, ])
@@ -1347,7 +1347,7 @@ GetNewScore <- function(
   } else {
     score.genes <- score.genes[score.genes %in% rownames(x = object@wt.matrix)]
   }
-  cell.ids <- set.ifnull(x = cell.ids, y = colnames(x = data.use))
+  cell.ids <- SetIfNull(x = cell.ids, default = colnames(x = data.use))
   wt.matrix <- data.frame(
     matrix(
       data = 1,
@@ -1367,7 +1367,7 @@ GetNewScore <- function(
   if (no.tech.wt) {
     wt.matrix[wt.matrix < 1] = 1
   }
-  biol.wts <- set.ifnull(x = biol.wts, y = rep(x = 1, nrow(x = wt.matrix)))
+  biol.wts <- SetIfNull(x = biol.wts, default = rep(x = 1, nrow(x = wt.matrix)))
   if (mean(x = biol.wts) == 1) {
     names(x = biol.wts) <- score.genes
   }
@@ -1396,8 +1396,8 @@ CalcNoiseModels <- function(
   drop.expr = 1
 ) {
   object@drop.expr <- drop.expr
-  cell.ids <- set.ifnull(x = cell.ids, y = 1:ncol(x = object@data))
-  trusted.genes <- set.ifnull(x = trusted.genes, y = rownames(x = object@data))
+  cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
+  trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
   trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
   object@trusted.genes <- trusted.genes
   data <- object@data[trusted.genes, ]
@@ -1438,7 +1438,7 @@ SpatialDe <- function(object, marker.cells, genes.use = NULL) {
     mult.use.far <- 1
     mult.use <- 1
   }
-  genes.use <- set.ifnull(x = genes.use, y = object@var.genes)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   marker.pos <- apply(X = embed.map[marker.cells, ], MARGIN = 2, FUN = mean)
   embed.map <- rbind(embed.map, marker.pos)
   rownames(x = embed.map)[nrow(x = embed.map)] <- "marker"
@@ -1536,7 +1536,7 @@ KClustDimension <- function(
   seed.use = 1,
   ...
 ) {
-  cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   dim.code <- "PC"
   if (reduction.use == "pca") {
     data.plot <- object@pca.rot[cells.use, ]
@@ -1642,7 +1642,7 @@ PCASigGenes <- function(
 #'
 HeatmapNode <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
   tree <- object@cluster.tree[[1]]
-  node <- set.ifnull(node, min(marker.list$cluster))
+  node <- SetIfNull(x = node, default = min(marker.list$cluster))
   node.order <- c(node, DFT(tree = tree, node = node))
   marker.list$rank <- seq(1:nrow(x = marker.list))
   marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>%
@@ -1756,7 +1756,7 @@ DoKMeans <- function(
     revFxn <- same
   }
   kmeans.col <- NULL
-  genes.use <- set.ifnull(x = genes.use, y = object@var.genes)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
   cells.use <- object@cell.names
   kmeans.data <- data.use[genes.use, cells.use]
@@ -1865,9 +1865,9 @@ KMeansHeatmap <- function(
   row.lines = TRUE,
   ...
 ) {
-  genes.cluster <- set.ifnull(
+  genes.cluster <- SetIfNull(
     x = genes.cluster,
-    y = unique(x = object@kmeans.obj[[1]]$cluster)
+    default = unique(x = object@kmeans.obj[[1]]$cluster)
   )
   genes.use <- GenesInCluster(
     object = object,
@@ -1914,8 +1914,8 @@ CellCorMatrix <- function(
   pcs.use = 1:3,
   col.use = pyCols
 ) {
-  cor.genes <- set.ifnull(x = cor.genes, y = object@var.genes)
-  cell.inds <- set.ifnull(x = cell.inds, y = colnames(x = object@data))
+  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
   data.cor <- object@scale.data[cor.genes, cell.inds]
   cor.matrix <- cor(x = data.cor)
@@ -1972,8 +1972,8 @@ GeneCorMatrix <- function(
   pcs.use = 1:3,
   col.use = pyCols
 ) {
-  cor.genes <- set.ifnull(x = cor.genes, y = object@var.genes)
-  cell.inds <- set.ifnull(x = cell.inds, y = colnames(x = object@data))
+  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
   data.cor <- object@data[cor.genes, cell.inds]
   cor.matrix <- cor(x = t(x = data.cor))
@@ -2142,11 +2142,11 @@ GeneScorePlot <- function(
   cex.use = 2,
   ...
 ) {
-  cell.ids <- set.ifnull(x = cell.ids, y = colnames(x = object@data))
+  cell.ids <- SetIfNull(x = cell.ids, default = colnames(x = object@data))
   g1 <- as.numeric(x = object@data[gene1, cell.ids])
   my.score <- retreiveScore(object, score.name)
   s1 <- as.numeric(x = my.score[cell.ids])
-  col.use <- set.ifnull(as.numeric(x = as.factor(x = object@ident[cell.ids])))
+  col.use <- SetIfNull(as.numeric(x = as.factor(x = object@ident[cell.ids])))
   gene.cor <- round(x = cor(x = g1, y = s1), digits = 2)
   smoothScatter(
     x = g1,

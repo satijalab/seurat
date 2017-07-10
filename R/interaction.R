@@ -112,7 +112,7 @@ MergeSeurat <- function(
   object1@data.info <- object1@data.info[object1@cell.names, ]
   object2@data.info <- object2@data.info[object2@cell.names, ]
   new.object <- new(Class = "seurat", raw.data = merged.raw.data)
-  project <- set.ifnull(project, object1@project.name)
+  project <- SetIfNull(x = project, default = object1@project.name)
   object1@data.info$cell.name <- rownames(x = object1@data.info)
   object2@data.info$cell.name <- rownames(x = object2@data.info)
   merged.meta.data <- suppressMessages(
@@ -236,7 +236,7 @@ AddSamples <- function(
       )
     )
   }
-  project <- set.ifnull(project, object@project.name)
+  project <- SetIfNull(x = project, default = object@project.name)
   new.object <- Setup(
     new.object,
     project,
@@ -298,7 +298,7 @@ SubsetData <- function(
   ...
 ) {
   data.use <- NULL
-  cells.use <- set.ifnull(cells.use,object@cell.names)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   if (!is.null(x = ident.use)) {
     ident.use <- anotinb(ident.use, ident.remove)
     cells.use <- WhichCells(object, ident.use)
@@ -514,7 +514,7 @@ FetchData <- function(
   use.scaled = FALSE,
   use.raw = FALSE
 ) {
-  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   data.return <- data.frame(row.names = cells.use)
   data.expression <- as.matrix(x = data.frame(row.names = cells.use))
   # if any vars passed are genes, subset expression data
@@ -679,8 +679,8 @@ WhichCells <- function(
   random.seed = 1
 ) {
   set.seed(seed = random.seed)
-  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
-  ident <- set.ifnull(x = ident, y = unique(x = object@ident))
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  ident <- SetIfNull(x = ident, default = unique(x = object@ident))
   ident <- anotinb(x = ident, y = ident.remove)
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
@@ -728,7 +728,7 @@ WhichCells <- function(
 #' @export
 #'
 SetAllIdent <- function(object, id = NULL) {
-  id <- set.ifnull(x = id, y = "orig.ident")
+  id <- SetIfNull(x = id, default = "orig.ident")
   if (id %in% colnames(x = object@data.info)) {
     cells.use <- rownames(x = object@data.info)
     ident.use <- object@data.info[, id]
@@ -805,7 +805,7 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #' @export
 #'
 SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
-  cells.use <- set.ifnull(x = cells.use, y = object@cell.names)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   if (length(x = anotinb(x = cells.use, y = object@cell.names) > 0)) {
     stop(paste(
       "ERROR : Cannot find cells ",

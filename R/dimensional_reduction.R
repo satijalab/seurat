@@ -204,7 +204,7 @@ RunTSNE <- function(
     if (length(x = object@scale.data) == 0) {
       stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
     }
-    cells.use <- set.ifnull(x = cells.use, y = colnames(x = object@scale.data))
+    cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@scale.data))
     genes.use <- ainb(a = genes.use, b = rownames(x = object@scale.data))
     data.use <- t(x = object@scale.data[genes.use, cells.use])
   }

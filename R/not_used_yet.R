@@ -47,7 +47,7 @@ RegressOutNBreg <- function(
   pr.clip.range = c(-30, 30),
   min.theta = 0.01
 ) {
-  genes.regress <- set.ifnull(genes.regress, rownames(x = object@data))
+  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- ainb(genes.regress,rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
   latent.data <- FetchData(object = object, vars.all = latent.vars)
@@ -124,7 +124,7 @@ RegressOutNBreg <- function(
   pr.clip.range = c(-30, 30),
   min.theta = 0.01
 ) {
-  genes.regress <- set.ifnull(genes.regress, rownames(x = object@data))
+  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- ainb(genes.regress, rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop=FALSE]
   latent.data <- FetchData(boject = object, vars.all = latent.vars)

@@ -209,9 +209,9 @@ ScaleData <- function(
   do.center = TRUE,
   scale.max = 10
 ) {
-  genes.use <- set.ifnull(genes.use,rownames(object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   genes.use <- ainb(genes.use,rownames(object@data))
-  data.use <- set.ifnull(data.use,object@data[genes.use, ])
+  data.use <- SetIfNull(x = data.use, default = object@data[genes.use, ])
   object@scale.data <- matrix(
     data = NA,
     nrow = length(x = genes.use),
@@ -276,14 +276,14 @@ FastScaleData <- function(
   assay.type = "RNA"
 ) {
   orig.data <- GetAssayData(object = object, assay.type,"data")
-  genes.use <- set.ifnull(genes.use, rownames(x = orig.data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = orig.data))
   genes.use <- as.vector(
     x = intersect(
       x = genes.use,
       y = rownames(x = orig.data)
     )
   )
-  data.use <- set.ifnull(data.use, orig.data[genes.use, ])
+  data.use <- SetIfNull(x = data.use, default = orig.data[genes.use, ])
   if (ncol(x = data.use) > 50000) {
     return(ScaleData(
       object = object,
@@ -439,7 +439,7 @@ RegressOut <- function(
       )
     )
   }
-  genes.regress <- set.ifnull(genes.regress,rownames(object@data))
+  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- ainb(genes.regress,rownames(object@data))
   latent.data <- FetchData(object = object, vars.all = latent.vars)
   bin.size <- 100

@@ -127,7 +127,7 @@ JackStrawPermutationTest <- function(
   do.print = TRUE,
   k.seed = 1
 ) {
-  genes.use <- set.ifnull(x = genes.use, y = rownames(x = object@pca.x))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@pca.x))
   genes.use <- ainb(a = genes.use, b = rownames(x = object@scale.data))
   data.use <- t(x = as.matrix(x = object@scale.data[genes.use, ]))
   if (do.print) {
