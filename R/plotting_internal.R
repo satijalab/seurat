@@ -539,6 +539,8 @@ NoGrid <- function(...) {
 # Reset the graphing space to
 # mfrow = c(1, 1)
 #
-ResetPar <- function() {
-  par(mfrow = c(1, 1))
+# @param ... Extra parameters for par
+#
+ResetPar <- function(...) {
+  par(mfrow = c(1, 1), ...)
 }
