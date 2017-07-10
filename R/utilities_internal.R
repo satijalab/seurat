@@ -37,21 +37,21 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 # @param x          Vector of values
 # @param threshold  Threshold to use when calculating percentage
 #
-# @return           Returns the percentage of `x` values above the given 
+# @return           Returns the percentage of `x` values above the given
 #                   threshold
 #
 PercentAbove <- function(x, threshold){
   return(length(x = x[x > threshold]) / length(x = x))
 }
 
-# Calculate position along a defined reference range for a given vector of 
-# numerics. Will range from 0 to 1. 
+# Calculate position along a defined reference range for a given vector of
+# numerics. Will range from 0 to 1.
 #
-# @param x      Vector of numeric type 
+# @param x      Vector of numeric type
 # @param lower  Lower end of reference range
 # @param upper  Upper end of reference range
 #
-# @return       Returns a vector that describes the position of each element in 
+# @return       Returns a vector that describes the position of each element in
 #               x along the defined reference range
 
 ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
@@ -83,7 +83,7 @@ MapVals <- function(v, from, to){
 # @param slot.name   slot to fill
 # @param old.object  object to get slot value from
 # @param new.slot    object to set slot value in
-# 
+#
 # @return            returns new object with slot filled
 #
 FillSlot <- function(slot.name, old.object, new.object){
@@ -117,7 +117,7 @@ FisherIntegrate <- function(pvals) {
 
 # Function to get all the descendants on a tree left of a given node
 #
-# @param tree  Tree object (from ape package) 
+# @param tree  Tree object (from ape package)
 # @param node  Internal node in the tree
 #
 # @return      Returns all descendants left of the given node
@@ -134,7 +134,7 @@ GetLeftDescendants <- function(tree, node) {
 
 # Function to get all the descendants on a tree right of a given node
 #
-# @param tree  Tree object (from ape package) 
+# @param tree  Tree object (from ape package)
 # @param node  Internal node in the tree
 #
 # @return      Returns all descendants right of the given node
@@ -151,7 +151,7 @@ GetRightDescendants <- function(tree, node) {
 
 # Function to get all the descendants on a tree of a given node
 #
-# @param tree  Tree object (from ape package) 
+# @param tree  Tree object (from ape package)
 # @param node  Internal node in the tree
 #
 # @return      Returns all descendants of the given node
@@ -173,12 +173,12 @@ GetDescendants <- function(tree, node, curr = NULL) {
 
 # Depth first traversal path of a given tree
 #
-# @param tree              Tree object (from ape package) 
+# @param tree              Tree object (from ape package)
 # @param node              Internal node in the tree
 # @param path              Path through the tree (for recursion)
 # @param include.children  Include children in the output path
 # @param only.children     Only include children in the output path
-# @return                  Returns a vector representing the depth first 
+# @return                  Returns a vector representing the depth first
 #                          traversal path
 #
 DFT <- function(
@@ -231,10 +231,10 @@ DFT <- function(
 
 # Function to check whether a given node in a tree has a child (leaf node)
 #
-# @param tree   Tree object (from ape package) 
+# @param tree   Tree object (from ape package)
 # @param node   Internal node in the tree
 #
-# @return       Returns a Boolean of whether the given node is connected to a 
+# @return       Returns a Boolean of whether the given node is connected to a
 #               terminal leaf node
 
 NodeHasChild <- function(tree, node) {
@@ -244,10 +244,10 @@ NodeHasChild <- function(tree, node) {
 
 # Function to check whether a given node in a tree has only children(leaf nodes)
 #
-# @param tree   Tree object (from ape package) 
+# @param tree   Tree object (from ape package)
 # @param node   Internal node in the tree
 #
-# @return       Returns a Boolean of whether the given node is connected to only 
+# @return       Returns a Boolean of whether the given node is connected to only
 #               terminal leaf nodes
 
 NodeHasOnlyChildren <- function(tree, node) {
@@ -257,10 +257,23 @@ NodeHasOnlyChildren <- function(tree, node) {
 
 # Function to return all internal (non-terminal) nodes in a given tree
 #
-# @param tree   Tree object (from ape package) 
+# @param tree   Tree object (from ape package)
 #
 # @return       Returns a vector of all internal nodes for the given tree
 #
 GetAllInternalNodes <- function(tree) {
   return(c(tree$edge[1, 1], DFT(tree = tree, node = tree$edge[1, 1])))
+}
+
+# Weighted Euclidean Distance
+#
+# @param x Dataset 1
+# @param y Dataset 2
+# @param w Weights
+#
+# @return The Weighted Euclidian Distance (numeric)
+#
+WeightedEuclideanDistance <- function(x, y, w) {
+  v.dist <- sum(sqrt(x = w * (x - y) ^ 2))
+  return(v.dist)
 }

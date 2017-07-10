@@ -93,13 +93,6 @@ calc.drop.prob <- function(x, a, b) {
 
 #   Documentation...
 ####################
-weighted.euclidean <- function(x, y, w) {
-  v.dist <- sum(sqrt(x = w * (x - y) ^ 2))
-  return(v.dist)
-}
-
-#   Documentation...
-####################
 #from Jean Fan - thanks!!
 custom.dist <- function(my.mat, my.function, ...) {
   n <- ncol(x = my.mat)
@@ -128,7 +121,7 @@ custom.dist <- function(my.mat, my.function, ...) {
 #' variable genes (object@@var.genes). Assumes pcs.use=NULL (tree calculated in
 #' gene expression space)
 #' @param pcs.use If set, tree is calculated in PCA space, using the
-#' eigenvalue-weighted euclidean distance across these PC scores.
+#' eigenvalue-WeightedEucleideanDist distance across these PC scores.
 #' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
 #' @param do.plot Plot the resulting phylogenetic tree
 #' @param do.reorder Re-order identity classes (factor ordering), according to
@@ -171,9 +164,9 @@ BuildClusterTree <- function(
     data.weights <- (data.eigenval / sum(data.eigenval))[pcs.use]
     data.weights <- data.weights / sum(data.weights)
     data.dist <- custom.dist(
-      data.pca[pcs.use, ],
-      weighted.euclidean,
-      data.weights
+      my.mat = data.pca[pcs.use, ],
+      my.function = WeightedEuclideanDist,
+      w = data.weights
     )
   }
   if (! is.null(x = SNN.use)) {
