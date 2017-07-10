@@ -300,7 +300,11 @@ RunDiffusion <- function(
 ) {
   cells.use <- set.ifnull(cells.use, colnames(x = object@data))
   if (is.null(x = genes.use)) {
-    dim.code <- translate.dim.code(object = object, object = reduction.use)
+    dim.code <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = 'key'
+    )
     dim.codes <- paste0(dim.code, dims.use)
     data.use <- FetchData(object = object, vars.all = dim.codes)
   }
@@ -1225,7 +1229,11 @@ AddSmoothedScore <- function(
 ) {
   genes.fit <- set.ifnull(x = genes.fit, y = object@var.genes)
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
-  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- FetchData(object = object, vars.all = dim.codes)
   knn.smooth <- get.knn(data = data.plot, k = k)$nn.index
@@ -1427,18 +1435,6 @@ CalcNoiseModels <- function(
 
 # Documentation
 ###############
-translate.dim.code <- function(object, reduction.use) {
-  if (is.null(x = reduction.use)) {
-    return.code <- "PC"
-  }
-  else {
-    return.code <- object@dr[[reduction.use]]@key
-  }
-  return(return.code)
-}
-
-# Documentation
-###############
 #Cool, but not supported right now
 SpatialDe <- function(object, marker.cells, genes.use = NULL) {
   object <- p15
@@ -1505,7 +1501,11 @@ DBClustDimension <- function(
   seed.use = 1,
   ...
 ) {
-  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- FetchData(object = object, vars.all = dim.codes)
   x1 <- paste0(dim.code, dim.1)

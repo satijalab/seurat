@@ -751,7 +751,11 @@ FeaturePlot <- function(
     nCol <- 1
   }
   par(mfrow = c(num.row, nCol))
-  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- FetchData(
     object = object,
@@ -938,7 +942,11 @@ FeatureHeatmap <- function(
   }
   idents.use <- set.ifnull(x = idents.use, y = sort(x = unique(x = object@ident)))
   par(mfrow = c(length(x = features.plot), length(x = idents.use)))
-  dim.code <- translate.dim.code(object = object, reduction.use = reduction.use)
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- data.frame(FetchData(
     object = object,
