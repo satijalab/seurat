@@ -24,7 +24,7 @@ are listed below.
    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
-   \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
+   \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
@@ -40,7 +40,6 @@ are listed below.
    phylogenetic tree relating different identity classes }
    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-
 }
 }
 

@@ -66,7 +66,8 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 # @param from  vector of original values
 # @param to    vector of values to map original values to (should be of equal
 #              length as from)
-
+# @return      returns vector of mapped values
+#
 MapVals <- function(v, from, to){
   if (length(from) != length(to)) {
     stop("from and to vectors are not the equal length.")
@@ -75,6 +76,29 @@ MapVals <- function(v, from, to){
   vals.to.match.idx  <- !is.na(vals.to.match)
   v[vals.to.match.idx] <- to[vals.to.match[vals.to.match.idx]]
   return(v)
+}
+
+# Fills slot in new object with equivalent slot in old object if it still exists
+#
+# @param slot.name   slot to fill
+# @param old.object  object to get slot value from
+# @param new.slot    object to set slot value in
+# 
+# @return            returns new object with slot filled
+#
+FillSlot <- function(slot.name, old.object, new.object){
+  new.slot <- tryCatch(
+    {
+      slot(object = old.object, name = slot.name)
+    },
+    error = function(err){
+      return(NULL)
+    }
+  )
+  if(!is.null(x = new.slot)) {
+    slot(new.object, slot.name) <- new.slot
+  }
+  return(new.object)
 }
 
 

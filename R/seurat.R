@@ -20,7 +20,7 @@
 #'    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
 #'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
 #'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
-#'    \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
+#'    \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
 #'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
@@ -36,7 +36,6 @@
 #'    phylogenetic tree relating different identity classes }
 #'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
 #'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-#'
 #'}
 #' @name seurat
 #' @rdname seurat
@@ -53,7 +52,7 @@ seurat <- setClass(
     scale.data = "ANY",
     var.genes = "vector",
     is.expr = "numeric",
-    ident = "vector",
+    ident = "factor",
     dr = "list",
     assay = "list",
     emp.pval = "data.frame",
@@ -82,134 +81,9 @@ seurat <- setClass(
     cell.names = "vector",
     cluster.tree = "list",
     snn = "dgCMatrix",
-    snn.k="numeric"
+    snn.k = "numeric"
   )
 )
-
-#' Convert old Seurat object to accomodate new features
-#'
-#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA
-#' analyses to new slot. Moves snn to new slot.
-#'
-#' @param object Seurat object
-#'
-#' @return Returns a Seurat object compatible with latest changes
-#'
-#' @export
-#'
-ConvertSeurat <- function(object) {
-    if (! (.hasSlot(object = object, name = "assay"))) {
-        object@assay=list()
-    }
-    if ((.hasSlot(object,"dr"))) {
-        return(object)
-    }
-    object@dr <- list()
-    pca.x <- matrix()
-    pca.x.full <- matrix()
-    pca.rotation <- matrix()
-    pca.sdev <- numeric()
-    pca.misc <- NULL
-    if (length(x = object@pca.x) > 0) {
-        pca.x <- as.matrix(object@pca.x)
-    }
-    if (length(x = object@pca.x.full) > 0) {
-        pca.x.full <- as.matrix(object@pca.x.full)
-    }
-    if (length(x = object@pca.rot) > 0) {
-        pca.rotation <- as.matrix(object@pca.rot)
-    }
-    if (length(x = object@pca.obj) > 0) {
-        pca.sdev <- object@pca.obj[[1]]$sdev
-        if (is.null(x = pca.sdev)) {
-            pca.sdev <- object@pca.obj[[1]]$d
-        }
-        pca.misc <- object@pca.obj[[1]]
-    }
-    pca.checks <- c(
-        vapply(
-            X = list(pca.x, pca.x.full, pca.rotation),
-            FUN = function(pca) {
-                return(length(x = pca) > 1)
-            },
-            FUN.VALUE = logical(1)
-        ),
-        length(x = pca.sdev) > 0,
-        ! is.null(x = pca.misc)
-    )
-    # if(length(pca.x) > 1 || length(pca.x.full) > 1 || length(pca.rotation) > 1 || length(pca.sdev) > 0 || !is.null(pca.misc)) {
-    if (all(pca.checks)) {
-        pca.obj <- new(
-            Class = "dim.reduction",
-            gene.loadings = pca.x,
-            gene.loadings.full = pca.x.full,
-            cell.embeddings = pca.rotation,
-            sdev = pca.sdev,
-            key = "PC",
-            misc = pca.misc
-        )
-        object@dr$pca <- pca.obj
-    }
-    ica.x <- matrix()
-    ica.rotation <- matrix()
-    ica.sdev <- numeric()
-    ica.misc <- NULL
-    if (length(x = object@ica.x) > 0) {
-        ica.x <- as.matrix(object@ica.x)
-    }
-    if (length(x = object@ica.rot) > 0) {
-        ica.rotation <- as.matrix(object@ica.rot)
-    }
-    if (length(x = object@ica.obj) > 0) {
-        ica.sdev <- sqrt(object@ica.obj[[1]]$vafs)
-        ica.misc <- object@ica.obj[[1]]
-    }
-    ica.checks <- c(
-        vapply(
-            X = list(ica.x, ica.rotation),
-            FUN = function(ica) {
-                return(length(x = ica) > 1)
-            },
-            FUN.VALUE = logical(1)
-        ),
-        length(x = ica.sdev) > 0,
-        ! is.null(x = ica.misc)
-    )
-  # if(length(ica.x) > 1 || length(ica.rotation) > 1 || length(ica.sdev) > 0  || !is.null(ica.misc)) {
-    if (all(ica.checks)) {
-        ica.obj <- new(
-            "dim.reduction",
-            gene.loadings = ica.x,
-            cell.embeddings = ica.rotation,
-            sdev = ica.sdev,
-            key = "IC",
-            misc = "ica.misc"
-        )
-        object@dr$ica <- ica.obj
-    }
-    tsne.rotation <- matrix()
-    if (length(x = object@tsne.rot) > 0) {
-        tsne.rotation <- as.matrix(object@tsne.rot)
-    }
-    if (length(x = tsne.rotation) > 1) {
-        tsne.obj <- new(
-            "dim.reduction",
-            cell.embeddings = tsne.rotation,
-            key = "tSNE_"
-        )
-        object@dr$tsne <- tsne.obj
-    }
-    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-      if (class(object@snn.dense) == "data.frame") {
-        object@snn.dense <- as.matrix(x = object@snn.dense)
-      }
-      object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
-    }
-    else{
-      object@snn <- object@snn.sparse
-    }
-    return(object)
-}
 
 #' Classify New Data
 #'
