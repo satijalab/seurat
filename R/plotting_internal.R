@@ -533,3 +533,12 @@ NoGrid <- function(...) {
   )
   return(no.grid)
 }
+
+# Reset Par
+#
+# Reset the graphing space to
+# mfrow = c(1, 1)
+#
+ResetPar <- function() {
+  par(mfrow = c(1, 1))
+}

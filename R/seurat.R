@@ -847,7 +847,7 @@ MapCell <- function(
       col = bwCols
     )
     aheatmap(x = scale.probs, Rowv = NA, Colv = NA)
-    rp()
+    ResetPar()
   }
   return(total.prob)
 }
@@ -2058,7 +2058,7 @@ CalinskiPlot <- function(
     xlab = "Number of Clusters for Cells",
     ylab = "Within groups sum of squares"
   )
-  rp()
+  ResetPar()
   return(object)
 }
 

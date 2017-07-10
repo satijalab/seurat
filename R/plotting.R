@@ -876,7 +876,7 @@ FeaturePlot <- function(
   } else {
     MultiPlotList(pList, cols = nCol)
   }
-  rp()
+  ResetPar()
   if (do.return){
     return(pList)
   }
@@ -2168,7 +2168,7 @@ VizDimReduction <- function(
       cex.axis = font.size
     )
   }
-  rp()
+  ResetPar()
 }
 
 #' Visualize PCA genes

@@ -164,7 +164,7 @@ compareBins <- function(object, cell.use, bin.1, bin.2, bins.mu, bins.cov) {
     )
     points(x = data.use[g], y = 0, cex = 1.6, col = "darkgreen", pch = 16)
   }
-  #rp()
+  #ResetPar()
 }
 
 #' @export
@@ -650,7 +650,7 @@ makeAlnPlot <- function(proj) {
     ylim = c(0, mymax)
   )
   text(x = x, y = mymax - 10, labels = alnData$V2)
-  rp()
+  ResetPar()
 }
 
 meanVarPlot <- function(x, ...) {
@@ -971,11 +971,6 @@ auc <- function(data, score, real, n = 20) {
 
 #' @export
 pyCols <- myPalette(low = "magenta", high = "yellow", mid = "black")
-
-#' @export
-rp <- function() {
-  par(mfrow = c(1, 1))
-}
 
 calcResidLog <- function(x1, y1, mcut = 30, toAdd = 1) {
   touse <- which(x = (x1 > mcut) & (y1 > mcut))
