@@ -273,6 +273,53 @@ PrintCCAParams <- function(object, raw = FALSE){
   }
 }
 
+#' Print Parameters Associated with CalcVarExpRatio
+#'
+#' Print the parameters chosen for CalcVarExpRatio.
+#' 
+#' @param object Seurat object
+#' @param raw Print the entire contents of the calculation metadata slot 
+#' (calc.params) for CalcVarExpRatio. Default (FALSE) will print a nicely 
+#' formatted summary.
+#' @return No return value. Only prints to console.
+#' @export
+PrintCalcVarExpRatioParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$CalcVarExpRatio)){
+    stop("CalcVarExpRatio has not been computed yet")
+  }
+  if (raw){
+    print(object@calc.params$CalcVarExpRatio)
+  }
+  else{
+    cat(paste0("Parameters used in latest CalcVarExpRatio run on: ", 
+               GetCalcParam(object = object, 
+                            calculation = "PCA", 
+                            parameter = "time"), 
+               "\n"))
+    cat("=============================================================================\n")
+    cat(paste0("Reduction Type    Grouping Variable \n"))
+    reduction <- GetCalcParam(object = object, 
+                              calculation = "CalcVarExpRatio", 
+                              parameter = "reduction.type")
+    grouping.var <- GetCalcParam(object = object, 
+                                 calculation = "CalcVarExpRatio", 
+                                 parameter = "grouping.var")
+    dims.use <- GetCalcParam(object = object, 
+                             calculation = "CalcVarExpRatio", 
+                             parameter = "dims.use")
+    cat(paste0(" ", 
+               reduction, 
+               FillWhiteSpace(n = 20 - nchar(reduction)),
+               grouping.var,
+               "\n"))
+    cat("-----------------------------------------------------------------------------\n")
+    cat("Dims used in calculation\n")
+    cat(paste0(strwrap(paste(dims.use, "\n", collapse = " "), width = 80), 
+               collapse = "\n"))
+  }
+}
+
+
 #' Print SNN Construction Calculation Parameters
 #'
 #' Print the parameters chosen for the latest stored SNN calculation (via BuildSNN or FindClusters).
