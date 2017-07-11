@@ -369,9 +369,9 @@ SubsetData <- function(
   }
   #object@tsne.rot=object@tsne.rot[cells.use, ]
   object@cell.names <- cells.use
-  object@gene.scores <- data.frame(object@gene.scores[cells.use,])
-  colnames(x = object@gene.scores)[1] <- "nGene"
-  rownames(x = object@gene.scores) <- colnames(x = object@data)
+  # object@gene.scores <- data.frame(object@gene.scores[cells.use,])
+  # colnames(x = object@gene.scores)[1] <- "nGene"
+  # rownames(x = object@gene.scores) <- colnames(x = object@data)
   object@data.info <- data.frame(object@data.info[cells.use,])
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
   return(object)

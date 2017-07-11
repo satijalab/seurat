@@ -89,6 +89,7 @@
 \alias{writ.table}
 \alias{jackRandom}
 \alias{MeanVarPlot}
+\alias{HeatmapNode}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 setup(...)

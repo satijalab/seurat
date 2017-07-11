@@ -1327,67 +1327,6 @@ AddImputedScore <- function(
 
 # Documentation
 ###############
-# Not currently supported, but a cool scoring function
-#' @export
-GetNewScore <- function(
-  object,
-  score.name,
-  score.genes,
-  cell.ids = NULL,
-  score.func = weighted.mean,
-  scramble = FALSE,
-  no.tech.wt = FALSE,
-  biol.wts = NULL,
-  use.scaled = FALSE
-) {
-  data.use <- object@data
-  if (use.scaled) {
-    data.use <- minmax(data = object@scale.data, min = -2, max=2)
-  }
-  if (no.tech.wt) {
-    score.genes <- score.genes[score.genes %in% rownames(x = data.use)]
-  } else {
-    score.genes <- score.genes[score.genes %in% rownames(x = object@wt.matrix)]
-  }
-  cell.ids <- SetIfNull(x = cell.ids, default = colnames(x = data.use))
-  wt.matrix <- data.frame(
-    matrix(
-      data = 1,
-      nrow = length(x = score.genes),
-      ncol = length(x = cell.ids),
-      dimnames = list(score.genes, cell.ids)
-    )
-  )
-  if (! (no.tech.wt)) {
-    wt.matrix <- object@drop.wt.matrix[score.genes, cell.ids]
-  }
-  score.data <- data.use[score.genes, cell.ids]
-  if (scramble) {
-    score.data <- score.data[, sample(x = ncol(x = score.data))]
-  }
-  wt.matrix <- wt.matrix * (wt.matrix)
-  if (no.tech.wt) {
-    wt.matrix[wt.matrix < 1] = 1
-  }
-  biol.wts <- SetIfNull(x = biol.wts, default = rep(x = 1, nrow(x = wt.matrix)))
-  if (mean(x = biol.wts) == 1) {
-    names(x = biol.wts) <- score.genes
-  }
-  my.scores <- unlist(
-    x = lapply(
-      X = colnames(x = score.data),
-      FUN = function(x) {
-        return(score.func(score.data[, x], wt.matrix[, x] * biol.wts[score.genes]))
-      }
-    )
-  )
-  names(x = my.scores) <- colnames(x = score.data)
-  object@gene.scores[cell.ids, score.name] <- my.scores
-  return(object)
-}
-
-# Documentation
-###############
 # Not currently supported, but a cool function for QC
 #' @export
 CalcNoiseModels <- function(
@@ -1622,71 +1561,6 @@ PCASigGenes <- function(
     genes.use <- ainb(a = pc.top.genes, b = genes.use)
   }
   return(genes.use)
-}
-
-#' Node Heatmap
-#'
-#' Takes an object, a marker list (output of FindAllMarkers), and a node
-#' and plots a heatmap where genes are ordered vertically by the splits present
-#' in the object@@cluster.tree slot.
-#'
-#' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
-#' @param marker.list List of marker genes given from the FindAllMarkersNode function
-#' @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
-#' @param max.genes Maximum number of genes to keep for each division
-#' @param ... Additional parameters to pass to DoHeatmap
-#'
-#' @importFrom dplyr %>% group_by filter top_n select
-#'
-#' @return Plots heatmap. No return value.
-#'
-#' @export
-#'
-HeatmapNode <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
-  tree <- object@cluster.tree[[1]]
-  node <- SetIfNull(x = node, default = min(marker.list$cluster))
-  node.order <- c(node, DFT(tree = tree, node = node))
-  marker.list$rank <- seq(1:nrow(x = marker.list))
-  marker.list %>% group_by(cluster) %>% filter(avg_diff > 0) %>%
-    top_n(max.genes, -rank) %>% select(gene, cluster) -> pos.genes
-  marker.list %>% group_by(cluster) %>% filter(avg_diff < 0) %>%
-    top_n(max.genes, -rank) %>% select(gene, cluster) -> neg.genes
-  gene.list <- vector()
-  node.stack <- vector()
-  for (n in node.order) {
-    if (NodeHasChild(tree = tree, node = n)) {
-      gene.list <- c(
-        gene.list,
-        c(
-          subset(x = pos.genes, subset = cluster == n)$gene,
-          subset(x = neg.genes, subset = cluster == n)$gene
-        )
-      )
-      if (NodeHasOnlyChildren(tree = tree, node = n)) {
-        gene.list <- c(
-          gene.list,
-          subset(x = neg.genes, subset = cluster == node.stack[length(node.stack)])$gene
-        )
-        node.stack <- node.stack[-length(x = node.stack)]
-      }
-    }
-    else {
-      gene.list <- c(gene.list, subset(x = pos.genes, subset = cluster == n)$gene)
-      node.stack <- append(x = node.stack, values = n)
-    }
-  }
-  #gene.list <- rev(unique(rev(gene.list)))
-  descendants <- GetDescendants(tree = tree, node = node)
-  children <- descendants[!descendants %in% tree$edge[, 1]]
-  all.children <- tree$edge[,2][!tree$edge[,2] %in% tree$edge[, 1]]
-  DoHeatmap(
-    object = object,
-    cells.use = WhichCells(object = object, ident = children),
-    genes.use = gene.list,
-    slim.col.label = TRUE,
-    remove.key = TRUE,
-    ...
-  )
 }
 
 # Documentation
