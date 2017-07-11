@@ -232,7 +232,7 @@ RunTSNE <- function(
     }
     data.tsne <- data.tsne$Y
   } else {
-    data.tsne <- tsne(x = data.use, k = dim.embed, ...)
+    data.tsne <- tsne(X = data.use, k = dim.embed, ...)
   }
   if (add.iter > 0) {
     data.tsne <- tsne(
@@ -256,6 +256,12 @@ RunTSNE <- function(
     slot = "key",
     new.data = "tSNE_"
   )
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
+  object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
+  if(!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
+    object@calc.params$RunTSNE$genes.use <- colnames(data.use)
+    object@calc.params$RunTSNE$cells.use <- rownames(data.use)
+  }
   return(object)
 }
 
