@@ -1,6 +1,7 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
-#' Run a PCA dimensionality reduction
+#' Run a PCA dimensionality reduction. For details about stored PCA calculation 
+#' parameters, see \code{\link{PrintPCAParams}}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
@@ -83,7 +84,9 @@ PCA <- function(
 
 #' Run Independent Component Analysis on gene expression
 #'
-#' Run fastica algorithm from the ica package for ICA dimensionality reduction
+#' Run fastica algorithm from the ica package for ICA dimensionality reduction.
+#' For details about stored ICA calculation parameters, see 
+#' \code{\link{PrintICAParams}}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
@@ -158,7 +161,8 @@ ICA <- function(
 #'
 #' Run t-SNE dimensionality reduction on selected features. Has the option of 
 #' running in a reduced dimensional space (i.e. spectral tSNE, recommended), 
-#' or running based on a set of genes
+#' or running based on a set of genes. For details about stored TSNE calculation 
+#' parameters, see \code{\link{PrintTSNEParams}}.
 #'
 #' @param object Seurat object
 #' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for 
@@ -393,9 +397,11 @@ ProjectPCA <- function(
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
+#' For details about stored CCA calculation parameters, see 
+#' \code{\link{PrintCCAParams}}.
 #' 
 #' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object2 will be 
+#' @param object2 Optional second object. If object2 is passed, object1 will be 
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
@@ -556,6 +562,18 @@ RunCCA <- function(
         genes.use = genes.use
       )
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    combined.object <- SetCalcParams(object = combined.object, 
+                                     calculation = "RunCCA",
+                                     ... = parameters.to.store)
+    combined.object <- SetSingleCalcParam(object = combined.object, 
+                                          calculation = "RunCCA", 
+                                          parameter = "object.project", 
+                                          value = object@project.name)
+    combined.object <- SetSingleCalcParam(object = combined.object, 
+                                          calculation = "RunCCA", 
+                                          parameter = "object2.project", 
+                                          value = object2@project.name)
     return(combined.object)
   } else {
     object <- SetDimReduction(
@@ -571,8 +589,14 @@ RunCCA <- function(
       new.data = "CC"
     )
 
-    object <- ProjectDim(object = object, reduction.type = "cca")
+    object <- ProjectDim(object = object, 
+                         reduction.type = "cca",
+                         do.print = FALSE)
     object@scale.data[is.na(x = object@scale.data)] <- 0
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    object <- SetCalcParams(object = object, 
+                                     calculation = "RunCCA",
+                                     ... = parameters.to.store)
     return(object)
   }
 }
@@ -586,8 +610,10 @@ RunCCA <- function(
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number
 #'  stored for cca)
 #'
+#' @return Returns Seurat object with ratio of variance explained stored in 
+#' object@@data.info$var.ratio
 #' @export
-#'
+#' 
 CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",
@@ -606,7 +632,6 @@ CalcVarExpRatio <- function(
   )[, 1]))
   genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
   var.ratio <- data.frame()
-  dr.corr <- data.frame()
   for (group in groups) {
     cat(paste("Calculating for", group, "\n"), file = stderr())
     group.cells <- WhichCells(
@@ -651,15 +676,6 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "pca.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], y = ldp.pca[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else if (reduction.type == "ica") {
       group.object <- ICA(
         object = group.object,
@@ -681,15 +697,6 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "ica.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], ldp.ica[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else if (reduction.type == "pcafast") {
       group.object <- PCAFast(
         object = group.object,
@@ -711,30 +718,14 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "pca.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], ldp.pca[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else {
       stop(paste("reduction.type", reduction.type, "not supported"))
     }
-    dr.corr <- rbind(dr.corr, group.corr)
     var.ratio <- rbind(var.ratio, group.var.ratio)
   }
   var.ratio$cell.name <- rownames(x = var.ratio)
-  dr.corr$cell.name <- rownames(x = dr.corr)
   eval(expr = parse(text = paste0(
     "object@data.info$var.ratio.",
-    reduction.type,
-    "<- NULL"
-  )))
-  eval(expr = parse(text = paste0(
-    "object@data.info$dr.corr.",
     reduction.type,
     "<- NULL"
   )))
@@ -742,13 +733,8 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  colnames(x = dr.corr) <- c(
-    paste0("dr.corr.", reduction.type),
-    "cell.name"
-  )
   object@data.info$cell.name <- rownames(x = object@data.info)
   object@data.info <- merge(x = object@data.info, y = var.ratio, by = "cell.name")
-  object@data.info <- merge(x = object@data.info, y = dr.corr, by = "cell.name")
   rownames(x = object@data.info) <- object@data.info$cell.name
   object@data.info$cell.name <- NULL
   return(object)

@@ -126,7 +126,24 @@ FisherIntegrate <- function(pvals) {
 SetCalcParams <- function(object, calculation, ...) {
   object@calc.params[calculation] <- list(...)
   object@calc.params[[calculation]]$object <- NULL
+  object@calc.params[[calculation]]$object2 <- NULL
   object@calc.params[[calculation]]$time <- Sys.time()
+  return(object)
+}
+
+# Set Single CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param parameter  Parameter for the calculation to set 
+# @param value  Value of parameter to set
+#
+# @return object with the calc.param slot modified to either append this
+# calculation or replace the previous instance of calculation with
+# a new list of parameters
+#
+SetSingleCalcParam <- function(object, calculation, parameter, value) {
+  object@calc.params[[calculation]][parameter] <- value
   return(object)
 }
 
@@ -142,8 +159,22 @@ GetCalcParam <- function(object, calculation, parameter){
   if(parameter == "time"){
     return(object@calc.params[[calculation]][parameter][[1]])
   }
-  return(unlist(object@calc.params[[calculation]][parameter]))
+  return(unname(unlist(object@calc.params[[calculation]][parameter])))
 }
+
+# Return vector of whitespace
+#
+# @param n length of whitespace vector to return
+#
+# @return vector of whitespace
+#
+FillWhiteSpace <- function(n){
+  if(n <= 0){
+    n <- 1
+  }
+  return(paste0(rep(" ", n), collapse = ""))
+}
+
 
 ####################### Tree Related Utilities #################################
 

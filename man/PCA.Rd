@@ -37,5 +37,6 @@ Returns Seurat object with the PCA calculation stored in
 object@dr$pca.
 }
 \description{
-Run a PCA dimensionality reduction
+Run a PCA dimensionality reduction. For details about stored PCA calculation 
+parameters, see \code{\link{PrintPCAParams}}.
 }

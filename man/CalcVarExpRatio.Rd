@@ -17,6 +17,10 @@ pcafast, ica)}
 \item{dims.use}{Vector of dimensions to project onto (default is the 1:number
 stored for cca)}
 }
+\value{
+Returns Seurat object with ratio of variance explained stored in 
+object@data.info$var.ratio
+}
 \description{
 Calculate the ratio of variance explained by ICA or PCA to CCA
 }

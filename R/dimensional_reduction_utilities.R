@@ -379,13 +379,13 @@ DimTopGenes <- function(
   dim.scores <- GetDimReduction(
     object = object,
     reduction.type = reduction.type,
-    slot = "x"
+    slot = "gene.loadings"
   )
   if (use.full) {
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = "x.full"
+      slot = "gene.loadings.full"
     )
   }
   if ((is.null(x = dim.scores)) || (ncol(x = dim.scores) < 2)) {
@@ -409,9 +409,7 @@ DimTopGenes <- function(
     FUN = GetTopGenes,
     dim.scores = dim.scores,
     do.balanced = do.balanced,
-    num.genes = num.genes,
-    reduction.type = reduction.type,
-    key = key
+    num.genes = num.genes
   )))
   return(dim.top.genes)
 }
@@ -610,9 +608,9 @@ PrintDim <- function(
   use.full = FALSE
 ) {
   if (use.full) {
-    slot.use <- "x.full"
+    slot.use <- "gene.loadings.full"
   } else {
-    slot.use <- "x"
+    slot.use <- "gene.loadings"
   }
   dim.scores <- GetDimReduction(
     object = object,

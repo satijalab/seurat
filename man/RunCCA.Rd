@@ -10,7 +10,7 @@ RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
 \arguments{
 \item{object}{Seurat object}
 
-\item{object2}{Optional second object. If object2 is passed, object2 will be 
+\item{object2}{Optional second object. If object2 is passed, object1 will be 
 considered as group1 and object2 as group2.}
 
 \item{group1}{First set of cells (or IDs) for CCA}
@@ -36,4 +36,6 @@ combined object is returned.
 }
 \description{
 Runs a canonical correlation analysis using a diagonal implementation of CCA.
+For details about stored CCA calculation parameters, see 
+\code{\link{PrintCCAParams}}.
 }
