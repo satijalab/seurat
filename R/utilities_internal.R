@@ -113,6 +113,38 @@ FisherIntegrate <- function(pvals) {
   return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
 }
 
+# Set CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param ...  Parameters for the calculation
+#
+# @return object with the calc.param slot modified to either append this
+# calculation or replace the previous instance of calculation with
+# a new list of parameters
+#
+SetCalcParams <- function(object, calculation, ...) {
+  object@calc.params[calculation] <- list(...)
+  object@calc.params[[calculation]]$object <- NULL
+  object@calc.params[[calculation]]$time <- Sys.time()
+  return(object)
+}
+
+# Get CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param parameter  Parameter for the calculation to pull
+#
+# @return parameter value for given calculation
+#
+GetCalcParam <- function(object, calculation, parameter){
+  if(parameter == "time"){
+    return(object@calc.params[[calculation]][parameter][[1]])
+  }
+  return(unlist(object@calc.params[[calculation]][parameter]))
+}
+
 ####################### Tree Related Utilities #################################
 
 # Function to get all the descendants on a tree left of a given node
@@ -286,9 +318,9 @@ WeightedEuclideanDistance <- function(x, y, w) {
 # @return default if x is null, else x
 #
 SetIfNull <- function(x, default) {
-  return(ifelse(
-    test = is.null(x = x),
-    yes = default,
-    no = x
-  ))
+  if(is.null(x = x)){
+    return(default)
+  } else {
+    return(x)
+  }
 }

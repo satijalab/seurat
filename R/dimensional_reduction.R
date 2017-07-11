@@ -72,6 +72,11 @@ PCA <- function(
     key = "PC"
   )
   object@dr$pca <- pca.obj
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("PCA"))]
+  object <- SetCalcParams(object = object, calculation = "PCA", ... = parameters.to.store)
+  if(is.null(object@calc.params$PCA$pc.genes)){
+    object@calc.params$PCA$pc.genes <- rownames(data.use)
+  }
   return(object)
 }
 

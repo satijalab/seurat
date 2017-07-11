@@ -57,6 +57,8 @@ BuildSNN <- function(
   } else {
       stop("Data error!")
   }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
+  object <- SetCalcParams(object, "BuildSNN", parameters.to.store)
   n.cells <- nrow(x = data.use)
   if (n.cells < k.param) {
     warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")

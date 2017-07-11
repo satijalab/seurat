@@ -36,6 +36,7 @@
 #'    phylogenetic tree relating different identity classes }
 #'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
 #'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
+#'    \item{\code{calc.params}:}{\code{"list"}, Named list to store all calculation related parameters choices}
 #'}
 #' @name seurat
 #' @rdname seurat
@@ -81,7 +82,8 @@ seurat <- setClass(
     cell.names = "vector",
     cluster.tree = "list",
     snn = "dgCMatrix",
-    snn.k = "numeric"
+    snn.k = "numeric",
+    calc.params = "list"
   )
 )
 
