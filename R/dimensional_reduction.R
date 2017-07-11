@@ -626,6 +626,10 @@ CalcVarExpRatio <- function(
   if (missing(x = dims.use)) {
     dims.use <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
   }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CalcVarExpRatio"))]
+  object <- SetCalcParams(object = object, 
+                          calculation = "CalcVarExpRatio",
+                          ... = parameters.to.store)
   groups <- as.vector(x = unique(x = FetchData(
     object = object,
     vars.all = grouping.var
@@ -697,29 +701,8 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "ica.var", drop = FALSE]
-    } else if (reduction.type == "pcafast") {
-      group.object <- PCAFast(
-        object = group.object,
-        ic.genes = genes.use,
-        do.print = FALSE
-      )
-      ldp.pca <- CalcLDProj(
-        object = group.object,
-        reduction.type = "pca",
-        dims.use = dims.use,
-        genes.use = genes.use
-      )
-      group.object <- CalcProjectedVar(
-        object = group.object,
-        low.dim.data = ldp.pca,
-        reduction.type = "pca",
-        dims.use = dims.use,
-        genes.use = genes.use
-      )
-      group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
-        group.object@data.info[, "pca.var", drop = FALSE]
     } else {
-      stop(paste("reduction.type", reduction.type, "not supported"))
+        stop(paste("reduction.type", reduction.type, "not supported"))
     }
     var.ratio <- rbind(var.ratio, group.var.ratio)
   }
