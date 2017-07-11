@@ -73,6 +73,7 @@ Collate:
     'plotting.R'
     'plotting_internal.R'
     'preprocessing.R'
+    'printing_utilities.R'
     'seuratFxns.R'
     'snn.R'
     'spatial.R'

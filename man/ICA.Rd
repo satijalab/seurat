@@ -6,7 +6,7 @@
 \usage{
 ICA(object, ic.genes = NULL, ics.compute = 50, use.imputed = FALSE,
   rev.ica = FALSE, print.results = TRUE, ics.print = 1:5,
-  genes.print = 50, ica.function = icafast, seed.use = 1, ...)
+  genes.print = 50, ica.function = "icafast", seed.use = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,12 +27,12 @@ matrix).}
 
 \item{genes.print}{Number of genes to print for each IC}
 
+\item{ica.function}{ICA function from ica package to run (options: icafast, 
+icaimax, icajade)}
+
 \item{seed.use}{Random seed to use for fastica}
 
 \item{\dots}{Additional arguments to be passed to fastica}
-
-\item{ica.fxn}{ICA function from ica package to run (options: icafast, 
-icaimax, icajade)}
 }
 \value{
 Returns Seurat object with an ICA calculation stored in 

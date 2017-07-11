@@ -95,7 +95,7 @@ PCA <- function(
 #' @param print.results Print the top genes associated with each dimension
 #' @param ics.print ICs to print genes for
 #' @param genes.print Number of genes to print for each IC
-#' @param ica.fxn ICA function from ica package to run (options: icafast, 
+#' @param ica.function ICA function from ica package to run (options: icafast, 
 #' icaimax, icajade)
 #' @param seed.use Random seed to use for fastica
 #' @param \dots Additional arguments to be passed to fastica
@@ -116,7 +116,7 @@ ICA <- function(
   print.results = TRUE,
   ics.print = 1:5,
   genes.print = 50,
-  ica.function = icafast,
+  ica.function = "icafast",
   seed.use = 1,
   ...
 ) {
@@ -126,6 +126,7 @@ ICA <- function(
     use.imputed = use.imputed)
   set.seed(seed = seed.use)
   ics.compute <- min(ics.compute, ncol(x = data.use))
+  ica.fxn <- eval(parse(text = ica.function))
   if (rev.ica) {
     ica.results <- ica.fxn(data.use, nc = ics.compute,...)
     cell.embeddings <- ica.results$M
@@ -134,8 +135,8 @@ ICA <- function(
     cell.embeddings <- ica.results$S
   }
   gene.loadings <- (as.matrix(x = data.use ) %*% as.matrix(x = cell.embeddings))
-  colnames(x = gene.loadings) <- paste0("IC", 1:ncol(x = x))
-  colnames(x = cell.embeddings) <- paste0("IC", 1:ncol(x = x))
+  colnames(x = gene.loadings) <- paste0("IC", 1:ncol(x = gene.loadings))
+  colnames(x = cell.embeddings) <- paste0("IC", 1:ncol(x = cell.embeddings))
   ica.obj <- new(
     Class = "dim.reduction",
     gene.loadings = gene.loadings,
@@ -144,6 +145,11 @@ ICA <- function(
     key = "IC"
   )
   object@dr$ica <- ica.obj
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
+  object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
+  if(is.null(object@calc.params$ICA$ic.genes)){
+    object@calc.params$ICA$ic.genes <- rownames(data.use)
+  }
   return(object)
 }
 
