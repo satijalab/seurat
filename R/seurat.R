@@ -7037,6 +7037,8 @@ MeanVarPlot <- function(
 #'
 #' @param object Seurat object
 #' @param genes.list Gene expression programs in list
+#' @param genes.pool A vector of background genes to choose control gene sets,
+#' default is all genes
 #' @param n.bin Number of bins of aggregate expression levels for all analyzed genes
 #' @param seed.use Random seed for sampling
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
@@ -7054,14 +7056,14 @@ MeanVarPlot <- function(
 AddEnrichScore <- function(
   object,
   genes.list = NULL,
-  n.bin = 20,
+  genes.pool = rownames(object@data),
+  n.bin = 25,
   seed.use = 1,
-  ctrl.size = 20,
+  ctrl.size = 100,
   use.k = FALSE,
   enrich.name = "Cluster"
 ) {
   if (use.k) {
-    genes.k <- names(x = object@kmeans.obj[[1]]$cluster)
     genes.list <- list()
     for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
       genes.list[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
@@ -7071,13 +7073,10 @@ AddEnrichScore <- function(
     if (is.null(x = genes.list)) {
       stop("Missing input gene list")
     }
-    genes.k <- ainb(
-      a = unique(x = unlist(x = genes.list)),
-      b = rownames(x = object@data)
-    )
+    genes.list <- lapply(genes.list,function(x) intersect(x,rownames(object@data)))
     cluster.length <- length(x = genes.list)
   }
-  data.avg <- apply(X = object@data[genes.k, ], MARGIN = 1, FUN = mean)
+  data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
   data.cut <- as.numeric(x = cut2(
     x = data.avg,
@@ -7115,7 +7114,7 @@ AddEnrichScore <- function(
       apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
     )
   }
-
+  
   genes.scores.use <- genes.scores - ctrl.scores
   rownames(x = genes.scores.use) <- paste0(enrich.name, 1:cluster.length)
   genes.scores.use <- t(x = as.data.frame(x = genes.scores.use))
