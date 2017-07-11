@@ -1,4 +1,12 @@
 
+#' Draw 3D in situ predictions from Zebrafish dataset
+#'
+#' From Jeff Farrell
+#'
+#' @param data Predicted expression levels across Zebrafish bins
+#' @param label Plot label
+#'
+#' @export
 situ3d <- function(data, label = NULL, ...) {
   # Call Seurat function to get the in situ values out.
   exp.1 <- data
@@ -35,6 +43,7 @@ situ3d <- function(data, label = NULL, ...) {
   view3d(zoom = .75, theta = 0, phi = -90, fov = 0)
 }
 
+#if we don't use this in the package, we should delete it
 aucFxn <- function(preds, truth, do.plot = FALSE, lab.main = "", ...) {
   pred.use <- ROCR::prediction(
     predictions = preds,
@@ -61,29 +70,18 @@ aucFxn <- function(preds, truth, do.plot = FALSE, lab.main = "", ...) {
   return(auc.use)
 }
 
-#' @export
+#return average of all values greater than a threshold
 humpMean <- function(x, min = 0) {
   return(mean(x = x[x > min]))
 }
 
-#' @export
+#return variance of all values greater than a threshold
 humpVar <- function(x, min = 0) {
   return(var(x = x[x > min]))
 }
 
-debugdmvnorm <- function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) {
-  if (is.vector(x = x)) {
-    x <- matrix(x, ncol = length(x))
-  }
-  p <- ncol(x = x)
-  dec <- tryCatch(chol(x = sigma), error = function(e) e)
-  tmp <- backsolve(r = dec, x = t(x) - mean, transpose = TRUE)
-  rss <- colSums(x = tmp ^ 2)
-  logretval <- -(log(x = diag(x = dec))) - 0.5 * p * log(x = 2 * pi) - 0.5 * rss
-  names(x = logretval) <- names(x = x)
-  return(logretval)
-}
 
+#calculate refined mapping probabilites based on multivariate distribution
 slimdmvnorm <- function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) {
   x <- matrix(data = x, ncol = length(x = x))
   p <- ncol(x = x)
@@ -95,99 +93,37 @@ slimdmvnorm <- function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) {
   return(logretval)
 }
 
-slimdmvnorm_nosum <- function (
-  x,
-  mean = rep(x = 0, p),
-  sigma = diag(x = p),
-  log = FALSE
-) {
-  x <- matrix(data = x, ncol = length(x = x))
-  p <- ncol(x = x)
-  dec <- tryCatch(chol(x = sigma), error = function(e) e)
-  tmp <- backsolve(r = dec, t(x = x) - mean, transpose = TRUE)
-  rss <- colSums(x = tmp ^ 2)
-  logretval <- -(log(x = diag(x = dec))) - 0.5 * p * log(x = 2 * pi) - 0.5 * rss
-  names(x = logretval) <- rownames(x = x)
-  return(logretval)
-}
-
-compareBins <- function(object, cell.use, bin.1, bin.2, bins.mu, bins.cov) {
-  num.genes <- ncol(x = bins.mu)
-  genes.use <- colnames(x = bins.mu)
-  to.par <- floor(x = sqrt(x = num.genes)) + 1
-  par(mfrow = c(to.par, to.par))
-  data.use <- object@imputed[genes.use, cell.use]
-  names(x = data.use) <- genes.use
-  lik.diff <- sort(x = unlist(x = lapply(
-    X = genes.use,
-    FUN = function(g) {
-      return(dnorm(
-        x = data.use[g],
-        mean = bins.mu[bin.1, g],
-        sd = sqrt(x = bins.cov[[bin.1]][g, g])
-      ) / dnorm(
-        x = data.use[g],
-        mean = bins.mu[bin.2, g],
-        sd = sqrt(x = bins.cov[[bin.2]][g, g])
-      ))
-    }))
-  )
-  for (g in names(x = lik.diff)) {
-    plot(
-      x = 0,
-      y = 0,
-      type = "n",
-      xlim = c(0, 8),
-      ylim = c(0, 2),
-      main = paste(g, round(x = lik.diff[g], digits = 2))
-    )
-    lines(
-      x = density(
-        x = rnorm(
-          n = 10000,
-          mean = bins.mu[bin.1, g],
-          sd = sqrt(x = bins.cov[[bin.1]][g, g])
-        )
-      ),
-      lwd = 2,
-      col = "black"
-    )
-    lines(
-      x = density(
-        x = rnorm(
-          n = 10000,
-          mean = bins.mu[bin.2, g],sd = sqrt(x = bins.cov[[bin.2]][g, g])
-        )
-      ),
-      lwd = 2,
-      col = "red"
-    )
-    points(x = data.use[g], y = 0, cex = 1.6, col = "darkgreen", pch = 16)
-  }
-  #ResetPar()
-}
-
+#' Return a subset of rows for a matrix or data frame
+#'
+#' @param data Matrix or data frame with row names
+#' @param code Pattern for matching within row names 
+#' @return Returns a subset of data, using only rownames that yielded a match to the pattern
 #' @export
 subr <- function(data, code) {
   return(data[grep(pattern = code, x = rownames(x = data)), ])
 }
 
-#' @export
+#calculate the coefficient of variation 
 cv <- function(x) {
   return(sd(x = x) / mean(x = x))
 }
 
-#' @export
+#return la count of all values greater than a threshold
 humpCt <- function(x, min = 0) {
   return(length(x = x[x > min]))
 }
 
-#' @export
+#add values in log-space
 log_add <- function(x) {
   mpi <- max(x)
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
+#' Return a subset of rows for a matrix or data frame
+#'
+#' @param data Matrix or data frame with row names
+#' @param code Pattern for matching within row names 
+#' @return Returns a subset of data, using only rownames that did not yield a match to the pattern
 #' @export
 minusr <- function(data, code) {
   matchCode <- rownames(x = data)[grep(pattern = code, x = rownames(x = data))]
@@ -201,6 +137,11 @@ minusr <- function(data, code) {
   return(toRet)
 }
 
+#' Return a subset of columns for a matrix or data frame
+#'
+#' @param data Matrix or data frame with column names
+#' @param code Pattern for matching within column names 
+#' @return Returns a subset of data, using only column names that did not yield a match to the pattern
 #' @export
 minusc <- function(data, code) {
   matchCode <- colnames(x = data)[grep(pattern = code, colnames(x = data))]
@@ -211,13 +152,14 @@ minusc <- function(data, code) {
   return(data[, -toIgnore])
 }
 
-
-#' @export
+#returns the intersection of two vectors, i.e all elements of a that are also in b
+#we should be switching to use the intersect function instead
 ainb <- function(a, b) {
   return(a[a %in% b])
 }
 
-#' @export
+
+#calculates binned scores for finding highly variable genes
 meanNormFunction <- function(data, myfuncX, myfuncY, nBin = 20) {
   data_x <- apply(X = data, MARGIN = 1, FUN = myfuncX)
   data_y <- apply(X = data, MARGIN = 1, FUN = myfuncY)
@@ -228,6 +170,7 @@ meanNormFunction <- function(data, myfuncX, myfuncY, nBin = 20) {
   return((data_y-mean_y[as.numeric(x = data_x_bin)]) / sd_y[as.numeric(x = data_x_bin)])
 }
 
+#internal function for spatial mapping
 shift.cell <- function(bin, x, y) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
@@ -260,17 +203,20 @@ all.neighbor.cells <- function(bin, dist = 1) {
   }))))
 }
 
-#' @export
+#remove legend title
 no.legend.title <- theme(legend.title = element_blank())
-#' @export
+
+#set legend text
 gg.legend.text <- function(x = 12, y = "bold") {
   return(theme(legend.text = element_text(size = x, face = y)))
 }
-#' @export
+
+#set legend point size
 gg.legend.pts <- function(x = 6) {
   return(guides(colour = guide_legend(override.aes = list(size = x))))
 }
-#' @export
+
+#set x axis features
 gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.x = element_text(face = z, colour = y, size = x),
@@ -278,22 +224,12 @@ gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   ))
 }
 
-#' @export
+#set y axis features
 gg.yax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.y = element_text(face = z, colour = y, size = x),
     axis.text.y = element_text(angle = 90, vjust = 0.5, size = x2)
   ))
-}
-
-#' @export
-sub.string <- function(x, s1, s2) {
-  return(unlist(x = lapply(
-    X = x,
-    FUN = function(y) {
-      return(gsub(pattern = s1, replacement = s2, x = y))
-    }
-  )))
 }
 
 #' @export
@@ -332,6 +268,13 @@ jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
   )$statistic)
 }
 
+
+#' Independently shuffle values within each row of a matrix
+#' 
+#' Creates a matrix where correlation structure has been removed, but overall values are the same
+#'
+#' @param x Matrix to shuffle
+#' @return Returns a scrambled matrix, where each row is shuffled independently
 #' @export
 shuffleMatRow <- function(x) {
   x2 <- x
@@ -346,47 +289,26 @@ shuffleMatRow <- function(x) {
   return(x2)
 }
 
-#' @export
-logMeanMinus <- function(x) {
-  return(log(x = mean(x = exp(x = as.numeric(x = x)) - 1) + 1))
-}
-#' @export
-logVarMinus <- function(x) {
-  return(mean(x = var(x = as.numeric(x = x)) - 1) + 1)
-}
 
-#' @export
-logVarMinus2 <- function(x) {
-  return(var(x = exp(x = as.numeric(x = x)) - 1) + 1)
-}
-
-quickRNAHuman <- function(x) {
-  dataFile <- paste0("~/big/", x, "/summary/", x,".expMatrix.txt")
-  data <- log(x = read.table(file = dataFile, header = TRUE, sep = "\t")[, -1] + 1)
-  data <- subc(data = data, code = "rsem")
-  return(data)
-}
-
+#Calculate variance of logged values in non-log space (return answer in log-space)
 #' @export
 expVar <- function(x) {
-  return(log(x = var(x = exp(x = x) - 1) + 1))
+  return(log1p(var(expm1(x))))
 }
 
+#Calculate SD of logged values in non-log space (return answer in log-space)
 #' @export
 expSD <- function(x) {
-  return(log(x = sd(x = exp(x = x) - 1) + 1))
+  return(log1p(sd(expm1(x))))
 }
 
-#' @export
+#Calculate mean of logged values in non-log space (return answer in log-space)
 expMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
 
-#' @export
-normal.sample <- function(x) {
-  return(rnorm(n = 10000, mean = mean(x = x), sd = sd(x = x)))
-}
 
+#fetch closest bin, used internally in spatial mapping
 fetch.closest <- function(bin, all.centroids, num.cell) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
@@ -395,19 +317,8 @@ fetch.closest <- function(bin, all.centroids, num.cell) {
   return(names(x = sort(x = all.dist[nrow(x = all.dist), ]))[2:(num.cell + 2)])
 }
 
-fetch.mincells <- function(bin, cells.max, min.cells) {
-  for (i in 1:5) {
-    my.names <- names(x = ainb(
-      a = cells.max,
-      b = all.neighbor.cells(bin = bin, dist = i)
-    ))
-    if (length(x = my.names) > min.cells) {
-      break
-    }
-  }
-  return(my.names)
-}
 
+#return cell centroid after spatial mappings (both X and Y)
 #' @export
 cell.centroid <- function(cell.probs) {
   centroid.x <- round(x = sum(sapply(
@@ -426,6 +337,7 @@ cell.centroid <- function(cell.probs) {
   return(centroid.bin)
 }
 
+#return x-coordinate cell centroid 
 #' @export
 cell.centroid.x <- function(cell.probs) {
   centroid.x <- round(x = sum(sapply(
@@ -437,6 +349,7 @@ cell.centroid.x <- function(cell.probs) {
   return(centroid.x)
 }
 
+#return y-coordinate cell centroid 
 #' @export
 cell.centroid.y <- function(cell.probs) {
   centroid.y <- round(x = sum(sapply(
@@ -448,6 +361,7 @@ cell.centroid.y <- function(cell.probs) {
   return(centroid.y)
 }
 
+#return x and y-coordinate cell centroid 
 #' @export
 exact.cell.centroid <- function(cell.probs) {
   # centroid.x=(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
@@ -504,6 +418,8 @@ tobit_fitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
   )
 }
 
+#returns the setdiff of two vectors, i.e all elements of a that are not in b
+#we should be switching to use the setdiff function instead
 #' @export
 anotinb <- function(x, y) {
   return(x[! x %in% y])
@@ -637,105 +553,6 @@ bimodLikData <- function(x, xmin = 0) {
   return(likA + likB)
 }
 
-makeAlnPlot <- function(proj) {
-  alnFile <- paste0("~/big/", proj, "/summary/", proj, ".all.aln.metrics.txt")
-  alnData <- read.table(file = alnFile)
-  par(mar = c(10, 5, 4, 1))
-  mymax <- max(100, max(apply(X = alnData[, 4:7], MARGIN = 1, FUN = sum)))
-  x <- barplot(
-    height = as.matrix(x = t(x = alnData[, 4:7])),
-    names.arg = alnData$V1,
-    las = 2,
-    col = 1:4,
-    ylim = c(0, mymax)
-  )
-  text(x = x, y = mymax - 10, labels = alnData$V2)
-  ResetPar()
-}
-
-meanVarPlot <- function(x, ...) {
-  myMean <- apply(X = x, MARGIN = 1, FUN = logMeanMinus)
-  myVar <- apply(X = x, MARGIN = 1, FUN = logVarMinus)
-  plot(x = myMean, y = myVar)
-}
-
-#' @export
-vsubc <- function(data, code) {
-  return(data[grep(pattern = code, x = names(x = data))])
-}
-
-#' @export
-vminusc <- function(data, code) {
-  matchCode <- names(x = data)[grep(pattern = code, x = names(x = data))]
-  toIgnore <- which(x = names(x = data) %in% matchCode)
-  if (length(x = toIgnore) == 0) {
-    return(data)
-  }
-  return(data[-toIgnore])
-}
-
-#' @export
-plotVln <- function(
-  gene,
-  data = dc2,
-  code = "rsem",
-  mmax = 12,
-  getStaty = 1,
-  doRet = FALSE,
-  doSort = FALSE
-) {
-  data$GENE <- as.character(x = rownames(x = data))
-  a1 <- data[
-    gene,
-    c(colnames(x = data)[grep(pattern = code, x = colnames(x = data))], "GENE")
-  ]
-  a2 <- melt(a1, id = "GENE")
-  a2$stat <- unlist(x = lapply(
-    X = as.character(a2$variable),
-    FUN = getStat,
-    y = getStaty
-  ))
-  noise <- rnorm(n = length(x = a2$value)) / 100000
-  a2$value <- a2$value + noise
-  if (doSort) {
-    a2$stat <- factor(
-      x = a2$stat,
-      levels = names(x = rev(x = sort(x = tapply(
-        X = a2$value,
-        INDEX = a2$stat,
-        FUN = mean
-      ))))
-    )
-  }
-  p <- ggplot(data = a2, mapping = aes(x = factor(x = stat), y = value))
-  p2 <- p +
-    geom_violin(scale = "width", adjust = 0.75, aes(fill = factor(x = stat))) +
-    ylab(label = "Expression level (log TPM)")
-  p3 <- p2 +
-    theme(legend.position = "top") +
-    guides(fill = guide_legend(title = NULL)) +
-    geom_jitter(height = 0) +
-    blackbg +
-    xlab(label = "Cell Type")
-  p4 <- p3 +
-    theme(
-      axis.title.x = element_text(face = "bold", colour = "#990000", size = 16),
-      axis.text.x  = element_text(angle = 90, vjust = 0.5, size = 12)
-    )
-  p5 <- p4 +
-    theme(
-      axis.title.y = element_text(face = "bold", colour = "#990000", size = 16),
-      axis.text.y  = element_text(angle = 90, vjust = 0.5, size = 12)
-    ) +
-    ggtitle(label = gene) +
-    theme(plot.title = element_text(size = 20, face = "bold"))
-  if (doRet == TRUE) {
-    return(p5)
-  } else {
-    print(p5)
-  }
-}
-
 #' @export
 extract_field <- function(string, field = 1, delim = "_") {
   fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
@@ -801,11 +618,22 @@ MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
   }
 }
 
+#' Return a subset of columns for a matrix or data frame
+#'
+#' @param data Matrix or data frame with column names
+#' @param code Pattern for matching within column names 
+#' @return Returns a subset of data, using only column names that yield a match to the pattern
 #' @export
 subc <- function(data, code) {
   return(data[, grep(pattern = code, x = colnames(x = data))])
 }
 
+#' Apply a ceiling and floor to all values in a matrix
+#'
+#' @param data Matrix or data frame 
+#' @param min all values below this min value will be replaced with min
+#' @param max all values above this max value will be replaced with max
+#' @return Returns matrix after performing these floor and ceil operations
 #' @export
 minmax <- function(data, min, max) {
   data2 <- data
@@ -814,67 +642,26 @@ minmax <- function(data, min, max) {
   return(data2)
 }
 
-#' @export
+#used for zebrafish plotting
 vp.layout <- function(x, y) {
   viewport(layout.pos.row = x, layout.pos.col = y)
 }
 
-#' @export
-arrange <- function(..., nrow = NULL, ncol = NULL, as.table = FALSE) {
-  dots <- list(...)
-  n <- length(x = dots)
-  if (is.null(x = nrow) & is.null(x = ncol)) {
-    nrow <- floor(x = n / 2)
-    ncol <- ceiling(x = n / nrow)
-  }
-  if (is.null(x = nrow)) {
-    nrow <- ceiling(x = n / ncol)
-  }
-  if (is.null(x = ncol)) {
-    ncol <- ceiling(n/nrow)
-  }
-  ## NOTE see n2mfrow in grDevices for possible alternative
-  grid.newpage()
-  pushViewport(viewport(layout=grid.layout(nrow,ncol) ) )
-  ii.p <- 1
-  for (ii.row in seq(from = 1, to = nrow)) {
-    if (as.table) {
-      ii.table.row <- nrow - ii.table.row + 1
-    } else {
-      ii.table.row <- ii.row
-    }
-    for (ii.col in seq(from = 1, to = ncol)) {
-      ii.table <- ii.p
-      if (ii.p > n) {
-        break
-      }
-      print(dots[[ii.table]], vp = vp.layout(x = ii.table.row, y = ii.col))
-      ii.p <- ii.p + 1
-    }
-  }
-}
 
-subSort <- function(vdat, my, fNum, sortBy) {
-  vNames <- colnames(x = vdat)
-  mycol <- which(x = vNames == sortBy)
-  v2 <- vdat[order(vdat[, mycol]), ]
-  vsort <- v2
-  return(v2)
-}
 
-calcMedians <- function(p, start, end) {
-  medians <- c()
-  for (i in start:end) {
-    scores <- p[which(x = p$factorNum == i), i + 6]
-    medians <- c(medians, mean(x = scores))
-  }
-  return(medians)
-}
 
+#' Create a custom color palette
+#'
+#' Creates a custom color palette based on low, middle, and high color values
+#'
+#' @param low low color 
+#' @param high high color
+#' @param mid middle color. Optional.
+#' @param k number of steps (colors levels) to include between low and high values 
 #' @export
 myPalette <- function(
   low = "white",
-  high = c("green", "red"),
+  high = "red",
   mid = NULL,
   k = 50
 ) {
@@ -903,41 +690,26 @@ myPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
+#shortcut to make black-white palette
 #' @export
 bwCols <- myPalette(low = "white", high="black", k = 50)
 
-comparePCA <- function(a, b) {
-  inds <- c(6:26)
-  pa <- prcomp(x = a[, inds], scale = TRUE, center = TRUE)
-  pb <- prcomp(x = b[, inds], scale = TRUE, center = TRUE)
-  print(summary(object = pa))
-  print(summary(object = pb))
-}
+#' @export
+#shortcut to make purple-yellow palette, which is default in most Seurat heatmaps
+pyCols <- myPalette(low = "magenta", high = "yellow", mid = "black")
 
-getSmooth <- function(
-  vsort,
-  myBin,
-  n = 0,
-  smooth = 0,
-  overlap = 0.9,
-  type = 0
-) {
-  if (smooth == 0) {
-    delta <- 1 / (1 - overlap)
-    nbin <- round(x = (length(x = vsort[, 1]) - delta) / (n - 1 + delta))
-    smooth <- (nbin + 1) * delta
-  }
-  return(smooth)
-}
 
+#calculate true positives, used in AUC
 calcTP <- function(cutoff, data, score, real, nTP) {
   return(length(x = which(x = (data[, score] > cutoff) & (data[, real] > 0))) / nTP)
 }
 
+#calculate false positives, used in AUC
 calcFP <- function(cutoff, data, score, real, nFP) {
   return(length(x = which(x = (data[, score] > cutoff) & (data[, real] == 0))) / nFP)
 }
 
+#i do not believe we use this function, but leaving it in to be safe
 auc <- function(data, score, real, n = 20) {
   totalPos <- length(x = which(x = data[, real] == 1))
   totalNeg <- length(x = which(x = data[, real] == 0))
@@ -967,20 +739,6 @@ auc <- function(data, score, real, n = 20) {
       2 + sum(diff(x = rev(x = x1)) * rev(x = x2[-1]))
   )
   return(list(c(1, fp), c(1, tp)))
-}
-
-#' @export
-pyCols <- myPalette(low = "magenta", high = "yellow", mid = "black")
-
-calcResidLog <- function(x1, y1, mcut = 30, toAdd = 1) {
-  touse <- which(x = (x1 > mcut) & (y1 > mcut))
-  x <- log(x = x1 + toAdd, base = 2)
-  y <- log(x = y1 + toAdd, base = 2)
-  a <- x[touse]
-  b <- y[touse]
-  myLM <- lm(formula = b ~ a)
-  myResid <- y - predict(object = myLM, data.frame(a = x))
-  return(myResid)
 }
 
 #' @export
@@ -1085,192 +843,9 @@ makeScorePlot2 <- function(
   )
 }
 
-corCellWeightFast <- function(
-  cell1,
-  cell2,
-  wt_matrix,
-  data = subc(data = cell, code = "lps_t2"),
-  spear = FALSE
-) {
-  cell1Drop <- wt_matrix[rownames(x = data), cell1]
-  cell2Drop <- wt_matrix[rownames(x = data), cell2]
-  my_weights <- cell1Drop * cell2Drop
-  cell1Data <- an(data[, cell1])
-  cell2Data <- an(data[, cell2])
-  # print(my_weights)
-  my_weights[is.na(x = my_weights)] <- 0
-  if (spear) {
-    ret <- corr(
-      d = as.matrix(x = cbind(rank(x = cell1Data), rank(x = cell2Data))),
-      w = my_weights
-    )
-  } else {
-    ret <- corr(d = as.matrix(x = cbind(cell1Data, cell2Data)), w = my_weights)
-  }
-  return(ret)
-}
 
-covCellWeightFast <- function(
-  cell1,
-  cell2,
-  wt_matrix,
-  data = subc(data = cell, data = "lps_t2"),
-  spear = FALSE
-) {
-  cell1Drop <- wt_matrix[rownames(x = data), cell1]
-  cell2Drop <- wt_matrix[rownames(x = data), cell2]
-  my_weights <- cell1Drop * cell2Drop
-  cell1Data <- an(data[, cell1])
-  cell2Data <- an(data[, cell2])
-  # print(my_weights)
-  if (spear) {
-    ret <- wtCov(x = rank(x = cell1Data), y = rank(x = cell2Data), w = my_weights)
-  } else {
-    ret <- wtCov(x = cell1Data, y = cell2Data, w = my_weights)
-  }
-  return(ret)
-}
-
-scaleSCMatrix2 <- function(data, wt_matrix, code = "rsem") {
-  wtX <- unlist(x = lapply(
-    X = rownames(x = data),
-    FUN = function(x) {
-      return(sum(data[x, ] * wt_matrix[x, ]) / sum(wt_matrix[x, ]))
-    }
-  ))
-  sdX <- unlist(x = lapply(
-    X = rownames(x = data),
-    FUN = function(x) {
-      return(wtCov(x = data[x, ], y = data[x,], y = wt_matrix[x, ]))
-    }
-  ))
-  sData <- (data - wtX) / sqrt(x = sdX)
-  return(sData)
-}
-
-wtCov <- function(x, y ,w) {
-  w <- w / sum(w)
-  wtX <- sum(x * w)
-  wtY <- sum(y * w)
-  wt_cov <- sum(w * (x - wtX) * (y - wtY))
-  return(wt_cov)
-}
-
-expAlpha <- function(mu, coefs) {
-  logA <- coefs$a
-  logB <- coefs$b
-  return(exp(x = logA + logB * mu) / (1 + (exp(x = logA + logB * mu))))
-}
-
-setWt1 <- function(x, wts, min = 1) {
-  wts[x > min] <- 1
-  return(wts)
-}
-
-#' @export
-gtCut <- function(x, cutoff = 1) {
-  return(length(x = which(x = x > cutoff)))
-}
-
-setWtMatrix1 <- function(data, wt_matrix, mycut = 1) {
-  wt1_matrix <- sapply(
-    X = 1:ncol(x = data),
-    FUN = function(x) {
-      return(setWt1(x = data[, x], wts = wt_matrix[, x], min = mycut))
-    }
-  )
-  colnames(x = wt1_matrix) <- colnames(x = data)
-  return(wt1_matrix)
-}
-
-getAB <- function(
-  cn = "lps_t1_S1_rsem",
-  code = "lps_t1",
-  data = cell,
-  data2 = cs,
-  code2 = "avg",
-  status = "",
-  ncut = 25,
-  hasBin = FALSE,
-  doPlot = FALSE,
-  myfunc = plot,
-  func2 = lines,
-  ...
-) {
-  if (status == "") {
-    status <- getStatus(cn)
-  }
-  if (! hasBin) {
-    data[data > 1] <- 1
-    data[data < 1] <- 0
-    data$avg <- data2[rownames(x = data), paste0(status, "_", code2)]
-    data[data > 9] <- 9
-    data$bin <- cut(x = data$avg, breaks = 20)
-  }
-  data$val <- data[, cn]
-  x1 <- (tapply(X = data[, cn], INDEX = data$bin, FUN = mean))
-  x2 <- (tapply(X = data[, "avg"], INDEX = data$bin, FUN = mean))
-  #glm.out = glm(val~avg,data=data,family=binomial)
-  glm.out <- glm(formula = x1 ~ x2, data = data, family = binomial)
-  if (doPlot) {
-    pred <- (predict(
-      object = glm.out,
-      data.frame(avg = as.numeric(x = x2)),
-      type = "response"
-    ))
-    myfunc(
-      x2,
-      x1,
-      pch = 16,
-      xlab = "Log TPM",
-      ylab = "Detection Rate",
-      main = cn,
-      ylim = c(0, 1)
-    )
-    func2(x2, pred, ...)
-  }
-  return(glm.out$coefficients)
-}
-
-sensitivityCurve <- function(
-  cellName,
-  scData,
-  bulkData,
-  mycut = 1,
-  mycex = 1,
-  mynew = TRUE,
-  ...
-) {
-  cutLocs <- cut2(x = bulkData, g = 100, onlycuts = TRUE)
-  bulkBin <- cut2(x = bulkData, g = 100)
-  binaryData <- scData[, cellName]
-  binaryData[binaryData > mycut] <- 1
-  binaryData[binaryData < mycut] <- 0
-  yBin <- tapply(X = binaryData, INDEX = bulkBin, FUN = mean)
-  xBin <- tapply(X = bulkData, INDEX = bulkBin, FUN = mean)
-  #glm.out = glm(val~avg,data=data,family=binomial)
-  options(warn = -1) #otherwise glm throws an unnecessary error
-  glm.out = glm(formula = binaryData ~ bulkData, family = binomial)
-  options(warn = 0)
-  x_vals <- seq(from = 0, to = 10, by = 0.1)
-  y_vals <- predict(
-    object = glm.out,
-    data.frame(bulkData = x_vals),
-    type = "response"
-  )
-  if (mynew) {
-    plot(
-      x = xBin,
-      y = yBin,
-      pch = 16,
-      xlab = "Average expression",
-      ylab = "Probability of detection",
-      ...
-    )
-  }
-  lines(x = x_vals, y = y_vals, lwd = 2, ...)
-}
-
+#heatmap.2, but does not draw a key.
+#unclear if this is necessary, but valuable to have the function coded in for modifications
 #' @export
 heatmap2NoKey <- function (
   x,
@@ -1805,11 +1380,6 @@ heatmap2NoKey <- function (
   par(mar = oldMar)
 }
 
-expAlpha <- function(mu, coefs) {
-  logA <- coefs$a
-  logB <- coefs$b
-  return(exp(x = logA + logB * mu) / (1 + (exp(x = logA + logB * mu))))
-}
 
 regression.sig <- function(x, score, data, latent, code = "rsem") {
   if (var(x = as.numeric(x = subc(data = data, code = code)[x, ])) == 0) {
