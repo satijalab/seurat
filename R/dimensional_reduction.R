@@ -1,6 +1,7 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
-#' Run a PCA dimensionality reduction
+#' Run a PCA dimensionality reduction. For details about stored PCA calculation 
+#' parameters, see \code{\link{PrintPCAParams}}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
@@ -83,7 +84,9 @@ PCA <- function(
 
 #' Run Independent Component Analysis on gene expression
 #'
-#' Run fastica algorithm from the ica package for ICA dimensionality reduction
+#' Run fastica algorithm from the ica package for ICA dimensionality reduction.
+#' For details about stored ICA calculation parameters, see 
+#' \code{\link{PrintICAParams}}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
@@ -158,7 +161,8 @@ ICA <- function(
 #'
 #' Run t-SNE dimensionality reduction on selected features. Has the option of 
 #' running in a reduced dimensional space (i.e. spectral tSNE, recommended), 
-#' or running based on a set of genes
+#' or running based on a set of genes. For details about stored TSNE calculation 
+#' parameters, see \code{\link{PrintTSNEParams}}.
 #'
 #' @param object Seurat object
 #' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for 
@@ -393,9 +397,11 @@ ProjectPCA <- function(
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
+#' For details about stored CCA calculation parameters, see 
+#' \code{\link{PrintCCAParams}}.
 #' 
 #' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object2 will be 
+#' @param object2 Optional second object. If object2 is passed, object1 will be 
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
@@ -556,6 +562,18 @@ RunCCA <- function(
         genes.use = genes.use
       )
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    combined.object <- SetCalcParams(object = combined.object, 
+                                     calculation = "RunCCA",
+                                     ... = parameters.to.store)
+    combined.object <- SetSingleCalcParam(object = combined.object, 
+                                          calculation = "RunCCA", 
+                                          parameter = "object.project", 
+                                          value = object@project.name)
+    combined.object <- SetSingleCalcParam(object = combined.object, 
+                                          calculation = "RunCCA", 
+                                          parameter = "object2.project", 
+                                          value = object2@project.name)
     return(combined.object)
   } else {
     object <- SetDimReduction(
@@ -571,8 +589,14 @@ RunCCA <- function(
       new.data = "CC"
     )
 
-    object <- ProjectDim(object = object, reduction.type = "cca")
+    object <- ProjectDim(object = object, 
+                         reduction.type = "cca",
+                         do.print = FALSE)
     object@scale.data[is.na(x = object@scale.data)] <- 0
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    object <- SetCalcParams(object = object, 
+                                     calculation = "RunCCA",
+                                     ... = parameters.to.store)
     return(object)
   }
 }
@@ -586,8 +610,10 @@ RunCCA <- function(
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number
 #'  stored for cca)
 #'
+#' @return Returns Seurat object with ratio of variance explained stored in 
+#' object@@data.info$var.ratio
 #' @export
-#'
+#' 
 CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",

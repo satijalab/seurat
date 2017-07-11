@@ -39,5 +39,7 @@ Returns Seurat object with an ICA calculation stored in
 object@dr$ica
 }
 \description{
-Run fastica algorithm from the ica package for ICA dimensionality reduction
+Run fastica algorithm from the ica package for ICA dimensionality reduction.
+For details about stored ICA calculation parameters, see 
+\code{\link{PrintICAParams}}.
 }

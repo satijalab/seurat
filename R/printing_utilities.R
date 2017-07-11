@@ -8,23 +8,43 @@
 #' @return No return value. Only prints to console.
 #' @export
 PrintPCAParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$PCA)){
+    stop("PCA has not been computed yet")
+  }
   if (raw){
     print(object@calc.params$PCA)
   }
   else{
     cat(paste0("Parameters used in latest PCA calculation run on: ", 
-               GetCalcParam(object = object, calculation = "PCA", parameter = "time"), "\n"))
+               GetCalcParam(object = object, 
+                            calculation = "PCA", 
+                            parameter = "time"), 
+               "\n"))
     cat("=============================================================================\n")
     cat(paste0("PCs computed    Genes used in calculation    PCs Scaled by Variance Explained\n"))
-    cat(paste0("    ", GetCalcParam(object = object, calculation = "PCA", parameter = "pcs.compute"), 
-               "\t\t\t\t", length(GetCalcParam(object = object, calculation = "PCA", 
-                                               parameter = "pc.genes")), "\t\t\t",
-               GetCalcParam(object = object, calculation = "PCA", parameter = "scale.by.varexp"), "\n"))
+    pcs.compute <- GetCalcParam(object = object, 
+                                calculation = "PCA", 
+                                parameter = "pcs.compute")
+    n.gene <- length(GetCalcParam(object = object, 
+                                  calculation = "PCA", 
+                                  parameter = "pc.genes"))
+    cat(paste0("    ", 
+               pcs.compute, 
+               FillWhiteSpace(n = 20 - nchar(pcs.compute)), 
+               n.gene, FillWhiteSpace(n = 35 - nchar(n.gene)),
+               GetCalcParam(object = object, 
+                            calculation = "PCA", 
+                            parameter = "scale.by.varexp"), 
+               "\n"))
     cat("-----------------------------------------------------------------------------\n")
     cat("rev.pca \n")
-    cat(paste0(" ", GetCalcParam(object = object, calculation = "PCA", parameter = "rev.pca"), "\n"))
+    cat(paste0(" ", 
+               GetCalcParam(object = object, 
+                            calculation = "PCA", 
+                            parameter = "rev.pca"), 
+               "\n"))
     cat("-----------------------------------------------------------------------------\n")
-    cat("Full gene list can be accessed at object@@calc.params$PCA$pc.genes")
+    cat("Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"PCA\", parameter = \"pc.genes\")")
   }
 }
 
@@ -38,21 +58,42 @@ PrintPCAParams <- function(object, raw = FALSE){
 #' @return No return value. Only prints to console.
 #' @export
 PrintICAParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$ICA)){
+    stop("ICA has not been computed yet")
+  }
   if (raw){
     print(object@calc.params$ICA)
   }
   else{
     cat(paste0("Parameters used in latest ICA calculation run on: ", 
-               GetCalcParam(object = object, calculation = "ICA", parameter = "time"), "\n"))
+               GetCalcParam(object = object, 
+                            calculation = "ICA", 
+                            parameter = "time"), 
+               "\n"))
     cat("=============================================================================\n")
     cat(paste0("ICs computed \t Genes used in calculation \t ICA function \t rev.ica \n"))
-    cat(paste0("    ", GetCalcParam(object = object, calculation = "ICA", parameter = "ics.compute"), 
-               "\t\t\t\t", length(GetCalcParam(object = object, calculation = "ICA", 
-                                               parameter = "ic.genes")), "\t\t  ",
-               GetCalcParam(object = object, calculation = "ICA", parameter = "ica.function"), "\t  ",
-               GetCalcParam(object = object, calculation = "ICA", parameter = "rev.ica"), "\n"))
+    ics.compute <- GetCalcParam(object = object, 
+                                calculation = "ICA", 
+                                parameter = "ics.compute")
+    n.genes <- length(GetCalcParam(object = object, 
+                                   calculation = "ICA", 
+                                   parameter = "ic.genes"))
+    ica.fxn <- GetCalcParam(object = object, 
+                            calculation = "ICA", 
+                            parameter = "ica.function")
+    rev.ica <- GetCalcParam(object = object, 
+                            calculation = "ICA", 
+                            parameter = "rev.ica")
+    cat(paste0("    ", 
+               ics.compute, 
+               FillWhiteSpace(n = 25 - nchar(ics.compute)), 
+               n.genes, 
+               FillWhiteSpace(n = 22 - nchar(n.genes)), 
+               ica.fxn, 
+               FillWhiteSpace(n = 15 - nchar(ica.fxn)), 
+               rev.ica,"\n"))
     cat("-----------------------------------------------------------------------------\n")
-    cat("Full gene list can be accessed at object@@calc.params$ICA$pc.genes")
+    cat("Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"ICA\", parameter = \"ic.genes\")")
   }
 }
 
@@ -66,42 +107,169 @@ PrintICAParams <- function(object, raw = FALSE){
 #' @return No return value. Only prints to console.
 #' @export
 PrintTSNEParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$RunTSNE)){
+    stop("TSNE has not been computed yet")
+  }
   if (raw){
     print(object@calc.params$RunTSNE)
   }
   else{
     cat(paste0("Parameters used in latest TSNE calculation run on: ", 
-               GetCalcParam(object = object, calculation = "RunTSNE", parameter = "time"), "\n"))
+               GetCalcParam(object = object, 
+                            calculation = "RunTSNE", 
+                            parameter = "time"), 
+               "\n"))
     cat("=============================================================================\n")
-    if(is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))) {
-      reduction <- GetCalcParam(object = object, calculation = "RunTSNE", parameter = "reduction.use")
+    
+    if(is.null(GetCalcParam(object = object, 
+                            calculation = "RunTSNE", 
+                            parameter = "genes.use"))) {
+      reduction <- GetCalcParam(object = object, 
+                                calculation = "RunTSNE", 
+                                parameter = "reduction.use")
       dim <- "Dims"
-      n.dim <- GetCalcParam(object = object, calculation = "RunTSNE", parameter = "dims.use")
-    } else if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", 
+      n.dim <- GetCalcParam(object = object, 
+                            calculation = "RunTSNE", 
+                            parameter = "dims.use")
+    } else if (!is.null(GetCalcParam(object = object, 
+                                     calculation = "RunTSNE", 
                                      parameter = "distance.matrix"))){
       reduction <- "custom"
       dim <- "Custom distance matrix"
     } else {
       reduction <- "None"
       dim <- "Genes"
-      n.dim <- length(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))
+      n.dim <- length(GetCalcParam(object = object, 
+                                   calculation = "RunTSNE", 
+                                   parameter = "genes.use"))
     }
+    do.fast <- GetCalcParam(object = object, 
+                            calculation = "RunTSNE", 
+                            parameter = "do.fast")
+    dim.embed <- GetCalcParam(object = object, 
+                              calculation = "RunTSNE", 
+                              parameter = "dim.embed")
     cat(paste0("Reduction use          do.fast          dim.embed\n"))
-    cat(paste0("     ", reduction, "                 ", 
-               GetCalcParam(object, "RunTSNE", "do.fast"),  "              ", 
-               GetCalcParam(object, "RunTSNE", "dim.embed"), "              ", "\n")) 
+    cat(paste0("     ",
+               reduction, 
+               FillWhiteSpace(n = 19 - nchar(reduction)), 
+               do.fast,  
+               FillWhiteSpace(n = 20 - nchar(do.fast)), 
+               dim.embed, 
+               "\n")) 
     cat("-----------------------------------------------------------------------------\n")
     cat(paste0(dim, " used in calculation\n"))
     cat("=============================================================================\n")
     if(reduction == "None"){
-      cat(paste0(n.dim, ": Full gene list can be accessed at object@@calc.params$BuildSNN$genes.use"))
+      cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"genes.use\")"))
     } else if (reduction == "custom") {
-      cat("Full matrix can be acccessed at object@@calc.params$BuildSNN$distance.matrix")
+      cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
     } else {
       cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80), 
                  collapse = "\n"))
       cat("\n\n")
     }
+  }
+}
+
+#' Print CCA Calculation Parameters
+#'
+#' Print the parameters chosen for the latest stored CCA calculation.
+#' 
+#' @param object Seurat object
+#' @param raw Print the entire contents of the calculation metadata slot 
+#' (calc.params) for the RunCCA calculation. Default (FALSE) will print a nicely 
+#' formatted summary.
+#' @return No return value. Only prints to console.
+#' @export
+PrintCCAParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$RunCCA)){
+    stop("CCA has not been computed yet")
+  }
+  if (raw){
+    print(object@calc.params$RunCCA)
+  }
+  else{
+    cat(paste0("Parameters used in latest CCA calculation run on: ", 
+               GetCalcParam(object = object, 
+                            calculation = "RunCCA", 
+                            parameter = "time"), "\n"))
+    cat("=============================================================================\n")
+    
+    cat(paste0("CCs computed        Genes used in calculation        scale.data\n"))
+    num.cc <- GetCalcParam(object = object, 
+                           calculation = "RunCCA", 
+                           parameter = "num.cc")
+    num.genes <- length(GetCalcParam(object = object, 
+                                     calculation = "RunCCA", 
+                                     parameter = "genes.use"))
+    cat(paste0("    ", 
+               num.cc , 
+               FillWhiteSpace(28 - nchar(num.cc)), 
+               num.genes, 
+               FillWhiteSpace(n = 24 - nchar(num.genes)),
+               GetCalcParam(object = object, 
+                            calculation = "RunCCA", 
+                            parameter = "scale.data"), 
+               "\n"))
+    cat("-----------------------------------------------------------------------------\n")
+    g1 <- GetCalcParam(object = object, 
+                       calculation = "RunCCA", 
+                       parameter = "group1")
+    g2 <- GetCalcParam(object = object, 
+                       calculation = "RunCCA", 
+                       parameter = "group2")
+    if(nchar(g1) > 0){
+      cat(paste0("group1", 
+                 FillWhiteSpace(n = 10), 
+                 "group2", 
+                 FillWhiteSpace(n = 10),
+                 "group.by", 
+                 FillWhiteSpace(n = 10), 
+                 "rescale.groups\n"))
+      gb <- GetCalcParam(object = object, 
+                         calculation = "RunCCA", 
+                         parameter = "group.by")
+      if(length(g1) > 1) {
+        g1 <- "custom group"
+      }
+      if(length(g2) > 1){
+        g2 <- "custom group"
+      }
+      rsg <- GetCalcParam(object = object, 
+                          calculation = "RunCCA", 
+                          parameter = "rescale.groups")
+      cat(paste0(g1, 
+                 FillWhiteSpace(n = 15 - nchar(g1)), 
+                 g2, 
+                 FillWhiteSpace(n = 18 - nchar(g2)), 
+                 gb, 
+                 FillWhiteSpace(n = 18 - nchar(rsg)), 
+                 rsg ,
+                 "\n"))
+      cat("-----------------------------------------------------------------------------\n")
+    }
+    if(!is.null(GetCalcParam(object = object, 
+                             calculation = "RunCCA", 
+                             parameter = "object.project"))){
+      n1 <- GetCalcParam(object = object, 
+                         calculation = "RunCCA", 
+                         parameter = "object.project")
+      n2 <- GetCalcParam(object = object, 
+                         calculation = "RunCCA", 
+                         parameter = "object2.project")
+      cat("Object 1 Project Name        Object 2 Project Name\n")
+      cat(paste0("  ",
+                 n1, 
+                 FillWhiteSpace(n = 30 - nchar(n1)),
+                 n2, 
+                 "\n"))
+      cat("-----------------------------------------------------------------------------\n")
+    }
+    if(g2 == "custom group" | g2 == "custom group"){
+      cat("Group membership lists can be accessed using \n GetCalcParam(object = object, calculation = \"RunCCA\", parameter = \"group1/2\")\n")
+    }
+    cat("Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"RunCCA\", parameter = \"genes.use\")")
   }
 }
 
@@ -115,38 +283,70 @@ PrintTSNEParams <- function(object, raw = FALSE){
 #' @return No return value. Only prints to console.
 #' @export
 PrintSNNParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$BuildSNN)){
+    stop("SNN has not been computed yet")
+  }
   if (raw){
     print(object@calc.params$BuildSNN)
   }
   else{
     cat(paste0("Parameters used in latest SNN calculation run on: ", 
-               GetCalcParam(object, "BuildSNN", "time"), "\n"))
+               GetCalcParam(object = object, 
+                            calculation = "BuildSNN", 
+                            parameter = "time"), 
+               "\n"))
     cat("=============================================================================\n")
-    if(is.null(object@calc.params$BuildSNN$genes.use)) {
-      reduction <- GetCalcParam(object, "BuildSNN", "reduction.type")
+    if(is.null(GetCalcParam(object = object, 
+                            calculation = "BuildSNN", 
+                            parameter = "genes.use"))) 
+      {
+      reduction <- GetCalcParam(object = object,
+                                calculation = "BuildSNN", 
+                                parameter = "reduction.type")
       dim <- "Dims"
-      n.dim <- GetCalcParam(object, "BuildSNN", "dims.use")
-    } else if (!is.null(GetCalcParam(object, "BuildSNN", "distance.matrix"))){
-      reduction <- "custom"
-      dim <- "Custom distance matrix"
+      n.dim <- GetCalcParam(object = object, 
+                            calculation = "BuildSNN", 
+                            parameter = "dims.use")
+    } else if (!is.null(GetCalcParam(object = object, 
+                                     calculation = "BuildSNN", 
+                                     parameter = "distance.matrix")))
+      {
+        reduction <- "custom"
+        dim <- "Custom distance matrix"
     } else {
-      reduction <- "None"
-      dim <- "Genes"
-      n.dim <- length(GetCalcParam(object, "BuildSNN", "genes.use"))
+        reduction <- "None"
+        dim <- "Genes"
+        n.dim <- length(GetCalcParam(object = object,
+                                     calculation = "BuildSNN",
+                                     parameter = "genes.use"))
     }
     cat(paste0("Reduction use          k.param          k.scale          prune.SNN\n"))
-    cat(paste0("     ", reduction, "                 ", 
-               GetCalcParam(object, "BuildSNN", "k.param"),  "               ", 
-               GetCalcParam(object, "BuildSNN", "k.scale"), "              ",
-               round(GetCalcParam(object, "BuildSNN", "prune.SNN"), 4), "\n")) 
+    k.param <- GetCalcParam(object = object, 
+                            calculation = "BuildSNN", 
+                            parameter = "k.param")
+    k.scale <- GetCalcParam(object = object, 
+                            calculation = "BuildSNN", 
+                            parameter = "k.scale")
+    prune.SNN <- GetCalcParam(object = object, 
+                              calculation = "BuildSNN", 
+                              parameter = "prune.SNN")
+    cat(paste0("     ", 
+               reduction, 
+               FillWhiteSpace(n = 20 - nchar(reduction)), 
+               k.param, 
+               FillWhiteSpace(n = 18 - nchar(k.param)), 
+               k.scale, 
+               FillWhiteSpace(n = 16 - nchar(k.scale)), 
+               round(prune.SNN, 4), 
+               "\n")) 
     cat("-----------------------------------------------------------------------------\n")
     
     cat(paste0(dim, " used in calculation\n"))
     cat("=============================================================================\n")
     if(reduction == "None"){
-      cat(paste0(n.dim, ": Full gene list can be accessed at object@@calc.params$BuildSNN$genes.use"))
+      cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"BuildSNN\", parameter = \"genes.use\")"))
     } else if (reduction == "custom") {
-        cat("Full matrix can be acccessed at object@@calc.params$BuildSNN$distance.matrix")
+        cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
     } else {
       cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80), 
                  collapse = "\n"))
