@@ -313,7 +313,7 @@ VlnPlot <- function(
   plots <- lapply(
     X = features.plot,
     FUN = function(x) {
-      return(PlotVln(
+      return(SingleVlnPlot(
         feature = x,
         data = data.use[, x, drop = FALSE],
         cell.ident = ident.use,
@@ -1682,106 +1682,6 @@ HoverLocator <- function(
     plot_bgcolor = plotbg,
     ...
   )
-}
-
-PlotVln <- function(
-  feature,
-  data,
-  cell.ident,
-  do.sort,
-  y.max,
-  size.x.use,
-  size.y.use,
-  size.title.use,
-  adjust.use,
-  point.size.use,
-  cols.use,
-  gene.names,
-  y.log,
-  x.lab.rot,
-  y.lab.rot,
-  legend.position,
-  remove.legend
-) {
-  set.seed(seed = 42)
-  data$ident <- cell.ident
-  if(do.sort) {
-    data$ident <- factor(
-      x = data$ident,
-      levels = names(x = rev(x = sort(x = tapply(
-        X = data[, feature],
-        INDEX = data$ident,
-        FUN = mean
-      ))))
-    )
-  }
-  if (y.log) {
-    noise <- rnorm(n = length(x = data[, feature])) / 200
-    data[, feature] <- data[, feature] + 1
-  } else {
-    noise <- rnorm(n = length(x = data[, feature])) / 100000
-  }
-  data[, feature] <- data[, feature] + noise
-  y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
-  plot <- ggplot(
-    data = data,
-    mapping = aes(
-      x = factor(x = ident),
-      y = eval(expr = parse(text = feature))
-    )
-  ) +
-    geom_violin(
-      scale = "width",
-      adjust = adjust.use,
-      trim = TRUE,
-      mapping = aes(fill = factor(x = ident))
-    ) +
-    theme(
-      legend.position = legend.position,
-      axis.title.x = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.x.use
-      ),
-      axis.title.y = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.y.use
-      )
-    ) +
-    guides(fill = guide_legend(title = NULL)) +
-    geom_jitter(height = 0, size = point.size.use) +
-    xlab("Cell Type") +
-    NoGrid() +
-    ggtitle(feature) +
-    theme(plot.title = element_text(size = size.title.use, face = "bold"))
-  if (y.log) {
-    plot <- plot + scale_y_log10()
-  } else {
-    plot <- plot + ylim(min(data[, feature]), y.max)
-  }
-  if (feature %in% gene.names) {
-    if (y.log) {
-      plot <- plot + ylab(label = "Log Expression level")
-    } else {
-      plot <- plot + ylab(label = "Expression level")
-    }
-  } else {
-    plot <- plot + ylab(label = "")
-  }
-  if (! is.null(x = cols.use)) {
-    plot <- plot + scale_fill_manual(values = cols.use)
-  }
-  if (x.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-  }
-  if (y.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90))
-  }
-  if (remove.legend) {
-    plot <- plot + theme(legend.position = "none")
-  }
-  return(plot)
 }
 
 
