@@ -632,7 +632,6 @@ CalcVarExpRatio <- function(
   )[, 1]))
   genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
   var.ratio <- data.frame()
-  dr.corr <- data.frame()
   for (group in groups) {
     cat(paste("Calculating for", group, "\n"), file = stderr())
     group.cells <- WhichCells(
@@ -677,15 +676,6 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "pca.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], y = ldp.pca[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else if (reduction.type == "ica") {
       group.object <- ICA(
         object = group.object,
@@ -707,15 +697,6 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "ica.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], ldp.ica[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else if (reduction.type == "pcafast") {
       group.object <- PCAFast(
         object = group.object,
@@ -737,30 +718,14 @@ CalcVarExpRatio <- function(
       )
       group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
         group.object@data.info[, "pca.var", drop = FALSE]
-      group.corr <- data.frame(
-        corr = sapply(
-          X = 1:length(x = group.object@cell.names),
-          FUN = function(x) {
-            return(cor(x = ldp.cca[, x], ldp.pca[, x]))
-          }
-        ),
-        row.names = group.object@cell.names
-      )
     } else {
       stop(paste("reduction.type", reduction.type, "not supported"))
     }
-    dr.corr <- rbind(dr.corr, group.corr)
     var.ratio <- rbind(var.ratio, group.var.ratio)
   }
   var.ratio$cell.name <- rownames(x = var.ratio)
-  dr.corr$cell.name <- rownames(x = dr.corr)
   eval(expr = parse(text = paste0(
     "object@data.info$var.ratio.",
-    reduction.type,
-    "<- NULL"
-  )))
-  eval(expr = parse(text = paste0(
-    "object@data.info$dr.corr.",
     reduction.type,
     "<- NULL"
   )))
@@ -768,13 +733,8 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  colnames(x = dr.corr) <- c(
-    paste0("dr.corr.", reduction.type),
-    "cell.name"
-  )
   object@data.info$cell.name <- rownames(x = object@data.info)
   object@data.info <- merge(x = object@data.info, y = var.ratio, by = "cell.name")
-  object@data.info <- merge(x = object@data.info, y = dr.corr, by = "cell.name")
   rownames(x = object@data.info) <- object@data.info$cell.name
   object@data.info$cell.name <- NULL
   return(object)
