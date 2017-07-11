@@ -1,15 +1,15 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
-#' Run a PCA dimensionality reduction. For details about stored PCA calculation 
+#' Run a PCA dimensionality reduction. For details about stored PCA calculation
 #' parameters, see \code{\link{PrintPCAParams}}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
 #' @param pcs.compute Total Number of PCs to compute and store
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting 
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
-#' @param scale.by.varexp Scale the gene loadings by the variance explained by 
+#' @param scale.by.varexp Scale the gene loadings by the variance explained by
 #' each PC (scales the cell embeddings if rev.pca is TRUE)
 #' @param do.print Print the top genes associated with high/low loadings for
 #' the PCs
@@ -19,7 +19,7 @@
 #'
 #'@importFrom irlba irlba
 #'
-#' @return Returns Seurat object with the PCA calculation stored in 
+#' @return Returns Seurat object with the PCA calculation stored in
 #' object@@dr$pca.
 #'
 #' @importFrom irlba irlba
@@ -39,7 +39,7 @@ PCA <- function(
   ...
 ) {
   data.use <- PrepDR(
-    object = object, 
+    object = object,
     genes.use = pc.genes,
     use.imputed = use.imputed)
   pcs.compute <- min(pcs.compute, ncol(x = data.use))
@@ -85,27 +85,27 @@ PCA <- function(
 #' Run Independent Component Analysis on gene expression
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.
-#' For details about stored ICA calculation parameters, see 
+#' For details about stored ICA calculation parameters, see
 #' \code{\link{PrintICAParams}}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
 #' @param ics.compute Number of ICs to compute
 #' @param use.imputed Run ICA on imputed values (FALSE by default)
-#' @param rev.ica By default, computes the dimensional reduction on the cell x 
-#' gene matrix. Setting to true will compute it on the transpose (gene x cell 
+#' @param rev.ica By default, computes the dimensional reduction on the cell x
+#' gene matrix. Setting to true will compute it on the transpose (gene x cell
 #' matrix).
 #' @param print.results Print the top genes associated with each dimension
 #' @param ics.print ICs to print genes for
 #' @param genes.print Number of genes to print for each IC
-#' @param ica.function ICA function from ica package to run (options: icafast, 
+#' @param ica.function ICA function from ica package to run (options: icafast,
 #' icaimax, icajade)
 #' @param seed.use Random seed to use for fastica
 #' @param \dots Additional arguments to be passed to fastica
 #'
 #' @importFrom ica icafast icaimax icajade
 #'
-#' @return Returns Seurat object with an ICA calculation stored in 
+#' @return Returns Seurat object with an ICA calculation stored in
 #' object@@dr$ica
 #'
 #' @export
@@ -124,8 +124,8 @@ ICA <- function(
   ...
 ) {
   data.use <- PrepDR(
-    object = object, 
-    genes.use = ic.genes, 
+    object = object,
+    genes.use = ic.genes,
     use.imputed = use.imputed)
   set.seed(seed = seed.use)
   ics.compute <- min(ics.compute, ncol(x = data.use))
@@ -159,13 +159,13 @@ ICA <- function(
 
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
-#' Run t-SNE dimensionality reduction on selected features. Has the option of 
-#' running in a reduced dimensional space (i.e. spectral tSNE, recommended), 
-#' or running based on a set of genes. For details about stored TSNE calculation 
+#' Run t-SNE dimensionality reduction on selected features. Has the option of
+#' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
+#' or running based on a set of genes. For details about stored TSNE calculation
 #' parameters, see \code{\link{PrintTSNEParams}}.
 #'
 #' @param object Seurat object
-#' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for 
+#' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
 #' the tSNE. Default is PCA
 #' @param cells.use Which cells to analyze (default, all cells)
 #' @param dims.use Which dimensions to use as input features
@@ -175,16 +175,16 @@ ICA <- function(
 #' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
 #' faster, but is less flexible
 #' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top 
+#' current tSNE to seed the algorithm and then adds additional iterations on top
 #' of this
-#' @param dim.embed The dimensional space of the resulting tSNE embedding 
+#' @param dim.embed The dimensional space of the resulting tSNE embedding
 #' (default is 2). For example, set to 3 for a 3d tSNE
 #' @param \dots Additional arguments to the tSNE call. Most commonly used is
 #' perplexity (expected number of neighbors default is 30)
-#' @param distance.matrix If set, tuns tSNE on the given distance matrix 
+#' @param distance.matrix If set, tuns tSNE on the given distance matrix
 #' instead of data matrix (experimental)
 #'
-#' @return Returns a Seurat object with a tSNE embedding in 
+#' @return Returns a Seurat object with a tSNE embedding in
 #' object@@dr$tsne@cell.embeddings
 #'
 #' @importFrom Rtsne Rtsne
@@ -271,9 +271,9 @@ RunTSNE <- function(
 
 #' Project Dimensional reduction onto full dataset
 #'
-#' Takes a pre-computed dimensional reduction (typically calculated on a subset 
-#' of genes) and projects this onto the entire dataset (all genes). Note that 
-#' the cell loadings will remain unchanged, but now there are gene loadings for 
+#' Takes a pre-computed dimensional reduction (typically calculated on a subset
+#' of genes) and projects this onto the entire dataset (all genes). Note that
+#' the cell loadings will remain unchanged, but now there are gene loadings for
 #' all genes.
 #'
 #'
@@ -282,14 +282,14 @@ RunTSNE <- function(
 #' @param dims.store Number of dims to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
 #' each PC
-#' @param replace.dim Replace the existing data (overwrite 
+#' @param replace.dim Replace the existing data (overwrite
 #' object@@dr$XXX@gene.loadings), not done by default.
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #' @param do.print Print top genes associated with the projected dimensions
-#' @param assay.type Data type, RNA by default. Can be changed for multimodal 
+#' @param assay.type Data type, RNA by default. Can be changed for multimodal
 #' datasets (i.e. project a PCA done on RNA, onto CITE-seq data)
 #'
-#' @return Returns Seurat object with the projected values in 
+#' @return Returns Seurat object with the projected values in
 #' object@@dr$XXX@gene.loadings.full
 #'
 #' @export
@@ -355,7 +355,7 @@ ProjectDim <- function(
 #'
 #' Takes a pre-computed PCA (typically calculated on a subset of genes) and
 #' projects this onto the entire dataset (all genes). Note that the cell
-#' loadings remains unchanged, but now there are gene loading scores for all 
+#' loadings remains unchanged, but now there are gene loading scores for all
 #' genes.
 #'
 #' @param object Seurat object
@@ -364,7 +364,7 @@ ProjectDim <- function(
 #' @param pcs.store Number of PCs to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
 #' each PC
-#' @param replace.pc Replace the existing PCA (overwite 
+#' @param replace.pc Replace the existing PCA (overwite
 #' object@@dr$pca@gene.loadings), not done by default.
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #'
@@ -397,11 +397,11 @@ ProjectPCA <- function(
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
-#' For details about stored CCA calculation parameters, see 
+#' For details about stored CCA calculation parameters, see
 #' \code{\link{PrintCCAParams}}.
-#' 
+#'
 #' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object1 will be 
+#' @param object2 Optional second object. If object2 is passed, object1 will be
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
@@ -563,16 +563,16 @@ RunCCA <- function(
       )
     )
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    combined.object <- SetCalcParams(object = combined.object, 
+    combined.object <- SetCalcParams(object = combined.object,
                                      calculation = "RunCCA",
                                      ... = parameters.to.store)
-    combined.object <- SetSingleCalcParam(object = combined.object, 
-                                          calculation = "RunCCA", 
-                                          parameter = "object.project", 
+    combined.object <- SetSingleCalcParam(object = combined.object,
+                                          calculation = "RunCCA",
+                                          parameter = "object.project",
                                           value = object@project.name)
-    combined.object <- SetSingleCalcParam(object = combined.object, 
-                                          calculation = "RunCCA", 
-                                          parameter = "object2.project", 
+    combined.object <- SetSingleCalcParam(object = combined.object,
+                                          calculation = "RunCCA",
+                                          parameter = "object2.project",
                                           value = object2@project.name)
     return(combined.object)
   } else {
@@ -589,12 +589,12 @@ RunCCA <- function(
       new.data = "CC"
     )
 
-    object <- ProjectDim(object = object, 
+    object <- ProjectDim(object = object,
                          reduction.type = "cca",
                          do.print = FALSE)
     object@scale.data[is.na(x = object@scale.data)] <- 0
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    object <- SetCalcParams(object = object, 
+    object <- SetCalcParams(object = object,
                                      calculation = "RunCCA",
                                      ... = parameters.to.store)
     return(object)
@@ -604,16 +604,16 @@ RunCCA <- function(
 #' Calculate the ratio of variance explained by ICA or PCA to CCA
 #'
 #' @param object Seurat object
-#' @param reduction.type type of dimensional reduction to compare to CCA (pca, 
+#' @param reduction.type type of dimensional reduction to compare to CCA (pca,
 #' pcafast, ica)
 #' @param grouping.var variable to group by
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number
 #'  stored for cca)
 #'
-#' @return Returns Seurat object with ratio of variance explained stored in 
+#' @return Returns Seurat object with ratio of variance explained stored in
 #' object@@data.info$var.ratio
 #' @export
-#' 
+#'
 CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",
@@ -742,7 +742,7 @@ CalcVarExpRatio <- function(
 
 #' Align subspaces using dynamic time warping (DTW)
 #'
-#' Aligns subspaces so that they line up across grouping variable (only 
+#' Aligns subspaces so that they line up across grouping variable (only
 #' implemented for case with 2 categories in grouping.var)
 #'
 #'
@@ -939,6 +939,89 @@ AlignSubspace <- function(
     reduction.type = new.type,
     slot = "key",
     new.data = new.key
+  )
+  return(object)
+}
+
+#' Run diffusion map
+#'
+#' @param object Seurat object
+#' @param cells.use Which cells to analyze (default, all cells)
+#' @param dims.use Which dimensions to use as input features
+#' @param genes.use If set, run the tSNE on this subset of genes
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+#' @param q.use Quantile to use
+#' @param max.dim Max dimension to keep from diffusion calculation
+#' @param scale.clip Max/min value for scaled data. Default is 3
+#' @param ... Additional arguments to the diffuse call
+#'
+#' @return Returns a Seurat object with a diffusion map
+#'
+#' @import diffusionMap
+#'
+#' @export
+#'
+RunDiffusion <- function(
+  object,
+  cells.use = NULL,
+  dims.use = 1:5,
+  genes.use = NULL,
+  reduction.use = 'pca',
+  q.use = 0.01,
+  max.dim = 2,
+  scale.clip = 10,
+  ...
+) {
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  if (is.null(x = genes.use)) {
+    dim.code <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = 'key'
+    )
+    dim.codes <- paste0(dim.code, dims.use)
+    data.use <- FetchData(object = object, vars.all = dim.codes)
+  }
+  if (! is.null(x = genes.use)) {
+    genes.use <- ainb(genes.use, rownames(x = object@scale.data))
+    data.use <- minmax(
+      data = t(x = object@data[genes.use, cells.use]),
+      min = -1 * scale.clip,
+      max = scale.clip
+    )
+  }
+  data.dist <- dist(data.use)
+  data.diffusion <- data.frame(
+    diffuse( # Where is diffuse?
+      D = data.dist,
+      neigen = max.dim,
+      maxdim = max.dim,
+      ...
+    )$X
+  )
+  colnames(x = data.diffusion) <- paste0("DM", 1:ncol(x = data.diffusion))
+  rownames(x = data.diffusion) <- cells.use
+  for (i in 1:max.dim) {
+    x <- data.diffusion[,i]
+    x <- minmax(
+      data = x,
+      min = quantile(x = x, probs = q.use),
+      quantile(x = x, probs = 1-q.use)
+    )
+    data.diffusion[, i] <- x
+  }
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = "dm",
+    slot = "cell.embeddings",
+    new.data = as.matrix(x = data.diffusion)
+  )
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = "dm",
+    slot = "key",
+    new.data = "DM"
   )
   return(object)
 }

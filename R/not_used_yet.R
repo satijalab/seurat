@@ -215,3 +215,61 @@ RegressOutNBreg <- function(
   object@scale.data <- r
   return(object)
 }
+
+# Run t-distributed Stochastic Neighbor Embedding
+#
+# Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
+# dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
+#
+# @param object Seurat object
+# @param cells.use Which cells to analyze (default, all cells)
+# @param dims.use Which dimensions to use as input features
+# @param k.seed Random seed for the t-SNE
+# @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
+# faster, but is less flexible
+# @param add.iter If an existing tSNE has already been computed, uses the
+# current tSNE to seed the algorithm and then adds additional iterations on top of this
+# @param genes.use If set, run the tSNE on this subset of genes
+# (instead of running on a set of reduced dimensions). Not set (NULL) by default
+# @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+# @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
+# For example, set to 3 for a 3d tSNE
+# @param q.use Quantile to use
+# @param max.dim Max dimension to keep from diffusion calculation
+# @param scale.clip Max/min value for scaled data. Default is 3
+# @param ... Additional arguments to the tSNE call. Most commonly used is
+# perplexity (expected number of neighbors default is 30)
+#
+# @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
+#
+# @import Rtsne
+# @import tsne
+#
+# Not currently supported
+#
+AddTSNE <- function(
+  object,
+  cells.use = NULL,
+  pcs.use = 1:10,
+  do.plot = TRUE,
+  k.seed = 1,
+  add.iter = 1000,
+  ...
+) {
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  data.use <- object@pca.rot[cells.use, pcs.use]
+  #data.dist=as.dist(mahalanobis.dist(data.use))
+  set.seed(seed = k.seed)
+  data.tsne <- data.frame(
+    tsne(
+      X = data.use,
+      initial_config = as.matrix(x = object@tsne.rot[cells.use,]),
+      max_iter = add.iter,
+      ...
+    )
+  )
+  colnames(x = data.tsne) <- paste0("tSNE_", 1:ncol(data.tsne))
+  rownames(x = data.tsne) <- cells.use
+  object@tsne.rot <- data.tsne
+  return(object)
+}
