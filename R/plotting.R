@@ -2916,3 +2916,60 @@ ColorTSNESplit <- function(
   return(TSNEPlot(object = object, colors.use = colors.use, ...))
 }
 
+#' Plot k-means clusters
+#'
+#' @param object A Seurat object
+#' @param cells.use Cells to include in the heatmap
+#' @param genes.cluster Clusters to include in heatmap
+#' @param max.genes Maximum number of genes to include in the heatmap
+#' @param slim.col.labels Instead of displaying every cell name on the heatmap,
+#' display only the identity class name once for each group
+#' @param remove.key Removes teh color key from the plot
+#' @param row.lines Color separations of clusters
+#' @param ... Extra parameters to DoHeatmap
+#'
+#' @seealso \code{\link{DoHeatmap}}
+#'
+#' @export
+#'
+KMeansHeatmap <- function(
+  object,
+  cells.use = object@cell.names,
+  genes.cluster = NULL,
+  max.genes = 1e6,
+  slim.col.label = TRUE,
+  remove.key = TRUE,
+  row.lines = TRUE,
+  ...
+) {
+  genes.cluster <- SetIfNull(
+    x = genes.cluster,
+    default = unique(x = object@kmeans.obj[[1]]$cluster)
+  )
+  genes.use <- GenesInCluster(
+    object = object,
+    cluster.num = genes.cluster,
+    max.genes = max.genes
+  )
+  cluster.lengths <- sapply(
+    X = genes.cluster,
+    FUN = function(x) {
+      return(length(x = GenesInCluster(object = object, cluster.num = x)))
+    }
+  )
+  print(cluster.lengths)
+  if (row.lines) {
+    rowsep.use <- cumsum(x = cluster.lengths)
+  } else {
+    rowsep.use <- NA
+  }
+  DoHeatmap(
+    object = object,
+    cells.use = cells.use,
+    genes.use = genes.use,
+    slim.col.label = slim.col.label,
+    remove.key = remove.key,
+    rowsep = rowsep.use,
+    ...
+  )
+}

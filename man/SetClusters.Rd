@@ -13,11 +13,11 @@ SetClusters(object, clusters = NULL)
 to set for the object.}
 }
 \value{
-Returns a Seurat object with the identities set to the cluster 
+Returns a Seurat object with the identities set to the cluster
 assignments that were passed.
 }
 \description{
 Easily set the cluster assignments using the output of GetClusters() ---
-a dataframe with cell names as the first column and cluster assignments as 
+a dataframe with cell names as the first column and cluster assignments as
 the second.
 }
