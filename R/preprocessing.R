@@ -86,8 +86,9 @@ Setup <- function(
   }
   data.ngene <- num.genes[cells.use]
   data.nmol <- num.mol[cells.use]
-  object@gene.scores <- data.frame(data.ngene)
-  colnames(object@gene.scores)[1] <- "nGene"
+  # object@gene.scores <- data.frame(data.ngene)
+  # colnames(object@gene.scores)[1] <- "nGene"
+  # rownames(x = object@gene.scores) <- colnames(x = object@data)
   nGene <- data.ngene
   nUMI <- data.nmol
   object@data.info <- data.frame(nGene, nUMI)
@@ -96,7 +97,6 @@ Setup <- function(
   }
   object@mix.probs <- data.frame(data.ngene)
   colnames(x = object@mix.probs)[1] <- "nGene"
-  rownames(x = object@gene.scores) <- colnames(x = object@data)
   object@data.info[names(object@ident),"orig.ident"] <- object@ident
   object@scale.data <- matrix()
   object@assay <- list()

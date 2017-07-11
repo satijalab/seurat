@@ -1327,67 +1327,6 @@ AddImputedScore <- function(
 
 # Documentation
 ###############
-# Not currently supported, but a cool scoring function
-#' @export
-GetNewScore <- function(
-  object,
-  score.name,
-  score.genes,
-  cell.ids = NULL,
-  score.func = weighted.mean,
-  scramble = FALSE,
-  no.tech.wt = FALSE,
-  biol.wts = NULL,
-  use.scaled = FALSE
-) {
-  data.use <- object@data
-  if (use.scaled) {
-    data.use <- minmax(data = object@scale.data, min = -2, max=2)
-  }
-  if (no.tech.wt) {
-    score.genes <- score.genes[score.genes %in% rownames(x = data.use)]
-  } else {
-    score.genes <- score.genes[score.genes %in% rownames(x = object@wt.matrix)]
-  }
-  cell.ids <- SetIfNull(x = cell.ids, default = colnames(x = data.use))
-  wt.matrix <- data.frame(
-    matrix(
-      data = 1,
-      nrow = length(x = score.genes),
-      ncol = length(x = cell.ids),
-      dimnames = list(score.genes, cell.ids)
-    )
-  )
-  if (! (no.tech.wt)) {
-    wt.matrix <- object@drop.wt.matrix[score.genes, cell.ids]
-  }
-  score.data <- data.use[score.genes, cell.ids]
-  if (scramble) {
-    score.data <- score.data[, sample(x = ncol(x = score.data))]
-  }
-  wt.matrix <- wt.matrix * (wt.matrix)
-  if (no.tech.wt) {
-    wt.matrix[wt.matrix < 1] = 1
-  }
-  biol.wts <- SetIfNull(x = biol.wts, default = rep(x = 1, nrow(x = wt.matrix)))
-  if (mean(x = biol.wts) == 1) {
-    names(x = biol.wts) <- score.genes
-  }
-  my.scores <- unlist(
-    x = lapply(
-      X = colnames(x = score.data),
-      FUN = function(x) {
-        return(score.func(score.data[, x], wt.matrix[, x] * biol.wts[score.genes]))
-      }
-    )
-  )
-  names(x = my.scores) <- colnames(x = score.data)
-  object@gene.scores[cell.ids, score.name] <- my.scores
-  return(object)
-}
-
-# Documentation
-###############
 # Not currently supported, but a cool function for QC
 #' @export
 CalcNoiseModels <- function(
