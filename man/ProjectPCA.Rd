@@ -19,7 +19,7 @@ ProjectPCA(object, do.print = TRUE, pcs.print = 1:5, pcs.store = 30,
 \item{genes.print}{Number of genes with highest/lowest loadings to print for
 each PC}
 
-\item{replace.pc}{Replace the existing PCA (overwite 
+\item{replace.pc}{Replace the existing PCA (overwite
 object@dr$pca@gene.loadings), not done by default.}
 
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
@@ -31,6 +31,6 @@ object@dr$pca@gene.loadings.full
 \description{
 Takes a pre-computed PCA (typically calculated on a subset of genes) and
 projects this onto the entire dataset (all genes). Note that the cell
-loadings remains unchanged, but now there are gene loading scores for all 
+loadings remains unchanged, but now there are gene loading scores for all
 genes.
 }

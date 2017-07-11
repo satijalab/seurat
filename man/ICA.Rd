@@ -17,8 +17,8 @@ ICA(object, ic.genes = NULL, ics.compute = 50, use.imputed = FALSE,
 
 \item{use.imputed}{Run ICA on imputed values (FALSE by default)}
 
-\item{rev.ica}{By default, computes the dimensional reduction on the cell x 
-gene matrix. Setting to true will compute it on the transpose (gene x cell 
+\item{rev.ica}{By default, computes the dimensional reduction on the cell x
+gene matrix. Setting to true will compute it on the transpose (gene x cell
 matrix).}
 
 \item{print.results}{Print the top genes associated with each dimension}
@@ -27,7 +27,7 @@ matrix).}
 
 \item{genes.print}{Number of genes to print for each IC}
 
-\item{ica.function}{ICA function from ica package to run (options: icafast, 
+\item{ica.function}{ICA function from ica package to run (options: icafast,
 icaimax, icajade)}
 
 \item{seed.use}{Random seed to use for fastica}
@@ -35,11 +35,11 @@ icaimax, icajade)}
 \item{\dots}{Additional arguments to be passed to fastica}
 }
 \value{
-Returns Seurat object with an ICA calculation stored in 
+Returns Seurat object with an ICA calculation stored in
 object@dr$ica
 }
 \description{
 Run fastica algorithm from the ica package for ICA dimensionality reduction.
-For details about stored ICA calculation parameters, see 
+For details about stored ICA calculation parameters, see
 \code{\link{PrintICAParams}}.
 }

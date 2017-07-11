@@ -9,7 +9,7 @@ CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{type of dimensional reduction to compare to CCA (pca, 
+\item{reduction.type}{type of dimensional reduction to compare to CCA (pca,
 pcafast, ica)}
 
 \item{grouping.var}{variable to group by}
@@ -18,7 +18,7 @@ pcafast, ica)}
 stored for cca)}
 }
 \value{
-Returns Seurat object with ratio of variance explained stored in 
+Returns Seurat object with ratio of variance explained stored in
 object@data.info$var.ratio
 }
 \description{

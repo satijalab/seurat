@@ -17,10 +17,10 @@ PCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
-\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting 
+\item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
 
-\item{scale.by.varexp}{Scale the gene loadings by the variance explained by 
+\item{scale.by.varexp}{Scale the gene loadings by the variance explained by
 each PC (scales the cell embeddings if rev.pca is TRUE)}
 
 \item{do.print}{Print the top genes associated with high/low loadings for
@@ -33,10 +33,10 @@ the PCs}
 \item{\dots}{Additional arguments to be passed to IRLBA}
 }
 \value{
-Returns Seurat object with the PCA calculation stored in 
+Returns Seurat object with the PCA calculation stored in
 object@dr$pca.
 }
 \description{
-Run a PCA dimensionality reduction. For details about stored PCA calculation 
+Run a PCA dimensionality reduction. For details about stored PCA calculation
 parameters, see \code{\link{PrintPCAParams}}.
 }
