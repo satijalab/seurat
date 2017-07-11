@@ -2,31 +2,31 @@
 NULL
 #' Cluster Determination
 #'
-#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity 
-#' optimization based clustering algorithm. First calculate k-nearest neighbors 
-#' and construct the SNN graph. Then optimize the modularity function to 
-#' determine clusters. For a full description of the algorithms, see Waltman and 
+#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
+#' optimization based clustering algorithm. First calculate k-nearest neighbors
+#' and construct the SNN graph. Then optimize the modularity function to
+#' determine clusters. For a full description of the algorithms, see Waltman and
 #' van Eck (2013) \emph{The European Physical Journal B}.
 #'
 #' @param object Seurat object
-#' @param genes.use A vector of gene names to use in construction of SNN graph 
+#' @param genes.use A vector of gene names to use in construction of SNN graph
 #' if building directly based on expression data rather than a dimensionally
 #' reduced representation (i.e. PCs).
-#' @param reduction.type Name of dimensional reduction technique to use in 
+#' @param reduction.type Name of dimensional reduction technique to use in
 #' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims.use A vector of the dimensions to use in construction of the SNN 
+#' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when 
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
-#' values less than or equal to this will be set to 0 and removed from the SNN 
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 --- 
-#' prune everything). 
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
-#' @param save.SNN Saves the SNN matrix associated with the calculation in 
+#' @param save.SNN Saves the SNN matrix associated with the calculation in
 #' object@@snn
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
@@ -34,12 +34,12 @@ NULL
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM 
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm).
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param temp.file.location Directory where intermediate files will be written. 
+#' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
@@ -92,11 +92,11 @@ FindClusters <- function(
       ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
       || ! missing(x = k.scale) || ! missing(x = prune.SNN)
     )) {
-      warning("SNN was not be rebuilt with new parameters. Continued with stored 
+      warning("SNN was not be rebuilt with new parameters. Continued with stored
                SNN. To suppress this warning, remove all SNN building parameters.")
     }
-  } else { 
-    # if any SNN building parameters are provided or it hasn't been built, build 
+  } else {
+    # if any SNN building parameters are provided or it hasn't been built, build
     # a new SNN
     object <- BuildSNN(
       object = object,
@@ -136,24 +136,24 @@ FindClusters <- function(
 }
 
 # Runs the modularity optimizer java program (ModularityOptimizer.jar)
-# 
+#
 #
 # @param object               Seurat object
-# @param SNN SNN              matrix to use as input for the clustering 
+# @param SNN SNN              matrix to use as input for the clustering
 #                             algorithms
-# @param modularity           Modularity function to use in clustering (1 = 
+# @param modularity           Modularity function to use in clustering (1 =
 #                             standard; 2 = alternative).
-# @param resolution           Value of the resolution parameter, use a value 
-#                             above (below) 1.0 if you want to obtain a larger 
+# @param resolution           Value of the resolution parameter, use a value
+#                             above (below) 1.0 if you want to obtain a larger
 #                             (smaller) number of communities.
-# @param algorithm            Algorithm for modularity optimization (1 = 
-#                             original Louvain algorithm; 2 = Louvain algorithm 
+# @param algorithm            Algorithm for modularity optimization (1 =
+#                             original Louvain algorithm; 2 = Louvain algorithm
 #                             with multilevel refinement; 3 = SLM algorithm)
 # @param n.start              Number of random starts.
 # @param n.iter               Maximal number of iterations per random start.
 # @param random.seed          Seed of the random number generator
 # @param print.output         Whether or not to print output to the console
-# @param temp.file.location   Directory where intermediate files will be written. 
+# @param temp.file.location   Directory where intermediate files will be written.
 # @return                     Seurat object with identities set to the results
 #                             of the clustering procedure.
 
@@ -246,7 +246,7 @@ RunModularityClustering <- function(
 #
 # @param object  Seurat object
 # @param SNN     SNN graph used in clustering
-# @return        Returns Seurat object with all singletons merged with most 
+# @return        Returns Seurat object with all singletons merged with most
 #                connected cluster
 
 GroupSingletons <- function(object, SNN) {
@@ -270,7 +270,7 @@ GroupSingletons <- function(object, SNN) {
         match(
           x = WhichCells(object = object, ident = j),
           table = colnames(x = SNN)
-        ) 
+        )
       ]
       if (is.object(x = subSNN)) {
         connectivity[j] <- sum(subSNN) / (nrow(x = subSNN) * ncol(x = subSNN))
@@ -298,8 +298,8 @@ GroupSingletons <- function(object, SNN) {
   return(object)
 }
 
-#' Get Cluster Assignments 
-#' 
+#' Get Cluster Assignments
+#'
 #' Retrieve cluster IDs as a dataframe. First column will be the cell name,
 #' second column will be the current cluster identity (pulled from object@ident).
 
@@ -314,22 +314,22 @@ GetClusters <- function(object) {
   return(clusters)
 }
 
-#' Set Cluster Assignments 
-#' 
+#' Set Cluster Assignments
+#'
 #' Easily set the cluster assignments using the output of GetClusters() ---
-#' a dataframe with cell names as the first column and cluster assignments as 
+#' a dataframe with cell names as the first column and cluster assignments as
 #' the second.
-#' 
+#'
 #' @param object Seurat object
 #' @param clusters A dataframe containing the cell names and cluster assignments
 #' to set for the object.
-#' @return Returns a Seurat object with the identities set to the cluster 
+#' @return Returns a Seurat object with the identities set to the cluster
 #' assignments that were passed.
 #' @export
 #'
 SetClusters <- function(object, clusters = NULL) {
   if(!(all(c("cell.name", "cluster") %in% colnames(clusters)))){
-    stop("The clusters parameter must be the output from GetClusters (i.e. 
+    stop("The clusters parameter must be the output from GetClusters (i.e.
          Columns must be cell.name and cluster)")
   }
   cells.use <- clusters$cell.name
@@ -343,7 +343,7 @@ SetClusters <- function(object, clusters = NULL) {
   }
 
 #' Save cluster assignments to a TSV file
-#' 
+#'
 #' @param object Seurat object with cluster assignments
 #' @param file Path to file to write cluster assignments to
 #' @return No return value. Writes clusters assignments to specified file.
@@ -355,7 +355,7 @@ SaveClusters <- function(object, file) {
 }
 
 #' Convert the cluster labels to a numeric representation
-#' 
+#'
 #' @param object Seurat object
 #' @return Returns a Seurat object with the identities relabeled numerically
 #' starting from 1.
@@ -491,4 +491,148 @@ BuildRFClassifier <- function(
     ...
   )
   return(classifier)
+}
+
+#' K-Means Clustering
+#'
+#' Perform k=means clustering on both genes and single cells
+#'
+#' K-means and heatmap are calculated on object@@scale.data
+#'
+#' @param object Seurat object
+#' @param genes.use Genes to use for clustering
+#' @param k.genes K value to use for clustering genes
+#' @param k.cells K value to use for clustering cells (default is NULL, cells
+#' are not clustered)
+#' @param k.seed Random seed
+#' @param do.plot Draw heatmap of clustered genes/cells (default is TRUE)
+#' @param data.cut Clip all z-scores to have an absolute value below this.
+#' Reduces the effect of huge outliers in the data.
+#' @param k.cols Color palette for heatmap
+#' @param pc.row.order Order gene clusters based on the average PC score within
+#' a cluster. Can be useful if you want to visualize clusters, for example,
+#' based on their average score for PC1.
+#' @param pc.col.order Order cell clusters based on the average PC score within
+#' a cluster
+#' @param rev.pc.order Use the reverse PC ordering for gene and cell clusters
+#' (since the sign of a PC is arbitrary)
+#' @param use.imputed Cluster imputed values (default is FALSE)
+#' @param set.ident If clustering cells (so k.cells>0), set the cell identity
+#' class to its K-means cluster (default is TRUE)
+#' @param do.constrained FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.
+#' @param \dots Additional parameters passed to kmeans (or tkmeans)
+#'
+#' @importFrom tclust tkmeans
+#'
+#' @return Seurat object where the k-means results for genes is stored in
+#'
+#' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
+#' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@data.info[,"kmeans.ident"]
+#' and also object@@ident (if set.ident=TRUE)
+#'
+#' @export
+DoKMeans <- function(
+  object,
+  genes.use = NULL,
+  k.genes = NULL,
+  k.cells = 0,
+  k.seed = 1,
+  do.plot = TRUE,
+  data.cut = 2.5,
+  k.cols = pyCols,
+  pc.row.order = NULL,
+  pc.col.order = NULL,
+  rev.pc.order = FALSE,
+  use.imputed = FALSE,
+  set.ident = TRUE,
+  do.constrained = FALSE,
+  ...
+) {
+  if (use.imputed) {
+    data.use.orig <- data.frame(t(x = scale(x = t(x = object@imputed))))
+  } else {
+    data.use.orig <- object@scale.data
+  }
+  data.use <- minmax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
+  if (rev.pc.order) {
+    revFxn <- function(x) {
+      max(x) + 1 - x
+    }
+  } else {
+    revFxn <- same
+  }
+  kmeans.col <- NULL
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
+  cells.use <- object@cell.names
+  kmeans.data <- data.use[genes.use, cells.use]
+  if (do.constrained) {
+    set.seed(seed = k.seed)
+    kmeans.obj <- tkmeans(objectkmeans.data, k = k.genes, ...)
+  } else {
+    set.seed(seed = k.seed)
+    kmeans.obj <- kmeans(x = kmeans.data, centers = k.genes, ...)
+  }
+  if (! is.null(x = pc.row.order)) {
+    if (nrow(x = object@pca.x.full > 0)) {
+      pcx.use <- object@pca.x.full
+      pc.genes <- ainb(a = genes.use, b = rownames(x = pcx.use))
+    } else {
+      pcx.use <- object@pca.x
+      pc.genes <- ainb(a = genes.use, b = rownames(x = pcx.use))
+    }
+    kmeans.obj$cluster <- as.numeric(
+      x = revFxn(
+        rank(
+          x = tapply(
+            X = pcx.use[genes.use, pc.row.order],
+            INDEX = as.numeric(x = kmeans.obj$cluster),
+            FUN = mean
+          )
+        )
+      )[as.numeric(x = kmeans.obj$cluster)]
+    )
+  }
+  names(x = kmeans.obj$cluster) <- genes.use
+  if (k.cells > 0) {
+    kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)
+    if (! is.null(x = pc.col.order)) {
+      kmeans.col$cluster <- as.numeric(
+        x = revFxn(
+          rank(
+            x = tapply(
+              X = object@pca.rot[cells.use, pc.col.order],
+              INDEX = kmeans.col$cluster,
+              FUN = mean
+            )
+          )
+        )[as.numeric(x = kmeans.col$cluster)]
+      )
+    }
+    names(x = kmeans.col$cluster) <- cells.use
+  }
+  object@kmeans.obj <- list(kmeans.obj)
+  object@kmeans.col <- list(kmeans.col)
+  kmeans.obj <- object@kmeans.obj[[1]]
+  kmeans.col <- object@kmeans.col[[1]]
+  if (k.cells > 0) {
+    object@data.info[names(x = kmeans.col$cluster), "kmeans.ident"] <- kmeans.col$cluster
+  }
+  if (set.ident && (k.cells > 0)) {
+    object <- SetIdent(
+      object = object,
+      cells.use = names(x = kmeans.col$cluster),
+      ident.use = kmeans.col$cluster
+    )
+  }
+  if (do.plot) {
+    disp.data <- minmax(
+      data = kmeans.data[order(kmeans.obj$cluster[genes.use]), ],
+      min = data.cut * (-1),
+      max = data.cut
+    )
+    #DoHeatmap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,col.use = k.cols,...)
+    KMeansHeatmap(object = object)
+  }
+  return(object)
 }

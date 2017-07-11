@@ -1854,53 +1854,6 @@ GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
 
 # Documentation
 ###############
-#Needs comments
-#' @export
-#'
-KMeansHeatmap <- function(
-  object,
-  cells.use = object@cell.names,
-  genes.cluster = NULL,
-  max.genes = 1e6,
-  slim.col.label = TRUE,
-  remove.key = TRUE,
-  row.lines = TRUE,
-  ...
-) {
-  genes.cluster <- SetIfNull(
-    x = genes.cluster,
-    default = unique(x = object@kmeans.obj[[1]]$cluster)
-  )
-  genes.use <- GenesInCluster(
-    object = object,
-    cluster.num = genes.cluster,
-    max.genes = max.genes
-  )
-  cluster.lengths <- sapply(
-    X = genes.cluster,
-    FUN = function(x) {
-      return(length(x = GenesInCluster(object = object, cluster.num = x)))
-    }
-  )
-  print(cluster.lengths)
-  if (row.lines) {
-    rowsep.use <- cumsum(x = cluster.lengths)
-  } else {
-    rowsep.use <- NA
-  }
-  DoHeatmap(
-    object = object,
-    cells.use = cells.use,
-    genes.use = genes.use,
-    slim.col.label = slim.col.label,
-    remove.key = remove.key,
-    rowsep = rowsep.use,
-    ...
-  )
-}
-
-# Documentation
-###############
 #' @export
 #'
 CellCorMatrix <- function(
