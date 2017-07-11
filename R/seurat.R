@@ -7056,7 +7056,7 @@ MeanVarPlot <- function(
 AddEnrichScore <- function(
   object,
   genes.list = NULL,
-  genes.pool = rownames(object@data),
+  genes.pool = NULL,
   n.bin = 25,
   seed.use = 1,
   ctrl.size = 100,
@@ -7076,6 +7076,7 @@ AddEnrichScore <- function(
     genes.list <- lapply(genes.list,function(x) intersect(x,rownames(object@data)))
     cluster.length <- length(x = genes.list)
   }
+  if (is.null(x = genes.pool)) genes.pool = rownames(object@data)
   data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
   data.cut <- as.numeric(x = cut2(
