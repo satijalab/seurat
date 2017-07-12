@@ -381,30 +381,13 @@ log_add <- function(x) {
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
-# Calculate variance of logged values in non-log space (return answer in log-space)
-expVar <- function(x) {
-  return(log1p(var(expm1(x))))
-}
-
-# Calculate SD of logged values in non-log space (return answer in log-space)
-expSD <- function(x) {
-  return(log1p(sd(expm1(x))))
-}
-
-# Calculate mean of logged values in non-log space (return answer in log-space)
-expMean <- function(x) {
-  return(log(x = mean(x = exp(x = x) - 1) + 1))
-}
-
 # returns the intersection of two vectors, i.e all elements of a that are also in b
 # we should be switching to use the intersect function instead
 ainb <- function(a, b) {
   return(a[a %in% b])
 }
 
-logVarDivMean <- function(x) {
-  return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
-}
+
 
 same <- function(x) {
   return(x)
