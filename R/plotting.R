@@ -1847,13 +1847,13 @@ VizDimReduction <- function(
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = "x.full"
+      slot = "gene.loadings.full"
     )
   } else {
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = "x"
+      slot = "gene.loadings"
     )
   }
   if (is.null(x = nCol)) {
