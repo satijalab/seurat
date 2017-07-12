@@ -2606,7 +2606,7 @@ KMeansHeatmap <- function(
 ) {
   genes.cluster <- SetIfNull(
     x = genes.cluster,
-    default = unique(x = object@kmeans.obj[[1]]$cluster)
+    default = unique(x = object@kmeans@gene.kmeans.obj$cluster)
   )
   genes.use <- GenesInCluster(
     object = object,
@@ -2619,7 +2619,7 @@ KMeansHeatmap <- function(
       return(length(x = GenesInCluster(object = object, cluster.num = x)))
     }
   )
-  print(cluster.lengths)
+  #print(cluster.lengths)
   if (row.lines) {
     rowsep.use <- cumsum(x = cluster.lengths)
   } else {

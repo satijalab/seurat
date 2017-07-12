@@ -1229,17 +1229,24 @@ PCASigGenes <- function(
   return(genes.use)
 }
 
-# Documentation
-###############
-#' @export
+
+#' GenesInCluster
 #'
+#' After k-means analysis, previously run with DoKMeans, returns a set of genes associated with each cluster
+#'
+#' @param object Seurat object. Assumes DoKMeans has already been run
+#' @param cluster.num K-means cluster(s) to return genes for
+#' @param max.genes max number of genes to return 
+#' @return A vector of genes who are members in the cluster.num k-means cluster(s)
+#'
+#' @export
 GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
   toReturn <- unlist(
     x = lapply(
       X = cluster.num,
       FUN = function(x) {
         return(head(
-          x = sort(x = names(x = which(x = object@kmeans.obj[[1]]$cluster==x))),
+          x = sort(x = names(x = which(x = object@kmeans@gene.kmeans.obj$cluster==x))),
           n = max.genes
         ))
       }
