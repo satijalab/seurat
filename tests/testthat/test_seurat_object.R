@@ -36,7 +36,7 @@ test_that("entered parameters set correctly", {
 })
 
 test_that("correct cells are used",{
-  gene.count <- unname(findNGene(nbt.test@raw.data, nbt.test@is.expr))
+  gene.count <- nbt.test@data.info$nGene
   expect_equal(min(gene.count), 2405)
   expect_true(all(gene.count >= min.genes))
 })
@@ -65,19 +65,12 @@ test_that("scaling done correctly", {
   expect_equal(nbt.test@scale.data["ZYX", "Hi_GW16_1"], -0.658326175185112)
 })
 
-test_that("nGene calculations are consistent" , {
-  gene.count <- unname(findNGene(nbt.test@raw.data, nbt.test@is.expr))
-  expect_equal(nbt.test@mix.probs[, 1], gene.count)
-  expect_equal(nbt.test@gene.scores[, 1], gene.count)
-
-})
-
-
 # Test dimensional reduction
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
-nbt.test <- FindVariableGenes(nbt.test, y.cutoff = 2,x.low.cutoff = 2,fxn.x = expMean,fxn.y = logVarDivMean)
+nbt.test <- FindVariableGenes(nbt.test, y.cutoff = 2, x.low.cutoff = 2,
+                              fxn.x = expMean, fxn.y = logVarDivMean)
 pcs.compute <- 4
 nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, scale.by.varexp = F)
 
@@ -86,7 +79,7 @@ test_that("PCA returns expected data when not scaling", {
   expect_equal(abs(nbt.test@dr$pca@gene.loadings[1,1]), 0.4362582, tolerance = 1e-6)
   expect_equal(ncol(nbt.test@dr$pca@gene.loadings), pcs.compute)
   expect_equal(ncol(nbt.test@dr$pca@cell.embeddings), pcs.compute)
-  
+
 })
 
 nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
@@ -150,13 +143,13 @@ test_that("SNN calculations are correct and handled properly", {
   nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
   expect_true(length(nbt.test@snn) > 1)
   expect_equal(nbt.test@snn[2,9], 0.6)
-  
+
   nbt.test <- FindClusters(nbt.test, resolution = 1, print.output = 0)
-  
+
   expect_warning(FindClusters(nbt.test, k.param = 4, reuse.SNN = T, resolution = 1, n.iter = 1, n.start = 1, print.output = 0))
   nbt.test@snn <- sparseMatrix(1, 1, x = 1)
   expect_error(FindClusters(nbt.test, resolution = 1, reuse.SNN = T))
-  
+
 })
 
 
@@ -182,7 +175,7 @@ test_that("WhichCells subsets properly", {
   expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
   expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
   expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -0.8, accept.low = -0.9), "Hi_GW21.2_3")
-  
+
   expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
   expect_equal(length(WhichCells(nbt.test, subset.name = "nGene", max.cells.per.ident = 1)), length(unique(nbt.test@ident)))

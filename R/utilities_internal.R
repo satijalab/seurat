@@ -135,7 +135,7 @@ SetCalcParams <- function(object, calculation, ...) {
 #
 # @param object      A Seurat object
 # @param calculation The name of the calculation that was done
-# @param parameter  Parameter for the calculation to set 
+# @param parameter  Parameter for the calculation to set
 # @param value  Value of parameter to set
 #
 # @return object with the calc.param slot modified to either append this
@@ -357,7 +357,7 @@ SetIfNull <- function(x, default) {
 }
 
 
-#return average of all values greater than a threshold
+# return average of all values greater than a threshold
 humpMean <- function(x, min = 0) {
   return(mean(x = x[x > min]))
 }
@@ -367,46 +367,44 @@ humpVar <- function(x, min = 0) {
   return(var(x = x[x > min]))
 }
 
-#calculate the coefficient of variation 
+# calculate the coefficient of variation
 cv <- function(x) {
   return(sd(x = x) / mean(x = x))
 }
 
-#return la count of all values greater than a threshold
+# return la count of all values greater than a threshold
 humpCt <- function(x, min = 0) {
   return(length(x = x[x > min]))
 }
 
-#add values in log-space
+# add values in log-space
 log_add <- function(x) {
   mpi <- max(x)
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
 
-
-#' Calculate variance of logged values in non-log space (return answer in log-space)
-#' @export
+# Calculate variance of logged values in non-log space (return answer in log-space)
 expVar <- function(x) {
   return(log1p(var(expm1(x))))
 }
 
-#' Calculate SD of logged values in non-log space (return answer in log-space)
-#' @export
+# Calculate SD of logged values in non-log space (return answer in log-space)
 expSD <- function(x) {
   return(log1p(sd(expm1(x))))
 }
 
-#' Calculate mean of logged values in non-log space (return answer in log-space)
-#' @export
+# Calculate mean of logged values in non-log space (return answer in log-space)
 expMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
 
-
-#returns the intersection of two vectors, i.e all elements of a that are also in b
-#we should be switching to use the intersect function instead
+# returns the intersection of two vectors, i.e all elements of a that are also in b
+# we should be switching to use the intersect function instead
 ainb <- function(a, b) {
   return(a[a %in% b])
 }
 
+logVarDivMean <- function(x) {
+  return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+}

@@ -48,10 +48,10 @@ Imports:
     WGCNA,
     dtw,
     SDMTools,
-    plotly
+    plotly,
+    diffusionMap
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
-remotes: bioc::release/made4
 Collate: 
     'RcppExports.R'
     'seurat.R'
