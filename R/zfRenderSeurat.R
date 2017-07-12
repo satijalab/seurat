@@ -1,3 +1,49 @@
+
+#' Draw 3D in situ predictions from Zebrafish dataset
+#'
+#' From Jeff Farrell
+#'
+#' @param data Predicted expression levels across Zebrafish bins
+#' @param label Plot label
+#'
+#' @export
+situ3d <- function(data, label = NULL, ...) {
+  # Call Seurat function to get the in situ values out.
+  exp.1 <- data
+  exp.1 <- (exp.1 - min(exp.1)) / (max(exp.1) - min(exp.1))
+  # Reformat them into an expression matrix as expected by the plotting function
+  expression.matrix <- data.frame(matrix(data = exp.1, nrow = 8, ncol = 8))
+  rownames(x = expression.matrix) <- c(
+    "24-30",
+    "17-23",
+    "13-16",
+    "9-12",
+    "7-8",
+    "5-6",
+    "3-4",
+    "1-2"
+  )
+  names(x = expression.matrix) <- c(
+    "1-4",
+    "5-8",
+    "9-12",
+    "13-16",
+    "17-20",
+    "21-24",
+    "25-28",
+    "29-32"
+  )
+  # Call the plotting function.
+  zf.insitu.side(expression.matrix)
+  par3d(windowRect = c(0, 0, 800, 800))
+  # Label or not and then set the view.
+  if (! is.null(x = label)) {
+    text3d(x = 0, y = 0, z = 1.5, text = label, cex = 3)
+  }
+  view3d(zoom = .75, theta = 0, phi = -90, fov = 0)
+}
+
+
 #' @export
 zf.cells.render <- function(
   seuratObject,
@@ -615,4 +661,9 @@ zf.insitu.side <- function(expressionMatrix, nonmirror = TRUE, mirror = TRUE) {
     alpha = 1,
     lit = FALSE
   )
+}
+
+#used for zebrafish plotting
+vp.layout <- function(x, y) {
+  viewport(layout.pos.row = x, layout.pos.col = y)
 }

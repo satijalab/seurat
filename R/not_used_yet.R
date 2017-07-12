@@ -273,3 +273,113 @@ AddTSNE <- function(
   object@tsne.rot <- data.tsne
   return(object)
 }
+
+
+
+#calculate true positives, used in AUC
+calcTP <- function(cutoff, data, score, real, nTP) {
+  return(length(x = which(x = (data[, score] > cutoff) & (data[, real] > 0))) / nTP)
+}
+
+#calculate false positives, used in AUC
+calcFP <- function(cutoff, data, score, real, nFP) {
+  return(length(x = which(x = (data[, score] > cutoff) & (data[, real] == 0))) / nFP)
+}
+
+#i do not believe we use this function, but leaving it in to be safe
+auc <- function(data, score, real, n = 20) {
+  totalPos <- length(x = which(x = data[, real] == 1))
+  totalNeg <- length(x = which(x = data[, real] == 0))
+  scores <- data[, score]
+  data$myScore <- (scores + min(scores)) / (max(scores) + min(scores))
+  tp <- unlist(x = lapply(
+    X = seq(from = -0.0001, to = 0.9999, by = 1 / n),
+    FUN = calcTP,
+    data = data,
+    score = "myScore",
+    real = real,
+    nTP = totalPos
+  ))
+  fp <- unlist(x = lapply(
+    X = seq(from = -0.0001, to = 0.9999, by = 1 / n),
+    FUN = calcFP,
+    data = data,
+    score = "myScore",
+    real = real,
+    nFP = totalNeg
+  ))
+  plot(x = c(fp, 1), y = c(tp, 1), xlim = c(0, 1), ylim = c(0, 1))
+  x1 <- c(1, fp)
+  x2 <- c(1, tp)
+  print(
+    sum(diff(x = rev(x = x2)) * diff(x = rev(x = x1))) /
+      2 + sum(diff(x = rev(x = x1)) * rev(x = x2[-1]))
+  )
+  return(list(c(1, fp), c(1, tp)))
+}
+
+
+#useful with FindAllMarkers, not ready for main package yet
+returnTopX <- function(data, group.by, n.return, col.return = NA) {
+  to.ret <- c()
+  levels.use=unique(group.by); if (is.factor(group.by)) levels.use=levels(group.by)
+  if (!is.na(col.return)) return(unlist(lapply(levels.use, function(x) head(data[group.by==x,col.return],n.return)))) else {
+    return(unlist(lapply(levels.use, function(x) head(rownames(data[group.by==x,])))))
+  }
+}
+
+
+#should we remove this and add in cowplot instead?
+#' @importFrom grid grid.newpage pushViewport viewport grid.layout
+#' @export
+MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
+  # Make a list from the ... arguments and plotlist
+  #plots <- c(list(...), plotlist)
+  numPlots = length(x = plots)
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(x = layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(
+      data = seq(from = 1, to = cols * ceiling(x = numPlots / cols)),
+      ncol = cols,
+      nrow = ceiling(x = numPlots / cols)
+    )
+  }
+  if (numPlots == 1) {
+    print(plots[[1]])
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(
+      nrow = nrow(x = layout),
+      ncol = ncol(x = layout)
+    )))
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(x = which(layout == i, arr.ind = TRUE))
+      print(
+        plots[[i]],
+        vp = viewport(
+          layout.pos.row = matchidx$row,
+          layout.pos.col = matchidx$col
+        )
+      )
+    }
+  }
+}
+
+#i like this, but not used too much yet
+genes.ca.range <- function(object, my.min, my.max) {
+  ca <- ClusterAlpha(object = object)
+  ca.min <- apply(X = ca, MARGIN = 1, FUN = min)
+  ca.max <- apply(X = ca, MARGIN = 1, FUN = max)
+  genes.1 <- names(x = ca.min[ca.min < my.max])
+  genes.2 <- names(x = ca.max[ca.max > my.min])
+  return(ainb(a = genes.1, b = genes.2))
+}
+
+
+

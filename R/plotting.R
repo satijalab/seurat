@@ -2938,3 +2938,54 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     ...
   )
 }
+
+
+#' Create a custom color palette
+#'
+#' Creates a custom color palette based on low, middle, and high color values
+#'
+#' @param low low color 
+#' @param high high color
+#' @param mid middle color. Optional.
+#' @param k number of steps (colors levels) to include between low and high values 
+#' @export
+myPalette <- function(
+  low = "white",
+  high = "red",
+  mid = NULL,
+  k = 50
+) {
+  low <- col2rgb(col = low) / 255
+  high <- col2rgb(col = high) / 255
+  if (is.null(x = mid)) {
+    r <- seq(from = low[1], to = high[1], len = k)
+    g <- seq(from = low[2], to = high[2], len = k)
+    b <- seq(from = low[3], to = high[3], len = k)
+  } else {
+    k2 <- round(x = k / 2)
+    mid <- col2rgb(col = mid) / 255
+    r <- c(
+      seq(from = low[1], to = mid[1], len = k2),
+      seq(from = mid[1], to = high[1], len = k2)
+    )
+    g <- c(
+      seq(from = low[2], to = mid[2], len = k2),
+      seq(from = mid[2], to = high[2],len = k2)
+    )
+    b <- c(
+      seq(from = low[3], to = mid[3], len = k2),
+      seq(from = mid[3], to = high[3], len = k2)
+    )
+  }
+  return(rgb(red = r, green = g, blue = b))
+}
+
+
+
+#shortcut to make black-white palette
+#' @export
+bwCols <- myPalette(low = "white", high="black", k = 50)
+
+#' @export
+#shortcut to make purple-yellow palette, which is default in most Seurat heatmaps
+pyCols <- myPalette(low = "magenta", high = "yellow", mid = "black")

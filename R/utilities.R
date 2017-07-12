@@ -166,3 +166,119 @@ ConvertSeurat <- function(object) {
   
   return(new.object)
 }
+
+
+#' Return a subset of rows for a matrix or data frame
+#'
+#' @param data Matrix or data frame with row names
+#' @param code Pattern for matching within row names 
+#' @return Returns a subset of data, using only rownames that did not yield a match to the pattern
+#' @export
+minusr <- function(data, code) {
+  matchCode <- rownames(x = data)[grep(pattern = code, x = rownames(x = data))]
+  toIgnore <- which(x = rownames(x = data) %in% matchCode)
+  if (length(x = toIgnore) == 0) {
+    return(data)
+  }
+  toRet <- data.frame(data[-toIgnore, ])
+  rownames(x = toRet) <- rownames(x = data)[-toIgnore]
+  colnames(x = toRet) <- colnames(x = data)
+  return(toRet)
+}
+
+#' Return a subset of columns for a matrix or data frame
+#'
+#' @param data Matrix or data frame with column names
+#' @param code Pattern for matching within column names 
+#' @return Returns a subset of data, using only column names that did not yield a match to the pattern
+#' @export
+minusc <- function(data, code) {
+  matchCode <- colnames(x = data)[grep(pattern = code, colnames(x = data))]
+  toIgnore <- which(x = colnames(x = data) %in% matchCode)
+  if (length(x = toIgnore) == 0) {
+    return(data)
+  }
+  return(data[, -toIgnore])
+}
+
+#' Return a subset of rows for a matrix or data frame
+#'
+#' @param data Matrix or data frame with row names
+#' @param code Pattern for matching within row names 
+#' @return Returns a subset of data, using only rownames that yielded a match to the pattern
+#' @export
+subr <- function(data, code) {
+  return(data[grep(pattern = code, x = rownames(x = data)), ])
+}
+
+#' Independently shuffle values within each row of a matrix
+#' 
+#' Creates a matrix where correlation structure has been removed, but overall values are the same
+#'
+#' @param x Matrix to shuffle
+#' @return Returns a scrambled matrix, where each row is shuffled independently
+#' @export
+shuffleMatRow <- function(x) {
+  x2 <- x
+  x2 <- t(x = x)
+  ind <- order(c(col(x = x2)), runif(n = length(x = x2)))
+  x2 <- matrix(
+    data = x2[ind],
+    nrow = nrow(x = x),
+    ncol = ncol(x = x),
+    byrow = TRUE
+  )
+  return(x2)
+}
+
+
+#returns the setdiff of two vectors, i.e all elements of a that are not in b
+#we should be switching to use the setdiff function instead
+#' @export
+anotinb <- function(x, y) {
+  return(x[! x %in% y])
+}
+
+#' Return a subset of columns for a matrix or data frame
+#'
+#' @param data Matrix or data frame with column names
+#' @param code Pattern for matching within column names 
+#' @return Returns a subset of data, using only column names that yield a match to the pattern
+#' @export
+subc <- function(data, code) {
+  return(data[, grep(pattern = code, x = colnames(x = data))])
+}
+
+#' Apply a ceiling and floor to all values in a matrix
+#'
+#' @param data Matrix or data frame 
+#' @param min all values below this min value will be replaced with min
+#' @param max all values above this max value will be replaced with max
+#' @return Returns matrix after performing these floor and ceil operations
+#' @export
+minmax <- function(data, min, max) {
+  data2 <- data
+  data2[data2 > max] <- max
+  data2[data2 < min] <- min
+  return(data2)
+}
+
+
+
+#' Extract delimiter information from a string.
+#'
+#' Parses a string (usually a cell name) and extracts fields based on a delimiter
+#'
+#' @param string String to parse. 
+#' @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
+#' @param delim Delimiter to use, set to underscore by default.
+#'
+#' @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
+#' @export
+extract_field <- function(string, field = 1, delim = "_") {
+  fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
+  if (length(x = fields) == 1) {
+    return(strsplit(x = string, split = delim)[[1]][field])
+  }
+  return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
+}

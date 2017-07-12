@@ -621,6 +621,37 @@ DiffExpTest <- function(
   return(to.return)
 }
 
+#internal function to run mcdavid et al. DE test
+diffLRT <- function(x, y, xmin = 1) {
+  lrtX <- bimodLikData(x = x)
+  lrtY <- bimodLikData(x = y)
+  lrtZ <- bimodLikData(x = c(x, y))
+  lrt_diff <- 2 * (lrtX + lrtY - lrtZ)
+  return(pchisq(q = lrt_diff, df = 3, lower.tail = F))
+}
+
+#internal function to run mcdavid et al. DE test
+bimodLikData <- function(x, xmin = 0) {
+  x1 <- x[x <= xmin]
+  x2 <- x[x > xmin]
+  xal <- minmax(
+    data = length(x = x2) / length(x = x),
+    min = 1e-5,
+    max = (1 - 1e-5)
+  )
+  likA <- length(x = x1) * log(x = 1 - xal)
+  if (length(x = x2) < 2) {
+    mysd <- 1
+  } else {
+    mysd <- sd(x = x2)
+  }
+  likB <- length(x = x2) *
+    log(x = xal) +
+    sum(dnorm(x = x2, mean = mean(x = x2), sd = mysd, log = TRUE))
+  return(likA + likB)
+}
+
+
 #' Negative binomial test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -944,6 +975,77 @@ TobitTest <- function(
   return(to.return)
 }
 
+#internal function to run Tobit DE test
+TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
+  p_val <- unlist(x = lapply(
+    X = mygenes,
+    FUN = function(x) {
+      return(diffTobit(
+        x1 = as.numeric(x = data1[x, ]),
+        x2 = as.numeric(x = data2[x, ])
+      ))}
+  ))
+  p_val[is.na(x = p_val)] <- 1
+  if (print.bar) {
+    iterate.fxn <- pblapply
+  } else {
+    iterate.fxn <- lapply
+  }
+  toRet <- data.frame(p_val, row.names = mygenes)
+  return(toRet)
+}
+
+
+#internal function to run Tobit DE test
+diffTobit <- function(x1, x2, lower = 1, upper = Inf) {
+  my.df <- data.frame(
+    c(x1, x2),
+    c(rep(x = 0, length(x = x1)), rep(x = 1, length(x = x2)))
+  )
+  colnames(x = my.df) <- c("Expression", "Stat")
+  #model.v1=vgam(Expression~1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v1 <- tobit_fitter(
+    x = my.df,
+    modelFormulaStr = "Expression~1",
+    lower = lower,
+    upper = upper
+  )
+  #model.v2=vgam(Expression~Stat+1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v2 <- tobit_fitter(
+    x = my.df,
+    modelFormulaStr = "Expression~Stat+1",
+    lower = lower,
+    upper = upper
+  )
+  # if (is.null(x = model.v1) == FALSE && is.null(x = model.v2) == FALSE) {
+  if (! is.null(x = model.v1) && ! is.null(x = model.v2)) {
+    p <- pchisq(
+      q = 2 * (logLik(object = model.v2) - logLik(object = model.v1)),
+      df = 1,
+      lower.tail = FALSE
+    )
+  } else {
+    p <- 1
+  }
+  return(p)
+}
+
+#internal function to run Tobit DE test
+#credit to Cole Trapnell for this
+tobit_fitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
+  tryCatch(
+    expr = return(suppressWarnings(expr = vgam(
+      formula = as.formula(object = modelFormulaStr),
+      family = tobit(Lower = lower, Upper = upper),
+      data = x
+    ))),
+    #warning = function(w) { FM_fit },
+    error = function(e) { NULL }
+  )
+}
+
+
+
 #' ROC-based marker discovery
 #'
 #' Identifies 'markers' of gene expression using ROC analysis. For each gene,
@@ -986,6 +1088,53 @@ MarkerTest <- function(
   #print(head(to.return))
   return(to.return)
 }
+
+#' internal function to calculate AUC values
+marker.auc.test <- function(data1, data2, mygenes, print.bar = TRUE) {
+  myAUC <- unlist(x = lapply(
+    X = mygenes,
+    FUN = function(x) {
+      return(diffAUC(
+        x = as.numeric(x = data1[x, ]),
+        y = as.numeric(x = data2[x, ])
+      ))
+    }
+  ))
+  myAUC[is.na(x = myAUC)] <- 0
+  if (print.bar) {
+    iterate.fxn <- pblapply
+  } else {
+    iterate.fxn <- lapply
+  }
+  avg_diff <- unlist(x = iterate.fxn(
+    X = mygenes,
+    FUN = function(x) {
+      return(
+        expMean(
+          x = as.numeric(x = data1[x, ])
+        ) - expMean(
+          x = as.numeric(x = data2[x, ])
+        )
+      )
+    }
+  ))
+  toRet <- data.frame(cbind(myAUC, avg_diff), row.names <- mygenes)
+  toRet <- toRet[rev(x = order(toRet$myAUC)), ]
+  return(toRet)
+}
+
+#' internal function to calculate AUC values
+diffAUC <- function(x, y) {
+  prediction.use <- prediction(
+    predictions = c(x, y),
+    labels = c(rep(x = 1, length(x = x)), rep(x = 0, length(x = y))),
+    label.ordering = 0:1
+  )
+  perf.use <- performance(prediction.obj = prediction.use, measure = "auc")
+  auc.use <- round(x = perf.use@y.values[[1]], digits = 3)
+  return(auc.use)
+}
+
 
 #' Differential expression testing using Student's t-test
 #'
