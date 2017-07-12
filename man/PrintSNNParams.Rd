@@ -9,7 +9,7 @@ PrintSNNParams(object, raw = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
-\item{raw}{Print the entire contents of the calculation metadata slot (calc.params) for the 
+\item{raw}{Print the entire contents of the calculation metadata slot (calc.params) for the
 BuildSNN calculation. Default (FALSE) will print a nicely formatted summary.}
 }
 \value{

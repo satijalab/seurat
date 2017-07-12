@@ -627,7 +627,7 @@ CalcVarExpRatio <- function(
     dims.use <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CalcVarExpRatio"))]
-  object <- SetCalcParams(object = object, 
+  object <- SetCalcParams(object = object,
                           calculation = "CalcVarExpRatio",
                           ... = parameters.to.store)
   groups <- as.vector(x = unique(x = FetchData(
@@ -753,6 +753,10 @@ AlignSubspace <- function(
   num.genes = 30,
   show.plots = FALSE
 ) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
+  object <- SetCalcParams(object = object,
+                          calculation = paste0("AlignSubspace.", reduction.type),
+                          ... = parameters.to.store)
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident)))

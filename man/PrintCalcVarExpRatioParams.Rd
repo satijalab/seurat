@@ -9,8 +9,8 @@ PrintCalcVarExpRatioParams(object, raw = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
-\item{raw}{Print the entire contents of the calculation metadata slot 
-(calc.params) for CalcVarExpRatio. Default (FALSE) will print a nicely 
+\item{raw}{Print the entire contents of the calculation metadata slot
+(calc.params) for CalcVarExpRatio. Default (FALSE) will print a nicely
 formatted summary.}
 }
 \value{
