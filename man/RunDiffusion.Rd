@@ -15,10 +15,12 @@ RunDiffusion(object, cells.use = NULL, dims.use = 1:5, genes.use = NULL,
 
 \item{dims.use}{Which dimensions to use as input features}
 
-\item{genes.use}{If set, run the tSNE on this subset of genes
-(instead of running on a set of reduced dimensions). Not set (NULL) by default}
+\item{genes.use}{If set, run the diffusion map procedure on this subset of
+genes (instead of running on a set of reduced dimensions). Not set (NULL) by
+default}
 
-\item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA}
+\item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the
+diffusion map. Default is PCA}
 
 \item{q.use}{Quantile to use}
 
