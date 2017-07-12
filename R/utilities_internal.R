@@ -175,7 +175,6 @@ FillWhiteSpace <- function(n){
   return(paste0(rep(" ", n), collapse = ""))
 }
 
-
 ####################### Tree Related Utilities #################################
 
 # Function to get all the descendants on a tree left of a given node
@@ -356,7 +355,6 @@ SetIfNull <- function(x, default) {
   }
 }
 
-
 # return average of all values greater than a threshold
 humpMean <- function(x, min = 0) {
   return(mean(x = x[x > min]))
@@ -383,7 +381,6 @@ log_add <- function(x) {
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
-
 # Calculate variance of logged values in non-log space (return answer in log-space)
 expVar <- function(x) {
   return(log1p(var(expm1(x))))
@@ -407,4 +404,32 @@ ainb <- function(a, b) {
 
 logVarDivMean <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
+}
+
+same <- function(x) {
+  return(x)
+}
+
+nb.residuals <- function(fmla, regression.mat, gene) {
+  fit <- 0
+  try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
+  if (class(fit)[1] == 'numeric') {
+    message(sprintf(
+      'glm.nb failed for gene %s; trying again with glm and family=negative.binomial(theta=0.1)',
+      gene
+    ))
+    try(
+      expr = fit <- glm(
+        formula = fmla,
+        data = regression.mat,
+        family = negative.binomial(theta = 0.1)
+      ),
+      silent = TRUE
+    )
+    if (class(fit)[1] == 'numeric') {
+      message('glm and family=negative.binomial(theta=0.1) failed; falling back to scale(log10(y+1))')
+      return(scale(x = log10(x = regression.mat[, 'GENE'] + 1))[, 1])
+    }
+  }
+  return(residuals(object = fit, type='pearson'))
 }

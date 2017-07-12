@@ -321,6 +321,7 @@ JackStrawFull <- function(
   return(object)
 }
 
+
 #internal
 jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
   randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)
@@ -361,5 +362,3 @@ jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
 empP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
 }
-
-

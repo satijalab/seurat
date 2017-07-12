@@ -274,8 +274,6 @@ AddTSNE <- function(
   return(object)
 }
 
-
-
 #calculate true positives, used in AUC
 calcTP <- function(cutoff, data, score, real, nTP) {
   return(length(x = which(x = (data[, score] > cutoff) & (data[, real] > 0))) / nTP)
@@ -318,56 +316,12 @@ auc <- function(data, score, real, n = 20) {
   return(list(c(1, fp), c(1, tp)))
 }
 
-
 #useful with FindAllMarkers, not ready for main package yet
 returnTopX <- function(data, group.by, n.return, col.return = NA) {
   to.ret <- c()
   levels.use=unique(group.by); if (is.factor(group.by)) levels.use=levels(group.by)
   if (!is.na(col.return)) return(unlist(lapply(levels.use, function(x) head(data[group.by==x,col.return],n.return)))) else {
     return(unlist(lapply(levels.use, function(x) head(rownames(data[group.by==x,])))))
-  }
-}
-
-
-#should we remove this and add in cowplot instead?
-#' @importFrom grid grid.newpage pushViewport viewport grid.layout
-#' @export
-MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
-  # Make a list from the ... arguments and plotlist
-  #plots <- c(list(...), plotlist)
-  numPlots = length(x = plots)
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(x = layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(
-      data = seq(from = 1, to = cols * ceiling(x = numPlots / cols)),
-      ncol = cols,
-      nrow = ceiling(x = numPlots / cols)
-    )
-  }
-  if (numPlots == 1) {
-    print(plots[[1]])
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(
-      nrow = nrow(x = layout),
-      ncol = ncol(x = layout)
-    )))
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(x = which(layout == i, arr.ind = TRUE))
-      print(
-        plots[[i]],
-        vp = viewport(
-          layout.pos.row = matchidx$row,
-          layout.pos.col = matchidx$col
-        )
-      )
-    }
   }
 }
 
@@ -381,5 +335,123 @@ genes.ca.range <- function(object, my.min, my.max) {
   return(ainb(a = genes.1, b = genes.2))
 }
 
+# Not currently supported, but a cool function for QC
+CalcNoiseModels <- function(
+  object,
+  cell.ids = NULL,
+  trusted.genes = NULL,
+  n.bin = 20,
+  drop.expr = 1
+) {
+  object@drop.expr <- drop.expr
+  cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
+  trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
+  trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
+  object@trusted.genes <- trusted.genes
+  data <- object@data[trusted.genes, ]
+  idents <- data.frame(data[, 1])
+  code_humpAvg <- apply(X = data, MARGIN = 1, FUN = humpMean, min = object@drop.expr)
+  code_humpAvg[code_humpAvg > 9] <- 9
+  code_humpAvg[is.na(x = code_humpAvg)] <- 0
+  idents$code_humpAvg <- code_humpAvg
+  data[data > object@drop.expr] <- 1
+  data[data < object@drop.expr] <- 0
+  data$bin <- cut(x = code_humpAvg, breaks = n.bin)
+  data$avg <- code_humpAvg
+  rownames(x = idents) <- rownames(x = data)
+  my.coefs <- data.frame(t(x = pbsapply(
+    X = colnames(x = data[1:(ncol(x = data) - 2)]),
+    FUN = getAB,
+    data = data,
+    data2 = idents,
+    status = "code",
+    code2 = "humpAvg",
+    hasBin = TRUE,
+    doPlot = FALSE
+  )))
+  colnames(x = my.coefs) <- c("a", "b")
+  object@drop.coefs <- my.coefs
+  return(object)
+}
 
+# Visualize expression/dropout curve
+#
+# Plot the probability of detection vs average expression of a gene.
+#
+# Assumes that this 'noise' model has been precomputed with CalcNoiseModels
+#
+# @param object Seurat object
+# @param cell.ids Cells to use
+# @param col.use Color code or name
+# @param lwd.use Line width for curve
+# @param do.new Create a new plot (default) or add to existing
+# @param x.lim Maximum value for X axis
+# @param \dots Additional arguments to pass to lines function
+# @return Returns no value, displays a plot
+#
+PlotNoiseModel <- function(
+  object,
+  cell.ids = c(1, 2),
+  col.use = 'black',
+  lwd.use = 2,
+  do.new = TRUE,
+  x.lim = 10,
+  ...
+) {
+  cell.coefs <- object@drop.coefs[cell.ids,]
+  if (do.new) {
+    plot(
+      x = 1,
+      y = 1,
+      pch = 16,
+      type = 'n',
+      xlab = 'Average expression',
+      ylab = 'Probability of detection',
+      xlim = c(0, x.lim),
+      ylim =c(0, 1)
+    )
+  }
+  unlist(
+    x = lapply(
+      X = 1:length(x = cell.ids),
+      FUN = function(y) {
+        x.vals <- seq(from = 0, to = x.lim, by = 0.05)
+        y.vals <- unlist(x = lapply(
+          X = x.vals,
+          FUN = calc.drop.prob,
+          a = cell.coefs[y, 1],
+          b = cell.coefs[y, 2])
+        )
+        lines(
+          x = x.vals,
+          y = y.vals,
+          lwd = lwd.use,
+          col = col.use,
+          ...
+        )
+      }
+    )
+  )
+}
 
+# Deleted, but used in regression.sig (which was kept)...
+vsubc <- function(data,code) {
+  return(data[grep(pattern = code, x = names(x = data))])
+}
+
+regression.sig <- function(x, score, data, latent, code = "rsem") {
+  if (var(x = as.numeric(x = subc(data = data, code = code)[x, ])) == 0) {
+    return(0)
+  }
+  latent <- latent[grep(pattern = code, x = names(x = data))]
+  data <- rbind(subc(data = data, code = code), vsubc(data = score, code = code))
+  rownames(x = data)[nrow(x = data)] <- "score"
+  data2 <- data[c(x, "score"), ]
+  rownames(x = data2)[1] <- "fac"
+  if (length(x = unique(x = latent)) > 1) {
+    mylm <- lm(formula = score ~ fac + latent, data = data.frame(t(x = data2)))
+  } else {
+    mylm <- lm(formula = score ~ fac, data = data.frame(t(x = data2)))
+  }
+  return(coef(object = summary(object = mylm))["fac", 3])
+}

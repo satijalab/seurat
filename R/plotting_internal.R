@@ -668,7 +668,6 @@ SingleVlnPlot <- function(
   return(plot)
 }
 
-
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
 
@@ -698,11 +697,8 @@ gg.yax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   ))
 }
 
-
-
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
-#' @export
 heatmap2NoKey <- function (
   x,
   Rowv = TRUE,
@@ -976,7 +972,7 @@ heatmap2NoKey <- function (
   #  op <- par(no.readonly = TRUE)
   #  on.exit(par(op))
   #  layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
-  
+
   if (! missing(x = RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(x = rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
@@ -1236,167 +1232,44 @@ heatmap2NoKey <- function (
   par(mar = oldMar)
 }
 
-
-regression.sig <- function(x, score, data, latent, code = "rsem") {
-  if (var(x = as.numeric(x = subc(data = data, code = code)[x, ])) == 0) {
-    return(0)
+# Plot multiple plots
+# @importFrom grid grid.newpage pushViewport viewport grid.layout
+#
+MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
+  # Make a list from the ... arguments and plotlist
+  #plots <- c(list(...), plotlist)
+  numPlots = length(x = plots)
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(x = layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(
+      data = seq(from = 1, to = cols * ceiling(x = numPlots / cols)),
+      ncol = cols,
+      nrow = ceiling(x = numPlots / cols)
+    )
   }
-  latent <- latent[grep(pattern = code, x = names(x = data))]
-  data <- rbind(subc(data = data, code = code), vsubc(data = score, code = code))
-  rownames(x = data)[nrow(x = data)] <- "score"
-  data2 <- data[c(x, "score"), ]
-  rownames(x = data2)[1] <- "fac"
-  if (length(x = unique(x = latent)) > 1) {
-    mylm <- lm(formula = score ~ fac + latent, data = data.frame(t(x = data2)))
+  if (numPlots == 1) {
+    print(plots[[1]])
   } else {
-    mylm <- lm(formula = score ~ fac, data = data.frame(t(x = data2)))
-  }
-  return(coef(object = summary(object = mylm))["fac", 3])
-}
-
-same <- function(x) {
-  return(x)
-}
-
-nb.residuals <- function(fmla, regression.mat, gene) {
-  fit <- 0
-  try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
-  if (class(fit)[1] == 'numeric') {
-    message(sprintf(
-      'glm.nb failed for gene %s; trying again with glm and family=negative.binomial(theta=0.1)',
-      gene
-    ))
-    try(
-      expr = fit <- glm(
-        formula = fmla,
-        data = regression.mat,
-        family = negative.binomial(theta = 0.1)
-      ),
-      silent=TRUE
-    )
-    if (class(fit)[1] == 'numeric') {
-      message('glm and family=negative.binomial(theta=0.1) failed; falling back to scale(log10(y+1))')
-      return(scale(x = log10(x = regression.mat[, 'GENE'] + 1))[, 1])
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(
+      nrow = nrow(x = layout),
+      ncol = ncol(x = layout)
+    )))
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(x = which(layout == i, arr.ind = TRUE))
+      print(
+        plots[[i]],
+        vp = viewport(
+          layout.pos.row = matchidx$row,
+          layout.pos.col = matchidx$col
+        )
+      )
     }
   }
-  return(residuals(object = fit, type='pearson'))
 }
-
-# given a UMI count matrix, estimate NB theta parameter for each gene
-# and use fit of relationship with mean to assign regularized theta to each gene
-theta.reg <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
-  genes.regress <- rownames(x = cm)
-  bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
-  max.bin <- max(bin.ind)
-  print('Running Poisson regression (to get initial mean), and theta estimation per gene')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-  theta.estimate <- c()
-  for (i in 1:max.bin) {
-    genes.bin.regress <- genes.regress[bin.ind == i]
-    bin.theta.estimate <- unlist(
-      x = parallel::mclapply(
-        X = genes.bin.regress,
-        FUN = function(j) {
-          return(as.numeric(x = MASS::theta.ml(
-            y = cm[j, ],
-            mu = glm(
-              formula = cm[j, ] ~ .,
-              data = latent.data,
-              family = poisson
-            )$fitted
-          )))
-        }
-      ),
-      use.names = FALSE
-    )
-    theta.estimate <- c(theta.estimate, bin.theta.estimate)
-    setTxtProgressBar(pb = pb, value = i)
-  }
-  close(con = pb)
-  UMI.mean <- apply(X = cm, MARGIN = 1, FUN = mean)
-  var.estimate <- UMI.mean + (UMI.mean ^ 2) / theta.estimate
-  for (span in c(1/3, 1/2, 3/4, 1)) {
-    fit <- loess(
-      formula = log10(x = var.estimate) ~ log10(x = UMI.mean),
-      span = span
-    )
-    if (! any(is.na(x = fit$fitted))) {
-      cat(sprintf(
-        'Used loess with span %1.2f to fit mean-variance relationship\n',
-        span
-      ))
-      break
-    }
-  }
-  if (any(is.na(x = fit$fitted))) {
-    stop('Problem when fitting NB gene variance in theta.reg - NA values were fitted.')
-  }
-  theta.fit <- (UMI.mean ^ 2) / ((10 ^ fit$fitted) - UMI.mean)
-  names(x = theta.fit) <- genes.regress
-  to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
-  if (any(to.fix)) {
-    cat(
-      'Fitted theta below',
-      min.theta,
-      'for',
-      sum(to.fix),
-      'genes, setting them to',
-      min.theta,
-      '\n'
-    )
-    theta.fit[to.fix] <- min.theta
-  }
-  return(theta.fit)
-}
-
-# compare two negative binomial regression models
-# model one uses only common factors (com.fac)
-# model two additionally uses group factor (grp.fac)
-de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
-  tab <- as.matrix(x = table(y > 0, latent.data[, grp.fac]))
-  freqs <- tab['TRUE', ] / apply(X = tab, MARGIN = 2, FUN = sum)
-  fit2 <- 0
-  fit4 <- 0
-  try(
-    expr = fit2 <- glm(
-      formula = y ~ .,
-      data = latent.data[, com.fac, drop = FALSE],
-      family = MASS::negative.binomial(theta = theta)
-    ),
-    silent=TRUE
-  )
-  try(
-    fit4 <- glm(
-      formula = y ~ .,
-      data = latent.data[, c(com.fac, grp.fac)],
-      family = MASS::negative.binomial(theta = theta)
-    ),
-    silent = TRUE
-  )
-  if (class(x = fit2)[1] == 'numeric' | class(x = fit4)[1] == 'numeric') {
-    message('One of the glm.nb calls failed')
-    return(c(rep(x = NA, 5), freqs))
-  }
-  pval <- anova(fit2, fit4, test = 'Chisq')$'Pr(>Chi)'[2]
-  foi <- 2 + length(x = com.fac)
-  log.fc <- log2(x = exp(x = coef(object = fit4)[foi])) #log.fc <- log2(1/exp(coef(fit4)[foi]))
-  ret <- c(
-    fit2$deviance,
-    fit4$deviance,
-    pval,
-    coef(object = fit4)[foi],
-    log.fc,
-    freqs
-  )
-  names(x = ret) <- c(
-    'dev1',
-    'dev2',
-    'pval',
-    'coef',
-    'log.fc',
-    'freq1',
-    'freq2'
-  )
-  return(ret)
-}
-
