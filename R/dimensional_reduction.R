@@ -935,9 +935,11 @@ AlignSubspace <- function(
 #' @param object Seurat object
 #' @param cells.use Which cells to analyze (default, all cells)
 #' @param dims.use Which dimensions to use as input features
-#' @param genes.use If set, run the tSNE on this subset of genes
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+#' @param genes.use If set, run the diffusion map procedure on this subset of
+#' genes (instead of running on a set of reduced dimensions). Not set (NULL) by
+#' default
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
+#' diffusion map. Default is PCA
 #' @param q.use Quantile to use
 #' @param max.dim Max dimension to keep from diffusion calculation
 #' @param scale.clip Max/min value for scaled data. Default is 3
@@ -978,6 +980,10 @@ RunDiffusion <- function(
       max = scale.clip
     )
   }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunDiffusion"))]
+  object <- SetCalcParams(object = object,
+                          calculation = "RunDiffusion",
+                          ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
     diffuse( # Where is diffuse?

@@ -377,6 +377,79 @@ PrintAlignSubspaceParams <- function(object, raw = FALSE){
   }
 }
 
+#' Print Diffusion Map Calculation Parameters
+#'
+#' Print the parameters chosen for the latest stored diffusion map calculation.
+#'
+#' @param object Seurat object
+#' @param raw Print the entire contents of the calculation metadata slot
+#' (calc.params) for the RunDiffusion calculation. Default (FALSE) will print a
+#' nicely formatted summary.
+#' @return No return value. Only prints to console.
+#' @export
+PrintDMParams <- function(object, raw = FALSE){
+  if(is.null(object@calc.params$RunDiffusion)){
+    stop("Diffusion map has not been computed yet")
+  }
+  if (raw){
+    print(object@calc.params$RunDiffusion)
+  }
+  else{
+    cat(paste0("Parameters used in latest diffusion map calculation run on: ",
+               GetCalcParam(object = object,
+                            calculation = "RunDiffusion",
+                            parameter = "time"), "\n"))
+    cat("=============================================================================\n")
+    max.dim <- GetCalcParam(object = object,
+                            calculation = "RunDiffusion",
+                            parameter = "max.dim")
+    reduction <- GetCalcParam(object = object,
+                              calculation = "RunDiffusion",
+                              parameter = "reduction.use")
+    n.genes <- length(GetCalcParam(object = object,
+                            calculation = "RunDiffusion",
+                            parameter = "genes.use"))
+    scale.clip <- length(GetCalcParam(object = object,
+                                      calculation = "RunDiffusion",
+                                      parameter = "scale.clip"))
+    q.use <- GetCalcParam(object = object,
+                          calculation = "RunDiffusion",
+                          parameter = "q.use")
+    dims.use <- GetCalcParam(object = object,
+                             calculation = "RunDiffusion",
+                             parameter = "dims.use")
+    if(n.genes > 0){
+      reduction <- "None"
+    }
+    cat(paste0("Reduction used    DMs computed    Quantile    scale.clip \n"))
+    cat(paste0("    ",
+               reduction ,
+               FillWhiteSpace(20 - nchar(reduction)),
+               max.dim,
+               FillWhiteSpace(n = 12 - nchar(max.dim)),
+               q.use,
+               FillWhiteSpace(n = 15 - nchar(q.use)),
+               scale.clip,
+               "\n"))
+    cat("-----------------------------------------------------------------------------\n")
+    if(reduction == "None"){
+      dim <- "Genes"
+    }
+    else{
+      dim <- "Dims"
+    }
+    cat(paste0(dim, " used in calculation\n"))
+    cat("=============================================================================\n")
+    if(reduction == "None"){
+      cat(paste0(n.genes, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"RunDiffusion\", parameter = \"genes.use\")"))
+    } else {
+      cat(paste0(strwrap(paste(dims.use, "\n", collapse = " "), width = 80),
+                 collapse = "\n"))
+      cat("\n\n")
+    }
+  }
+}
+
 
 #' Print SNN Construction Calculation Parameters
 #'
@@ -425,7 +498,7 @@ PrintSNNParams <- function(object, raw = FALSE){
                                      calculation = "BuildSNN",
                                      parameter = "genes.use"))
     }
-    cat(paste0("Reduction use          k.param          k.scale          prune.SNN\n"))
+    cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
     k.param <- GetCalcParam(object = object,
                             calculation = "BuildSNN",
                             parameter = "k.param")
@@ -445,7 +518,6 @@ PrintSNNParams <- function(object, raw = FALSE){
                round(prune.SNN, 4),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
-
     cat(paste0(dim, " used in calculation\n"))
     cat("=============================================================================\n")
     if(reduction == "None"){
