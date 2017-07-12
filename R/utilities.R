@@ -303,6 +303,7 @@ expVar <- function(x) {
 #' @param x value or vector of values
 #'
 #' @return Returns the standard deviation in log-space
+#' @export
 expSD <- function(x) {
   return(log1p(sd(expm1(x))))
 }
@@ -314,6 +315,7 @@ expSD <- function(x) {
 #' @param x value or vector of values
 #'
 #' @return Returns the mean in log-space
+#' @export
 expMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
@@ -326,6 +328,7 @@ expMean <- function(x) {
 #' @param x value or vector of values
 #'
 #' @return Returns the dispersion in log-space
+#' @export
 logVarDivMean <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
