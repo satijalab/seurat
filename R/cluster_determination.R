@@ -342,21 +342,14 @@ BuildRFClassifier <- function(
 #' @param k.cells K value to use for clustering cells (default is NULL, cells
 #' are not clustered)
 #' @param k.seed Random seed
-#' @param do.plot Draw heatmap of clustered genes/cells (default is TRUE)
+#' @param do.plot Draw heatmap of clustered genes/cells (default is FALSE). 
 #' @param data.cut Clip all z-scores to have an absolute value below this.
 #' Reduces the effect of huge outliers in the data.
 #' @param k.cols Color palette for heatmap
-#' @param pc.row.order Order gene clusters based on the average PC score within
-#' a cluster. Can be useful if you want to visualize clusters, for example,
-#' based on their average score for PC1.
-#' @param pc.col.order Order cell clusters based on the average PC score within
-#' a cluster
-#' @param rev.pc.order Use the reverse PC ordering for gene and cell clusters
-#' (since the sign of a PC is arbitrary)
-#' @param use.imputed Cluster imputed values (default is FALSE)
 #' @param set.ident If clustering cells (so k.cells>0), set the cell identity
 #' class to its K-means cluster (default is TRUE)
 #' @param do.constrained FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.
+#' @param assay.type Type of data to normalize for (default is RNA), but can be changed for multimodal analyses.
 #' @param \dots Additional parameters passed to kmeans (or tkmeans)
 #'
 #' @importFrom tclust tkmeans
@@ -374,31 +367,16 @@ DoKMeans <- function(
   k.genes = NULL,
   k.cells = 0,
   k.seed = 1,
-  do.plot = TRUE,
+  do.plot = FALSE,
   data.cut = 2.5,
   k.cols = pyCols,
-  pc.row.order = NULL,
-  pc.col.order = NULL,
-  rev.pc.order = FALSE,
-  use.imputed = FALSE,
   set.ident = TRUE,
   do.constrained = FALSE,
+  assay.type="RNA",
   ...
 ) {
-  if (use.imputed) {
-    data.use.orig <- data.frame(t(x = scale(x = t(x = object@imputed))))
-  } else {
-    data.use.orig <- object@scale.data
-  }
+  data.use.orig=GetAssayData(object,assay.type,slot = "scale.data")
   data.use <- minmax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
-  if (rev.pc.order) {
-    revFxn <- function(x) {
-      max(x) + 1 - x
-    }
-  } else {
-    revFxn <- same
-  }
-  kmeans.col <- NULL
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
   cells.use <- object@cell.names
@@ -410,50 +388,23 @@ DoKMeans <- function(
     set.seed(seed = k.seed)
     kmeans.obj <- kmeans(x = kmeans.data, centers = k.genes, ...)
   }
-  if (! is.null(x = pc.row.order)) {
-    if (nrow(x = object@pca.x.full > 0)) {
-      pcx.use <- object@pca.x.full
-      pc.genes <- ainb(a = genes.use, b = rownames(x = pcx.use))
-    } else {
-      pcx.use <- object@pca.x
-      pc.genes <- ainb(a = genes.use, b = rownames(x = pcx.use))
-    }
-    kmeans.obj$cluster <- as.numeric(
-      x = revFxn(
-        rank(
-          x = tapply(
-            X = pcx.use[genes.use, pc.row.order],
-            INDEX = as.numeric(x = kmeans.obj$cluster),
-            FUN = mean
-          )
-        )
-      )[as.numeric(x = kmeans.obj$cluster)]
-    )
-  }
+
   names(x = kmeans.obj$cluster) <- genes.use
+  
+  #if we are going to k-means cluster cells in addition to genes
   if (k.cells > 0) {
     kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)
-    if (! is.null(x = pc.col.order)) {
-      kmeans.col$cluster <- as.numeric(
-        x = revFxn(
-          rank(
-            x = tapply(
-              X = object@pca.rot[cells.use, pc.col.order],
-              INDEX = kmeans.col$cluster,
-              FUN = mean
-            )
-          )
-        )[as.numeric(x = kmeans.col$cluster)]
-      )
-    }
     names(x = kmeans.col$cluster) <- cells.use
   }
-  object@kmeans.obj <- list(kmeans.obj)
-  object@kmeans.col <- list(kmeans.col)
-  kmeans.obj <- object@kmeans.obj[[1]]
-  kmeans.col <- object@kmeans.col[[1]]
+  object.kmeans <- new(
+    Class = "kmeans.info",
+    gene.kmeans.obj = kmeans.obj,
+    cell.kmeans.obj = kmeans.col
+  )
+  object@kmeans <- object.kmeans
   if (k.cells > 0) {
-    object@data.info[names(x = kmeans.col$cluster), "kmeans.ident"] <- kmeans.col$cluster
+    kmeans.code=paste("kmeans",k.cells,"ident",sep=".")
+    object@data.info[names(x = kmeans.col$cluster), kmeans.code] <- kmeans.col$cluster
   }
   if (set.ident && (k.cells > 0)) {
     object <- SetIdent(
@@ -463,12 +414,6 @@ DoKMeans <- function(
     )
   }
   if (do.plot) {
-    disp.data <- minmax(
-      data = kmeans.data[order(kmeans.obj$cluster[genes.use]), ],
-      min = data.cut * (-1),
-      max = data.cut
-    )
-    #DoHeatmap(object,object@cell.names,names(sort(kmeans.obj$cluster)),data.cut*(-1),data.cut,col.use = k.cols,...)
     KMeansHeatmap(object = object)
   }
   return(object)

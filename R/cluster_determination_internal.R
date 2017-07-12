@@ -160,3 +160,18 @@ GroupSingletons <- function(object, SNN) {
   }
   return(object)
 }
+
+
+# Set up kmeans class
+# This is an infrequently used slot, but some people still find it very useful to do kmeans clustering
+# and in particular, to do so at the gene level
+# potential to be updated in the future
+
+kmeans.info <- setClass(
+  Class = "kmeans.info",
+  slots = list(
+    gene.kmeans.obj = "ANY",
+    cell.kmeans.obj = "ANY"
+  )
+)
+

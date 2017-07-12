@@ -57,7 +57,6 @@ seurat <- setClass(
     dr = "list",
     assay = "list",
     emp.pval = "data.frame",
-    kmeans.obj = "list",
     gene.scores = "data.frame",
     drop.coefs = "data.frame",
     wt.matrix = "data.frame",
@@ -66,8 +65,6 @@ seurat <- setClass(
     drop.expr = "numeric",
     data.info = "data.frame",
     project.name = "character",
-    kmeans.gene = "list",
-    kmeans.cell = "list",
     jackStraw.empP = "data.frame",
     jackStraw.fakePC = "data.frame",
     jackStraw.empP.full = "data.frame",
@@ -83,7 +80,8 @@ seurat <- setClass(
     cluster.tree = "list",
     snn = "dgCMatrix",
     snn.k = "numeric",
-    calc.params = "list"
+    calc.params = "list",
+    kmeans="ANY"
   )
 )
 

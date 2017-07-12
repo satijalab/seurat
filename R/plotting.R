@@ -2626,7 +2626,7 @@ KMeansHeatmap <- function(
   } else {
     rowsep.use <- NA
   }
-  DoHeatmap(
+  DoHeatmapGG(
     object = object,
     cells.use = cells.use,
     genes.use = genes.use,
