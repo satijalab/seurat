@@ -520,9 +520,7 @@ DimTopCells <- function(
     FUN = GetTopGenes,
     dim.scores = dim.scores,
     do.balanced = do.balanced,
-    num.genes = num.cells,
-    reduction.type = reduction.type,
-    key = key
+    num.genes = num.cells
   )))
   return(dim.top.cells)
 }

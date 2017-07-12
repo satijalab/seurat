@@ -1847,13 +1847,13 @@ VizDimReduction <- function(
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = "x.full"
+      slot = "gene.loadings.full"
     )
   } else {
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = "x"
+      slot = "gene.loadings"
     )
   }
   if (is.null(x = nCol)) {
@@ -2277,7 +2277,9 @@ DimElbowPlot <- function(
   ylab = "",
   title = ""
 ) {
-  data.use <- GetDimReduction(object = object, reduction.type = reduction.type, slot = "sdev")
+  data.use <- GetDimReduction(object = object,
+                              reduction.type = reduction.type,
+                              slot = "sdev")
   if (length(data.use) == 0) {
     stop(paste("No standard deviation info stored for", reduction.use))
   }
@@ -2297,9 +2299,6 @@ DimElbowPlot <- function(
   if (reduction.type == "pca") {
     plot <- plot +
       labs(y = "Standard Deviation of PC", x = "PC", title = title)
-  } else if (reduction.type == "pcafast"){
-    plot <- plot +
-      labs(y = "Eigen values of PC", x = "Eigen value", title = title)
   } else if(reduction.type == "ica"){
     plot <- plot +
       labs(y = "Standard Deviation of IC", x = "IC", title = title)
@@ -2323,7 +2322,7 @@ DimElbowPlot <- function(
 #'
 #' @export
 #'
-PCElbowPlot <- function(objectobject, num.pc = 20) {
+PCElbowPlot <- function(object, num.pc = 20) {
   return(DimElbowPlot(
     object = object,
     reduction.type = "pca",

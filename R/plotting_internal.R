@@ -1232,8 +1232,10 @@ heatmap2NoKey <- function (
   par(mar = oldMar)
 }
 
-# Plot multiple plots
-# @importFrom grid grid.newpage pushViewport viewport grid.layout
+#' Plot multiple plots
+#'
+#' @keywords internal
+#' @importFrom grid grid.newpage pushViewport viewport grid.layout
 #
 MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
   # Make a list from the ... arguments and plotlist

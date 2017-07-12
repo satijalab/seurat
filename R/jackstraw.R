@@ -1,4 +1,3 @@
-
 #' Determine statistical significance of PCA scores.
 #'
 #' Randomly permutes a subset of data, and calculates projected PCA scores for
@@ -12,10 +11,6 @@
 #' @param prop.freq Proportion of the data to randomly permute for each
 #' replicate
 #' @param do.print Print the number of replicates that have been processed.
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting to
-#' true will compute it on gene x cell matrix. This should match what was set when the intial PCA was run.
-#' @param do.fast Compute the PCA using the fast approximate calculation from the IRLBA package. Values stored with object
-#' must also have been computed using the PCAFast() function.
 #'
 #' @return Returns a Seurat object where object@@jackStraw.empP represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
@@ -29,33 +24,24 @@
 #'
 JackStraw <- function(
   object,
-  num.pc = 30,
+  num.pc = 20,
   num.replicate = 100,
   prop.freq = 0.01,
-  do.print = FALSE,
-  rev.pca = FALSE,
-  do.fast = FALSE
+  do.print = FALSE
 ) {
-  # check that PCA calculation method matches
-  if (do.fast) {
-    if (is.null(x = object@pca.obj[[1]]$d)) {
-      stop("For fast JackStraw, store PCA values computed with PCAFast()")
-    }
-  } else {
-    if (is.null(x = object@pca.obj[[1]]$sdev)) {
-      stop("For regular JackStraw, store PCA values computed with PCA()")
-    }
+  if (is.null(object@dr$pca)) {
+    stop("PCA has not been computed yet. Please run PCA().")
   }
   # error checking for number of PCs
-  if (num.pc > ncol(x = object@pca.rot)) {
-    num.pc <- ncol(x = object@pca.rot)
+  if (num.pc > ncol(x = object@dr$pca@cell.embeddings)) {
+    num.pc <- ncol(x = object@dr$pca@cell.embeddings)
     warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
   }
   if (num.pc > length(x = object@cell.names)) {
     num.pc <- length(x = object@cell.names)
     warning("Number of PCs specified is greater than number of cells. Setting num.pc to ", num.pc, " and continuing.")
   }
-  pc.genes <- rownames(x = object@pca.x)
+  pc.genes <- rownames(x = object@dr$pca@gene.loadings)
   if (length(x = pc.genes) < 3) {
     stop("Too few variable genes")
   }
@@ -67,13 +53,19 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  md.x <- as.matrix(x = object@pca.x)
-  md.rot <- as.matrix(x = object@pca.rot)
+  md.x <- as.matrix(x = object@dr$pca@gene.loadings)
+  md.rot <- as.matrix(x = object@dr$pca@cell.embeddings)
   if (do.print) {
     applyFunction <- pbsapply
   } else {
     applyFunction <- sapply
   }
+  rev.pca <- GetCalcParam(object = object,
+                          calculation = "PCA",
+                          parameter = "rev.pca")
+  scale.by.varexp <- GetCalcParam(object = object,
+                                  calculation = "PCA",
+                                  parameter = "scale.by.varexp")
   fake.pcVals.raw <- applyFunction(
     X = 1:num.replicate,
     FUN = function(x)
@@ -84,7 +76,7 @@ JackStraw <- function(
         r2.use = num.pc,
         seed.use = x,
         rev.pca = rev.pca,
-        do.fast = do.fast
+        scale.by.varexp
       )),
     simplify = FALSE
   )
@@ -115,6 +107,41 @@ JackStraw <- function(
   colnames(x = object@jackStraw.empP) <- paste0("PC", 1:ncol(x = object@jackStraw.empP))
   return(object)
 }
+
+# Documentatin
+##############
+#' @export
+#'
+JackRandom <- function(
+  scaled.data,
+  prop.use = 0.01,
+  r1.use = 1,
+  r2.use = 5,
+  seed.use = 1,
+  rev.pca = FALSE,
+  scale.by.varexp = scale.by.varexp
+) {
+  set.seed(seed = seed.use)
+  rand.genes <- sample(
+    x = rownames(x = scaled.data),
+    size = nrow(x = scaled.data) * prop.use
+  )
+  # make sure that rand.genes is at least 3
+  if (length(x = rand.genes) < 3){
+    rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
+  }
+  data.mod <- scaled.data
+  data.mod[rand.genes, ] <- shuffleMatRow(x = scaled.data[rand.genes, ])
+  temp.object <- new("seurat")
+  temp.object@scale.data <- data.mod
+  temp.object <- PCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
+                     rev.pca = rev.pca, scale.by.varexp = scale.by.varexp,
+                     do.print = F)
+  fake.x <- PCALoad(temp.object)
+  fake.rot <- PCAEmbed(temp.object)
+  return(fake.x[rand.genes, r1.use:r2.use])
+}
+
 
 # Documentation
 #' @export
@@ -294,59 +321,44 @@ JackStrawFull <- function(
   return(object)
 }
 
-# Documentatin
-##############
-#' @export
-#'
-JackRandom <- function(
-  scaled.data,
-  prop.use = 0.01,
-  r1.use = 1,
-  r2.use = 5,
-  seed.use = 1,
-  rev.pca = FALSE,
-  do.fast = FALSE
-) {
-  set.seed(seed = seed.use)
-  rand.genes <- sample(
-    x = rownames(x = scaled.data),
-    size = nrow(x = scaled.data) * prop.use
-  )
-  # make sure that rand.genes is at least 3
-  if (length(x = rand.genes) < 3){
-    rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
+
+#internal
+jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
+  randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)
+  smD.mod <- data
+  smD.mod[randGenes, ] <- shuffleMatRow(x = data[randGenes, ])
+  fmd.pca <- prcomp(x = smD.mod)
+  fmd.x <- fmd.pca$x
+  fmd.rot <- fmd.pca$rotation
+  fakeF <- unlist(x = lapply(
+    X = randGenes,
+    FUN = jackF,
+    r1 = myR1,
+    r2 = myR2,
+    x = fmd.x,
+    rot = fmd.rot
+  ))
+}
+
+#internal
+jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
+  if (r2 == 1) { #assuming r1, r2=1
+    mod.x <- x[, r1]
+    mod.x[gene] <- 0
+    return(var.test(
+      x = (x[, r1] %*% t(x = rot[, r1])),
+      y = (mod.x %*% t(x = rot[, r1]))
+    )$statistic)
   }
-  data.mod <- scaled.data
-  data.mod[rand.genes, ] <- shuffleMatRow(x = scaled.data[rand.genes, ])
-  if (rev.pca){
-    if (do.fast) {
-      fake.pca <- irlba(A = data.mod, nv = r2.use)
-      fake.rot <- fake.pca$v[, 1:r2.use]
-      rownames(x = fake.rot) <- colnames(x = data.mod)
-      colnames(x = fake.rot) <- paste0("PC", 1:r2.use)
-      fake.x <- fake.pca$u[, 1:r2.use]
-      rownames(x = fake.x) <- rownames(x = data.mod)
-      colnames(x = fake.x) <- colnames(x = fake.rot)
-    } else {
-      fake.pca <- prcomp(x = data.mod)
-      fake.x <- fake.pca$x
-      fake.rot <- fake.pca$rotation
-    }
-  } else {
-    data.mod <- t(x = data.mod)
-    if (do.fast) {
-      fake.pca <- irlba(A = data.mod, nv = r2.use)
-      fake.rot <- fake.pca$u[, 1:r2.use]
-      rownames(x = fake.rot) <- rownames(x = data.mod)
-      colnames(x = fake.rot) <- paste0("PC", 1:r2.use)
-      fake.x <- fake.pca$v[, 1:r2.use]
-      rownames(x = fake.x) <- colnames(x = data.mod)
-      colnames(x = fake.x) <- colnames(x = fake.rot)
-    } else {
-      fake.pca <- prcomp(x = data.mod)
-      fake.x <- fake.pca$rotation
-      fake.rot <- fake.pca$x
-    }
-  }
-  return(fake.x[rand.genes, r1.use:r2.use])
+  mod.x <- x[, 1:r2]
+  mod.x[gene, r1:r2] <- rep(x = 0, r2 - r1 + 1)
+  return(var.test(
+    x = (x[, 1:r2] %*% t(x = rot[, 1:r2])),
+    y = (mod.x[, 1:r2] %*% t(x = rot[, 1:r2]))
+  )$statistic)
+}
+
+#internal
+empP <- function(x, nullval) {
+  return(sum(nullval > x) / length(x = nullval))
 }

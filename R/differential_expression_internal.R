@@ -125,7 +125,7 @@ marker.auc.test <- function(data1, data2, mygenes, print.bar = TRUE) {
       )
     }
   ))
-  toRet <- data.frame(cbind(myAUC, avg_diff), row.names <- mygenes)
+  toRet <- data.frame(cbind(myAUC, avg_diff), row.names = mygenes)
   toRet <- toRet[rev(x = order(toRet$myAUC)), ]
   return(toRet)
 }

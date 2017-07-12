@@ -78,6 +78,9 @@ PCA <- function(
   if(is.null(object@calc.params$PCA$pc.genes)){
     object@calc.params$PCA$pc.genes <- rownames(data.use)
   }
+  if(do.print){
+    PrintPCA(object = object, pcs.print = pcs.print, genes.print = genes.print)
+  }
   return(object)
 }
 
@@ -152,6 +155,9 @@ ICA <- function(
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
   if(is.null(object@calc.params$ICA$ic.genes)){
     object@calc.params$ICA$ic.genes <- rownames(data.use)
+  }
+  if(do.print){
+    PrintICA(object = object, ics.print = ics.print, genes.print = genes.print)
   }
   return(object)
 }

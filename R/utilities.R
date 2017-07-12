@@ -78,16 +78,16 @@ ConvertSeurat <- function(object) {
       return(object)
     }
   }
-  
-  new.object <- new("seurat", 
+
+  new.object <- new("seurat",
                     raw.data = object@raw.data)
   new.slots <- slotNames(new.object)
   for(s in new.slots){
-    new.object <- FillSlot(slot.name = s, old.object = object, 
+    new.object <- FillSlot(slot.name = s, old.object = object,
                               new.object = new.object)
   }
   # Conversion from development versions prior to 2.0.0
-  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x, 
+  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
   #                   tsne.rot
   if ((.hasSlot(object, "dr"))) {
     if(!is.null(object@dr$pca)){
@@ -123,7 +123,7 @@ ConvertSeurat <- function(object) {
   }
   }
   # Conversion from release versions prior to 2.0.0
-  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x, 
+  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
   #                   tsne.rot
   else{
     pca.sdev <- object@pca.obj[[1]]$sdev
@@ -153,7 +153,7 @@ ConvertSeurat <- function(object) {
     )
     new.object@dr$tsne <- tsne.obj
   }
-  
+
   if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
     if (class(object@snn.dense) == "data.frame") {
       object@snn.dense <- as.matrix(x = object@snn.dense)
@@ -163,7 +163,7 @@ ConvertSeurat <- function(object) {
   else{
     new.object@snn <- object@snn.sparse
   }
-  
+
   return(new.object)
 }
 
@@ -171,7 +171,7 @@ ConvertSeurat <- function(object) {
 #' Return a subset of rows for a matrix or data frame
 #'
 #' @param data Matrix or data frame with row names
-#' @param code Pattern for matching within row names 
+#' @param code Pattern for matching within row names
 #' @return Returns a subset of data, using only rownames that did not yield a match to the pattern
 #' @export
 minusr <- function(data, code) {
@@ -189,7 +189,7 @@ minusr <- function(data, code) {
 #' Return a subset of columns for a matrix or data frame
 #'
 #' @param data Matrix or data frame with column names
-#' @param code Pattern for matching within column names 
+#' @param code Pattern for matching within column names
 #' @return Returns a subset of data, using only column names that did not yield a match to the pattern
 #' @export
 minusc <- function(data, code) {
@@ -204,7 +204,7 @@ minusc <- function(data, code) {
 #' Return a subset of rows for a matrix or data frame
 #'
 #' @param data Matrix or data frame with row names
-#' @param code Pattern for matching within row names 
+#' @param code Pattern for matching within row names
 #' @return Returns a subset of data, using only rownames that yielded a match to the pattern
 #' @export
 subr <- function(data, code) {
@@ -212,7 +212,7 @@ subr <- function(data, code) {
 }
 
 #' Independently shuffle values within each row of a matrix
-#' 
+#'
 #' Creates a matrix where correlation structure has been removed, but overall values are the same
 #'
 #' @param x Matrix to shuffle
@@ -242,7 +242,7 @@ anotinb <- function(x, y) {
 #' Return a subset of columns for a matrix or data frame
 #'
 #' @param data Matrix or data frame with column names
-#' @param code Pattern for matching within column names 
+#' @param code Pattern for matching within column names
 #' @return Returns a subset of data, using only column names that yield a match to the pattern
 #' @export
 subc <- function(data, code) {
@@ -251,7 +251,7 @@ subc <- function(data, code) {
 
 #' Apply a ceiling and floor to all values in a matrix
 #'
-#' @param data Matrix or data frame 
+#' @param data Matrix or data frame
 #' @param min all values below this min value will be replaced with min
 #' @param max all values above this max value will be replaced with max
 #' @return Returns matrix after performing these floor and ceil operations
@@ -269,7 +269,7 @@ minmax <- function(data, min, max) {
 #'
 #' Parses a string (usually a cell name) and extracts fields based on a delimiter
 #'
-#' @param string String to parse. 
+#' @param string String to parse.
 #' @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
 #' @param delim Delimiter to use, set to underscore by default.
 #'
@@ -281,4 +281,54 @@ extract_field <- function(string, field = 1, delim = "_") {
     return(strsplit(x = string, split = delim)[[1]][field])
   }
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
+}
+
+#' Calculate the variance of logged values
+#'
+#' Calculate variance of logged values in non-log space (return answer in
+#' log-space)
+#'
+#' @param x value or vector of values
+#'
+#' @return Returns the variance in log-space
+#' @export
+expVar <- function(x) {
+  return(log1p(var(expm1(x))))
+}
+
+#' Calculate the standard deviation of logged values
+#'
+#' Calculate SD of logged values in non-log space (return answer in log-space)
+#'
+#' @param x value or vector of values
+#'
+#' @return Returns the standard deviation in log-space
+#' @export
+expSD <- function(x) {
+  return(log1p(sd(expm1(x))))
+}
+
+#' Calculate the mean of logged values
+#'
+#' Calculate mean of logged values in non-log space (return answer in log-space)
+#'
+#' @param x value or vector of values
+#'
+#' @return Returns the mean in log-space
+#' @export
+expMean <- function(x) {
+  return(log(x = mean(x = exp(x = x) - 1) + 1))
+}
+
+#' Calculate the dispersion of logged values
+#'
+#' Calculate the dispersion (variance divided by mean) in non-log space
+#' (return answer in log-space)
+#'
+#' @param x value or vector of values
+#'
+#' @return Returns the dispersion in log-space
+#' @export
+logVarDivMean <- function(x) {
+  return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
