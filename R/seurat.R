@@ -334,48 +334,6 @@ AverageExpression <- function(
 
 #   Documentation...
 ####################
-GetWeightMatrix <- function(object) {
-  data <- object@data
-  data.humpAvg <- apply(
-    X = data,
-    MARGIN = 1,
-    FUN = humpMean,
-    min = object@drop.expr
-  )
-  wt.matrix <- data.frame(
-    t(
-      x = pbsapply(
-        X = data.humpAvg,
-        FUN = expAlpha,
-        coefs = object@drop.coefs
-      )
-    )
-  )
-  colnames(x = wt.matrix) <- colnames(x = data)
-  rownames(x = wt.matrix) <- rownames(x = data)
-  wt.matrix[is.na(x = wt.matrix)] <- 0
-  object@wt.matrix <- wt.matrix
-  wt1.matrix <- data.frame(
-    pbsapply(
-      X = 1:ncol(x = data),
-      FUN = function(x) {
-        setWt1(
-          x = data[, x],
-          wts = wt.matrix[, x],
-          min = object@drop.expr
-        )
-      }
-    )
-  )
-  colnames(x = wt1.matrix) <- colnames(x = data)
-  rownames(x = wt1.matrix) <- rownames(x = data)
-  wt1.matrix[is.na(x = wt1.matrix)] <- 0
-  object@drop.wt.matrix <- wt1.matrix
-  return(object)
-}
-
-#   Documentation...
-####################
 RegulatorScore <- function(
   object,
   candidate.reg,
@@ -1074,48 +1032,6 @@ AddImputedScore <- function(
     object@imputed[genes.old, ] <- lasso.fits[genes.old, ]
   }
   object@imputed <- rbind(object@imputed, lasso.fits[genes.new, ])
-  return(object)
-}
-
-# Documentation
-###############
-# Not currently supported, but a cool function for QC
-#' @export
-CalcNoiseModels <- function(
-  object,
-  cell.ids = NULL,
-  trusted.genes = NULL,
-  n.bin = 20,
-  drop.expr = 1
-) {
-  object@drop.expr <- drop.expr
-  cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
-  trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
-  trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
-  object@trusted.genes <- trusted.genes
-  data <- object@data[trusted.genes, ]
-  idents <- data.frame(data[, 1])
-  code_humpAvg <- apply(X = data, MARGIN = 1, FUN = humpMean, min = object@drop.expr)
-  code_humpAvg[code_humpAvg > 9] <- 9
-  code_humpAvg[is.na(x = code_humpAvg)] <- 0
-  idents$code_humpAvg <- code_humpAvg
-  data[data > object@drop.expr] <- 1
-  data[data < object@drop.expr] <- 0
-  data$bin <- cut(x = code_humpAvg, breaks = n.bin)
-  data$avg <- code_humpAvg
-  rownames(x = idents) <- rownames(x = data)
-  my.coefs <- data.frame(t(x = pbsapply(
-    X = colnames(x = data[1:(ncol(x = data) - 2)]),
-    FUN = getAB,
-    data = data,
-    data2 = idents,
-    status = "code",
-    code2 = "humpAvg",
-    hasBin = TRUE,
-    doPlot = FALSE
-  )))
-  colnames(x = my.coefs) <- c("a", "b")
-  object@drop.coefs <- my.coefs
   return(object)
 }
 

@@ -39,7 +39,6 @@
 \alias{pcTopCells}
 \alias{fetch.data}
 \alias{viz.ica}
-\alias{getWeightMatrix}
 \alias{regulatorScore}
 \alias{find.markers.node}
 \alias{diffExp.test}
@@ -139,7 +138,6 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{pcTopCells} \tab now a synonym for \code{\link{PCTopCells}}\cr
   \code{fetch.data} \tab now a synonym for \code{\link{FetchData}}\cr
   \code{viz.ica} \tab now a synonym for \code{\link{VizIca}}\cr
-  \code{getWeightMatrix} \tab now a synonym for \code{\link{GetWeightMatrix}}\cr
   \code{regulatorScore} \tab now a synonym for \code{\link{RegulatorScore}}\cr
   \code{find.markers.node} \tab now a synonym for \code{\link{FindMarkersNode}}\cr
   \code{diffExp.test} \tab now a synonym for \code{\link{DiffExpTest}}\cr
