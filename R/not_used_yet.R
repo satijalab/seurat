@@ -138,7 +138,7 @@ genes.ca.range <- function(object, my.min, my.max) {
   ca.max <- apply(X = ca, MARGIN = 1, FUN = max)
   genes.1 <- names(x = ca.min[ca.min < my.max])
   genes.2 <- names(x = ca.max[ca.max > my.min])
-  return(ainb(a = genes.1, b = genes.2))
+  return(intersect(x = genes.1, y = genes.2))
 }
 
 # Not currently supported, but a cool function for QC
@@ -271,9 +271,9 @@ RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
   pcs.use <- anotinb(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
   if (use.full) {
     data.x <- as.matrix(
-      x = object@pca.x.full[, ainb(
-        a = pcs.use,
-        b = 1:ncol(x = object@pca.x.full)
+      x = object@pca.x.full[, intersect(
+        x = pcs.use,
+        y = 1:ncol(x = object@pca.x.full)
       )]
     )
   } else {

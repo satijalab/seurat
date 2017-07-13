@@ -65,12 +65,12 @@ DoHeatmapGG <- function(
   }
   # note: data.use should have cells as column names, genes as row names
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  cells.use <- ainb(a = cells.use, b = colnames(x = data.use))
+  cells.use <- intersect(x = cells.use, y = colnames(x = data.use))
   if (length(x = cells.use) == 0) {
     stop("No cells given to cells.use present in object")
   }
   genes.use <- SetIfNull(x = genes.use, default = rownames(y = data.use))
-  genes.use <- ainb(a = genes.use, b = rownames(x = data.use))
+  genes.use <- intersect(x = genes.use, y = rownames(x = data.use))
   if (length(x = genes.use) == 0) {
     stop("No genes given to genes.use present in object")
   }
@@ -86,7 +86,7 @@ DoHeatmapGG <- function(
   }
   cells.ident <- factor(
     x = cells.ident,
-    labels = ainb(a = levels(x = cells.ident), b = cells.ident)
+    labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   data.use <- data.use[genes.use, cells.use]
   if (use.scaled) {
@@ -1065,7 +1065,7 @@ DoHeatmap <- function(
   ...
 ) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  cells.use <- ainb(a = cells.use, b = object@cell.names)
+  cells.use <- intersect(x = cells.use, y = object@cell.names)
   cells.ident <- object@ident[cells.use]
   if (! is.null(x = group.by)) {
     cells.ident <- factor(x = FetchData(
@@ -1075,7 +1075,7 @@ DoHeatmap <- function(
   }
   cells.ident <- factor(
     x = cells.ident,
-    labels = ainb(a = levels(x = cells.ident), b = cells.ident)
+    labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   if (order.by.ident) {
     cells.use <- cells.use[order(cells.ident)]

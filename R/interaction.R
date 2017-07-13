@@ -316,7 +316,7 @@ SubsetData <- function(
     pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
     cells.use <- rownames(data.use)[pass.inds]
   }
-  cells.use <- ainb(cells.use, object@cell.names)
+  cells.use <- intersect(x = cells.use, y = object@cell.names)
   cells.use <-  WhichCells(
     object = object,
     cells.use = cells.use,
@@ -562,7 +562,7 @@ FetchData <- function(
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
     }
-    cells.use <- ainb(a = cells.use, b = rownames(x = data.use))
+    cells.use <- intersect(x = cells.use, y = rownames(x = data.use))
     if (! my.var %in% colnames(x = data.use)) {
       stop(paste("Error:", my.var, "not found"))
     }

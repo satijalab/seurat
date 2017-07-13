@@ -439,7 +439,7 @@ AverageExpression <- function(
   show.progress = TRUE,
   ...
 ) {
-  
+
   ident.orig <- object@ident
   orig.levels <- levels(x = object@ident)
   ident.new <- c()
@@ -568,7 +568,7 @@ MergeNode <- function(object, node.use = NULL) {
     node = node.use,
     include.children = TRUE
   )
-  node.children <- ainb(a = node.children, b = levels(x = object@ident))
+  node.children <- intersect(x = node.children, y = levels(x = object@ident))
   children.cells <- WhichCells(object = object, ident = node.children)
   if (length(x = children.cells > 0)) {
     object <- SetIdent(
@@ -717,7 +717,7 @@ AddImputedScore <- function(
 #'
 #' @param object Seurat object. Assumes DoKMeans has already been run
 #' @param cluster.num K-means cluster(s) to return genes for
-#' @param max.genes max number of genes to return 
+#' @param max.genes max number of genes to return
 #' @return A vector of genes who are members in the cluster.num k-means cluster(s)
 #'
 #' @export

@@ -122,7 +122,7 @@ PCASigGenes <- function(
       use.full = use.full,
       do.balanced = FALSE
     )
-    genes.use <- ainb(a = pc.top.genes, b = genes.use)
+    genes.use <- intersect(x = pc.top.genes, y = genes.use)
   }
   return(genes.use)
 }

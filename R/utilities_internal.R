@@ -421,14 +421,6 @@ log_add <- function(x) {
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
-# returns the intersection of two vectors, i.e all elements of a that are also in b
-# we should be switching to use the intersect function instead
-ainb <- function(a, b) {
-  return(a[a %in% b])
-}
-
-
-
 same <- function(x) {
   return(x)
 }

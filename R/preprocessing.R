@@ -214,7 +214,7 @@ ScaleDataR <- function(
   scale.max = 10
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
-  genes.use <- ainb(genes.use,rownames(object@data))
+  genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
   data.use <- SetIfNull(x = data.use, default = object@data[genes.use, ])
   object@scale.data <- matrix(
     data = NA,

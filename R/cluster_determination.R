@@ -480,7 +480,7 @@ BuildClusterTree <- function(
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {
-    genes.use <- ainb(genes.use, rownames(x = object@data))
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
     data.avg <- AverageExpression(object = object, genes.use = genes.use)
     data.dist <- dist(t(x = data.avg[genes.use, ]))
   }

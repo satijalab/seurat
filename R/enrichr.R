@@ -41,9 +41,9 @@ AddEnrichScore <- function(
     if (is.null(x = genes.list)) {
       stop("Missing input gene list")
     }
-    genes.k <- ainb(
-      a = unique(x = unlist(x = genes.list)),
-      b = rownames(x = object@data)
+    genes.k <- intersect(
+      x = unique(x = unlist(x = genes.list)),
+      y = rownames(x = object@data)
     )
     cluster.length <- length(x = genes.list)
   }

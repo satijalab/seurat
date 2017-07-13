@@ -60,13 +60,13 @@ FindMarkers <- function(
   # in case the user passed in cells instead of identity classes
   # Umm... confused about the first part of the conditional...
   if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
-    cells.1 <- ainb(a = ident.1, b = object@cell.names)
+    cells.1 <- intersect(x = ident.1, y = object@cell.names)
   } else {
     cells.1 <- WhichCells(object = object, ident = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2) > 1) && any(as.character(x = ident.2) %in% object@cell.names)) {
-    cells.2 <- ainb(a = ident.2, b = object@cell.names)
+    cells.2 <- intersect(x = ident.2, y = object@cell.names)
   } else {
     if (is.null(x = ident.2)) {
       cells.2 <- object@cell.names
@@ -122,7 +122,7 @@ FindMarkers <- function(
   data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1, FUN = expMean)
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
-  genes.use <- ainb(a = genes.use, b = genes.diff)
+  genes.use <- intersect(x = genes.use, y = genes.diff)
   #perform DR
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
