@@ -32,7 +32,7 @@ RegressOut <- function(
     )
   }
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- ainb(genes.regress,rownames(object@data))
+  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   latent.data <- FetchData(object = object, vars.all = latent.vars)
   bin.size <- 100
   if (model.use == 'negbinom') {
@@ -137,7 +137,7 @@ RegressOutNB <- function(
   min.theta = 0.01
 ) {
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- ainb(genes.regress,rownames(x = object@data))
+  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
   latent.data <- FetchData(object = object, vars.all = latent.vars)
   cat(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
@@ -212,7 +212,7 @@ RegressOutNBreg <- function(
   min.theta = 0.01
 ) {
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- ainb(genes.regress, rownames(x = object@data))
+  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop=FALSE]
   latent.data <- FetchData(boject = object, vars.all = latent.vars)
   bin.size <- 128

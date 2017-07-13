@@ -75,8 +75,14 @@ test_that("scaling done correctly", {
 # --------------------------------------------------------------------------------
 context("PCA dimensional reduction")
 
-nbt.test <- FindVariableGenes(nbt.test, y.cutoff = 2, x.low.cutoff = 2,
-                              mean.function = expMean, dispersion.function = logVarDivMean)
+nbt.test <- FindVariableGenes(
+  nbt.test,
+  y.cutoff = 2,
+  x.low.cutoff = 2,
+  mean.function = ExpMean,
+  dispersion.function = logVarDivMean
+)
+
 pcs.compute <- 4
 nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
 

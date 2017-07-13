@@ -19,11 +19,11 @@
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@finalprob))
   #Error checking
-  cell.names <- ainb(a = cells.use, b = colnames(x = object@spatial@finalprob))
+  cell.names <- intersect(x = cells.use, y = colnames(x = object@spatial@finalprob))
   if (length(x = cell.names) != length(x = cells.use)) {
     print(paste(
       "Error",
-      anotinb(x = cells.use, y = colnames(x = object@spatial@finalprob)),
+      setdiff(x = cells.use, y = colnames(x = object@spatial@finalprob)),
       " have not been mapped"
     ))
     return(0)
@@ -66,7 +66,7 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
 #' @export
 #'
 RefinedMapping <- function(object, genes.use) {
-  genes.use <- ainb(a = genes.use, b = rownames(x = object@imputed))
+  genes.use <- intersect(x = genes.use, y = rownames(x = object@imputed))
   cells.max <- t(x = sapply(
     X = colnames(object@data),
     FUN = function(x) {

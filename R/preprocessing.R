@@ -87,7 +87,7 @@ Seurat <- function(
     x = unlist(
       x = lapply(
         X = colnames(x = object@data),
-        FUN = extract_field,
+        FUN = ExtractField,
         field = names.field,
         delim = names.delim
       )
@@ -172,7 +172,7 @@ Read10X <- function(data.dir = NULL){
         x = as.character(
           x = sapply(
             X = cell.names,
-            FUN = extract_field, field = 1,
+            FUN = ExtractField, field = 1,
             delim = "-"
           )
         )
@@ -182,7 +182,7 @@ Read10X <- function(data.dir = NULL){
       names = as.character(
         x = sapply(
           X = gene.names,
-          FUN = extract_field,
+          FUN = ExtractField,
           field = 2,
           delim = "\\t"
         )
@@ -293,7 +293,7 @@ ScaleDataR <- function(
   scale.max = 10
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
-  genes.use <- ainb(genes.use,rownames(object@data))
+  genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
   data.use <- SetIfNull(x = data.use, default = object@data[genes.use, ])
   object@scale.data <- matrix(
     data = NA,
@@ -565,7 +565,7 @@ SampleUMI <- function(
 #'
 FindVariableGenes <- function(
   object,
-  mean.function = expMean,
+  mean.function = ExpMean,
   dispersion.function = logVarDivMean,
   do.plot = TRUE,
   set.var.genes = TRUE,
@@ -642,4 +642,57 @@ FindVariableGenes <- function(
   } else {
     return(pass.cutoff)
   }
+}
+
+#' Return a subset of the Seurat object
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Takes either a list of cells to use as a subset, or a
+#' parameter (for example, a gene), to subset on.
+#'
+#' @param object Seurat object
+#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@data.info, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
+#' @param high.thresholds High cutoffs for the parameters (default is Inf)
+#' @param cells.use A vector of cell names to use as a subset
+#'
+#' @return Returns a Seurat object containing only the relevant subset of cells
+#'
+#' @export
+#'
+FilterCells <- function(
+  object,
+  subset.names,
+  low.thresholds,
+  high.thresholds,
+  cells.use = NULL
+) {
+  if (missing(x = low.thresholds)) {
+    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
+  }
+  if (missing(x = high.thresholds)) {
+    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
+  }
+  length.check <- sapply(
+    X = list(subset.names, low.thresholds, high.thresholds),
+    FUN = length
+  )
+  if (length(x = unique(x = length.check)) != 1) {
+    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
+  }
+  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
+  for (i in seq(nrow(data.subsets))) {
+    object <- SubsetData(
+      object = object,
+      cells.use = cells.use,
+      subset.name = data.subsets[i, 1],
+      accept.low = data.subsets[i, 2],
+      accept.high = data.subsets[i, 3],
+      do.center = FALSE,
+      do.scale = FALSE
+    )
+  }
+  return(object)
 }

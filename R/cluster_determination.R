@@ -394,7 +394,7 @@ DoKMeans <- function(
   ...
 ) {
   data.use.orig=GetAssayData(object,assay.type,slot = "scale.data")
-  data.use <- minmax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
+  data.use <- MinMax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
   cells.use <- object@cell.names
@@ -480,7 +480,7 @@ BuildClusterTree <- function(
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {
-    genes.use <- ainb(genes.use, rownames(x = object@data))
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
     data.avg <- AverageExpression(object = object, genes.use = genes.use)
     data.dist <- dist(t(x = data.avg[genes.use, ]))
   }

@@ -138,7 +138,7 @@ genes.ca.range <- function(object, my.min, my.max) {
   ca.max <- apply(X = ca, MARGIN = 1, FUN = max)
   genes.1 <- names(x = ca.min[ca.min < my.max])
   genes.2 <- names(x = ca.max[ca.max > my.min])
-  return(ainb(a = genes.1, b = genes.2))
+  return(intersect(x = genes.1, y = genes.2))
 }
 
 # Not currently supported, but a cool function for QC
@@ -246,11 +246,11 @@ vsubc <- function(data,code) {
 }
 
 regression.sig <- function(x, score, data, latent, code = "rsem") {
-  if (var(x = as.numeric(x = subc(data = data, code = code)[x, ])) == 0) {
+  if (var(x = as.numeric(x = SubsetColumn(data = data, code = code)[x, ])) == 0) {
     return(0)
   }
   latent <- latent[grep(pattern = code, x = names(x = data))]
-  data <- rbind(subc(data = data, code = code), vsubc(data = score, code = code))
+  data <- rbind(SubsetColumn(data = data, code = code), vsubc(data = score, code = code))
   rownames(x = data)[nrow(x = data)] <- "score"
   data2 <- data[c(x, "score"), ]
   rownames(x = data2)[1] <- "fac"
@@ -268,12 +268,12 @@ regression.sig <- function(x, score, data, latent, code = "rsem") {
 #'
 RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
   data.old <- object@data
-  pcs.use <- anotinb(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
+  pcs.use <- setdiff(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
   if (use.full) {
     data.x <- as.matrix(
-      x = object@pca.x.full[, ainb(
-        a = pcs.use,
-        b = 1:ncol(x = object@pca.x.full)
+      x = object@pca.x.full[, intersect(
+        x = pcs.use,
+        y = 1:ncol(x = object@pca.x.full)
       )]
     )
   } else {
@@ -399,7 +399,7 @@ CellCorMatrix <- function(
   )
   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
   cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
   object@kmeans.cell <- list(kmeans.cor)
   if (do.k) {
     aheatmap(
@@ -455,7 +455,7 @@ GeneCorMatrix <- function(
   )
   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
   cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
   object@kmeans.gene <- list(kmeans.cor)
   if (do.k) {
     aheatmap(

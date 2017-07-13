@@ -231,21 +231,13 @@ shuffleMatRow <- function(x) {
   return(x2)
 }
 
-
-#returns the setdiff of two vectors, i.e all elements of a that are not in b
-#we should be switching to use the setdiff function instead
-#' @export
-anotinb <- function(x, y) {
-  return(x[! x %in% y])
-}
-
 #' Return a subset of columns for a matrix or data frame
 #'
 #' @param data Matrix or data frame with column names
 #' @param code Pattern for matching within column names
 #' @return Returns a subset of data, using only column names that yield a match to the pattern
 #' @export
-subc <- function(data, code) {
+SubsetColumn <- function(data, code) {
   return(data[, grep(pattern = code, x = colnames(x = data))])
 }
 
@@ -256,14 +248,12 @@ subc <- function(data, code) {
 #' @param max all values above this max value will be replaced with max
 #' @return Returns matrix after performing these floor and ceil operations
 #' @export
-minmax <- function(data, min, max) {
+MinMax <- function(data, min, max) {
   data2 <- data
   data2[data2 > max] <- max
   data2[data2 < min] <- min
   return(data2)
 }
-
-
 
 #' Extract delimiter information from a string.
 #'
@@ -275,7 +265,7 @@ minmax <- function(data, min, max) {
 #'
 #' @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
 #' @export
-extract_field <- function(string, field = 1, delim = "_") {
+ExtractField <- function(string, field = 1, delim = "_") {
   fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
   if (length(x = fields) == 1) {
     return(strsplit(x = string, split = delim)[[1]][field])
@@ -292,7 +282,7 @@ extract_field <- function(string, field = 1, delim = "_") {
 #'
 #' @return Returns the variance in log-space
 #' @export
-expVar <- function(x) {
+ExpVar <- function(x) {
   return(log1p(var(expm1(x))))
 }
 
@@ -304,7 +294,7 @@ expVar <- function(x) {
 #'
 #' @return Returns the standard deviation in log-space
 #' @export
-expSD <- function(x) {
+ExpSD <- function(x) {
   return(log1p(sd(expm1(x))))
 }
 
@@ -316,7 +306,7 @@ expSD <- function(x) {
 #'
 #' @return Returns the mean in log-space
 #' @export
-expMean <- function(x) {
+ExpMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
 
@@ -462,7 +452,7 @@ AverageExpression <- function(
     assays.use <- "RNA"
   }
   slot.use <- "data"
-  fxn.average <- expMean
+  fxn.average <- ExpMean
   if (show.progress) {
     fxn.loop <- pbsapply
   } else {
@@ -551,12 +541,12 @@ AverageExpression <- function(
 }
 
 
-#' Merge subchilden of a node
+#' Merge SubsetColumnhilden of a node
 #'
-#' Merge the subchilden of a node into a single identity class
+#' Merge the SubsetColumnhilden of a node into a single identity class
 #'
 #' @param object Seurat object
-#' @param node.use Merge subchildren of this node
+#' @param node.use Merge SubsetColumnhildren of this node
 #'
 #' @export
 #'
@@ -567,7 +557,7 @@ MergeNode <- function(object, node.use = NULL) {
     node = node.use,
     include.children = TRUE
   )
-  node.children <- ainb(a = node.children, b = levels(x = object@ident))
+  node.children <- intersect(x = node.children, y = levels(x = object@ident))
   children.cells <- WhichCells(object = object, ident = node.children)
   if (length(x = children.cells > 0)) {
     object <- SetIdent(
@@ -619,7 +609,7 @@ AddSmoothedScore <- function(
   knn.smooth <- get.knn(data = data.plot, k = k)$nn.index
   avg.fxn <- mean
   if (! do.log) {
-    avg.fxn <- expMean
+    avg.fxn <- ExpMean
   }
   lasso.fits <- data.frame(
     t(

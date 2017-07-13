@@ -65,7 +65,7 @@ GetCellEmbeddings <- function(
       collapse = ", "
     )
     warning(paste0("Could not find the following cell names: ", missing.cells))
-    cells.use <- ainb(a = cells.use, b = rownames(x = object.embed))
+    cells.use <- intersect(x = cells.use, y = rownames(x = object.embed))
   }
   dims.use <- SetIfNull(x = dims.use, default = 1:ncol(x = object.embed))
   if (any(!dims.use %in% 1:ncol(x = object.embed))) {
@@ -130,7 +130,7 @@ GetGeneLoadings <- function(
       collapse = ", "
     )
     warning(paste("Could not find the following gene names:", missing.genes))
-    genes.use <- ainb(a = genes.use, b = rownames(x = gene.loadings))
+    genes.use <- intersect(x = genes.use, y = rownames(x = gene.loadings))
   }
   dims.use <- SetIfNull(x = dims.use, default = 1:ncol(x = gene.loadings))
   if (any(! dims.use %in% 1:ncol(x = gene.loadings))) {

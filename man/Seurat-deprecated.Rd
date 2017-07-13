@@ -123,7 +123,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{plotClusterTree} \tab now a synonym for \code{\link{PlotClusterTree}}\cr
   \code{plotNoiseModel} \tab now a synonym for \code{\link{PlotNoiseModel}}\cr
   \code{add_samples} \tab now a synonym for \code{\link{AddSamples}}\cr
-  \code{subsetCells} \tab now a synonym for \code{\link{SubsetCells}}\cr
+  \code{subsetCells} \tab now deleted\cr
   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
   \code{ica} \tab now a synonym for \code{\link{ICA}}\cr
@@ -186,6 +186,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{writ.table} \tab is delteded without replacement\cr
   \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
   \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
+  \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
 }
 }
 

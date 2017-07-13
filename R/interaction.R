@@ -300,11 +300,11 @@ SubsetData <- function(
   data.use <- NULL
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   if (!is.null(x = ident.use)) {
-    ident.use <- anotinb(ident.use, ident.remove)
+    ident.use <- setdiff(ident.use, ident.remove)
     cells.use <- WhichCells(object, ident.use)
   }
   if ((is.null(x = ident.use)) && ! is.null(x = ident.remove)) {
-    ident.use <- anotinb(unique(object@ident), ident.remove)
+    ident.use <- setdiff(unique(object@ident), ident.remove)
     cells.use <- WhichCells(object, ident.use)
   }
   if (! is.null(x = subset.name)) {
@@ -316,7 +316,7 @@ SubsetData <- function(
     pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
     cells.use <- rownames(data.use)[pass.inds]
   }
-  cells.use <- ainb(cells.use, object@cell.names)
+  cells.use <- intersect(x = cells.use, y = object@cell.names)
   cells.use <-  WhichCells(
     object = object,
     cells.use = cells.use,
@@ -375,55 +375,6 @@ SubsetData <- function(
   object@data.info <- data.frame(object@data.info[cells.use,])
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
   return(object)
-}
-
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object Seurat object
-#' @param cells.use A vector of cell names to use as a subset. If NULL
-#' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@data.info, etc. Any argument that can be retreived
-#' using FetchData
-#' @param accept.low Low cutoff for the parameter (default is -Inf)
-#' @param accept.high High cutoff for the parameter (default is Inf)
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data
-#' @param \dots Additional arguments to be passed to FetchData (for example,
-#' use.imputed=TRUE)
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @export
-#'
-SubsetCells <- function(
-  object,
-  cells.use = NULL,
-  subset.name = NULL,
-  accept.low = -Inf,
-  accept.high = Inf,
-  do.center = TRUE,
-  do.scale = TRUE,
-  ...
-) {
-  data.use <- FetchData(
-    object = object,
-    vars.all = subset.name,
-    cells.use = cells.use,
-    ...
-  )
-  if (length(x = data.use) == 0) {
-    return(object)
-  }
-  subset.data <- data.use[,subset.name]
-  pass.inds <- which(x = (subset.data>accept.low) & (subset.data<accept.high))
-  cells.use <- rownames(x = data.use)[pass.inds]
-  return(cells.use)
 }
 
 #' Reorder identity classes
@@ -611,7 +562,7 @@ FetchData <- function(
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
     }
-    cells.use <- ainb(a = cells.use, b = rownames(x = data.use))
+    cells.use <- intersect(x = cells.use, y = rownames(x = data.use))
     if (! my.var %in% colnames(x = data.use)) {
       stop(paste("Error:", my.var, "not found"))
     }
@@ -681,7 +632,7 @@ WhichCells <- function(
   set.seed(seed = random.seed)
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
-  ident <- anotinb(x = ident, y = ident.remove)
+  ident <- setdiff(x = ident, y = ident.remove)
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
     stop(paste("Identity :", bad.idents, "not found.   "))
@@ -806,13 +757,13 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  if (length(x = anotinb(x = cells.use, y = object@cell.names) > 0)) {
+  if (length(x = setdiff(x = cells.use, y = object@cell.names) > 0)) {
     stop(paste(
       "ERROR : Cannot find cells ",
-      anotinb(x = cells.use, y = object@cell.names)
+      setdiff(x = cells.use, y = object@cell.names)
     ))
   }
-  ident.new <- anotinb(x = ident.use, y = levels(x = object@ident))
+  ident.new <- setdiff(x = ident.use, y = levels(x = object@ident))
   object@ident <- factor(
     x = object@ident,
     levels = unique(

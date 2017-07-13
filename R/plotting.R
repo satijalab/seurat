@@ -65,12 +65,12 @@ DoHeatmapGG <- function(
   }
   # note: data.use should have cells as column names, genes as row names
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  cells.use <- ainb(a = cells.use, b = colnames(x = data.use))
+  cells.use <- intersect(x = cells.use, y = colnames(x = data.use))
   if (length(x = cells.use) == 0) {
     stop("No cells given to cells.use present in object")
   }
   genes.use <- SetIfNull(x = genes.use, default = rownames(y = data.use))
-  genes.use <- ainb(a = genes.use, b = rownames(x = data.use))
+  genes.use <- intersect(x = genes.use, y = rownames(x = data.use))
   if (length(x = genes.use) == 0) {
     stop("No genes given to genes.use present in object")
   }
@@ -86,11 +86,11 @@ DoHeatmapGG <- function(
   }
   cells.ident <- factor(
     x = cells.ident,
-    labels = ainb(a = levels(x = cells.ident), b = cells.ident)
+    labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   data.use <- data.use[genes.use, cells.use]
   if (use.scaled) {
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   }
   data.use <- as.data.frame(x = t(x = data.use))
   data.use$cell <- rownames(x = data.use)
@@ -409,9 +409,9 @@ DotPlot <- function(
   colnames(x = object@data) <- object@cell.names
   avg.exp <- AverageExpression(object = object)
   avg.alpha <- AverageDetectionRate(object = object)
-  cols.use <- SetIfNull(x = cols.use, default = myPalette(low = "red", high = "green"))
+  cols.use <- SetIfNull(x = cols.use, default = CustomPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
-  exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
+  exp.scale <- MinMax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
   n.col <- length(x = cols.use)
   data.y <- rep(x = 1:ncol(x = avg.exp), nrow(x = avg.exp))
   data.x <- unlist(x = lapply(X = 1:nrow(x = avg.exp), FUN = rep, ncol(x = avg.exp)))
@@ -493,14 +493,14 @@ DotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = expMean(x = expression),
+      avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
     mutate(avg.exp = as.numeric(x = scale(center = avg.exp))) %>%
-    mutate(avg.exp.scale = minmax(
+    mutate(avg.exp.scale = MinMax(
       data = avg.exp,
       max = col.max,
       min = col.min
@@ -598,7 +598,7 @@ SplitDotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = expMean(x = expression),
+      avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   ids.2 <- paste(
@@ -619,7 +619,7 @@ SplitDotPlotGG <- function(
     group_by(genes.plot) %>%
     mutate(avg.exp = scale(avg.exp)) %>%
     mutate(avg.exp.scale = as.numeric(x = cut(
-      x = minmax(data = avg.exp, max = col.max, min = col.min),
+      x = MinMax(data = avg.exp, max = col.max, min = col.min),
       breaks = 20
     ))) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
@@ -627,8 +627,8 @@ SplitDotPlotGG <- function(
     levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  palette.1 <- myPalette(low = "grey", high = "blue", k = 20)
-  palette.2 <- myPalette(low = "grey", high = "red", k = 20)
+  palette.1 <- CustomPalette(low = "grey", high = "blue", k = 20)
+  palette.2 <- CustomPalette(low = "grey", high = "red", k = 20)
   data.to.plot$ptcolor <- "grey"
   data.to.plot[vals.1, "ptcolor"] <- palette.1[as.matrix(
     x = data.to.plot[vals.1, "avg.exp.scale"]
@@ -963,7 +963,7 @@ FeatureHeatmap <- function(
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
-  data.plot$scaled.expression <- minmax(
+  data.plot$scaled.expression <- MinMax(
     data = data.plot$scaled.expression,
     min = min.exp,
     max = max.exp
@@ -1065,7 +1065,7 @@ DoHeatmap <- function(
   ...
 ) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  cells.use <- ainb(a = cells.use, b = object@cell.names)
+  cells.use <- intersect(x = cells.use, y = object@cell.names)
   cells.ident <- object@ident[cells.use]
   if (! is.null(x = group.by)) {
     cells.ident <- factor(x = FetchData(
@@ -1075,7 +1075,7 @@ DoHeatmap <- function(
   }
   cells.ident <- factor(
     x = cells.ident,
-    labels = ainb(a = levels(x = cells.ident), b = cells.ident)
+    labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   if (order.by.ident) {
     cells.use <- cells.use[order(cells.ident)]
@@ -1114,7 +1114,7 @@ DoHeatmap <- function(
     }
     data.use <- rbind(data.use, new.data)
   }
-  data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   vline.use <- NULL
   colsep.use <- NULL
   if (remove.key) {
@@ -1606,7 +1606,7 @@ DimHeatmap <- function(
       data.use <- rbind(data.use, new.data)
     }
     #data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
     #if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
     vline.use <- NULL
     hmTitle <- paste(dim.key, ndim)
@@ -1687,7 +1687,7 @@ PlotDim <- function(
     data.use <- as.matrix(object@data[genes.use, cells.ordered])
   } else {
     data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   }
   return(DoHeatmapGG(
     object = object,

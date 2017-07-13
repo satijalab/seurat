@@ -226,7 +226,7 @@ RunTSNE <- function(
       stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
     }
     cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@scale.data))
-    genes.use <- ainb(a = genes.use, b = rownames(x = object@scale.data))
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
     data.use <- t(x = object@scale.data[genes.use, cells.use])
   }
   set.seed(seed = seed.use)
@@ -978,8 +978,8 @@ RunDiffusion <- function(
     data.use <- FetchData(object = object, vars.all = dim.codes)
   }
   if (! is.null(x = genes.use)) {
-    genes.use <- ainb(genes.use, rownames(x = object@scale.data))
-    data.use <- minmax(
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
+    data.use <- MinMax(
       data = t(x = object@data[genes.use, cells.use]),
       min = -1 * scale.clip,
       max = scale.clip
@@ -1002,7 +1002,7 @@ RunDiffusion <- function(
   rownames(x = data.diffusion) <- cells.use
   for (i in 1:max.dim) {
     x <- data.diffusion[,i]
-    x <- minmax(
+    x <- MinMax(
       data = x,
       min = quantile(x = x, probs = q.use),
       quantile(x = x, probs = 1-q.use)

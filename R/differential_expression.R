@@ -60,13 +60,13 @@ FindMarkers <- function(
   # in case the user passed in cells instead of identity classes
   # Umm... confused about the first part of the conditional...
   if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
-    cells.1 <- ainb(a = ident.1, b = object@cell.names)
+    cells.1 <- intersect(x = ident.1, y = object@cell.names)
   } else {
     cells.1 <- WhichCells(object = object, ident = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2) > 1) && any(as.character(x = ident.2) %in% object@cell.names)) {
-    cells.2 <- ainb(a = ident.2, b = object@cell.names)
+    cells.2 <- intersect(x = ident.2, y = object@cell.names)
   } else {
     if (is.null(x = ident.2)) {
       cells.2 <- object@cell.names
@@ -74,7 +74,7 @@ FindMarkers <- function(
       cells.2 <- WhichCells(object = object, ident = ident.2)
     }
   }
-  cells.2 <- anotinb(x = cells.2, y = cells.1)
+  cells.2 <- setdiff(x = cells.2, y = cells.1)
   #error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
@@ -118,11 +118,11 @@ FindMarkers <- function(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
   #gene selection (based on average difference)
-  data.1 <- apply(X = object@data[genes.use, cells.1], MARGIN = 1, FUN = expMean)
-  data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1, FUN = expMean)
+  data.1 <- apply(X = object@data[genes.use, cells.1], MARGIN = 1, FUN = ExpMean)
+  data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1, FUN = ExpMean)
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
-  genes.use <- ainb(a = genes.use, b = genes.diff)
+  genes.use <- intersect(x = genes.use, y = genes.diff)
   #perform DR
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
@@ -523,7 +523,7 @@ FindConservedMarkers <- function(
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
     cells.1 <- WhichCells(object = object, ident = ident.use.1)
     if (is.null(x = ident.2)) {
-      cells.2 <- anotinb(x = cells[[i]], y = cells.1)
+      cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
       if (length(x = ident.use.2) == 0) {
         stop(paste("Only one identity class present:", ident.1))
