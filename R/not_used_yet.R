@@ -670,6 +670,26 @@ GeneCorMatrix <- function(
 }
 
 
+#   Documentation
+#################
+ProjectSamples <- function(object, new.samples) {
+  genes.use <- rownames(x = object@data)
+  genes.pca <- rownames(x = object@pca.x)
+  data.project <- object@scale.data[genes.pca, ]
+  data.project[is.na(x = data.project)] <- 0
+  new.rot = t(x = data.project) %*% as.matrix(x = object@pca.x)
+  scale.vec = apply(
+    X = new.rot,
+    MARGIN = 2,
+    FUN = function(x) {
+      return(sqrt(x = sum(x ^ 2)))
+    }
+  )
+  new.rot.scale <- scale(x = new.rot, center = FALSE, scale = scale.vec)
+  object@pca.rot <- as.data.frame(x = new.rot.scale)
+  return(object)
+}
+
 # Documentation
 ###############
 #Cool, but not supported right now
@@ -711,3 +731,55 @@ SpatialDe <- function(object, marker.cells, genes.use = NULL) {
   )
   return(diff.genes)
 }
+
+
+#' Identify potential genes associated with batch effects
+#'
+#' Test for genes whose expression value is strongly predictive of batch (based
+#' on ROC classification). Important note: Assumes that the 'batch' of each
+#' cell is assigned to the cell's identity class (will be improved in a future
+#' release)
+#'
+#' @param object Seurat object
+#' @param idents.use Batch names to test
+#' @param genes.use Gene list to test
+#' @param auc.cutoff Minimum AUC needed to qualify as a 'batch gene'
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) in any one batch
+#'
+#' @return Returns a list of genes that are strongly correlated with batch.
+#'
+#' @export
+#'
+BatchGene <- function(
+  object,
+  idents.use,
+  genes.use = NULL,
+  auc.cutoff = 0.6,
+  thresh.use = 0
+) {
+  batch.genes <- c()
+  genes.use <- SetIfNull(x = genes.use, y = rownames(x = object@data))
+  for (ident in idents.use) {
+    cells.1 <- names(x = object@ident)[object@ident == ident]
+    cells.2 <- names(x = object@ident)[object@ident != ident]
+    if ((length(x = cells.1) < 5) | (length(x = cells.2) < 5)) {
+      break
+    }
+    markers.ident <- MarkerTest(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      print.bar = thresh.use
+    )
+    batch.genes <- unique(
+      x = c(
+        batch.genes,
+        rownames(x = subset(x = markers.ident, subset = myAUC > auc.cutoff))
+      )
+    )
+  }
+  return(batch.genes)
+}
+

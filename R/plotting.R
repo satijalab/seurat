@@ -408,7 +408,7 @@ DotPlot <- function(
   #this line is in case there is a '-' in the cell name
   colnames(x = object@data) <- object@cell.names
   avg.exp <- AverageExpression(object = object)
-  avg.alpha <- ClusterAlpha(object = object)
+  avg.alpha <- AverageDetectionRate(object = object)
   cols.use <- SetIfNull(x = cols.use, default = myPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
   exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
@@ -2095,12 +2095,12 @@ DimPlot <- function(
       geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
       geom_text(data = centers, mapping = aes(label = ident), size = label.size)
   }
-  if (no.legend) {
-    p3 <- p3 + theme(legend.position = "none")
-  }
   if (dark.theme) {
     p <- p + DarkTheme()
     p3 <- p3 + DarkTheme()
+  }
+  if (no.legend) {
+    p3 <- p3 + theme(legend.position = "none")
   }
   if (no.axes) {
     p3 <- p3 + theme(
@@ -2371,16 +2371,16 @@ VariableGenePlot <- function(
   y.cutoff = 1,
   y.high.cutoff = Inf
 ) {
-  data.x <- object@mean.var[, 1]
-  data.y <- object@mean.var[, 2]
-  data.norm.y <- object@mean.var[, 3]
-  names(x = data.x) <- names(x = data.y) <- names(x = data.norm.y) <- rownames(x = object@data)
-  pass.cutoff <- names(x = data.x)[which(
+  gene.mean <- object@hvg.info[, 1]
+  gene.dispersion <- object@hvg.info[, 2]
+  gene.dispersion.scaled <- object@hvg.info[, 3]
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  pass.cutoff <- names(x = gene.mean)[which(
     x = (
-      (data.x > x.low.cutoff) & (data.x < x.high.cutoff)
+      (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
     ) &
-      (data.norm.y > y.cutoff) &
-      (data.norm.y < y.high.cutoff)
+      (gene.dispersion.scaled > y.cutoff) &
+      (gene.dispersion.scaled < y.high.cutoff)
   )]
   if (do.spike) {
     spike.genes <- rownames(x = subr(data = object@data, code = "^ERCC"))
@@ -2388,8 +2388,8 @@ VariableGenePlot <- function(
   if (plot.both) {
     par(mfrow = c(1, 2))
     smoothScatter(
-      x = data.x,
-      y = data.y,
+      x = gene.mean,
+      y = gene.dispersion,
       pch = pch.use,
       cex = cex.use,
       col = col.use,
@@ -2398,7 +2398,7 @@ VariableGenePlot <- function(
       nrpoints = Inf
     )
     if (do.contour) {
-      data.kde <- kde2d(x = data.x, y = data.y)
+      data.kde <- kde2d(x = gene.mean, y = gene.dispersion)
       contour(
         x = data.kde,
         add = TRUE,
@@ -2409,8 +2409,8 @@ VariableGenePlot <- function(
     }
     if (do.spike) {
       points(
-        x = data.x[spike.genes],
-        y = data.y[spike.genes],
+        x = gene.mean[spike.genes],
+        y = gene.dispersion[spike.genes],
         pch = 16,
         cex = cex.use,
         col = spike.col.use
@@ -2418,16 +2418,16 @@ VariableGenePlot <- function(
     }
     if (do.text) {
       text(
-        x = data.x[pass.cutoff],
-        y = data.y[pass.cutoff],
+        x = gene.mean[pass.cutoff],
+        y = gene.dispersion[pass.cutoff],
         labels = pass.cutoff,
         cex = cex.text.use
       )
     }
   }
   smoothScatter(
-    x = data.x,
-    y = data.norm.y,
+    x = gene.mean,
+    y = gene.dispersion.scaled,
     pch = pch.use,
     cex = cex.use,
     col = col.use,
@@ -2436,7 +2436,7 @@ VariableGenePlot <- function(
     nrpoints = Inf
   )
   if (do.contour) {
-    data.kde <- kde2d(x = data.x, y = data.norm.y)
+    data.kde <- kde2d(x = gene.mean, y = gene.dispersion.scaled)
     contour(
       x = data.kde,
       add = TRUE,
@@ -2447,8 +2447,8 @@ VariableGenePlot <- function(
   }
   if (do.spike) {
     points(
-      x = data.x[spike.genes],
-      y = data.norm.y[spike.genes],
+      x = gene.mean[spike.genes],
+      y = gene.dispersion.scaled[spike.genes],
       pch = 16,
       cex = cex.use,
       col = spike.col.use,
@@ -2457,8 +2457,8 @@ VariableGenePlot <- function(
   }
   if (do.text) {
     text(
-      x = data.x[pass.cutoff],
-      y = data.norm.y[pass.cutoff],
+      x = gene.mean[pass.cutoff],
+      y = gene.dispersion.scaled[pass.cutoff],
       labels = pass.cutoff,
       cex = cex.text.use
     )
