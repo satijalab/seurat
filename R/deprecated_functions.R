@@ -31,7 +31,7 @@
 #'   \code{plotClusterTree} \tab now a synonym for \code{\link{PlotClusterTree}}\cr
 #'   \code{plotNoiseModel} \tab now a synonym for \code{\link{PlotNoiseModel}}\cr
 #'   \code{add_samples} \tab now a synonym for \code{\link{AddSamples}}\cr
-#'   \code{subsetCells} \tab now a synonym for \code{\link{SubsetCells}}\cr
+#'   \code{subsetCells} \tab now deleted\cr
 #'   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
 #'   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
 #'   \code{ica} \tab now a synonym for \code{\link{ICA}}\cr
@@ -213,8 +213,10 @@ add_samples <- function(...) {
 }
 
 subsetCells <- function(...) {
-    .Deprecated("SubsetCells", package="Seurat")
-    SubsetCells(...)
+    .Deprecated(
+      package = "Seurat",
+      msg = 'subsetCells is now deleted, please use SubsetData'
+    )
 }
 
 project.samples <- function(...) {

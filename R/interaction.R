@@ -377,55 +377,6 @@ SubsetData <- function(
   return(object)
 }
 
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object Seurat object
-#' @param cells.use A vector of cell names to use as a subset. If NULL
-#' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@data.info, etc. Any argument that can be retreived
-#' using FetchData
-#' @param accept.low Low cutoff for the parameter (default is -Inf)
-#' @param accept.high High cutoff for the parameter (default is Inf)
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data
-#' @param \dots Additional arguments to be passed to FetchData (for example,
-#' use.imputed=TRUE)
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @export
-#'
-SubsetCells <- function(
-  object,
-  cells.use = NULL,
-  subset.name = NULL,
-  accept.low = -Inf,
-  accept.high = Inf,
-  do.center = TRUE,
-  do.scale = TRUE,
-  ...
-) {
-  data.use <- FetchData(
-    object = object,
-    vars.all = subset.name,
-    cells.use = cells.use,
-    ...
-  )
-  if (length(x = data.use) == 0) {
-    return(object)
-  }
-  subset.data <- data.use[,subset.name]
-  pass.inds <- which(x = (subset.data>accept.low) & (subset.data<accept.high))
-  cells.use <- rownames(x = data.use)[pass.inds]
-  return(cells.use)
-}
-
 #' Reorder identity classes
 #'
 #' Re-assigns the identity classes according to the average expression of a particular feature (i.e, gene expression, or PC score)
