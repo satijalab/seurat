@@ -10,6 +10,7 @@ dim.reduction <- setClass(
     gene.loadings.full = "matrix",
     sdev = "numeric",
     key = "character",
+    jackstraw="ANY",
     misc = "ANY"
   )
 )

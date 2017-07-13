@@ -33,15 +33,15 @@ JackStraw <- function(
     stop("PCA has not been computed yet. Please run PCA().")
   }
   # error checking for number of PCs
-  if (num.pc > ncol(x = object@dr$pca@cell.embeddings)) {
-    num.pc <- ncol(x = object@dr$pca@cell.embeddings)
+  if (num.pc > ncol(x = GetDimReduction(object,"pca","cell.embeddings"))) {
+    num.pc <- ncol(x = GetDimReduction(object,"pca","cell.embeddings"))
     warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
   }
   if (num.pc > length(x = object@cell.names)) {
     num.pc <- length(x = object@cell.names)
     warning("Number of PCs specified is greater than number of cells. Setting num.pc to ", num.pc, " and continuing.")
   }
-  pc.genes <- rownames(x = object@dr$pca@gene.loadings)
+  pc.genes <- rownames(x = GetDimReduction(object,"pca","gene.loadings"))
   if (length(x = pc.genes) < 3) {
     stop("Too few variable genes")
   }
@@ -53,8 +53,8 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  md.x <- as.matrix(x = object@dr$pca@gene.loadings)
-  md.rot <- as.matrix(x = object@dr$pca@cell.embeddings)
+  md.x <- as.matrix(x = GetDimReduction(object,"pca","gene.loadings"))
+  md.rot <- as.matrix(x = GetDimReduction(object,"pca","cell.embeddings"))
   if (do.print) {
     applyFunction <- pbsapply
   } else {
@@ -66,11 +66,12 @@ JackStraw <- function(
   weight.by.var <- GetCalcParam(object = object,
                                   calculation = "PCA",
                                   parameter = "weight.by.var")
+  data.use.scaled=GetAssayData(object,assay.type = "RNA",slot = "scale.data")[pc.genes,]
   fake.pcVals.raw <- applyFunction(
     X = 1:num.replicate,
     FUN = function(x)
       return(JackRandom(
-        scaled.data = object@scale.data[pc.genes, ],
+        scaled.data = data.use.scaled,
         prop = prop.freq,
         r1.use = 1,
         r2.use = num.pc,
@@ -91,8 +92,8 @@ JackStraw <- function(
       ))))
     }
   )
-  object@jackStraw.fakePC = data.frame(fake.pcVals)
-  object@jackStraw.empP <- data.frame(
+  jackStraw.fakePC = as.matrix(fake.pcVals)
+  jackStraw.empP <- as.matrix(
     sapply(
       X = 1:num.pc,
       FUN = function(x) {
@@ -104,7 +105,16 @@ JackStraw <- function(
       }
     )
   )
-  colnames(x = object@jackStraw.empP) <- paste0("PC", 1:ncol(x = object@jackStraw.empP))
+  colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = object@jackStraw.empP))
+  
+  jackstraw.obj <- new(
+    Class = "jackstraw.data",
+    emperical.p.value  = jackStraw.empP,
+    fake.pc.scores = fake.pcVals,
+    emperical.p.value = matrix()
+  )
+  object=SetDimReduction(object,"pca","jackstraw",jackstraw.obj)
+  
   return(object)
 }
 
@@ -362,3 +372,14 @@ jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
 empP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
 }
+
+
+#define class to store jackstraw data
+jackstraw.data <- setClass(
+  Class = "jackstraw.data",
+  slots = list(
+    emperical.p.value = "matrix",
+    fake.pc.scores = "matrix",
+    emperical.p.value.full = "matrix",
+  )
+)
