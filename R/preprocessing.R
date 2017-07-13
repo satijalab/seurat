@@ -54,6 +54,7 @@ Setup <- function(
   num.mol=colSums(object@raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@data <- object@raw.data[, cells.use]
+  
   #to save memory downstream, especially for large object
   if (!(save.raw)) {
     object@raw.data <- matrix()
@@ -79,6 +80,7 @@ Setup <- function(
   )
   names(x = object@ident) <- colnames(x = object@data)
   object@cell.names <- names(x = object@ident)
+  
   # if there are more than 100 idents, set all ident to project name
   ident.levels <- length(x = unique(x = object@ident))
   if ((ident.levels > 100 || ident.levels == 0) || ident.levels == length(x = object@ident)) {
@@ -86,27 +88,29 @@ Setup <- function(
   }
   data.ngene <- num.genes[cells.use]
   data.nmol <- num.mol[cells.use]
-  # object@gene.scores <- data.frame(data.ngene)
-  # colnames(object@gene.scores)[1] <- "nGene"
-  # rownames(x = object@gene.scores) <- colnames(x = object@data)
+
+  
   nGene <- data.ngene
   nUMI <- data.nmol
   object@data.info <- data.frame(nGene, nUMI)
   if (! is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
-  object@mix.probs <- data.frame(data.ngene)
-  colnames(x = object@mix.probs)[1] <- "nGene"
   object@data.info[names(object@ident),"orig.ident"] <- object@ident
   object@scale.data <- matrix()
   object@assay <- list()
   if(do.scale | do.center) {
     object <- ScaleData(object = object, do.scale = do.scale, do.center = do.center)
   }
-  #if(calc.noise) {
-  #  object=CalcNoiseModels(object,...)
-  #  object=GetWeightMatrix(object)
-  #}
+
+  spatial.obj <- new(
+    Class = "spatial.info"
+  )
+  object@spatial <- spatial.obj
+  object@spatial@mix.probs <- data.frame(data.ngene)
+  colnames(x = object@spatial@mix.probs)[1] <- "nGene"
+  
+  
   return(object)
 }
 

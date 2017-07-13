@@ -17,13 +17,13 @@
 #' @export
 #'
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@final.prob))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@finalprob))
   #Error checking
-  cell.names <- ainb(a = cells.use, b = colnames(x = object@final.prob))
+  cell.names <- ainb(a = cells.use, b = colnames(x = object@spatial@finalprob))
   if (length(x = cell.names) != length(x = cells.use)) {
     print(paste(
       "Error",
-      anotinb(x = cells.use, y = colnames(x = object@final.prob)),
+      anotinb(x = cells.use, y = colnames(x = object@spatial@finalprob)),
       " have not been mapped"
     ))
     return(0)
@@ -32,14 +32,14 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(exact.cell.centroid(cell.probs = object@final.prob[, x]))
+        return(exact.cell.centroid(cell.probs = object@spatial@finalprob[, x]))
       }
     )))
   } else {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(cell.centroid(cell.probs = object@final.prob[, x]))
+        return(cell.centroid(cell.probs = object@spatial@finalprob[, x]))
       }
     )))
   }
@@ -70,7 +70,7 @@ RefinedMapping <- function(object, genes.use) {
   cells.max <- t(x = sapply(
     X = colnames(object@data),
     FUN = function(x) {
-      return(exact.cell.centroid(object@final.prob[, x]))
+      return(exact.cell.centroid(object@spatial@finalprob[, x]))
     }
   ))
   all.mu <- sapply(
@@ -122,7 +122,7 @@ RefinedMapping <- function(object, genes.use) {
       STATS = apply(X = mv.probs, MARGIN = 2, FUN = log_add)
     )
   )
-  object@final.prob <- data.frame(mv.final)
+  object@spatial@finalprob <- data.frame(mv.final)
   return(object)
 }
 
@@ -152,8 +152,8 @@ InitialMapping <- function(object, cells.use = NULL) {
       ))
     }
   )
-  object@final.prob <- data.frame(every.prob)
-  rownames(x = object@final.prob) <- paste0("bin.", rownames(x = object@final.prob))
+  object@spatial@finalprob <- data.frame(every.prob)
+  rownames(x = object@spatial@finalprob) <- paste0("bin.", rownames(x = object@spatial@finalprob))
   return(object)
 }
 
@@ -209,3 +209,230 @@ exact.cell.centroid <- function(cell.probs) {
   centroid.y <- cell.centroid.y(cell.probs = cell.probs)
   return(c(centroid.x, centroid.y))
 }
+
+
+
+#' Build mixture models of gene expression
+#'
+#' Models the imputed gene expression values as a mixture of gaussian
+#' distributions. For a two-state model, estimates the probability that a given
+#' cell is in the 'on' or 'off' state for any gene. Followed by a greedy
+#' k-means step where cells are allowed to flip states based on the overall
+#' structure of the data (see Manuscript for details)
+#'
+#' @param object Seurat object
+#' @param gene Gene to fit
+#' @param do.k Number of modes for the mixture model (default is 2)
+#' @param num.iter Number of 'greedy k-means' iterations (default is 1)
+#' @param do.plot Plot mixture model results
+#' @param genes.use Genes to use in the greedy k-means step (See manuscript for details)
+#' @param start.pct Initial estimates of the percentage of cells in the 'on'
+#' state (usually estimated from the in situ map)
+#'
+#' @return A Seurat object, where the posterior of each cell being in the 'on'
+#' or 'off' state for each gene is stored in object@@spatial@@mix.probs
+#'
+#' @importFrom mixtools normalmixEM
+#'
+#' @export
+#'
+FitGeneK <- function(
+  object,
+  gene,
+  do.k = 2,
+  num.iter = 1,
+  do.plot = FALSE,
+  genes.use = NULL,
+  start.pct = NULL
+) {
+  data <- object@imputed
+  data.use <- data[gene, ]
+  names(x = data.use) <- colnames(x = data.use)
+  scale.data <- t(x = scale(x = t(x = object@imputed)))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = scale.data))
+  genes.use <- genes.use[genes.use %in% rownames(x = scale.data)]
+  scale.data <- scale.data[genes.use, ]
+  data.cut <- as.numeric(x = data.use[gene, ])
+  cell.ident <- as.numeric(x = cut(x = data.cut, breaks = do.k))
+  if (! (is.null(x = start.pct))) {
+    cell.ident <- rep.int(x = 1, times = length(x = data.cut))
+    cell.ident[data.cut > quantile(x = data.cut, probs = 1 - start.pct)] <- 2
+  }
+  cell.ident <- order(tapply(
+    X = as.numeric(x = data.use),
+    INDEX = cell.ident,
+    FUN = mean
+  ))[cell.ident]
+  ident.table <- table(cell.ident)
+  if (num.iter > 0) {
+    for (i2 in 1:num.iter) {
+      cell.ident <- iter.k.fit(
+        scale.data = scale.data,
+        cell.ident = cell.ident,
+        data.use = data.use
+      )
+      ident.table <- table(cell.ident)
+    }
+  }
+  ident.table <- table(cell.ident)
+  raw.probs <- t(
+    x = sapply(
+      X = data.use,
+      FUN = function(y) {
+        return(unlist(
+          x = lapply(
+            X = 1:do.k,
+            FUN = function(x) {
+              return(
+                (ident.table[x] / sum(ident.table)) * dnorm(
+                  x = y,
+                  mean = mean(x = as.numeric(x = data.use[cell.ident == x])),
+                  sd = sd(x = as.numeric(x = data.use[cell.ident == x]))
+                )
+              )
+            }
+          )
+        ))
+      }
+    )
+  )
+  norm.probs <- raw.probs / apply(X = raw.probs, MARGIN = 1, FUN = sum)
+  colnames(x = norm.probs) <- unlist(
+    x = lapply(
+      X = 1:do.k,
+      FUN = function(x) {
+        paste(gene, x - 1, "post", sep=".")
+      }
+    )
+  )
+  norm.probs <- cbind(norm.probs, cell.ident)
+  colnames(x = norm.probs)[ncol(x = norm.probs)] <- paste0(gene, ".ident")
+  new.mix.probs <- data.frame(
+    minusc(data = object@spatial@mix.probs, code = paste0(gene, ".")),
+    row.names = rownames(x = object@spatial@mix.probs)
+  )
+  colnames(x = new.mix.probs)[1] <- "nGene"
+  object@spatial@mix.probs <- cbind(new.mix.probs, norm.probs)
+  if (do.plot) {
+    nCol <- 2
+    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
+    hist(
+      x = as.numeric(x = data.use),
+      probability = TRUE,
+      ylim = c(0, 1),
+      xlab = gene,
+      main = gene
+    )
+    for (i in 1:do.k) {
+      lines(
+        x = seq(from = -10, to = 10, by = 0.01),
+        y = (ident.table[i] / sum(ident.table)) * dnorm(
+          x = seq(from = -10, to = 10, by = 0.01),
+          mean = mean(x = as.numeric(x = data.use[cell.ident == i])),
+          sd = sd(x = as.numeric(x = data.use[cell.ident == i]))
+        ),
+        col=i,
+        lwd=2
+      )
+    }
+  }
+  return(object)
+}
+
+#Internal, not documented for now
+iter.k.fit <- function(scale.data, cell.ident, data.use) {
+  means.all <- sapply(
+    X = sort(x = unique(x = cell.ident)),
+    FUN = function(x) {
+      return(apply(X = scale.data[, cell.ident == x], MARGIN = 1, FUN = mean))
+    }
+  )
+  all.dist <- data.frame(
+    t(x = sapply(
+      X = 1:ncol(x = scale.data),
+      FUN = function(x) {
+        return(unlist(x = lapply(
+          X = sort(x = unique(x = cell.ident)),
+          FUN = function(y) {
+            return(dist(x = rbind(scale.data[, x], means.all[, y])))
+          }
+        )))
+      }
+    ))
+  )
+  cell.ident <- apply(X = all.dist, MARGIN = 1, FUN = which.min)
+  cell.ident <- order(tapply(
+    X = as.numeric(x = data.use),
+    INDEX = cell.ident,
+    FUN = mean
+  ))[cell.ident]
+  return(cell.ident)
+}
+
+# Documentation
+###############
+#Internal, not documented for now
+#' @export
+FitGeneMix <- function(
+  object,
+  gene,
+  do.k = 3,
+  use.mixtools = TRUE,
+  do.plot = FALSE,
+  plot.with.imputed = TRUE,
+  min.bin.size = 10
+) {
+  data.fit <- as.numeric(x = object@imputed[gene, ])
+  mixtools.fit <- normalmixEM(x = data.fit, k = do.k)
+  comp.order <- order(mixtools.fit$mu)
+  mixtools.posterior <- data.frame(mixtools.fit$posterior[, comp.order])
+  colnames(x = mixtools.posterior) <- unlist(
+    x = lapply(
+      X = 1:do.k,
+      FUN = function(x) {
+        return(paste(gene, x - 1, "post", sep="."))
+      }
+    )
+  )
+  #mixtools.mu=data.frame(mixtools.fit$mu[comp.order])
+  #mixtools.sigma=data.frame(mixtools.fit$sigma[comp.order])
+  #mixtools.alpha=data.frame(mixtools.fit$lambda[comp.order])
+  #rownames(mixtools.mu)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"mu",sep=".")))
+  #rownames(mixtools.sigma)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"sigma",sep=".")))
+  #rownames(mixtools.alpha)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"alpha",sep=".")))
+  #object@mix.mu = rbind(minusr(object@mix.mu,gene), mixtools.mu);
+  #object@mix.sigma = rbind(minusr(object@mix.sigma,gene), mixtools.sigma);
+  #o#bject@mu.alpha =rbind(minusr(object@mu.alpha,gene), mixtools.alpha);
+  if (do.plot) {
+    nCol <- 2
+    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
+    par(mfrow = c(num.row, nCol))
+    plot.mixEM(x = mixtools.fit, which = 2)
+    plot.data <- as.numeric(x = object@imputed[gene, ])
+    if (! plot.with.imputed) {
+      plot.data <- as.numeric(x = object@data[gene, ])
+    }
+    unlist(
+      x = lapply(
+        X = 1:do.k,
+        FUN = function(x) {
+          plot(
+            x = plot.data,
+            y = mixtools.posterior[, x],
+            ylab = paste0("Posterior for Component ", x - 1),
+            xlab = gene,
+            main = gene
+          )
+        }
+      )
+    )
+  }
+  new.mix.probs <- data.frame(
+    minusc(data = object@spatial@mix.probs, code = paste0(gene, ".")),
+    row.names = rownames(x = object@spatial@mix.probs)
+  )
+  colnames(x = new.mix.probs)[1] <- "nGene"
+  object@spatial@mix.probs <- cbind(new.mix.probs, mixtools.posterior)
+  return(object)
+}
+

@@ -455,3 +455,259 @@ regression.sig <- function(x, score, data, latent, code = "rsem") {
   }
   return(coef(object = summary(object = mylm))["fac", 3])
 }
+
+# Documentation
+###############
+#' @export
+#'
+RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
+  data.old <- object@data
+  pcs.use <- anotinb(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
+  if (use.full) {
+    data.x <- as.matrix(
+      x = object@pca.x.full[, ainb(
+        a = pcs.use,
+        b = 1:ncol(x = object@pca.x.full)
+      )]
+    )
+  } else {
+    data.x <- as.matrix(x = object@pca.obj[[1]]$x[, pcs.use])
+  }
+  data.1 <- data.x %*% t(x = as.matrix(x = object@pca.obj[[1]]$rotation[, pcs.use]))
+  data.2 <- sweep(
+    x = data.1,
+    MARGIN = 2,
+    STATS = colMeans(x = object@scale.data),
+    FUN = "+"
+  )
+  data.3 <- sweep(
+    x = data.2,
+    MARGIN = 1,
+    STATS = apply(X = object@data[rownames(x = data.2), ], MARGIN = 1, FUN = sd),
+    FUN = "*"
+  )
+  data.3 <- sweep(
+    X = data.3,
+    MARGIN = 1,
+    STATS = apply(X = object@data[rownames(x = data.2), ], MARGIN = 1, FUN = mean),
+    FUN = "+"
+  )
+  object@scale.data <- (data.2)
+  data.old <- data.old[rownames(x = data.3), ]
+  data.4 <- data.3
+  data.4[data.old == 0] <- 0
+  data.4[data.4 < 0] <- 0
+  object@data[rownames(x = data.4), ] <- data.frame(data.4)
+  return(object)
+}
+
+
+
+# Documentation
+###############
+#' @export
+#'
+CalinskiPlot <- function(
+  object,
+  pcs.use,
+  pval.cut = 0.1,
+  gene.max = 15,
+  col.max = 25,
+  use.full = TRUE
+) {
+  if (length(x = pcs.use) == 1) {
+    pvals.min <- object@jackStraw.empP.full[, pcs.use]
+  } else if (length(x = pcs.use) > 1) {
+    pvals.min <- apply(
+      X = object@jackStraw.empP.full[, pcs.use],
+      MARGIN = 1,
+      FUN = min
+    )
+  }
+  names(x = pvals.min) <- rownames(x = object@jackStraw.empP.full)
+  genes.use <- names(x = pvals.min)[pvals.min < pval.cut]
+  genes.use <- genes.use[genes.use %in% rownames(do.NULL = object@scale.data)]
+  par(mfrow = c(1, 2))
+  mydata <- object@scale.data[genes.use, ]
+  wss <- (nrow(x = mydata) - 1) * sum(apply(X = mydata, MARGIN = 2, FUN = var))
+  for (i in 1:gene.max) {
+    wss[i] <- sum(kmeans(x = mydata, centers=i)$withinss)
+  }
+  plot(
+    x = 1:gene.max,
+    y = wss,
+    type = "b",
+    xlab= "Number of Clusters for Genes",
+    ylab = "Within groups sum of squares"
+  )
+  mydata <- t(x = object@scale.data[genes.use, ])
+  wss <- (nrow(x = mydata) - 1) * sum(apply(X = mydata, MARGIN = 2, FUN = var))
+  for (i in 1:col.max) {
+    wss[i] <- sum(kmeans(x = mydata, centers = i)$withinss)
+  }
+  plot(
+    x = 1:col.max,
+    y = wss,
+    type = "b",
+    xlab = "Number of Clusters for Cells",
+    ylab = "Within groups sum of squares"
+  )
+  ResetPar()
+  return(object)
+}
+
+
+# Documentation
+###############
+#' @export
+#'
+CellCorMatrix <- function(
+  object,
+  cor.genes = NULL,
+  cell.inds = NULL,
+  do.k = FALSE,
+  k.seed = 1,
+  k.num = 4,
+  vis.low = (-1),
+  vis.high = 1,
+  vis.one = 0.8,
+  pcs.use = 1:3,
+  col.use = pyCols
+) {
+  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+  cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+  data.cor <- object@scale.data[cor.genes, cell.inds]
+  cor.matrix <- cor(x = data.cor)
+  set.seed(seed = k.seed)
+  kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+  if (do.k) {
+    cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+  }
+  kmeans.names <- rownames(x = cor.matrix)
+  row.annot <- data.frame(
+    cbind(
+      kmeans.cor$cluster[kmeans.names],
+      object@pca.rot[kmeans.names, pcs.use]
+    )
+  )
+  colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+  cor.matrix[cor.matrix == 1] <- vis.one
+  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  object@kmeans.cell <- list(kmeans.cor)
+  if (do.k) {
+    aheatmap(
+      x = cor.matrix,
+      col = col.use,
+      Rowv = NA,
+      Colv = NA,
+      annRow = row.annot
+    )
+  } else {
+    heatmap.2(
+      x = cor.matrix,
+      trace = "none",
+      Rowv = NA,
+      Colv = NA,
+      col = pyCols
+    )
+  }
+  return(object)
+}
+
+# Documentation
+###############
+#' @export
+#'
+GeneCorMatrix <- function(
+  object,
+  cor.genes = NULL,
+  cell.inds = NULL,
+  do.k = FALSE,
+  k.seed = 1,
+  k.num = 4,
+  vis.low = (-1),
+  vis.high = 1,
+  vis.one = 0.8,
+  pcs.use = 1:3,
+  col.use = pyCols
+) {
+  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+  cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+  data.cor <- object@data[cor.genes, cell.inds]
+  cor.matrix <- cor(x = t(x = data.cor))
+  set.seed(seed = k.seed)
+  kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+  cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+  kmeans.names <- rownames(x = cor.matrix)
+  row.annot <- data.frame(
+    cbind(
+      kmeans.cor$cluster[kmeans.names],
+      object@pca.x[kmeans.names, pcs.use]
+    )
+  )
+  colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+  cor.matrix[cor.matrix == 1] <- vis.one
+  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  object@kmeans.gene <- list(kmeans.cor)
+  if (do.k) {
+    aheatmap(
+      x = cor.matrix,
+      col = col.use,
+      Rowv = NA,
+      Colv = NA,
+      annRow = row.annot
+    )
+  } else {
+    aheatmap(
+      x = cor.matrix,
+      col = col.use,
+      annRow = row.annot
+    )
+  }
+  return(object)
+}
+
+
+# Documentation
+###############
+#Cool, but not supported right now
+SpatialDe <- function(object, marker.cells, genes.use = NULL) {
+  object <- p15
+  embed.map <- object@tsne.rot
+  mult.use <- 2
+  mult.use.far <- 10
+  if ((mult.use.far * length(x = marker.cells)) > nrow(x = embed.map)) {
+    mult.use.far <- 1
+    mult.use <- 1
+  }
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  marker.pos <- apply(X = embed.map[marker.cells, ], MARGIN = 2, FUN = mean)
+  embed.map <- rbind(embed.map, marker.pos)
+  rownames(x = embed.map)[nrow(x = embed.map)] <- "marker"
+  embed.dist <- sort(x = as.matrix(x = dist(x = (embed.map)))["marker", ])
+  embed.diff <- names(x = embed.dist[! (names(x = embed.dist) %in% marker.cells)][1:(mult.use * length(x = marker.cells))][-1])
+  embed.diff.far <- names(x = embed.dist[! (names(x = embed.dist) %in% marker.cells)][1:(mult.use.far * length(x = marker.cells))][-1])
+  diff.genes <- rownames(
+    x = subset(
+      x = DiffExpTest(
+        object = p15,
+        cells.1 = marker.cells,
+        cells.2 = embed.diff,
+        genes.use = genes.use
+      ),
+      subset = p_val < (1e-5)
+    )
+  )
+  diff.genes <- subset(
+    x = DiffExpTest(
+      object = p15,
+      cells.1 = marker.cells,
+      cells.2 = embed.diff,
+      genes.use = diff.genes
+    ),
+    subset = p_val<(1e-10)
+  )
+  return(diff.genes)
+}

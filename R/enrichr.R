@@ -31,7 +31,7 @@ AddEnrichScore <- function(
   enrich.name = "Cluster"
 ) {
   if (use.k) {
-    genes.k <- names(x = object@kmeans.obj[[1]]$cluster)
+    genes.k <- names(x = object@kmeans@gene.kmeans.obj$cluster)
     genes.list <- list()
     for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
       genes.list[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))

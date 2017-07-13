@@ -5,9 +5,8 @@
 \title{K-Means Clustering}
 \usage{
 DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = 0,
-  k.seed = 1, do.plot = TRUE, data.cut = 2.5, k.cols = pyCols,
-  pc.row.order = NULL, pc.col.order = NULL, rev.pc.order = FALSE,
-  use.imputed = FALSE, set.ident = TRUE, do.constrained = FALSE, ...)
+  k.seed = 1, do.plot = FALSE, data.cut = 2.5, k.cols = pyCols,
+  set.ident = TRUE, do.constrained = FALSE, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,29 +20,19 @@ are not clustered)}
 
 \item{k.seed}{Random seed}
 
-\item{do.plot}{Draw heatmap of clustered genes/cells (default is TRUE)}
+\item{do.plot}{Draw heatmap of clustered genes/cells (default is FALSE).}
 
 \item{data.cut}{Clip all z-scores to have an absolute value below this.
 Reduces the effect of huge outliers in the data.}
 
 \item{k.cols}{Color palette for heatmap}
 
-\item{pc.row.order}{Order gene clusters based on the average PC score within
-a cluster. Can be useful if you want to visualize clusters, for example,
-based on their average score for PC1.}
-
-\item{pc.col.order}{Order cell clusters based on the average PC score within
-a cluster}
-
-\item{rev.pc.order}{Use the reverse PC ordering for gene and cell clusters
-(since the sign of a PC is arbitrary)}
-
-\item{use.imputed}{Cluster imputed values (default is FALSE)}
-
 \item{set.ident}{If clustering cells (so k.cells>0), set the cell identity
 class to its K-means cluster (default is TRUE)}
 
 \item{do.constrained}{FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.}
+
+\item{assay.type}{Type of data to normalize for (default is RNA), but can be changed for multimodal analyses.}
 
 \item{\dots}{Additional parameters passed to kmeans (or tkmeans)}
 }

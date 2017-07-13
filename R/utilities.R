@@ -332,3 +332,18 @@ expMean <- function(x) {
 logVarDivMean <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
+
+#   Run a custom distance function on an input data matrix
+#from Jean Fan - thanks!!
+#' @export
+custom.dist <- function(my.mat, my.function, ...) {
+  n <- ncol(x = my.mat)
+  mat <- matrix(data = 0, ncol = n, nrow = n)
+  colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)
+  for (i in 1:nrow(x = mat)) {
+    for(j in 1:ncol(x = mat)) {
+      mat[i,j] <- my.function(my.mat[, i], my.mat[, j], ...)
+    }
+  }
+  return(as.dist(mat))
+}
