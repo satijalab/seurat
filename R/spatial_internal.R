@@ -276,3 +276,33 @@ spatial.info <- setClass(
     insitu.matrix = "data.frame"
   )
 )
+
+#Internal, not documented for now
+iter.k.fit <- function(scale.data, cell.ident, data.use) {
+  means.all <- sapply(
+    X = sort(x = unique(x = cell.ident)),
+    FUN = function(x) {
+      return(apply(X = scale.data[, cell.ident == x], MARGIN = 1, FUN = mean))
+    }
+  )
+  all.dist <- data.frame(
+    t(x = sapply(
+      X = 1:ncol(x = scale.data),
+      FUN = function(x) {
+        return(unlist(x = lapply(
+          X = sort(x = unique(x = cell.ident)),
+          FUN = function(y) {
+            return(dist(x = rbind(scale.data[, x], means.all[, y])))
+          }
+        )))
+      }
+    ))
+  )
+  cell.ident <- apply(X = all.dist, MARGIN = 1, FUN = which.min)
+  cell.ident <- order(tapply(
+    X = as.numeric(x = data.use),
+    INDEX = cell.ident,
+    FUN = mean
+  ))[cell.ident]
+  return(cell.ident)
+}

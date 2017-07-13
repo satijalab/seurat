@@ -31,9 +31,9 @@ reduce the effects of genes that are only expressed in a very small number of ce
 
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.}
 
-\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++. We've maintained 
-support for our previous implementation in R for reproducibility (set this to FALSE) as results 
-can change slightly due to differences in numerical precision which could affect downstream 
+\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++. We've maintained
+support for our previous implementation in R for reproducibility (set this to FALSE) as results
+can change slightly due to differences in numerical precision which could affect downstream
 calculations.}
 
 \item{genes.regress}{gene to run regression for (default is all genes)}
@@ -42,6 +42,6 @@ calculations.}
 Returns a seurat object with object@scale.data updated with scaled and/or centered data.
 }
 \description{
-Scales and centers the data. If latent variables are provided (latent.vars), their effects are 
+Scales and centers the data. If latent variables are provided (latent.vars), their effects are
 removed through regression and the resulting residuals are then scaled and centered.
 }

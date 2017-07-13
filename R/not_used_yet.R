@@ -327,7 +327,7 @@ returnTopX <- function(data, group.by, n.return, col.return = NA) {
 
 #i like this, but not used too much yet
 genes.ca.range <- function(object, my.min, my.max) {
-  ca <- ClusterAlpha(object = object)
+  ca <- AverageDetectionRate(object = object)
   ca.min <- apply(X = ca, MARGIN = 1, FUN = min)
   ca.max <- apply(X = ca, MARGIN = 1, FUN = max)
   genes.1 <- names(x = ca.min[ca.min < my.max])

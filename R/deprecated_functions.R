@@ -35,7 +35,7 @@
 #'   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
 #'   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
 #'   \code{ica} \tab now a synonym for \code{\link{ICA}}\cr
-#'   \code{cluster.alpha} \tab now a synonym for \code{\link{ClusterAlpha}}\cr
+#'   \code{cluster.alpha} \tab now a synonym for \code{\link{AverageDetectionRate}}\cr
 #'   \code{reorder.ident} \tab now a synonym for \code{\link{ReorderIdent}}\cr
 #'   \code{average.pca} \tab now a synonym for \code{\link{AveragePCA}}\cr
 #'   \code{average.expression} \tab now a synonym for \code{\link{AverageExpression}}\cr
@@ -44,7 +44,7 @@
 #'   \code{pcTopCells} \tab now a synonym for \code{\link{PCTopCells}}\cr
 #'   \code{fetch.data} \tab now a synonym for \code{\link{FetchData}}\cr
 #'   \code{viz.ica} \tab now a synonym for \code{\link{VizIca}}\cr
-#'   \code{regulatorScore} \tab now a synonym for \code{\link{RegulatorScore}}\cr
+#'   \code{regulatorScore} \tab now deleted\cr
 #'   \code{find.markers.node} \tab now a synonym for \code{\link{FindMarkersNode}}\cr
 #'   \code{diffExp.test} \tab now a synonym for \code{\link{DiffExpTest}}\cr
 #'   \code{tobit.test} \tab now a synonym for \code{\link{TobitTest}}\cr
@@ -85,7 +85,7 @@
 #'   \code{dot.plot} \tab now a synonym for \code{\link{DotPlot}}\cr
 #'   \code{addMetaData} \tab now a synonym for \code{\link{AddMetaData}}\cr
 #'   \code{removePC} \tab now a synonym for \code{\link{RemovePC}}\cr
-#'   \code{geneScorePlot} \tab now a synonym for \code{\link{GeneScorePlot}}\cr
+#'   \code{geneScorePlot} \tab now deleted\cr
 #'   \code{cellPlot} \tab now a synonym for \code{\link{CellPlot}}\cr
 #'   \code{jackStraw.permutation.test} \tab now a synonym for \code{\link{JackStrawPermutationTest}}\cr
 #'   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
@@ -233,8 +233,8 @@ ica <- function(...) {
 }
 
 cluster.alpha <- function(...) {
-    .Deprecated("ClusterAlpha", package="Seurat")
-    ClusterAlpha(...)
+    .Deprecated("AverageDetectionRate", package="Seurat")
+    AverageDetectionRate(...)
 }
 
 reorder.ident <- function(...) {
@@ -277,8 +277,10 @@ viz.ica <- function(...) {
 }
 
 regulatorScore <- function(...) {
-    .Deprecated("RegulatorScore", package="Seurat")
-    RegulatorScore(...)
+    .Deprecated(
+      package = "Seurat",
+      msg = 'regulatorScore has been deleted without replacement'
+    )
 }
 
 find.markers.node <- function(...) {
@@ -481,8 +483,10 @@ removePC <- function(...) {
 }
 
 geneScorePlot <- function(...) {
-    .Deprecated("GeneScorePlot ", package="Seurat")
-    GeneScorePlot(...)
+    .Deprecated(
+      package = "Seurat",
+      msg = 'geneScorePlot has been removed without replacement'
+    )
 }
 
 cellPlot <- function(...) {
