@@ -246,11 +246,11 @@ vsubc <- function(data,code) {
 }
 
 regression.sig <- function(x, score, data, latent, code = "rsem") {
-  if (var(x = as.numeric(x = subc(data = data, code = code)[x, ])) == 0) {
+  if (var(x = as.numeric(x = SubsetColumn(data = data, code = code)[x, ])) == 0) {
     return(0)
   }
   latent <- latent[grep(pattern = code, x = names(x = data))]
-  data <- rbind(subc(data = data, code = code), vsubc(data = score, code = code))
+  data <- rbind(SubsetColumn(data = data, code = code), vsubc(data = score, code = code))
   rownames(x = data)[nrow(x = data)] <- "score"
   data2 <- data[c(x, "score"), ]
   rownames(x = data2)[1] <- "fac"
@@ -399,7 +399,7 @@ CellCorMatrix <- function(
   )
   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
   cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
   object@kmeans.cell <- list(kmeans.cor)
   if (do.k) {
     aheatmap(
@@ -455,7 +455,7 @@ GeneCorMatrix <- function(
   )
   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
   cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- minmax(data = cor.matrix, min = vis.low, max = vis.high)
+  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
   object@kmeans.gene <- list(kmeans.cor)
   if (do.k) {
     aheatmap(

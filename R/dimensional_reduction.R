@@ -980,7 +980,7 @@ RunDiffusion <- function(
   }
   if (! is.null(x = genes.use)) {
     genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
-    data.use <- minmax(
+    data.use <- MinMax(
       data = t(x = object@data[genes.use, cells.use]),
       min = -1 * scale.clip,
       max = scale.clip
@@ -1003,7 +1003,7 @@ RunDiffusion <- function(
   rownames(x = data.diffusion) <- cells.use
   for (i in 1:max.dim) {
     x <- data.diffusion[,i]
-    x <- minmax(
+    x <- MinMax(
       data = x,
       min = quantile(x = x, probs = q.use),
       quantile(x = x, probs = 1-q.use)

@@ -11,7 +11,7 @@ diffLRT <- function(x, y, xmin = 1) {
 bimodLikData <- function(x, xmin = 0) {
   x1 <- x[x <= xmin]
   x2 <- x[x > xmin]
-  xal <- minmax(
+  xal <- MinMax(
     data = length(x = x2) / length(x = x),
     min = 1e-5,
     max = (1 - 1e-5)
@@ -117,9 +117,9 @@ marker.auc.test <- function(data1, data2, mygenes, print.bar = TRUE) {
     X = mygenes,
     FUN = function(x) {
       return(
-        expMean(
+        ExpMean(
           x = as.numeric(x = data1[x, ])
-        ) - expMean(
+        ) - ExpMean(
           x = as.numeric(x = data2[x, ])
         )
       )

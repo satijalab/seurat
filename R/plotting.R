@@ -90,7 +90,7 @@ DoHeatmapGG <- function(
   )
   data.use <- data.use[genes.use, cells.use]
   if (use.scaled) {
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   }
   data.use <- as.data.frame(x = t(x = data.use))
   data.use$cell <- rownames(x = data.use)
@@ -411,7 +411,7 @@ DotPlot <- function(
   avg.alpha <- AverageDetectionRate(object = object)
   cols.use <- SetIfNull(x = cols.use, default = CustomPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
-  exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
+  exp.scale <- MinMax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
   n.col <- length(x = cols.use)
   data.y <- rep(x = 1:ncol(x = avg.exp), nrow(x = avg.exp))
   data.x <- unlist(x = lapply(X = 1:nrow(x = avg.exp), FUN = rep, ncol(x = avg.exp)))
@@ -493,14 +493,14 @@ DotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = expMean(x = expression),
+      avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
     mutate(avg.exp = as.numeric(x = scale(center = avg.exp))) %>%
-    mutate(avg.exp.scale = minmax(
+    mutate(avg.exp.scale = MinMax(
       data = avg.exp,
       max = col.max,
       min = col.min
@@ -598,7 +598,7 @@ SplitDotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = expMean(x = expression),
+      avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   ids.2 <- paste(
@@ -619,7 +619,7 @@ SplitDotPlotGG <- function(
     group_by(genes.plot) %>%
     mutate(avg.exp = scale(avg.exp)) %>%
     mutate(avg.exp.scale = as.numeric(x = cut(
-      x = minmax(data = avg.exp, max = col.max, min = col.min),
+      x = MinMax(data = avg.exp, max = col.max, min = col.min),
       breaks = 20
     ))) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
@@ -963,7 +963,7 @@ FeatureHeatmap <- function(
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
-  data.plot$scaled.expression <- minmax(
+  data.plot$scaled.expression <- MinMax(
     data = data.plot$scaled.expression,
     min = min.exp,
     max = max.exp
@@ -1114,7 +1114,7 @@ DoHeatmap <- function(
     }
     data.use <- rbind(data.use, new.data)
   }
-  data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   vline.use <- NULL
   colsep.use <- NULL
   if (remove.key) {
@@ -1606,7 +1606,7 @@ DimHeatmap <- function(
       data.use <- rbind(data.use, new.data)
     }
     #data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
     #if (!(use.scale)) data.use <- as.matrix(object@data[genes.use, cells.ordered])
     vline.use <- NULL
     hmTitle <- paste(dim.key, ndim)
@@ -1687,7 +1687,7 @@ PlotDim <- function(
     data.use <- as.matrix(object@data[genes.use, cells.ordered])
   } else {
     data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- minmax(data = data.use, min = disp.min, max = disp.max)
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   }
   return(DoHeatmapGG(
     object = object,

@@ -394,7 +394,7 @@ DoKMeans <- function(
   ...
 ) {
   data.use.orig=GetAssayData(object,assay.type,slot = "scale.data")
-  data.use <- minmax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
+  data.use <- MinMax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
   cells.use <- object@cell.names

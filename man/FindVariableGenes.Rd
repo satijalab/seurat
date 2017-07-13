@@ -4,7 +4,7 @@
 \alias{FindVariableGenes}
 \title{Identify variable genes}
 \usage{
-FindVariableGenes(object, mean.function = expMean,
+FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = logVarDivMean, do.plot = TRUE,
   set.var.genes = TRUE, x.low.cutoff = 0.1, x.high.cutoff = 8,
   y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,

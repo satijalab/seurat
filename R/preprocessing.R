@@ -72,7 +72,7 @@ Setup <- function(
     x = unlist(
       x = lapply(
         X = colnames(x = object@data),
-        FUN = extract_field,
+        FUN = ExtractField,
         field = names.field,
         delim = names.delim
       )
@@ -159,7 +159,7 @@ Read10X <- function(data.dir = NULL){
         x = as.character(
           x = sapply(
             X = cell.names,
-            FUN = extract_field, field = 1,
+            FUN = ExtractField, field = 1,
             delim = "-"
           )
         )
@@ -169,7 +169,7 @@ Read10X <- function(data.dir = NULL){
       names = as.character(
         x = sapply(
           X = gene.names,
-          FUN = extract_field,
+          FUN = ExtractField,
           field = 2,
           delim = "\\t"
         )
@@ -486,7 +486,7 @@ SampleUMI <- function(
 #'
 FindVariableGenes <- function(
   object,
-  mean.function = expMean,
+  mean.function = ExpMean,
   dispersion.function = logVarDivMean,
   do.plot = TRUE,
   set.var.genes = TRUE,

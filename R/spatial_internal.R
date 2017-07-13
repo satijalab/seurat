@@ -2,8 +2,8 @@
 shift.cell <- function(bin, x, y) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
-  new.x <- minmax(data = bin.x + x, min = 1, max = 8)
-  new.y <- minmax(data = bin.y + y, min = 1, max = 8)
+  new.x <- MinMax(data = bin.x + x, min = 1, max = 8)
+  new.y <- MinMax(data = bin.y + y, min = 1, max = 8)
   new.bin <- 8 * (new.y - 1) + new.x
   return(new.bin)
 }
@@ -96,7 +96,7 @@ CalcInsitu <- function(
   }
   if (bleach.use > 0) {
     insilico.stain <- insilico.stain - bleach.use
-    insilico.stain <- minmax(data = insilico.stain, min=0, max=1e6)
+    insilico.stain <- MinMax(data = insilico.stain, min=0, max=1e6)
   }
   if (do.norm) {
     insilico.stain <- (insilico.stain - min(insilico.stain)) /
@@ -144,7 +144,7 @@ CalcInsitu <- function(
 #Not documented for now
 #' @export
 PosteriorPlot <- function(object, name) {
-  post.names <- colnames(x = subc(data = object@spatial@mix.probs, code = name))
+  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
   VlnPlot(
     object = object,
     features.plot = post.names,
