@@ -2,7 +2,13 @@
 % Please edit documentation in R/utilities.R
 \name{subc}
 \alias{subc}
-\title{Return a subset of columns for a matrix or data frame}
+\title{#returns the setdiff of two vectors, i.e all elements of a that are not in b
+#we should be switching to use the setdiff function instead
+#' @export
+setdiff <- function(x, y) {
+  return(x[! x %in% y])
+}
+Return a subset of columns for a matrix or data frame}
 \usage{
 subc(data, code)
 }
@@ -15,5 +21,11 @@ subc(data, code)
 Returns a subset of data, using only column names that yield a match to the pattern
 }
 \description{
+#returns the setdiff of two vectors, i.e all elements of a that are not in b
+#we should be switching to use the setdiff function instead
+#' @export
+setdiff <- function(x, y) {
+  return(x[! x %in% y])
+}
 Return a subset of columns for a matrix or data frame
 }

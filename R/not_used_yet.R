@@ -268,7 +268,7 @@ regression.sig <- function(x, score, data, latent, code = "rsem") {
 #'
 RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
   data.old <- object@data
-  pcs.use <- anotinb(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
+  pcs.use <- setdiff(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
   if (use.full) {
     data.x <- as.matrix(
       x = object@pca.x.full[, intersect(

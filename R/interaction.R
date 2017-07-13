@@ -300,11 +300,11 @@ SubsetData <- function(
   data.use <- NULL
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   if (!is.null(x = ident.use)) {
-    ident.use <- anotinb(ident.use, ident.remove)
+    ident.use <- setdiff(ident.use, ident.remove)
     cells.use <- WhichCells(object, ident.use)
   }
   if ((is.null(x = ident.use)) && ! is.null(x = ident.remove)) {
-    ident.use <- anotinb(unique(object@ident), ident.remove)
+    ident.use <- setdiff(unique(object@ident), ident.remove)
     cells.use <- WhichCells(object, ident.use)
   }
   if (! is.null(x = subset.name)) {
@@ -632,7 +632,7 @@ WhichCells <- function(
   set.seed(seed = random.seed)
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
-  ident <- anotinb(x = ident, y = ident.remove)
+  ident <- setdiff(x = ident, y = ident.remove)
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
     stop(paste("Identity :", bad.idents, "not found.   "))
@@ -757,13 +757,13 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  if (length(x = anotinb(x = cells.use, y = object@cell.names) > 0)) {
+  if (length(x = setdiff(x = cells.use, y = object@cell.names) > 0)) {
     stop(paste(
       "ERROR : Cannot find cells ",
-      anotinb(x = cells.use, y = object@cell.names)
+      setdiff(x = cells.use, y = object@cell.names)
     ))
   }
-  ident.new <- anotinb(x = ident.use, y = levels(x = object@ident))
+  ident.new <- setdiff(x = ident.use, y = levels(x = object@ident))
   object@ident <- factor(
     x = object@ident,
     levels = unique(

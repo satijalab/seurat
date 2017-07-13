@@ -74,7 +74,7 @@ FindMarkers <- function(
       cells.2 <- WhichCells(object = object, ident = ident.2)
     }
   }
-  cells.2 <- anotinb(x = cells.2, y = cells.1)
+  cells.2 <- setdiff(x = cells.2, y = cells.1)
   #error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
@@ -523,7 +523,7 @@ FindConservedMarkers <- function(
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
     cells.1 <- WhichCells(object = object, ident = ident.use.1)
     if (is.null(x = ident.2)) {
-      cells.2 <- anotinb(x = cells[[i]], y = cells.1)
+      cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
       if (length(x = ident.use.2) == 0) {
         stop(paste("Only one identity class present:", ident.1))

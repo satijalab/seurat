@@ -23,7 +23,7 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
   if (length(x = cell.names) != length(x = cells.use)) {
     print(paste(
       "Error",
-      anotinb(x = cells.use, y = colnames(x = object@spatial@finalprob)),
+      setdiff(x = cells.use, y = colnames(x = object@spatial@finalprob)),
       " have not been mapped"
     ))
     return(0)
