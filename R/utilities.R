@@ -232,13 +232,6 @@ shuffleMatRow <- function(x) {
 }
 
 
-#' #returns the setdiff of two vectors, i.e all elements of a that are not in b
-#' #we should be switching to use the setdiff function instead
-#' #' @export
-#' setdiff <- function(x, y) {
-#'   return(x[! x %in% y])
-#' }
-
 #' Return a subset of columns for a matrix or data frame
 #'
 #' @param data Matrix or data frame with column names
@@ -262,8 +255,6 @@ minmax <- function(data, min, max) {
   data2[data2 < min] <- min
   return(data2)
 }
-
-
 
 #' Extract delimiter information from a string.
 #'
