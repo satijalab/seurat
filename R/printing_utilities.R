@@ -531,3 +531,124 @@ PrintSNNParams <- function(object, raw = FALSE){
     }
   }
 }
+
+#' Print FindClusters Calculation Parameters
+#'
+#' Print the parameters chosen for the latest FindClusters calculation for each
+#' stored resolution.
+#'
+#' @param object Seurat object
+#' @param resolution Optionally specify only a subset of resolutions to print
+#' parameters for.
+#' @param raw Print the entire contents of the calculation metadata slot
+#' (calc.params) for the FindClusters calculation. Default (FALSE) will print a
+#' nicely formatted summary.
+#' @return No return value. Only prints to console.
+#' @export
+PrintFindClustersParams <- function(object, resolution, raw = FALSE){
+  to.print <- names(object@calc.params)[grepl("FindClusters",
+                                              names(object@calc.params))]
+  if(length(to.print) == 0){
+    stop("No stored clusterings.")
+  }
+  for (i in to.print){
+    if(!extract_field(i, 2, "res.") %in% resolution){
+      next
+    }
+    if (raw){
+      print(object@calc.params[[i]])
+    }
+    else{
+      cat(paste0("Parameters used in latest FindClusters calculation run on: ",
+                 GetCalcParam(object = object,
+                              calculation = i,
+                              parameter = "time"),
+                 "\n"))
+      resolution <- GetCalcParam(object = object,
+                                calculation = i,
+                                parameter = "resolution")
+      cat("=============================================================================\n")
+      cat(paste0("Resolution: ", resolution, "\n"))
+      cat("-----------------------------------------------------------------------------\n")
+      cat("Modularity Function    Algorithm         n.start         n.iter\n")
+      modularity.fxn <- GetCalcParam(object = object,
+                                     calculation = i,
+                                     parameter = "modularity.fxn")
+      algorithm <- GetCalcParam(object = object,
+                                calculation = i,
+                                parameter = "algorithm")
+      n.start <- GetCalcParam(object = object,
+                              calculation = i,
+                              parameter = "n.start")
+      n.iter <- GetCalcParam(object = object,
+                             calculation = i,
+                             parameter = "n.iter")
+      cat(paste0("     ",
+                 modularity.fxn,
+                 FillWhiteSpace(n = 20 - nchar(modularity.fxn)),
+                 algorithm,
+                 FillWhiteSpace(n = 18 - nchar(algorithm)),
+                 n.start,
+                 FillWhiteSpace(n = 16 - nchar(n.start)),
+                 n.iter,
+                 "\n"))
+      cat("-----------------------------------------------------------------------------\n")
+      if (is.null(GetCalcParam(object = object,
+                              calculation = i,
+                              parameter = "genes.use")))
+      {
+        reduction <- GetCalcParam(object = object,
+                                  calculation = i,
+                                  parameter = "reduction.type")
+        dim <- "Dims"
+        n.dim <- GetCalcParam(object = object,
+                              calculation = i,
+                              parameter = "dims.use")
+      } else if (!is.null(GetCalcParam(object = object,
+                                       calculation = "BuildSNN",
+                                       parameter = "distance.matrix")))
+      {
+        reduction <- "custom"
+        dim <- "Custom distance matrix"
+      } else {
+        reduction <- "None"
+        dim <- "Genes"
+        n.dim <- length(GetCalcParam(object = object,
+                                     calculation = "BuildSNN",
+                                     parameter = "genes.use"))
+      }
+      cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
+      k.param <- GetCalcParam(object = object,
+                              calculation = "BuildSNN",
+                              parameter = "k.param")
+      k.scale <- GetCalcParam(object = object,
+                              calculation = "BuildSNN",
+                              parameter = "k.scale")
+      prune.SNN <- GetCalcParam(object = object,
+                                calculation = "BuildSNN",
+                                parameter = "prune.SNN")
+      cat(paste0("     ",
+                 reduction,
+                 FillWhiteSpace(n = 20 - nchar(reduction)),
+                 k.param,
+                 FillWhiteSpace(n = 18 - nchar(k.param)),
+                 k.scale,
+                 FillWhiteSpace(n = 16 - nchar(k.scale)),
+                 round(prune.SNN, 4),
+                 "\n"))
+      cat("-----------------------------------------------------------------------------\n")
+      cat(paste0(dim, " used in calculation\n"))
+      cat("=============================================================================\n")
+      if(reduction == "None"){
+        cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"BuildSNN\", parameter = \"genes.use\")"))
+      } else if (reduction == "custom") {
+        cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
+      } else {
+        cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80),
+                   collapse = "\n"))
+        cat("\n\n")
+      }
+    }
+  }
+}
+

@@ -7,9 +7,9 @@
 FindClusters(object, genes.use = NULL, reduction.type = "pca",
   dims.use = NULL, k.param = 30, k.scale = 25, plot.SNN = FALSE,
   prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
-  save.SNN = FALSE, reuse.SNN = FALSE, modularity.fxn = 1,
-  resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-  random.seed = 0, temp.file.location = NULL)
+  save.SNN = FALSE, reuse.SNN = FALSE, force.recalc = FALSE,
+  modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
+  n.iter = 10, random.seed = 0, temp.file.location = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -45,6 +45,8 @@ object@snn}
 
 \item{reuse.SNN}{Force utilization of stored SNN. If none store, this will
 throw an error.}
+
+\item{force.recalc}{Force recalculation of SNN.}
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
