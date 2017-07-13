@@ -89,6 +89,7 @@
 \alias{jackRandom}
 \alias{MeanVarPlot}
 \alias{HeatmapNode}
+\alias{myPalette}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 setup(...)
@@ -188,6 +189,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{writ.table} \tab is delteded without replacement\cr
   \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
   \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
+  \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
 }
 }
 

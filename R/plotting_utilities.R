@@ -183,7 +183,7 @@ HoverLocator <- function(
 #'
 #' @export
 #'
-myPalette <- function(
+CustomPalette <- function(
   low = "white",
   high = "red",
   mid = NULL,
@@ -216,8 +216,8 @@ myPalette <- function(
 
 #shortcut to make black-white palette
 #' @export
-bwCols <- myPalette(low = "white", high="black", k = 50)
+bwCols <- CustomPalette(low = "white", high="black", k = 50)
 
 #' @export
 #shortcut to make purple-yellow palette, which is default in most Seurat heatmaps
-pyCols <- myPalette(low = "magenta", high = "yellow", mid = "black")
+pyCols <- CustomPalette(low = "magenta", high = "yellow", mid = "black")

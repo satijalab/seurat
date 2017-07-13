@@ -409,7 +409,7 @@ DotPlot <- function(
   colnames(x = object@data) <- object@cell.names
   avg.exp <- AverageExpression(object = object)
   avg.alpha <- AverageDetectionRate(object = object)
-  cols.use <- SetIfNull(x = cols.use, default = myPalette(low = "red", high = "green"))
+  cols.use <- SetIfNull(x = cols.use, default = CustomPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
   exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)
   n.col <- length(x = cols.use)
@@ -627,8 +627,8 @@ SplitDotPlotGG <- function(
     levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  palette.1 <- myPalette(low = "grey", high = "blue", k = 20)
-  palette.2 <- myPalette(low = "grey", high = "red", k = 20)
+  palette.1 <- CustomPalette(low = "grey", high = "blue", k = 20)
+  palette.2 <- CustomPalette(low = "grey", high = "red", k = 20)
   data.to.plot$ptcolor <- "grey"
   data.to.plot[vals.1, "ptcolor"] <- palette.1[as.matrix(
     x = data.to.plot[vals.1, "avg.exp.scale"]
