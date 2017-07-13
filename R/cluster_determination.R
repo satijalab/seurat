@@ -537,3 +537,112 @@ BuildClusterTree <- function(
   }
   return(object)
 }
+
+
+
+#' Perform spectral density clustering on single cells
+#'
+#' Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN).
+#'
+#' @param object Seurat object
+#' @param dim.1 First dimension to use
+#' @param dim.2 second dimension to use
+#' @param reduction.use Which dimensional reduction to use (either 'pca' or 'ica')
+#' @param G.use Parameter for the density clustering. Lower value to get more fine-scale clustering
+#' @param set.ident TRUE by default. Set identity class to the results of the density clustering.
+#' Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.
+#' @param seed.use Random seed for the dbscan function
+#' @param ... Additional arguments to be passed to the dbscan function
+#'
+#' @export
+#'
+DBClustDimension <- function(
+  object,
+  dim.1 = 1,
+  dim.2 = 2,
+  reduction.use = "tsne",
+  G.use = NULL,
+  set.ident = TRUE,
+  seed.use = 1,
+  ...
+) {
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- FetchData(object = object, vars.all = dim.codes)
+  x1 <- paste0(dim.code, dim.1)
+  x2 <- paste0(dim.code, dim.2)
+  data.plot$x <- data.plot[, x1]
+  data.plot$y <- data.plot[, x2]
+  set.seed(seed = seed.use)
+  data.mclust <- ds <- dbscan(data = data.plot[, c("x", "y")], eps = G.use, ...)
+  to.set <- as.numeric(x = data.mclust$cluster + 1)
+  data.names <- names(x = object@ident)
+  object@data.info[data.names, "DBclust.ident"] <- to.set
+  if (set.ident) {
+    object@ident <- factor(x = to.set)
+    names(x = object@ident) <- data.names
+  }
+  return(object)
+}
+
+
+
+
+#' Perform spectral k-means clustering on single cells
+#'
+#' Find point clounds single cells in a low-dimensional space using k-means clustering.
+#'
+#' CAn be useful for smaller datasets, not documented here yet
+#' @export
+#'
+KClustDimension <- function(
+  object,
+  dim.1 = 1,
+  dim.2 = 2,
+  cells.use = NULL,
+  pt.size = 4,
+  reduction.use = "tsne",
+  k.use = 5,
+  set.ident = FALSE,
+  seed.use = 1,
+  ...
+) {
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  dim.code <- "PC"
+  if (reduction.use == "pca") {
+    data.plot <- object@pca.rot[cells.use, ]
+  }
+  if (reduction.use == "tsne") {
+    data.plot <- object@tsne.rot[cells.use, ]
+    dim.code <- "Seurat_"
+  }
+  if (reduction.use == "ica") {
+    data.plot <- object@ica.rot[cells.use, ]
+    dim.code <- "IC"
+  }
+  x1 <- paste0(dim.code, dim.1)
+  x2 <- paste0(dim.code, dim.2)
+  data.plot$x <- data.plot[, x1]
+  data.plot$y <- data.plot[, x2]
+  if (reduction.use != "pca") {
+    set.seed(seed = seed.use)
+    data.mclust <- ds <- kmeans(x = data.plot[, c("x", "y")], centers = k.use)
+  }
+  if (reduction.use == "pca") {
+    set.seed(seed = seed.use)
+    data.mclust <- ds <- kmeans(x = object@pca.rot[cells.use, dim.1], centers = k.use)
+  }
+  to.set <- as.numeric(x = data.mclust$cluster)
+  data.names <- names(x = object@ident)
+  object@data.info[data.names, "kdimension.ident"] <- to.set
+  if (set.ident) {
+    object@ident <- factor(x = to.set)
+    names(x = object@ident) <- data.names
+  }
+  return(object)
+}
+
