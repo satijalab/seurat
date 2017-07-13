@@ -63,9 +63,9 @@ JackStraw <- function(
   rev.pca <- GetCalcParam(object = object,
                           calculation = "PCA",
                           parameter = "rev.pca")
-  scale.by.varexp <- GetCalcParam(object = object,
+  weight.by.var <- GetCalcParam(object = object,
                                   calculation = "PCA",
-                                  parameter = "scale.by.varexp")
+                                  parameter = "weight.by.var")
   fake.pcVals.raw <- applyFunction(
     X = 1:num.replicate,
     FUN = function(x)
@@ -76,7 +76,7 @@ JackStraw <- function(
         r2.use = num.pc,
         seed.use = x,
         rev.pca = rev.pca,
-        scale.by.varexp
+        weight.by.var
       )),
     simplify = FALSE
   )
@@ -119,7 +119,7 @@ JackRandom <- function(
   r2.use = 5,
   seed.use = 1,
   rev.pca = FALSE,
-  scale.by.varexp = scale.by.varexp
+  weight.by.var = weight.by.var
 ) {
   set.seed(seed = seed.use)
   rand.genes <- sample(
@@ -135,7 +135,7 @@ JackRandom <- function(
   temp.object <- new("seurat")
   temp.object@scale.data <- data.mod
   temp.object <- PCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
-                     rev.pca = rev.pca, scale.by.varexp = scale.by.varexp,
+                     rev.pca = rev.pca, weight.by.var = weight.by.var,
                      do.print = F)
   fake.x <- PCALoad(temp.object)
   fake.rot <- PCAEmbed(temp.object)

@@ -30,6 +30,7 @@ NULL
 #' object@@snn
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
+#' @param force.recalc Force recalculation of SNN.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
@@ -62,6 +63,7 @@ FindClusters <- function(
   distance.matrix = NULL,
   save.SNN = FALSE,
   reuse.SNN = FALSE,
+  force.recalc = FALSE,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
@@ -70,14 +72,11 @@ FindClusters <- function(
   random.seed = 0,
   temp.file.location = NULL
 ) {
-  # for older objects without the snn.k slot
-  if(typeof(x = validObject(object = object, test = TRUE)) == "character") {
-    object@snn.k <- numeric()
-  }
   snn.built <- FALSE
   if (.hasSlot(object = object, name = "snn")) {
     if (length(x = object@snn) > 1) {
       snn.built <- TRUE
+      save.SNN <- TRUE
     }
   }
   if ((
@@ -108,10 +107,26 @@ FindClusters <- function(
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
       print.output = print.output,
-      distance.matrix = distance.matrix
+      distance.matrix = distance.matrix,
+      force.recalc = force.recalc
     )
   }
   for (r in resolution) {
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindClusters"))]
+    parameters.to.store$resolution <- r
+    if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
+      parameters.to.store$object <- NULL
+      old.parameters <- GetAllCalcParam(object = object,
+                                        calculation = paste0("FindClusters.res.", r))
+      old.parameters$time <- NULL
+      if(all(old.parameters %in% parameters.to.store)){
+        warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+        next
+      }
+    }
+    object <- SetCalcParams(object = object,
+                                 calculation = paste0("FindClusters.res.", r),
+                                 ... = parameters.to.store)
     object <- RunModularityClustering(
       object = object,
       SNN = object@snn,
@@ -123,6 +138,7 @@ FindClusters <- function(
       random.seed = random.seed,
       print.output = print.output,
       temp.file.location = temp.file.location
+
     )
     object <- GroupSingletons(object = object, SNN = object@snn)
     name <- paste0("res.", r)
@@ -131,6 +147,8 @@ FindClusters <- function(
   if (!save.SNN) {
     object@snn <- sparseMatrix(1, 1, x = 1)
     object@snn.k <- integer()
+    object <- RemoveCalcParams(object = object,
+                               calculation = "BuildSNN")
   }
   return(object)
 }
@@ -342,7 +360,7 @@ BuildRFClassifier <- function(
 #' @param k.cells K value to use for clustering cells (default is NULL, cells
 #' are not clustered)
 #' @param k.seed Random seed
-#' @param do.plot Draw heatmap of clustered genes/cells (default is FALSE). 
+#' @param do.plot Draw heatmap of clustered genes/cells (default is FALSE).
 #' @param data.cut Clip all z-scores to have an absolute value below this.
 #' Reduces the effect of huge outliers in the data.
 #' @param k.cols Color palette for heatmap
@@ -390,7 +408,7 @@ DoKMeans <- function(
   }
 
   names(x = kmeans.obj$cluster) <- genes.use
-  
+
   #if we are going to k-means cluster cells in addition to genes
   if (k.cells > 0) {
     kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)

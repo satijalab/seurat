@@ -2,35 +2,36 @@
 NULL
 #' SNN Graph Construction
 #'
-#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We 
-#' first determine the k-nearest neighbors of each cell (defined by k.param * 
-#' k.scale). We use this knn graph to construct the SNN graph by calculating the 
-#' neighborhood overlap (Jaccard distance) between every cell and its k.param * 
-#' k.scale nearest neighbors (defining the neighborhood for each cell as the 
-#' k.param nearest neighbors). 
+#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
+#' first determine the k-nearest neighbors of each cell (defined by k.param *
+#' k.scale). We use this knn graph to construct the SNN graph by calculating the
+#' neighborhood overlap (Jaccard distance) between every cell and its k.param *
+#' k.scale nearest neighbors (defining the neighborhood for each cell as the
+#' k.param nearest neighbors).
 #'
 #' @param object Seurat object
-#' @param genes.use A vector of gene names to use in construction of SNN graph 
+#' @param genes.use A vector of gene names to use in construction of SNN graph
 #' if building directly based on expression data rather than a dimensionally
 #' reduced representation (i.e. PCs).
-#' @param reduction.type Name of dimensional reduction technique to use in 
+#' @param reduction.type Name of dimensional reduction technique to use in
 #' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims.use A vector of the dimensions to use in construction of the SNN 
+#' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when 
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
-#' values less than or equal to this will be set to 0 and removed from the SNN 
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 --- 
-#' prune everything). 
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
+#' @param force.recalc Force recalculation of SNN.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the object with object@@snn.k and object@@snn filled 
+#' @return Returns the object with object@@snn.k and object@@snn filled
 #' @export
 BuildSNN <- function(
   object,
@@ -42,7 +43,8 @@ BuildSNN <- function(
   plot.SNN = FALSE,
   prune.SNN = 1/15,
   print.output = TRUE,
-  distance.matrix = NULL
+  distance.matrix = NULL,
+  force.recalc = FALSE
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
@@ -50,7 +52,7 @@ BuildSNN <- function(
     genes.use <- object@var.genes
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
   } else if (! is.null(x = dims.use)) {
-    data.use <- GetCellEmbeddings(object, reduction.type = reduction.type, 
+    data.use <- GetCellEmbeddings(object, reduction.type = reduction.type,
                                     dims.use = dims.use)
   } else if (!is.null(genes.use) && is.null(dims.use)) {
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
@@ -58,7 +60,18 @@ BuildSNN <- function(
       stop("Data error!")
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
-  object <- SetCalcParams(object, "BuildSNN", parameters.to.store)
+  if (CalcInfoExists(object, "BuildSNN")){
+    parameters.to.store$object <- NULL
+    old.parameters <- GetAllCalcParam(object, "BuildSNN")
+    old.parameters$time <- NULL
+    if(all(old.parameters %in% parameters.to.store)){
+      warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
+      return(object)
+    }
+  }
+  object <- SetCalcParams(object = object,
+                          calculation = "BuildSNN",
+                          ... = parameters.to.store)
   n.cells <- nrow(x = data.use)
   if (n.cells < k.param) {
     warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
@@ -117,25 +130,25 @@ BuildSNN <- function(
   return(object)
 }
 
-# Function to convert the knn graph into the snn graph. Stored in a sparse 
-# representation. 
+# Function to convert the knn graph into the snn graph. Stored in a sparse
+# representation.
 
 # @param cell.names    A vector of cell names which will correspond to the row/
 #                      column names of the SNN
 # @param k.param       Defines nearest neighborhood when computing NN graph
-# @param nn.large      Full KNN graph (computed with get.knn with k set to 
+# @param nn.large      Full KNN graph (computed with get.knn with k set to
 #                      k.param * k.scale)
-# @param nn.ranked     Subset of full KNN graph that only contains the first 
-#                      k.param nearest neighbors. Used to define Jaccard 
+# @param nn.ranked     Subset of full KNN graph that only contains the first
+#                      k.param nearest neighbors. Used to define Jaccard
 #                      distances between any two cells
-# @param prune.snn     Sets the cutoff for acceptable Jaccard distances when 
-#                      computing the neighborhood overlap for the SNN 
-#                      construction. Any edges with values less than or equal to 
-#                      this will be set to 0 and removed from the SNN graph. 
-#                      Essentially sets the strigency of pruning (0 --- no 
-#                      pruning, 1 --- prune everything). 
+# @param prune.snn     Sets the cutoff for acceptable Jaccard distances when
+#                      computing the neighborhood overlap for the SNN
+#                      construction. Any edges with values less than or equal to
+#                      this will be set to 0 and removed from the SNN graph.
+#                      Essentially sets the strigency of pruning (0 --- no
+#                      pruning, 1 --- prune everything).
 # @param print.output  Whether or not to print output to the console
-# @return              Returns an adjacency matrix representation of the SNN 
+# @return              Returns an adjacency matrix representation of the SNN
 #                      graph
 
 CalcSNNSparse <- function(
@@ -194,7 +207,7 @@ CalcSNNSparse <- function(
   return(w)
 }
 
-# This function calculates the pairwise connectivity of clusters. 
+# This function calculates the pairwise connectivity of clusters.
 
 # @param object  Seurat object containing the snn graph and cluster assignments
 # @return        matrix with all pairwise connectivities calculated

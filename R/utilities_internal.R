@@ -117,17 +117,33 @@ FisherIntegrate <- function(pvals) {
 #
 # @param object      A Seurat object
 # @param calculation The name of the calculation that was done
+# @param time store time of calculation as well
 # @param ...  Parameters for the calculation
 #
 # @return object with the calc.param slot modified to either append this
 # calculation or replace the previous instance of calculation with
 # a new list of parameters
 #
-SetCalcParams <- function(object, calculation, ...) {
+SetCalcParams <- function(object, calculation, time = TRUE, ...) {
   object@calc.params[calculation] <- list(...)
   object@calc.params[[calculation]]$object <- NULL
   object@calc.params[[calculation]]$object2 <- NULL
-  object@calc.params[[calculation]]$time <- Sys.time()
+  if(time) {
+    object@calc.params[[calculation]]$time <- Sys.time()
+  }
+  return(object)
+}
+
+# Delete CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation to remove
+#
+# @return object with the calc.param slot modified to remove this
+# calculation
+#
+RemoveCalcParams <- function(object, calculation){
+  object@calc.params[calculation] <- NULL
   return(object)
 }
 
@@ -160,6 +176,29 @@ GetCalcParam <- function(object, calculation, parameter){
     return(object@calc.params[[calculation]][parameter][[1]])
   }
   return(unname(unlist(object@calc.params[[calculation]][parameter])))
+}
+
+# Get All CalcParam information for given calculation
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+#
+# @return list of parameter values for given calculation
+#
+GetAllCalcParam <- function(object, calculation){
+  return(object@calc.params[[calculation]])
+}
+
+# Has any info been stored for the given calculation?
+#
+# @param object A Seurat object
+# @param calculation The name of the calculation to look for info about
+#
+# @return Returns a boolean - whether or not there is any info about given calc
+# stored
+#
+CalcInfoExists <- function(object, calculation){
+  return(!is.null(object@calc.params[[calculation]]))
 }
 
 # Return vector of whitespace
@@ -326,6 +365,7 @@ NodeHasOnlyChildren <- function(tree, node) {
 GetAllInternalNodes <- function(tree) {
   return(c(tree$edge[1, 1], DFT(tree = tree, node = tree$edge[1, 1])))
 }
+################################################################################
 
 # Weighted Euclidean Distance
 #

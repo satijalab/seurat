@@ -72,7 +72,7 @@ context("PCA dimensional reduction")
 nbt.test <- FindVariableGenes(nbt.test, y.cutoff = 2, x.low.cutoff = 2,
                               fxn.x = expMean, fxn.y = logVarDivMean)
 pcs.compute <- 4
-nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, scale.by.varexp = F)
+nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
 
 test_that("PCA returns expected data when not scaling", {
   expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 0.1442809, tolerance = 1e-6)
