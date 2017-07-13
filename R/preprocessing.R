@@ -564,3 +564,56 @@ FindVariableGenes <- function(
     return(pass.cutoff)
   }
 }
+
+#' Return a subset of the Seurat object
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Takes either a list of cells to use as a subset, or a
+#' parameter (for example, a gene), to subset on.
+#'
+#' @param object Seurat object
+#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@data.info, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
+#' @param high.thresholds High cutoffs for the parameters (default is Inf)
+#' @param cells.use A vector of cell names to use as a subset
+#'
+#' @return Returns a Seurat object containing only the relevant subset of cells
+#'
+#' @export
+#'
+FilterCells <- function(
+  object,
+  subset.names,
+  low.thresholds,
+  high.thresholds,
+  cells.use = NULL
+) {
+  if (missing(x = low.thresholds)) {
+    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
+  }
+  if (missing(x = high.thresholds)) {
+    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
+  }
+  length.check <- sapply(
+    X = list(subset.names, low.thresholds, high.thresholds),
+    FUN = length
+  )
+  if (length(x = unique(x = length.check)) != 1) {
+    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
+  }
+  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
+  for (i in seq(nrow(data.subsets))) {
+    object <- SubsetData(
+      object = object,
+      cells.use = cells.use,
+      subset.name = data.subsets[i, 1],
+      accept.low = data.subsets[i, 2],
+      accept.high = data.subsets[i, 3],
+      do.center = FALSE,
+      do.scale = FALSE
+    )
+  }
+  return(object)
+}
