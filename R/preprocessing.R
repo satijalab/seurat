@@ -191,7 +191,7 @@ Read10X <- function(data.dir = NULL){
   return(full.data)
 }
 
-#' Scale and center the data
+#' Old R based implementation of ScaleData. Scales and centers the data
 #'
 #' @param object Seurat object
 #' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
@@ -205,7 +205,7 @@ Read10X <- function(data.dir = NULL){
 #'
 #' @export
 #'
-ScaleData <- function(
+ScaleDataR <- function(
   object,
   genes.use = NULL,
   data.use = NULL,
@@ -250,79 +250,116 @@ ScaleData <- function(
 }
 
 
-#' Scale and center the data using C++
+#' Scale and center the data.
 #'
-#' Note: will give slightly different results than R due to differences in numerical precision
-#' between R and C++. This could cause the results of some stochastic processes like tSNE to change.
+#' Scales and centers the data. If latent variables are provided (latent.vars), their effects are 
+#' removed through regression and the resulting residuals are then scaled and centered.
 #'
-
+#' 
 #' @param object Seurat object
 #' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
 #' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
+#' @param latent.vars effects to regress out
+#' @param genes.regress gene to run regression for (default is all genes)
+#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10. Setting this can help
 #' reduce the effects of genes that are only expressed in a very small number of cells.
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.
+#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++. We've maintained 
+#' support for our previous implementation in R for reproducibility (set this to FALSE) as results 
+#' can change slightly due to differences in numerical precision which could affect downstream 
+#' calculations.  
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
 #'
 #' @export
 #'
-FastScaleData <- function(
+ScaleData <- function(
   object,
   genes.use = NULL,
   data.use = NULL,
+  latent.vars,
+  model.use = 'linear',
+  use.umi = FALSE,
   do.scale = TRUE,
   do.center = TRUE,
   scale.max = 10,
+  block.size = 1000,
   display.progress = TRUE,
-  assay.type = "RNA"
+  assay.type = "RNA",
+  do.cpp = TRUE
 ) {
-  orig.data <- GetAssayData(object = object, assay.type,"data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = orig.data))
+  data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object, assay.type,"data"))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
       x = genes.use,
-      y = rownames(x = orig.data)
+      y = rownames(x = data.use)
     )
   )
-  data.use <- SetIfNull(x = data.use, default = orig.data[genes.use, ])
-  if (ncol(x = data.use) > 50000) {
-    return(ScaleData(
-      object = object,
-      genes.use = genes.use,
-      data.use = data.use,
-      do.scale = do.scale,
-      do.center = do.center,
-      scale.max = scale.max
-    ))
+  data.use <- data.use[genes.use, ]
+  
+  if(!missing(latent.vars)){
+    data.use <- RegressOut(object = object, 
+                           latent.vars = latent.vars, 
+                           use.umi = use.umi,
+                           model.use = model.use)
   }
-  if (class(data.use) == "dgCMatrix" || class(data.use) == "dgTMatrix") {
-    data.scale <- FastSparseRowScale(
-      mat = data.use,
-      scale = do.scale,
-      center = do.center,
-      scale_max = scale.max,
-      display_progress = display.progress
-    )
-  } else {
-    data.use <- as.matrix(x = data.use)
-    data.scale <- FastRowScale(
-      mat = data.use,
-      scale = do.scale,
-      center = do.center,
-      scale_max = scale.max,
-      display_progress = display.progress
-    )
+  if(!do.cpp){
+    return(ScaleDataR(object = object, 
+                     data.use = data.use, 
+                     do.scale = do.scale,
+                     do.center = do.center,
+                     scale.max = scale.max))
   }
-  dimnames(x = data.scale) <- dimnames(x = data.use)
+  scaled.data <- matrix(data = NA,
+                        nrow = length(x = genes.use),
+                        ncol = ncol(x = object@data)
+  )
+  rownames(scaled.data) <- genes.use
+  gc()
+  colnames(scaled.data) <- colnames(object@data)
+  max.block <- ceiling(length(genes.use)/block.size)
+  gc()
+  print("Scaling data matrix")
+  pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+  for (i in 1:max.block) {
+    my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+    my.inds <- my.inds[my.inds <= length(x = genes.use)]
+    if (class(data.use) == "dgCMatrix" | class(data.use) == "dgTMatrix") {
+      data.scale <- FastSparseRowScale(
+        mat = data.use[genes.use[my.inds], , drop = F],
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )
+    } else {
+      data.scale <- FastRowScale(
+        mat = as.matrix(data.use[genes.use[my.inds], , drop = F]),
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )
+    }
+    dimnames(x = data.scale) <- dimnames(x = data.use[genes.use[my.inds], ])
+    scaled.data[genes.use[my.inds], ] <- data.scale
+    rm(data.scale)
+    gc()
+    setTxtProgressBar(pb, i)
+  }
+  close(pb)
   object <- SetAssayData(
     object = object,
     assay.type = assay.type,
     slot = 'scale.data',
-    new.data = data.scale
+    new.data = scaled.data
   )
+  gc()
   return(object)
 }
 
@@ -400,144 +437,6 @@ SampleUMI <- function(
       display_progress = progress.bar
     )
   )
-}
-
-#' Regress out technical effects and cell cycle
-#'
-#' Remove unwanted effects from scale.data
-#'
-#' @param object Seurat object
-#' @param latent.vars effects to regress out
-#' @param genes.regress gene to run regression for (default is all genes)
-#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#' @param do.scale Whether to scale the data.
-#' @param do.center Whether to center the data.
-#' @param scale.max Max value to accept for scaled data. The default is 10. Setting this can help
-#' reduce the effects of genes that are only expressed in a very small number of cells.
-#'
-#' @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
-#'
-#' @import Matrix
-#'
-#' @export
-#'
-RegressOut <- function(
-  object,
-  latent.vars,
-  genes.regress = NULL,
-  model.use = 'linear',
-  use.umi = FALSE,
-  do.scale = TRUE,
-  do.center = TRUE,
-  scale.max = 10
-) {
-  possible.models <- c("linear", "poisson", "negbinom")
-  if (! model.use %in% possible.models){
-    stop(
-      paste0(
-        model.use,
-        " is not a valid model. Please use one the following: ",
-        paste0(possible.models, collapse = ", "),
-        "."
-      )
-    )
-  }
-  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- ainb(genes.regress,rownames(object@data))
-  latent.data <- FetchData(object = object, vars.all = latent.vars)
-  bin.size <- 100
-  if (model.use == 'negbinom') {
-    bin.size <- 5
-  }
-  bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
-  max.bin <- max(bin.ind)
-  print(paste("Regressing out", latent.vars))
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-  data.resid <- c()
-  data.use <- object@data[genes.regress, , drop = FALSE];
-  if (model.use != "linear") {
-    use.umi <- TRUE
-  }
-  if (use.umi) {
-    data.use <- object@raw.data[genes.regress, object@cell.names, drop = FALSE]
-  }
-  for (i in 1:max.bin) {
-    genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
-    gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
-    new.data <- do.call(
-      rbind,
-      lapply(
-        X = genes.bin.regress,
-        FUN = function(x) {
-          regression.mat <- cbind(latent.data, gene.expr[x,])
-          colnames(x = regression.mat) <- c(colnames(x = latent.data), "GENE")
-          fmla <- as.formula(
-            object = paste0(
-              "GENE ",
-              " ~ ",
-              paste(latent.vars, collapse = "+")
-            )
-          )
-          if (model.use == 'linear') {
-            return(lm(formula = fmla, data = regression.mat)$residuals)
-          }
-          if (model.use == 'poisson') {
-            return(residuals(
-              object = glm(
-                formula = fmla,
-                data = regression.mat,
-                family = "poisson"
-              ),
-              type='pearson'
-            ))
-          }
-          if (model.use == 'negbinom') {
-            return(nb.residuals(
-              formula = fmla,
-              regression.mat = regression.mat,
-              gene = x
-            ))
-          }
-        }
-      )
-    )
-    if (i == 1) {
-      data.resid=new.data
-    }
-    if (i > 1) {
-      data.resid=rbind(data.resid,new.data)
-    }
-    setTxtProgressBar(pb, i)
-  }
-  close(pb)
-  rownames(x = data.resid) <- genes.regress
-  if (use.umi) {
-    data.resid <- log1p(
-      x = sweep(
-        x = data.resid,
-        MARGIN = 1,
-        STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
-        FUN = "-"
-      )
-    )
-  }
-  object@scale.data <- data.resid
-  if (do.scale) {
-    if (use.umi && base::missing(x = scale.max)) {
-      scale.max <- 50
-    }
-    object <- ScaleData(
-      object = object,
-      genes.use = rownames(x = data.resid),
-      data.use = data.resid,
-      do.center = do.center,
-      do.scale = do.scale,
-      scale.max = scale.max
-    )
-  }
-  object@scale.data[is.na(x = object@scale.data)] <- 0
-  return(object)
 }
 
 #' Identify variable genes

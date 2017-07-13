@@ -2,10 +2,12 @@
 % Please edit documentation in R/preprocessing.R
 \name{ScaleData}
 \alias{ScaleData}
-\title{Scale and center the data}
+\title{Scale and center the data.}
 \usage{
-ScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10)
+ScaleData(object, genes.use = NULL, data.use = NULL, latent.vars,
+  model.use = "linear", use.umi = FALSE, do.scale = TRUE,
+  do.center = TRUE, scale.max = 10, block.size = 1000,
+  display.progress = TRUE, assay.type = "RNA", do.cpp = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,16 +16,32 @@ ScaleData(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
 
 \item{data.use}{Can optionally pass a matrix of data to scale, default is object@data[genes.use,]}
 
+\item{latent.vars}{effects to regress out}
+
+\item{model.use}{Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'}
+
+\item{use.umi}{Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'}
+
 \item{do.scale}{Whether to scale the data.}
 
 \item{do.center}{Whether to center the data.}
 
-\item{scale.max}{Max value to accept for scaled data. The default is 10. Setting this can help
+\item{scale.max}{Max value to return for scaled data. The default is 10. Setting this can help
 reduce the effects of genes that are only expressed in a very small number of cells.}
+
+\item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.}
+
+\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++. We've maintained 
+support for our previous implementation in R for reproducibility (set this to FALSE) as results 
+can change slightly due to differences in numerical precision which could affect downstream 
+calculations.}
+
+\item{genes.regress}{gene to run regression for (default is all genes)}
 }
 \value{
 Returns a seurat object with object@scale.data updated with scaled and/or centered data.
 }
 \description{
-Scale and center the data
+Scales and centers the data. If latent variables are provided (latent.vars), their effects are 
+removed through regression and the resulting residuals are then scaled and centered.
 }

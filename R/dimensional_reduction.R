@@ -539,7 +539,7 @@ RunCCA <- function(
     )
     combined.object@scale.data[which(x = is.na(x = combined.object@scale.data))] <- 0
     combined.object@var.genes <- genes.use
-    combined.object <- FastScaleData(object = combined.object)
+    combined.object <- ScaleData(object = combined.object)
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -784,7 +784,7 @@ AlignSubspace <- function(
   cc.embeds <- list()
   for (i in 1:2) {
     cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- FastScaleData(object = objects[[i]])
+    objects[[i]] <- ScaleData(object = objects[[i]])
     objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
