@@ -589,3 +589,185 @@ BatchGene <- function(
   return(batch.genes)
 }
 
+
+
+# Documentation
+#multicore version of jackstraw
+#DOES NOT WORK WITH WINDOWS
+#' @export
+#'
+JackStrawMC <- function(
+  object,
+  num.pc = 30,
+  num.replicate = 100,
+  prop.freq = 0.01,
+  do.print = FALSE,
+  num.cores = 8
+) {
+  pc.genes <- rownames(x = object@pca.x)
+  if (length(x = pc.genes) < 200) {
+    prop.freq <- max(prop.freq, 0.015)
+  }
+  md.x <- as.matrix(x = object@pca.x)
+  md.rot <- as.matrix(x = object@pca.rot)
+  if (do.print) {
+    fake.pcVals.raw <- mclapply(
+      X = 1:num.replicate,
+      FUN = function(x) {
+        print(x)
+        return(JackRandom(
+          scaled.data = object@scale.data[pc.genes, ],
+          prop = prop.freq,
+          r1.use = 1,
+          r2.use = num.pc,
+          seed.use = x
+        ))
+      },
+      mc.cores = num.cores
+    )
+  } else {
+    fake.pcVals.raw <- mclapply(
+      X = 1:num.replicate,
+      FUN = function(x) {
+        return(JackRandom(
+          scaled.data = object@scale.data[pc.genes, ],
+          prop = prop.freq,
+          r1.use = 1,
+          r2.use = num.pc,
+          seed.use=x
+        ))
+      }, mc.cores = num.cores
+    )
+  }
+  fake.pcVals <- simplify2array(
+    x = mclapply(
+      X = 1:num.pc,
+      FUN = function(x) {
+        return(as.numeric(x = unlist(x = lapply(
+          X = 1:num.replicate,
+          FUN = function(y) {
+            return(fake.pcVals.raw[[y]][, x])
+          }
+        ))))
+      },
+      mc.cores = num.cores
+    )
+  )
+  object@jackStraw.fakePC <- data.frame(fake.pcVals)
+  object@jackStraw.empP <- data.frame(
+    simplify2array(
+      x = mclapply(
+        X = 1:num.pc,
+        FUN = function(x) {
+          return(unlist(x = lapply(
+            X = abs(md.x[, x]),
+            FUN = empP,
+            nullval = abs(x = fake.pcVals[, x])
+          )))
+        },
+        mc.cores = num.cores
+      )
+    )
+  )
+  colnames(x = object@jackStraw.empP) <- paste0("PC", 1:ncol(x = object@jackStraw.empP))
+  return(object)
+}
+
+
+# Documentation
+###############
+JackStrawFull <- function(
+  object,
+  num.pc = 5,
+  num.replicate = 100,
+  prop.freq = 0.01
+) {
+  pc.genes <- rownames(x = object@pca.x)
+  if (length(x = pc.genes) < 200) {
+    prop.freq <- max(prop.freq, 0.015)
+  }
+  md.x <- as.matrix(x = object@pca.x)
+  md.rot <- as.matrix(x = object@pca.rot)
+  real.fval <- sapply(
+    X = 1:num.pc,
+    FUN = function(x) {
+      return(unlist(x = lapply(
+        X = pc.genes,
+        FUN = jackF,
+        r1 = x,
+        r2 = x,
+        x = md.x,
+        rot = md.rot
+      )))
+    }
+  )
+  rownames(x = real.fval) <- pc.genes
+  object@real.fval <- data.frame(real.fval)
+  fake.fval <- sapply(
+    X = 1:num.pc,
+    FUN = function(x) {
+      return(unlist(x = replicate(
+        n = num.replicate,
+        expr = jackStrawF(
+          prop = prop.freq,
+          data = object@scale.data[pc.genes, ],
+          myR1 = x,
+          myR2 = x
+        ),
+        simplify = FALSE
+      )))
+    }
+  )
+  rownames(x = fake.fval) <- 1:nrow(x = fake.fval)
+  object@fake.fval <- data.frame(fake.fval)
+  object@emp.pval <- data.frame(
+    sapply(
+      X = 1:num.pc,
+      FUN = function(x) {
+        return(unlist(x = lapply(
+          X = object@real.fval[, x],
+          FUN = empP,
+          nullval = object@fake.fval[, x]
+        )))
+      }
+    )
+  )
+  rownames(x = object@emp.pval) <- pc.genes
+  colnames(x = object@emp.pval) <- paste0("PC", 1:ncol(x = object@emp.pval),)
+  return(object)
+}
+
+
+# Documentation
+#' @export
+#'
+JackStrawPermutationTest <- function(
+  object,
+  genes.use = NULL,
+  num.iter = 100,
+  thresh.use = 0.05,
+  do.print = TRUE,
+  k.seed = 1
+) {
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@pca.x))
+  genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
+  data.use <- t(x = as.matrix(x = object@scale.data[genes.use, ]))
+  if (do.print) {
+    print(paste("Running", num.iter, "iterations"))
+  }
+  pa.object <- permutationPA(
+    data.use,
+    B = num.iter,
+    threshold = thresh.use,
+    verbose = do.print,
+    seed = k.seed
+  )
+  if (do.print) {
+    cat("\n\n")
+  }
+  if (do.print) {
+    print(paste("JackStraw returns", pa.object$r, "significant components"))
+  }
+  return(pa.object)
+}
+

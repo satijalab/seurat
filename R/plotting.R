@@ -1213,7 +1213,7 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  pAll <- object@jackStraw.empP
+  pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll$Contig <- rownames(x = pAll)
   pAll.l <- melt(data = pAll, id.vars = "Contig")

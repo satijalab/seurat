@@ -27,7 +27,7 @@
 #'    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
 #'    \item{\code{assay}:}{\code{"list"}, List of additional assays for multimodal analysis. Named by technique }
 #'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
-#'    \item{\code{hvg.info}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
+#'    \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
 #'    \item{\code{final.prob}:}{\code{"data.frame"}, For spatial inference, posterior probability of each cell mapping to each bin }
 #'    \item{\code{insitu.matrix}:}{\code{"data.frame"}, For spatial inference, the discretized spatial reference map }
@@ -56,76 +56,21 @@ seurat <- setClass(
     ident = "factor",
     dr = "list",
     assay = "list",
-    emp.pval = "data.frame",
     data.info = "data.frame",
     project.name = "character",
-    jackStraw.empP = "data.frame",
-    jackStraw.fakePC = "data.frame",
-    jackStraw.empP.full = "data.frame",
-    hvg.info = "data.frame",
+    mean.var = "data.frame",
     imputed = "data.frame",
-    tsne.rot = "data.frame",
     cell.names = "vector",
     cluster.tree = "list",
     snn = "dgCMatrix",
     snn.k = "numeric",
     calc.params = "list",
     kmeans="ANY",
-    spatial="ANY"
+    spatial="ANY",
+    misc="ANY"
   )
 )
 
-
-#' Significant genes from a PCA
-#'
-#' Returns a set of genes, based on the JackStraw analysis, that have
-#' statistically significant associations with a set of PCs.
-#'
-#' @param object Seurat object
-#' @param pcs.use PCS to use.
-#' @param pval.cut P-value cutoff
-#' @param use.full Use the full list of genes (from the projected PCA). Assumes
-#' that ProjectPCA has been run. Default is TRUE
-#' @param max.per.pc Maximum number of genes to return per PC. Used to avoid genes from one PC dominating the entire analysis.
-#'
-#' @return A vector of genes whose p-values are statistically significant for
-#' at least one of the given PCs.
-#'
-#' @export
-#'
-PCASigGenes <- function(
-  object,
-  pcs.use,
-  pval.cut = 0.1,
-  use.full = TRUE,
-  max.per.pc = NULL
-) {
-  pvals.use <- object@jackStraw.empP
-  pcx.use <- object@pca.x
-  if (use.full) {
-    pvals.use <- object@jackStraw.empP.full
-    pcx.use <- object@pca.x.full
-  }
-  if (length(x = pcs.use) == 1) {
-    pvals.min <- pvals.use[, pcs.use]
-  }
-  if (length(x = pcs.use) > 1) {
-    pvals.min <- apply(X = pvals.use[, pcs.use], MARGIN = 1, FUN = min)
-  }
-  names(x = pvals.min) <- rownames(x = pvals.use)
-  genes.use <- names(x = pvals.min)[pvals.min < pval.cut]
-  if (! is.null(x = max.per.pc)) {
-    pc.top.genes <- PCTopGenes(
-      object = object,
-      pc.use = pcs.use,
-      num.genes = max.per.pc,
-      use.full = use.full,
-      do.balanced = FALSE
-    )
-    genes.use <- intersect(x = pc.top.genes, y = genes.use)
-  }
-  return(genes.use)
-}
 
 
 
