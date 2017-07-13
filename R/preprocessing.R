@@ -54,7 +54,7 @@ Setup <- function(
   num.mol=colSums(object@raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@data <- object@raw.data[, cells.use]
-  
+
   #to save memory downstream, especially for large object
   if (!(save.raw)) {
     object@raw.data <- matrix()
@@ -80,7 +80,7 @@ Setup <- function(
   )
   names(x = object@ident) <- colnames(x = object@data)
   object@cell.names <- names(x = object@ident)
-  
+
   # if there are more than 100 idents, set all ident to project name
   ident.levels <- length(x = unique(x = object@ident))
   if ((ident.levels > 100 || ident.levels == 0) || ident.levels == length(x = object@ident)) {
@@ -89,7 +89,7 @@ Setup <- function(
   data.ngene <- num.genes[cells.use]
   data.nmol <- num.mol[cells.use]
 
-  
+
   nGene <- data.ngene
   nUMI <- data.nmol
   object@data.info <- data.frame(nGene, nUMI)
@@ -109,8 +109,8 @@ Setup <- function(
   object@spatial <- spatial.obj
   object@spatial@mix.probs <- data.frame(data.ngene)
   colnames(x = object@spatial@mix.probs)[1] <- "nGene"
-  
-  
+
+
   return(object)
 }
 
@@ -252,10 +252,10 @@ ScaleDataR <- function(
 
 #' Scale and center the data.
 #'
-#' Scales and centers the data. If latent variables are provided (latent.vars), their effects are 
+#' Scales and centers the data. If latent variables are provided (latent.vars), their effects are
 #' removed through regression and the resulting residuals are then scaled and centered.
 #'
-#' 
+#'
 #' @param object Seurat object
 #' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
 #' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
@@ -268,10 +268,10 @@ ScaleDataR <- function(
 #' @param scale.max Max value to return for scaled data. The default is 10. Setting this can help
 #' reduce the effects of genes that are only expressed in a very small number of cells.
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.
-#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++. We've maintained 
-#' support for our previous implementation in R for reproducibility (set this to FALSE) as results 
-#' can change slightly due to differences in numerical precision which could affect downstream 
-#' calculations.  
+#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++. We've maintained
+#' support for our previous implementation in R for reproducibility (set this to FALSE) as results
+#' can change slightly due to differences in numerical precision which could affect downstream
+#' calculations.
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
 #'
@@ -301,16 +301,16 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  
+
   if(!missing(latent.vars)){
-    data.use <- RegressOut(object = object, 
-                           latent.vars = latent.vars, 
+    data.use <- RegressOut(object = object,
+                           latent.vars = latent.vars,
                            use.umi = use.umi,
                            model.use = model.use)
   }
   if(!do.cpp){
-    return(ScaleDataR(object = object, 
-                     data.use = data.use, 
+    return(ScaleDataR(object = object,
+                     data.use = data.use,
                      do.scale = do.scale,
                      do.center = do.center,
                      scale.max = scale.max))
@@ -442,7 +442,7 @@ SampleUMI <- function(
 #' Identify variable genes
 #'
 #' Identifies genes that are outliers on a 'mean variability plot'. First, uses
-#' a function to calculate average expression (fxn.x) and dispersion (fxn.y)
+#' a function to calculate average expression (mean.function) and dispersion (dispersion.function)
 #' for each gene. Next, divides genes into num.bin (deafult 20) bins based on
 #' their average expression, and calculates z-scores for dispersion within each
 #' bin. The purpose of this is to identify variable genes while controlling for
@@ -457,9 +457,9 @@ SampleUMI <- function(
 #' see relevant functions for exact details.
 #'
 #' @param object Seurat object
-#' @param fxn.x Function to compute x-axis value (average expression). Default
+#' @param mean.function Function to compute x-axis value (average expression). Default
 #' is to take the mean of the detected (i.e. non-zero) values
-#' @param fxn.y Function to compute y-axis value (dispersion). Default is to
+#' @param dispersion.function Function to compute y-axis value (dispersion). Default is to
 #' take the standard deviation of all values/
 #' @param do.plot Plot the average/dispersion relationship
 #' @param set.var.genes Set object@@var.genes to the identified variable genes
@@ -471,14 +471,14 @@ SampleUMI <- function(
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
-#' @param sort.results If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion
+#' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
 #' @importFrom MASS kde2d
 #'
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
-#' The result of all analysis is stored in object@@mean.var
+#' The result of all analysis is stored in object@@hvg.info
 #'
 #' @seealso \code{\link{VariableGenePlot}}
 #'
@@ -486,8 +486,8 @@ SampleUMI <- function(
 #'
 FindVariableGenes <- function(
   object,
-  fxn.x = expMean,
-  fxn.y = logVarDivMean,
+  mean.function = expMean,
+  dispersion.function = logVarDivMean,
   do.plot = TRUE,
   set.var.genes = TRUE,
   x.low.cutoff = 0.1,
@@ -502,10 +502,10 @@ FindVariableGenes <- function(
   data <- object@data
   if (do.recalc) {
     genes.use <- rownames(x = object@data)
-    data.x <- rep(x = 0, length(x = genes.use))
-    names(x = data.x) <- genes.use
-    data.y <- data.x
-    data.norm.y <- data.x
+    gene.mean <- rep(x = 0, length(x = genes.use))
+    names(x = gene.mean) <- genes.use
+    gene.dispersion <- gene.mean
+    gene.dispersion.scaled <- gene.mean
     bin.size <- 1000
     max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
     print("Calculating gene dispersion")
@@ -515,35 +515,35 @@ FindVariableGenes <- function(
       my.inds <- my.inds[my.inds <= length(x = genes.use)]
       genes.iter <- genes.use[my.inds]
       data.iter <- data[genes.iter, ]
-      data.x[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = fxn.x)
-      data.y[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = fxn.y)
+      gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
+      gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
       setTxtProgressBar(pb = pb, value = i)
     }
     close(con = pb)
-    data.y[is.na(x = data.y)] <- 0
-    data.x[is.na(x = data.x)] <- 0
-    data_x_bin <- cut(x = data.x, breaks = num.bin)
-    names(x = data_x_bin) <- names(x = data.x)
-    mean_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = mean)
-    sd_y <- tapply(X = data.y, INDEX = data_x_bin, FUN = sd)
-    data.norm.y <- (data.y - mean_y[as.numeric(x = data_x_bin)]) /
+    gene.dispersion[is.na(x = gene.dispersion)] <- 0
+    gene.mean[is.na(x = gene.mean)] <- 0
+    data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    names(x = data_x_bin) <- names(x = gene.mean)
+    mean_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = mean)
+    sd_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = sd)
+    gene.dispersion.scaled <- (gene.dispersion - mean_y[as.numeric(x = data_x_bin)]) /
       sd_y[as.numeric(x = data_x_bin)]
-    data.norm.y[is.na(x = data.norm.y)] <- 0
-    names(x = data.norm.y) <- names(x = data.x)
-    mv.df <- data.frame(data.x, data.y, data.norm.y)
+    gene.dispersion.scaled[is.na(x = gene.dispersion.scaled)] <- 0
+    names(x = gene.dispersion.scaled) <- names(x = gene.mean)
+    mv.df <- data.frame(gene.mean, gene.dispersion, gene.dispersion.scaled)
     rownames(x = mv.df) <- rownames(x = data)
-    object@mean.var <- mv.df
+    object@hvg.info <- mv.df
   }
-  data.x <- object@mean.var[, 1]
-  data.y <- object@mean.var[, 2]
-  data.norm.y <- object@mean.var[, 3]
-  names(x = data.x) <- names(x = data.y) <- names(x = data.norm.y) <- rownames(x = object@data)
-  pass.cutoff <- names(x = data.x)[which(
+  gene.mean <- object@hvg.info[, 1]
+  gene.dispersion <- object@hvg.info[, 2]
+  gene.dispersion.scaled <- object@hvg.info[, 3]
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  pass.cutoff <- names(x = gene.mean)[which(
     x = (
-      (data.x > x.low.cutoff) & (data.x < x.high.cutoff)
+      (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
     ) &
-      (data.norm.y > y.cutoff) &
-      (data.norm.y < y.high.cutoff)
+      (gene.dispersion.scaled > y.cutoff) &
+      (gene.dispersion.scaled < y.high.cutoff)
   )]
   if (do.plot) {
     VariableGenePlot(
@@ -551,91 +551,11 @@ FindVariableGenes <- function(
       ...
     )
   }
-  # if (do.plot) {
-  #   if (plot.both) {
-  #     par(mfrow = c(1, 2))
-  #     smoothScatter(
-  #       x = data.x,
-  #       y = data.y,
-  #       pch = pch.use,
-  #       cex = cex.use,
-  #       col = col.use,
-  #       xlab = "Average expression",
-  #       ylab = "Dispersion",
-  #       nrpoints = Inf
-  #     )
-  #     if (do.contour) {
-  #       data.kde <- kde2d(x = data.x, y = data.y)
-  #       contour(
-  #         x = data.kde,
-  #         add = TRUE,
-  #         lwd = contour.lwd,
-  #         col = contour.col,
-  #         lty = contour.lty
-  #       )
-  #     }
-  #     if (do.spike) {
-  #       points(
-  #         x = data.x[spike.genes],
-  #         y = data.y[spike.genes],
-  #         pch = 16,
-  #         cex = cex.use,
-  #         col = spike.col.use
-  #       )
-  #     }
-  #     if (do.text) {
-  #       text(
-  #         x = data.x[pass.cutoff],
-  #         y = data.y[pass.cutoff],
-  #         labels = pass.cutoff,
-  #         cex = cex.text.use
-  #       )
-  #     }
-  #   }
-  #   smoothScatter(
-  #     x = data.x,
-  #     y = data.norm.y,
-  #     pch = pch.use,
-  #     cex = cex.use,
-  #     col = col.use,
-  #     xlab = "Average expression",
-  #     ylab = "Dispersion",
-  #     nrpoints = Inf
-  #   )
-  #   if (do.contour) {
-  #     data.kde <- kde2d(x = data.x, y = data.norm.y)
-  #     contour(
-  #       x = data.kde,
-  #       add = TRUE,
-  #       lwd = contour.lwd,
-  #       col = contour.col,
-  #       lty = contour.lty
-  #     )
-  #   }
-  #   if (do.spike) {
-  #     points(
-  #       x = data.x[spike.genes],
-  #       y = data.norm.y[spike.genes],
-  #       pch = 16,
-  #       cex = cex.use,
-  #       col = spike.col.use,
-  #       nrpoints = Inf
-  #     )
-  #   }
-  #   if (do.text) {
-  #     text(
-  #       x = data.x[pass.cutoff],
-  #       y = data.norm.y[pass.cutoff],
-  #       labels = pass.cutoff,
-  #       cex = cex.text.use
-  #     )
-  #   }
-  # }
   if (set.var.genes) {
     object@var.genes <- pass.cutoff
     if (sort.results) {
-      object@mean.var <- object@mean.var[order(
-        object@mean.var$data.y,
+      object@hvg.info <- object@hvg.info[order(
+        object@hvg.info$gene.dispersion,
         decreasing = TRUE
       ),]
     }
