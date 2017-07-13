@@ -408,7 +408,7 @@ DotPlot <- function(
   #this line is in case there is a '-' in the cell name
   colnames(x = object@data) <- object@cell.names
   avg.exp <- AverageExpression(object = object)
-  avg.alpha <- ClusterAlpha(object = object)
+  avg.alpha <- AverageDetectionRate(object = object)
   cols.use <- SetIfNull(x = cols.use, default = myPalette(low = "red", high = "green"))
   exp.scale <- t(x = scale(x = t(x = avg.exp)))
   exp.scale <- minmax(data = exp.scale, max = thresh.col, min = (-1) * thresh.col)

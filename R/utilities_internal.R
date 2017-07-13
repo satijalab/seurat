@@ -416,3 +416,35 @@ nb.residuals <- function(fmla, regression.mat, gene) {
   }
   return(residuals(object = fit, type='pearson'))
 }
+
+
+# Documentation
+###############
+#Internal, not documented for now
+lasso.fxn <- function(
+  lasso.input,
+  genes.obs,
+  s.use = 20,
+  gene.name = NULL,
+  do.print = FALSE,
+  gram = TRUE
+) {
+  lasso.model <- lars(
+    x = lasso.input,
+    y = as.numeric(x = genes.obs),
+    type = "lasso",
+    max.steps = s.use * 2,
+    use.Gram = gram
+  )
+  #lasso.fits=predict.lars(lasso.model,lasso.input,type="fit",s=min(s.use,max(lasso.model$df)))$fit
+  lasso.fits <- predict.lars(
+    object = lasso.model,
+    newx = lasso.input,
+    type = "fit",
+    s = s.use
+  )$fit
+  if (do.print) {
+    print(gene.name)
+  }
+  return(lasso.fits)
+}
