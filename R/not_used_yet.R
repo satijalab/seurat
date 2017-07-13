@@ -40,7 +40,7 @@ FindGeneTerms <- function(QueryGene = NULL) {
 #
 # @export
 #
-RegressOutNBreg <- function(
+RegressOutNB <- function(
   object,
   latent.vars,
   genes.regress = NULL,
