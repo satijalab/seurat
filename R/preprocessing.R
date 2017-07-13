@@ -683,16 +683,16 @@ FilterCells <- function(
     stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
   }
   data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   for (i in seq(nrow(data.subsets))) {
-    object <- SubsetData(
+    cells.use <- WhichCells(
       object = object,
       cells.use = cells.use,
       subset.name = data.subsets[i, 1],
       accept.low = data.subsets[i, 2],
-      accept.high = data.subsets[i, 3],
-      do.center = FALSE,
-      do.scale = FALSE
+      accept.high = data.subsets[i, 3]
     )
   }
+  object <- SubsetData(object, cells.use = cells.use)
   return(object)
 }
