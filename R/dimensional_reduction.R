@@ -9,8 +9,8 @@
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
-#' @param scale.by.varexp Scale the gene loadings by the variance explained by
-#' each PC (scales the cell embeddings if rev.pca is TRUE)
+#' @param weight.by.var Weight the gene loadings by the variance of each PC
+#' (weights the cell embeddings if rev.pca is TRUE)
 #' @param do.print Print the top genes associated with high/low loadings for
 #' the PCs
 #' @param pcs.print PCs to print genes for
@@ -32,7 +32,7 @@ PCA <- function(
   pcs.compute = 20,
   use.imputed = FALSE,
   rev.pca = FALSE,
-  scale.by.varexp = TRUE,
+  weight.by.var = TRUE,
   do.print = TRUE,
   pcs.print = 1:5,
   genes.print = 30,
@@ -45,7 +45,7 @@ PCA <- function(
   pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
-    if(scale.by.varexp){
+    if(weight.by.var){
       gene.loadings <- pca.results$u %*% diag(pca.results$d)
     } else{
       gene.loadings <- pca.results$u
@@ -55,7 +55,7 @@ PCA <- function(
   else {
     pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
     gene.loadings <- pca.results$v
-    if(scale.by.varexp){
+    if(weight.by.var){
       cell.embeddings <- pca.results$u %*% diag(pca.results$d)
     } else {
       cell.embeddings <- pca.results$u

@@ -4,18 +4,19 @@
 \alias{FindVariableGenes}
 \title{Identify variable genes}
 \usage{
-FindVariableGenes(object, fxn.x = expMean, fxn.y = logVarDivMean,
-  do.plot = TRUE, set.var.genes = TRUE, x.low.cutoff = 0.1,
-  x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20,
-  do.recalc = TRUE, sort.results = TRUE, ...)
+FindVariableGenes(object, mean.function = expMean,
+  dispersion.function = logVarDivMean, do.plot = TRUE,
+  set.var.genes = TRUE, x.low.cutoff = 0.1, x.high.cutoff = 8,
+  y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,
+  sort.results = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{fxn.x}{Function to compute x-axis value (average expression). Default
+\item{mean.function}{Function to compute x-axis value (average expression). Default
 is to take the mean of the detected (i.e. non-zero) values}
 
-\item{fxn.y}{Function to compute y-axis value (dispersion). Default is to
+\item{dispersion.function}{Function to compute y-axis value (dispersion). Default is to
 take the standard deviation of all values/}
 
 \item{do.plot}{Plot the average/dispersion relationship}
@@ -36,17 +37,17 @@ is 20)}
 
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
 
-\item{sort.results}{If TRUE (by default), sort results in object@mean.var in decreasing order of dispersion}
+\item{sort.results}{If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion}
 
 \item{...}{Extra parameters to VariableGenePlot}
 }
 \value{
 Returns a Seurat object, placing variable genes in object@var.genes.
-The result of all analysis is stored in object@mean.var
+The result of all analysis is stored in object@hvg.info
 }
 \description{
 Identifies genes that are outliers on a 'mean variability plot'. First, uses
-a function to calculate average expression (fxn.x) and dispersion (fxn.y)
+a function to calculate average expression (mean.function) and dispersion (dispersion.function)
 for each gene. Next, divides genes into num.bin (deafult 20) bins based on
 their average expression, and calculates z-scores for dispersion within each
 bin. The purpose of this is to identify variable genes while controlling for

@@ -5,7 +5,7 @@
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
 PCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
-  rev.pca = FALSE, scale.by.varexp = TRUE, do.print = TRUE,
+  rev.pca = FALSE, weight.by.var = TRUE, do.print = TRUE,
   pcs.print = 1:5, genes.print = 30, ...)
 }
 \arguments{
@@ -20,8 +20,8 @@ PCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
 
-\item{scale.by.varexp}{Scale the gene loadings by the variance explained by
-each PC (scales the cell embeddings if rev.pca is TRUE)}
+\item{weight.by.var}{Weight the gene loadings by the variance of each PC
+(weights the cell embeddings if rev.pca is TRUE)}
 
 \item{do.print}{Print the top genes associated with high/low loadings for
 the PCs}

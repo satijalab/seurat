@@ -34,7 +34,7 @@ PrintPCAParams <- function(object, raw = FALSE){
                n.gene, FillWhiteSpace(n = 35 - nchar(n.gene)),
                GetCalcParam(object = object,
                             calculation = "PCA",
-                            parameter = "scale.by.varexp"),
+                            parameter = "weight.by.var"),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
     cat("rev.pca \n")
