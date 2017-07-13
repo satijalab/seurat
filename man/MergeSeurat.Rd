@@ -5,7 +5,7 @@
 \title{Merge Seurat Objects}
 \usage{
 MergeSeurat(object1, object2, project = NULL, min.cells = 0,
-  min.genes = 0, is.expr = 0, do.logNormalize = TRUE,
+  min.genes = 0, is.expr = 0, normalization.method = NULL,
   total.expr = 10000, do.scale = TRUE, do.center = TRUE,
   names.field = 1, names.delim = "_", save.raw = TRUE,
   add.cell.id1 = NULL, add.cell.id2 = NULL)
@@ -22,9 +22,9 @@ many cells}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{do.logNormalize}{whether to normalize the expression data per cell and transform to log space.}
-
-\item{total.expr}{scale factor in the log normalization}
+\item{normalization.method}{Method for normalization. Default is
+log-normalization (LogNormalize). Other options include CLR (CLR),
+regularized NB normalization (NBReg; RNA only)}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score)}

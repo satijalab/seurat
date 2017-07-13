@@ -8,8 +8,9 @@
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param do.logNormalize whether to normalize the expression data per cell and transform to log space.
-#' @param total.expr scale factor in the log normalization
+#' @param normalization.method Method for normalization. Default is
+#' log-normalization (LogNormalize). Other options include CLR (CLR),
+#' regularized NB normalization (NBReg; RNA only)
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -40,7 +41,7 @@ MergeSeurat <- function(
   min.cells = 0,
   min.genes = 0,
   is.expr = 0,
-  do.logNormalize = TRUE,
+  normalization.method = NULL,
   total.expr = 1e4,
   do.scale = TRUE,
   do.center = TRUE,
@@ -111,7 +112,6 @@ MergeSeurat <- function(
   )
   object1@data.info <- object1@data.info[object1@cell.names, ]
   object2@data.info <- object2@data.info[object2@cell.names, ]
-  new.object <- new(Class = "seurat", raw.data = merged.raw.data)
   project <- SetIfNull(x = project, default = object1@project.name)
   object1@data.info$cell.name <- rownames(x = object1@data.info)
   object2@data.info$cell.name <- rownames(x = object2@data.info)
@@ -120,13 +120,13 @@ MergeSeurat <- function(
       full_join(x = object1@data.info, y = object2@data.info)
     )
   )
-  merged.object <- Setup(
-    new.object,
+  merged.object <- Seurat(
+    raw.data = merged.raw.data,
     project = project,
     min.cells = min.cells,
     min.genes = min.genes,
     is.expr = is.expr,
-    do.logNormalize = do.logNormalize,
+    normalization.method = normalization.method,
     total.expr = total.expr,
     do.scale = do.scale,
     do.center = do.center,
@@ -152,10 +152,11 @@ MergeSeurat <- function(
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param do.logNormalize whether to normalize the expression data per cell and transform to log space.
+#' @param normalization.method Method for normalization. Default is
+#' log-normalization (LogNormalize). Other options include CLR (CLR),
+#' regularized NB normalization (NBReg; RNA only)
 #' @param total.expr scale factor in the log normalization
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
 #' centering)
 #' @param names.field For the initial identity class for each cell, choose this
@@ -182,7 +183,7 @@ AddSamples <- function(
   min.cells = 3,
   min.genes = 1000,
   is.expr = 0,
-  do.logNormalize = TRUE,
+  normalization.method = NULL,
   total.expr = 1e4,
   do.scale=TRUE,
   do.center = TRUE,
@@ -222,7 +223,6 @@ AddSamples <- function(
     mat1 = object@raw.data[, object@cell.names],
     mat2 = new.data
   )
-  new.object <- new(Class = "seurat", raw.data = combined.data)
   if (is.null(x = meta.data)) {
     filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@data.info))
     rownames(filler) <- colnames(new.data)
@@ -237,13 +237,13 @@ AddSamples <- function(
     )
   }
   project <- SetIfNull(x = project, default = object@project.name)
-  new.object <- Setup(
-    new.object,
-    project,
+  new.object <- Seurat(
+    raw.data = combined.data,
+    project = project,
     min.cells = min.cells,
     min.genes = min.genes,
     is.expr = is.expr,
-    do.logNormalize = do.logNormalize,
+    normalization.method = normalization.method,
     total.expr = total.expr,
     do.scale = do.scale,
     do.center = do.center,

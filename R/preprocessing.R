@@ -1,15 +1,17 @@
-#' Setup Seurat object
+#' Initialize and setup the Seurat object
 #'
-#' Setup and initialize basic parameters of the Seurat object
-#'
-#' @param object Seurat object
+#' Initializes the Seurat object and some optional filtering
+#' @param raw.data Raw input data
 #' @param project Project name (string)
 #' @param min.cells Include genes with detected expression in at least this
-#' many cells
-#' @param min.genes Include cells where at least this many genes are detected
+#' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
+#' genes, create a new object with a lower cutoff.
+#' @param min.genes Include cells where at least this many genes are detected.
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param do.logNormalize whether to normalize the expression data per cell and transform to log space.
-#' @param total.expr scale factor in the log normalization
+#' @param normalization.method Method for normalization. Default is
+#' log-normalization (LogNormalize). Other options include CLR (CLR),
+#' regularized NB normalization (NBReg; RNA only)
+#' @param total.expr If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -21,11 +23,11 @@
 #' @param meta.data Additional metadata to add to the Seurat object. Should be
 #' a data frame where the rows are cell names, and the columns are additional
 #' metadata fields
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
-#' which will save memory downstream for large datasets
+#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in
+#' object@@raw.data which will save memory downstream for large datasets
 #'
-#' @return Seurat object. Fields modified include object@@data,
-#' object@@scale.data, object@@data.info, object@@ident
+#' @return Returns a Seurat object with the raw data stored in object@@raw.data.
+#' object@@data, object@@data.info, object@@ident, also initialized.
 #'
 #' @import stringr
 #' @import pbapply
@@ -33,40 +35,53 @@
 #'
 #' @export
 #'
-Setup <- function(
-  object,
-  project = "default",
-  min.cells = 3,
-  min.genes = 1000,
+Seurat <- function(
+  raw.data,
+  project = "SeuratProject",
+  min.cells = 0,
+  min.genes = 0,
   is.expr = 0,
-  do.logNormalize = TRUE,
+  normalization.method = NULL,
   total.expr = 1e4,
-  do.scale = TRUE,
-  do.center = TRUE,
+  do.scale = FALSE,
+  do.center = FALSE,
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
   save.raw = TRUE
 ) {
-  object@project.name <- project
-  object@is.expr <- is.expr
+  object <- new(Class = "seurat",
+                raw.data = raw.data,
+                is.expr = is.expr,
+                project.name = project
+                )
+  # filter cells on number of genes detected
+  # modifies the raw.data slot as well now
   num.genes <- colSums(object@raw.data > is.expr)
-  num.mol=colSums(object@raw.data)
+  num.mol <- colSums(object@raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
+  object@raw.data <- object@raw.data[, cells.use]
   object@data <- object@raw.data[, cells.use]
-
-  #to save memory downstream, especially for large object
+  # to save memory downstream, especially for large objects if raw.data no
+  # longer needed
   if (!(save.raw)) {
     object@raw.data <- matrix()
   }
+  # filter genes on the number of cells expressing
+  # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
   if (min.cells > 0) {
     num.cells <- rowSums(object@data > is.expr)
     genes.use <- names(num.cells[which(num.cells >= min.cells)])
+    object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
   }
-  if (do.logNormalize) {
-    object@data=LogNormalize(object@data,scale.factor = total.expr)
+  if (!is.null(normalization.method)) {
+    object <- NormalizeData(object = object,
+                            assay.type = "RNA",
+                            normalization.method = normalization.method,
+                            scale.factor = scale.factor,
+                            display.progress = display.progress)
   }
   object@ident <- factor(
     x = unlist(
@@ -80,36 +95,34 @@ Setup <- function(
   )
   names(x = object@ident) <- colnames(x = object@data)
   object@cell.names <- names(x = object@ident)
-
-  # if there are more than 100 idents, set all ident to project name
+  # if there are more than 100 idents, set all idents to project name
   ident.levels <- length(x = unique(x = object@ident))
   if ((ident.levels > 100 || ident.levels == 0) || ident.levels == length(x = object@ident)) {
     object <- SetIdent(object, ident.use = project)
   }
-  data.ngene <- num.genes[cells.use]
-  data.nmol <- num.mol[cells.use]
-
-
-  nGene <- data.ngene
-  nUMI <- data.nmol
+  nGene <- num.genes[cells.use]
+  nUMI <- num.mol[cells.use]
   object@data.info <- data.frame(nGene, nUMI)
   if (! is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
-  object@data.info[names(object@ident),"orig.ident"] <- object@ident
-  object@scale.data <- matrix()
-  object@assay <- list()
+  object@data.info[names(object@ident), "orig.ident"] <- object@ident
   if(do.scale | do.center) {
-    object <- ScaleData(object = object, do.scale = do.scale, do.center = do.center)
+    object <- ScaleData(object = object,
+                        do.scale = do.scale,
+                        do.center = do.center)
   }
-
   spatial.obj <- new(
-    Class = "spatial.info"
+    Class = "spatial.info",
+    mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
-  object@spatial@mix.probs <- data.frame(data.ngene)
-  colnames(x = object@spatial@mix.probs)[1] <- "nGene"
-
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("Seurat"))]
+  parameters.to.store$raw.data <- NULL
+  parameters.to.store$meta.data <- NULL
+  object <- SetCalcParams(object = object,
+                          calculation = "Seurat",
+                          ... = parameters.to.store)
 
   return(object)
 }
@@ -189,6 +202,72 @@ Read10X <- function(data.dir = NULL){
   }
   full.data <- do.call(cbind, full.data)
   return(full.data)
+}
+
+#' Normalize Assay Data
+#'
+#' Normalize data for a given assay
+#'
+#' @param object Seurat object
+#' @param assay.type Type of assay to normalize for (default is RNA), but can be changed for multimodal analyses.
+#' @param normalization.method Method for normalization. Default is log-normalization (LogNormalize). Other options include CLR (CLR), regularized NB normalization (NBReg; RNA only)
+#'
+#' @importFrom compositions clr
+#'
+#' @return Returns object after normalization. Normalized data is stored in data or scale.data slot, depending on the method
+#'
+#' @export
+#'
+NormalizeData <- function(
+  object,
+  assay.type = "RNA",
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  display.progress = TRUE,
+  ...
+) {
+  if (normalization.method == "LogNormalize") {
+    raw.data <- GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "raw.data"
+    )
+    if (is.null(x = raw.data)) {
+      stop(paste("Raw data for", assay.type, "has not been set"))
+    }
+    normalized.data <- LogNormalize(
+      data = raw.data,
+      scale.factor = scale.factor,
+      display.progress = display.progress
+    )
+    object <- SetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data",
+      new.data = normalized.data
+    )
+  }
+  if (normalization.method == "CLR") {
+    raw.data <- GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "raw.data"
+    )
+    normalized.data <- t(x = as.matrix(x = t(x = clr(x = raw.data))))
+    object <- SetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data",
+      new.data = normalized.data
+    )
+    object <- SetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "scale.data",
+      new.data = normalized.data
+    )
+  }
+  return(object)
 }
 
 #' Old R based implementation of ScaleData. Scales and centers the data

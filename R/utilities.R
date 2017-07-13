@@ -426,7 +426,7 @@ AveragePCA <- function(object) {
 #' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)
 #' @inheritParams FetchData
 #' @param show.progress Show progress bar (default is T)
-#' @param ... Arguments to be passed to methods such as \code{\link{Setup}}
+#' @param ... Arguments to be passed to methods such as \code{\link{Seurat}}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
 AverageExpression <- function(
@@ -439,7 +439,7 @@ AverageExpression <- function(
   show.progress = TRUE,
   ...
 ) {
-  
+
   ident.orig <- object@ident
   orig.levels <- levels(x = object@ident)
   ident.new <- c()
@@ -515,9 +515,8 @@ AverageExpression <- function(
     names(x = data.return)[i] <- assays.use[[i]]
   }
   if (return.seurat) {
-    toRet <- new(Class = "seurat", raw.data = data.return[[1]])
-    toRet <- Setup(
-      object = toRet,
+    toRet <- Seurat(
+      raw.data = data.return[[1]],
       project = "Average",
       min.cells = 0,
       min.genes = 0,
@@ -717,7 +716,7 @@ AddImputedScore <- function(
 #'
 #' @param object Seurat object. Assumes DoKMeans has already been run
 #' @param cluster.num K-means cluster(s) to return genes for
-#' @param max.genes max number of genes to return 
+#' @param max.genes max number of genes to return
 #' @return A vector of genes who are members in the cluster.num k-means cluster(s)
 #'
 #' @export
