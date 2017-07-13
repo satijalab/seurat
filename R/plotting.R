@@ -2095,12 +2095,12 @@ DimPlot <- function(
       geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
       geom_text(data = centers, mapping = aes(label = ident), size = label.size)
   }
-  if (no.legend) {
-    p3 <- p3 + theme(legend.position = "none")
-  }
   if (dark.theme) {
     p <- p + DarkTheme()
     p3 <- p3 + DarkTheme()
+  }
+  if (no.legend) {
+    p3 <- p3 + theme(legend.position = "none")
   }
   if (no.axes) {
     p3 <- p3 + theme(
