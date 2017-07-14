@@ -780,7 +780,7 @@ NegBinomRegDETest <- function(
   to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
   print(paste('Latent variables are', latent.vars))
   # get regularized theta (ignoring group factor)
-  theta.fit <- theta.reg(
+  theta.fit <- RegularizedTheta(
     cm = to.test.data,
     latent.data = to.test,
     min.theta = 0.01,
@@ -798,7 +798,7 @@ NegBinomRegDETest <- function(
     bin.out.lst <- parallel::mclapply(
       X = genes.bin.use,
       FUN = function(j) {
-        return(de.nb.reg(
+        return(NBModelComparison(
           y = to.test.data[j, ],
           theta = theta.fit[j],
           latent.data = to.test,

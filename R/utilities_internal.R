@@ -449,11 +449,17 @@ LogAdd <- function(x) {
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }
 
-same <- function(x) {
+# Return what was passed
+#
+# @param x anything
+#
+# @return Returns x
+#
+Same <- function(x) {
   return(x)
 }
 
-nb.residuals <- function(fmla, regression.mat, gene) {
+NBResiduals <- function(fmla, regression.mat, gene) {
   fit <- 0
   try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
   if (class(fit)[1] == 'numeric') {

@@ -874,7 +874,7 @@ FeaturePlot <- function(
       dark.theme = dark.theme
     ))
   } else {
-    MultiPlotList(pList, cols = nCol)
+    print(x = cowplot::plot_grid(plotlist = pList, ncol = nCol))
   }
   ResetPar()
   if (do.return){

@@ -49,7 +49,12 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    diffusionMap
+    diffusionMap,
+    Hmisc,
+    enrichR,
+    httr,
+    made4,
+    tidyr
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate: 
