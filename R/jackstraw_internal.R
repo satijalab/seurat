@@ -1,3 +1,14 @@
+#define class to store jackstraw data
+jackstraw.data <- setClass(
+  Class = "jackstraw.data",
+  slots = list(
+    emperical.p.value = "matrix",
+    fake.pc.scores = "matrix",
+    emperical.p.value.full = "matrix"
+  )
+)
+
+
 #internal
 jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
   randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)

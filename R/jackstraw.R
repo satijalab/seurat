@@ -66,7 +66,9 @@ JackStraw <- function(
   weight.by.var <- GetCalcParam(object = object,
                                   calculation = "PCA",
                                   parameter = "weight.by.var")
-  data.use.scaled=GetAssayData(object,assay.type = "RNA",slot = "scale.data")[pc.genes,]
+  data.use.scaled <- GetAssayData(object = object,
+                                  assay.type = "RNA",
+                                  slot = "scale.data")[pc.genes,]
   fake.pcVals.raw <- applyFunction(
     X = 1:num.replicate,
     FUN = function(x)
@@ -92,7 +94,7 @@ JackStraw <- function(
       ))))
     }
   )
-  jackStraw.fakePC = as.matrix(fake.pcVals)
+  jackStraw.fakePC <- as.matrix(fake.pcVals)
   jackStraw.empP <- as.matrix(
     sapply(
       X = 1:num.pc,
@@ -106,15 +108,18 @@ JackStraw <- function(
     )
   )
   colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
-  
+
   jackstraw.obj <- new(
     Class = "jackstraw.data",
     emperical.p.value  = jackStraw.empP,
     fake.pc.scores = fake.pcVals,
-    emperical.p.value = matrix()
+    emperical.p.value.full = matrix()
   )
-  object=SetDimReduction(object,"pca","jackstraw",jackstraw.obj)
-  
+  object <- SetDimReduction(object = object,
+                            reduction.type = "pca",
+                            slot = "jackstraw",
+                            new.data = jackstraw.obj)
+
   return(object)
 }
 
@@ -204,57 +209,3 @@ PCASigGenes <- function(
   }
   return(genes.use)
 }
-
-
-
-#internal
-jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
-  randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)
-  smD.mod <- data
-  smD.mod[randGenes, ] <- shuffleMatRow(x = data[randGenes, ])
-  fmd.pca <- prcomp(x = smD.mod)
-  fmd.x <- fmd.pca$x
-  fmd.rot <- fmd.pca$rotation
-  fakeF <- unlist(x = lapply(
-    X = randGenes,
-    FUN = jackF,
-    r1 = myR1,
-    r2 = myR2,
-    x = fmd.x,
-    rot = fmd.rot
-  ))
-}
-
-#internal
-jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
-  if (r2 == 1) { #assuming r1, r2=1
-    mod.x <- x[, r1]
-    mod.x[gene] <- 0
-    return(var.test(
-      x = (x[, r1] %*% t(x = rot[, r1])),
-      y = (mod.x %*% t(x = rot[, r1]))
-    )$statistic)
-  }
-  mod.x <- x[, 1:r2]
-  mod.x[gene, r1:r2] <- rep(x = 0, r2 - r1 + 1)
-  return(var.test(
-    x = (x[, 1:r2] %*% t(x = rot[, 1:r2])),
-    y = (mod.x[, 1:r2] %*% t(x = rot[, 1:r2]))
-  )$statistic)
-}
-
-#internal
-empP <- function(x, nullval) {
-  return(sum(nullval > x) / length(x = nullval))
-}
-
-
-#define class to store jackstraw data
-jackstraw.data <- setClass(
-  Class = "jackstraw.data",
-  slots = list(
-    emperical.p.value = "matrix",
-    fake.pc.scores = "matrix",
-    emperical.p.value.full = "matrix"
-  )
-)
