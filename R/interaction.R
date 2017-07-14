@@ -649,6 +649,7 @@ WhichCells <- function(
   }
   cells.use <- cells.to.use
   if (! is.null(x = subset.name)){
+    subset.name <- as.character(subset.name)
     data.use <- FetchData(
       object = object,
       vars.all = subset.name,
@@ -657,11 +658,11 @@ WhichCells <- function(
     if (length(x = data.use) == 0) {
       stop(paste("Error : ", id, " not found"))
     }
-    subset.data <- data.use[, subset.name]
+    subset.data <- data.use[, subset.name, drop = F]
     if(! is.null(x = accept.value)) {
       pass.inds <- which(x = subset.data == accept.value)
     } else {
-      pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
+      pass.inds <- which(x = (subset.data >= accept.low) & (subset.data <= accept.high))
     }
     cells.use <- rownames(x = data.use)[pass.inds]
   }
