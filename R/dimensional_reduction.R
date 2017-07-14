@@ -520,6 +520,9 @@ RunCCA <- function(
   genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
+  
+  cat("Running CCA\n", file = stderr())
+  
   cca.results <- CanonCor(
       mat1 = data.use1,
       mat2 = data.use2,
@@ -665,10 +668,12 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
+      temp.matrix=PrepDR(group.object,genes.use = genes.use)
       group.object <- PCA(
         object = group.object,
         pc.genes = genes.use,
-        do.print = FALSE
+        do.print = FALSE,
+        center=rowMeans(temp.matrix)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,
