@@ -4,15 +4,18 @@
 \alias{SubsetColumn}
 \title{Return a subset of columns for a matrix or data frame}
 \usage{
-SubsetColumn(data, code)
+SubsetColumn(data, code, invert = FALSE)
 }
 \arguments{
 \item{data}{Matrix or data frame with column names}
 
 \item{code}{Pattern for matching within column names}
+
+\item{invert}{Invert the search?}
 }
 \value{
-Returns a subset of data, using only column names that yield a match to the pattern
+Returns a subset of data. If invert = TRUE, returns data where colnames
+do not contain code, otherwise returns data where colnames contain code
 }
 \description{
 Return a subset of columns for a matrix or data frame

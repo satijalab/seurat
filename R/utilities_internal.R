@@ -396,27 +396,50 @@ SetIfNull <- function(x, default) {
 }
 
 # return average of all values greater than a threshold
-humpMean <- function(x, min = 0) {
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The mean of x where x > min
+#
+MeanGreaterThan <- function(x, min = 0) {
   return(mean(x = x[x > min]))
 }
 
-#return variance of all values greater than a threshold
-humpVar <- function(x, min = 0) {
+# return variance of all values greater than a threshold
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The variance of x where x > min
+#
+VarianceGreaterThan <- function(x, min = 0) {
   return(var(x = x[x > min]))
 }
 
 # calculate the coefficient of variation
-cv <- function(x) {
+#
+# @param x Values to calculate the coefficient of variation
+#
+# @return The coefficient of variation of x
+#
+CoefVar <- function(x) {
   return(sd(x = x) / mean(x = x))
 }
 
 # return la count of all values greater than a threshold
-humpCt <- function(x, min = 0) {
-  return(length(x = x[x > min]))
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The length of x where x > min
+#
+CountGreaterThan <- function(x, min = 0) {
+  return(sum(x > min))
 }
 
 # add values in log-space
-log_add <- function(x) {
+LogAdd <- function(x) {
   mpi <- max(x)
   return(mpi + log(x = sum(exp(x = x - mpi))))
 }

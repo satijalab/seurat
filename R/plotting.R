@@ -2383,7 +2383,7 @@ VariableGenePlot <- function(
       (gene.dispersion.scaled < y.high.cutoff)
   )]
   if (do.spike) {
-    spike.genes <- rownames(x = subr(data = object@data, code = "^ERCC"))
+    spike.genes <- rownames(x = SubsetRow(data = object@data, code = "^ERCC"))
   }
   if (plot.both) {
     par(mfrow = c(1, 2))

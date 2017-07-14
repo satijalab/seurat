@@ -156,7 +156,7 @@ CalcNoiseModels <- function(
   object@trusted.genes <- trusted.genes
   data <- object@data[trusted.genes, ]
   idents <- data.frame(data[, 1])
-  code_humpAvg <- apply(X = data, MARGIN = 1, FUN = humpMean, min = object@drop.expr)
+  code_humpAvg <- apply(X = data, MARGIN = 1, FUN = MeanGreaterThan, min = object@drop.expr)
   code_humpAvg[code_humpAvg > 9] <- 9
   code_humpAvg[is.na(x = code_humpAvg)] <- 0
   idents$code_humpAvg <- code_humpAvg
