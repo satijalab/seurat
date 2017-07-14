@@ -295,14 +295,23 @@ ExpMean <- function(x) {
 #'
 #' @return Returns the dispersion in log-space
 #' @export
-logVarDivMean <- function(x) {
+LogDispersion <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
 
-#   Run a custom distance function on an input data matrix
-#from Jean Fan - thanks!!
+#' Run a custom distance function on an input data matrix
+#'
+#' @author Jean Fan
+#'
+#' @param my.mat A matrix to calculate distance on
+#' @param my.function A function to calculate distance
+#' @param ... Extra parameters to my.function
+#'
+#' @return A distance matrix
+#'
 #' @export
-custom.dist <- function(my.mat, my.function, ...) {
+#'
+CustomDistance <- function(my.mat, my.function, ...) {
   n <- ncol(x = my.mat)
   mat <- matrix(data = 0, ncol = n, nrow = n)
   colnames(x = mat) <- rownames(x = mat) <- colnames(x = my.mat)

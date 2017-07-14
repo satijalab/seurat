@@ -494,7 +494,7 @@ BuildClusterTree <- function(
     }
     data.weights <- (data.eigenval / sum(data.eigenval))[pcs.use]
     data.weights <- data.weights / sum(data.weights)
-    data.dist <- custom.dist(
+    data.dist <- CustomDistance(
       my.mat = data.pca[pcs.use, ],
       my.function = WeightedEuclideanDist,
       w = data.weights

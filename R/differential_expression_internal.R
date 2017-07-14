@@ -144,7 +144,7 @@ DifferentialAUC <- function(x, y) {
 
 # given a UMI count matrix, estimate NB theta parameter for each gene
 # and use fit of relationship with mean to assign regularized theta to each gene
-theta.reg <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
+RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
   genes.regress <- rownames(x = cm)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
@@ -189,7 +189,7 @@ theta.reg <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
     }
   }
   if (any(is.na(x = fit$fitted))) {
-    stop('Problem when fitting NB gene variance in theta.reg - NA values were fitted.')
+    stop('Problem when fitting NB gene variance in RegularizedTheta - NA values were fitted.')
   }
   theta.fit <- (UMI.mean ^ 2) / ((10 ^ fit$fitted) - UMI.mean)
   names(x = theta.fit) <- genes.regress
@@ -212,7 +212,7 @@ theta.reg <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
 # compare two negative binomial regression models
 # model one uses only common factors (com.fac)
 # model two additionally uses group factor (grp.fac)
-de.nb.reg <- function(y, theta, latent.data, com.fac, grp.fac) {
+NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   tab <- as.matrix(x = table(y > 0, latent.data[, grp.fac]))
   freqs <- tab['TRUE', ] / apply(X = tab, MARGIN = 2, FUN = sum)
   fit2 <- 0

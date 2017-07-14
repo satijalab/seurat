@@ -403,7 +403,7 @@ ReorderIdent <- function(
 ) {
   ident.use <- object@ident
   data.use <- FetchData(object = object, vars.all = feature, ...)[, 1]
-  revFxn <- same
+  revFxn <- Same
   if (rev) {
     revFxn <- function(x) {
       return(max(x) + 1 - x)
