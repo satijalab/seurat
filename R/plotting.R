@@ -1215,6 +1215,7 @@ JackStrawPlot <- function(
 ) {
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
+  pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
   pAll.l <- melt(data = pAll, id.vars = "Contig")
   colnames(x = pAll.l) <- c("Contig", "PC", "Value")
@@ -1223,13 +1224,13 @@ JackStrawPlot <- function(
   for (i in PCs) {
     q <- qqplot(x = pAll[, i], y = runif(n = 1000), plot.it = FALSE)
     #pc.score=mean(q$y[which(q$x <=score.thresh)])
-    pc.score <- prop.test(
+    pc.score <- suppressWarnings(prop.test(
       x = c(
         length(x = which(x = pAll[, i] <= score.thresh)),
         floor(x = nrow(x = pAll) * score.thresh)
       ),
       n = c(nrow(pAll), nrow(pAll))
-    )$p.val
+    )$p.val)
     if (length(x = which(x = pAll[, i] <= score.thresh)) == 0) {
       pc.score <- 1
     }
