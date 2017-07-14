@@ -119,7 +119,7 @@ RefinedMapping <- function(object, genes.use) {
     x = sweep(
       x = mv.probs,
       MARGIN = 2,
-      STATS = apply(X = mv.probs, MARGIN = 2, FUN = log_add)
+      STATS = apply(X = mv.probs, MARGIN = 2, FUN = LogAdd)
     )
   )
   object@spatial@finalprob <- data.frame(mv.final)
@@ -308,7 +308,11 @@ FitGeneK <- function(
   norm.probs <- cbind(norm.probs, cell.ident)
   colnames(x = norm.probs)[ncol(x = norm.probs)] <- paste0(gene, ".ident")
   new.mix.probs <- data.frame(
-    minusc(data = object@spatial@mix.probs, code = paste0(gene, ".")),
+    SubsetColumn(
+      data = object@spatial@mix.probs,
+      code = paste0(gene, "."),
+      invert = TRUE
+    ),
     row.names = rownames(x = object@spatial@mix.probs)
   )
   colnames(x = new.mix.probs)[1] <- "nGene"
@@ -398,7 +402,11 @@ FitGeneMix <- function(
     )
   }
   new.mix.probs <- data.frame(
-    minusc(data = object@spatial@mix.probs, code = paste0(gene, ".")),
+    SubsetColumn(
+      data = object@spatial@mix.probs,
+      code = paste0(gene, "."),
+      invert = TRUE
+    ),
     row.names = rownames(x = object@spatial@mix.probs)
   )
   colnames(x = new.mix.probs)[1] <- "nGene"

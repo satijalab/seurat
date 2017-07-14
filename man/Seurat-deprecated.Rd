@@ -88,6 +88,8 @@
 \alias{jackRandom}
 \alias{MeanVarPlot}
 \alias{HeatmapNode}
+\alias{minusr}
+\alias{minusc}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 vlnPlot(...)
@@ -187,6 +189,8 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
   \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
   \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
+  \code{minusr} \tab now a synonym for \code{\link{SubsetRow}}\cr
+  \code{minusc} \tab now a synonym for \code{\link{SubsetColumn}}\cr
 }
 }
 

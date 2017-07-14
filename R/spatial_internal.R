@@ -195,7 +195,7 @@ MapCell <- function(
   insitu.use <- insitu.matrix[, insitu.genes]
   imputed.use <- object@imputed[insitu.genes, ]
   if (safe.use) {
-    safe_fxn <- log_add
+    safe_fxn <- LogAdd
   } else {
     safe_fxn <- sum
   }
@@ -230,7 +230,7 @@ MapCell <- function(
     )
   )
   scale.probs <- t(
-    x = t(x = all.probs) - apply(X = t(x = all.probs), MARGIN = 1, FUN = log_add)
+    x = t(x = all.probs) - apply(X = t(x = all.probs), MARGIN = 1, FUN = LogAdd)
   )
   scale.probs[scale.probs < (-9.2)] <- (-9.2)
   #head(scale.probs)

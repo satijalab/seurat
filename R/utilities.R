@@ -167,48 +167,19 @@ ConvertSeurat <- function(object) {
   return(new.object)
 }
 
-
 #' Return a subset of rows for a matrix or data frame
 #'
 #' @param data Matrix or data frame with row names
 #' @param code Pattern for matching within row names
-#' @return Returns a subset of data, using only rownames that did not yield a match to the pattern
-#' @export
-minusr <- function(data, code) {
-  matchCode <- rownames(x = data)[grep(pattern = code, x = rownames(x = data))]
-  toIgnore <- which(x = rownames(x = data) %in% matchCode)
-  if (length(x = toIgnore) == 0) {
-    return(data)
-  }
-  toRet <- data.frame(data[-toIgnore, ])
-  rownames(x = toRet) <- rownames(x = data)[-toIgnore]
-  colnames(x = toRet) <- colnames(x = data)
-  return(toRet)
-}
-
-#' Return a subset of columns for a matrix or data frame
+#' @param invert Invert the search?
 #'
-#' @param data Matrix or data frame with column names
-#' @param code Pattern for matching within column names
-#' @return Returns a subset of data, using only column names that did not yield a match to the pattern
-#' @export
-minusc <- function(data, code) {
-  matchCode <- colnames(x = data)[grep(pattern = code, colnames(x = data))]
-  toIgnore <- which(x = colnames(x = data) %in% matchCode)
-  if (length(x = toIgnore) == 0) {
-    return(data)
-  }
-  return(data[, -toIgnore])
-}
-
-#' Return a subset of rows for a matrix or data frame
+#' @return Returns a subset of data. If invert = TRUE, returns data where rownames
+#' do not contain code, otherwise returns data where rownames contain code
 #'
-#' @param data Matrix or data frame with row names
-#' @param code Pattern for matching within row names
-#' @return Returns a subset of data, using only rownames that yielded a match to the pattern
 #' @export
-subr <- function(data, code) {
-  return(data[grep(pattern = code, x = rownames(x = data)), ])
+#'
+SubsetRow <- function(data, code, invert = FALSE) {
+  return(data[grep(pattern = code, x = rownames(x = data), invert = invert), ])
 }
 
 #' Independently shuffle values within each row of a matrix
@@ -235,10 +206,15 @@ shuffleMatRow <- function(x) {
 #'
 #' @param data Matrix or data frame with column names
 #' @param code Pattern for matching within column names
-#' @return Returns a subset of data, using only column names that yield a match to the pattern
+#' @param invert Invert the search?
+#'
+#' @return Returns a subset of data. If invert = TRUE, returns data where colnames
+#' do not contain code, otherwise returns data where colnames contain code
+#'
 #' @export
-SubsetColumn <- function(data, code) {
-  return(data[, grep(pattern = code, x = colnames(x = data))])
+#'
+SubsetColumn <- function(data, code, invert = FALSE) {
+  return(data[, grep(pattern = code, x = colnames(x = data), invert = invert)])
 }
 
 #' Apply a ceiling and floor to all values in a matrix
