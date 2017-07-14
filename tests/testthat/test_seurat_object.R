@@ -23,18 +23,24 @@ expression.thresh <- 1
 
 nbt.test <- new("seurat", raw.data = nbt.small)
 
+nbt.test <- Seurat(raw.data = nbt.small,
+                   project = project.name,
+                   min.cells = min.cells,
+                   names.field = names.field,
+                   names.delim = names.delim,
+                   min.genes = min.genes,
+                   is.expr = expression.thresh,
+                   do.scale = T,
+                   do.center = T)
+
 test_that("object initialization creates seurat object", {
   expect_is(nbt.test, "seurat")
 })
-
-nbt.test <- Setup(nbt.test, project = project.name, min.cells = min.cells, names.field = names.field,
-                  names.delim = names.delim, min.genes = min.genes, is.expr = expression.thresh, do.logNormalize = F)
 
 test_that("entered parameters set correctly", {
   expect_match(project.name, nbt.test@project.name)
   expect_equal(expression.thresh, nbt.test@is.expr)
 })
-
 test_that("correct cells are used",{
   gene.count <- nbt.test@data.info$nGene
   expect_equal(min(gene.count), 2405)
@@ -76,6 +82,7 @@ nbt.test <- FindVariableGenes(
   mean.function = ExpMean,
   dispersion.function = logVarDivMean
 )
+
 pcs.compute <- 4
 nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
 
@@ -99,10 +106,9 @@ test_that("PCA returns expected data when scaling by variance explained", {
 # --------------------------------------------------------------------------------
 context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
-
 test_that("tSNE is run correctly", {
   expect_equal(nrow(nbt.test@dr$tsne@cell.embeddings), ncol(nbt.test@data))
-  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), 7.228236, tolerance = 1e-6)
+  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), -14.65122, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {
@@ -156,14 +162,9 @@ test_that("SNN calculations are correct and handled properly", {
   expect_error(FindClusters(nbt.test, resolution = 1, reuse.SNN = T))
 
 })
-
-
 nbt.test <- FindClusters(nbt.test, k.param = 4, resolution = seq(1,2,0.1), print.output = 0, n.iter = 1,
                          n.start = 1)
-
 test_that("Clustering over multiple resolution values handled correctly", {
-  nbt.test <- FindClusters(nbt.test, k.param = 4, resolution = seq(1,2,0.1), print.output = 0, n.iter = 1,
-                           n.start = 1)
   expect_equal(length(nbt.test@data.info$res.1), ncol(nbt.test@data))
   expect_equal(length(nbt.test@data.info$res.2), ncol(nbt.test@data))
   expect_equal(length(nbt.test@snn), 1)
@@ -207,3 +208,4 @@ test_that("CCA returns the expected cell.embeddings matrix values", {
   expect_equal(c3@dr$cca@cell.embeddings[1,1], 0.26555816)
   expect_equal(c3@dr$cca@cell.embeddings[14,3], 0.71504785)
 })
+

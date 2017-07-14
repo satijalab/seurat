@@ -5,7 +5,7 @@
 \title{Add samples into existing Seurat object.}
 \usage{
 AddSamples(object, new.data, project = NULL, min.cells = 3,
-  min.genes = 1000, is.expr = 0, do.logNormalize = TRUE,
+  min.genes = 1000, is.expr = 0, normalization.method = NULL,
   total.expr = 10000, do.scale = TRUE, do.center = TRUE,
   names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
   add.cell.id = NULL)
@@ -24,12 +24,13 @@ many cells}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{do.logNormalize}{whether to normalize the expression data per cell and transform to log space.}
+\item{normalization.method}{Method for normalization. Default is
+log-normalization (LogNormalize). Other options include CLR (CLR),
+regularized NB normalization (NBReg; RNA only)}
 
 \item{total.expr}{scale factor in the log normalization}
 
-\item{do.scale}{In object@scale.data, perform row-scaling (gene-based
-z-score)}
+\item{do.scale}{In object@scale.data, perform row-scaling (gene-based}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
 centering)}

@@ -537,7 +537,6 @@ RunCCA <- function(
       do.scale = FALSE,
       do.center = FALSE
     )
-    combined.object@scale.data[which(x = is.na(x = combined.object@scale.data))] <- 0
     combined.object@var.genes <- genes.use
     combined.object <- ScaleData(object = combined.object)
     combined.object <- SetDimReduction(

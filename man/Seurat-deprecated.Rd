@@ -2,7 +2,6 @@
 % Please edit documentation in R/deprecated_functions.R
 \name{Seurat-deprecated}
 \alias{Seurat-deprecated}
-\alias{setup}
 \alias{vlnPlot}
 \alias{subsetData}
 \alias{mean.var.plot}
@@ -89,10 +88,9 @@
 \alias{jackRandom}
 \alias{MeanVarPlot}
 \alias{HeatmapNode}
-\alias{myPalette}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
-setup(...)
+vlnPlot(...)
 }
 \arguments{
 \item{...}{Parameters to be passed to the modern version of the function}
@@ -103,7 +101,6 @@ These functions are provided for compatibility with older version of the Seurat 
 \section{Details}{
 
 \tabular{rl}{
-  \code{setup} \tab now a synonym for \code{\link{Setup}}\cr
   \code{vlnPlot} \tab now a synonym for \code{\link{VlnPlot}}\cr
   \code{subsetData} \tab now a synonym for \code{\link{SubsetData}}\cr
   \code{mean.var.plot} \tab now a synonym for \code{\link{MeanVarPlot}}\cr
