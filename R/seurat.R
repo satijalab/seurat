@@ -58,16 +58,16 @@ seurat <- setClass(
     assay = "list",
     data.info = "data.frame",
     project.name = "character",
-    mean.var = "data.frame",
+    hvg.info = "data.frame",
     imputed = "data.frame",
     cell.names = "vector",
     cluster.tree = "list",
     snn = "dgCMatrix",
     snn.k = "numeric",
     calc.params = "list",
-    kmeans="ANY",
-    spatial="ANY",
-    misc="ANY"
+    kmeans = "ANY",
+    spatial = "ANY",
+    misc = "ANY"
   )
 )
 
