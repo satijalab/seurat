@@ -613,47 +613,31 @@ DBClustDimension <- function(
 #' Perform spectral k-means clustering on single cells
 #'
 #' Find point clounds single cells in a low-dimensional space using k-means clustering.
-#'
-#' CAn be useful for smaller datasets, not documented here yet
+#' Can be useful for smaller datasets, where graph-based clustering can perform poorly
+#' TODO : add documentation here
+#' 
 #' @export
 #'
 KClustDimension <- function(
   object,
-  dim.1 = 1,
-  dim.2 = 2,
+  dims.use = c(1,2),
   cells.use = NULL,
   pt.size = 4,
   reduction.use = "tsne",
   k.use = 5,
-  set.ident = FALSE,
+  set.ident = T,
   seed.use = 1,
   ...
 ) {
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
-  dim.code <- "PC"
-  if (reduction.use == "pca") {
-    data.plot <- object@pca.rot[cells.use, ]
-  }
-  if (reduction.use == "tsne") {
-    data.plot <- object@tsne.rot[cells.use, ]
-    dim.code <- "Seurat_"
-  }
-  if (reduction.use == "ica") {
-    data.plot <- object@ica.rot[cells.use, ]
-    dim.code <- "IC"
-  }
-  x1 <- paste0(dim.code, dim.1)
-  x2 <- paste0(dim.code, dim.2)
-  data.plot$x <- data.plot[, x1]
-  data.plot$y <- data.plot[, x2]
-  if (reduction.use != "pca") {
-    set.seed(seed = seed.use)
-    data.mclust <- ds <- kmeans(x = data.plot[, c("x", "y")], centers = k.use)
-  }
-  if (reduction.use == "pca") {
-    set.seed(seed = seed.use)
-    data.mclust <- ds <- kmeans(x = object@pca.rot[cells.use, dim.1], centers = k.use)
-  }
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
+  dim.codes <- paste0(dim.code, dims.use)
+  data.plot <- FetchData(object = object, vars.all = dim.codes)
+  set.seed(seed = seed.use)
+  data.mclust <- ds <- kmeans(x = data.plot, centers = k.use)
   to.set <- as.numeric(x = data.mclust$cluster)
   data.names <- names(x = object@ident)
   object@data.info[data.names, "kdimension.ident"] <- to.set

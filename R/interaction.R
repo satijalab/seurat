@@ -135,10 +135,6 @@ MergeSeurat <- function(
     save.raw = save.raw
   )
   
-  # to improve, to pull the same normalization and scale params as previously used
-  merged.object=NormalizeData(merged.object)
-  merged.object=ScaleData(merged.object)
-  
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
