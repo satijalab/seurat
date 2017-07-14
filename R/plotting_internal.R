@@ -493,23 +493,23 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # String form for a quantile is represented as a number prefixed with 'q'
 # For example, 10th quantile is 'q10' while 2nd quantile is 'q2'
 #
+# Will only take a quantile of non-zero data values
+#
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
 #
 # @return The numerical representation of the quantile
 #
 SetQuantile <- function(cutoff, data) {
-  if (grepl(
-    pattern = '^q[0-9]{1,2}$',
-    x = as.character(x = cutoff),
-    perl = TRUE
-  )) {
+  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
     this.quantile <- as.numeric(x = sub(
       pattern = 'q',
       replacement = '',
       x = as.character(x = cutoff)
     )) / 100
-    cutoff <- quantile(x = unlist(x = data), probs = this.quantile)
+    data <- unlist(x = data)
+    data <- data[data > 0]
+    cutoff <- quantile(x = data, probs = this.quantile)
   }
   return(as.numeric(x = cutoff))
 }
