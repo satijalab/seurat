@@ -110,7 +110,7 @@ zf.cells.render <- function(
   i <- 1
   for(cell.use in cells.use) {
     #add the centroid
-    anchor.centroid <- exact.cell.centroid(
+    anchor.centroid <- ExactCellCentroid(
       cell.probs = seuratObject@final.prob[, cell.use]
     )
     tiers.min <- c(30, 24, 16, 12, 8, 6, 4, 2, 0)
@@ -235,7 +235,7 @@ zf.anchor.render <- function(
     lit = FALSE
   )
   #add the centroid
-  anchor.centroid <- exact.cell.centroid(cell.probs = anchor.prob.raw)
+  anchor.centroid <- ExactCellCentroid(cell.probs = anchor.prob.raw)
   tiers.min <- c(30, 24, 16, 12, 8, 6, 2, 1)
   tiers.size <- diff(x = tiers.min)
   anchor.dorsality <- DVBins - ((anchor.centroid[2] - 1) / 7) * DVBins / 2

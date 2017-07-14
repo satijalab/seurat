@@ -32,14 +32,14 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(exact.cell.centroid(cell.probs = object@spatial@finalprob[, x]))
+        return(ExactCellCentroid(cell.probs = object@spatial@finalprob[, x]))
       }
     )))
   } else {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(cell.centroid(cell.probs = object@spatial@finalprob[, x]))
+        return(CellCentroid(cell.probs = object@spatial@finalprob[, x]))
       }
     )))
   }
@@ -70,7 +70,7 @@ RefinedMapping <- function(object, genes.use) {
   cells.max <- t(x = sapply(
     X = colnames(object@data),
     FUN = function(x) {
-      return(exact.cell.centroid(object@spatial@finalprob[, x]))
+      return(ExactCellCentroid(object@spatial@finalprob[, x]))
     }
   ))
   all.mu <- sapply(
@@ -79,7 +79,7 @@ RefinedMapping <- function(object, genes.use) {
       return(sapply(X = 1:64, FUN = function(bin) {
         mean(x = as.numeric(x = object@imputed[
           gene, # Row
-          fetch.closest(
+          FetchClosest(
             bin = bin,
             all.centroids = cells.max,
             num.cell = 2*length(x = genes.use)
@@ -94,7 +94,7 @@ RefinedMapping <- function(object, genes.use) {
       x = t(
         x = object@imputed[
           genes.use, # Row
-          fetch.closest(
+          FetchClosest(
             bin = x,
             all.centroids = cells.max,
             num.cell = 2*length(x = genes.use)
@@ -159,26 +159,16 @@ InitialMapping <- function(object, cells.use = NULL) {
 
 #return cell centroid after spatial mappings (both X and Y)
 #' @export
-cell.centroid <- function(cell.probs) {
-  centroid.x <- round(x = sum(sapply(
-    X = 1:64,
-    FUN = function(x) {
-      return((x - 1) %% 8 + 1)
-    }
-  ) * cell.probs))
-  centroid.y <- round(x = sum(sapply(
-    X = 1:64,
-    FUN = function(x) {
-      return((x - 1) %/% 8 + 1)
-    }
-  ) * cell.probs))
+CellCentroid <- function(cell.probs) {
+  centroid.x <- XCellCentroid(cell.probs = cell.probs)
+  centroid.y <- YCellCentroid(cell.probs = cell.probs)
   centroid.bin <- 8 * (centroid.y - 1) + centroid.x
   return(centroid.bin)
 }
 
 #return x-coordinate cell centroid
 #' @export
-cell.centroid.x <- function(cell.probs) {
+XCellCentroid <- function(cell.probs) {
   centroid.x <- round(x = sum(sapply(
     X = 1:64,
     FUN = function(x) {
@@ -190,7 +180,7 @@ cell.centroid.x <- function(cell.probs) {
 
 #return y-coordinate cell centroid
 #' @export
-cell.centroid.y <- function(cell.probs) {
+YCellCentroid <- function(cell.probs) {
   centroid.y <- round(x = sum(sapply(
     X = 1:64,
     FUN = function(x) {
@@ -202,15 +192,13 @@ cell.centroid.y <- function(cell.probs) {
 
 #return x and y-coordinate cell centroid
 #' @export
-exact.cell.centroid <- function(cell.probs) {
+ExactCellCentroid <- function(cell.probs) {
   # centroid.x=(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
-  centroid.x <- cell.centroid.x(cell.probs = cell.probs)
+  centroid.x <- XCellCentroid(cell.probs = cell.probs)
   # centroid.y=(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs))
-  centroid.y <- cell.centroid.y(cell.probs = cell.probs)
+  centroid.y <- YCellCentroid(cell.probs = cell.probs)
   return(c(centroid.x, centroid.y))
 }
-
-
 
 #' Build mixture models of gene expression
 #'

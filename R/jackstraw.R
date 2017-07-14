@@ -101,7 +101,7 @@ JackStraw <- function(
       FUN = function(x) {
         return(unlist(x = lapply(
           X = abs(md.x[, x]),
-          FUN = empP,
+          FUN = EmpiricalP,
           nullval = abs(fake.pcVals[,x])
         )))
       }
@@ -146,7 +146,7 @@ JackRandom <- function(
     rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
   }
   data.mod <- scaled.data
-  data.mod[rand.genes, ] <- shuffleMatRow(x = scaled.data[rand.genes, ])
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
   temp.object <- new("seurat")
   temp.object@scale.data <- data.mod
   temp.object <- PCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),

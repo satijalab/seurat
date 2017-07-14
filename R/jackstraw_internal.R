@@ -10,16 +10,16 @@ jackstraw.data <- setClass(
 
 
 #internal
-jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
+JackstrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
   randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)
   smD.mod <- data
-  smD.mod[randGenes, ] <- shuffleMatRow(x = data[randGenes, ])
+  smD.mod[randGenes, ] <- MatrixRowShuffle(x = data[randGenes, ])
   fmd.pca <- prcomp(x = smD.mod)
   fmd.x <- fmd.pca$x
   fmd.rot <- fmd.pca$rotation
   fakeF <- unlist(x = lapply(
     X = randGenes,
-    FUN = jackF,
+    FUN = JackF,
     r1 = myR1,
     r2 = myR2,
     x = fmd.x,
@@ -28,7 +28,7 @@ jackStrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
 }
 
 #internal
-jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
+JackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
   if (r2 == 1) { #assuming r1, r2=1
     mod.x <- x[, r1]
     mod.x[gene] <- 0
@@ -46,6 +46,6 @@ jackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
 }
 
 #internal
-empP <- function(x, nullval) {
+EmpiricalP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
 }

@@ -672,17 +672,17 @@ SingleVlnPlot <- function(
 no.legend.title <- theme(legend.title = element_blank())
 
 #set legend text
-gg.legend.text <- function(x = 12, y = "bold") {
+SetLegendTextGG <- function(x = 12, y = "bold") {
   return(theme(legend.text = element_text(size = x, face = y)))
 }
 
 #set legend point size
-gg.legend.pts <- function(x = 6) {
+SetLegendPointsGG <- function(x = 6) {
   return(guides(colour = guide_legend(override.aes = list(size = x))))
 }
 
 #set x axis features
-gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
+SetXAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.x = element_text(face = z, colour = y, size = x),
     axis.text.x = element_text(angle = 90, vjust = 0.5, size = x2)
@@ -690,7 +690,7 @@ gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 }
 
 #set y axis features
-gg.yax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
+SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.y = element_text(face = z, colour = y, size = x),
     axis.text.y = element_text(angle = 90, vjust = 0.5, size = x2)

@@ -1,5 +1,5 @@
 #internal function to run mcdavid et al. DE test
-diffLRT <- function(x, y, xmin = 1) {
+DifferentialLRT <- function(x, y, xmin = 1) {
   lrtX <- bimodLikData(x = x)
   lrtY <- bimodLikData(x = y)
   lrtZ <- bimodLikData(x = c(x, y))
@@ -33,7 +33,7 @@ TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
   p_val <- unlist(x = lapply(
     X = mygenes,
     FUN = function(x) {
-      return(diffTobit(
+      return(DifferentialTobit(
         x1 = as.numeric(x = data1[x, ]),
         x2 = as.numeric(x = data2[x, ])
       ))}
@@ -49,21 +49,21 @@ TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
 }
 
 #internal function to run Tobit DE test
-diffTobit <- function(x1, x2, lower = 1, upper = Inf) {
+DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
   my.df <- data.frame(
     c(x1, x2),
     c(rep(x = 0, length(x = x1)), rep(x = 1, length(x = x2)))
   )
   colnames(x = my.df) <- c("Expression", "Stat")
   #model.v1=vgam(Expression~1,family = tobit(Lower = lower,Upper = upper),data = my.df)
-  model.v1 <- tobit_fitter(
+  model.v1 <- TobitFitter(
     x = my.df,
     modelFormulaStr = "Expression~1",
     lower = lower,
     upper = upper
   )
   #model.v2=vgam(Expression~Stat+1,family = tobit(Lower = lower,Upper = upper),data = my.df)
-  model.v2 <- tobit_fitter(
+  model.v2 <- TobitFitter(
     x = my.df,
     modelFormulaStr = "Expression~Stat+1",
     lower = lower,
@@ -84,7 +84,7 @@ diffTobit <- function(x1, x2, lower = 1, upper = Inf) {
 
 #internal function to run Tobit DE test
 #credit to Cole Trapnell for this
-tobit_fitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
+TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
   tryCatch(
     expr = return(suppressWarnings(expr = vgam(
       formula = as.formula(object = modelFormulaStr),
@@ -97,11 +97,11 @@ tobit_fitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
 }
 
 # internal function to calculate AUC values
-marker.auc.test <- function(data1, data2, mygenes, print.bar = TRUE) {
+AUCMarkerTest <- function(data1, data2, mygenes, print.bar = TRUE) {
   myAUC <- unlist(x = lapply(
     X = mygenes,
     FUN = function(x) {
-      return(diffAUC(
+      return(DifferentialAUC(
         x = as.numeric(x = data1[x, ]),
         y = as.numeric(x = data2[x, ])
       ))
@@ -131,7 +131,7 @@ marker.auc.test <- function(data1, data2, mygenes, print.bar = TRUE) {
 }
 
 # internal function to calculate AUC values
-diffAUC <- function(x, y) {
+DifferentialAUC <- function(x, y) {
   prediction.use <- prediction(
     predictions = c(x, y),
     labels = c(rep(x = 1, length(x = x)), rep(x = 0, length(x = y))),

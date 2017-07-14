@@ -189,7 +189,7 @@ SubsetRow <- function(data, code, invert = FALSE) {
 #' @param x Matrix to shuffle
 #' @return Returns a scrambled matrix, where each row is shuffled independently
 #' @export
-shuffleMatRow <- function(x) {
+MatrixRowShuffle <- function(x) {
   x2 <- x
   x2 <- t(x = x)
   ind <- order(c(col(x = x2)), runif(n = length(x = x2)))

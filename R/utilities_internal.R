@@ -439,6 +439,11 @@ CountGreaterThan <- function(x, min = 0) {
 }
 
 # add values in log-space
+#
+# @param x Values
+#
+# @return values added in log space
+#
 LogAdd <- function(x) {
   mpi <- max(x)
   return(mpi + log(x = sum(exp(x = x - mpi))))

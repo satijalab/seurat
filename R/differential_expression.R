@@ -609,7 +609,7 @@ DiffExpTest <- function(
       X = genes.use,
       FUN = function(x) {
         return(
-          diffLRT(
+          DifferentialLRT(
             x = as.numeric(x = object@data[x, cells.1]),
             y = as.numeric(x = object@data[x, cells.2])
           )
@@ -976,7 +976,7 @@ MarkerTest <- function(
   print.bar = TRUE
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
-  to.return <- marker.auc.test(
+  to.return <- AUCMarkerTest(
     data1 = object@data[, cells.1],
     data2 = object@data[, cells.2],
     mygenes = genes.use,
