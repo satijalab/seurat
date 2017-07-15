@@ -80,7 +80,7 @@ nbt.test <- FindVariableGenes(
   y.cutoff = 2,
   x.low.cutoff = 2,
   mean.function = ExpMean,
-  dispersion.function = LogDispersion
+  dispersion.function = LogVMR
 )
 
 pcs.compute <- 4
