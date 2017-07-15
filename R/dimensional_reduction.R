@@ -26,7 +26,7 @@
 #'
 #' @export
 #'
-PCA <- function(
+RunPCA <- function(
   object,
   pc.genes = NULL,
   pcs.compute = 20,
