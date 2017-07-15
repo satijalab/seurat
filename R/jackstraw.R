@@ -30,7 +30,7 @@ JackStraw <- function(
   do.print = FALSE
 ) {
   if (is.null(object@dr$pca)) {
-    stop("PCA has not been computed yet. Please run PCA().")
+    stop("PCA has not been computed yet. Please run RunPCA().")
   }
   # error checking for number of PCs
   if (num.pc > ncol(x = GetDimReduction(object,"pca","cell.embeddings"))) {
@@ -149,7 +149,7 @@ JackRandom <- function(
   data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
   temp.object <- new("seurat")
   temp.object@scale.data <- data.mod
-  temp.object <- PCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
+  temp.object <- RunPCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
                      rev.pca = rev.pca, weight.by.var = weight.by.var,
                      do.print = F)
   fake.x <- PCALoad(temp.object)

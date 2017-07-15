@@ -672,7 +672,7 @@ CalcVarExpRatio <- function(
     )
     if (reduction.type == "pca") {
       temp.matrix=PrepDR(group.object,genes.use = genes.use)
-      group.object <- PCA(
+      group.object <- RunPCA(
         object = group.object,
         pc.genes = genes.use,
         do.print = FALSE,
