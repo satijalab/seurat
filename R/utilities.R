@@ -87,6 +87,30 @@ UpdateSeuratObject <- function(object) {
     new.object <- FillSlot(slot.name = s, old.object = object,
                               new.object = new.object)
   }
+
+  # Copy over old slots if they have info stored
+  if(length(object@kmeans.obj) > 0){
+    new.object@kmeans@gene.kmeans.obj <- object@kmeans.obj
+  }
+  if(length(object@kmeans.col) >0 ){
+    new.object@kmeans@cell.kmeans.obj <- object@kmeans.col
+  }
+  if(length(object@data.info) > 0){
+    new.object@meta.data <- object@data.info
+  }
+  if(length(object@mean.var) > 0){
+    new.object@hvg.info <- object@mean.var
+    colnames(new.object@hvg.info) <- c("gene.mean", "gene.dispersion", "gene.dispersion.scaled")
+  }
+  if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
+     length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
+    new.object@spatial <- new("spatial.info",
+                              mix.probs = object@mix.probs,
+                              mix.param = object@mix.param,
+                              final.prob = object@final.prob,
+                              insitu.matrix = object@insitu.matrix)
+  }
+
   # Conversion from development versions prior to 2.0.0
   # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
   #                   tsne.rot
