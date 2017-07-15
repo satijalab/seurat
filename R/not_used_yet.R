@@ -661,7 +661,7 @@ JackStrawMC <- function(
         FUN = function(x) {
           return(unlist(x = lapply(
             X = abs(md.x[, x]),
-            FUN = empP,
+            FUN = EmpiricalP,
             nullval = abs(x = fake.pcVals[, x])
           )))
         },
@@ -693,7 +693,7 @@ JackStrawFull <- function(
     FUN = function(x) {
       return(unlist(x = lapply(
         X = pc.genes,
-        FUN = jackF,
+        FUN = JackF,
         r1 = x,
         r2 = x,
         x = md.x,
@@ -708,7 +708,7 @@ JackStrawFull <- function(
     FUN = function(x) {
       return(unlist(x = replicate(
         n = num.replicate,
-        expr = jackStrawF(
+        expr = JackstrawF(
           prop = prop.freq,
           data = object@scale.data[pc.genes, ],
           myR1 = x,
@@ -726,7 +726,7 @@ JackStrawFull <- function(
       FUN = function(x) {
         return(unlist(x = lapply(
           X = object@real.fval[, x],
-          FUN = empP,
+          FUN = EmpiricalP,
           nullval = object@fake.fval[, x]
         )))
       }

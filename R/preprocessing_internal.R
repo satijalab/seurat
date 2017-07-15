@@ -81,7 +81,7 @@ RegressOut <- function(
             ))
           }
           if (model.use == 'negbinom') {
-            return(nb.residuals(
+            return(NBResiduals(
               formula = fmla,
               regression.mat = regression.mat,
               gene = x
@@ -141,7 +141,7 @@ RegressOutNB <- function(
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
   latent.data <- FetchData(object = object, vars.all = latent.vars)
   cat(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
-  theta.fit <- theta.reg(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
+  theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
   print('Second run NB regression with fixed theta')
   bin.size <- 128
   bin.ind <- ceiling(1:length(genes.regress)/bin.size)

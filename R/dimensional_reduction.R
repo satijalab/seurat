@@ -26,7 +26,7 @@
 #'
 #' @export
 #'
-PCA <- function(
+RunPCA <- function(
   object,
   pc.genes = NULL,
   pcs.compute = 20,
@@ -73,8 +73,8 @@ PCA <- function(
     key = "PC"
   )
   object@dr$pca <- pca.obj
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("PCA"))]
-  object <- SetCalcParams(object = object, calculation = "PCA", ... = parameters.to.store)
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
+  object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if(is.null(object@calc.params$PCA$pc.genes)){
     object@calc.params$PCA$pc.genes <- rownames(data.use)
   }
@@ -520,6 +520,9 @@ RunCCA <- function(
   genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
+  
+  cat("Running CCA\n", file = stderr())
+  
   cca.results <- CanonCor(
       mat1 = data.use1,
       mat2 = data.use2,
@@ -537,8 +540,11 @@ RunCCA <- function(
       do.scale = FALSE,
       do.center = FALSE
     )
+    # to improve, to pull the same normalization and scale params as previously used
+    combined.object=NormalizeData(combined.object)
+    combined.object=ScaleData(combined.object)
+    combined.object@scale.data[is.na(combined.object@scale.data)]=0
     combined.object@var.genes <- genes.use
-    combined.object <- ScaleData(object = combined.object)
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -665,10 +671,12 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
+      temp.matrix=PrepDR(group.object,genes.use = genes.use)
       group.object <- PCA(
         object = group.object,
         pc.genes = genes.use,
-        do.print = FALSE
+        do.print = FALSE,
+        center=rowMeans(temp.matrix)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,

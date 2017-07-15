@@ -493,23 +493,23 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # String form for a quantile is represented as a number prefixed with 'q'
 # For example, 10th quantile is 'q10' while 2nd quantile is 'q2'
 #
+# Will only take a quantile of non-zero data values
+#
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
 #
 # @return The numerical representation of the quantile
 #
 SetQuantile <- function(cutoff, data) {
-  if (grepl(
-    pattern = '^q[0-9]{1,2}$',
-    x = as.character(x = cutoff),
-    perl = TRUE
-  )) {
+  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
     this.quantile <- as.numeric(x = sub(
       pattern = 'q',
       replacement = '',
       x = as.character(x = cutoff)
     )) / 100
-    cutoff <- quantile(x = unlist(x = data), probs = this.quantile)
+    data <- unlist(x = data)
+    data <- data[data > 0]
+    cutoff <- quantile(x = data, probs = this.quantile)
   }
   return(as.numeric(x = cutoff))
 }
@@ -672,17 +672,17 @@ SingleVlnPlot <- function(
 no.legend.title <- theme(legend.title = element_blank())
 
 #set legend text
-gg.legend.text <- function(x = 12, y = "bold") {
+SetLegendTextGG <- function(x = 12, y = "bold") {
   return(theme(legend.text = element_text(size = x, face = y)))
 }
 
 #set legend point size
-gg.legend.pts <- function(x = 6) {
+SetLegendPointsGG <- function(x = 6) {
   return(guides(colour = guide_legend(override.aes = list(size = x))))
 }
 
 #set x axis features
-gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
+SetXAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.x = element_text(face = z, colour = y, size = x),
     axis.text.x = element_text(angle = 90, vjust = 0.5, size = x2)
@@ -690,7 +690,7 @@ gg.xax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 }
 
 #set y axis features
-gg.yax <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
+SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   return(theme(
     axis.title.y = element_text(face = z, colour = y, size = x),
     axis.text.y = element_text(angle = 90, vjust = 0.5, size = x2)
@@ -1230,48 +1230,4 @@ heatmap2NoKey <- function (
   )
   invisible(x = retval)
   par(mar = oldMar)
-}
-
-#' Plot multiple plots
-#'
-#' @keywords internal
-#' @importFrom grid grid.newpage pushViewport viewport grid.layout
-#
-MultiPlotList <- function(plots, file, cols = 1, layout = NULL) {
-  # Make a list from the ... arguments and plotlist
-  #plots <- c(list(...), plotlist)
-  numPlots = length(x = plots)
-  # If layout is NULL, then use 'cols' to determine layout
-  if (is.null(x = layout)) {
-    # Make the panel
-    # ncol: Number of columns of plots
-    # nrow: Number of rows needed, calculated from # of cols
-    layout <- matrix(
-      data = seq(from = 1, to = cols * ceiling(x = numPlots / cols)),
-      ncol = cols,
-      nrow = ceiling(x = numPlots / cols)
-    )
-  }
-  if (numPlots == 1) {
-    print(plots[[1]])
-  } else {
-    # Set up the page
-    grid.newpage()
-    pushViewport(viewport(layout = grid.layout(
-      nrow = nrow(x = layout),
-      ncol = ncol(x = layout)
-    )))
-    # Make each plot, in the correct location
-    for (i in 1:numPlots) {
-      # Get the i,j matrix positions of the regions that contain this subplot
-      matchidx <- as.data.frame(x = which(layout == i, arr.ind = TRUE))
-      print(
-        plots[[i]],
-        vp = viewport(
-          layout.pos.row = matchidx$row,
-          layout.pos.col = matchidx$col
-        )
-      )
-    }
-  }
 }

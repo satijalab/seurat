@@ -1,5 +1,5 @@
 #internal function for spatial mapping
-shift.cell <- function(bin, x, y) {
+ShiftCell <- function(bin, x, y) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
   new.x <- MinMax(data = bin.x + x, min = 1, max = 8)
@@ -8,27 +8,27 @@ shift.cell <- function(bin, x, y) {
   return(new.bin)
 }
 
-neighbor.cells <- function(bin) {
+NeighborCells <- function(bin) {
   return(unique(x = c(
     bin,
-    shift.cell(bin = bin, x = 0, y = 1),
-    shift.cell(bin = bin, x = 1, y = 0),
-    shift.cell(bin = bin, x = -1, y = 0),
-    shift.cell(bin = bin, x = 0, y = -1)
+    ShiftCell(bin = bin, x = 0, y = 1),
+    ShiftCell(bin = bin, x = 1, y = 0),
+    ShiftCell(bin = bin, x = -1, y = 0),
+    ShiftCell(bin = bin, x = 0, y = -1)
   )))
 }
 
-all.neighbor.cells <- function(bin, dist = 1) {
+AllNeighborCells <- function(bin, dist = 1) {
   all.comb <- expand.grid(rep(x = list(-dist:dist), 2))
   return(unique(x = unlist(x = lapply(
     X = 1:nrow(x = all.comb),
     FUN = function(x) {
-      return(shift.cell(bin = bin, x = all.comb[x, 1], y = all.comb[x, 2]))
+      return(ShiftCell(bin = bin, x = all.comb[x, 1], y = all.comb[x, 2]))
     }))))
 }
 
-#fetch closest bin, used internally in spatial mapping
-fetch.closest <- function(bin, all.centroids, num.cell) {
+#FetchClosest bin, used internally in spatial mapping
+FetchClosest <- function(bin, all.centroids, num.cell) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
   all.centroids <- rbind(all.centroids, c(bin.x, bin.y))

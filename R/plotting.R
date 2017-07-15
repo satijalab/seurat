@@ -874,7 +874,7 @@ FeaturePlot <- function(
       dark.theme = dark.theme
     ))
   } else {
-    MultiPlotList(pList, cols = nCol)
+    print(x = cowplot::plot_grid(plotlist = pList, ncol = nCol))
   }
   ResetPar()
   if (do.return){
@@ -2080,10 +2080,10 @@ DimPlot <- function(
     ylab(label = dim.codes[[2]]) +
     scale_size(range = c(pt.size, pt.size))
   p3 <- p2 +
-    gg.xax() +
-    gg.yax() +
-    gg.legend.pts(x = 6) +
-    gg.legend.text(x = 12) +
+    SetXAxisGG() +
+    SetYAxisGG() +
+    SetLegendPointsGG(x = 6) +
+    SetLegendTextGG(x = 12) +
     no.legend.title +
     theme_bw() +
     NoGrid()

@@ -134,6 +134,7 @@ MergeSeurat <- function(
     names.delim = names.delim,
     save.raw = save.raw
   )
+  
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
@@ -403,7 +404,7 @@ ReorderIdent <- function(
 ) {
   ident.use <- object@ident
   data.use <- FetchData(object = object, vars.all = feature, ...)[, 1]
-  revFxn <- same
+  revFxn <- Same
   if (rev) {
     revFxn <- function(x) {
       return(max(x) + 1 - x)
