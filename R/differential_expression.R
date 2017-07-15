@@ -58,7 +58,6 @@ FindMarkers <- function(
     )
   }
   # in case the user passed in cells instead of identity classes
-  # Umm... confused about the first part of the conditional...
   if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
     cells.1 <- intersect(x = ident.1, y = object@cell.names)
   } else {
