@@ -12,7 +12,7 @@ PrintFindClustersParams(object, resolution, raw = FALSE)
 \item{resolution}{Optionally specify only a subset of resolutions to print
 parameters for.}
 
-\item{raw}{Print the entire contents of the calculation metadata slot
+\item{raw}{Print the entire contents of the calculation settings slot
 (calc.params) for the FindClusters calculation. Default (FALSE) will print a
 nicely formatted summary.}
 }

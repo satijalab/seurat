@@ -9,7 +9,7 @@ PrintTSNEParams(object, raw = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
-\item{raw}{Print the entire contents of the calculation metadata slot (calc.params) for the
+\item{raw}{Print the entire contents of the calculation settings slot (calc.params) for the
 RunTSNE calculation. Default (FALSE) will print a nicely formatted summary.}
 }
 \value{

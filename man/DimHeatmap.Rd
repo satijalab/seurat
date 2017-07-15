@@ -22,6 +22,11 @@ DimHeatmap(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
+\item{do.return}{Default is FALSE. If TRUE, return a matrix of scaled values
+which would be passed to heatmap.2}
+
+\item{col.use}{Color palette to use}
+
 \item{use.scale}{Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.}
 
 \item{do.balanced}{Return an equal number of genes with both + and - PC scores.}
@@ -29,6 +34,9 @@ DimHeatmap(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
 \item{remove.key}{Removes the color key from the plot.}
 
 \item{label.columns}{Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC}
+
+\item{...}{Additional parameters to heatmap.2. Common examples are cexRow
+and cexCol, which set row and column text sizes}
 }
 \value{
 If do.return==TRUE, a matrix of scaled values which would be passed

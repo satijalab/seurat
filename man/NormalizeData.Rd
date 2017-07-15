@@ -6,17 +6,24 @@
 \usage{
 NormalizeData(object, assay.type = "RNA",
   normalization.method = "LogNormalize", scale.factor = 10000,
-  display.progress = TRUE, ...)
+  display.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay.type}{Type of assay to normalize for (default is RNA), but can be changed for multimodal analyses.}
+\item{assay.type}{Type of assay to normalize for (default is RNA), but can be
+changed for multimodal analyses.}
 
-\item{normalization.method}{Method for normalization. Default is log-normalization (LogNormalize). Other options include CLR (CLR), regularized NB normalization (NBReg; RNA only)}
+\item{normalization.method}{Method for normalization. Default is
+log-normalization (LogNormalize).}
+
+\item{scale.factor}{Sets the scale factor for cell-level normalization}
+
+\item{display.progress}{display progress bar for scaling procedure.}
 }
 \value{
-Returns object after normalization. Normalized data is stored in data or scale.data slot, depending on the method
+Returns object after normalization. Normalized data is stored in data
+or scale.data slot, depending on the method
 }
 \description{
 Normalize data for a given assay

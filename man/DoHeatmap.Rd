@@ -4,22 +4,14 @@
 \alias{DoHeatmap}
 \title{Gene expression heatmap}
 \usage{
-DoHeatmap(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
-  genes.use = NULL, disp.min = -2.5, disp.max = 2.5, group.by = "ident",
-  draw.line = TRUE, col.low = "#FF00FF", col.mid = "#000000",
-  col.high = "#FFFF00", slim.col.label = FALSE, remove.key = FALSE,
-  rotate.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
-  group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
-  group.spacing = 0.15, do.plot = TRUE, ...)
+DoHeatmap(object, cells.use = NULL, genes.use = NULL, disp.min = NULL,
+  disp.max = NULL, draw.line = TRUE, do.return = FALSE,
+  order.by.ident = TRUE, col.use = pyCols, slim.col.label = FALSE,
+  group.by = NULL, remove.key = FALSE, cex.col = NULL, do.scale = TRUE,
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
-
-\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either
-object@data or object@scale.data depending on use.scaled parameter. Should have cells as columns
-and genes as rows.}
-
-\item{use.scaled}{Whether to use the data or scaled data if data.use is NULL}
 
 \item{cells.use}{Cells to include in the heatmap (default is all cells)}
 
@@ -29,39 +21,38 @@ and genes as rows.}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
-\item{group.by}{Groups cells by this variable. Default is object@ident}
+\item{draw.line}{Draw vertical lines delineating cells in different identity
+classes.}
 
-\item{draw.line}{Draw vertical lines delineating different groups}
+\item{do.return}{Default is FALSE. If TRUE, return a matrix of scaled values
+which would be passed to heatmap.2}
 
-\item{col.low}{Color for lowest expression value}
+\item{order.by.ident}{Order cells in the heatmap by identity class (default
+is TRUE). If FALSE, cells are ordered based on their order in cells.use}
 
-\item{col.mid}{Color for mid expression value}
+\item{col.use}{Color palette to use}
 
-\item{col.high}{Color for highest expression value}
+\item{slim.col.label}{if (order.by.ident==TRUE) then instead of displaying
+every cell name on the heatmap, display only the identity class name once
+for each group}
 
-\item{slim.col.label}{display only the identity class name once for each group}
+\item{group.by}{If (order.by.ident==TRUE) default,  you can group cells in
+different ways (for example, orig.ident)}
 
 \item{remove.key}{Removes the color key from the plot.}
 
-\item{rotate.key}{Rotate color scale horizantally}
+\item{cex.col}{positive numbers, used as cex.axis in for the column axis labeling.
+The defaults currently only use number of columns}
 
-\item{cex.col}{Controls size of column labels (cells)}
+\item{do.scale}{whether to use the data or scaled data}
 
-\item{cex.row}{Controls size of row labels (genes)}
-
-\item{group.label.loc}{Place group labels on bottom or top of plot.}
-
-\item{group.label.rot}{Whether to rotate the group label.}
-
-\item{group.cex}{Size of group label text}
-
-\item{group.spacing}{Controls amount of space between columns.}
-
-\item{do.plot}{Whether to display the plot.}
+\item{...}{Additional parameters to heatmap.2. Common examples are cexRow
+and cexCol, which set row and column text sizes}
 }
 \value{
-Returns a ggplot2 plot object
+If do.return==TRUE, a matrix of scaled values which would be passed
+to heatmap.2. Otherwise, no return value, only a graphical output
 }
 \description{
-Draws a heatmap of single cell gene expression, uses geom_tile in ggplot2.
+Draws a heatmap of single cell gene expression using the heatmap.2 function.
 }

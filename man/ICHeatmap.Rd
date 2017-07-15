@@ -22,11 +22,19 @@ ICHeatmap(object, ic.use = 1, cells.use = NULL, num.genes = 30,
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
+\item{do.return}{Default is FALSE. If TRUE, return a matrix of scaled values
+which would be passed to heatmap.2}
+
+\item{col.use}{Color palette to use}
+
 \item{use.scale}{Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.}
 
 \item{do.balanced}{Return an equal number of genes with both + and - IC scores.}
 
 \item{remove.key}{Removes the color key from the plot.}
+
+\item{...}{Additional parameters to heatmap.2. Common examples are cexRow
+and cexCol, which set row and column text sizes}
 }
 \value{
 If do.return==TRUE, a matrix of scaled values which would be passed

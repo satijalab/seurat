@@ -9,8 +9,7 @@
 #' @param min.genes Include cells where at least this many genes are detected.
 #' @param is.expr Expression threshold for 'detected' gene
 #' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize). Other options include CLR (CLR),
-#' regularized NB normalization (NBReg; RNA only)
+#' log-normalization (LogNormalize).
 #' @param total.expr If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score)
@@ -211,12 +210,15 @@ Read10X <- function(data.dir = NULL){
 #' Normalize data for a given assay
 #'
 #' @param object Seurat object
-#' @param assay.type Type of assay to normalize for (default is RNA), but can be changed for multimodal analyses.
-#' @param normalization.method Method for normalization. Default is log-normalization (LogNormalize). Other options include CLR (CLR), regularized NB normalization (NBReg; RNA only)
+#' @param assay.type Type of assay to normalize for (default is RNA), but can be
+#' changed for multimodal analyses.
+#' @param normalization.method Method for normalization. Default is
+#' log-normalization (LogNormalize).
+#' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param display.progress display progress bar for scaling procedure.
 #'
-#' @importFrom compositions clr
-#'
-#' @return Returns object after normalization. Normalized data is stored in data or scale.data slot, depending on the method
+#' @return Returns object after normalization. Normalized data is stored in data
+#' or scale.data slot, depending on the method
 #'
 #' @export
 #'
@@ -225,9 +227,12 @@ NormalizeData <- function(
   assay.type = "RNA",
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  display.progress = TRUE,
-  ...
+  display.progress = TRUE
 ) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
+  object <- SetCalcParams(object = object,
+                          calculation = "NormalizeData",
+                          ... = parameters.to.store)
   if (normalization.method == "LogNormalize") {
     raw.data <- GetAssayData(
       object = object,
@@ -246,26 +251,6 @@ NormalizeData <- function(
       object = object,
       assay.type = assay.type,
       slot = "data",
-      new.data = normalized.data
-    )
-  }
-  if (normalization.method == "CLR") {
-    raw.data <- GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "raw.data"
-    )
-    normalized.data <- t(x = as.matrix(x = t(x = clr(x = raw.data))))
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data",
-      new.data = normalized.data
-    )
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "scale.data",
       new.data = normalized.data
     )
   }
@@ -397,7 +382,11 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
+  parameters.to.store$data.use <- NULL
+  object <- SetCalcParams(object = object,
+                          calculation = "ScaleData",
+                          ... = parameters.to.store)
   if(!missing(latent.vars)){
     data.use <- RegressOut(object = object,
                            latent.vars = latent.vars,
@@ -598,6 +587,12 @@ FindVariableGenes <- function(
   sort.results = TRUE,
   ...
 ) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
+  parameters.to.store$mean.function <- as.character(substitute(mean.function))
+  parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
+  object <- SetCalcParams(object = object,
+                          calculation = "FindVariableGenes",
+                          ... = parameters.to.store)
   data <- object@data
   if (do.recalc) {
     genes.use <- rownames(x = object@data)
@@ -689,6 +684,10 @@ FilterCells <- function(
   high.thresholds,
   cells.use = NULL
 ) {
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
+  object <- SetCalcParams(object = object,
+                          calculation = "FilterCells",
+                          ... = parameters.to.store)
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
   }

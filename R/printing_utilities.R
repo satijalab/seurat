@@ -1,9 +1,30 @@
+#' Print the calculation
+#'
+#' Print entire contents of calculation settings slot (calc.params) for given
+#' calculation.
+#'
+#' @param object Seurat object
+#' @param calculation Name of calculation (function name) to check parameters
+#' for
+#' @param return.list Return the calculation parameters as a list
+#' @return Prints the calculation settings and optionally returns them as a list
+#' @export
+PrintCalcParams <- function(object, calculation, return.list = FALSE) {
+  if(is.null(object@calc.params[[calculation]])){
+    stop(paste0(calculation, " not computed yet."))
+  }
+  print(object@calc.params[[calculation]])
+  if(return.list){
+    return(object@calc.params[[calculation]])
+  }
+}
+
 #' Print PCA Calculation Parameters
 #'
 #' Print the parameters chosen for the latest stored PCA calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunPCA calculation. Default (FALSE) will print a nicely
 #' formatted summary.
 #' @return No return value. Only prints to console.
@@ -54,7 +75,7 @@ PrintPCAParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for the latest stored ICA calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot (calc.params) for the ICA
+#' @param raw Print the entire contents of the calculation settings slot (calc.params) for the ICA
 #' calculation. Default (FALSE) will print a nicely formatted summary.
 #' @return No return value. Only prints to console.
 #' @export
@@ -103,7 +124,7 @@ PrintICAParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for the latest stored TSNE calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot (calc.params) for the
+#' @param raw Print the entire contents of the calculation settings slot (calc.params) for the
 #' RunTSNE calculation. Default (FALSE) will print a nicely formatted summary.
 #' @return No return value. Only prints to console.
 #' @export
@@ -178,7 +199,7 @@ PrintTSNEParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for the latest stored CCA calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunCCA calculation. Default (FALSE) will print a nicely
 #' formatted summary.
 #' @return No return value. Only prints to console.
@@ -279,7 +300,7 @@ PrintCCAParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for CalcVarExpRatio.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for CalcVarExpRatio. Default (FALSE) will print a nicely
 #' formatted summary.
 #' @return No return value. Only prints to console.
@@ -326,7 +347,7 @@ PrintCalcVarExpRatioParams <- function(object, raw = FALSE){
 #' stored aligned subspace.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the AlignSubspace calculation. Default (FALSE) will print a
 #' nicely formatted summary.
 #' @return No return value. Only prints to console.
@@ -383,7 +404,7 @@ PrintAlignSubspaceParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for the latest stored diffusion map calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunDiffusion calculation. Default (FALSE) will print a
 #' nicely formatted summary.
 #' @return No return value. Only prints to console.
@@ -457,7 +478,7 @@ PrintDMParams <- function(object, raw = FALSE){
 #' Print the parameters chosen for the latest stored SNN calculation (via BuildSNN or FindClusters).
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot (calc.params) for the
+#' @param raw Print the entire contents of the calculation settings slot (calc.params) for the
 #' BuildSNN calculation. Default (FALSE) will print a nicely formatted summary.
 #' @return No return value. Only prints to console.
 #' @export
@@ -541,7 +562,7 @@ PrintSNNParams <- function(object, raw = FALSE){
 #' @param object Seurat object
 #' @param resolution Optionally specify only a subset of resolutions to print
 #' parameters for.
-#' @param raw Print the entire contents of the calculation metadata slot
+#' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the FindClusters calculation. Default (FALSE) will print a
 #' nicely formatted summary.
 #' @return No return value. Only prints to console.

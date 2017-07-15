@@ -134,7 +134,7 @@ MergeSeurat <- function(
     names.delim = names.delim,
     save.raw = save.raw
   )
-  
+
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
@@ -348,7 +348,9 @@ SubsetData <- function(
   object@ident <- drop.levels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
-      object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
+      if(length(object@dr[[i]]@cell.embeddings) > 0){
+        object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
+      }
     }
   }
   # handle multimodal casess
