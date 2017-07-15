@@ -514,3 +514,50 @@ lasso.fxn <- function(
   }
   return(lasso.fits)
 }
+
+# Calculate the biweight midcorrelation (bicor) of two vectors using
+# implementation described in Langfelder, J Stat Sotfw. 2012. If MAD of one of
+# the two vectors is 0, falls back on robust standardization.
+#
+# @author Patrick Roelli
+# @param x First vector
+# @param y Second vector
+#
+# @return returns the biweight midcorrelation of x and y
+#
+BiweightMidcor <- function(x, y){
+  resx <- BicorPrep(x)
+  resy <- BicorPrep(y)
+  result <- sum(resx * resy)
+  return(result)
+}
+
+# bicor helper function to standardize the two vectors and perform common
+# calculations.
+#
+# @author Patrick Roelli
+# @param x Vector to prep
+# @param verbose If TRUE, prints a warning when falling back on robust
+# standardization when MAD(x) is 0.
+#
+# @return returns the prepped vector
+#
+BicorPrep <- function(x, verbose = FALSE){
+  if(mad(x) == 0) {
+    if(verbose){
+      warning('mad == 0, using robust standardization')
+    }
+    xat <- x - mean(x)
+    xab <- sqrt(sum((x - mean(x)) ^ 2))
+    result <- xat / xab
+    return(result)
+  }else{
+    ua <- (x - median(x)) / (9 * mad(x) * qnorm(0.75))
+    i.x <- ifelse(ua <= -1 | ua >= 1, 0, 1)
+    wax <- ((1 - (ua^2))^2) * i.x
+    xat <- (x - median(x)) * wax
+    xab <- sqrt(sum(xat^2))
+    result <- xat / xab
+    return(result)
+  }
+}

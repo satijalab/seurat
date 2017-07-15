@@ -45,7 +45,6 @@ Imports:
     ranger,
     compositions,
     NMOF,
-    WGCNA,
     dtw,
     SDMTools,
     plotly,
