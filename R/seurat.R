@@ -33,6 +33,9 @@
 #'    phylogenetic tree relating different identity classes }
 #'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
 #'    \item{\code{calc.params}:}{\code{"list"}, Named list to store all calculation related parameters choices}
+#'    \item{\code{kmeans}:}{\code{"ANY"}, Stores output of gene-based clustering from DoKMeans}
+#'    \item{\code{spatial}:}{\code{"ANY"},Stores internal data and calculations for spatial mapping of single cells}
+#'    \item{\code{misc}:}{\code{"ANY"}, Miscellaneous spot to store any data alongisde the object (for example, gene lists)}
 #'    \item{\code{version}:}{\code{"ANY"}, Version of package used in object creation}
 #'}
 #' @name seurat
