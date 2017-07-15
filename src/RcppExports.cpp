@@ -6,32 +6,6 @@
 
 using namespace Rcpp;
 
-// CanonCor
-List CanonCor(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
-RcppExport SEXP Seurat_CanonCor(SEXP mat1SEXP, SEXP mat2SEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
-    rcpp_result_gen = Rcpp::wrap(CanonCor(mat1, mat2));
-    return rcpp_result_gen;
-END_RCPP
-}
-// CalcPartialCCA
-List CalcPartialCCA(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, int k, Eigen::MatrixXd v_init);
-RcppExport SEXP Seurat_CalcPartialCCA(SEXP mat1SEXP, SEXP mat2SEXP, SEXP kSEXP, SEXP v_initSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
-    Rcpp::traits::input_parameter< int >::type k(kSEXP);
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type v_init(v_initSEXP);
-    rcpp_result_gen = Rcpp::wrap(CalcPartialCCA(mat1, mat2, k, v_init));
-    return rcpp_result_gen;
-END_RCPP
-}
 // RunUMISampling
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample, bool display_progress);
 RcppExport SEXP Seurat_RunUMISampling(SEXP dataSEXP, SEXP sample_valSEXP, SEXP upsampleSEXP, SEXP display_progressSEXP) {
@@ -181,8 +155,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"Seurat_CanonCor", (DL_FUNC) &Seurat_CanonCor, 2},
-    {"Seurat_CalcPartialCCA", (DL_FUNC) &Seurat_CalcPartialCCA, 4},
     {"Seurat_RunUMISampling", (DL_FUNC) &Seurat_RunUMISampling, 4},
     {"Seurat_RunUMISamplingPerCell", (DL_FUNC) &Seurat_RunUMISamplingPerCell, 4},
     {"Seurat_RowMergeMatrices", (DL_FUNC) &Seurat_RowMergeMatrices, 5},
