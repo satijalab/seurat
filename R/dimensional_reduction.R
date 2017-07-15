@@ -753,7 +753,6 @@ CalcVarExpRatio <- function(
 #'  object@@dr$reduction.type.aligned
 #'
 #' @importFrom dtw dtw
-#' @importFrom WGCNA bicor
 #' @importFrom pbapply pbapply
 #'
 #' @export
@@ -829,7 +828,7 @@ AlignSubspace <- function(
       bicors[[i]] <- pbsapply(
         X = genes.top,
         FUN = function(x) {
-          return(suppressWarnings(expr = bicor(x = cc.vals, scaled.data[[i]][x, ])))
+          return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
         }
       )
     }
