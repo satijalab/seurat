@@ -75,8 +75,8 @@ RunPCA <- function(
   object@dr$pca <- pca.obj
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
-  if(is.null(object@calc.params$PCA$pc.genes)){
-    object@calc.params$PCA$pc.genes <- rownames(data.use)
+  if(is.null(object@calc.params$RunPCA$pc.genes)){
+    object@calc.params$RunPCA$pc.genes <- rownames(data.use)
   }
   if(do.print){
     PrintPCA(object = object, pcs.print = pcs.print, genes.print = genes.print)
@@ -520,9 +520,9 @@ RunCCA <- function(
   genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
-  
+
   cat("Running CCA\n", file = stderr())
-  
+
   cca.results <- CanonCor(
       mat1 = data.use1,
       mat2 = data.use2,

@@ -6,6 +6,7 @@
 \alias{subsetData}
 \alias{mean.var.plot}
 \alias{pca}
+\alias{PCA}
 \alias{project.pca}
 \alias{print.pca}
 \alias{viz.pca}
@@ -106,7 +107,8 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{vlnPlot} \tab now a synonym for \code{\link{VlnPlot}}\cr
   \code{subsetData} \tab now a synonym for \code{\link{SubsetData}}\cr
   \code{mean.var.plot} \tab now a synonym for \code{\link{MeanVarPlot}}\cr
-  \code{pca} \tab now a synonym for \code{\link{PCA}}\cr
+  \code{pca} \tab now a synonym for \code{\link{RunPCA}}\cr
+  \code{PCA} \tab now a synonym for \code{\link{PCA}}\cr
   \code{project.pca} \tab now a synonym for \code{\link{ProjectPCA}}\cr
   \code{print.pca} \tab now a synonym for \code{\link{PrintPCA}}\cr
   \code{viz.pca} \tab now a synonym for \code{\link{VizPCA}}\cr

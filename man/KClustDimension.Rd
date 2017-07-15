@@ -4,13 +4,11 @@
 \alias{KClustDimension}
 \title{Perform spectral k-means clustering on single cells}
 \usage{
-KClustDimension(object, dim.1 = 1, dim.2 = 2, cells.use = NULL,
-  pt.size = 4, reduction.use = "tsne", k.use = 5, set.ident = FALSE,
-  seed.use = 1, ...)
+KClustDimension(object, dims.use = c(1, 2), cells.use = NULL, pt.size = 4,
+  reduction.use = "tsne", k.use = 5, set.ident = T, seed.use = 1, ...)
 }
 \description{
 Find point clounds single cells in a low-dimensional space using k-means clustering.
-}
-\details{
-CAn be useful for smaller datasets, not documented here yet
+Can be useful for smaller datasets, where graph-based clustering can perform poorly
+TODO : add documentation here
 }

@@ -3,48 +3,49 @@
 #' Print the parameters chosen for the latest stored PCA calculation.
 #'
 #' @param object Seurat object
-#' @param raw Print the entire contents of the calculation metadata slot (calc.params) for the PCA
-#' calculation. Default (FALSE) will print a nicely formatted summary.
+#' @param raw Print the entire contents of the calculation metadata slot
+#' (calc.params) for the RunPCA calculation. Default (FALSE) will print a nicely
+#' formatted summary.
 #' @return No return value. Only prints to console.
 #' @export
 PrintPCAParams <- function(object, raw = FALSE){
-  if(is.null(object@calc.params$PCA)){
+  if(is.null(object@calc.params$RunPCA)){
     stop("PCA has not been computed yet")
   }
   if (raw){
-    print(object@calc.params$PCA)
+    print(object@calc.params$RunPCA)
   }
   else{
     cat(paste0("Parameters used in latest PCA calculation run on: ",
                GetCalcParam(object = object,
-                            calculation = "PCA",
+                            calculation = "RunPCA",
                             parameter = "time"),
                "\n"))
     cat("=============================================================================\n")
     cat(paste0("PCs computed    Genes used in calculation    PCs Scaled by Variance Explained\n"))
     pcs.compute <- GetCalcParam(object = object,
-                                calculation = "PCA",
+                                calculation = "RunPCA",
                                 parameter = "pcs.compute")
     n.gene <- length(GetCalcParam(object = object,
-                                  calculation = "PCA",
+                                  calculation = "RunPCA",
                                   parameter = "pc.genes"))
     cat(paste0("    ",
                pcs.compute,
                FillWhiteSpace(n = 20 - nchar(pcs.compute)),
                n.gene, FillWhiteSpace(n = 35 - nchar(n.gene)),
                GetCalcParam(object = object,
-                            calculation = "PCA",
+                            calculation = "RunPCA",
                             parameter = "weight.by.var"),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
     cat("rev.pca \n")
     cat(paste0(" ",
                GetCalcParam(object = object,
-                            calculation = "PCA",
+                            calculation = "RunPCA",
                             parameter = "rev.pca"),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
-    cat("Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"PCA\", parameter = \"pc.genes\")")
+    cat("Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"RunPCA\", parameter = \"pc.genes\")")
   }
 }
 

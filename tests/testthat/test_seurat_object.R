@@ -84,7 +84,7 @@ nbt.test <- FindVariableGenes(
 )
 
 pcs.compute <- 4
-nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
+nbt.test <- RunPCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
 
 test_that("PCA returns expected data when not scaling", {
   expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 0.1442809, tolerance = 1e-6)
@@ -94,7 +94,7 @@ test_that("PCA returns expected data when not scaling", {
 
 })
 
-nbt.test <- PCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
+nbt.test <- RunPCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
 test_that("PCA returns expected data when scaling by variance explained", {
   expect_true(nrow(nbt.test@dr$pca@cell.embeddings) == ncol(nbt.test@data))
   expect_true(nrow(nbt.test@dr$pca@gene.loadings) == length(nbt.test@var.genes))

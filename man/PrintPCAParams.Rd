@@ -9,8 +9,9 @@ PrintPCAParams(object, raw = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
-\item{raw}{Print the entire contents of the calculation metadata slot (calc.params) for the PCA
-calculation. Default (FALSE) will print a nicely formatted summary.}
+\item{raw}{Print the entire contents of the calculation metadata slot
+(calc.params) for the RunPCA calculation. Default (FALSE) will print a nicely
+formatted summary.}
 }
 \value{
 No return value. Only prints to console.
