@@ -11,7 +11,7 @@ FilterCells(object, subset.names, low.thresholds, high.thresholds,
 \item{object}{Seurat object}
 
 \item{subset.names}{Parameters to subset on. Eg, the name of a gene, PC1, a
-column name in object@data.info, etc. Any argument that can be retreived
+column name in object@meta.data, etc. Any argument that can be retreived
 using FetchData}
 
 \item{low.thresholds}{Low cutoffs for the parameters (default is -Inf)}

@@ -17,7 +17,7 @@ are additional metadata items.}
 }
 \value{
 Seurat object where the additional metadata has been added as
-columns in object@data.info
+columns in object@meta.data
 }
 \description{
 Adds additional data for single cells to the Seurat object. Can be any piece

@@ -17,7 +17,7 @@ considered as group1 and object2 as group2.}
 
 \item{group2}{Second set of cells (or IDs) for CCA}
 
-\item{group.by}{Factor to group by (column vector stored in object@data.info)}
+\item{group.by}{Factor to group by (column vector stored in object@meta.data)}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 

@@ -23,7 +23,7 @@ AddEnrichScore(object, genes.list = NULL, n.bin = 20, seed.use = 1,
 \item{enrich.name}{Name for the expression programs}
 }
 \value{
-Returns a Seurat object with enrichment scores added to object@data.info
+Returns a Seurat object with enrichment scores added to object@meta.data
 }
 \description{
 Calculate the average expression levels of each program (cluster) on single cell level,

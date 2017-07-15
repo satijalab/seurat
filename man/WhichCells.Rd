@@ -18,7 +18,7 @@ WhichCells(object, ident = NULL, ident.remove = NULL, cells.use = NULL,
 \item{cells.use}{Subset of cell names}
 
 \item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
-column name in object@data.info, etc. Any argument that can be retreived
+column name in object@meta.data, etc. Any argument that can be retreived
 using FetchData}
 
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}

@@ -19,7 +19,7 @@ stored for cca)}
 }
 \value{
 Returns Seurat object with ratio of variance explained stored in
-object@data.info$var.ratio
+object@meta.data$var.ratio
 }
 \description{
 Calculate the ratio of variance explained by ICA or PCA to CCA

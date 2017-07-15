@@ -48,7 +48,7 @@ object@raw.data which will save memory downstream for large datasets}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.
-object@data, object@data.info, object@ident, also initialized.
+object@data, object@meta.data, object@ident, also initialized.
 }
 \description{
 Initializes the Seurat object and some optional filtering

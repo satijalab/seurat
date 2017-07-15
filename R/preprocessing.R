@@ -390,6 +390,7 @@ ScaleData <- function(
   if(!missing(latent.vars)){
     data.use <- RegressOut(object = object,
                            latent.vars = latent.vars,
+                           genes.regress = genes.use,
                            use.umi = use.umi,
                            model.use = model.use)
   }

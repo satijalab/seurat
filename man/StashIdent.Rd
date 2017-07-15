@@ -9,7 +9,7 @@ StashIdent(object, save.name = "oldIdent")
 \arguments{
 \item{object}{Seurat object}
 
-\item{save.name}{Store current object@ident under this column name in object@data.info. Can be easily retrived with SetAllIdent}
+\item{save.name}{Store current object@ident under this column name in object@meta.data. Can be easily retrived with SetAllIdent}
 }
 \value{
 A Seurat object where object@ident has been appropriately modified
