@@ -338,23 +338,35 @@ ScaleDataR <- function(
 #'
 #'
 #' @param object Seurat object
-#' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
-#' @param data.use Can optionally pass a matrix of data to scale, default is object@data[genes.use,]
+#' @param genes.use Vector of gene names to scale/center. Default is all genes
+#' in object@@data.
+#' @param data.use Can optionally pass a matrix of data to scale, default is
+#' object@data[genes.use, ]
 #' @param latent.vars effects to regress out
-#' @param genes.regress gene to run regression for (default is all genes)
-#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear
+#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
-#' @param scale.max Max value to return for scaled data. The default is 10. Setting this can help
-#' reduce the effects of genes that are only expressed in a very small number of cells.
-#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analyses.
-#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++. We've maintained
-#' support for our previous implementation in R for reproducibility (set this to FALSE) as results
-#' can change slightly due to differences in numerical precision which could affect downstream
-#' calculations.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of genes that are only expressed in
+#' a very small number of cells.
+#' @param block.size Default size for number of genes to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
+#' multimodal analyses.
+#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
+#' We've maintained support for our previous implementation in R for
+#' reproducibility (set this to FALSE) as results can change slightly due to
+#' differences in numerical precision which could affect downstream calculations.
 #'
-#' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
+#' @return Returns a seurat object with object@@scale.data updated with scaled
+#' and/or centered data.
 #'
 #' @export
 #'
@@ -369,11 +381,14 @@ ScaleData <- function(
   do.center = TRUE,
   scale.max = 10,
   block.size = 1000,
+  min.cells.to.block = 3000,
   display.progress = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE
 ) {
-  data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object, assay.type,"data"))
+  data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
+                                                             assay.type = assay.type,
+                                                             slot = "data"))
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
@@ -401,6 +416,9 @@ ScaleData <- function(
                         ncol = ncol(x = object@data)
   )
   rownames(scaled.data) <- genes.use
+  if(length(object@cell.names) <= min.cells.to.block) {
+    block.size <- length(genes.use)
+  }
   gc()
   colnames(scaled.data) <- colnames(object@data)
   max.block <- ceiling(length(genes.use)/block.size)
