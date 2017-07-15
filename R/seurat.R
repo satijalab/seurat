@@ -26,17 +26,14 @@
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
 #'    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
 #'    \item{\code{assay}:}{\code{"list"}, List of additional assays for multimodal analysis. Named by technique }
-#'    \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
 #'    \item{\code{hvg.info}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
 #'    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
-#'    \item{\code{final.prob}:}{\code{"data.frame"}, For spatial inference, posterior probability of each cell mapping to each bin }
-#'    \item{\code{insitu.matrix}:}{\code{"data.frame"}, For spatial inference, the discretized spatial reference map }
 #'    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
 #'    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
 #'    phylogenetic tree relating different identity classes }
 #'    \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
-#'    \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
 #'    \item{\code{calc.params}:}{\code{"list"}, Named list to store all calculation related parameters choices}
+#'    \item{\code{version}:}{\code{"ANY"}, Version of package used in object creation}
 #'}
 #' @name seurat
 #' @rdname seurat
@@ -54,20 +51,20 @@ seurat <- setClass(
     var.genes = "vector",
     is.expr = "numeric",
     ident = "factor",
-    dr = "list",
-    assay = "list",
     data.info = "data.frame",
     project.name = "character",
+    dr = "list",
+    assay = "list",
     hvg.info = "data.frame",
     imputed = "data.frame",
     cell.names = "vector",
     cluster.tree = "list",
     snn = "dgCMatrix",
-    snn.k = "numeric",
     calc.params = "list",
     kmeans = "ANY",
     spatial = "ANY",
-    misc = "ANY"
+    misc = "ANY",
+    version = "ANY"
   )
 )
 

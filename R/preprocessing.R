@@ -50,10 +50,12 @@ Seurat <- function(
   meta.data = NULL,
   save.raw = TRUE
 ) {
+  seurat.version <- packageVersion("Seurat")
   object <- new(Class = "seurat",
                 raw.data = raw.data,
                 is.expr = is.expr,
-                project.name = project
+                project.name = project,
+                version = seurat.version
                 )
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now

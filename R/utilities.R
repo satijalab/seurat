@@ -20,7 +20,7 @@ Shuffle <- function(x) {
 #' @param data A data frame or matrix
 #'
 #' @return A data frame or matrix with values removed by row
-#'
+
 #' @export
 #'
 RemoveFromTable <- function(to.remove, data) {
@@ -61,10 +61,9 @@ MakeSparse <- function(object) {
   return(object)
 }
 
-#' Convert old Seurat object to accomodate new features
+#' Update old Seurat object to accomodate new features
 #'
-#' Adds the object@@dr slot to older objects and moves the stored PCA/ICA
-#' analyses to new slot. Moves snn to new slot.
+#' Updates Seurat objects to new structure for storing data/calculations.
 #'
 #' @param object Seurat object
 #'
@@ -72,15 +71,17 @@ MakeSparse <- function(object) {
 #'
 #' @export
 #'
-ConvertSeurat <- function(object) {
+UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
     if(packageVersion("Seurat") >= package_version("2.0.0")){
+      cat("Object representation is consistent with the most current Seurat version.")
       return(object)
     }
   }
-
+  seurat.version <- packageVersion("Seurat")
   new.object <- new("seurat",
-                    raw.data = object@raw.data)
+                    raw.data = object@raw.data,
+                    version = seurat.version)
   new.slots <- slotNames(new.object)
   for(s in new.slots){
     new.object <- FillSlot(slot.name = s, old.object = object,
