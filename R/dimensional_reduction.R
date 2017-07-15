@@ -179,7 +179,7 @@ ICA <- function(
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param seed.use Random seed for the t-SNE
 #' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
-#' faster, but is less flexible
+#' faster, but is less flexible. TRUE by default. 
 #' @param add.iter If an existing tSNE has already been computed, uses the
 #' current tSNE to seed the algorithm and then adds additional iterations on top
 #' of this
@@ -205,7 +205,7 @@ RunTSNE <- function(
   dims.use = 1:5,
   genes.use = NULL,
   seed.use = 1,
-  do.fast = FALSE,
+  do.fast = TRUE,
   add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,

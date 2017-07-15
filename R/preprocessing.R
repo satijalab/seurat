@@ -8,11 +8,12 @@
 #' genes, create a new object with a lower cutoff.
 #' @param min.genes Include cells where at least this many genes are detected.
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize).
+#' @param normalization.method Method for cell normalization. Default is no normalization.
+#' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
+#' method (i.e. LogNormalize) here directly.
 #' @param total.expr If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score)
+#' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you can specify do.scale=T (and do.center=T) here.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
 #' centering)
 #' @param names.field For the initial identity class for each cell, choose this
@@ -213,7 +214,7 @@ Read10X <- function(data.dir = NULL){
 #' @param assay.type Type of assay to normalize for (default is RNA), but can be
 #' changed for multimodal analyses.
 #' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize).
+#' log-normalization (LogNormalize). More methods to be added very shortly.
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param display.progress display progress bar for scaling procedure.
 #'
@@ -390,7 +391,6 @@ ScaleData <- function(
   if(!missing(latent.vars)){
     data.use <- RegressOut(object = object,
                            latent.vars = latent.vars,
-                           genes.regress = genes.use,
                            use.umi = use.umi,
                            model.use = model.use)
   }
