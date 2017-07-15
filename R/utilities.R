@@ -287,16 +287,16 @@ ExpMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
 
-#' Calculate the dispersion of logged values
+#' Calculate the variance to mean ratio of logged values
 #'
-#' Calculate the dispersion (variance divided by mean) in non-log space
-#' (return answer in log-space)
+#' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
+#' log-space)
 #'
 #' @param x value or vector of values
 #'
-#' @return Returns the dispersion in log-space
+#' @return Returns the VMR in log-space
 #' @export
-LogDispersion <- function(x) {
+LogVMR <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
 

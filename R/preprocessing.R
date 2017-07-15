@@ -575,7 +575,7 @@ SampleUMI <- function(
 FindVariableGenes <- function(
   object,
   mean.function = ExpMean,
-  dispersion.function = LogDispersion,
+  dispersion.function = LogVMR,
   do.plot = TRUE,
   set.var.genes = TRUE,
   x.low.cutoff = 0.1,
