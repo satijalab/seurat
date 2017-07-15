@@ -41,7 +41,7 @@ prune everything).}
 \item{force.recalc}{Force recalculation of SNN.}
 }
 \value{
-Returns the object with object@snn.k and object@snn filled
+Returns the object with object@snn filled
 }
 \description{
 Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We

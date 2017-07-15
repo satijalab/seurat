@@ -146,7 +146,6 @@ FindClusters <- function(
   }
   if (!save.SNN) {
     object@snn <- sparseMatrix(1, 1, x = 1)
-    object@snn.k <- integer()
     object <- RemoveCalcParams(object = object,
                                calculation = "BuildSNN")
   }
@@ -615,7 +614,7 @@ DBClustDimension <- function(
 #' Find point clounds single cells in a low-dimensional space using k-means clustering.
 #' Can be useful for smaller datasets, where graph-based clustering can perform poorly
 #' TODO : add documentation here
-#' 
+#'
 #' @export
 #'
 KClustDimension <- function(

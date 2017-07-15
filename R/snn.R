@@ -31,12 +31,12 @@ NULL
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
-#' @return Returns the object with object@@snn.k and object@@snn filled
+#' @return Returns the object with object@@snn filled
 #' @export
 BuildSNN <- function(
   object,
   genes.use = NULL,
-  reduction.type="pca",
+  reduction.type = "pca",
   dims.use = NULL,
   k.param = 10,
   k.scale = 10,
@@ -106,7 +106,6 @@ BuildSNN <- function(
     prune.SNN = prune.SNN,
     print.output = print.output
   )
-  object@snn.k <- k.param
   object@snn <- w
   if (plot.SNN) {
     if (length(x = object@dr$tsne@cell.embeddings) < 1) {
