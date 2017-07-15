@@ -22,13 +22,14 @@ genes, create a new object with a lower cutoff.}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize).}
+\item{normalization.method}{Method for cell normalization. Default is no normalization.
+In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
+method (i.e. LogNormalize) here directly.}
 
 \item{total.expr}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
-z-score)}
+z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you can specify do.scale=T (and do.center=T) here.}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
 centering)}

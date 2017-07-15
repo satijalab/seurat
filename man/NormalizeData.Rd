@@ -15,7 +15,7 @@ NormalizeData(object, assay.type = "RNA",
 changed for multimodal analyses.}
 
 \item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize).}
+log-normalization (LogNormalize). More methods to be added very shortly.}
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 

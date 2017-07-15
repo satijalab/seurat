@@ -5,7 +5,7 @@
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
 RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
-  genes.use = NULL, seed.use = 1, do.fast = FALSE, add.iter = 0,
+  genes.use = NULL, seed.use = 1, do.fast = TRUE, add.iter = 0,
   dim.embed = 2, distance.matrix = NULL, ...)
 }
 \arguments{
@@ -24,7 +24,7 @@ the tSNE. Default is PCA}
 \item{seed.use}{Random seed for the t-SNE}
 
 \item{do.fast}{If TRUE, uses the Barnes-hut implementation, which runs
-faster, but is less flexible}
+faster, but is less flexible. TRUE by default.}
 
 \item{add.iter}{If an existing tSNE has already been computed, uses the
 current tSNE to seed the algorithm and then adds additional iterations on top
