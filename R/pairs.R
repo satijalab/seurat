@@ -83,7 +83,7 @@ FindGeneMarkerPairs <- function(
 #' @param set.ident Set the identity of the new object to cell-cycle assignment,
 #' will stash old identity as 'old.ident'
 #'
-#' @return A Seurat object with cell-cycle scores and allocations added to object@data.info
+#' @return A Seurat object with cell-cycle scores and allocations added to object@meta.data
 #'
 #' @import snowfall
 #' @references Scialdone A, Natarajan KN, Saraiva LR, Proserpio V, Teichmann SA, Stegle O, Marioni JC, Buettner F. (2015) Computational assignment of cell-cycle stage from single-cell transcriptome data. Methods
@@ -172,7 +172,7 @@ PredictCellCyclePhases <- function(
     null = scores.allocation$null,
     score.threshold = score.threshold
   )
-  #   Add the cell-cycle scores and assignment information to object@data.info
+  #   Add the cell-cycle scores and assignment information to object@meta.data
   object <- Seurat::AddMetaData(object = object, metadata = scores)
   #   If we're setting the identity to cell-cycle phase
   #   first, stash the current identity as 'old.ident'

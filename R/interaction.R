@@ -64,8 +64,8 @@ MergeSeurat <- function(
       add.cell.id1,
       sep = "."
     )
-    rownames(x = object1@data.info) <- paste(
-      rownames(x = object1@data.info),
+    rownames(x = object1@meta.data) <- paste(
+      rownames(x = object1@meta.data),
       add.cell.id1,
       sep = "."
     )
@@ -77,8 +77,8 @@ MergeSeurat <- function(
       add.cell.id2,
       sep = "."
     )
-    rownames(x = object2@data.info) <- paste(
-      rownames(x = object2@data.info),
+    rownames(x = object2@meta.data) <- paste(
+      rownames(x = object2@meta.data),
       add.cell.id2,
       sep = "."
     )
@@ -100,9 +100,9 @@ MergeSeurat <- function(
         obj = object2.names[object2@cell.names]
       )
     )
-    rownames(x = object2@data.info) <- unlist(
+    rownames(x = object2@meta.data) <- unlist(
       x = unname(
-        obj = object2.names[rownames(x = object2@data.info)]
+        obj = object2.names[rownames(x = object2@meta.data)]
       )
     )
   }
@@ -110,14 +110,14 @@ MergeSeurat <- function(
     mat1 = object1@raw.data[,object1@cell.names],
     mat2 = object2@raw.data[,object2@cell.names]
   )
-  object1@data.info <- object1@data.info[object1@cell.names, ]
-  object2@data.info <- object2@data.info[object2@cell.names, ]
+  object1@meta.data <- object1@meta.data[object1@cell.names, ]
+  object2@meta.data <- object2@meta.data[object2@cell.names, ]
   project <- SetIfNull(x = project, default = object1@project.name)
-  object1@data.info$cell.name <- rownames(x = object1@data.info)
-  object2@data.info$cell.name <- rownames(x = object2@data.info)
+  object1@meta.data$cell.name <- rownames(x = object1@meta.data)
+  object2@meta.data$cell.name <- rownames(x = object2@meta.data)
   merged.meta.data <- suppressMessages(
     suppressWarnings(
-      full_join(x = object1@data.info, y = object2@data.info)
+      full_join(x = object1@meta.data, y = object2@meta.data)
     )
   )
   merged.object <- Seurat(
@@ -140,7 +140,7 @@ MergeSeurat <- function(
   ) -> merged.meta.data
   rownames(x= merged.meta.data) <- merged.object@cell.names
   merged.meta.data$cell.name <- NULL
-  merged.object@data.info <- merged.meta.data
+  merged.object@meta.data <- merged.meta.data
   return(merged.object)
 }
 
@@ -225,15 +225,15 @@ AddSamples <- function(
     mat2 = new.data
   )
   if (is.null(x = meta.data)) {
-    filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@data.info))
+    filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@meta.data))
     rownames(filler) <- colnames(new.data)
-    colnames(filler) <- colnames(object@data.info)
+    colnames(filler) <- colnames(object@meta.data)
     filler <- as.data.frame(filler)
-    combined.meta.data <- rbind(object@data.info, filler)
+    combined.meta.data <- rbind(object@meta.data, filler)
   } else {
     combined.meta.data <- suppressMessages(
       suppressWarnings(
-        full_join(x = object@data.info, y = meta.data)
+        full_join(x = object@meta.data, y = meta.data)
       )
     )
   }
@@ -252,7 +252,7 @@ AddSamples <- function(
     names.delim = names.delim,
     save.raw = save.raw
   )
-  new.object@data.info <- combined.meta.data[new.object@cell.names,]
+  new.object@meta.data <- combined.meta.data[new.object@cell.names,]
   return(new.object)
 }
 
@@ -267,7 +267,7 @@ AddSamples <- function(
 #' (default), then this list will be computed based on the next three
 #' arguments. Otherwise, will return an object consissting only of these cells
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@data.info, etc. Any argument that can be retreived
+#' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param ident.use Create a cell subset based on the provided identity classes
 #' @param ident.remove Subtract out cells from these identity classes (used for filtration)
@@ -375,7 +375,7 @@ SubsetData <- function(
   # object@gene.scores <- data.frame(object@gene.scores[cells.use,])
   # colnames(x = object@gene.scores)[1] <- "nGene"
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
-  object@data.info <- data.frame(object@data.info[cells.use,])
+  object@meta.data <- data.frame(object@meta.data[cells.use,])
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
   return(object)
 }
@@ -524,7 +524,7 @@ FetchData <- function(
       )
     }
   }
-  var.options <- c("data.info", "mix.probs", "gene.scores")
+  var.options <- c("meta.data", "mix.probs", "gene.scores")
   if (length(x = names(x = object@dr)) > 0) {
     dr.options <- names(x = object@dr)
     dr.names <- paste0("dr$", names(x = object@dr), "@key")
@@ -537,7 +537,7 @@ FetchData <- function(
     names(x = dr.names) <- dr.options
     var.options <- c(var.options, dr.names)
   }
-  object@data.info[,"ident"] <- object@ident[rownames(x = object@data.info)]
+  object@meta.data[,"ident"] <- object@ident[rownames(x = object@meta.data)]
   for (my.var in vars.all) {
     data.use=data.frame()
     if (my.var %in% colnames(data.expression)) {
@@ -559,8 +559,8 @@ FetchData <- function(
         }
       }
     }
-    if (my.var %in% colnames(object@data.info)) {
-      data.use <- object@data.info[, my.var, drop = FALSE]
+    if (my.var %in% colnames(object@meta.data)) {
+      data.use <- object@meta.data[, my.var, drop = FALSE]
     }
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
@@ -583,7 +583,7 @@ FetchData <- function(
 #' FastWhichCells
 #' Identify cells matching certain criteria (limited to character values)
 #' @param object Seurat object
-#' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@data.info
+#' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@meta.data
 #' @param subset.value  Return cells matching this value
 #' @param invert invert cells to return.FALSE by default
 #'
@@ -608,7 +608,7 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
 #' @param ident.remove Indentity classes to remove. Default is NULL.
 #' @param cells.use Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@data.info, etc. Any argument that can be retreived
+#' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
@@ -684,9 +684,9 @@ WhichCells <- function(
 #'
 SetAllIdent <- function(object, id = NULL) {
   id <- SetIfNull(x = id, default = "orig.ident")
-  if (id %in% colnames(x = object@data.info)) {
-    cells.use <- rownames(x = object@data.info)
-    ident.use <- object@data.info[, id]
+  if (id %in% colnames(x = object@meta.data)) {
+    cells.use <- rownames(x = object@meta.data)
+    ident.use <- object@meta.data[, id]
     object <- SetIdent(
       object = object,
       cells.use = cells.use,
@@ -732,14 +732,14 @@ RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
 #' Stashes the identity in data.info to be retrieved later. Useful if, for example, testing multiple clustering parameters
 #'
 #' @param object Seurat object
-#' @param save.name Store current object@@ident under this column name in object@@data.info. Can be easily retrived with SetAllIdent
+#' @param save.name Store current object@@ident under this column name in object@@meta.data. Can be easily retrived with SetAllIdent
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
 #' @export
 #'
 StashIdent <- function(object, save.name = "oldIdent") {
-  object@data.info[, save.name] <- as.character(x = object@ident)
+  object@meta.data[, save.name] <- as.character(x = object@ident)
   return(object)
 }
 
@@ -797,7 +797,7 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
 #' @param col.name Name for metadata if passing in single vector of information
 #'
 #' @return Seurat object where the additional metadata has been added as
-#' columns in object@@data.info
+#' columns in object@@meta.data
 #'
 #' @export
 #'
@@ -810,6 +810,6 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-  object@data.info[, cols.add] <- metadata[rownames(x = object@data.info), ]
+  object@meta.data[, cols.add] <- metadata[rownames(x = object@meta.data), ]
   return(object)
 }

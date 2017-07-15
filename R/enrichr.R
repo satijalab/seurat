@@ -13,7 +13,7 @@
 #' @param use.k Use gene clusters returned from DoKMeans()
 #' @param enrich.name Name for the expression programs
 #'
-#' @return Returns a Seurat object with enrichment scores added to object@data.info
+#' @return Returns a Seurat object with enrichment scores added to object@meta.data
 #'
 #' @importFrom Hmisc cut2
 #'

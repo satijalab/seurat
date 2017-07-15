@@ -26,7 +26,7 @@
 #' object@@raw.data which will save memory downstream for large datasets
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
-#' object@@data, object@@data.info, object@@ident, also initialized.
+#' object@@data, object@@meta.data, object@@ident, also initialized.
 #'
 #' @import stringr
 #' @import pbapply
@@ -103,11 +103,11 @@ Seurat <- function(
   }
   nGene <- num.genes[cells.use]
   nUMI <- num.mol[cells.use]
-  object@data.info <- data.frame(nGene, nUMI)
+  object@meta.data <- data.frame(nGene, nUMI)
   if (! is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
-  object@data.info[names(object@ident), "orig.ident"] <- object@ident
+  object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if(do.scale | do.center) {
     object <- ScaleData(object = object,
                         do.scale = do.scale,
@@ -667,7 +667,7 @@ FindVariableGenes <- function(
 #'
 #' @param object Seurat object
 #' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@data.info, etc. Any argument that can be retreived
+#' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
 #' @param high.thresholds High cutoffs for the parameters (default is Inf)

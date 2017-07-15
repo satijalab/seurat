@@ -411,7 +411,7 @@ ProjectPCA <- function(
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
-#' @param group.by Factor to group by (column vector stored in object@@data.info)
+#' @param group.by Factor to group by (column vector stored in object@@meta.data)
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
 #' two objects are given, the default is the union of both variable gene sets
@@ -471,7 +471,7 @@ RunCCA <- function(
       stop("group2 not set")
     }
     if (! missing(x = group.by)) {
-      if (! group.by %in% colnames(x = object@data.info)) {
+      if (! group.by %in% colnames(x = object@meta.data)) {
         stop("invalid group.by parameter")
       }
     }
@@ -622,7 +622,7 @@ RunCCA <- function(
 #'  stored for cca)
 #'
 #' @return Returns Seurat object with ratio of variance explained stored in
-#' object@@data.info$var.ratio
+#' object@@meta.data$var.ratio
 #' @export
 #'
 CalcVarExpRatio <- function(
@@ -691,8 +691,8 @@ CalcVarExpRatio <- function(
         dims.use = dims.use,
         genes.use = genes.use
       )
-      group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
-        group.object@data.info[, "pca.var", drop = FALSE]
+      group.var.ratio <- group.object@meta.data[, "cca.var", drop = FALSE] /
+        group.object@meta.data[, "pca.var", drop = FALSE]
     } else if (reduction.type == "ica") {
       group.object <- ICA(
         object = group.object,
@@ -712,8 +712,8 @@ CalcVarExpRatio <- function(
         dims.use = dims.use,
         genes.use = genes.use
       )
-      group.var.ratio <- group.object@data.info[, "cca.var", drop = FALSE] /
-        group.object@data.info[, "ica.var", drop = FALSE]
+      group.var.ratio <- group.object@meta.data[, "cca.var", drop = FALSE] /
+        group.object@meta.data[, "ica.var", drop = FALSE]
     } else {
         stop(paste("reduction.type", reduction.type, "not supported"))
     }
@@ -721,7 +721,7 @@ CalcVarExpRatio <- function(
   }
   var.ratio$cell.name <- rownames(x = var.ratio)
   eval(expr = parse(text = paste0(
-    "object@data.info$var.ratio.",
+    "object@meta.data$var.ratio.",
     reduction.type,
     "<- NULL"
   )))
@@ -729,10 +729,10 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  object@data.info$cell.name <- rownames(x = object@data.info)
-  object@data.info <- merge(x = object@data.info, y = var.ratio, by = "cell.name")
-  rownames(x = object@data.info) <- object@data.info$cell.name
-  object@data.info$cell.name <- NULL
+  object@meta.data$cell.name <- rownames(x = object@meta.data)
+  object@meta.data <- merge(x = object@meta.data, y = var.ratio, by = "cell.name")
+  rownames(x = object@meta.data) <- object@meta.data$cell.name
+  object@meta.data$cell.name <- NULL
   return(object)
 }
 

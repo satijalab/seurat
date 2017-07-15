@@ -2484,11 +2484,11 @@ VariableGenePlot <- function(
 #'
 VizClassification <- function(object, clusters, ...) {
   cluster.dist <- prop.table(x = table(out)) # What is out?
-  object@data.info$Classification <- numeric(nrow(x = object@data.info))
+  object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
   for (cluster in 1:length(x = cluster.dist)) {
     cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
     if (length(x = cells.to.highlight) > 0) {
-      object@data.info[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
+      object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
     }
   }
   if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {

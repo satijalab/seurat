@@ -21,7 +21,7 @@
 #'    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
 #'    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
 #'    \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
-#'    \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
+#'    \item{\code{meta.data}:}{\code{"data.frame"}, Contains information about metadata each cell, starting with # of genes detected (nGene)
 #'    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
 #'    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
 #'    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
@@ -54,7 +54,7 @@ seurat <- setClass(
     var.genes = "vector",
     is.expr = "numeric",
     ident = "factor",
-    data.info = "data.frame",
+    meta.data = "data.frame",
     project.name = "character",
     dr = "list",
     assay = "list",

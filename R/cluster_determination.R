@@ -374,7 +374,7 @@ BuildRFClassifier <- function(
 #' @return Seurat object where the k-means results for genes is stored in
 #'
 #' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
-#' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@data.info[,"kmeans.ident"]
+#' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@meta.data[,"kmeans.ident"]
 #' and also object@@ident (if set.ident=TRUE)
 #'
 #' @export
@@ -421,7 +421,7 @@ DoKMeans <- function(
   object@kmeans <- object.kmeans
   if (k.cells > 0) {
     kmeans.code=paste("kmeans",k.cells,"ident",sep=".")
-    object@data.info[names(x = kmeans.col$cluster), kmeans.code] <- kmeans.col$cluster
+    object@meta.data[names(x = kmeans.col$cluster), kmeans.code] <- kmeans.col$cluster
   }
   if (set.ident && (k.cells > 0)) {
     object <- SetIdent(
@@ -539,7 +539,7 @@ BuildClusterTree <- function(
         cells.use = object@cell.names,
         ident.use = as.integer(x = object@ident)
       )
-      object@data.info[object@cell.names, "tree.ident"] <- as.integer(x = object@ident)
+      object@meta.data[object@cell.names, "tree.ident"] <- as.integer(x = object@ident)
     }
     object <- BuildClusterTree(
       object = object,
@@ -598,7 +598,7 @@ DBClustDimension <- function(
   data.mclust <- ds <- dbscan(data = data.plot[, c("x", "y")], eps = G.use, ...)
   to.set <- as.numeric(x = data.mclust$cluster + 1)
   data.names <- names(x = object@ident)
-  object@data.info[data.names, "DBclust.ident"] <- to.set
+  object@meta.data[data.names, "DBclust.ident"] <- to.set
   if (set.ident) {
     object@ident <- factor(x = to.set)
     names(x = object@ident) <- data.names
@@ -639,7 +639,7 @@ KClustDimension <- function(
   data.mclust <- ds <- kmeans(x = data.plot, centers = k.use)
   to.set <- as.numeric(x = data.mclust$cluster)
   data.names <- names(x = object@ident)
-  object@data.info[data.names, "kdimension.ident"] <- to.set
+  object@meta.data[data.names, "kdimension.ident"] <- to.set
   if (set.ident) {
     object@ident <- factor(x = to.set)
     names(x = object@ident) <- data.names
