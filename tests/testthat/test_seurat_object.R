@@ -67,8 +67,8 @@ test_that("names and IDs set correctly", {
 })
 
 test_that("scaling done correctly", {
-  expect_equal(nbt.test@scale.data["AACS", "Hi_GW21.2_3"], 1.66900902464456)
-  expect_equal(nbt.test@scale.data["ZYX", "Hi_GW16_1"], -0.658326175185112)
+  expect_equal(nbt.test@scale.data["AACS", "Hi_GW21.2_3"], 1.6771640694)
+  expect_equal(nbt.test@scale.data["ZYX", "Hi_GW16_1"], -0.61829233)
 })
 
 # Test dimensional reduction
@@ -83,12 +83,12 @@ nbt.test <- FindVariableGenes(
   dispersion.function = LogVMR
 )
 
-pcs.compute <- 4
+pcs.compute <- 3
 nbt.test <- RunPCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE, weight.by.var = F)
 
 test_that("PCA returns expected data when not scaling", {
-  expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 0.1442809, tolerance = 1e-6)
-  expect_equal(abs(nbt.test@dr$pca@gene.loadings[1,1]), 0.4362582, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 0.26627994, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@dr$pca@gene.loadings[1,1]), 0.5261299, tolerance = 1e-6)
   expect_equal(ncol(nbt.test@dr$pca@gene.loadings), pcs.compute)
   expect_equal(ncol(nbt.test@dr$pca@cell.embeddings), pcs.compute)
 
@@ -98,8 +98,8 @@ nbt.test <- RunPCA(nbt.test, pcs.compute = pcs.compute, do.print = FALSE)
 test_that("PCA returns expected data when scaling by variance explained", {
   expect_true(nrow(nbt.test@dr$pca@cell.embeddings) == ncol(nbt.test@data))
   expect_true(nrow(nbt.test@dr$pca@gene.loadings) == length(nbt.test@var.genes))
-  expect_equal(nbt.test@dr$pca@cell.embeddings[1,1], -0.8723915, tolerance = 1e-6)
-  expect_equal(nbt.test@dr$pca@gene.loadings[1,1], 0.4362582, tolerance = 1e-6 )
+  expect_equal(abs(nbt.test@dr$pca@cell.embeddings[1,1]), 1.423131, tolerance = 1e-6)
+  expect_equal(abs(nbt.test@dr$pca@gene.loadings[1,1]), 0.5261299, tolerance = 1e-6 )
 })
 
 # Tests for tSNE
@@ -108,7 +108,7 @@ context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 test_that("tSNE is run correctly", {
   expect_equal(nrow(nbt.test@dr$tsne@cell.embeddings), ncol(nbt.test@data))
-  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), -14.65122, tolerance = 1e-6)
+  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), 8.958629, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {
@@ -153,7 +153,7 @@ test_that("SNN calculations are correct and handled properly", {
 
   nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
   expect_true(length(nbt.test@snn) > 1)
-  expect_equal(nbt.test@snn[2,9], 0.6)
+  expect_equal(nbt.test@snn[2,9], 1/3)
 
   nbt.test <- FindClusters(nbt.test, resolution = 1, print.output = 0)
 
@@ -175,12 +175,12 @@ test_that("Clustering over multiple resolution values handled correctly", {
 context("Cell Subsetting")
 
 test_that("WhichCells subsets properly", {
-  expect_equal(length(WhichCells(nbt.test, 1)), 4)
+  expect_equal(length(WhichCells(nbt.test, 1)), 3)
   expect_equal(length(WhichCells(nbt.test, c(1,2))), 6)
   expect_error(WhichCells(nbt.test, 10))
   expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
   expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
-  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -0.8, accept.low = -0.9), "Hi_GW21.2_3")
+  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = 1.5, accept.low = 1.4), "Hi_GW21.2_3")
 
   expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
@@ -205,7 +205,7 @@ c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
 test_that("CCA returns the expected cell.embeddings matrix values", {
   expect_equal(nrow(c3@dr$cca@cell.embeddings), 14)
   expect_equal(ncol(c3@dr$cca@cell.embeddings), 3)
-  expect_equal(c3@dr$cca@cell.embeddings[1,1], 0.26555816)
-  expect_equal(c3@dr$cca@cell.embeddings[14,3], 0.71504785)
+  expect_equal(c3@dr$cca@cell.embeddings[1,1], 0.3108733, tolerance = 1e-6 )
+  expect_equal(c3@dr$cca@cell.embeddings[14,3], 0.6064297, tolerance = 1e-6 )
 })
 

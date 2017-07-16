@@ -413,7 +413,8 @@ ScaleData <- function(
                      data.use = data.use,
                      do.scale = do.scale,
                      do.center = do.center,
-                     scale.max = scale.max))
+                     scale.max = scale.max,
+                     genes.use = genes.use))
   }
   scaled.data <- matrix(data = NA,
                         nrow = length(x = genes.use),
