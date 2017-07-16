@@ -20,36 +20,38 @@ genes, create a new object with a lower cutoff.}
 
 \item{min.genes}{Include cells where at least this many genes are detected.}
 
-\item{is.expr}{Expression threshold for 'detected' gene}
+\item{is.expr}{Expression threshold for 'detected' gene. For most datasets, particularly UMI 
+datasets, will be set to 0 (default). If not, when initializing, this should be set to a level 
+based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All 
+values less than this will be set to 0 (though maintained in object@raw.data).}
 
-\item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize). Other options include CLR (CLR),
-regularized NB normalization (NBReg; RNA only)}
+\item{normalization.method}{Method for cell normalization. Default is no normalization.
+In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a 
+normalization method (i.e. LogNormalize) here directly.}
 
 \item{total.expr}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
-z-score)}
+z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you 
+can specify do.scale=T (and do.center=T) here.}
 
-\item{do.center}{In object@scale.data, perform row-centering (gene-based
-centering)}
+\item{do.center}{In object@scale.data, perform row-centering (gene-based centering)}
 
-\item{names.field}{For the initial identity class for each cell, choose this
-field from the cell's column name}
+\item{names.field}{For the initial identity class for each cell, choose this field from the 
+cell's column name}
 
-\item{names.delim}{For the initial identity class for each cell, choose this
-delimiter from the cell's column name}
+\item{names.delim}{For the initial identity class for each cell, choose this delimiter from the 
+cell's column name}
 
-\item{meta.data}{Additional metadata to add to the Seurat object. Should be
-a data frame where the rows are cell names, and the columns are additional
-metadata fields}
+\item{meta.data}{Additional metadata to add to the Seurat object. Should be a data frame where
+the rows are cell names, and the columns are additional metadata fields}
 
-\item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in
-object@raw.data which will save memory downstream for large datasets}
+\item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in  object@raw.data 
+which will save memory downstream for large datasets}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.
-object@data, object@data.info, object@ident, also initialized.
+object@data, object@meta.data, object@ident, also initialized.
 }
 \description{
 Initializes the Seurat object and some optional filtering
