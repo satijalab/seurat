@@ -1,6 +1,6 @@
 #' Gene expression heatmap
 #'
-#' Draws a heatmap of single cell gene expression.
+#' Draws a heatmap of single cell gene expression using ggplot2.
 #'
 #' @param object Seurat object
 #' @param data.use Option to pass in data to use in the heatmap. Default will pick from either
@@ -31,7 +31,7 @@
 #' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
 #' @export
-DoHeatmapGG <- function(
+DoHeatmap <- function(
   object,
   data.use = NULL,
   use.scaled = TRUE,
@@ -1015,7 +1015,8 @@ FeatureHeatmap <- function(
 
 #' Gene expression heatmap
 #'
-#' Draws a heatmap of single cell gene expression using the heatmap.2 function.
+#' Draws a heatmap of single cell gene expression using the heatmap.2 function. Has been replaced by the ggplot2
+#' version (now in DoHeatmap), but kept for legacy
 #'
 #' @param object Seurat object
 #' @param cells.use Cells to include in the heatmap (default is all cells)
@@ -1048,7 +1049,7 @@ FeatureHeatmap <- function(
 #'
 #' @export
 #'
-DoHeatmap <- function(
+OldDoHeatmap <- function(
   object,
   cells.use = NULL,
   genes.use = NULL,
@@ -1691,7 +1692,7 @@ PlotDim <- function(
     data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   }
-  return(DoHeatmapGG(
+  return(DoHeatmap(
     object = object,
     data.use = data.use,
     cells.use = cells.use,
@@ -2627,7 +2628,7 @@ KMeansHeatmap <- function(
   } else {
     rowsep.use <- NA
   }
-  DoHeatmapGG(
+  DoHeatmap(
     object = object,
     cells.use = cells.use,
     genes.use = genes.use,
