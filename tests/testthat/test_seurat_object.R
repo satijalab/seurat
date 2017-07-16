@@ -42,7 +42,7 @@ test_that("entered parameters set correctly", {
   expect_equal(expression.thresh, nbt.test@is.expr)
 })
 test_that("correct cells are used",{
-  gene.count <- nbt.test@data.info$nGene
+  gene.count <- nbt.test@meta.data$nGene
   expect_equal(min(gene.count), 2405)
   expect_true(all(gene.count >= min.genes))
 })
@@ -62,7 +62,7 @@ test_that("names and IDs set correctly", {
 
   expected.cluster.ids = c("GW21.2", "GW16", "GW21")
   expect_equal(as.vector(unique(nbt.test@ident)), expected.cluster.ids)
-  expect_equal(as.vector(unique(nbt.test@ident)), as.vector(unique(nbt.test@data.info$orig.ident)))
+  expect_equal(as.vector(unique(nbt.test@ident)), as.vector(unique(nbt.test@meta.data$orig.ident)))
 
 })
 
@@ -165,8 +165,8 @@ test_that("SNN calculations are correct and handled properly", {
 nbt.test <- FindClusters(nbt.test, k.param = 4, resolution = seq(1,2,0.1), print.output = 0, n.iter = 1,
                          n.start = 1)
 test_that("Clustering over multiple resolution values handled correctly", {
-  expect_equal(length(nbt.test@data.info$res.1), ncol(nbt.test@data))
-  expect_equal(length(nbt.test@data.info$res.2), ncol(nbt.test@data))
+  expect_equal(length(nbt.test@meta.data$res.1), ncol(nbt.test@data))
+  expect_equal(length(nbt.test@meta.data$res.2), ncol(nbt.test@data))
   expect_equal(length(nbt.test@snn), 1)
 })
 

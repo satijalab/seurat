@@ -574,8 +574,10 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
     stop("No stored clusterings.")
   }
   for (i in to.print){
-    if(!ExtractField(i, 2, "res.") %in% resolution){
-      next
+    if(!missing(resolution)){
+      if(!ExtractField(i, 2, "res.") %in% resolution){
+        next
+      }
     }
     if (raw){
       print(object@calc.params[[i]])

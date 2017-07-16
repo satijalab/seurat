@@ -12,7 +12,7 @@
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 #' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
 #' The latter two options should only be used on UMI datasets, and assume an underlying
@@ -87,7 +87,7 @@ FindMarkers <- function(
   thresh.min <- object@is.expr
   data.temp1 <- round(
     x = apply(
-      X = object@data[genes.use, cells.1],
+      X = object@data[genes.use, cells.1, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -98,7 +98,7 @@ FindMarkers <- function(
   )
   data.temp2 <- round(
     x = apply(
-      X = object@data[genes.use, cells.2],
+      X = object@data[genes.use, cells.2, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -116,9 +116,17 @@ FindMarkers <- function(
   genes.use <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
+
+  if (length(cells.1) < min.cells) {
+    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+  }
+  if (length(cells.2) < min.cells) {
+    stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+  }
+
   #gene selection (based on average difference)
-  data.1 <- apply(X = object@data[genes.use, cells.1], MARGIN = 1, FUN = ExpMean)
-  data.2 <- apply(X = object@data[genes.use, cells.2], MARGIN = 1, FUN = ExpMean)
+  data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = ExpMean)
+  data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = ExpMean)
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
   genes.use <- intersect(x = genes.use, y = genes.diff)
@@ -200,16 +208,13 @@ FindMarkers <- function(
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 #'
 #' @param object Seurat object
-#' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) -
-#' use all other cells for comparison.
 #' @param genes.use Genes to test. Default is to all genes
 #' @param thresh.use Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' Increasing thresh.use speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 #' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
 #' The latter two options should only be used on UMI datasets, and assume an underlying
@@ -233,8 +238,6 @@ FindMarkers <- function(
 #'
 FindAllMarkers <- function(
   object,
-  ident.1,
-  ident.2 = NULL,
   genes.use = NULL,
   thresh.use = 0.25,
   test.use = "bimod",
@@ -284,6 +287,7 @@ FindAllMarkers <- function(
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
     gde <- genes.de[[i]]
+    if (is.null(unlist(gde))) next
     if (nrow(x = gde) > 0) {
       if (test.use == "roc") {
         gde <- subset(
@@ -364,7 +368,7 @@ FindMarkersNode <- function(
 #' X-fold difference (log-scale) between the two groups of cells.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-#' al., Bioinformatics, 2011, default), "roc" (standard AUC classifier), "t"
+#' al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
 #' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
 #' The latter two options should only be used on UMI datasets, and assume an underlying
@@ -401,8 +405,12 @@ FindAllMarkersNode <- function(
   random.seed = 1,
   min.cells = 3
 ) {
+  if(length(object@cluster.tree) == 0){
+    stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
+  }
+
   genes.use <- SetIfNull(x = genes.use, default = rownames(object@data))
-  node <- SetIfNull(x = node, default = tree$edge[1,1])
+  node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
   ident.use <- object@ident
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
@@ -440,7 +448,7 @@ FindAllMarkersNode <- function(
   gde.all <- data.frame()
   for (i in ((tree.use$Nnode+2):max(tree.use$edge))) {
     gde <- genes.de[[i]]
-    if (is.null(x = gde)) {
+    if (is.null(x = unlist(gde))) {
       next
     }
     if (nrow(x = gde) > 0) {
@@ -579,7 +587,7 @@ FindConservedMarkers <- function(
 #' Likelihood ratio test for zero-inflated data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
-#' the LRT model proposed in Mcdavid et al, Bioinformatics, 2011
+#' the LRT model proposed in McDavid et al, Bioinformatics, 2013
 #'
 #' @inheritParams FindMarkers
 #' @param object Seurat object
