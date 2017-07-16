@@ -84,7 +84,7 @@ FindMarkers <- function(
     return(NULL)
   }
   #gene selection (based on percent expressed)
-  thresh.min <- object@is.expr
+  thresh.min <- 0
   data.temp1 <- round(
     x = apply(
       X = object@data[genes.use, cells.1, drop = F],
