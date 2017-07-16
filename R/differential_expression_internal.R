@@ -1,5 +1,5 @@
 #internal function to run mcdavid et al. DE test
-DifferentialLRT <- function(x, y, xmin = 1) {
+DifferentialLRT <- function(x, y, xmin = 0) {
   lrtX <- bimodLikData(x = x)
   lrtY <- bimodLikData(x = y)
   lrtZ <- bimodLikData(x = c(x, y))

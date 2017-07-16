@@ -9,7 +9,7 @@
 #' @param min.genes Include cells where at least this many genes are detected.
 #' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI datasets, will be set to 0 (default).
 #' If not, when initializing, this should be set to a level based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd)
-#' However, this parameter will be log-transformed and normalized alongside the data,so that it can be directly comparable to object@@data in downstream calculations.
+#' All values less than this will be set to 0 (though maintained in object@raw.data).
 #' @param normalization.method Method for cell normalization. Default is no normalization.
 #' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
 #' method (i.e. LogNormalize) here directly.
@@ -59,13 +59,17 @@ Seurat <- function(
                 project.name = project,
                 version = seurat.version
                 )
+  
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now
-  num.genes <- colSums(object@raw.data > is.expr)
-  num.mol <- colSums(object@raw.data)
+  
+  object.raw.data=object@raw.data
+  if (is.expr > 0) object.raw.data[object.raw.data < is.expr] = 0
+  num.genes <- colSums(object.raw.data > is.expr)
+  num.mol <- colSums(object.raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
-  object@data <- object@raw.data[, cells.use]
+  object@data <- object.raw.data[, cells.use]
   # to save memory downstream, especially for large objects if raw.data no
   # longer needed
   if (!(save.raw)) {
@@ -75,7 +79,7 @@ Seurat <- function(
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
   if (min.cells > 0) {
-    num.cells <- rowSums(object@data > is.expr)
+    num.cells <- rowSums(object@data > 0)
     genes.use <- names(num.cells[which(num.cells >= min.cells)])
     object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
