@@ -8,10 +8,10 @@
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Normalize the data after merging. Default is TRUE. 
+#' @param normalization.method Normalize the data after merging. Default is TRUE.
 #' If set, will perform the same normalization strategy as stored for the first object
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score). FALSE by default, so run ScaleData after merging. 
+#' z-score). FALSE by default, so run ScaleData after merging.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
 #' centering). FALSE by default
 #' @param names.field For the initial identity class for each cell, choose this
@@ -135,15 +135,22 @@ MergeSeurat <- function(
   )
 
   if (do.normalize) {
-    merged.object=NormalizeData(object = merged.object,assay.type = "RNA", 
-                              scale.factor = GetCalcParam(object1,"NormalizeData","scale.factor"), 
-                              normalization.method = GetCalcParam(object1,"NormalizeData","normalization.method"))
+    merged.object <- NormalizeData(object = merged.object,
+                                   assay.type = "RNA",
+                                   scale.factor = GetCalcParam(object = object1,
+                                                               calculation = "NormalizeData",
+                                                               parameter = "scale.factor"),
+                                   normalization.method = GetCalcParam(object = object1,
+                                                                       calculation = "NormalizeData",
+                                                                       parameter = "normalization.method"))
   }
-  
+
   if (do.scale | do.center) {
-    merged.object=ScaleData(merged.object,do.scale = do.scale, do.center=do.center)
+    merged.object <- ScaleData(object = merged.object,
+                               do.scale = do.scale,
+                               do.center = do.center)
   }
-  
+
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data

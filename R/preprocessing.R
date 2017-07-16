@@ -7,7 +7,7 @@
 #' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
 #' genes, create a new object with a lower cutoff.
 #' @param min.genes Include cells where at least this many genes are detected.
-#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI datasets, will be set to 0 (default). 
+#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI datasets, will be set to 0 (default).
 #' If not, when initializing, this should be set to a level based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd)
 #' All values less than this will be set to 0 (though maintained in object@raw.data).
 #' @param normalization.method Method for cell normalization. Default is no normalization.
@@ -240,6 +240,9 @@ NormalizeData <- function(
   object <- SetCalcParams(object = object,
                           calculation = "NormalizeData",
                           ... = parameters.to.store)
+  if(is.null(normalization.method)) {
+    return(object)
+  }
   if (normalization.method == "LogNormalize") {
     raw.data <- GetAssayData(
       object = object,
@@ -381,7 +384,7 @@ ScaleData <- function(
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
-  
+
   if (!("NormalizeData" %in% names(object@calc.params))) {
     cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
   }

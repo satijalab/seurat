@@ -2,15 +2,15 @@
 % Please edit documentation in R/utilities.R
 \name{MergeNode}
 \alias{MergeNode}
-\title{Merge SubsetColumnhilden of a node}
+\title{Merge childen of a node}
 \usage{
 MergeNode(object, node.use = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{node.use}{Merge SubsetColumnhildren of this node}
+\item{node.use}{Merge children of this node}
 }
 \description{
-Merge the SubsetColumnhilden of a node into a single identity class
+Merge the childen of a node into a single identity class
 }
