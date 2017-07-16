@@ -377,6 +377,10 @@ ScaleData <- function(
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
+  
+  if (!("NormalizeData" %in% names(object@calc.params))) {
+    cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+  }
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
