@@ -609,7 +609,7 @@ FindVariableGenes <- function(
       my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
       my.inds <- my.inds[my.inds <= length(x = genes.use)]
       genes.iter <- genes.use[my.inds]
-      data.iter <- data[genes.iter, ]
+      data.iter <- data[genes.iter, , drop = F]
       gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
       gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
       setTxtProgressBar(pb = pb, value = i)
