@@ -113,7 +113,7 @@ RunPCA <- function(
 #'
 #' @export
 #'
-ICA <- function(
+RunICA <- function(
   object,
   ic.genes = NULL,
   ics.compute = 50,
@@ -179,7 +179,7 @@ ICA <- function(
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param seed.use Random seed for the t-SNE
 #' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
-#' faster, but is less flexible. TRUE by default. 
+#' faster, but is less flexible. TRUE by default.
 #' @param add.iter If an existing tSNE has already been computed, uses the
 #' current tSNE to seed the algorithm and then adds additional iterations on top
 #' of this
@@ -690,7 +690,7 @@ CalcVarExpRatio <- function(
       group.var.ratio <- group.object@meta.data[, "cca.var", drop = FALSE] /
         group.object@meta.data[, "pca.var", drop = FALSE]
     } else if (reduction.type == "ica") {
-      group.object <- ICA(
+      group.object <- RunICA(
         object = group.object,
         ic.genes = genes.use,
         print.results = FALSE

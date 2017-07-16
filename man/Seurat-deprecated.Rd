@@ -30,6 +30,7 @@
 \alias{project.samples}
 \alias{run_diffusion}
 \alias{ica}
+\alias{ICA}
 \alias{cluster.alpha}
 \alias{reorder.ident}
 \alias{average.pca}
@@ -130,7 +131,8 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{subsetCells} \tab now deleted\cr
   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
-  \code{ica} \tab now a synonym for \code{\link{ICA}}\cr
+  \code{ica} \tab now a synonym for \code{\link{RunICA}}\cr
+  \code{ICA} \tab now a synonym for \code{\link{RunICA}}\cr
   \code{cluster.alpha} \tab now a synonym for \code{\link{AverageDetectionRate}}\cr
   \code{reorder.ident} \tab now a synonym for \code{\link{ReorderIdent}}\cr
   \code{average.pca} \tab now a synonym for \code{\link{AveragePCA}}\cr
