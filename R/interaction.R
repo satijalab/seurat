@@ -826,11 +826,6 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-
-  cells.in.existing.metadata=rownames(x=object@meta.data)
-  cells.in.new.metadata=rownames(x=metadata)
-  cells.intersect=intersect(cells.in.existing.metadata, cells.in.new.metadata)
-  object@meta.data[, cols.add] <- NA
-  object@meta.data[cells.intersect, cols.add] <- metadata[cells.intersect, cols.add]
+  object@meta.data[, cols.add] <- metadata[rownames(x=object@meta.data), cols.add]
   return(object)
 }
