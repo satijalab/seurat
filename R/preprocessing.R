@@ -7,7 +7,9 @@
 #' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
 #' genes, create a new object with a lower cutoff.
 #' @param min.genes Include cells where at least this many genes are detected.
-#' @param is.expr Expression threshold for 'detected' gene
+#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI datasets, will be set to 0 (default). 
+#' If not, when initializing, this should be set to a level based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd)
+#' However, this parameter will be log-transformed and normalized alongside the data,so that it can be directly comparable to object@@data in downstream calculations.
 #' @param normalization.method Method for cell normalization. Default is no normalization.
 #' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
 #' method (i.e. LogNormalize) here directly.

@@ -222,12 +222,9 @@ RunTSNE <- function(
     )[, dims.use]
   }
   if (! is.null(x = genes.use)) {
-    if (length(x = object@scale.data) == 0) {
-      stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
-    }
-    cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@scale.data))
-    genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
-    data.use <- t(x = object@scale.data[genes.use, cells.use])
+      data.use <- t(PrepDR(
+        object = object,
+        genes.use = genes.use))
   }
   set.seed(seed = seed.use)
   if (do.fast) {

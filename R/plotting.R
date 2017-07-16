@@ -26,6 +26,7 @@
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
 #' @param do.plot Whether to display the plot.
+#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
 #' @return Returns a ggplot2 plot object
 #' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
@@ -58,9 +59,9 @@ DoHeatmapGG <- function(
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
-      data.use <- object@scale.data
+      data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
     } else {
-      data.use <- object@data
+      data.use <- GetAssayData(object,assay.type = "RNA",slot = "data")
     }
   }
   # note: data.use should have cells as column names, genes as row names

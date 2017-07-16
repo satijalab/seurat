@@ -35,6 +35,9 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     } else if (slot == "data") {
       to.return <- object@data
     } else if (slot == "scale.data") {
+      if (length(x = object@scale.data) == 0) {
+        stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
+      }
       to.return <- object@scale.data
     }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided

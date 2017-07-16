@@ -25,16 +25,15 @@ dim.reduction <- setClass(
 #                      Default is object@@var.genes
 # @param dims.compute  Number of dimensions to compute
 # @param use.imputed   Whether to run the dimensional reduction on imputed values
-
+# @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
 
 PrepDR <- function(
   object,
   genes.use = NULL,
-  use.imputed = FALSE
+  use.imputed = FALSE,
+  assay.type="RNA"
 ) {
-  if (length(x = object@scale.data) == 0) {
-    stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
-  }
+
   if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
     stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector 
           of genes names in genes.use and retry.")
@@ -42,7 +41,7 @@ PrepDR <- function(
   if (use.imputed) {
     data.use <- t(x = scale(x = t(x = object@imputed)))
   } else {
-    data.use <- object@scale.data
+    data.use <- GetAssayData(object, assay.type = assay.type,slot = "scale.data")
   }
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
