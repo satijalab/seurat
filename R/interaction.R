@@ -148,7 +148,7 @@ MergeSeurat <- function(
   if (do.scale | do.center) {
     merged.object <- ScaleData(object = merged.object,
                                do.scale = do.scale,
-                               do.center=do.center)
+                               do.center = do.center)
   }
 
   merged.meta.data %>% filter(

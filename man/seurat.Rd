@@ -20,16 +20,18 @@ genes, create a new object with a lower cutoff.}
 
 \item{min.genes}{Include cells where at least this many genes are detected.}
 
-\item{is.expr}{Expression threshold for 'detected' gene}
+\item{is.expr}{Expression threshold for 'detected' gene. For most datasets, particularly UMI datasets, will be set to 0 (default).
+If not, when initializing, this should be set to a level based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd)
+However, this parameter will be log-transformed and normalized alongside the data,so that it can be directly comparable to object@data in downstream calculations.}
 
-\item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize). Other options include CLR (CLR),
-regularized NB normalization (NBReg; RNA only)}
+\item{normalization.method}{Method for cell normalization. Default is no normalization.
+In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
+method (i.e. LogNormalize) here directly.}
 
 \item{total.expr}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
-z-score)}
+z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you can specify do.scale=T (and do.center=T) here.}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
 centering)}
@@ -49,7 +51,7 @@ object@raw.data which will save memory downstream for large datasets}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.
-object@data, object@data.info, object@ident, also initialized.
+object@data, object@meta.data, object@ident, also initialized.
 }
 \description{
 Initializes the Seurat object and some optional filtering

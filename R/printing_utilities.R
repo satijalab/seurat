@@ -6,12 +6,44 @@
 #' @param object Seurat object
 #' @param calculation Name of calculation (function name) to check parameters
 #' for
+#' @param raw Print the entire contents of the calculation settings slot (calc.params)
+#' for the RunPCA calculation.
 #' @param return.list Return the calculation parameters as a list
 #' @return Prints the calculation settings and optionally returns them as a list
 #' @export
-PrintCalcParams <- function(object, calculation, return.list = FALSE) {
+PrintCalcParams <- function(object, calculation, raw = FALSE,
+                            return.list = FALSE) {
   if(is.null(object@calc.params[[calculation]])){
     stop(paste0(calculation, " not computed yet."))
+  }
+  if (!raw){
+    if(calculation == "RunPCA"){
+      PrintPCAParams(object)
+    }
+    if(calculation == "ICA"){
+      PrintICAParams(object)
+    }
+    if(calculation == "RunTSNE"){
+      PrintTSNEParams(object)
+    }
+    if(calculation == "RunCCA"){
+      PrintCCAParams(object)
+    }
+    if(calculation == "CalcVarExpRatioParams"){
+      PrintCalcVarExpRatioParams(object)
+    }
+    if(calculation == "AlignSubspace"){
+      PrintAlignSubspaceParams(object)
+    }
+    if(calculation == "RunDiffusion"){
+      PrintDMParams(object)
+    }
+    if(calculation == "BuildSNN"){
+      PrintSNNParams(object)
+    }
+    if(calculation == "FindClusters"){
+      PrintFindClustersParams(object)
+    }
   }
   print(object@calc.params[[calculation]])
   if(return.list){

@@ -551,12 +551,12 @@ AverageExpression <- function(
 }
 
 
-#' Merge SubsetColumnhilden of a node
+#' Merge childen of a node
 #'
-#' Merge the SubsetColumnhilden of a node into a single identity class
+#' Merge the childen of a node into a single identity class
 #'
 #' @param object Seurat object
-#' @param node.use Merge SubsetColumnhildren of this node
+#' @param node.use Merge children of this node
 #'
 #' @export
 #'
