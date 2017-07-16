@@ -22,14 +22,14 @@ genes, create a new object with a lower cutoff.}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{normalization.method}{Method for cell normalization. Default is no normalization.
-In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a normalization
-method (i.e. LogNormalize) here directly.}
+\item{normalization.method}{Method for normalization. Default is
+log-normalization (LogNormalize). Other options include CLR (CLR),
+regularized NB normalization (NBReg; RNA only)}
 
 \item{total.expr}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
-z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you can specify do.scale=T (and do.center=T) here.}
+z-score)}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
 centering)}
@@ -49,7 +49,7 @@ object@raw.data which will save memory downstream for large datasets}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.
-object@data, object@meta.data, object@ident, also initialized.
+object@data, object@data.info, object@ident, also initialized.
 }
 \description{
 Initializes the Seurat object and some optional filtering
