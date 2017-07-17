@@ -14,7 +14,7 @@
 #' @param normalization.method Method for cell normalization. Default is no normalization.
 #' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
 #' normalization method (i.e. LogNormalize) here directly.
-#' @param total.expr If normalizing on the cell level, this sets the scale factor.
+#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
 #' can specify do.scale=T (and do.center=T) here.
@@ -44,7 +44,7 @@ CreateSeuratObject <- function(
   min.genes = 0,
   is.expr = 0,
   normalization.method = NULL,
-  total.expr = 1e4,
+  scale.factor = 1e4,
   do.scale = FALSE,
   do.center = FALSE,
   names.field = 1,
@@ -84,13 +84,6 @@ CreateSeuratObject <- function(
     object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
   }
-  if (!is.null(normalization.method)) {
-    object <- NormalizeData(object = object,
-                            assay.type = "RNA",
-                            normalization.method = normalization.method,
-                            scale.factor = scale.factor,
-                            display.progress = display.progress)
-  }
   object@ident <- factor(
     x = unlist(
       x = lapply(
@@ -115,6 +108,12 @@ CreateSeuratObject <- function(
     object <- AddMetaData(object = object, metadata = meta.data)
   }
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
+  if (!is.null(normalization.method)) {
+    object <- NormalizeData(object = object,
+                            assay.type = "RNA",
+                            normalization.method = normalization.method,
+                            scale.factor = scale.factor)
+  }
   if(do.scale | do.center) {
     object <- ScaleData(object = object,
                         do.scale = do.scale,

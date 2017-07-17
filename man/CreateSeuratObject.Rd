@@ -6,7 +6,7 @@
 \usage{
 CreateSeuratObject(raw.data, project = "SeuratProject", min.cells = 0,
   min.genes = 0, is.expr = 0, normalization.method = NULL,
-  total.expr = 10000, do.scale = FALSE, do.center = FALSE,
+  scale.factor = 10000, do.scale = FALSE, do.center = FALSE,
   names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE)
 }
 \arguments{
@@ -29,7 +29,7 @@ values less than this will be set to 0 (though maintained in object@raw.data).}
 In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
 normalization method (i.e. LogNormalize) here directly.}
 
-\item{total.expr}{If normalizing on the cell level, this sets the scale factor.}
+\item{scale.factor}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
