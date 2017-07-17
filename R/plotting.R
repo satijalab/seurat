@@ -758,11 +758,10 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- FetchData(
-    object = object,
-    vars.all = dim.codes,
-    cells.use = cells.use
-  )
+  data.plot <- as.data.frame(GetCellEmbeddings(object = object,
+                                               reduction.type = reduction.use,
+                                               dims.use = c(dim.1, dim.2),
+                                               cells.use = cells.use))
   x1 <- paste0(dim.code, dim.1)
   x2 <- paste0(dim.code, dim.2)
   data.plot$x <- data.plot[, x1]
