@@ -172,7 +172,7 @@ MergeSeurat <- function(
 #' @param normalization.method Normalize the data after merging. Default is TRUE.
 #' If set, will perform the same normalization strategy as stored for the first
 #' object
-#' @param total.expr scale factor in the log normalization
+#' @param scale.factor scale factor in the log normalization
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
 #' centering)

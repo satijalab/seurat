@@ -28,6 +28,8 @@ many cells}
 If set, will perform the same normalization strategy as stored for the first
 object}
 
+\item{scale.factor}{scale factor in the log normalization}
+
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based z-score)}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
@@ -48,8 +50,6 @@ which will save memory downstream for large datasets}
 
 \item{add.cell.id}{String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
 "cell1" becomes "cell1.rep1"}
-
-\item{total.expr}{scale factor in the log normalization}
 }
 \description{
 Add samples into existing Seurat object.
