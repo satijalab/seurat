@@ -15,9 +15,11 @@ AverageExpression(object, genes.use = NULL, return.seurat = FALSE,
 
 \item{return.seurat}{Whether to return the data as a Seurat object. Default is false.}
 
-\item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example)}
+\item{add.ident}{Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).}
 
-\item{use.raw}{For gene expression, use raw values. Default is FALSE}
+\item{use.scale}{Use scaled values for gene expression}
+
+\item{use.raw}{Use raw values for gene expression}
 
 \item{show.progress}{Show progress bar (default is T)}
 

@@ -7,25 +7,25 @@
 #' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
 #' genes, create a new object with a lower cutoff.
 #' @param min.genes Include cells where at least this many genes are detected.
-#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI 
-#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level 
-#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All 
+#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
+#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
+#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
 #' values less than this will be set to 0 (though maintained in object@raw.data).
 #' @param normalization.method Method for cell normalization. Default is no normalization.
-#' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a 
+#' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
 #' normalization method (i.e. LogNormalize) here directly.
 #' @param total.expr If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you 
+#' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
 #' can specify do.scale=T (and do.center=T) here.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
-#' @param names.field For the initial identity class for each cell, choose this field from the 
+#' @param names.field For the initial identity class for each cell, choose this field from the
 #' cell's column name
-#' @param names.delim For the initial identity class for each cell, choose this delimiter from the 
+#' @param names.delim For the initial identity class for each cell, choose this delimiter from the
 #' cell's column name
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
 #' the rows are cell names, and the columns are additional metadata fields
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in  object@@raw.data 
+#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in  object@@raw.data
 #' which will save memory downstream for large datasets
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
@@ -59,10 +59,10 @@ Seurat <- function(
                 project.name = project,
                 version = seurat.version
                 )
-  
+
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now
-  
+
   object.raw.data=object@raw.data
   if (is.expr > 0) object.raw.data[object.raw.data < is.expr] = 0
   num.genes <- colSums(object.raw.data > is.expr)
@@ -353,6 +353,7 @@ ScaleDataR <- function(
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
 #' don't block for scaling calculations.
+#' @param display.progress Displays a progress bar for scaling procedure
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.

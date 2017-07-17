@@ -43,6 +43,8 @@ additional memory cost.}
 \item{min.cells.to.block}{If object contains fewer than this number of cells,
 don't block for scaling calculations.}
 
+\item{display.progress}{Displays a progress bar for scaling procedure}
+
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for
 multimodal analyses.}
 

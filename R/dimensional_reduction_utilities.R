@@ -326,7 +326,7 @@ ICALoad <- function(
 #' @param object Seurat object
 #' @param dims.use Dimensions to include (default is all stored dims)
 #' @param genes.use Genes to include (default is all)
-#'
+#' @param use.full Return projected gene loadings (default is FALSE)#'
 #' @return Diffusion maps gene loading matrix for given genes and DMs
 #'
 #' @export

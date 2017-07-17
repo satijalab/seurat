@@ -12,13 +12,13 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 
 \item{reduction.type}{reduction to align scores for}
 
+\item{grouping.var}{Name of the grouping variable for which to align the scores}
+
 \item{dims.align}{Dims to align, default is all}
 
 \item{num.genes}{Number of genes to use in construction of "metagene"}
 
 \item{show.plots}{show debugging plots}
-
-\item{group.var}{Name of the grouping variable for which to align the scores}
 }
 \value{
 Returns Seurat object with the dims aligned, stored in

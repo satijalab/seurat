@@ -5,7 +5,7 @@
 \title{Color tSNE Plot Based on Split}
 \usage{
 ColorTSNESplit(object, node, color1 = "red", color2 = "blue",
-  color3 = "gray")
+  color3 = "gray", ...)
 }
 \arguments{
 \item{object}{Seurat object}

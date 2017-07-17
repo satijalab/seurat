@@ -12,6 +12,8 @@ DMLoad(object, dims.use = NULL, genes.use = NULL, use.full = FALSE)
 \item{dims.use}{Dimensions to include (default is all stored dims)}
 
 \item{genes.use}{Genes to include (default is all)}
+
+\item{use.full}{Return projected gene loadings (default is FALSE)#'}
 }
 \value{
 Diffusion maps gene loading matrix for given genes and DMs

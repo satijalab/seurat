@@ -740,7 +740,7 @@ CalcVarExpRatio <- function(
 #'
 #' @param object Seurat object
 #' @param reduction.type reduction to align scores for
-#' @param group.var Name of the grouping variable for which to align the scores
+#' @param grouping.var Name of the grouping variable for which to align the scores
 #' @param dims.align Dims to align, default is all
 #' @param num.genes Number of genes to use in construction of "metagene"
 #' @param show.plots show debugging plots
