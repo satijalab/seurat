@@ -51,3 +51,4 @@ object@scale.data, object@data.info, object@ident
 \description{
 Setup and initialize basic parameters of the Seurat object
 }
+

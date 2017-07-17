@@ -18,3 +18,4 @@ Returns a matrix with genes as rows, identity classes as columns.
 For each gene, calculates the probability of detection for each identity
 class.
 }
+

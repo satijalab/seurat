@@ -62,3 +62,114 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FastMatMult
+Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2);
+RcppExport SEXP Seurat_FastMatMult(SEXP m1SEXP, SEXP m2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m1(m1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type m2(m2SEXP);
+    rcpp_result_gen = Rcpp::wrap(FastMatMult(m1, m2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastRowScale
+Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, double scale_max, bool display_progress);
+RcppExport SEXP Seurat_FastRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastRowScale(mat, scale, center, scale_max, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Standardize
+Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress);
+RcppExport SEXP Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastSparseRowScale
+Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, bool center, double scale_max, bool display_progress);
+RcppExport SEXP Seurat_FastSparseRowScale(SEXP matSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastSparseRowScale(mat, scale, center, scale_max, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastCov
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
+RcppExport SEXP Seurat_FastCov(SEXP matSEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCov(mat, center));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastCovMats
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
+RcppExport SEXP Seurat_FastCovMats(SEXP mat1SEXP, SEXP mat2SEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastCovMats(mat1, mat2, center));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastRBind
+Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
+RcppExport SEXP Seurat_FastRBind(SEXP mat1SEXP, SEXP mat2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat1(mat1SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat2(mat2SEXP);
+    rcpp_result_gen = Rcpp::wrap(FastRBind(mat1, mat2));
+    return rcpp_result_gen;
+END_RCPP
+}
+
+static const R_CallMethodDef CallEntries[] = {
+    {"Seurat_RunUMISampling", (DL_FUNC) &Seurat_RunUMISampling, 4},
+    {"Seurat_RunUMISamplingPerCell", (DL_FUNC) &Seurat_RunUMISamplingPerCell, 4},
+    {"Seurat_RowMergeMatrices", (DL_FUNC) &Seurat_RowMergeMatrices, 5},
+    {"Seurat_LogNorm", (DL_FUNC) &Seurat_LogNorm, 3},
+    {"Seurat_FastMatMult", (DL_FUNC) &Seurat_FastMatMult, 2},
+    {"Seurat_FastRowScale", (DL_FUNC) &Seurat_FastRowScale, 5},
+    {"Seurat_Standardize", (DL_FUNC) &Seurat_Standardize, 2},
+    {"Seurat_FastSparseRowScale", (DL_FUNC) &Seurat_FastSparseRowScale, 5},
+    {"Seurat_FastCov", (DL_FUNC) &Seurat_FastCov, 2},
+    {"Seurat_FastCovMats", (DL_FUNC) &Seurat_FastCovMats, 3},
+    {"Seurat_FastRBind", (DL_FUNC) &Seurat_FastRBind, 2},
+    {NULL, NULL, 0}
+};
+
+RcppExport void R_init_Seurat(DllInfo *dll) {
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}

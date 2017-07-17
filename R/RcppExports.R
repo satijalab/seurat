@@ -17,3 +17,31 @@ LogNorm <- function(data, scale_factor, display_progress = TRUE) {
     .Call('Seurat_LogNorm', PACKAGE = 'Seurat', data, scale_factor, display_progress)
 }
 
+FastMatMult <- function(m1, m2) {
+    .Call('Seurat_FastMatMult', PACKAGE = 'Seurat', m1, m2)
+}
+
+FastRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
+    .Call('Seurat_FastRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
+}
+
+Standardize <- function(mat, display_progress = TRUE) {
+    .Call('Seurat_Standardize', PACKAGE = 'Seurat', mat, display_progress)
+}
+
+FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
+    .Call('Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
+}
+
+FastCov <- function(mat, center = TRUE) {
+    .Call('Seurat_FastCov', PACKAGE = 'Seurat', mat, center)
+}
+
+FastCovMats <- function(mat1, mat2, center = TRUE) {
+    .Call('Seurat_FastCovMats', PACKAGE = 'Seurat', mat1, mat2, center)
+}
+
+FastRBind <- function(mat1, mat2) {
+    .Call('Seurat_FastRBind', PACKAGE = 'Seurat', mat1, mat2)
+}
+

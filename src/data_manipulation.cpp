@@ -2,9 +2,8 @@
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
+
 using namespace Rcpp;
-
-
 // [[Rcpp::depends(RcppEigen)]]
 // [[Rcpp::depends(RcppProgress)]]
 
@@ -122,3 +121,139 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   return data;
 }
 
+// [[Rcpp::export]]
+Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2){
+  Eigen::MatrixXd m3 = m1 * m2;
+  return(m3);
+}
+
+
+/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R. 
+   Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
+
+// [[Rcpp::export]]
+Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true, 
+                             double scale_max = 10, bool display_progress = true){
+  Progress p(mat.rows(), display_progress);
+  Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
+  for(int i=0; i < mat.rows(); ++i){
+    p.increment();
+    Eigen::ArrayXd r = mat.row(i).array();
+    double rowMean = r.mean();
+    double rowSdev = 1;
+    if(scale == true){
+      if(center == true){
+        rowSdev = sqrt((r - rowMean).square().sum() / (mat.cols() - 1));
+      }
+      else{
+        rowSdev = sqrt(r.square().sum() / (mat.cols() - 1));
+      }
+    }
+    if(center == false){
+      rowMean = 0;
+    }
+    scaled_mat.row(i) = (r - rowMean) / rowSdev;
+    for(int s=0; s<scaled_mat.row(i).size(); ++s){
+      if(scaled_mat(i, s) > scale_max){
+        scaled_mat(i, s) = scale_max;
+      }
+    }
+  }
+  return scaled_mat;
+}
+
+/* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R. 
+ Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
+
+// [[Rcpp::export]]
+Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress = true){
+  Progress p(mat.cols(), display_progress);
+  Eigen::MatrixXd std_mat(mat.rows(), mat.cols());
+  for(int i=0; i < mat.cols(); ++i){
+    p.increment();
+    Eigen::ArrayXd r = mat.col(i).array();
+    double colMean = r.mean();
+    double colSdev = sqrt((r - colMean).square().sum() / (mat.rows() - 1));
+    std_mat.col(i) = (r - colMean) / colSdev;
+  }
+  return std_mat;
+}
+
+// [[Rcpp::export]]
+Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true, 
+                                   double scale_max = 10, bool display_progress = true){
+  mat = mat.transpose();
+  Progress p(mat.outerSize(), display_progress);
+  Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double colMean = 0;
+    double colSdev = 0; 
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+    {
+      colMean += it.value();
+    }
+    colMean = colMean / mat.rows();
+    if (scale == true){
+      int nnZero = 0;
+      if(center == true){
+        for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+        {
+          nnZero += 1;
+          colSdev += pow((it.value() - colMean), 2);
+        }
+        colSdev += pow(colMean, 2) * (mat.rows() - nnZero);
+      }
+      else{
+        for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+        {
+          colSdev += pow(it.value(), 2);
+        }
+      }
+      colSdev = sqrt(colSdev / (mat.rows() - 1));
+    }
+    else{
+      colSdev = 1;
+    }
+    if(center == false){
+      colMean = 0;
+    }
+    Eigen::VectorXd col = Eigen::VectorXd(mat.col(k));
+    scaled_mat.col(k) = (col.array() - colMean) / colSdev;
+    for(int s=0; s<scaled_mat.col(k).size(); ++s){
+      if(scaled_mat(s,k) > scale_max){
+        scaled_mat(s,k) = scale_max;
+      }
+    }
+  }
+  return scaled_mat.transpose();
+}
+
+/* Note: May not handle NA/NaNs in the same way the R implementation does, */
+
+// [[Rcpp::export]]
+Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center = true){
+  if (center) {
+    mat = mat.rowwise() - mat.colwise().mean();
+  }
+  Eigen::MatrixXd cov = (mat.adjoint() * mat) / double(mat.rows() - 1);
+  return(cov);
+}
+
+// [[Rcpp::export]]
+Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center = true){
+  if(center){
+    mat1 = mat1.rowwise() - mat1.colwise().mean();
+    mat2 = mat2.rowwise() - mat2.colwise().mean();
+  }
+  Eigen::MatrixXd cov = (mat1.adjoint() * mat2) / double(mat1.rows() - 1);
+  return(cov);
+}
+
+/* Note: Faster than the R implementation but is not in-place */
+//[[Rcpp::export]]
+Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
+  Eigen::MatrixXd mat3(mat1.rows() + mat2.rows(), mat1.cols());
+  mat3 << mat1, mat2;
+  return(mat3);
+}
