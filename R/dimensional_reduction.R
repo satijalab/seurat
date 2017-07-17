@@ -9,8 +9,8 @@
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
-#' @param weight.by.var Weight the gene loadings by the variance of each PC
-#' (weights the cell embeddings if rev.pca is TRUE)
+#' @param weight.by.var Weight the cell embeddings by the variance of each PC
+#' (weights the gene loadings if rev.pca is TRUE)
 #' @param do.print Print the top genes associated with high/low loadings for
 #' the PCs
 #' @param pcs.print PCs to print genes for
