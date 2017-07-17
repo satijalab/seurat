@@ -45,6 +45,7 @@ RunPCA <- function(
   pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
+    sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
     if(weight.by.var){
       gene.loadings <- pca.results$u %*% diag(pca.results$d)
     } else{
@@ -55,6 +56,7 @@ RunPCA <- function(
   else {
     pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
     gene.loadings <- pca.results$v
+    sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
     if(weight.by.var){
       cell.embeddings <- pca.results$u %*% diag(pca.results$d)
     } else {
@@ -69,7 +71,7 @@ RunPCA <- function(
     Class = "dim.reduction",
     gene.loadings = gene.loadings,
     cell.embeddings = cell.embeddings,
-    sdev = pca.results$d,
+    sdev = sdev,
     key = "PC"
   )
   object@dr$pca <- pca.obj

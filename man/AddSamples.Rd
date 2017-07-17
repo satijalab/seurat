@@ -6,7 +6,7 @@
 \usage{
 AddSamples(object, new.data, project = NULL, min.cells = 3,
   min.genes = 1000, is.expr = 0, normalization.method = NULL,
-  total.expr = 10000, do.scale = TRUE, do.center = TRUE,
+  scale.factor = 10000, do.scale = TRUE, do.center = TRUE,
   names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
   add.cell.id = NULL)
 }
@@ -24,13 +24,11 @@ many cells}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize). Other options include CLR (CLR),
-regularized NB normalization (NBReg; RNA only)}
+\item{normalization.method}{Normalize the data after merging. Default is TRUE.
+If set, will perform the same normalization strategy as stored for the first
+object}
 
-\item{total.expr}{scale factor in the log normalization}
-
-\item{do.scale}{In object@scale.data, perform row-scaling (gene-based}
+\item{do.scale}{In object@scale.data, perform row-scaling (gene-based z-score)}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based
 centering)}
@@ -50,6 +48,8 @@ which will save memory downstream for large datasets}
 
 \item{add.cell.id}{String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
 "cell1" becomes "cell1.rep1"}
+
+\item{total.expr}{scale factor in the log normalization}
 }
 \description{
 Add samples into existing Seurat object.

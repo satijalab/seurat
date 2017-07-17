@@ -169,11 +169,11 @@ MergeSeurat <- function(
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize). Other options include CLR (CLR),
-#' regularized NB normalization (NBReg; RNA only)
+#' @param normalization.method Normalize the data after merging. Default is TRUE.
+#' If set, will perform the same normalization strategy as stored for the first
+#' object
 #' @param total.expr scale factor in the log normalization
-#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
+#' @param do.scale In object@@scale.data, perform row-scaling (gene-based z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
 #' centering)
 #' @param names.field For the initial identity class for each cell, choose this
