@@ -2541,7 +2541,8 @@ ColorTSNESplit <- function(
   node,
   color1 = "red",
   color2 = "blue",
-  color3 = "gray"
+  color3 = "gray",
+  ...
 ) {
   tree <- object@cluster.tree[[1]]
   split <- tree$edge[which(x = tree$edge[,1] == node), ][, 2]

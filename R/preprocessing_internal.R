@@ -82,7 +82,7 @@ RegressOut <- function(
           }
           if (model.use == 'negbinom') {
             return(NBResiduals(
-              formula = fmla,
+              fmla = fmla,
               regression.mat = regression.mat,
               gene = x
             ))
