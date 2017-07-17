@@ -12,18 +12,19 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 
 \item{reduction.type}{reduction to align scores for}
 
+\item{grouping.var}{Name of the grouping variable for which to align the scores}
+
 \item{dims.align}{Dims to align, default is all}
 
 \item{num.genes}{Number of genes to use in construction of "metagene"}
 
 \item{show.plots}{show debugging plots}
-
-\item{group.var}{Name of the grouping variable for which to align the scores}
 }
 \value{
-Returns Seurat object with the dims aligned, stored in object@dr$reduction.type.aligned
+Returns Seurat object with the dims aligned, stored in
+ object@dr$reduction.type.aligned
 }
 \description{
-Aligns subspaces so that they line up across grouping variable (only implemented for case with
-2 categories in grouping.var)
+Aligns subspaces so that they line up across grouping variable (only
+implemented for case with 2 categories in grouping.var)
 }

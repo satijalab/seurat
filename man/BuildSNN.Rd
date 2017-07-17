@@ -4,39 +4,50 @@
 \alias{BuildSNN}
 \title{SNN Graph Construction}
 \usage{
-BuildSNN(object, genes.use = NULL, reduction.type = "pca", pc.use = NULL,
-  k.param = 10, k.scale = 10, plot.SNN = FALSE, prune.SNN = 1/15,
-  do.sparse = FALSE, print.output = TRUE, distance.matrix = NULL)
+BuildSNN(object, genes.use = NULL, reduction.type = "pca",
+  dims.use = NULL, k.param = 10, k.scale = 10, plot.SNN = FALSE,
+  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
+  force.recalc = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{genes.use}{Gene expression data}
+\item{genes.use}{A vector of gene names to use in construction of SNN graph
+if building directly based on expression data rather than a dimensionally
+reduced representation (i.e. PCs).}
 
-\item{pc.use}{Which PCs to use for construction of the SNN graph}
+\item{reduction.type}{Name of dimensional reduction technique to use in
+construction of SNN graph. (e.g. "pca", "ica")}
+
+\item{dims.use}{A vector of the dimensions to use in construction of the SNN
+graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{k.scale}{granularity option for k.param}
+\item{k.scale}{Granularity option for k.param}
 
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Stringency of pruning for the SNN graph (0 - no pruning,
-1 - prune everything)}
-
-\item{do.sparse}{Whether to compute and return the SNN graph as a sparse
-matrix or not}
+\item{prune.SNN}{Sets the cutoff for acceptable Jaccard distances when
+computing the neighborhood overlap for the SNN construction. Any edges with
+values less than or equal to this will be set to 0 and removed from the SNN
+graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+prune everything).}
 
 \item{print.output}{Whether or not to print output to the console}
 
 \item{distance.matrix}{Build SNN from distance matrix (experimental)}
+
+\item{force.recalc}{Force recalculation of SNN.}
 }
 \value{
-Returns the object with object@snn.k and either
-object@snn.dense or object@snn.sparse filled depending on the option
-set
+Returns the object with object@snn filled
 }
 \description{
-Construct a Shared Nearest Neighbor (SNN) Graph for a given
-dataset.
+Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
+first determine the k-nearest neighbors of each cell (defined by k.param *
+k.scale). We use this knn graph to construct the SNN graph by calculating the
+neighborhood overlap (Jaccard distance) between every cell and its k.param *
+k.scale nearest neighbors (defining the neighborhood for each cell as the
+k.param nearest neighbors).
 }

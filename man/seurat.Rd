@@ -24,24 +24,23 @@ are listed below.
    each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
    \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
    \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
-   \item{\code{ident}:}{\code{"vector"},  The 'identity class' for each single cell }
-   \item{\code{data.info}:}{\code{"data.frame"}, Contains information about each cell, starting with # of genes detected (nGene)
+   \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
+   \item{\code{meta.data}:}{\code{"data.frame"}, Contains information about metadata each cell, starting with # of genes detected (nGene)
    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
    \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
    \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
    \item{\code{assay}:}{\code{"list"}, List of additional assays for multimodal analysis. Named by technique }
-   \item{\code{tsne.rot}:}{\code{"data.frame"}, Cell coordinates on the t-SNE map }
-   \item{\code{mean.var}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
+   \item{\code{hvg.info}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
    \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
-   \item{\code{final.prob}:}{\code{"data.frame"}, For spatial inference, posterior probability of each cell mapping to each bin }
-   \item{\code{insitu.matrix}:}{\code{"data.frame"}, For spatial inference, the discretized spatial reference map }
    \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
    \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
    phylogenetic tree relating different identity classes }
-   \item{\code{snn.sparse}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
-   \item{\code{snn.dense}:}{\code{"matrix"}, Dense matrix object representation of the SNN graph }
-   \item{\code{snn.k}:}{\code{"numeric"}, k used in the construction of the SNN graph }
-
+   \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
+   \item{\code{calc.params}:}{\code{"list"}, Named list to store all calculation related parameters choices}
+   \item{\code{kmeans}:}{\code{"ANY"}, Stores output of gene-based clustering from DoKMeans}
+   \item{\code{spatial}:}{\code{"ANY"},Stores internal data and calculations for spatial mapping of single cells}
+   \item{\code{misc}:}{\code{"ANY"}, Miscellaneous spot to store any data alongisde the object (for example, gene lists)}
+   \item{\code{version}:}{\code{"ANY"}, Version of package used in object creation}
 }
 }
 

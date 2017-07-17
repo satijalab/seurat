@@ -2,11 +2,11 @@
 % Please edit documentation in R/deprecated_functions.R
 \name{Seurat-deprecated}
 \alias{Seurat-deprecated}
-\alias{setup}
 \alias{vlnPlot}
 \alias{subsetData}
 \alias{mean.var.plot}
 \alias{pca}
+\alias{PCA}
 \alias{project.pca}
 \alias{print.pca}
 \alias{viz.pca}
@@ -30,6 +30,7 @@
 \alias{project.samples}
 \alias{run_diffusion}
 \alias{ica}
+\alias{ICA}
 \alias{cluster.alpha}
 \alias{reorder.ident}
 \alias{average.pca}
@@ -39,7 +40,6 @@
 \alias{pcTopCells}
 \alias{fetch.data}
 \alias{viz.ica}
-\alias{getWeightMatrix}
 \alias{regulatorScore}
 \alias{find.markers.node}
 \alias{diffExp.test}
@@ -86,9 +86,15 @@
 \alias{jackStraw.permutation.test}
 \alias{jackStrawMC}
 \alias{jackStrawFull}
+\alias{writ.table}
+\alias{jackRandom}
+\alias{MeanVarPlot}
+\alias{HeatmapNode}
+\alias{minusr}
+\alias{minusc}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
-setup(...)
+vlnPlot(...)
 }
 \arguments{
 \item{...}{Parameters to be passed to the modern version of the function}
@@ -99,11 +105,11 @@ These functions are provided for compatibility with older version of the Seurat 
 \section{Details}{
 
 \tabular{rl}{
-  \code{setup} \tab now a synonym for \code{\link{Setup}}\cr
   \code{vlnPlot} \tab now a synonym for \code{\link{VlnPlot}}\cr
   \code{subsetData} \tab now a synonym for \code{\link{SubsetData}}\cr
   \code{mean.var.plot} \tab now a synonym for \code{\link{MeanVarPlot}}\cr
-  \code{pca} \tab now a synonym for \code{\link{PCA}}\cr
+  \code{pca} \tab now a synonym for \code{\link{RunPCA}}\cr
+  \code{PCA} \tab now a synonym for \code{\link{PCA}}\cr
   \code{project.pca} \tab now a synonym for \code{\link{ProjectPCA}}\cr
   \code{print.pca} \tab now a synonym for \code{\link{PrintPCA}}\cr
   \code{viz.pca} \tab now a synonym for \code{\link{VizPCA}}\cr
@@ -122,11 +128,12 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{plotClusterTree} \tab now a synonym for \code{\link{PlotClusterTree}}\cr
   \code{plotNoiseModel} \tab now a synonym for \code{\link{PlotNoiseModel}}\cr
   \code{add_samples} \tab now a synonym for \code{\link{AddSamples}}\cr
-  \code{subsetCells} \tab now a synonym for \code{\link{SubsetCells}}\cr
+  \code{subsetCells} \tab now deleted\cr
   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
-  \code{ica} \tab now a synonym for \code{\link{ICA}}\cr
-  \code{cluster.alpha} \tab now a synonym for \code{\link{ClusterAlpha}}\cr
+  \code{ica} \tab now a synonym for \code{\link{RunICA}}\cr
+  \code{ICA} \tab now a synonym for \code{\link{RunICA}}\cr
+  \code{cluster.alpha} \tab now a synonym for \code{\link{AverageDetectionRate}}\cr
   \code{reorder.ident} \tab now a synonym for \code{\link{ReorderIdent}}\cr
   \code{average.pca} \tab now a synonym for \code{\link{AveragePCA}}\cr
   \code{average.expression} \tab now a synonym for \code{\link{AverageExpression}}\cr
@@ -135,8 +142,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{pcTopCells} \tab now a synonym for \code{\link{PCTopCells}}\cr
   \code{fetch.data} \tab now a synonym for \code{\link{FetchData}}\cr
   \code{viz.ica} \tab now a synonym for \code{\link{VizIca}}\cr
-  \code{getWeightMatrix} \tab now a synonym for \code{\link{GetWeightMatrix}}\cr
-  \code{regulatorScore} \tab now a synonym for \code{\link{RegulatorScore}}\cr
+  \code{regulatorScore} \tab now deleted\cr
   \code{find.markers.node} \tab now a synonym for \code{\link{FindMarkersNode}}\cr
   \code{diffExp.test} \tab now a synonym for \code{\link{DiffExpTest}}\cr
   \code{tobit.test} \tab now a synonym for \code{\link{TobitTest}}\cr
@@ -177,11 +183,18 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{dot.plot} \tab now a synonym for \code{\link{DotPlot}}\cr
   \code{addMetaData} \tab now a synonym for \code{\link{AddMetaData}}\cr
   \code{removePC} \tab now a synonym for \code{\link{RemovePC}}\cr
-  \code{geneScorePlot} \tab now a synonym for \code{\link{GeneScorePlot}}\cr
+  \code{geneScorePlot} \tab now deleted\cr
   \code{cellPlot} \tab now a synonym for \code{\link{CellPlot}}\cr
   \code{jackStraw.permutation.test} \tab now a synonym for \code{\link{JackStrawPermutationTest}}\cr
   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
   \code{jackStrawFull} \tab now a synonym for \code{\link{JackStrawFull}}\cr
+  \code{PCAFast} \tab now a synonym for \code{\link{PCA}}\cr
+  \code{writ.table} \tab is delteded without replacement\cr
+  \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
+  \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
+  \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
+  \code{minusr} \tab now a synonym for \code{\link{SubsetRow}}\cr
+  \code{minusc} \tab now a synonym for \code{\link{SubsetColumn}}\cr
 }
 }
 

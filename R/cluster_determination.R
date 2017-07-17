@@ -2,44 +2,49 @@
 NULL
 #' Cluster Determination
 #'
-#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity optimization
-#' based clustering algorithm. First calculate k-nearest neighbors and construct
-#' the SNN graph. Then optimize the modularity function to determine clusters.
-#' For a full description of the algorithms, see Waltman and van Eck (2013)
-#' \emph{The European Physical Journal B}.
+#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
+#' optimization based clustering algorithm. First calculate k-nearest neighbors
+#' and construct the SNN graph. Then optimize the modularity function to
+#' determine clusters. For a full description of the algorithms, see Waltman and
+#' van Eck (2013) \emph{The European Physical Journal B}.
 #'
 #' @param object Seurat object
-#' @param genes.use Gene expression data
-#' @param pc.use Which PCs to use for construction of the SNN graph
+#' @param genes.use A vector of gene names to use in construction of SNN graph
+#' if building directly based on expression data rather than a dimensionally
+#' reduced representation (i.e. PCs).
+#' @param reduction.type Name of dimensional reduction technique to use in
+#' construction of SNN graph. (e.g. "pca", "ica")
+#' @param dims.use A vector of the dimensions to use in construction of the SNN
+#' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale granularity option for k.param
+#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Stringency of pruning for the SNN graph (0 - no pruning,
-#'        1 - prune everything)
-#' @param save.SNN Whether to save the SNN in an object slot
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
+#' @param print.output Whether or not to print output to the console
+#' @param distance.matrix Build SNN from distance matrix (experimental)
+#' @param save.SNN Saves the SNN matrix associated with the calculation in
+#' object@@snn
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
-#' @param do.sparse Option to store and use SNN matrix as a sparse matrix.
-#'        May be necessary datasets containing a large number of cells.
+#' @param force.recalc Force recalculation of SNN.
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
-#'        (below) 1.0 if you want to obtain a larger (smaller) number of
-#'        communities.
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#'        algorithm; 2 = Louvain algorithm with multilevel refinement;
-#'        3 = SLM algorithm).
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
-#' @param print.output Whether or not to print output to the console
-#' @param temp.file.location Directory where intermediate files will be written. Specify the
-#'        ABSOLUTE path.
-#' @param distance.matrix Build SNN from distance matrix (experimental)
-#'
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
-#'
 #' @return Returns a Seurat object and optionally the SNN matrix,
 #'         object@@ident has been updated with new cluster info
 #'
@@ -49,41 +54,33 @@ FindClusters <- function(
   object,
   genes.use = NULL,
   reduction.type = "pca",
-  pc.use = NULL,
+  dims.use = NULL,
   k.param = 30,
   k.scale = 25,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
+  print.output = TRUE,
+  distance.matrix = NULL,
   save.SNN = FALSE,
   reuse.SNN = FALSE,
-  do.sparse = FALSE,
+  force.recalc = FALSE,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
   n.start = 100,
   n.iter = 10,
   random.seed = 0,
-  print.output = TRUE,
-  temp.file.location = NULL,
-  distance.matrix = NULL
+  temp.file.location = NULL
 ) {
-  # for older objects without the snn.k slot
-  if(typeof(x = validObject(object = object, test = TRUE)) == "character") {
-    object@snn.k <- numeric()
-  }
   snn.built <- FALSE
-  if (.hasSlot(object = object, name = "snn.dense")) {
-    if (length(x = object@snn.dense) > 1) {
+  if (.hasSlot(object = object, name = "snn")) {
+    if (length(x = object@snn) > 1) {
       snn.built <- TRUE
-    }
-  }
-  if (.hasSlot(object = object, name = "snn.sparse")) {
-    if (length(x = object@snn.sparse) > 1) {
-      snn.built <- TRUE
+      save.SNN <- TRUE
     }
   }
   if ((
-    missing(x = genes.use) && missing(x = pc.use) && missing(x = k.param) &&
+    missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
     missing(x = k.scale) && missing(x = prune.SNN) && snn.built
   ) || reuse.SNN) {
     save.SNN <- TRUE
@@ -91,37 +88,48 @@ FindClusters <- function(
       stop("No SNN stored to reuse.")
     }
     if (reuse.SNN && (
-      ! missing(x = genes.use) || ! missing(x = pc.use) || ! missing(x = k.param)
+      ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
       || ! missing(x = k.scale) || ! missing(x = prune.SNN)
     )) {
-      warning("SNN was not be rebuilt with new parameters. Continued with stored SNN. To suppress this
-                      warning, remove all SNN building parameters.")
+      warning("SNN was not be rebuilt with new parameters. Continued with stored
+               SNN. To suppress this warning, remove all SNN building parameters.")
     }
-  } else { # if any SNN building parameters are provided or it hasn't been built, build a new SNN
+  } else {
+    # if any SNN building parameters are provided or it hasn't been built, build
+    # a new SNN
     object <- BuildSNN(
       object = object,
       genes.use = genes.use,
       reduction.type = reduction.type,
-      pc.use = pc.use,
+      dims.use = dims.use,
       k.param = k.param,
       k.scale = k.scale,
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
-      do.sparse = do.sparse,
       print.output = print.output,
-      distance.matrix = distance.matrix
+      distance.matrix = distance.matrix,
+      force.recalc = force.recalc
     )
   }
-  # deal with sparse SNNs
-  if (length(x = object@snn.sparse) > 1) {
-    SNN.use <- object@snn.sparse
-  } else {
-    SNN.use <- object@snn.dense
-  }
   for (r in resolution) {
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindClusters"))]
+    parameters.to.store$resolution <- r
+    if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
+      parameters.to.store$object <- NULL
+      old.parameters <- GetAllCalcParam(object = object,
+                                        calculation = paste0("FindClusters.res.", r))
+      old.parameters$time <- NULL
+      if(all(old.parameters %in% parameters.to.store)){
+        warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+        next
+      }
+    }
+    object <- SetCalcParams(object = object,
+                                 calculation = paste0("FindClusters.res.", r),
+                                 ... = parameters.to.store)
     object <- RunModularityClustering(
       object = object,
-      SNN = SNN.use,
+      SNN = object@snn,
       modularity = modularity.fxn,
       resolution = r,
       algorithm = algorithm,
@@ -130,56 +138,83 @@ FindClusters <- function(
       random.seed = random.seed,
       print.output = print.output,
       temp.file.location = temp.file.location
+
     )
-    object <- GroupSingletons(object = object, SNN = SNN.use)
+    object <- GroupSingletons(object = object, SNN = object@snn)
     name <- paste0("res.", r)
     object <- StashIdent(object = object, save.name = name)
   }
   if (!save.SNN) {
-    object@snn.sparse <- sparseMatrix(1, 1, x = 1)
-    object@snn.dense <- matrix()
-    object@snn.k <- integer()
+    object@snn <- sparseMatrix(1, 1, x = 1)
+    object <- RemoveCalcParams(object = object,
+                               calculation = "BuildSNN")
   }
   return(object)
 }
 
-# Documentation
-###############
+#' Get Cluster Assignments
+#'
+#' Retrieve cluster IDs as a dataframe. First column will be the cell name,
+#' second column will be the current cluster identity (pulled from object@ident).
+
+#' @param object Seurat object with cluster assignments
+#' @return Returns a dataframe with cell names and cluster assignments
 #' @export
 #'
 GetClusters <- function(object) {
-  return(data.frame(object@ident))
+  clusters <- data.frame(cell.name = names(object@ident), cluster = object@ident)
+  rownames(clusters) <- NULL
+  clusters$cell.name <- as.character(clusters$cell.name)
+  return(clusters)
 }
 
-# Documentation
-###############
+#' Set Cluster Assignments
+#'
+#' Easily set the cluster assignments using the output of GetClusters() ---
+#' a dataframe with cell names as the first column and cluster assignments as
+#' the second.
+#'
+#' @param object Seurat object
+#' @param clusters A dataframe containing the cell names and cluster assignments
+#' to set for the object.
+#' @return Returns a Seurat object with the identities set to the cluster
+#' assignments that were passed.
 #' @export
 #'
 SetClusters <- function(object, clusters = NULL) {
-  cells.use <- rownames(x = clusters)
-  ident.use <- as.numeric(x = clusters[, 1])
+  if(!(all(c("cell.name", "cluster") %in% colnames(clusters)))){
+    stop("The clusters parameter must be the output from GetClusters (i.e.
+         Columns must be cell.name and cluster)")
+  }
+  cells.use <- clusters$cell.name
+  ident.use <- clusters$cluster
   object <- SetIdent(
     object = object,
     cells.use = cells.use,
     ident.use = ident.use
   )
   return(object)
-}
+  }
 
-# Documentation
-###############
+#' Save cluster assignments to a TSV file
+#'
+#' @param object Seurat object with cluster assignments
+#' @param file Path to file to write cluster assignments to
+#' @return No return value. Writes clusters assignments to specified file.
 #' @export
 #'
 SaveClusters <- function(object, file) {
   my.clusters <- GetClusters(object = object)
-  write.table(my.clusters, file = file, sep="\t", quote = FALSE)
+  write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = F)
 }
 
-
-# Documentation
-###############
-#' @export
+#' Convert the cluster labels to a numeric representation
 #'
+#' @param object Seurat object
+#' @return Returns a Seurat object with the identities relabeled numerically
+#' starting from 1.
+#'
+#' @export
 NumberClusters <- function(object) {
   clusters <- unique(x = object@ident)
   if (typeof(x = clusters) == "integer") {
@@ -206,139 +241,409 @@ NumberClusters <- function(object) {
   return(object)
 }
 
-# Documentation
-###############
-RunModularityClustering <- function(
+#' Classify New Data
+#'
+#' Classify new data based on the cluster information of the provided object.
+#' Random Forests are used as the basis of the classification.
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param classifier Random Forest classifier from BuildRFClassifier. If not provided,
+#' it will be built from the training data provided.
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param new.data New data to classify
+#' @param ... additional parameters passed to ranger
+#'
+#' @return Vector of cluster ids
+#'
+#' @import Matrix
+#' @importFrom ranger ranger
+#'
+#' @export
+#'
+ClassifyCells <- function(
   object,
-  SNN = matrix(),
-  modularity = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 100,
-  n.iter = 10,
-  random.seed = 0,
-  print.output = TRUE,
-  temp.file.location = NULL
+  classifier,
+  training.genes = NULL,
+  training.classes = NULL,
+  new.data = NULL,
+  ...
 ) {
-  seurat.dir <- system.file(package = "Seurat")
-  ModularityJarFile <- paste0(seurat.dir, "/java/ModularityOptimizer.jar")
-  seurat.dir.base <- strsplit(x = seurat.dir, split = "/")[[1]]
-  seurat.dir <- paste0(
-    seurat.dir.base[0:(length(x = seurat.dir.base) - 1)],
-    collapse = "/"
-  )
-  seurat.dir <- paste0(seurat.dir, "/")
-  diag(x = SNN) <- 0
-  if (is.object(x = SNN)) {
-    SNN <- as(object = SNN, Class = "dgTMatrix")
-    edge <- cbind(i = SNN@j, j = SNN@i, x = SNN@x)
-  } else {
-    swap <- which(x = SNN != 0, arr.ind = TRUE) - 1
-    temp <- swap[, 1]
-    swap[, 1] <- swap[, 2]
-    swap[, 2] <- temp
-    edge <- cbind(swap, SNN[which(x = SNN != 0, arr.ind = TRUE)])
-  }
-  rownames(x = edge) <- NULL
-  colnames(x = edge) <- NULL
-  edge <- edge[! duplicated(x = edge[, 1:2]), ]
-  temp.file.location <- set.ifnull(x = temp.file.location, y = seurat.dir)
-  unique_ID <- sample(x = 10000:99999, size = 1)
-  edge_file <- paste0(temp.file.location, "edge_", unique_ID, ".txt")
-  output_file <- paste0(temp.file.location, "output_", unique_ID, ".txt")
-  while (file.exists(edge_file)) {
-    unique_ID <- sample(x = 10000:99999, size = 1)
-    edge_file <- paste0(temp.file.location, "edge_", unique_ID, ".txt")
-    output_file <- paste0(temp.file.location, "output", unique_ID, ".txt")
-  }
-  if (print.output) {
-    print.output <- 1
-  } else {
-    print.output <- 0
-  }
-  write.table(
-    x = edge,
-    file = edge_file,
-    sep = "\t",
-    row.names = FALSE,
-    col.names = FALSE
-  )
-  if (modularity == 2 && resolution > 1) {
-    stop("error: resolution<1 for alternative modularity")
-  }
-  command <- paste(
-    "java -jar",
-    shQuote(string = ModularityJarFile),
-    shQuote(string = edge_file),
-    shQuote(string = output_file),
-    modularity,
-    resolution,
-    algorithm,
-    n.start,
-    n.iter,
-    random.seed,
-    print.output
-  )
-  system(command, wait = TRUE)
-  ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
-
-  object <- SetIdent(
-    object = object,
-    cells.use = object@cell.names,
-    ident.use = ident.use
-  )
-  file.remove(edge_file)
-  file.remove(output_file)
-  return (object)
-}
-
-# Documentation
-###############
-GroupSingletons <- function(object, SNN) {
-  # identify singletons
-  singletons <- c()
-  for (cluster in unique(x = object@ident)) {
-    if (length(x = WhichCells(object = object, ident = cluster)) == 1) {
-      singletons <- append(x = singletons, values = cluster)
-    }
-  }
-  # calculate connectivity of singletons to other clusters, add singleton
-  # to cluster it is most connected to
-  cluster_names <- unique(x = object@ident)
-  cluster_names <- setdiff(x = cluster_names, y = singletons)
-  connectivity <- vector(mode="numeric", length = length(x = cluster_names))
-  names(x = connectivity) <- cluster_names
-  for (i in singletons) {
-    for (j in cluster_names) {
-      subSNN = SNN[
-        WhichCells(object = object, ident = i), # Row
-        match(
-          x = WhichCells(object = object, ident = j),
-          table = colnames(x = SNN)
-        ) # Column
-      ]
-      if (is.object(x = subSNN)) {
-        connectivity[j] <- sum(subSNN) / (nrow(x = subSNN) * ncol(x = subSNN))
-      } else {
-        connectivity[j] <- mean(x = subSNN)
-      }
-    }
-    m <- max(connectivity, na.rm = T)
-    mi <- which(x = connectivity == m, arr.ind = TRUE)
-    closest_cluster <- sample(x = names(x = connectivity[mi]), 1)
-    object <- SetIdent(
+  # build the classifier
+  if (missing(classifier)){
+    classifier <- BuildRFClassifier(
       object = object,
-      cells.use = WhichCells(object = object, ident = i),
-      ident.use = closest_cluster
+      training.genes = training.genes,
+      training.classes = training.classes,
+      ...
     )
   }
-  if (length(x = singletons) > 0) {
-    print(paste(
-      length(x = singletons),
-      "singletons identified.",
-      length(x = unique(object@ident)),
-      "final clusters."
-    ))
+  # run the classifier on the new data
+  features <- classifier$forest$independent.variable.names
+  genes.to.add <- setdiff(x = features, y = rownames(x = new.data))
+  data.to.add <- matrix(
+    data = 0,
+    nrow = length(x = genes.to.add),
+    ncol = ncol(x = new.data)
+  )
+  rownames(x = data.to.add) <- genes.to.add
+  new.data <- rbind(new.data, data.to.add)
+  new.data <- new.data[features, ]
+  new.data <- as.matrix(x = t(x = new.data))
+  print("Running Classifier ...")
+  prediction <- predict(classifier, new.data)
+  new.classes <- prediction$predictions
+  return(new.classes)
+}
+
+#' Build Random Forest Classifier
+#'
+#' Train the random forest classifier
+#'
+#'
+#' @param object Seurat object on which to train the classifier
+#' @param training.genes Vector of genes to build the classifier on
+#' @param training.classes Vector of classes to build the classifier on
+#' @param verbose Additional progress print statements
+#' @param ... additional parameters passed to ranger
+#'
+#' @return Returns the random forest classifier
+#'
+#' @import Matrix
+#' @importFrom ranger ranger
+#'
+#' @export
+#'
+BuildRFClassifier <- function(
+  object,
+  training.genes = NULL,
+  training.classes = NULL,
+  verbose = TRUE,
+  ...
+) {
+  training.classes <- as.vector(x = training.classes)
+  training.genes <- SetIfNull(
+    x = training.genes,
+    default = rownames(x = object@data)
+  )
+  training.data <- as.data.frame(
+    x = as.matrix(
+      x = t(
+        x = object@data[training.genes, ]
+      )
+    )
+  )
+  training.data$class <- factor(x = training.classes)
+  if (verbose) {
+    print("Training Classifier ...")
+  }
+  classifier <- ranger(
+    data = training.data,
+    dependent.variable.name = "class",
+    classification = TRUE,
+    write.forest = TRUE,
+    ...
+  )
+  return(classifier)
+}
+
+#' K-Means Clustering
+#'
+#' Perform k=means clustering on both genes and single cells
+#'
+#' K-means and heatmap are calculated on object@@scale.data
+#'
+#' @param object Seurat object
+#' @param genes.use Genes to use for clustering
+#' @param k.genes K value to use for clustering genes
+#' @param k.cells K value to use for clustering cells (default is NULL, cells
+#' are not clustered)
+#' @param k.seed Random seed
+#' @param do.plot Draw heatmap of clustered genes/cells (default is FALSE).
+#' @param data.cut Clip all z-scores to have an absolute value below this.
+#' Reduces the effect of huge outliers in the data.
+#' @param k.cols Color palette for heatmap
+#' @param set.ident If clustering cells (so k.cells>0), set the cell identity
+#' class to its K-means cluster (default is TRUE)
+#' @param do.constrained FALSE by default. If TRUE, use the constrained K-means function implemented in the tclust package.
+#' @param assay.type Type of data to normalize for (default is RNA), but can be changed for multimodal analyses.
+#' @param \dots Additional parameters passed to kmeans (or tkmeans)
+#'
+#' @importFrom tclust tkmeans
+#'
+#' @return Seurat object where the k-means results for genes is stored in
+#'
+#' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
+#' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@meta.data[,"kmeans.ident"]
+#' and also object@@ident (if set.ident=TRUE)
+#'
+#' @export
+DoKMeans <- function(
+  object,
+  genes.use = NULL,
+  k.genes = NULL,
+  k.cells = 0,
+  k.seed = 1,
+  do.plot = FALSE,
+  data.cut = 2.5,
+  k.cols = pyCols,
+  set.ident = TRUE,
+  do.constrained = FALSE,
+  assay.type="RNA",
+  ...
+) {
+  data.use.orig=GetAssayData(object,assay.type,slot = "scale.data")
+  data.use <- MinMax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
+  cells.use <- object@cell.names
+  kmeans.data <- data.use[genes.use, cells.use]
+  if (do.constrained) {
+    set.seed(seed = k.seed)
+    kmeans.obj <- tkmeans(objectkmeans.data, k = k.genes, ...)
+  } else {
+    set.seed(seed = k.seed)
+    kmeans.obj <- kmeans(x = kmeans.data, centers = k.genes, ...)
+  }
+
+  names(x = kmeans.obj$cluster) <- genes.use
+
+  #if we are going to k-means cluster cells in addition to genes
+  if (k.cells > 0) {
+    kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)
+    names(x = kmeans.col$cluster) <- cells.use
+  }
+  object.kmeans <- new(
+    Class = "kmeans.info",
+    gene.kmeans.obj = kmeans.obj,
+    cell.kmeans.obj = kmeans.col
+  )
+  object@kmeans <- object.kmeans
+  if (k.cells > 0) {
+    kmeans.code=paste("kmeans",k.cells,"ident",sep=".")
+    object@meta.data[names(x = kmeans.col$cluster), kmeans.code] <- kmeans.col$cluster
+  }
+  if (set.ident && (k.cells > 0)) {
+    object <- SetIdent(
+      object = object,
+      cells.use = names(x = kmeans.col$cluster),
+      ident.use = kmeans.col$cluster
+    )
+  }
+  if (do.plot) {
+    KMeansHeatmap(object = object)
   }
   return(object)
 }
+
+#' Phylogenetic Analysis of Identity Classes
+#'
+#' Constructs a phylogenetic tree relating the 'average' cell from each
+#' identity class. Tree is estimated based on a distance matrix constructed in
+#' either gene expression space or PCA space.
+#'
+#' Note that the tree is calculated for an 'average' cell, so gene expression
+#' or PC scores are averaged across all cells in an identity class before the
+#' tree is constructed.
+#'
+#' @param object Seurat object
+#' @param genes.use Genes to use for the analysis. Default is the set of
+#' variable genes (object@@var.genes). Assumes pcs.use=NULL (tree calculated in
+#' gene expression space)
+#' @param pcs.use If set, tree is calculated in PCA space, using the
+#' eigenvalue-WeightedEucleideanDist distance across these PC scores.
+#' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
+#' @param do.plot Plot the resulting phylogenetic tree
+#' @param do.reorder Re-order identity classes (factor ordering), according to
+#' position on the tree. This groups similar classes together which can be
+#' helpful, for example, when drawing violin plots.
+#' @param reorder.numeric Re-order identity classes according to position on
+#' the tree, assigning a numeric value ('1' is the leftmost node)
+#'
+#' @return A Seurat object where the cluster tree is stored in
+#' object@@cluster.tree[[1]]
+#'
+#' @importFrom ape as.phylo
+#'
+#' @export
+#'
+BuildClusterTree <- function(
+  object,
+  genes.use = NULL,
+  pcs.use = NULL,
+  SNN.use = NULL,
+  do.plot = TRUE,
+  do.reorder = FALSE,
+  reorder.numeric = FALSE
+) {
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  ident.names <- as.character(x = unique(x = object@ident))
+  if (! is.null(x = genes.use)) {
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
+    data.avg <- AverageExpression(object = object, genes.use = genes.use)
+    data.dist <- dist(t(x = data.avg[genes.use, ]))
+  }
+  if (! is.null(x = pcs.use)) {
+    data.pca <- AveragePCA(object = object)
+    data.use <- data.pca[pcs.use,]
+    if (is.null(x = object@pca.obj[[1]]$sdev)) {
+      data.eigenval <- (object@pca.obj[[1]]$d) ^ 2
+    } else {
+      data.eigenval <- (object@pca.obj[[1]]$sdev) ^ 2
+    }
+    data.weights <- (data.eigenval / sum(data.eigenval))[pcs.use]
+    data.weights <- data.weights / sum(data.weights)
+    data.dist <- CustomDistance(
+      my.mat = data.pca[pcs.use, ],
+      my.function = WeightedEuclideanDist,
+      w = data.weights
+    )
+  }
+  if (! is.null(x = SNN.use)) {
+    num.clusters <- length(x = ident.names)
+    data.dist = matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    for (i in 1:(num.clusters - 1)) {
+      for (j in (i + 1):num.clusters) {
+        subSNN <- SNN.use[
+          match(
+            x = WhichCells(object = object, ident = i),
+            table = colnames(x = SNN.use)
+          ), # Row
+          match(
+            x = WhichCells(object = object, ident = j),
+            table = rownames(x = SNN.use)
+          ) # Column
+          ]
+        d <- mean(subSNN)
+        if (is.na(x = d)) {
+          data.dist[i, j] <- 0
+        } else {
+          data.dist[i, j] = d
+        }
+      }
+    }
+    diag(x = data.dist) <- 1
+    data.dist <- dist(data.dist)
+  }
+  data.tree <- as.phylo(x = hclust(d = data.dist))
+  object@cluster.tree[[1]] <- data.tree
+  if (do.reorder) {
+    old.ident.order <- sort(x = unique(x = object@ident))
+    data.tree <- object@cluster.tree[[1]]
+    all.desc <- GetDescendants(tree = data.tree, node = (data.tree$Nnode + 2))
+    all.desc <- old.ident.order[all.desc[all.desc <= (data.tree$Nnode + 1)]]
+    object@ident <- factor(x = object@ident, levels = all.desc, ordered = TRUE)
+    if (reorder.numeric) {
+      object <- SetIdent(
+        object = object,
+        cells.use = object@cell.names,
+        ident.use = as.integer(x = object@ident)
+      )
+      object@meta.data[object@cell.names, "tree.ident"] <- as.integer(x = object@ident)
+    }
+    object <- BuildClusterTree(
+      object = object,
+      genes.use = genes.use,
+      pcs.use = pcs.use,
+      do.plot = FALSE,
+      do.reorder = FALSE
+    )
+  }
+  if (do.plot) {
+    PlotClusterTree(object)
+  }
+  return(object)
+}
+
+
+
+#' Perform spectral density clustering on single cells
+#'
+#' Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN).
+#'
+#' @param object Seurat object
+#' @param dim.1 First dimension to use
+#' @param dim.2 second dimension to use
+#' @param reduction.use Which dimensional reduction to use (either 'pca' or 'ica')
+#' @param G.use Parameter for the density clustering. Lower value to get more fine-scale clustering
+#' @param set.ident TRUE by default. Set identity class to the results of the density clustering.
+#' Unassigned cells (cells that cannot be assigned a cluster) are placed in cluster 1, if there are any.
+#' @param seed.use Random seed for the dbscan function
+#' @param ... Additional arguments to be passed to the dbscan function
+#'
+#' @export
+#'
+DBClustDimension <- function(
+  object,
+  dim.1 = 1,
+  dim.2 = 2,
+  reduction.use = "tsne",
+  G.use = NULL,
+  set.ident = TRUE,
+  seed.use = 1,
+  ...
+) {
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- FetchData(object = object, vars.all = dim.codes)
+  x1 <- paste0(dim.code, dim.1)
+  x2 <- paste0(dim.code, dim.2)
+  data.plot$x <- data.plot[, x1]
+  data.plot$y <- data.plot[, x2]
+  set.seed(seed = seed.use)
+  data.mclust <- ds <- dbscan(data = data.plot[, c("x", "y")], eps = G.use, ...)
+  to.set <- as.numeric(x = data.mclust$cluster + 1)
+  data.names <- names(x = object@ident)
+  object@meta.data[data.names, "DBclust.ident"] <- to.set
+  if (set.ident) {
+    object@ident <- factor(x = to.set)
+    names(x = object@ident) <- data.names
+  }
+  return(object)
+}
+
+
+
+
+#' Perform spectral k-means clustering on single cells
+#'
+#' Find point clounds single cells in a low-dimensional space using k-means clustering.
+#' Can be useful for smaller datasets, where graph-based clustering can perform poorly
+#' TODO : add documentation here
+#'
+#' @export
+#'
+KClustDimension <- function(
+  object,
+  dims.use = c(1,2),
+  cells.use = NULL,
+  pt.size = 4,
+  reduction.use = "tsne",
+  k.use = 5,
+  set.ident = T,
+  seed.use = 1,
+  ...
+) {
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
+  dim.codes <- paste0(dim.code, dims.use)
+  data.plot <- FetchData(object = object, vars.all = dim.codes)
+  set.seed(seed = seed.use)
+  data.mclust <- ds <- kmeans(x = data.plot, centers = k.use)
+  to.set <- as.numeric(x = data.mclust$cluster)
+  data.names <- names(x = object@ident)
+  object@meta.data[data.names, "kdimension.ident"] <- to.set
+  if (set.ident) {
+    object@ident <- factor(x = to.set)
+    names(x = object@ident) <- data.names
+  }
+  return(object)
+}
+

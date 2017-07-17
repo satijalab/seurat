@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=master)](https://travis-ci.org/satijalab/seurat)
+[![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=master)](https://travis-ci.org/satijalab/seurat)[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/satijalab/seurat?branch=master&svg=true)](https://ci.appveyor.com/project/satijalab/seurat/branch/master)
 
 # Seurat v1.4
 
