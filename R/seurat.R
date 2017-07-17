@@ -71,9 +71,6 @@ seurat <- setClass(
   )
 )
 
-
-
-
 # Documentation
 ###############
 #' @export
@@ -95,5 +92,3 @@ setMethod(
     invisible(x = NULL)
   }
 )
-
-

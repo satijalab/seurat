@@ -24,14 +24,14 @@
 AddEnrichScore <- function(
   object,
   genes.list = NULL,
-  n.bin = 20,
+  genes.pool = NULL,
+  n.bin = 25,
   seed.use = 1,
-  ctrl.size = 20,
+  ctrl.size = 100,
   use.k = FALSE,
   enrich.name = "Cluster"
 ) {
   if (use.k) {
-    genes.k <- names(x = object@kmeans@gene.kmeans.obj$cluster)
     genes.list <- list()
     for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
       genes.list[[i]] <- names(x = which(x = object@kmeans.obj[[1]]$cluster == i))
@@ -41,13 +41,16 @@ AddEnrichScore <- function(
     if (is.null(x = genes.list)) {
       stop("Missing input gene list")
     }
-    genes.k <- intersect(
-      x = unique(x = unlist(x = genes.list)),
-      y = rownames(x = object@data)
+    genes.list <- lapply(
+      X = genes.list,
+      FUN = function(x) {
+        return(intersect(x = x,r y = rownames(x = object@data))
+      })
     )
     cluster.length <- length(x = genes.list)
   }
-  data.avg <- apply(X = object@data[genes.k, ], MARGIN = 1, FUN = mean)
+  if (is.null(x = genes.pool)) genes.pool = rownames(object@data)
+  data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
   data.cut <- as.numeric(x = cut2(
     x = data.avg,
@@ -85,7 +88,7 @@ AddEnrichScore <- function(
       apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
     )
   }
-
+  
   genes.scores.use <- genes.scores - ctrl.scores
   rownames(x = genes.scores.use) <- paste0(enrich.name, 1:cluster.length)
   genes.scores.use <- t(x = as.data.frame(x = genes.scores.use))
