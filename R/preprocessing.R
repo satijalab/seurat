@@ -37,7 +37,7 @@
 #'
 #' @export
 #'
-Seurat <- function(
+CreateSeuratObject <- function(
   raw.data,
   project = "SeuratProject",
   min.cells = 0,

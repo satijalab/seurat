@@ -517,7 +517,7 @@ AverageExpression <- function(
     names(x = data.return)[i] <- assays.use[[i]]
   }
   if (return.seurat) {
-    toRet <- Seurat(
+    toRet <- CreateSeuratObject(
       raw.data = data.return[[1]],
       project = "Average",
       min.cells = 0,

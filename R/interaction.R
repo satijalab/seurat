@@ -119,7 +119,7 @@ MergeSeurat <- function(
       full_join(x = object1@meta.data, y = object2@meta.data)
     )
   )
-  merged.object <- Seurat(
+  merged.object <- CreateSeuratObject(
     raw.data = merged.raw.data,
     project = project,
     min.cells = min.cells,
@@ -254,7 +254,7 @@ AddSamples <- function(
     )
   }
   project <- SetIfNull(x = project, default = object@project.name)
-  new.object <- Seurat(
+  new.object <- CreateSeuratObject(
     raw.data = combined.data,
     project = project,
     min.cells = min.cells,

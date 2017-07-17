@@ -23,15 +23,15 @@ expression.thresh <- 1
 
 nbt.test <- new("seurat", raw.data = nbt.small)
 
-nbt.test <- Seurat(raw.data = nbt.small,
-                   project = project.name,
-                   min.cells = min.cells,
-                   names.field = names.field,
-                   names.delim = names.delim,
-                   min.genes = min.genes,
-                   is.expr = expression.thresh,
-                   do.scale = T,
-                   do.center = T)
+nbt.test <- CreateSeuratObject(raw.data = nbt.small,
+                               project = project.name,
+                               min.cells = min.cells,
+                               names.field = names.field,
+                               names.delim = names.delim,
+                               min.genes = min.genes,
+                               is.expr = expression.thresh,
+                               do.scale = T,
+                               do.center = T)
 
 test_that("object initialization creates seurat object", {
   expect_is(nbt.test, "seurat")
