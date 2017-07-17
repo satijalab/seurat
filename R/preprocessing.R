@@ -125,11 +125,11 @@ CreateSeuratObject <- function(
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("Seurat"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
   object <- SetCalcParams(object = object,
-                          calculation = "Seurat",
+                          calculation = "CreateSeuratObject",
                           ... = parameters.to.store)
 
   return(object)
