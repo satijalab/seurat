@@ -539,9 +539,10 @@ RunCCA <- function(
       do.center = FALSE
     )
     # to improve, to pull the same normalization and scale params as previously used
-    combined.object = ScaleData(object = combined.object)
+    combined.object <- ScaleData(object = combined.object)
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
+    rownames(cca.data) <- colnames(combined.object@data)
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",

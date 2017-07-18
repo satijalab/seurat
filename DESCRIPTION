@@ -47,10 +47,8 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    enrichR
     diffusionMap,
     Hmisc,
-    enrichR,
     httr,
     tidyr
 LinkingTo: Rcpp, RcppEigen, RcppProgress
@@ -67,8 +65,6 @@ Collate:
     'dimensional_reduction.R'
     'dimensional_reduction_internal.R'
     'dimensional_reduction_utilities.R'
-    'enrichr.R'
-    'enrichr_internal.R'
     'interaction.R'
     'jackstraw.R'
     'jackstraw_internal.R'
