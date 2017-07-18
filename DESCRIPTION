@@ -47,6 +47,7 @@ Imports:
     dtw,
     SDMTools,
     plotly,
+    enrichR
     diffusionMap,
     Hmisc,
     enrichR,
