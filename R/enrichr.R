@@ -44,8 +44,8 @@ AddEnrichScore <- function(
     genes.list <- lapply(
       X = genes.list,
       FUN = function(x) {
-        return(intersect(x = x,r y = rownames(x = object@data))
-      })
+        return(intersect(x = x, y = rownames(x = object@data)))
+      }
     )
     cluster.length <- length(x = genes.list)
   }

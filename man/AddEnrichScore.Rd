@@ -4,8 +4,8 @@
 \alias{AddEnrichScore}
 \title{Calculate enrichment scores for gene expression programs in single cells}
 \usage{
-AddEnrichScore(object, genes.list = NULL, n.bin = 20, seed.use = 1,
-  ctrl.size = 20, use.k = FALSE, enrich.name = "Cluster")
+AddEnrichScore(object, genes.list = NULL, genes.pool = NULL, n.bin = 25,
+  seed.use = 1, ctrl.size = 100, use.k = FALSE, enrich.name = "Cluster")
 }
 \arguments{
 \item{object}{Seurat object}

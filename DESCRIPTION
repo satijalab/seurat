@@ -47,10 +47,9 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    enrichR
+    enrichR,
     diffusionMap,
     Hmisc,
-    enrichR,
     httr,
     tidyr
 LinkingTo: Rcpp, RcppEigen, RcppProgress
