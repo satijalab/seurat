@@ -121,6 +121,7 @@ UpdateSeuratObject <- function(object) {
       new.object@dr[[i]]@key <- object@dr[[i]]@key
       new.object@dr[[i]]@misc <- object@dr[[i]]@misc
     }
+  }
   # Conversion from release versions prior to 2.0.0
   # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
   #                   tsne.rot
