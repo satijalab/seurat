@@ -464,7 +464,8 @@ AverageExpression <- function(
     assays.use <- "RNA"
   }
   slot.use <- "data"
-  fxn.average <- ExpMean
+  fxn.average <- function(x) mean(expm1(x))
+
   if (show.progress) {
     fxn.loop <- pbsapply
   } else {
@@ -516,6 +517,7 @@ AverageExpression <- function(
     data.return[[i]] <- data.all
     names(x = data.return)[i] <- assays.use[[i]]
   }
+
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       raw.data = data.return[[1]],
@@ -525,6 +527,7 @@ AverageExpression <- function(
       is.expr = 0,
       ...
     )
+
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
@@ -546,6 +549,9 @@ AverageExpression <- function(
       levels = as.character(x = orig.levels),
       ordered = TRUE
     )
+
+    toRet=NormalizeData(toRet)
+    toRet=ScaleData(toRet)
     return(toRet)
   } else {
     return(data.return[[1]])
