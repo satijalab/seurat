@@ -530,6 +530,7 @@ RunCCA <- function(
   )
   cca.data <- rbind(cca.results$u, cca.results$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
+  rownames(cca.data) <- colnames(combined.object@data)
   if (! missing(x = object2)) {
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(
