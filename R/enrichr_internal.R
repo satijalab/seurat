@@ -24,7 +24,7 @@ AddGeneList <- function(GeneList = NULL, Description = "Example gene list") {
     stop("Error analyzing gene list")
   }
   api.data <- content(x = api.post, as = "text")
-  enrichr.id <- ExtractField(extract_field(api.data, 3, "\n"), 2, ": ")
+  enrichr.id <- ExtractField(ExtractField(api.data, 3, "\n"), 2, ": ")
   return(list(data = api.data, id = enrichr.id))
 }
 
