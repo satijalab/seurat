@@ -346,7 +346,8 @@ ScaleDataR <- function(
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
 #' Setting this can help reduce the effects of genes that are only expressed in
-#' a very small number of cells.
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
 #' @param block.size Default size for number of genes to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
@@ -356,6 +357,7 @@ ScaleDataR <- function(
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
+#' @param check.for.norm Check to see if data has been normalized, if not, output a warning (TRUE by default)
 #' We've maintained support for our previous implementation in R for
 #' reproducibility (set this to FALSE) as results can change slightly due to
 #' differences in numerical precision which could affect downstream calculations.
@@ -379,15 +381,22 @@ ScaleData <- function(
   min.cells.to.block = 3000,
   display.progress = TRUE,
   assay.type = "RNA",
-  do.cpp = TRUE
+  do.cpp = TRUE,
+  check.for.norm=TRUE
 ) {
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
 
-  if (!("NormalizeData" %in% names(object@calc.params))) {
-    cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+  if (check.for.norm) {
+    if (!("NormalizeData" %in% names(object@calc.params))) {
+      cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
+    if (is.null(object@calc.params$NormalizeData$normalization.method)) {
+      cat("ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
   }
+
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
@@ -396,18 +405,24 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
-  parameters.to.store$data.use <- NULL
-  object <- SetCalcParams(object = object,
-                          calculation = "ScaleData",
-                          ... = parameters.to.store)
   if(!missing(latent.vars)){
     data.use <- RegressOut(object = object,
                            latent.vars = latent.vars,
                            genes.regress = genes.use,
                            use.umi = use.umi,
                            model.use = model.use)
+    if (model.use != "linear") {
+    	use.umi <- TRUE
+    }
+    if(use.umi && missing(scale.max)){
+    	scale.max <- 50
+    }
   }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
+  parameters.to.store$data.use <- NULL
+  object <- SetCalcParams(object = object,
+                          calculation = "ScaleData",
+                          ... = parameters.to.store)
   if(!do.cpp){
     return(ScaleDataR(object = object,
                      data.use = data.use,
