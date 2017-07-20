@@ -142,7 +142,7 @@ MergeSeurat <- function(
                                                                calculation = "NormalizeData",
                                                                parameter = "scale.factor")
 
-    if (is.null(normalization.method.old)) {
+    if (is.null(normalization.method.use)) {
       normalization.method.use="LogNormalize"
       scale.factor.use=10000
     }
