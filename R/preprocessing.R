@@ -381,6 +381,13 @@ ScaleData <- function(
   assay.type = "RNA",
   do.cpp = TRUE
 ) {
+  if (model.use != "linear") {
+    use.umi=T
+  }
+  if(use.umi && missing(scale.max)){
+    scale.max <- 50
+  } 
+
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
