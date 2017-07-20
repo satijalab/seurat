@@ -346,7 +346,8 @@ ScaleDataR <- function(
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.
 #' Setting this can help reduce the effects of genes that are only expressed in
-#' a very small number of cells.
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
 #' @param block.size Default size for number of genes to scale at in a single
 #' computation. Increasing block.size may speed up calculations but at an
 #' additional memory cost.
@@ -381,13 +382,6 @@ ScaleData <- function(
   assay.type = "RNA",
   do.cpp = TRUE
 ) {
-  if (model.use != "linear") {
-    use.umi=T
-  }
-  if(use.umi && missing(scale.max)){
-    scale.max <- 50
-  } 
-
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
@@ -403,18 +397,24 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
-  parameters.to.store$data.use <- NULL
-  object <- SetCalcParams(object = object,
-                          calculation = "ScaleData",
-                          ... = parameters.to.store)
   if(!missing(latent.vars)){
     data.use <- RegressOut(object = object,
                            latent.vars = latent.vars,
                            genes.regress = genes.use,
                            use.umi = use.umi,
                            model.use = model.use)
+    if (model.use != "linear") {
+    	use.umi <- TRUE
+    }
+    if(use.umi && missing(scale.max)){
+    	scale.max <- 50
+    }
   }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
+  parameters.to.store$data.use <- NULL
+  object <- SetCalcParams(object = object,
+                          calculation = "ScaleData",
+                          ... = parameters.to.store)
   if(!do.cpp){
     return(ScaleDataR(object = object,
                      data.use = data.use,

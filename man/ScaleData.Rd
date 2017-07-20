@@ -34,7 +34,8 @@ modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'}
 
 \item{scale.max}{Max value to return for scaled data. The default is 10.
 Setting this can help reduce the effects of genes that are only expressed in
-a very small number of cells.}
+a very small number of cells. If regressing out latent variables and using a
+non-linear model, the default is 50.}
 
 \item{block.size}{Default size for number of genes to scale at in a single
 computation. Increasing block.size may speed up calculations but at an
