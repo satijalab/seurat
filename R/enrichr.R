@@ -178,6 +178,10 @@ RunEnrichr <- function(
 #' @return \list{\code{G2M.Score}} G2M phase score
 #' @return \list{\code{Phase}} Cell-cycle phase assignment
 #'
+#' @seealso \link{\code{AddEnrichScore}}
+#'
+#' @export
+#'
 CellCycleEnrichment <- function(
   object,
   g2m.genes,
