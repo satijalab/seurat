@@ -17,13 +17,7 @@ CellCycleScoring(object, g2m.genes, s.genes, set.ident = FALSE)
 Stashes old identities in 'old.ident'}
 }
 \value{
-A Seurat object with the following columns added to object@meta.data
-
-\list{\code{S.Score}} S phase score
-
-\list{\code{G2M.Score}} G2M phase score
-
-\list{\code{Phase}} Cell-cycle phase assignment
+A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
 }
 \description{
 Score cell cycle phases

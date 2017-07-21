@@ -108,10 +108,7 @@ AddModuleScore <- function(
 #' @param set.ident If true, sets identity to phase assignments
 #' Stashes old identities in 'old.ident'
 #'
-#' @return A Seurat object with the following columns added to object@meta.data
-#' @return \list{\code{S.Score}} S phase score
-#' @return \list{\code{G2M.Score}} G2M phase score
-#' @return \list{\code{Phase}} Cell-cycle phase assignment
+#' @return A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
 #'
 #' @seealso \link{\code{AddModuleScore}}
 #'
