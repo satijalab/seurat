@@ -758,17 +758,18 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- as.data.frame(GetCellEmbeddings(object = object,
-                                               reduction.type = reduction.use,
-                                               dims.use = c(dim.1, dim.2),
-                                               cells.use = cells.use))
+  data.plot <- as.data.frame(GetCellEmbeddings(
+    object = object,
+    reduction.type = reduction.use,
+    dims.use = c(dim.1, dim.2),
+    cells.use = cells.use
+  ))
   x1 <- paste0(dim.code, dim.1)
   x2 <- paste0(dim.code, dim.2)
   data.plot$x <- data.plot[, x1]
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
   names(x = data.plot) <- c('x', 'y')
-  # data.plot$pt.size <- pt.size
   data.use <- t(x = FetchData(
     object = object,
     vars.all = features.plot,
@@ -905,8 +906,8 @@ FeaturePlot <- function(
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
-#' @param max.exp Max cutoff for scaled expression value
-#' @param min.exp Min cutoff for scaled expression value
+#' @param max.exp Max cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
+#' @param min.exp Min cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
 #' @param rotate.key rotate the legend
 #' @param plot.horiz rotate the plot such that the features are columns, groups are the rows
 #' @param key.position position of the legend ("top", "right", "bottom", "left")
@@ -915,6 +916,8 @@ FeaturePlot <- function(
 #' @return No return value, only a graphical output
 #'
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
+#'
+#' @seealso \link{\code{FeaturePlot}}
 #'
 #' @export
 #'
@@ -962,6 +965,8 @@ FeatureHeatmap <- function(
   } else {
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
+  min.exp <- SetQuantile(cutoff = min.exp, data = data.plot$scaled.expression)
+  max.exp <- SetQuantile(cutoff = max.exp, data = data.plot$scaled.expression)
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
   data.plot$scaled.expression <- MinMax(
     data = data.plot$scaled.expression,

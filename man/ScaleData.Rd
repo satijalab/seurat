@@ -8,7 +8,7 @@ ScaleData(object, genes.use = NULL, data.use = NULL, latent.vars,
   model.use = "linear", use.umi = FALSE, do.scale = TRUE,
   do.center = TRUE, scale.max = 10, block.size = 1000,
   min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
-  do.cpp = TRUE)
+  do.cpp = TRUE, check.for.norm = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -49,7 +49,9 @@ don't block for scaling calculations.}
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for
 multimodal analyses.}
 
-\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++.
+\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++.}
+
+\item{check.for.norm}{Check to see if data has been normalized, if not, output a warning (TRUE by default)
 We've maintained support for our previous implementation in R for
 reproducibility (set this to FALSE) as results can change slightly due to
 differences in numerical precision which could affect downstream calculations.}
