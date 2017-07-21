@@ -165,6 +165,58 @@ RunEnrichr <- function(
   }
 }
 
+#' Enrich for cell cycle phases
+#'
+#' @param object A Seurat object
+#' @param g2m.genes A vector of genes associated with G2M phase
+#' @param s.genes A vector of genes associated with S phases
+#' @param set.ident If true, sets identity to phase assignments
+#' Stashes old identities in 'old.ident'
+#'
+#' @return A Seurat object with the following columns added to object@meta.data
+#' @return \list{\code{S.Score}} S phase score
+#' @return \list{\code{G2M.Score}} G2M phase score
+#' @return \list{\code{Phase}} Cell-cycle phase assignment
+#'
+CellCycleEnrichment <- function(
+  object,
+  g2m.genes,
+  s.genes,
+  set.ident = FALSE
+) {
+  enrich.name <- 'Cell Cycle'
+  genes.list <- list('S.Score' = s.genes, 'G2M.Score' = g2m.genes)
+  object.cc <- AddEnrichScore(
+    object = object,
+    genes.list = genes.list,
+    enrich.name = enrich.name,
+    ctrl.size = min(vapply(X = genes.list, FUN = length, FUN.VALUE = numeric(1)))
+  )
+  cc.columns <- grep(pattern = enrich.name, x = colnames(x = object.cc@meta.data))
+  cc.scores <- object.cc@meta.data[, cc.columns]
+  assignments <- apply(
+    X = cc.scores,
+    MARGIN = 1,
+    FUN = function(scores, first = 'S', second = 'G2M', null = 'G1') {
+      if (all(scores < 0)) {
+        return(null)
+      } else {
+        return(c(first, second)[which(x = scores == max(scores))])
+      }
+    }
+  )
+  cc.scores <- merge(x = cc.scores, y = data.frame(assignments), by = 0)
+  colnames(x = cc.scores) <- c('rownames', 'S.Score', 'G2M.Score', 'Phase')
+  rownames(x = cc.scores) <- cc.scores$rownames
+  cc.scores <- cc.scores[, c('S.Score', 'G2M.Score', 'Phase')]
+  object <- AddMetaData(object = object, metadata = cc.scores)
+  if (set.ident) {
+    object <- StashIdent(object = object, save.name = 'old.ident')
+    object <- SetAllIdent(object = object, id = 'Phase')
+  }
+  return(object)
+}
+
 #' View Enrichr libraries
 #'
 #' @return A vector of Enrichr Libraries
