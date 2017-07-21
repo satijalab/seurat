@@ -135,14 +135,22 @@ MergeSeurat <- function(
   )
 
   if (do.normalize) {
+    normalization.method.use = GetCalcParam(object = object1,
+                                                                       calculation = "NormalizeData",
+                                                                       parameter = "normalization.method")
+    scale.factor.use = GetCalcParam(object = object1,
+                                                               calculation = "NormalizeData",
+                                                               parameter = "scale.factor")
+
+    if (is.null(normalization.method.use)) {
+      normalization.method.use="LogNormalize"
+      scale.factor.use=10000
+    }
     merged.object <- NormalizeData(object = merged.object,
                                    assay.type = "RNA",
-                                   scale.factor = GetCalcParam(object = object1,
-                                                               calculation = "NormalizeData",
-                                                               parameter = "scale.factor"),
-                                   normalization.method = GetCalcParam(object = object1,
-                                                                       calculation = "NormalizeData",
-                                                                       parameter = "normalization.method"))
+                                   normalization.method=normalization.method.use,
+                                   scale.factor=scale.factor.use
+                                   )
   }
 
   if (do.scale | do.center) {

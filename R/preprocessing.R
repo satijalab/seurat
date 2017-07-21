@@ -357,6 +357,7 @@ ScaleDataR <- function(
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
+#' @param check.for.norm Check to see if data has been normalized, if not, output a warning (TRUE by default)
 #' We've maintained support for our previous implementation in R for
 #' reproducibility (set this to FALSE) as results can change slightly due to
 #' differences in numerical precision which could affect downstream calculations.
@@ -380,15 +381,22 @@ ScaleData <- function(
   min.cells.to.block = 3000,
   display.progress = TRUE,
   assay.type = "RNA",
-  do.cpp = TRUE
+  do.cpp = TRUE,
+  check.for.norm=TRUE
 ) {
   data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
                                                              assay.type = assay.type,
                                                              slot = "data"))
 
-  if (!("NormalizeData" %in% names(object@calc.params))) {
-    cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+  if (check.for.norm) {
+    if (!("NormalizeData" %in% names(object@calc.params))) {
+      cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
+    if (is.null(object@calc.params$NormalizeData$normalization.method)) {
+      cat("ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
   }
+
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
