@@ -83,27 +83,7 @@ MergeSeurat <- function(
     )
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
-    warning("Duplicate cell names, enforcing uniqueness via make.unique()")
-    object2.names <- as.list(
-      x = make.unique(
-        names = c(
-          colnames(x = object1@raw.data),
-          colnames(x = object2@raw.data)
-        )
-      )[(ncol(x = object1@raw.data) + 1):(ncol(x = object1@raw.data) + ncol(x = object2@raw.data))]
-    )
-    names(x = object2.names) <- colnames(x = object2@raw.data)
-    colnames(x = object2@raw.data) <- object2.names
-    object2@cell.names <- unlist(
-      x = unname(
-        obj = object2.names[object2@cell.names]
-      )
-    )
-    rownames(x = object2@meta.data) <- unlist(
-      x = unname(
-        obj = object2.names[rownames(x = object2@meta.data)]
-      )
-    )
+    stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
   }
   merged.raw.data <- RowMergeSparseMatrices(
     mat1 = object1@raw.data[,object1@cell.names],
@@ -135,28 +115,36 @@ MergeSeurat <- function(
   )
 
   if (do.normalize) {
-    normalization.method.use = GetCalcParam(object = object1,
-                                                                       calculation = "NormalizeData",
-                                                                       parameter = "normalization.method")
-    scale.factor.use = GetCalcParam(object = object1,
-                                                               calculation = "NormalizeData",
-                                                               parameter = "scale.factor")
+    normalization.method.use = GetCalcParam(
+      object = object1,
+      calculation = "NormalizeData",
+      parameter = "normalization.method"
+    )
+    scale.factor.use = GetCalcParam(
+      object = object1,
+      calculation = "NormalizeData",
+      parameter = "scale.factor"
+    )
 
     if (is.null(normalization.method.use)) {
       normalization.method.use="LogNormalize"
       scale.factor.use=10000
     }
-    merged.object <- NormalizeData(object = merged.object,
-                                   assay.type = "RNA",
-                                   normalization.method=normalization.method.use,
-                                   scale.factor=scale.factor.use
-                                   )
+    merged.object <- NormalizeData(
+      object = merged.object,
+      assay.type = "RNA",
+      normalization.method=normalization.method.use,
+      scale.factor=scale.factor.use
+
+    )
   }
 
   if (do.scale | do.center) {
-    merged.object <- ScaleData(object = merged.object,
-                               do.scale = do.scale,
-                               do.center = do.center)
+    merged.object <- ScaleData(
+      object = merged.object,
+      do.scale = do.scale,
+      do.center = do.center
+    )
   }
 
   merged.meta.data %>% filter(
