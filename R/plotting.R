@@ -922,7 +922,7 @@ FeaturePlot <- function(
 #'
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
-#' @seealso \link{\code{FeaturePlot}}
+#' @seealso \code{\link{FeaturePlot}}
 #'
 #' @export
 #'
