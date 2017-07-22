@@ -439,7 +439,8 @@ AverageExpression <- function(
     assays.use <- "RNA"
   }
   slot.use <- "data"
-  fxn.average <- ExpMean
+  fxn.average <- function(x) mean(expm1(x))
+
   if (show.progress) {
     fxn.loop <- pbsapply
   } else {
@@ -521,6 +522,11 @@ AverageExpression <- function(
       levels = as.character(x = orig.levels),
       ordered = TRUE
     )
+
+    #finish setting up object if it is to be returned
+    toRet=NormalizeData(toRet)
+    toRet=ScaleData(toRet)
+    
     return(toRet)
   } else {
     return(data.return[[1]])

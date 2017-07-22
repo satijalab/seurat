@@ -317,10 +317,12 @@ ScaleDataR <- function(
       )
       new.data[new.data > scale.max] <- scale.max
       object@scale.data[genes.use[my.inds], ] <- new.data
+      
       setTxtProgressBar(pb, i)
     }
     close(pb)
   }
+  object@scale.data[is.na(object@scale.data)]=0
   return(object)
 }
 
@@ -489,6 +491,8 @@ ScaleData <- function(
   if (display.progress) {
     close(pb)
   }
+
+
   object <- SetAssayData(
     object = object,
     assay.type = assay.type,
@@ -496,6 +500,8 @@ ScaleData <- function(
     new.data = scaled.data
   )
   gc()
+
+  object@scale.data[is.na(object@scale.data)]=0
   return(object)
 }
 

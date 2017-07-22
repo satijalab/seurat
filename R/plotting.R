@@ -90,9 +90,14 @@ DoHeatmap <- function(
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   data.use <- data.use[genes.use, cells.use]
-  if (use.scaled) {
-    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  if ((!use.scaled)) {
+    data.use =as.matrix(x = data.use) 
+    if (disp.max==2.5) disp.max = 10;
   }
+  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  
+
+
   data.use <- as.data.frame(x = t(x = data.use))
   data.use$cell <- rownames(x = data.use)
   colnames(x = data.use) <- make.unique(names = colnames(x = data.use))
