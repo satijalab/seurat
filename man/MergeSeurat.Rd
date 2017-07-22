@@ -22,6 +22,9 @@ many cells}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
+\item{do.normalize}{Normalize the data after merging. Default is TRUE.
+If set, will perform the same normalization strategy as stored for the first object}
+
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score). FALSE by default, so run ScaleData after merging.}
 
@@ -40,9 +43,6 @@ which will save memory downstream for large datasets}
 \item{add.cell.id1}{String to be appended to the names of all cells in object1}
 
 \item{add.cell.id2}{String to be appended to the names of all cells in object2}
-
-\item{normalization.method}{Normalize the data after merging. Default is TRUE.
-If set, will perform the same normalization strategy as stored for the first object}
 
 \item{meta.data}{Additional metadata to add to the Seurat object. Should be
 a data frame where the rows are cell names, and the columns are additional
