@@ -376,6 +376,162 @@ VlnPlot <- function(
   }
 }
 
+
+#' Single cell violin plot
+#'
+#' Draws a violin plot of single cell data (gene expression, metrics, PC
+#' scores, etc.)
+#'
+#' @param object Seurat object
+#' @param features.plot Features to plot (gene expression, metrics, PC scores,
+#' anything that can be retreived by FetchData)
+#' @param ident.include Which classes to include in the plot (default is all)
+#' @param nCol Number of columns if multiple plots are displayed
+#' @param do.sort Sort identity classes (on the x-axis) by the average
+#' expression of the attribute being potted
+#' @param y.max Maximum y axis value
+#' @param same.y.lims Set all the y-axis limits to the same values
+#' @param size.x.use X axis title font size
+#' @param size.y.use Y axis title font size
+#' @param size.title.use Main title font size
+#' @param adjust.use Adjust parameter for geom_violin
+#' @param point.size.use Point size for geom_violin
+#' @param cols.use Colors to use for plotting
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param y.log plot Y axis on log scale
+#' @param x.lab.rot Rotate x-axis labels
+#' @param y.lab.rot Rotate y-axis labels
+#' @param legend.position Position the legend for the plot
+#' @param single.legend Consolidate legend the legend for all plots
+#' @param remove.legend Remove the legend from the plot
+#' @param do.return Return a ggplot2 object (default : FALSE)
+#' @param return.plotlist Return the list of individual plots instead of compiled plot.
+#' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#' @import ggplot2
+#' @importFrom cowplot plot_grid
+#' @return By default, no return, only graphical output. If do.return=TRUE,
+#' returns a list of ggplot objects.
+#' @export
+JoyPlot <- function(
+  object,
+  features.plot,
+  ident.include = NULL,
+  nCol = NULL,
+  do.sort = FALSE,
+  y.max = NULL,
+  same.y.lims = FALSE,
+  size.x.use = 16,
+  size.y.use = 16,
+  size.title.use = 20,
+  adjust.use = 1,
+  point.size.use = 1,
+  cols.use = NULL,
+  group.by = NULL,
+  y.log = FALSE,
+  x.lab.rot = FALSE,
+  y.lab.rot = FALSE,
+  legend.position = "right",
+  single.legend = TRUE,
+  remove.legend = FALSE,
+  do.return = FALSE,
+  return.plotlist = FALSE,
+  ...
+) {
+  if (is.null(x = nCol)) {
+    if (length(x = features.plot) > 9) {
+      nCol <- 4
+    } else {
+      nCol <- min(length(x = features.plot), 3)
+    }
+  }
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...))
+  if (is.null(x = ident.include)) {
+    cells.to.include <- object@cell.names
+  } else {
+    cells.to.include <- WhichCells(object = object, ident = ident.include)
+  }
+  data.use <- data.use[cells.to.include, ,drop = FALSE]
+  if (!is.null(x = group.by)) {
+    ident.use <- as.factor(x = FetchData(
+      object = object,
+      vars.all = group.by
+    )[cells.to.include, 1])
+  } else {
+    ident.use <- object@ident[cells.to.include]
+  }
+  gene.names <- colnames(x = data.use)[colnames(x = data.use) %in% rownames(x = object@data)]
+  if (single.legend) {
+    remove.legend <- TRUE
+  }
+  if (same.y.lims && is.null(x = y.max)) {
+    y.max <- max(data.use)
+  }
+  plots <- lapply(
+    X = features.plot,
+    FUN = function(x) {
+      return(SingleJoyPlot(
+        feature = x,
+        data = data.use[, x, drop = FALSE],
+        cell.ident = ident.use,
+        do.sort = do.sort, y.max = y.max,
+        size.x.use = size.x.use,
+        size.y.use = size.y.use,
+        size.title.use = size.title.use,
+        adjust.use = adjust.use,
+        point.size.use = point.size.use,
+        cols.use = cols.use,
+        gene.names = gene.names,
+        y.log = y.log,
+        x.lab.rot = x.lab.rot,
+        y.lab.rot = y.lab.rot,
+        legend.position = legend.position,
+        remove.legend = remove.legend
+      ))
+    }
+  )
+  if (length(x = features.plot) > 1) {
+    plots.combined <- plot_grid(plotlist = plots, ncol = nCol)
+    if (single.legend && !remove.legend) {
+      legend <- get_legend(
+        plot = plots[[1]] + theme(legend.position = legend.position)
+      )
+      if (legend.position == "bottom") {
+        plots.combined <- plot_grid(
+          plots.combined,
+          legend,
+          ncol = 1,
+          rel_heights = c(1, .2)
+        )
+      } else if (legend.position == "right") {
+        plots.combined <- plot_grid(
+          plots.combined,
+          legend,
+          rel_widths = c(3, .3)
+        )
+      } else {
+        warning("Shared legends must be at the bottom or right of the plot")
+      }
+    }
+  } else {
+    plots.combined <- plots[[1]]
+  }
+  if (do.return) {
+    if (return.plotlist) {
+      return(plots)
+    } else {
+      return(plots.combined)
+    }
+  } else {
+    if (length(x = plots.combined) > 1) {
+      plots.combined
+    }
+    else {
+      invisible(x = lapply(X = plots.combined, FUN = print))
+    }
+  }
+}
+
+
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).

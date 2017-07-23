@@ -668,6 +668,127 @@ SingleVlnPlot <- function(
   return(plot)
 }
 
+# Plot a single feature on a violin plot
+#
+# @param feature Feature to plot
+# @param data Data to plot
+# @param cell.ident Idents to use
+# @param do.sort Sort identity classes (on the x-axis) by the average
+# expression of the attribute being potted
+# @param y.max Maximum Y value to plot
+# @param size.x.use X axis title font size
+# @param size.y.use Y axis title font size
+# @param size.title.use Main title font size
+# @param adjust.use Adjust parameter for geom_violin
+# @param point.size.use Point size for geom_violin
+# @param cols.use Colors to use for plotting
+# @param gene.names
+# @param y.log plot Y axis on log scale
+# @param x.lab.rot Rotate x-axis labels
+# @param y.lab.rot Rotate y-axis labels
+# @param legend.position Position the legend for the plot
+# @param remove.legend Remove the legend from the plot
+#
+# @return A ggplot-based violin plot
+#
+SingleJoyPlot <- function(
+  feature,
+  data,
+  cell.ident,
+  do.sort,
+  y.max,
+  size.x.use,
+  size.y.use,
+  size.title.use,
+  adjust.use,
+  point.size.use,
+  cols.use,
+  gene.names,
+  y.log,
+  x.lab.rot,
+  y.lab.rot,
+  legend.position,
+  remove.legend
+) {
+  set.seed(seed = 42)
+  data$ident <- cell.ident
+  if (do.sort) {
+    data$ident <- factor(
+      x = data$ident,
+      levels = names(x = rev(x = sort(x = tapply(
+        X = data[, feature],
+        INDEX = data$ident,
+        FUN = mean
+      ))))
+    )
+  }
+  if (y.log) {
+    noise <- rnorm(n = length(x = data[, feature])) / 200
+    data[, feature] <- data[, feature] + 1
+  } else {
+    noise <- rnorm(n = length(x = data[, feature])) / 100000
+  }
+  data[, feature] <- data[, feature] + noise
+  y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
+  plot <- ggplot(
+    data = data,
+    mapping = aes(
+        x = eval(expr = parse(text = feature)),
+        y = factor(ident)
+    )
+  ) +
+    geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
+  scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+  scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+  
+  plot <- plot+theme(
+      legend.position = legend.position,
+      axis.title.x = element_text(
+        face = "bold",
+        colour = "#990000",
+        size = size.x.use
+      ),
+      axis.title.y = element_text(
+        face = "bold",
+        colour = "#990000",
+        size = size.y.use
+      )
+    ) +
+    guides(fill = guide_legend(title = NULL)) +
+    #geom_jitter(height = 0, size = point.size.use) +
+    ylab("Identity") +
+    NoGrid() +
+    ggtitle(feature) +
+    theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  if (y.log) {
+    plot <- plot + scale_x_log10()
+  } else {
+    #plot <- plot + xlim(min(data[, feature]), y.max)
+  }
+  if (feature %in% gene.names) {
+    if (y.log) {
+      plot <- plot + xlab(label = "Log Expression level")
+    } else {
+      plot <- plot + xlab(label = "Expression level")
+    }
+  } else {
+    plot <- plot + ylab(label = "")
+  }
+  if (! is.null(x = cols.use)) {
+    plot <- plot + scale_fill_manual(values = cols.use)
+  }
+  if (x.lab.rot) {
+    plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  }
+  if (y.lab.rot) {
+    plot <- plot + theme(axis.text.x = element_text(angle = 90))
+  }
+  if (remove.legend) {
+    plot <- plot + theme(legend.position = "none")
+  }
+  return(plot)
+}
+
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
 
