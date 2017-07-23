@@ -205,7 +205,7 @@ c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
 test_that("CCA returns the expected cell.embeddings matrix values", {
   expect_equal(nrow(c3@dr$cca@cell.embeddings), 14)
   expect_equal(ncol(c3@dr$cca@cell.embeddings), 3)
-  expect_equal(c3@dr$cca@cell.embeddings[1,1], 0.3108733, tolerance = 1e-6 )
-  expect_equal(c3@dr$cca@cell.embeddings[14,3], 0.6064297, tolerance = 1e-6 )
+  expect_equal(abs(unname(c3@dr$cca@cell.embeddings[1,1])), 0.3108733, tolerance = 1e-6 )
+  expect_equal(abs(unname(c3@dr$cca@cell.embeddings[14,3])), 0.6064297, tolerance = 1e-6 )
 })
 

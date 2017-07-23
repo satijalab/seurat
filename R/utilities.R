@@ -112,40 +112,15 @@ UpdateSeuratObject <- function(object) {
   }
 
   # Conversion from development versions prior to 2.0.0
-  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
-  #                   tsne.rot
   if ((.hasSlot(object, "dr"))) {
-    if(!is.null(object@dr$pca)){
-      pca.obj <- new(
-        Class = "dim.reduction",
-        gene.loadings = object@dr$pca@x,
-        gene.loadings.full = object@dr$pca@x.full,
-        cell.embeddings = object@dr$pca@rotation,
-        sdev = object@dr$pca@sdev,
-        key = "PC",
-        misc = object@dr$pca@misc
-      )
-      new.object@dr$pca <- pca.obj
+    for (i in 1:length(object@dr)) {
+      new.object@dr[[i]]@cell.embeddings <- object@dr[[i]]@rotation
+      new.object@dr[[i]]@gene.loadings <- object@dr[[i]]@x
+      new.object@dr[[i]]@gene.loadings.full <- object@dr[[i]]@x.full
+      new.object@dr[[i]]@sdev <- object@dr[[i]]@sdev
+      new.object@dr[[i]]@key <- object@dr[[i]]@key
+      new.object@dr[[i]]@misc <- object@dr[[i]]@misc
     }
-   if(!is.null(object@dr$ica)){
-     ica.obj <- new(
-       Class = "dim.reduction",
-       gene.loadings = object@dr$ica@x,
-       cell.embeddings = object@dr$ica@rotation,
-       sdev = object@dr$ica@sdev,
-       key = "IC",
-       misc = object@dr$ica@misc
-     )
-     new.object@dr$ica <- ica.obj
-   }
-  if(!is.null(object@dr$tsne)){
-    tsne.obj <- new(
-      Class = "dim.reduction",
-      cell.embeddings = object@dr$tsne@rotation,
-      key = "tSNE_"
-    )
-    new.object@dr$tsne <- tsne.obj
-  }
   }
   # Conversion from release versions prior to 2.0.0
   # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
@@ -550,6 +525,7 @@ AverageExpression <- function(
       ordered = TRUE
     )
 
+    #finish setting up object if it is to be returned
     toRet=NormalizeData(toRet)
     toRet=ScaleData(toRet)
     return(toRet)

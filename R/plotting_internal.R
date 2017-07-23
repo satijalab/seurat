@@ -668,7 +668,7 @@ SingleVlnPlot <- function(
   return(plot)
 }
 
-# Plot a single feature on a violin plot
+# Plot a single feature on a joy plot
 #
 # @param feature Feature to plot
 # @param data Data to plot
@@ -679,8 +679,6 @@ SingleVlnPlot <- function(
 # @param size.x.use X axis title font size
 # @param size.y.use Y axis title font size
 # @param size.title.use Main title font size
-# @param adjust.use Adjust parameter for geom_violin
-# @param point.size.use Point size for geom_violin
 # @param cols.use Colors to use for plotting
 # @param gene.names
 # @param y.log plot Y axis on log scale
@@ -700,8 +698,6 @@ SingleJoyPlot <- function(
   size.x.use,
   size.y.use,
   size.title.use,
-  adjust.use,
-  point.size.use,
   cols.use,
   gene.names,
   y.log,
@@ -788,6 +784,7 @@ SingleJoyPlot <- function(
   }
   return(plot)
 }
+
 
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())

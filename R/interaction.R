@@ -8,7 +8,7 @@
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Normalize the data after merging. Default is TRUE.
+#' @param do.normalize Normalize the data after merging. Default is TRUE.
 #' If set, will perform the same normalization strategy as stored for the first object
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default, so run ScaleData after merging.
@@ -40,7 +40,7 @@ MergeSeurat <- function(
   min.cells = 0,
   min.genes = 0,
   is.expr = 0,
-  do.normalize=TRUE,
+  do.normalize = TRUE,
   scale.factor = 1e4,
   do.scale = FALSE,
   do.center = FALSE,
@@ -165,9 +165,8 @@ MergeSeurat <- function(
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Normalize the data after merging. Default is TRUE.
-#' If set, will perform the same normalization strategy as stored for the first
-#' object
+#' @param do.normalize Normalize the data after merging. Default is TRUE.
+#' If set, will perform the same normalization strategy as stored in the object
 #' @param scale.factor scale factor in the log normalization
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -193,13 +192,13 @@ AddSamples <- function(
   object,
   new.data,
   project = NULL,
-  min.cells = 3,
-  min.genes = 1000,
+  min.cells = 0,
+  min.genes = 0,
   is.expr = 0,
-  normalization.method = NULL,
+  do.normalize = TRUE,
   scale.factor = 1e4,
-  do.scale=TRUE,
-  do.center = TRUE,
+  do.scale = FALSE,
+  do.center = FALSE,
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
@@ -249,6 +248,15 @@ AddSamples <- function(
       )
     )
   }
+
+  combined.meta.data$nGene <- NULL
+  combined.meta.data$nUMI <- NULL
+  if(!is.null(add.cell.id)){
+    combined.meta.data$orig.ident <- factor(combined.meta.data$orig.ident, 
+                                            levels = c(levels(combined.meta.data$orig.ident), 
+                                                       add.cell.id))
+    combined.meta.data[colnames(new.data), ] <- add.cell.id
+  }
   project <- SetIfNull(x = project, default = object@project.name)
   new.object <- CreateSeuratObject(
     raw.data = combined.data,
@@ -256,15 +264,39 @@ AddSamples <- function(
     min.cells = min.cells,
     min.genes = min.genes,
     is.expr = is.expr,
-    normalization.method = normalization.method,
     scale.factor = scale.factor,
-    do.scale = do.scale,
-    do.center = do.center,
+    do.scale = F,
+    do.center = F,
     names.field = names.field,
     names.delim = names.delim,
     save.raw = save.raw
   )
-  new.object@meta.data <- combined.meta.data[new.object@cell.names,]
+  
+  if (do.normalize) {
+    normalization.method.use = GetCalcParam(object = object,
+                                            calculation = "NormalizeData",
+                                            parameter = "normalization.method")
+    scale.factor.use = GetCalcParam(object = object,
+                                    calculation = "NormalizeData",
+                                    parameter = "scale.factor")
+    
+    if (is.null(normalization.method.use)) {
+      normalization.method.use <- "LogNormalize"
+      scale.factor.use <- 10000
+    }
+    new.object <- NormalizeData(object = new.object,
+                                assay.type = "RNA",
+                                normalization.method = normalization.method.use,
+                                scale.factor = scale.factor.use)
+  }
+  
+  if (do.scale | do.center) {
+    new.object <- ScaleData(object = new.object,
+                            do.scale = do.scale,
+                            do.center = do.center)
+  }
+  new.object@meta.data$orig.ident <- NULL
+  new.object@meta.data <- cbind(new.object@meta.data, combined.meta.data)
   return(new.object)
 }
 

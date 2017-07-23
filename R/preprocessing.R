@@ -321,6 +321,8 @@ ScaleDataR <- function(
     }
     close(pb)
   }
+
+  object@scale.data[is.na(object@scale.data)]=0
   return(object)
 }
 
@@ -384,9 +386,14 @@ ScaleData <- function(
   do.cpp = TRUE,
   check.for.norm=TRUE
 ) {
-  data.use <- SetIfNull(x = data.use, default = GetAssayData(object = object,
-                                                             assay.type = assay.type,
-                                                             slot = "data"))
+  data.use <- SetIfNull(
+    x = data.use,
+    default = GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data"
+    )
+  )
 
   if (check.for.norm) {
     if (!("NormalizeData" %in% names(object@calc.params))) {
@@ -396,7 +403,6 @@ ScaleData <- function(
       cat("ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
     }
   }
-
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- as.vector(
     x = intersect(
@@ -406,34 +412,43 @@ ScaleData <- function(
   )
   data.use <- data.use[genes.use, ]
   if(!missing(latent.vars)){
-    data.use <- RegressOut(object = object,
-                           latent.vars = latent.vars,
-                           genes.regress = genes.use,
-                           use.umi = use.umi,
-                           model.use = model.use)
+    data.use <- RegressOut(
+      object = object,
+      latent.vars = latent.vars,
+      genes.regress = genes.use,
+      use.umi = use.umi,
+      model.use = model.use
+    )
     if (model.use != "linear") {
-    	use.umi <- TRUE
+      use.umi <- TRUE
     }
     if(use.umi && missing(scale.max)){
-    	scale.max <- 50
+      scale.max <- 50
     }
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
   parameters.to.store$data.use <- NULL
-  object <- SetCalcParams(object = object,
-                          calculation = "ScaleData",
-                          ... = parameters.to.store)
+
+  object <- SetCalcParams(
+    object = object,
+    calculation = "ScaleData",
+    ... = parameters.to.store
+  )
   if(!do.cpp){
-    return(ScaleDataR(object = object,
-                     data.use = data.use,
-                     do.scale = do.scale,
-                     do.center = do.center,
-                     scale.max = scale.max,
-                     genes.use = genes.use))
+    return(ScaleDataR(
+      object = object,
+      data.use = data.use,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max,
+      genes.use = genes.use
+    ))
   }
-  scaled.data <- matrix(data = NA,
-                        nrow = length(x = genes.use),
-                        ncol = ncol(x = object@data)
+  scaled.data <- matrix(
+    data = NA,
+    nrow = length(x = genes.use),
+    ncol = ncol(x = object@data
+  )
   )
   rownames(scaled.data) <- genes.use
   if(length(object@cell.names) <= min.cells.to.block) {
@@ -441,14 +456,16 @@ ScaleData <- function(
   }
   gc()
   colnames(scaled.data) <- colnames(object@data)
-  max.block <- ceiling(length(genes.use)/block.size)
+  max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
   print("Scaling data matrix")
-  pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+  if (display.progress) {
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+  }
   for (i in 1:max.block) {
     my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
     my.inds <- my.inds[my.inds <= length(x = genes.use)]
-    if (class(data.use) == "dgCMatrix" | class(data.use) == "dgTMatrix") {
+    if (class(x = data.use) == "dgCMatrix" | class(x = data.use) == "dgTMatrix") {
       data.scale <- FastSparseRowScale(
         mat = data.use[genes.use[my.inds], , drop = F],
         scale = do.scale,
@@ -458,7 +475,7 @@ ScaleData <- function(
       )
     } else {
       data.scale <- FastRowScale(
-        mat = as.matrix(data.use[genes.use[my.inds], , drop = F]),
+        mat = as.matrix(x = data.use[genes.use[my.inds], , drop = F]),
         scale = do.scale,
         center = do.center,
         scale_max = scale.max,
@@ -469,9 +486,13 @@ ScaleData <- function(
     scaled.data[genes.use[my.inds], ] <- data.scale
     rm(data.scale)
     gc()
-    setTxtProgressBar(pb, i)
+    if (display.progress) {
+      setTxtProgressBar(pb, i)
+    }
   }
-  close(pb)
+  if (display.progress) {
+    close(pb)
+  }
   object <- SetAssayData(
     object = object,
     assay.type = assay.type,
@@ -479,6 +500,7 @@ ScaleData <- function(
     new.data = scaled.data
   )
   gc()
+  object@scale.data[is.na(object@scale.data)]=0
   return(object)
 }
 

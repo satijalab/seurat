@@ -90,9 +90,11 @@ DoHeatmap <- function(
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
   data.use <- data.use[genes.use, cells.use]
-  if (use.scaled) {
-    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  if ((!use.scaled)) {
+    data.use =as.matrix(x = data.use) 
+    if (disp.max==2.5) disp.max = 10;
   }
+  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
   data.use <- as.data.frame(x = t(x = data.use))
   data.use$cell <- rownames(x = data.use)
   colnames(x = data.use) <- make.unique(names = colnames(x = data.use))
@@ -377,9 +379,9 @@ VlnPlot <- function(
 }
 
 
-#' Single cell violin plot
+#' Single cell joy plot
 #'
-#' Draws a violin plot of single cell data (gene expression, metrics, PC
+#' Draws a joy plot of single cell data (gene expression, metrics, PC
 #' scores, etc.)
 #'
 #' @param object Seurat object
@@ -394,8 +396,6 @@ VlnPlot <- function(
 #' @param size.x.use X axis title font size
 #' @param size.y.use Y axis title font size
 #' @param size.title.use Main title font size
-#' @param adjust.use Adjust parameter for geom_violin
-#' @param point.size.use Point size for geom_violin
 #' @param cols.use Colors to use for plotting
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.log plot Y axis on log scale
@@ -423,8 +423,6 @@ JoyPlot <- function(
   size.x.use = 16,
   size.y.use = 16,
   size.title.use = 20,
-  adjust.use = 1,
-  point.size.use = 1,
   cols.use = NULL,
   group.by = NULL,
   y.log = FALSE,
@@ -477,8 +475,6 @@ JoyPlot <- function(
         size.x.use = size.x.use,
         size.y.use = size.y.use,
         size.title.use = size.title.use,
-        adjust.use = adjust.use,
-        point.size.use = point.size.use,
         cols.use = cols.use,
         gene.names = gene.names,
         y.log = y.log,
@@ -914,17 +910,20 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- as.data.frame(GetCellEmbeddings(object = object,
-                                               reduction.type = reduction.use,
-                                               dims.use = c(dim.1, dim.2),
-                                               cells.use = cells.use))
+
+  data.plot <- as.data.frame(GetCellEmbeddings(
+    object = object,
+    reduction.type = reduction.use,
+    dims.use = c(dim.1, dim.2),
+    cells.use = cells.use
+  ))
   x1 <- paste0(dim.code, dim.1)
   x2 <- paste0(dim.code, dim.2)
   data.plot$x <- data.plot[, x1]
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
   names(x = data.plot) <- c('x', 'y')
-  # data.plot$pt.size <- pt.size
+
   data.use <- t(x = FetchData(
     object = object,
     vars.all = features.plot,
@@ -1061,8 +1060,8 @@ FeaturePlot <- function(
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
 #' @param sep.scale Scale each group separately. Default is FALSE.
-#' @param max.exp Max cutoff for scaled expression value
-#' @param min.exp Min cutoff for scaled expression value
+#' @param max.exp Max cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
+#' @param min.exp Min cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
 #' @param rotate.key rotate the legend
 #' @param plot.horiz rotate the plot such that the features are columns, groups are the rows
 #' @param key.position position of the legend ("top", "right", "bottom", "left")
@@ -1071,6 +1070,8 @@ FeaturePlot <- function(
 #' @return No return value, only a graphical output
 #'
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
+#'
+#' @seealso \code{\link{FeaturePlot}}
 #'
 #' @export
 #'
@@ -1118,6 +1119,9 @@ FeatureHeatmap <- function(
   } else {
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
+
+  min.exp <- SetQuantile(cutoff = min.exp, data = data.plot$scaled.expression)
+  max.exp <- SetQuantile(cutoff = max.exp, data = data.plot$scaled.expression)
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
   data.plot$scaled.expression <- MinMax(
     data = data.plot$scaled.expression,

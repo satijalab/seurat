@@ -61,10 +61,10 @@ JackStraw <- function(
     applyFunction <- sapply
   }
   rev.pca <- GetCalcParam(object = object,
-                          calculation = "PCA",
+                          calculation = "RunPCA",
                           parameter = "rev.pca")
   weight.by.var <- GetCalcParam(object = object,
-                                  calculation = "PCA",
+                                  calculation = "RunPCA",
                                   parameter = "weight.by.var")
   data.use.scaled <- GetAssayData(object = object,
                                   assay.type = "RNA",
@@ -148,6 +148,8 @@ JackRandom <- function(
   data.mod <- scaled.data
   data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
   temp.object <- new("seurat")
+
+  temp.object@cell.names <- colnames(data.mod)
   temp.object@scale.data <- data.mod
   temp.object <- RunPCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
                      rev.pca = rev.pca, weight.by.var = weight.by.var,
