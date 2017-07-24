@@ -4,7 +4,7 @@
 \alias{ScaleData}
 \title{Scale and center the data.}
 \usage{
-ScaleData(object, genes.use = NULL, data.use = NULL, latent.vars,
+ScaleData(object, genes.use = NULL, data.use = NULL, vars.to.regress,
   model.use = "linear", use.umi = FALSE, do.scale = TRUE,
   do.center = TRUE, scale.max = 10, block.size = 1000,
   min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
@@ -19,7 +19,8 @@ in object@data.}
 \item{data.use}{Can optionally pass a matrix of data to scale, default is
 object@data[genes.use, ]}
 
-\item{latent.vars}{effects to regress out}
+\item{vars.to.regress}{effects to regress out (previously latent.vars in
+RegressOut)}
 
 \item{model.use}{Use a linear model or generalized linear model
 (poisson, negative binomial) for the regression. Options are 'linear'
@@ -49,18 +50,32 @@ don't block for scaling calculations.}
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for
 multimodal analyses.}
 
-\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++.}
-
-\item{check.for.norm}{Check to see if data has been normalized, if not, output a warning (TRUE by default)
+\item{do.cpp}{By default (TRUE), most of the heavy lifting is done in c++.
 We've maintained support for our previous implementation in R for
 reproducibility (set this to FALSE) as results can change slightly due to
 differences in numerical precision which could affect downstream calculations.}
+
+\item{check.for.norm}{Check to see if data has been normalized, if not,
+output a warning (TRUE by default)}
 }
 \value{
 Returns a seurat object with object@scale.data updated with scaled
 and/or centered data.
 }
 \description{
-Scales and centers the data. If latent variables are provided (latent.vars), their effects are
-removed through regression and the resulting residuals are then scaled and centered.
+Scales and centers the data. If variables are provided in vars.to.regress,
+their effects are removed through regression and the resulting residuals are
+then scaled and centered.
+}
+\details{
+ScaleData now incorporates the functionality of the function formerly known
+as RegressOut (which regressed out given the effects of provided variables
+and then scaled the residuals). To make use of the regression functionality,
+simply pass the variables you want to remove to the vars.to.regress parameter.
+
+Setting center to TRUE will center the expression for each gene by subtracting
+the average expression for that gene. Setting scale to TRUE will scale the
+expression level for each gene by dividing the centered gene expression
+levels by their standard deviations if center is TRUE and by their root mean
+square otherwise.
 }

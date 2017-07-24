@@ -4,7 +4,7 @@
 #'
 #' @keywords internal
 #' @param object Seurat object
-#' @param latent.vars effects to regress out
+#' @param vars.to.regress effects to regress out
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
 #' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
@@ -13,9 +13,9 @@
 #'
 #' @import Matrix
 #'
-RegressOut <- function(
+RegressOutResid <- function(
   object,
-  latent.vars,
+  vars.to.regress,
   genes.regress = NULL,
   model.use = 'linear',
   use.umi = FALSE
@@ -33,14 +33,14 @@ RegressOut <- function(
   }
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  latent.data <- FetchData(object = object, vars.all = latent.vars)
+  latent.data <- FetchData(object = object, vars.all = vars.to.regress)
   bin.size <- 100
   if (model.use == 'negbinom') {
     bin.size <- 5
   }
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print(paste("Regressing out", latent.vars))
+  print(paste("Regressing out", vars.to.regress))
   pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
   data.resid <- c()
   data.use <- object@data[genes.regress, , drop = FALSE];
@@ -64,7 +64,7 @@ RegressOut <- function(
             object = paste0(
               "GENE ",
               " ~ ",
-              paste(latent.vars, collapse = "+")
+              paste(vars.to.regress, collapse = "+")
             )
           )
           if (model.use == 'linear') {

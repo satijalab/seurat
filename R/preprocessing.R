@@ -329,8 +329,20 @@ ScaleDataR <- function(
 
 #' Scale and center the data.
 #'
-#' Scales and centers the data. If latent variables are provided (latent.vars), their effects are
-#' removed through regression and the resulting residuals are then scaled and centered.
+#' Scales and centers the data. If variables are provided in vars.to.regress,
+#' their effects are removed through regression and the resulting residuals are
+#' then scaled and centered.
+#'
+#' ScaleData now incorporates the functionality of the function formerly known
+#' as RegressOut (which regressed out given the effects of provided variables
+#' and then scaled the residuals). To make use of the regression functionality,
+#' simply pass the variables you want to remove to the vars.to.regress parameter.
+#'
+#' Setting center to TRUE will center the expression for each gene by subtracting
+#' the average expression for that gene. Setting scale to TRUE will scale the
+#' expression level for each gene by dividing the centered gene expression
+#' levels by their standard deviations if center is TRUE and by their root mean
+#' square otherwise.
 #'
 #'
 #' @param object Seurat object
@@ -338,7 +350,8 @@ ScaleDataR <- function(
 #' in object@@data.
 #' @param data.use Can optionally pass a matrix of data to scale, default is
 #' object@data[genes.use, ]
-#' @param latent.vars effects to regress out
+#' @param vars.to.regress effects to regress out (previously latent.vars in
+#' RegressOut)
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
@@ -359,10 +372,11 @@ ScaleDataR <- function(
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
-#' @param check.for.norm Check to see if data has been normalized, if not, output a warning (TRUE by default)
 #' We've maintained support for our previous implementation in R for
 #' reproducibility (set this to FALSE) as results can change slightly due to
 #' differences in numerical precision which could affect downstream calculations.
+#' @param check.for.norm Check to see if data has been normalized, if not,
+#' output a warning (TRUE by default)
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
@@ -373,7 +387,7 @@ ScaleData <- function(
   object,
   genes.use = NULL,
   data.use = NULL,
-  latent.vars,
+  vars.to.regress,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -384,7 +398,7 @@ ScaleData <- function(
   display.progress = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE,
-  check.for.norm=TRUE
+  check.for.norm = TRUE
 ) {
   data.use <- SetIfNull(
     x = data.use,
@@ -411,10 +425,10 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if(!missing(latent.vars)){
-    data.use <- RegressOut(
+  if(!missing(vars.to.regress)){
+    data.use <- RegressOutResid(
       object = object,
-      latent.vars = latent.vars,
+      vars.to.regress = vars.to.regress,
       genes.regress = genes.use,
       use.umi = use.umi,
       model.use = model.use
@@ -500,7 +514,7 @@ ScaleData <- function(
     new.data = scaled.data
   )
   gc()
-  object@scale.data[is.na(object@scale.data)]=0
+  object@scale.data[is.na(object@scale.data)] <- 0
   return(object)
 }
 

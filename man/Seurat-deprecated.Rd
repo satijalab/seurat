@@ -92,6 +92,7 @@
 \alias{HeatmapNode}
 \alias{minusr}
 \alias{minusc}
+\alias{RegressOut}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 vlnPlot(...)
@@ -195,6 +196,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
   \code{minusr} \tab now a synonym for \code{\link{SubsetRow}}\cr
   \code{minusc} \tab now a synonym for \code{\link{SubsetColumn}}\cr
+  \code{RegressOut} \tab now part of \code{\link{ScaleData}}\cr
 }
 }
 
