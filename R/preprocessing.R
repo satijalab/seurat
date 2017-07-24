@@ -329,7 +329,7 @@ ScaleDataR <- function(
 
 #' Scale and center the data.
 #'
-#' Scales and centers the data. If variables are provided in vars.to.regress,
+#' Scales and centers genes in the dataset. If variables are provided in vars.to.regress,
 #' their effects are removed through regression and the resulting residuals are
 #' then scaled and centered.
 #'
@@ -350,8 +350,8 @@ ScaleDataR <- function(
 #' in object@@data.
 #' @param data.use Can optionally pass a matrix of data to scale, default is
 #' object@data[genes.use, ]
-#' @param vars.to.regress effects to regress out (previously latent.vars in
-#' RegressOut)
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'

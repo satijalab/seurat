@@ -635,7 +635,7 @@ SingleVlnPlot <- function(
     ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
-    xlab("Cell Type") +
+    xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
