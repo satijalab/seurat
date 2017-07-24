@@ -440,12 +440,6 @@ AverageExpression <- function(
   }
   slot.use <- "data"
   fxn.average <- function(x) mean(expm1(x))
-
-  if (show.progress) {
-    fxn.loop <- pbsapply
-  } else {
-    fxn.loop <- sapply
-  }
   if (use.scale) {
     slot.use <- "scale.data"
     fxn.average <- mean
@@ -523,9 +517,10 @@ AverageExpression <- function(
       ordered = TRUE
     )
 
-    #finish setting up object if it is to be returned
-    toRet=NormalizeData(toRet)
-    toRet=ScaleData(toRet)
+    # finish setting up object if it is to be returned
+    
+    toRet <- NormalizeData(toRet, display.progress = show.progress)
+    toRet <- ScaleData(toRet, display.progress = show.progress)
     
     return(toRet)
   } else {

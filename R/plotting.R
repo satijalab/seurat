@@ -70,7 +70,7 @@ DoHeatmap <- function(
   if (length(x = cells.use) == 0) {
     stop("No cells given to cells.use present in object")
   }
-  genes.use <- SetIfNull(x = genes.use, default = rownames(y = data.use))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   genes.use <- intersect(x = genes.use, y = rownames(x = data.use))
   if (length(x = genes.use) == 0) {
     stop("No genes given to genes.use present in object")
