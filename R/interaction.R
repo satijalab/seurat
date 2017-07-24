@@ -515,46 +515,37 @@ FetchData <- function(
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   data.return <- data.frame(row.names = cells.use)
   data.expression <- as.matrix(x = data.frame(row.names = cells.use))
+  if (length(which(c(use.imputed, use.scaled, use.raw))) > 1) {
+    stop("Can only set one of the following to TRUE: use.imputed, use.scaled, use.raw")
+  }
+  slot.use <- "data"
   # if any vars passed are genes, subset expression data
   gene.check <- vars.all %in% rownames(object@data)
-  #data.expression <- matrix()
-  if (all(gene.check)){
-    if (use.imputed) {
-      data.expression <- object@imputed[vars.all, cells.use,drop = FALSE]
-    }
-    if (use.scaled) {
-      data.expression <- object@scale.data[vars.all, cells.use, drop = FALSE]
-    }
-    if (use.raw) {
-      data.expression <-  object@raw.data[vars.all, cells.use, drop = FALSE]
-    } else {
-      data.expression <- object@data[vars.all, cells.use, drop = FALSE ]
-    }
-    return(t(x = as.matrix(x = data.expression)))
-  } else if (any(gene.check)) {
-    if (use.imputed) {
-      data.expression <- object@imputed[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    if(use.scaled) {
-      data.expression <-  object@scale.data[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    if (use.raw) {
-      data.expression <- object@raw.data[vars.all[gene.check], cells.use, drop = FALSE]
-    } else {
-      data.expression <- object@data[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    data.expression <- t(x = data.expression)
+  if (use.scaled) {
+    slot.use <- "scale.data"
+    gene.check <- vars.all %in% rownames(object@scale.data)
   }
-  #now check for multimodal data
+  if (use.raw) {
+    slot.use <- "raw.data"
+  }
+  if (any(gene.check)) {
+    if (use.imputed) {
+      gene.check <- vars.all %in% rownames(object@imputed)
+      if (length(object@imputed) == 0) {
+        stop ("Imputed expression values not calculated yet.")
+      }
+      data.expression <- t(object@imputed[vars.all[gene.check], cells.use, drop = FALSE])
+    } else {
+      data.expression <- GetAssayData(object, assay.type = "RNA", slot = slot.use)
+      data.expression <- t(data.expression[vars.all[gene.check], cells.use, drop = FALSE])
+    }
+    if (all(gene.check)) {
+      return(as.matrix(x = data.expression))
+    }
+  }
+  # now check for multimodal data
   if (length(x = object@assay) > 0) {
     data.types <- names(x = object@assay)
-    slot.use <- "data"
-    if (use.scaled) {
-      slot.use <- "scale.data"
-    }
-    if (use.raw) {
-      slot.use <- "raw.data"
-    }
     for (data.type in data.types) {
       all_data <- (GetAssayData(
         object = object,
