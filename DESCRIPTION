@@ -1,0 +1,90 @@
+Package: Seurat
+Version: 2.0.0.900
+Date: 07/17/17
+Title: Seurat : R toolkit for single cell genomics
+Description: Seurat : R toolkit for single cell genomics.
+Author: Rahul Satija
+Maintainer: Satija Lab <seuratpackage@gmail.com>
+URL: http://www.satijalab.org/seurat
+Depends:
+    R (>= 3.2.0),
+    ggplot2,
+    cowplot,
+SystemRequirements: Java (>= 1.6)
+Imports:
+    methods,
+    ROCR,
+    stringr,
+    mixtools,
+    lars,
+    ica,
+    tsne,
+    Rtsne,
+    fpc,
+    ape,
+    VGAM,
+    pbapply,
+    igraph,
+    FNN,
+    caret,
+    e1071,
+    dplyr,
+    RColorBrewer,
+    MASS,
+    Matrix,
+    irlba,
+    reshape2,
+    gridExtra,
+    gplots,
+    gdata,
+    Rcpp,
+    RcppEigen,
+    RcppProgress,
+    tclust,
+    ranger,
+    compositions,
+    NMOF,
+    dtw,
+    SDMTools,
+    plotly,
+    enrichR,
+    diffusionMap,
+    Hmisc,
+    httr,
+    tidyr
+LinkingTo: Rcpp, RcppEigen, RcppProgress
+License: GPL-3
+Collate: 
+    'RcppExports.R'
+    'seurat.R'
+    'cluster_determination.R'
+    'cluster_determination_internal.R'
+    'cluster_validation.R'
+    'deprecated_functions.R'
+    'differential_expression.R'
+    'differential_expression_internal.R'
+    'dimensional_reduction.R'
+    'dimensional_reduction_internal.R'
+    'dimensional_reduction_utilities.R'
+    'interaction.R'
+    'jackstraw.R'
+    'jackstraw_internal.R'
+    'multi_modal.R'
+    'plotting.R'
+    'plotting_internal.R'
+    'plotting_utilities.R'
+    'preprocessing.R'
+    'preprocessing_internal.R'
+    'printing_utilities.R'
+    'scoring.R'
+    'seuratFxns.R'
+    'snn.R'
+    'spatial.R'
+    'spatial_internal.R'
+    'tSNE_project.R'
+    'utilities.R'
+    'utilities_internal.R'
+    'zfRenderSeurat.R'
+RoxygenNote: 6.0.1
+Suggests:
+    testthat
