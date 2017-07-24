@@ -3971,7 +3971,7 @@ plot.Vln=function(gene,data,cell.ident,ylab.max=12,do.ret=FALSE,do.sort=FALSE,si
   }
   if (y.log) data.melt$value=data.melt$value+1
   p=ggplot(data.melt,aes(factor(ident),value))
-  p2=p + geom_violin(scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(ident)))
+  p2=p + geom_violin(bw=0.5, scale="width",adjust=adjust.use,trim=TRUE,aes(fill=factor(ident)))
   if (y.log) p2=p2+scale_y_log10()
   
   if(gene %in% gene.names){
