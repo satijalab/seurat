@@ -91,7 +91,7 @@ DoHeatmap <- function(
   )
   data.use <- data.use[genes.use, cells.use]
   if ((!use.scaled)) {
-    data.use = as.matrix(x = data.use) 
+    data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
   }
   data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
@@ -407,11 +407,15 @@ VlnPlot <- function(
 #' @param do.return Return a ggplot2 object (default : FALSE)
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#'
 #' @import ggplot2
 #' @importFrom cowplot plot_grid
+#'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
+#'
 #' @export
+#'
 JoyPlot <- function(
   object,
   features.plot,

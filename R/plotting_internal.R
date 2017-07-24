@@ -688,6 +688,7 @@ SingleVlnPlot <- function(
 # @param remove.legend Remove the legend from the plot
 #
 # @return A ggplot-based violin plot
+#' @importFrom ggjoy geom_joy
 #
 SingleJoyPlot <- function(
   feature,
@@ -736,7 +737,7 @@ SingleJoyPlot <- function(
     geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
   scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-  
+
   plot <- plot+theme(
       legend.position = legend.position,
       axis.title.x = element_text(
