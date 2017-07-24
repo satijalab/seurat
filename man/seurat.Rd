@@ -19,11 +19,11 @@ are listed below.
 
  \describe{
    \item{\code{raw.data}:}{\code{"ANY"}, The raw project data }
-   \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
-   \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
-   each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
-   \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
-   \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
+   \item{\code{data}:}{\code{"ANY"}, The normalized expression matrix (log-scale) }
+   \item{\code{scale.data}:}{\code{"ANY"}, The scaled (default is z-scoring
+   each gene) expression matrix. Used for dimensional reduction and heatmap visualization}
+   \item{\code{var.genes}:}{\code{"vector"},  Vector of genes exhibiting high variance across single cells }
+   \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed (0 by default) }
    \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
    \item{\code{meta.data}:}{\code{"data.frame"}, Contains information about metadata each cell, starting with # of genes detected (nGene)
    the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
