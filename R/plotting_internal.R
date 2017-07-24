@@ -635,7 +635,7 @@ SingleVlnPlot <- function(
     ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
-    xlab("Cell Type") +
+    xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
@@ -736,7 +736,7 @@ SingleJoyPlot <- function(
     geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
   scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-  
+
   plot <- plot+theme(
       legend.position = legend.position,
       axis.title.x = element_text(

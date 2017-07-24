@@ -91,7 +91,7 @@ DoHeatmap <- function(
   )
   data.use <- data.use[genes.use, cells.use]
   if ((!use.scaled)) {
-    data.use =as.matrix(x = data.use) 
+    data.use =as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
   }
   data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
@@ -922,7 +922,6 @@ FeaturePlot <- function(
   data.plot$x <- data.plot[, x1]
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
-  names(x = data.plot) <- c('x', 'y')
 
   data.use <- t(x = FetchData(
     object = object,
