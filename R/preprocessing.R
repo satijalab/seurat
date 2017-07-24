@@ -458,8 +458,8 @@ ScaleData <- function(
   colnames(scaled.data) <- colnames(object@data)
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
-  print("Scaling data matrix")
   if (display.progress) {
+    print("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.block, style = 3)
   }
   for (i in 1:max.block) {
