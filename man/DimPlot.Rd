@@ -7,7 +7,7 @@
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
-  do.hover = FALSE, data.hover = NULL, do.identify = FALSE,
+  do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   do.label = FALSE, label.size = 1, no.legend = FALSE, no.axes = FALSE,
   dark.theme = FALSE, ...)
 }
@@ -40,7 +40,7 @@ different shapes on cells.}
 
 \item{do.hover}{Enable hovering over points to view information}
 
-\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name}
+\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 

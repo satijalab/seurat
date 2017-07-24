@@ -38,9 +38,9 @@ heat.colors(10).}
 
 \item{do.return}{Return the ggplot2 object}
 
-\item{min.exp}{Min cutoff for scaled expression value}
+\item{min.exp}{Min cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)}
 
-\item{max.exp}{Max cutoff for scaled expression value}
+\item{max.exp}{Max cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)}
 
 \item{rotate.key}{rotate the legend}
 
@@ -59,4 +59,7 @@ identity class separately.
 Particularly useful for seeing if the same groups of cells co-exhibit a
 common feature (i.e. co-express a gene), even within an identity class. Best
 understood by example.
+}
+\seealso{
+\code{\link{FeaturePlot}}
 }

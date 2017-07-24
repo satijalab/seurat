@@ -115,11 +115,13 @@ HoverLocator <- function(
     info <- apply(
       X = features.info,
       MARGIN = 1,
-      FUN = paste,
-      collapse = '</br>'
+      FUN = function(x, names) {
+        return(paste0(names, ': ', x, collapse = '<br>'))
+      },
+      names = colnames(x = features.info)
     )
     data.info <- data.frame(
-      feature = paste(rownames(x = features.info), info, sep = '</br>'),
+      feature = paste(rownames(x = features.info), info, sep = '<br>'),
       row.names = rownames(x = features.info)
     )
     plot.build <- merge(x = plot.build, y = data.info, by = 0)

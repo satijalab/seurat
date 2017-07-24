@@ -91,7 +91,7 @@ DoHeatmap <- function(
   )
   data.use <- data.use[genes.use, cells.use]
   if ((!use.scaled)) {
-    data.use =as.matrix(x = data.use) 
+    data.use =as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
   }
   data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
@@ -845,7 +845,7 @@ SplitDotPlotGG <- function(
 #' @param pch.use Pch for plotting
 #' @param overlay Plot two features overlayed one on top of the other
 #' @param do.hover Enable hovering over points to view information
-#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name and identity. Pass 'NULL' to remove extra data.
 #' @param do.identify Opens a locator session to identify clusters of cells
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
@@ -875,7 +875,7 @@ FeaturePlot <- function(
   pch.use = 16,
   overlay = FALSE,
   do.hover = FALSE,
-  data.hover = NULL,
+  data.hover = 'ident',
   do.identify = FALSE,
   reduction.use = "tsne",
   use.imputed = FALSE,
@@ -1445,7 +1445,7 @@ JackStrawPlot <- function(
 #' @param use.scaled Use scaled data
 #' @param use.raw Use raw data
 #' @param do.hover Enable hovering over points to view information
-#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param dark.theme Use a dark theme for the plot
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
@@ -1468,7 +1468,7 @@ GenePlot <- function(
   use.scaled = FALSE,
   use.raw = FALSE,
   do.hover = FALSE,
-  data.hover = NULL,
+  data.hover = 'ident',
   do.identify = FALSE,
   dark.theme = FALSE,
   do.spline = FALSE,
@@ -2155,7 +2155,7 @@ VizICA <- function(
 #' cell attribute (that can be pulled with FetchData) allowing for both different colors and
 #' different shapes on cells.
 #' @param do.hover Enable hovering over points to view information
-#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name
+#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
@@ -2184,7 +2184,7 @@ DimPlot <- function(
   group.by = "ident",
   pt.shape = NULL,
   do.hover = FALSE,
-  data.hover=NULL,
+  data.hover = 'ident',
   do.identify = FALSE,
   do.label = FALSE,
   label.size = 1,
