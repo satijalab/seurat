@@ -46,7 +46,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     }
     return(to.return[, object@cell.names])
   }
-  if (! (assay.type %in% names(objectobject@assay))) {
+  if (! (assay.type %in% names(object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
   if (! (slot %in% slotNames(eval(envir = parse(text = paste0("object@assay$", assay.type)))))) {
@@ -81,7 +81,7 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
     }
     return(object)
   }
-  if (assay.type %in% names(objectobject@assay)) {
+  if (assay.type %in% names(object@assay)) {
     eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot, "<- new.data")))
   } else {
     new.assay <- new(Class = "assay")
