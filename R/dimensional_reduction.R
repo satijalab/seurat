@@ -543,7 +543,6 @@ RunCCA <- function(
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
     rownames(cca.data) <- colnames(combined.object@data)
-    
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -573,17 +572,23 @@ RunCCA <- function(
       )
     )
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    combined.object <- SetCalcParams(object = combined.object,
-                                     calculation = "RunCCA",
-                                     ... = parameters.to.store)
-    combined.object <- SetSingleCalcParam(object = combined.object,
-                                          calculation = "RunCCA",
-                                          parameter = "object.project",
-                                          value = object@project.name)
-    combined.object <- SetSingleCalcParam(object = combined.object,
-                                          calculation = "RunCCA",
-                                          parameter = "object2.project",
-                                          value = object2@project.name)
+    combined.object <- SetCalcParams(
+      object = combined.object,
+      calculation = "RunCCA",
+      ... = parameters.to.store
+    )
+    combined.object <- SetSingleCalcParam(
+      object = combined.object,
+      calculation = "RunCCA",
+      parameter = "object.project",
+      value = object@project.name
+    )
+    combined.object <- SetSingleCalcParam(
+      object = combined.object,
+      calculation = "RunCCA",
+      parameter = "object2.project",
+      value = object2@project.name
+    )
     return(combined.object)
   } else {
     object <- SetDimReduction(
@@ -599,14 +604,18 @@ RunCCA <- function(
       new.data = "CC"
     )
 
-    object <- ProjectDim(object = object,
-                         reduction.type = "cca",
-                         do.print = FALSE)
+    object <- ProjectDim(
+      object = object,
+      reduction.type = "cca",
+      do.print = FALSE
+    )
     object@scale.data[is.na(x = object@scale.data)] <- 0
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    object <- SetCalcParams(object = object,
-                                     calculation = "RunCCA",
-                                     ... = parameters.to.store)
+    object <- SetCalcParams(
+      object = object,
+      calculation = "RunCCA",
+      ... = parameters.to.store
+    )
     return(object)
   }
 }

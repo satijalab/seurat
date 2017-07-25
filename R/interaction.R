@@ -150,7 +150,6 @@ MergeSeurat <- function(
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
-
   rownames(x= merged.meta.data) <- merged.object@cell.names
   merged.meta.data$cell.name <- NULL
   merged.object@meta.data <- merged.meta.data
@@ -232,13 +231,13 @@ AddSamples <- function(
       )
     )
   }
-
   combined.meta.data$nGene <- NULL
   combined.meta.data$nUMI <- NULL
-  if(!is.null(add.cell.id)){
-    combined.meta.data$orig.ident <- factor(combined.meta.data$orig.ident,
-                                            levels = c(levels(combined.meta.data$orig.ident),
-                                                       add.cell.id))
+  if (! is.null(x = add.cell.id)) {
+    combined.meta.data$orig.ident <- factor(
+      x = combined.meta.data$orig.ident,
+      levels = c(levels(x = combined.meta.data$orig.ident), add.cell.id)
+    )
     combined.meta.data[colnames(new.data), ] <- add.cell.id
   }
   project <- SetIfNull(x = project, default = object@project.name)
@@ -255,29 +254,34 @@ AddSamples <- function(
     names.delim = names.delim,
     save.raw = save.raw
   )
-
   if (do.normalize) {
-    normalization.method.use = GetCalcParam(object = object,
-                                            calculation = "NormalizeData",
-                                            parameter = "normalization.method")
-    scale.factor.use = GetCalcParam(object = object,
-                                    calculation = "NormalizeData",
-                                    parameter = "scale.factor")
-
-    if (is.null(normalization.method.use)) {
+    normalization.method.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "normalization.method"
+    )
+    scale.factor.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "scale.factor"
+    )
+    if (is.null(x = normalization.method.use)) {
       normalization.method.use <- "LogNormalize"
       scale.factor.use <- 10000
     }
-    new.object <- NormalizeData(object = new.object,
-                                assay.type = "RNA",
-                                normalization.method = normalization.method.use,
-                                scale.factor = scale.factor.use)
+    new.object <- NormalizeData(
+      object = new.object,
+      assay.type = "RNA",
+      normalization.method = normalization.method.use,
+      scale.factor = scale.factor.use
+    )
   }
-
   if (do.scale | do.center) {
-    new.object <- ScaleData(object = new.object,
-                            do.scale = do.scale,
-                            do.center = do.center)
+    new.object <- ScaleData(
+      object = new.object,
+      do.scale = do.scale,
+      do.center = do.center
+    )
   }
   new.object@meta.data$orig.ident <- NULL
   new.object@meta.data <- cbind(new.object@meta.data, combined.meta.data)

@@ -378,7 +378,6 @@ VlnPlot <- function(
   }
 }
 
-
 #' Single cell joy plot
 #'
 #' Draws a joy plot of single cell data (gene expression, metrics, PC
@@ -531,7 +530,6 @@ JoyPlot <- function(
     }
   }
 }
-
 
 #' Dot plot visualization
 #'
@@ -915,7 +913,6 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-
   data.plot <- as.data.frame(GetCellEmbeddings(
     object = object,
     reduction.type = reduction.use,
@@ -928,7 +925,6 @@ FeaturePlot <- function(
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
   names(x = data.plot) <- c('x', 'y')
-
   data.use <- t(x = FetchData(
     object = object,
     vars.all = features.plot,
@@ -1124,7 +1120,6 @@ FeatureHeatmap <- function(
   } else {
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
-
   min.exp <- SetQuantile(cutoff = min.exp, data = data.plot$scaled.expression)
   max.exp <- SetQuantile(cutoff = max.exp, data = data.plot$scaled.expression)
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
