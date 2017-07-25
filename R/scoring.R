@@ -129,7 +129,7 @@ AddModuleScore <- function(
 #'
 #' @return A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
 #'
-#' @seealso \link{\code{AddModuleScore}}
+#' @seealso \code{\link{AddModuleScore}}
 #'
 #' @export
 #'
