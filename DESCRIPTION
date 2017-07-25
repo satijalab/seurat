@@ -51,7 +51,8 @@ Imports:
     diffusionMap,
     Hmisc,
     httr,
-    tidyr
+    tidyr,
+    ggjoy
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3
 Collate: 
