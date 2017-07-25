@@ -688,7 +688,7 @@ SingleVlnPlot <- function(
 # @param remove.legend Remove the legend from the plot
 #
 # @return A ggplot-based violin plot
-#' @importFrom ggjoy geom_joy
+#' @importFrom ggjoy geom_joy theme_joy
 #
 SingleJoyPlot <- function(
   feature,
