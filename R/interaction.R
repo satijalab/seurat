@@ -57,29 +57,29 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (! missing(add.cell.id1)) {
-    object1@cell.names <- paste(object1@cell.names, add.cell.id1, sep = ".")
+    object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
     colnames(x = object1@raw.data) <- paste(
-      colnames(x = object1@raw.data),
       add.cell.id1,
-      sep = "."
+      colnames(x = object1@raw.data),
+      sep = "_"
     )
     rownames(x = object1@meta.data) <- paste(
-      rownames(x = object1@meta.data),
       add.cell.id1,
-      sep = "."
+      rownames(x = object1@meta.data),
+      sep = "_"
     )
   }
   if (! missing(add.cell.id2)) {
-    object2@cell.names <- paste(object2@cell.names, add.cell.id2, sep = ".")
+  object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
     colnames(x = object2@raw.data) <- paste(
-      colnames(x = object2@raw.data),
       add.cell.id2,
-      sep = "."
+      colnames(x = object2@raw.data),
+      sep = "_"
     )
     rownames(x = object2@meta.data) <- paste(
-      rownames(x = object2@meta.data),
       add.cell.id2,
-      sep = "."
+      rownames(x = object2@meta.data),
+      sep = "_"
     )
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
@@ -150,7 +150,12 @@ MergeSeurat <- function(
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
+  
   rownames(x= merged.meta.data) <- merged.object@cell.names
+  if (!is.null(x = add.cell.id1) && !is.null(x = add.cell.id2)) {
+    merged.meta.data[merged.object@cell.names,"orig.ident"] <- as.character(x = merged.object@meta.data[,"orig.ident"])
+  }
+  
   merged.meta.data$cell.name <- NULL
   merged.object@meta.data <- merged.meta.data
   return(merged.object)
@@ -252,8 +257,8 @@ AddSamples <- function(
   combined.meta.data$nGene <- NULL
   combined.meta.data$nUMI <- NULL
   if(!is.null(add.cell.id)){
-    combined.meta.data$orig.ident <- factor(combined.meta.data$orig.ident, 
-                                            levels = c(levels(combined.meta.data$orig.ident), 
+    combined.meta.data$orig.ident <- factor(combined.meta.data$orig.ident,
+                                            levels = c(levels(combined.meta.data$orig.ident),
                                                        add.cell.id))
     combined.meta.data[colnames(new.data), ] <- add.cell.id
   }
@@ -271,7 +276,7 @@ AddSamples <- function(
     names.delim = names.delim,
     save.raw = save.raw
   )
-  
+
   if (do.normalize) {
     normalization.method.use = GetCalcParam(object = object,
                                             calculation = "NormalizeData",
@@ -279,7 +284,7 @@ AddSamples <- function(
     scale.factor.use = GetCalcParam(object = object,
                                     calculation = "NormalizeData",
                                     parameter = "scale.factor")
-    
+
     if (is.null(normalization.method.use)) {
       normalization.method.use <- "LogNormalize"
       scale.factor.use <- 10000
@@ -289,7 +294,7 @@ AddSamples <- function(
                                 normalization.method = normalization.method.use,
                                 scale.factor = scale.factor.use)
   }
-  
+
   if (do.scale | do.center) {
     new.object <- ScaleData(object = new.object,
                             do.scale = do.scale,

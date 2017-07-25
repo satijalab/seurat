@@ -158,7 +158,7 @@ RunICA <- function(
   if(is.null(object@calc.params$ICA$ic.genes)){
     object@calc.params$ICA$ic.genes <- rownames(data.use)
   }
-  if(do.print){
+  if(print.results){
     PrintICA(object = object, ics.print = ics.print, genes.print = genes.print)
   }
   return(object)
