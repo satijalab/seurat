@@ -49,7 +49,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
   if (! (assay.type %in% names(object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
-  if (! (slot %in% slotNames(eval(envir = parse(text = paste0("object@assay$", assay.type)))))) {
+  if (! (slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
   to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
