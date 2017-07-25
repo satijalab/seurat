@@ -409,6 +409,7 @@ VlnPlot <- function(
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @import ggplot2
+#' @importFrom ggjoy geom_joy theme_joy
 #' @importFrom cowplot plot_grid
 #'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
