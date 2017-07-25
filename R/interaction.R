@@ -150,12 +150,8 @@ MergeSeurat <- function(
   merged.meta.data %>% filter(
     cell.name %in% merged.object@cell.names
   ) -> merged.meta.data
-  
+
   rownames(x= merged.meta.data) <- merged.object@cell.names
-  if (!is.null(x = add.cell.id1) && !is.null(x = add.cell.id2)) {
-    merged.meta.data[merged.object@cell.names,"orig.ident"] <- as.character(x = merged.object@meta.data[,"orig.ident"])
-  }
-  
   merged.meta.data$cell.name <- NULL
   merged.object@meta.data <- merged.meta.data
   return(merged.object)
@@ -214,27 +210,10 @@ AddSamples <- function(
     stop("Object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (! missing(x = add.cell.id)) {
-    colnames(x= new.data) <- paste(colnames(x = new.data), add.cell.id, sep = ".")
+    colnames(x= new.data) <- paste(add.cell.id, colnames(x = new.data),  sep = "_")
   }
   if (any(colnames(x = new.data) %in% object@cell.names)) {
-    warning("Duplicate cell names, enforcing uniqueness via make.unique()")
-    new.data.names <- as.list(
-      x = make.unique(
-        names = c(
-          colnames(x = object@raw.data),
-          colnames(x = new.data)
-        )
-      )[(ncol(x = object@raw.data) + 1):(ncol(x = object@raw.data) + ncol(x = new.data))]
-    )
-    names(x = new.data.names) <- colnames(x = new.data)
-    colnames(x = new.data) <- new.data.names
-    if (! is.null(x = meta.data)){
-      rownames(x = meta.data) <- unlist(
-        x = unname(
-          obj = new.data.names[rownames(x = meta.data)]
-        )
-      )
-    }
+    stop("Duplicate cell names, please provide 'add.cell.id' for unique names")
   }
   combined.data <- RowMergeSparseMatrices(
     mat1 = object@raw.data[, object@cell.names],
