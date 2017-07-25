@@ -31,6 +31,7 @@ AddModuleScore <- function(
   use.k = FALSE,
   enrich.name = "Cluster"
 ) {
+  genes.old <- genes.list
   if (use.k) {
     genes.list <- list()
     for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
@@ -48,6 +49,24 @@ AddModuleScore <- function(
       }
     )
     cluster.length <- length(x = genes.list)
+  }
+  if (! all(LengthCheck(values = genes.list))) {
+    warning(paste(
+      'Could not find enough genes in the object from the following gene lists:',
+      paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
+      'Attempting to match case...'
+    ))
+    genes.list <- lapply(
+      X = genes.old,
+      FUN = CaseMatch, match = rownames(x = object@data)
+    )
+  }
+  if (! all(LengthCheck(values = genes.list))) {
+    stop(paste(
+      'The following gene lists do not have enough genes present in the object:',
+      paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
+      'exiting...'
+    ))
   }
   if (is.null(x = genes.pool)) genes.pool = rownames(object@data)
   data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
