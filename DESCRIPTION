@@ -78,7 +78,6 @@ Collate:
     'preprocessing_internal.R'
     'printing_utilities.R'
     'scoring.R'
-    'seuratFxns.R'
     'snn.R'
     'spatial.R'
     'spatial_internal.R'
