@@ -16,12 +16,13 @@ Improvements and new features will be added on a regular basis, please contact s
 
 Version History
 
-July 17, 2017
-* Version 2.0 pre-release
+July 26, 2017
+* Version 2.0
 * Changes:
    * Preprint released for integrated analysis of scRNA-seq across conditions, technologies and species 
    * Significant restructuring of code to support clarity and dataset exploration
-   
+   * Methods for scoring gene expression and cell-cycle phase
+
 October 4, 2016
 * Version 1.4 released
 * Changes:
