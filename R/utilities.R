@@ -101,6 +101,9 @@ UpdateSeuratObject <- function(object) {
   if(length(object@mean.var) > 0){
     new.object@hvg.info <- object@mean.var
     colnames(new.object@hvg.info) <- c("gene.mean", "gene.dispersion", "gene.dispersion.scaled")
+    new.object@hvg.info <- new.object@hvg.info[order(
+      new.object@hvg.info$gene.dispersion,
+      decreasing = TRUE), ]
   }
   if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
      length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
