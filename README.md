@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=master)](https://travis-ci.org/satijalab/seurat)
+[![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=develop)](https://travis-ci.org/satijalab/seurat)[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/satijalab/seurat?branch=develop&svg=true)](https://ci.appveyor.com/project/satijalab/seurat/branch/develop)
 
-# Seurat v1.4
+# Seurat v2.0
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
 
@@ -15,6 +15,13 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
 Version History
+
+July 26, 2017
+* Version 2.0
+* Changes:
+   * Preprint released for integrated analysis of scRNA-seq across conditions, technologies and species 
+   * Significant restructuring of code to support clarity and dataset exploration
+   * Methods for scoring gene expression and cell-cycle phase
 
 October 4, 2016
 * Version 1.4 released
