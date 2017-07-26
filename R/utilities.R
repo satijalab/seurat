@@ -486,7 +486,6 @@ AverageExpression <- function(
     data.return[[i]] <- data.all
     names(x = data.return)[i] <- assays.use[[i]]
   }
-
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       raw.data = data.return[[1]],
@@ -496,7 +495,6 @@ AverageExpression <- function(
       is.expr = 0,
       ...
     )
-
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
@@ -520,10 +518,10 @@ AverageExpression <- function(
     )
 
     # finish setting up object if it is to be returned
-    
+
     toRet <- NormalizeData(toRet, display.progress = show.progress)
     toRet <- ScaleData(toRet, display.progress = show.progress)
-    
+
     return(toRet)
   } else {
     return(data.return[[1]])
@@ -715,4 +713,27 @@ GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
   return(toReturn)
 }
 
-
+#' Match the case of character vectors
+#'
+#' @param search A vector of search terms
+#' @param match A vector of characters whose case should be matched
+#'
+#' @return Values from search present in match with the case of match
+#'
+#' @export
+#'
+CaseMatch <- function(search, match) {
+  search.match <- sapply(
+    X = search,
+    FUN = function(s) {
+      return(grep(
+        pattern = paste0('^', s, '$'),
+        x = match,
+        ignore.case = TRUE,
+        perl = TRUE,
+        value = TRUE
+      ))
+    }
+  )
+  return(unlist(x = search.match))
+}

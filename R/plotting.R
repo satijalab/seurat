@@ -378,7 +378,6 @@ VlnPlot <- function(
   }
 }
 
-
 #' Single cell joy plot
 #'
 #' Draws a joy plot of single cell data (gene expression, metrics, PC
@@ -532,9 +531,8 @@ JoyPlot <- function(
   }
 }
 
-
-#' Dot plot visualization
-#'
+#' Old Dot plot visualization (pre-ggplot implementation)
+#
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
 #' The size of the dot encodes the percentage of cells within a class, while the color encodes the
 #' AverageExpression level of 'expressing' cells (green is high).
@@ -548,7 +546,7 @@ JoyPlot <- function(
 #' @param group.by Factor to group the cells by
 #' @return Only graphical output
 #' @export
-DotPlot <- function(
+DotPlotOld <- function(
   object,
   genes.plot,
   cex.use = 2,
@@ -605,16 +603,21 @@ DotPlot <- function(
 
 #' Dot plot visualization
 #'
-#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
-#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
-#' AverageExpression level of 'expressing' cells (green is high).
+#' Intuitive way of visualizing how gene expression changes across different
+#' identity classes (clusters). The size of the dot encodes the percentage of
+#' cells within a class, while the color encodes the AverageExpression level of
+#' 'expressing' cells (blue is high).
 #'
 #' @param object Seurat object
 #' @param genes.plot Input vector of genes
 #' @param cols.use colors to plot
-#' @param col.min Minimum scaled average expression threshold (everything smaller will be set to this)
-#' @param col.max Maximum scaled average expression threshold (everything larger will be set to this)
-#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05).
+#' @param col.min Minimum scaled average expression threshold (everything smaller
+#'  will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger
+#' will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot
+#' (default is 0.05). All cell groups with less than this expressing the given
+#' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param group.by Factor to group the cells by
 #' @param plot.legend plots the legends
@@ -624,10 +627,10 @@ DotPlot <- function(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
 #' @export
-DotPlotGG <- function(
+DotPlot <- function(
   object,
   genes.plot,
-  cols.use = c("green", "red"),
+  cols.use = c("lightgrey", "blue"),
   col.min = -2.5,
   col.max = 2.5,
   dot.min = 0,
@@ -651,15 +654,15 @@ DotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = ExpMean(x = expression),
+      avg.exp = mean(expm1(x = expression)),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
-    mutate(avg.exp = as.numeric(x = scale(center = avg.exp))) %>%
+    mutate(avg.exp.scale = scale(x = avg.exp)) %>%
     mutate(avg.exp.scale = MinMax(
-      data = avg.exp,
+      data = avg.exp.scale,
       max = col.max,
       min = col.min
     )) ->  data.to.plot
@@ -915,7 +918,6 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-
   data.plot <- as.data.frame(GetCellEmbeddings(
     object = object,
     reduction.type = reduction.use,
@@ -928,7 +930,6 @@ FeaturePlot <- function(
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
   names(x = data.plot) <- c('x', 'y')
-
   data.use <- t(x = FetchData(
     object = object,
     vars.all = features.plot,
@@ -1124,7 +1125,6 @@ FeatureHeatmap <- function(
   } else {
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
-
   min.exp <- SetQuantile(cutoff = min.exp, data = data.plot$scaled.expression)
   max.exp <- SetQuantile(cutoff = max.exp, data = data.plot$scaled.expression)
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)

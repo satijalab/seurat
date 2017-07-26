@@ -321,8 +321,7 @@ ScaleDataR <- function(
     }
     close(pb)
   }
-
-  object@scale.data[is.na(object@scale.data)]=0
+  object@scale.data[is.na(object@scale.data)] <- 0
   return(object)
 }
 
@@ -408,7 +407,6 @@ ScaleData <- function(
       slot = "data"
     )
   )
-
   if (check.for.norm) {
     if (!("NormalizeData" %in% names(object@calc.params))) {
       cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
@@ -442,7 +440,6 @@ ScaleData <- function(
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
   parameters.to.store$data.use <- NULL
-
   object <- SetCalcParams(
     object = object,
     calculation = "ScaleData",
