@@ -64,7 +64,7 @@ and/or centered data.
 }
 \description{
 Scales and centers genes in the dataset. If variables are provided in vars.to.regress,
-their effects are removed through regression and the resulting residuals are
+they are individually regressed against each gene, and the resulting residuals are
 then scaled and centered.
 }
 \details{
