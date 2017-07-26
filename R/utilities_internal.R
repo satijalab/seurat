@@ -461,26 +461,15 @@ Same <- function(x) {
 
 NBResiduals <- function(fmla, regression.mat, gene) {
   fit <- 0
-  try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
+  try(
+    fit <- glm.nb(fmla,
+    data = regression.mat),
+    silent=TRUE)
   if (class(fit)[1] == 'numeric') {
-    message(sprintf(
-      'glm.nb failed for gene %s; trying again with glm and family=negative.binomial(theta=0.1)',
-      gene
-    ))
-    try(
-      expr = fit <- glm(
-        formula = fmla,
-        data = regression.mat,
-        family = negative.binomial(theta = 0.1)
-      ),
-      silent = TRUE
-    )
-    if (class(fit)[1] == 'numeric') {
-      message('glm and family=negative.binomial(theta=0.1) failed; falling back to scale(log10(y+1))')
-      return(scale(x = log10(x = regression.mat[, 'GENE'] + 1))[, 1])
-    }
+    message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
+    return(scale(log(regression.mat[, 'GENE']+1))[, 1])
   }
-  return(residuals(object = fit, type='pearson'))
+  return(residuals(fit, type='pearson'))
 }
 
 

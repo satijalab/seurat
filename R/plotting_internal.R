@@ -737,7 +737,6 @@ SingleJoyPlot <- function(
     geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
   scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-
   plot <- plot+theme(
       legend.position = legend.position,
       axis.title.x = element_text(
@@ -769,7 +768,7 @@ SingleJoyPlot <- function(
       plot <- plot + xlab(label = "Expression level")
     }
   } else {
-    plot <- plot + ylab(label = "")
+    plot <- plot + xlab(label = "")
   }
   if (! is.null(x = cols.use)) {
     plot <- plot + scale_fill_manual(values = cols.use)
