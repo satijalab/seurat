@@ -7,7 +7,19 @@ r_binary_packages:
   - mixtools
   - caret
   - e1071
-  - tclust
+  - ica
+  - fpc
+  - ape
+  - igraph
+  - dplyr
+  - irlba
+  - reshape2
+  - gdata
+  - compositions
+  - dtw
+  - plotly
+  - httr
+  - tidyr
   - ranger
 warnings_are_errors: false
 dist: trusty
