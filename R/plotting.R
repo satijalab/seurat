@@ -291,7 +291,7 @@ VlnPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...))
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...), check.names = F)
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -446,7 +446,8 @@ JoyPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...))
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...),
+                         check.names = F)
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {

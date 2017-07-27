@@ -587,6 +587,9 @@ SingleVlnPlot <- function(
   legend.position,
   remove.legend
 ) {
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
   set.seed(seed = 42)
   data$ident <- cell.ident
   if (do.sort) {
@@ -611,7 +614,7 @@ SingleVlnPlot <- function(
     data = data,
     mapping = aes(
       x = factor(x = ident),
-      y = eval(expr = parse(text = feature))
+      y = feature
     )
   ) +
     geom_violin(
@@ -639,6 +642,7 @@ SingleVlnPlot <- function(
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
   } else {
@@ -708,6 +712,9 @@ SingleJoyPlot <- function(
   remove.legend
 ) {
   set.seed(seed = 42)
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
   data$ident <- cell.ident
   if (do.sort) {
     data$ident <- factor(
@@ -730,7 +737,7 @@ SingleJoyPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes(
-        x = eval(expr = parse(text = feature)),
+        x = feature,
         y = factor(ident)
     )
   ) +
@@ -756,6 +763,7 @@ SingleJoyPlot <- function(
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_x_log10()
   } else {
