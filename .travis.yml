@@ -1,7 +1,25 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
 language: R
-sudo: false
-cache: packages
+sudo: required
+r_binary_packages:
+  - lars
+  - mixtools
+  - caret
+  - e1071
+  - ica
+  - fpc
+  - ape
+  - igraph
+  - dplyr
+  - irlba
+  - reshape2
+  - gdata
+  - compositions
+  - dtw
+  - plotly
+  - httr
+  - tidyr
+  - ranger
 warnings_are_errors: false
 dist: trusty
