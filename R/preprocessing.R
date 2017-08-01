@@ -70,12 +70,7 @@ CreateSeuratObject <- function(
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
   object@data <- object.raw.data[, cells.use]
-  # to save memory downstream, especially for large objects if raw.data no
-  # longer needed
-  if (!(save.raw)) {
-    object@raw.data <- matrix()
-  }
-  # filter genes on the number of cells expressing
+  # Filter genes on the number of cells expressing
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
   if (min.cells > 0) {
@@ -83,6 +78,11 @@ CreateSeuratObject <- function(
     genes.use <- names(num.cells[which(num.cells >= min.cells)])
     object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
+  }
+  # to save memory downstream, especially for large objects if raw.data no
+  # longer needed
+  if (!(save.raw)) {
+    object@raw.data <- matrix()
   }
   object@ident <- factor(
     x = unlist(
