@@ -153,6 +153,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FastExpMean
+Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat);
+RcppExport SEXP _Seurat_FastExpMean(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastExpMean(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FastLogVMR
+Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat);
+RcppExport SEXP _Seurat_FastLogVMR(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastLogVMR(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
@@ -166,6 +188,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastCov", (DL_FUNC) &_Seurat_FastCov, 2},
     {"_Seurat_FastCovMats", (DL_FUNC) &_Seurat_FastCovMats, 3},
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
+    {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 1},
+    {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 1},
     {NULL, NULL, 0}
 };
 
