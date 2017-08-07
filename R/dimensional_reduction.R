@@ -17,6 +17,7 @@
 #' @param genes.print Number of genes to print for each PC
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
+#' @param assay.type Data type, RNA by default. Can be changed for multimodal
 #' @param \dots Additional arguments to be passed to IRLBA
 #'
 #'@importFrom irlba irlba
@@ -40,12 +41,14 @@ RunPCA <- function(
   genes.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
+  assay.type="RNA",
   ...
 ) {
   data.use <- PrepDR(
     object = object,
     genes.use = pc.genes,
-    use.imputed = use.imputed)
+    use.imputed = use.imputed,
+    assay.type = assay.type)
   pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
