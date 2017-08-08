@@ -2,7 +2,7 @@
 set.seed(42)
 library(Matrix)
 
-# Tests for row merging 
+# Tests for row merging
 # --------------------------------------------------------------------------------
 context("Row Merging")
 
@@ -17,7 +17,7 @@ m1 <- as(m1, "RsparseMatrix")
 m2 <- as(m2, "RsparseMatrix")
 
 test_that("Row merging done correctly", {
-  m3 <- RowMergeMatrices(mat1 = m1, mat2 = m2, mat1_rownames = m1.names, mat2_rownames = m2.names, 
+  m3 <- RowMergeMatrices(mat1 = m1, mat2 = m2, mat1_rownames = m1.names, mat2_rownames = m2.names,
                   all_rownames = all.names)
   expect_equal(m3[1, 14], -0.17)
   expect_equal(m3[3, 2], -1.4)
@@ -61,32 +61,32 @@ mat <- matrix(seq(0.001, 0.1, 0.001), nrow = 10, ncol = 10)
 # should be the equivalent of t(scale(t(mat)))
 test_that("Fast implementation of row scaling returns expected values", {
   expect_equal(t(scale(t(mat))[1:10, 1:10]), FastRowScale(mat, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), center = FALSE))[1:10, 1:10], 
+  expect_equal(t(scale(t(mat), center = FALSE))[1:10, 1:10],
                FastRowScale(mat, center = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE))[1:10, 1:10], 
+  expect_equal(t(scale(t(mat), scale = FALSE))[1:10, 1:10],
                FastRowScale(mat, scale = FALSE, display_progress = FALSE))
-  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:10], 
+  expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:10],
                FastRowScale(mat, scale = FALSE, center = F, display_progress = FALSE))
 })
 
 # should be the equivalent of scale(mat, TRUE, apply(mat, 2, sd))
 test_that("Standardize returns expected values", {
-  expect_equal(Standardize(mat, display_progress = FALSE), scale(mat, TRUE, apply(mat, 2, sd)), 
+  expect_equal(Standardize(mat, display_progress = FALSE), scale(mat, TRUE, apply(mat, 2, sd)),
                check.attributes = FALSE)
 })
 
 # should be the equivalent of t(scale(t(mat)))
 mat <- rsparsematrix(10, 15, 0.1)
 test_that("Fast implementation of row scaling returns expected values", {
-  expect_equal(t(scale(t(as.matrix(mat))))[1:10, 1:15], FastSparseRowScale(mat, display_progress = FALSE), 
+  expect_equal(t(scale(t(as.matrix(mat))))[1:10, 1:15], FastSparseRowScale(mat, display_progress = FALSE),
                check.attributes = FALSE)
-  expect_equal(t(scale(t(as.matrix(mat)), center = FALSE))[1:10, 1:15], 
-               FastSparseRowScale(mat, center = FALSE, display_progress = FALSE), 
+  expect_equal(t(scale(t(as.matrix(mat)), center = FALSE))[1:10, 1:15],
+               FastSparseRowScale(mat, center = FALSE, display_progress = FALSE),
                check.attributes = FALSE)
-  expect_equal(t(scale(t(as.matrix(mat)), scale = FALSE))[1:10, 1:15], 
+  expect_equal(t(scale(t(as.matrix(mat)), scale = FALSE))[1:10, 1:15],
                FastSparseRowScale(mat, scale = FALSE, display_progress = FALSE),
                check.attributes = FALSE)
-  expect_equal(t(scale(t(as.matrix(mat)), scale = FALSE, center = F))[1:10, 1:15], 
+  expect_equal(t(scale(t(as.matrix(mat)), scale = FALSE, center = F))[1:10, 1:15],
                FastSparseRowScale(mat, scale = FALSE, center = F, display_progress = FALSE),
                check.attributes = FALSE)
 })
@@ -109,3 +109,28 @@ test_that("Fast implementation of rbind returns expected values", {
   expect_equal(mat[1,1], merged.mat[1,1])
   expect_equal(fcv[10,10], merged.mat[20,10])
 })
+
+mat <- as(mat, "dgCMatrix")
+test_that("Fast implementation of ExpMean returns expected values",{
+  expect_equal(ExpMean(mat[1,]), FastExpMean(mat)[1])
+  expect_equal(ExpMean(mat[5,]), FastExpMean(mat)[5])
+  expect_equal(ExpMean(mat[10,]), FastExpMean(mat)[10])
+  expect_equal(length(FastExpMean(mat)), nrow(mat))
+  expect_error(FastExpMean(mat[1, ]))
+  expect_equal(FastExpMean(mat[1, ,drop = F]), ExpMean(mat[1,]))
+  expect_equal(FastExpMean(mat)[1], 6.493418, tolerance = 1e-6)
+  expect_equal(FastExpMean(mat)[5], 6.255206, tolerance = 1e-6)
+  expect_equal(FastExpMean(mat)[10], 7.84965, tolerance = 1e-6)
+})
+test_that("Fast implementation of LogVMR returns expected values", {
+  expect_equal(LogVMR(mat[1,]), FastLogVMR(mat)[1])
+  expect_equal(LogVMR(mat[5,]), FastLogVMR(mat)[5])
+  expect_equal(LogVMR(mat[10,]), FastLogVMR(mat)[10])
+  expect_equal(length(FastExpMean(mat)), nrow(mat))
+  expect_error(FastLogVMR(mat[1, ]))
+  expect_equal(FastLogVMR(mat[1, ,drop = F]), LogVMR(mat[1,]))
+  expect_equal(FastLogVMR(mat)[1], 7.615384, tolerance = 1e-6)
+  expect_equal(FastLogVMR(mat)[5], 7.546768, tolerance = 1e-6)
+  expect_equal(FastLogVMR(mat)[10], 10.11755, tolerance = 1e-6)
+})
+

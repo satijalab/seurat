@@ -663,7 +663,7 @@ FindVariableGenes <- function(
   if (do.recalc) {
     if (do.cpp ){
       if(class(data) != "dgCMatrix"){
-        data <- as(data, "dgCMatrix")
+        data <- as(as.matrix(data), "dgCMatrix")
       }
       gene.mean <- FastExpMean(data)
       names(gene.mean) <- genes.use
