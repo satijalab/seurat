@@ -63,5 +63,5 @@ calculations are not performed in log-space, but the results are reported in log
 see relevant functions for exact details.
 }
 \seealso{
-\code{\link{VariableGenePlot}}
+\code{VariableGenePlot}
 }

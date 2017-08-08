@@ -6,9 +6,9 @@
 \usage{
 OldDoHeatmap(object, cells.use = NULL, genes.use = NULL, disp.min = NULL,
   disp.max = NULL, draw.line = TRUE, do.return = FALSE,
-  order.by.ident = TRUE, col.use = pyCols, slim.col.label = FALSE,
-  group.by = NULL, remove.key = FALSE, cex.col = NULL, do.scale = TRUE,
-  ...)
+  order.by.ident = TRUE, col.use = PurpleAndYellow(),
+  slim.col.label = FALSE, group.by = NULL, remove.key = FALSE,
+  cex.col = NULL, do.scale = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -12,6 +12,8 @@ AddModuleScore(object, genes.list = NULL, genes.pool = NULL, n.bin = 25,
 
 \item{genes.list}{Gene expression programs in list}
 
+\item{genes.pool}{List of genes to check expression levels agains, defaults to rownames(x = object@data)}
+
 \item{n.bin}{Number of bins of aggregate expression levels for all analyzed genes}
 
 \item{seed.use}{Random seed for sampling}

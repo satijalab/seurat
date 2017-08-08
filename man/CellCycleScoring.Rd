@@ -23,5 +23,5 @@ A Seurat object with the following columns added to object@meta.data: S.Score, G
 Score cell cycle phases
 }
 \seealso{
-\code{\link{AddModuleScore}}
+\code{AddModuleScore}
 }

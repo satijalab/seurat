@@ -6,31 +6,37 @@
 \usage{
 PCHeatmap(object, pc.use = 1, cells.use = NULL, num.genes = 30,
   use.full = FALSE, disp.min = -2.5, disp.max = 2.5, do.return = FALSE,
-  col.use = pyCols, use.scale = TRUE, do.balanced = FALSE,
+  col.use = PurpleAndYellow(), use.scale = TRUE, do.balanced = FALSE,
   remove.key = FALSE, label.columns = NULL, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{Seurat object.}
 
-\item{pc.use}{Principal components to use}
+\item{pc.use}{PCs to plot}
 
 \item{cells.use}{A list of cells to plot. If numeric, just plots the top cells.}
 
-\item{num.genes}{Number of genes to return}
+\item{num.genes}{Number of genes to plot}
 
-\item{use.full}{Use the full PCA (projected PCA). Default i s FALSE}
+\item{use.full}{Use the full PCA (projected PCA). Default is FALSE}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
+\item{do.return}{If TRUE, returns plot object, otherwise plots plot object}
+
+\item{col.use}{Color to plot.}
+
 \item{use.scale}{Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.}
 
-\item{do.balanced}{Return an equal number of genes with both + and - PC scores.}
+\item{do.balanced}{Plot an equal number of genes with both + and - scores.}
 
 \item{remove.key}{Removes the color key from the plot.}
 
 \item{label.columns}{Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC}
+
+\item{...}{Extra parameters for DimHeatmap}
 }
 \value{
 If do.return==TRUE, a matrix of scaled values which would be passed

@@ -1,7 +1,7 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
-#' parameters, see \code{\link{PrintPCAParams}}.
+#' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
@@ -91,7 +91,7 @@ RunPCA <- function(
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.
 #' For details about stored ICA calculation parameters, see
-#' \code{\link{PrintICAParams}}.
+#' \code{PrintICAParams}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
@@ -170,7 +170,7 @@ RunICA <- function(
 #' Run t-SNE dimensionality reduction on selected features. Has the option of
 #' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 #' or running based on a set of genes. For details about stored TSNE calculation
-#' parameters, see \code{\link{PrintTSNEParams}}.
+#' parameters, see \code{PrintTSNEParams}.
 #'
 #' @param object Seurat object
 #' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
@@ -283,6 +283,7 @@ RunTSNE <- function(
 #'
 #'
 #' @param object Seurat object
+#' @param reduction.type Reduction to use
 #' @param dims.print Number of dims to print genes for
 #' @param dims.store Number of dims to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
@@ -403,7 +404,7 @@ ProjectPCA <- function(
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
 #' For details about stored CCA calculation parameters, see
-#' \code{\link{PrintCCAParams}}.
+#' \code{PrintCCAParams}.
 #'
 #' @param object Seurat object
 #' @param object2 Optional second object. If object2 is passed, object1 will be
@@ -761,7 +762,10 @@ CalcVarExpRatio <- function(
 #'  object@@dr$reduction.type.aligned
 #'
 #' @importFrom dtw dtw
+#' @importFrom graphics points
+#' @importFrom stats quantile density
 #' @importFrom pbapply pbapply
+#' @importFrom graphics par plot lines
 #'
 #' @export
 #'
@@ -774,9 +778,11 @@ AlignSubspace <- function(
   show.plots = FALSE
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
-  object <- SetCalcParams(object = object,
-                          calculation = paste0("AlignSubspace.", reduction.type),
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = paste0("AlignSubspace.", reduction.type),
+    ... = parameters.to.store
+  )
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident)))
@@ -968,6 +974,7 @@ AlignSubspace <- function(
 #' @return Returns a Seurat object with a diffusion map
 #'
 #' @import diffusionMap
+#' @importFrom stats dist
 #'
 #' @export
 #'

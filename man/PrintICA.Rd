@@ -9,11 +9,11 @@ PrintICA(object, ics.print = 1:5, genes.print = 30, use.full = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
+\item{ics.print}{Set of ICs to print genes for}
+
 \item{genes.print}{Number of genes to print for each PC}
 
 \item{use.full}{Use full PCA (i.e. the projected PCA, by default FALSE)}
-
-\item{pcs.print}{Set of PCs to print genes for}
 }
 \value{
 Only text output

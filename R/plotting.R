@@ -19,6 +19,7 @@
 #' @param slim.col.label display only the identity class name once for each group
 #' @param remove.key Removes the color key from the plot.
 #' @param rotate.key Rotate color scale horizantally
+#' @param title Title for plot
 #' @param cex.col Controls size of column labels (cells)
 #' @param cex.row Controls size of row labels (genes)
 #' @param group.label.loc Place group labels on bottom or top of plot.
@@ -26,11 +27,14 @@
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
 #' @param do.plot Whether to display the plot.
-#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
+#'
 #' @return Returns a ggplot2 plot object
+#'
 #' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
+#'
 #' @export
+#'
 DoHeatmap <- function(
   object,
   data.use = NULL,
@@ -54,8 +58,7 @@ DoHeatmap <- function(
   group.label.rot = FALSE,
   group.cex = 15,
   group.spacing = 0.15,
-  do.plot = TRUE,
-  ...
+  do.plot = TRUE
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
@@ -105,7 +108,7 @@ DoHeatmap <- function(
   breaks <- seq(
     from = min(data.use$expression),
     to = max(data.use$expression),
-    length = length(x = pyCols) + 1
+    length = length(x = PurpleAndYellow()) + 1
   )
   data.use$gene <- with(
     data = data.use,
@@ -118,7 +121,7 @@ DoHeatmap <- function(
   # might be a solution if we want discrete interval units, makes the legend clunky though
   #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = T)
   #heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
-  #                  scale_fill_manual(values = pyCols, name= "Expression") +
+  #                  scale_fill_manual(values = PurpleAndYellow(), name= "Expression") +
   #                  scale_y_discrete(position = "right", labels = rev(genes.use)) +
   #                  theme(axis.line=element_blank(), axis.title.y=element_blank(),
   #                        axis.ticks.y = element_blank())
@@ -254,10 +257,13 @@ DoHeatmap <- function(
 #' @param do.return Return a ggplot2 object (default : FALSE)
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#'
 #' @import ggplot2
-#' @importFrom cowplot plot_grid
+#' @importFrom cowplot plot_grid get_legend
+#'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
+#'
 #' @export
 VlnPlot <- function(
   object,
@@ -408,6 +414,7 @@ VlnPlot <- function(
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @import ggplot2
+#' @importFrom cowplot get_legend
 #' @importFrom ggjoy geom_joy theme_joy
 #' @importFrom cowplot plot_grid
 #'
@@ -544,8 +551,13 @@ JoyPlot <- function(
 #' @param thresh.col The raw data value which corresponds to a red dot (lowest expression)
 #' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05)
 #' @param group.by Factor to group the cells by
+#'
 #' @return Only graphical output
+#'
+#' @importFrom graphics axis
+#'
 #' @export
+#'
 DotPlotOld <- function(
   object,
   genes.plot,
@@ -553,8 +565,7 @@ DotPlotOld <- function(
   cols.use = NULL,
   thresh.col = 2.5,
   dot.min = 0.05,
-  group.by = NULL,
-  ...
+  group.by = NULL
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -1077,7 +1088,7 @@ FeaturePlot <- function(
 #'
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
-#' @seealso \code{\link{FeaturePlot}}
+#' @seealso \code{FeaturePlot}
 #'
 #' @export
 #'
@@ -1222,7 +1233,7 @@ OldDoHeatmap <- function(
   draw.line = TRUE,
   do.return = FALSE,
   order.by.ident = TRUE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   slim.col.label = FALSE,
   group.by = NULL,
   remove.key = FALSE,
@@ -1368,6 +1379,7 @@ OldDoHeatmap <- function(
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @import gridExtra
+#' @importFrom stats qqplot runif prop.test
 #'
 #' @export
 #'
@@ -1617,6 +1629,9 @@ GenePlot <- function(
 #'
 #' @return No return value (plots a scatter plot)
 #'
+#' @importFrom stats cor
+#' @importFrom graphics smoothScatter
+#'
 #' @export
 #'
 CellPlot <- function(
@@ -1682,15 +1697,26 @@ CellPlot <- function(
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
 #' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams PCTopGenes
-#' @inheritParams VizPCA
+#' @param object Seurat object.
+#' @param reduction.type Which dimmensional reduction t use
+#' @param dim.use Dimensions to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes NUmber of genes to plot
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Color to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
-#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
+#' @param label.columns Labels for columns
+#' @param ... Extra parameters for heatmap plotting.
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
+#'
+#' @importFrom graphics par
 #'
 #' @export
 #'
@@ -1704,7 +1730,7 @@ DimHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1796,101 +1822,25 @@ DimHeatmap <- function(
   par(mfrow = orig_par)
 }
 
-PlotDim <- function(
-  ndim,
-  object,
-  reduction.type,
-  use.scaled,
-  use.full,
-  cells.use,
-  num.genes,
-  group.by,
-  disp.min,
-  disp.max,
-  col.low,
-  col.mid,
-  col.high,
-  slim.col.label,
-  do.balanced,
-  remove.key,
-  cex.col,
-  cex.row,
-  group.label.loc,
-  group.label.rot,
-  group.cex,
-  group.spacing
-) {
-  if (is.numeric(x = (cells.use))) {
-    cells.use <- DimTopCells(
-      object = object,
-      dim.use = ndim,
-      reduction.type = reduction.type,
-      num.cells = cells.use,
-      do.balanced = do.balanced
-    )
-  } else {
-    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  }
-  genes.use <- rev(x = DimTopGenes(
-    object = object,
-    dim.use = ndim,
-    reduction.type = reduction.type,
-    num.genes = num.genes,
-    use.full = use.full,
-    do.balanced = do.balanced
-  ))
-  dim.scores <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "cell.embeddings"
-  )
-  dim.key <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "key"
-  )
-  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
-  if (! use.scaled) {
-    data.use <- as.matrix(object@data[genes.use, cells.ordered])
-  } else {
-    data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
-  }
-  return(DoHeatmap(
-    object = object,
-    data.use = data.use,
-    cells.use = cells.use,
-    genes.use = genes.use,
-    group.by = group.by,
-    disp.min = disp.min,
-    disp.max = disp.max,
-    col.low = col.low,
-    col.mid = col.mid,
-    col.high = col.high,
-    slim.col.label = slim.col.label,
-    remove.key = remove.key,
-    cex.col = cex.col,
-    cex.row = cex.row,
-    group.label.loc = group.label.loc,
-    group.label.rot = group.label.rot,
-    group.cex = group.cex,
-    group.spacing = group.spacing,
-    title = paste0(dim.key, ndim),
-    do.plot = FALSE
-  ))
-}
-
 #' Principal component heatmap
 #'
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
 #' Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams PCTopGenes
-#' @inheritParams VizPCA
+#' @param object Seurat object.
+#' @param pc.use PCs to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes Number of genes to plot
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Color to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
 #' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @param ... Extra parameters for DimHeatmap
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
@@ -1906,7 +1856,7 @@ PCHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1938,10 +1888,19 @@ PCHeatmap <- function(
 #' principal component scores. Allows for nice visualization of sources of heterogeneity
 #' in the dataset."()
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams ICTopGenes
-#' @inheritParams VizICA
+#' @param object Seurat object
+#' @param ic.use Components to use
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes NUmber of genes to plot
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Colors to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
+#' @param label.columns Labels for columns
+#' @param ... Extra parameters passed to DimHeatmap
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
@@ -1956,7 +1915,7 @@ ICHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1997,6 +1956,8 @@ ICHeatmap <- function(
 #' the top genes ranked by the scores absolute values
 #'
 #' @return Graphical, no return value
+#'
+#' @importFrom graphics axis
 #'
 #' @export
 #'
@@ -2167,11 +2128,15 @@ VizICA <- function(
 #' @param no.legend Setting to TRUE will remove the legend
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
+#' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #'
+#' @seealso \code{FeatureLocator}
+#'
 #' @import SDMTools
+#' @importFrom stats median
 #' @importFrom dplyr summarize group_by
 #'
 #' @export
@@ -2444,11 +2409,13 @@ DimElbowPlot <- function(
   ylab = "",
   title = ""
 ) {
-  data.use <- GetDimReduction(object = object,
-                              reduction.type = reduction.type,
-                              slot = "sdev")
+  data.use <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "sdev"
+  )
   if (length(data.use) == 0) {
-    stop(paste("No standard deviation info stored for", reduction.use))
+    stop(paste("No standard deviation info stored for", reduction.type))
   }
   if (length(x = data.use) < dims.plot) {
     warning(paste(
@@ -2516,6 +2483,10 @@ PCElbowPlot <- function(object, num.pc = 20) {
 #' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
 #' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
+#'
+#' @importFrom stats cor loess smooth.spline
+#' @importFrom grDevices col2rgb
+#' @importFrom graphics axis points smoothScatter contour points text
 #'
 #' @export
 #'
@@ -2752,13 +2723,13 @@ ColorTSNESplit <- function(
 #' @param cells.use Cells to include in the heatmap
 #' @param genes.cluster Clusters to include in heatmap
 #' @param max.genes Maximum number of genes to include in the heatmap
-#' @param slim.col.labels Instead of displaying every cell name on the heatmap,
+#' @param slim.col.label Instead of displaying every cell name on the heatmap,
 #' display only the identity class name once for each group
 #' @param remove.key Removes teh color key from the plot
 #' @param row.lines Color separations of clusters
 #' @param ... Extra parameters to DoHeatmap
 #'
-#' @seealso \code{\link{DoHeatmap}}
+#' @seealso \code{DoHeatmap}
 #'
 #' @export
 #'
@@ -2788,18 +2759,18 @@ KMeansHeatmap <- function(
     }
   )
   #print(cluster.lengths)
-  if (row.lines) {
-    rowsep.use <- cumsum(x = cluster.lengths)
-  } else {
-    rowsep.use <- NA
-  }
+  # if (row.lines) {
+  #   rowsep.use <- cumsum(x = cluster.lengths)
+  # } else {
+  #   rowsep.use <- NA
+  # }
   DoHeatmap(
     object = object,
     cells.use = cells.use,
     genes.use = genes.use,
     slim.col.label = slim.col.label,
     remove.key = remove.key,
-    rowsep = rowsep.use,
+    # rowsep = rowsep.use,
     ...
   )
 }
@@ -2866,5 +2837,26 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     slim.col.label = TRUE,
     remove.key = TRUE,
     ...
+  )
+}
+
+#' Posterior Plot
+#'
+#' @param object A Seurat object
+#' @param name Spatial code
+#'
+#' @seealso \code{SubsetColumn}
+#' @seealso \code{VlnPlot}
+#'
+#' @export
+#'
+PosteriorPlot <- function(object, name) {
+  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
+  VlnPlot(
+    object = object,
+    features.plot = post.names,
+    inc.first = TRUE,
+    inc.final = TRUE,
+    by.k = TRUE
   )
 }

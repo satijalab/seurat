@@ -149,7 +149,9 @@ BuildSNN <- function(
 # @param print.output  Whether or not to print output to the console
 # @return              Returns an adjacency matrix representation of the SNN
 #                      graph
-
+#
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
 CalcSNNSparse <- function(
   cell.names,
   k.param,

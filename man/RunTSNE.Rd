@@ -47,5 +47,5 @@ object@dr$tsne@cell.embeddings
 Run t-SNE dimensionality reduction on selected features. Has the option of
 running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 or running based on a set of genes. For details about stored TSNE calculation
-parameters, see \code{\link{PrintTSNEParams}}.
+parameters, see \code{PrintTSNEParams}.
 }

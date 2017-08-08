@@ -38,5 +38,5 @@ object@dr$pca.
 }
 \description{
 Run a PCA dimensionality reduction. For details about stored PCA calculation
-parameters, see \code{\link{PrintPCAParams}}.
+parameters, see \code{PrintPCAParams}.
 }

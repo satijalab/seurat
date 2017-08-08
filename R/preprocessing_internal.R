@@ -12,6 +12,8 @@
 #' @return Returns the residuals from the regression model
 #'
 #' @import Matrix
+#' @importFrom stats as.formula lm residuals glm
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 RegressOutResid <- function(
   object,
@@ -126,8 +128,10 @@ RegressOutResid <- function(
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
 #
 #' @import Matrix
-#' @importFrom MASS theta.ml negative.binomial
 #' @import parallel
+#' @importFrom stats glm residuals
+#' @importFrom MASS theta.ml negative.binomial
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutNB <- function(
   object,
@@ -201,8 +205,10 @@ RegressOutNB <- function(
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #
 #' @import Matrix
-#' @importFrom MASS theta.ml negative.binomial
 #' @import parallel
+#' @importFrom MASS theta.ml negative.binomial
+#' @importFrom stats glm loess residuals
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutNBreg <- function(
   object,

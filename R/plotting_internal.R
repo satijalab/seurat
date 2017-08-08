@@ -6,6 +6,8 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
+#' @importFrom graphics axis
+#
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
   #   Take advantage of functions as first class objects
@@ -91,6 +93,8 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #
 # @return A dataframe of x and y coordinates for points selected
 #
+#' @importFrom graphics locator
+#
 PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
@@ -137,6 +141,8 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 # @param dark.theme Plot in dark theme
 #
 # @return A ggplot2 scatterplot
+#
+#' @importFrom stats na.omit
 #
 SingleFeaturePlot <- function(
   data.use,
@@ -253,6 +259,9 @@ SingleFeaturePlot <- function(
 # @param no.legend Remove legend from plot
 # @param dark.theme Plot in dark theme
 #
+#' @import RColorBrewer
+#' @importFrom grDevices colors
+#
 # @return A blended ggplot2 scatterplot
 #
 BlendPlot <- function(
@@ -325,7 +334,7 @@ BlendPlot <- function(
     SetQuantile(cutoff = max.cutoff[1], data = data.gene[features.plot[1], ]),
     SetQuantile(cutoff = max.cutoff[2], data = data.gene[features.plot[2], ])
   )
-  data.gene <- na.omit(object = data.frame(data.use[features.plot, ]))
+  data.gene <- stats::na.omit(object = data.frame(data.use[features.plot, ]))
   cell.names <- colnames(x = data.gene)
   #   Minimum and maximum masking
   data.gene <- matrix(
@@ -458,7 +467,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
     }
   }
   #   Convert to a 3 by `length(colors)` matrix of RGB values
-  rgb.vals <- sapply(X = colors, FUN = col2rgb)
+  rgb.vals <- sapply(X = colors, FUN = grDevices::col2rgb)
   if (nrow(x = rgb.vals) != 3) {
     rgb.vals <- t(x = rgb.vals)
   }
@@ -478,7 +487,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
       dimnames = list(c('red', 'green', 'blue'), 'blend')
     )
   } else {
-    result <- rgb(
+    result <- grDevices::rgb(
       matrix(data = blend, ncol = 3),
       alpha = alpha.value,
       maxColorValue = 255
@@ -521,7 +530,7 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to be passed to theme()
 # @import ggplot2
 # @return A ggplot2 theme object
-# @seealso \code{\link{theme}}
+# @seealso \code{theme}
 # @import ggplot2
 # @export
 #
@@ -567,6 +576,8 @@ ResetPar <- function(...) {
 # @param remove.legend Remove the legend from the plot
 #
 # @return A ggplot-based violin plot
+#
+#' @importFrom stats rnorm
 #
 SingleVlnPlot <- function(
   feature,
@@ -688,6 +699,8 @@ SingleVlnPlot <- function(
 # @param remove.legend Remove the legend from the plot
 #
 # @return A ggplot-based violin plot
+#
+#' @importFrom stats rnorm
 #' @importFrom ggjoy geom_joy theme_joy
 #
 SingleJoyPlot <- function(
@@ -817,6 +830,10 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
+#
+#' @importFrom graphics axis mtext rect abline text title hist
+#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#
 heatmap2NoKey <- function (
   x,
   Rowv = TRUE,
@@ -1348,4 +1365,90 @@ heatmap2NoKey <- function (
   )
   invisible(x = retval)
   par(mar = oldMar)
+}
+
+# Documentation
+###############
+PlotDim <- function(
+  ndim,
+  object,
+  reduction.type,
+  use.scaled,
+  use.full,
+  cells.use,
+  num.genes,
+  group.by,
+  disp.min,
+  disp.max,
+  col.low,
+  col.mid,
+  col.high,
+  slim.col.label,
+  do.balanced,
+  remove.key,
+  cex.col,
+  cex.row,
+  group.label.loc,
+  group.label.rot,
+  group.cex,
+  group.spacing
+) {
+  if (is.numeric(x = (cells.use))) {
+    cells.use <- DimTopCells(
+      object = object,
+      dim.use = ndim,
+      reduction.type = reduction.type,
+      num.cells = cells.use,
+      do.balanced = do.balanced
+    )
+  } else {
+    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  }
+  genes.use <- rev(x = DimTopGenes(
+    object = object,
+    dim.use = ndim,
+    reduction.type = reduction.type,
+    num.genes = num.genes,
+    use.full = use.full,
+    do.balanced = do.balanced
+  ))
+  dim.scores <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "cell.embeddings"
+  )
+  dim.key <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "key"
+  )
+  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+  if (! use.scaled) {
+    data.use <- as.matrix(object@data[genes.use, cells.ordered])
+  } else {
+    data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  }
+  return(DoHeatmap(
+    object = object,
+    data.use = data.use,
+    cells.use = cells.use,
+    genes.use = genes.use,
+    group.by = group.by,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    col.low = col.low,
+    col.mid = col.mid,
+    col.high = col.high,
+    slim.col.label = slim.col.label,
+    remove.key = remove.key,
+    cex.col = cex.col,
+    cex.row = cex.row,
+    group.label.loc = group.label.loc,
+    group.label.rot = group.label.rot,
+    group.cex = group.cex,
+    group.spacing = group.spacing,
+    title = paste0(dim.key, ndim),
+    do.plot = FALSE
+  ))
 }

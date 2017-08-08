@@ -45,6 +45,8 @@ in either of the two populations. Meant to speed up the function by not testing 
 
 \item{random.seed}{Random seed for downsampling}
 
+\item{latent.vars}{Variables to test}
+
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 }
 \value{

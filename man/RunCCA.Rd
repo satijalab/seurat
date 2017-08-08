@@ -37,5 +37,5 @@ combined object is returned.
 \description{
 Runs a canonical correlation analysis using a diagonal implementation of CCA.
 For details about stored CCA calculation parameters, see
-\code{\link{PrintCCAParams}}.
+\code{PrintCCAParams}.
 }

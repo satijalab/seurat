@@ -8,8 +8,10 @@ jackstraw.data <- setClass(
   )
 )
 
-
 #internal
+#
+#' @importFrom stats prcomp
+#
 JackstrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
   randGenes <- sample(x = rownames(x = data), size = nrow(x = data) * prop)
   smD.mod <- data
@@ -28,6 +30,9 @@ JackstrawF <- function(prop = 0.1, myR1, myR2 = 3, data = smD) {
 }
 
 #internal
+#
+#' @importFrom stats var.test
+#
 JackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
   if (r2 == 1) { #assuming r1, r2=1
     mod.x <- x[, r1]
@@ -48,4 +53,41 @@ JackF <- function(gene, r1 = 1,r2 = 2, x = md.x, rot = md.rot) {
 #internal
 EmpiricalP <- function(x, nullval) {
   return(sum(nullval > x) / length(x = nullval))
+}
+
+#internal
+JackRandom <- function(
+  scaled.data,
+  prop.use = 0.01,
+  r1.use = 1,
+  r2.use = 5,
+  seed.use = 1,
+  rev.pca = FALSE,
+  weight.by.var = weight.by.var
+) {
+  set.seed(seed = seed.use)
+  rand.genes <- sample(
+    x = rownames(x = scaled.data),
+    size = nrow(x = scaled.data) * prop.use
+  )
+  # make sure that rand.genes is at least 3
+  if (length(x = rand.genes) < 3){
+    rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
+  }
+  data.mod <- scaled.data
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
+  temp.object <- new("seurat")
+  temp.object@cell.names <- colnames(x = data.mod)
+  temp.object@scale.data <- data.mod
+  temp.object <- RunPCA(
+    object = temp.object,
+    pcs.compute = r2.use,
+    pc.genes = rownames(x = data.mod),
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    do.print = FALSE
+  )
+  fake.x <- PCALoad(object = temp.object)
+  fake.rot <- PCAEmbed(object = temp.object)
+  return(fake.x[rand.genes, r1.use:r2.use])
 }

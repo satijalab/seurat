@@ -1,4 +1,7 @@
 #internal function to run mcdavid et al. DE test
+#
+#' @importFrom stats pchisq
+#
 DifferentialLRT <- function(x, y, xmin = 0) {
   lrtX <- bimodLikData(x = x)
   lrtY <- bimodLikData(x = y)
@@ -8,6 +11,9 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 }
 
 #internal function to run mcdavid et al. DE test
+#
+#' @importFrom stats sd dnorm
+#
 bimodLikData <- function(x, xmin = 0) {
   x1 <- x[x <= xmin]
   x2 <- x[x > xmin]
@@ -49,6 +55,9 @@ TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
 }
 
 #internal function to run Tobit DE test
+#
+#' @importFrom stats pchisq logLik
+#
 DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
   my.df <- data.frame(
     c(x1, x2),
@@ -84,6 +93,10 @@ DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
 
 #internal function to run Tobit DE test
 #credit to Cole Trapnell for this
+#
+#' @importFrom VGAM vgam tobit
+#' @importFrom stats as.formula
+#
 TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
   tryCatch(
     expr = return(suppressWarnings(expr = vgam(
@@ -131,6 +144,7 @@ AUCMarkerTest <- function(data1, data2, mygenes, print.bar = TRUE) {
 }
 
 # internal function to calculate AUC values
+#' @importFrom ROCR prediction performance
 DifferentialAUC <- function(x, y) {
   prediction.use <- prediction(
     predictions = c(x, y),
@@ -144,6 +158,10 @@ DifferentialAUC <- function(x, y) {
 
 # given a UMI count matrix, estimate NB theta parameter for each gene
 # and use fit of relationship with mean to assign regularized theta to each gene
+#
+#' @importFrom stats glm loess
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
 RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
   genes.regress <- rownames(x = cm)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
@@ -212,6 +230,9 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 # compare two negative binomial regression models
 # model one uses only common factors (com.fac)
 # model two additionally uses group factor (grp.fac)
+#
+#' @importFrom stats glm anova coef
+#
 NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   tab <- as.matrix(x = table(y > 0, latent.data[, grp.fac]))
   freqs <- tab['TRUE', ] / apply(X = tab, MARGIN = 2, FUN = sum)

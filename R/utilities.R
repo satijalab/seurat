@@ -69,6 +69,8 @@ MakeSparse <- function(object) {
 #'
 #' @return Returns a Seurat object compatible with latest changes
 #'
+#' @importFrom utils packageVersion
+#'
 #' @export
 #'
 UpdateSeuratObject <- function(object) {
@@ -190,8 +192,13 @@ SubsetRow <- function(data, code, invert = FALSE) {
 #' Creates a matrix where correlation structure has been removed, but overall values are the same
 #'
 #' @param x Matrix to shuffle
+#'
 #' @return Returns a scrambled matrix, where each row is shuffled independently
+#'
+#' @importFrom stats runif
+#'
 #' @export
+#'
 MatrixRowShuffle <- function(x) {
   x2 <- x
   x2 <- t(x = x)
@@ -260,7 +267,11 @@ ExtractField <- function(string, field = 1, delim = "_") {
 #' @param x value or vector of values
 #'
 #' @return Returns the variance in log-space
+#'
+#' @importFrom stats var
+#'
 #' @export
+#'
 ExpVar <- function(x) {
   return(log1p(var(expm1(x))))
 }
@@ -272,7 +283,11 @@ ExpVar <- function(x) {
 #' @param x value or vector of values
 #'
 #' @return Returns the standard deviation in log-space
+#'
+#' @importFrom stats sd
+#'
 #' @export
+#'
 ExpSD <- function(x) {
   return(log1p(sd(expm1(x))))
 }
@@ -297,7 +312,11 @@ ExpMean <- function(x) {
 #' @param x value or vector of values
 #'
 #' @return Returns the VMR in log-space
+#'
+#' @importFrom stats var
+#'
 #' @export
+#'
 LogVMR <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
@@ -312,6 +331,8 @@ LogVMR <- function(x) {
 #'
 #' @return A distance matrix
 #'
+#' @importFrom stats as.dist
+#'
 #' @export
 #'
 CustomDistance <- function(my.mat, my.function, ...) {
@@ -323,7 +344,7 @@ CustomDistance <- function(my.mat, my.function, ...) {
       mat[i,j] <- my.function(my.mat[, i], my.mat[, j], ...)
     }
   }
-  return(as.dist(mat))
+  return(as.dist(m = mat))
 }
 
 #' Probability of detection by identity class
@@ -406,7 +427,7 @@ AveragePCA <- function(object) {
 #' @param use.raw Use raw values for gene expression
 #' @inheritParams FetchData
 #' @param show.progress Show progress bar (default is T)
-#' @param ... Arguments to be passed to methods such as \code{\link{Seurat}}
+#' @param ... Arguments to be passed to methods such as \code{Seurat}
 #' @return Returns a matrix with genes as rows, identity classes as columns.
 #' @export
 AverageExpression <- function(
