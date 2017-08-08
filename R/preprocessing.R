@@ -624,6 +624,8 @@ SampleUMI <- function(
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
+#' @param do.cpp Run c++ version of mean.function and dispersion.function if they
+#' exist.
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
@@ -661,6 +663,16 @@ FindVariableGenes <- function(
   data <- object@data
   genes.use <- rownames(x = object@data)
   if (do.recalc) {
+    if(do.cpp){
+      if(! identical(mean.function, ExpMean)){
+        warning("No equivalent mean.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
+      if(! identical(dispersion.function, LogVMR)){
+        warning("No equivalent dispersion.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
+    }
     if (do.cpp ){
       if(class(data) != "dgCMatrix"){
         data <- as(as.matrix(data), "dgCMatrix")
@@ -670,7 +682,7 @@ FindVariableGenes <- function(
       gene.dispersion <- FastLogVMR(data)
       names(gene.dispersion) <- genes.use
     }
-    else{
+    if(!do.cpp){
       gene.mean <- rep(x = 0, length(x = genes.use))
       names(x = gene.mean) <- genes.use
       gene.dispersion <- gene.mean

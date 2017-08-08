@@ -8,7 +8,7 @@ FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,
-  sort.results = TRUE, ...)
+  sort.results = TRUE, do.cpp = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,6 +38,9 @@ is 20)}
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
 
 \item{sort.results}{If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion}
+
+\item{do.cpp}{Run c++ version of mean.function and dispersion.function if they
+exist.}
 
 \item{...}{Extra parameters to VariableGenePlot}
 }
