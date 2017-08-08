@@ -90,7 +90,7 @@ RunPCA <- function(
     object@calc.params$RunPCA$pc.genes <- rownames(data.use)
   }
   if(do.print){
-    PrintPCA(object = object, pcs.print = pcs.print, genes.print = genes.print)
+    PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
   }
   return(object)
 }
@@ -174,7 +174,7 @@ RunICA <- function(
     object@calc.params$ICA$ic.genes <- rownames(data.use)
   }
   if(print.results){
-    PrintICA(object = object, ics.print = ics.print, genes.print = genes.print)
+    PrintDim(object = object, dims.print = ics.print, genes.print = genes.print,reduction.type = reduction.name)
   }
   return(object)
 }
