@@ -1380,7 +1380,7 @@ OldDoHeatmap <- function(
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @import gridExtra
-#' @importFrom stats qqplot runif prop.test
+#' @importFrom stats qqplot runif prop.test qunif
 #'
 #' @export
 #'

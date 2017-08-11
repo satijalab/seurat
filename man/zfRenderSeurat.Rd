@@ -14,13 +14,6 @@
 \usage{
 situ3d(data, label = NULL, ...)
 }
-\arguments{
-\item{data}{Predicted expression levels across Zebrafish bins}
-
-\item{label}{Plot label}
-
-\item{...}{Extra parameters}
-}
 \description{
 These functions are for the zebrafish analysis from Satija et al. 2015
 }
@@ -28,8 +21,4 @@ These functions are for the zebrafish analysis from Satija et al. 2015
 Satija R*, Farrell JA*, Gennert D, Schier AF, Regev A.
 Spatial reconstruction of single-cell gene expression data.
 Nature Biotechnology. 2015
-
-Draw 3D in situ predictions from Zebrafish dataset
-
-From Jeff Farrell
 }

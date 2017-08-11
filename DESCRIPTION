@@ -38,8 +38,6 @@ Imports:
     gplots,
     gdata,
     Rcpp,
-    RcppEigen,
-    RcppProgress,
     tclust,
     ranger,
     compositions,

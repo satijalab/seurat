@@ -2,3 +2,4 @@
 ^\.Rproj\.user$
 .git
 .travis.yml
+appveyor.yml

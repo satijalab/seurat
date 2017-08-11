@@ -159,7 +159,7 @@ DifferentialAUC <- function(x, y) {
 # given a UMI count matrix, estimate NB theta parameter for each gene
 # and use fit of relationship with mean to assign regularized theta to each gene
 #
-#' @importFrom stats glm loess
+#' @importFrom stats glm loess poisson
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
