@@ -543,7 +543,7 @@ RunCCA <- function(
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
     rownames(cca.data) <- colnames(combined.object@data)
-    
+
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -610,6 +610,129 @@ RunCCA <- function(
     return(object)
   }
 }
+
+
+#' Perform Canonical Correlation Analysis with more than two groups
+#'
+#' Runs a canonical correlation analysis
+#'
+#' @param input List of Seurat objects
+#' @param genes.use Genes to use in mCCA
+#' @param num.cc Number of canonical vectors to calculate
+#' @param genes.use Set of genes to use in CCA. Default is union of object@var.genes
+#' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
+#' @export
+RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
+  if(length(input) < 3){
+    stop("Must give at least 3 objects/matrices for MultiCCA")
+  }
+  mat.list <- list()
+  if(class(input[[1]]) == "seurat"){
+    if (missing(x = genes.use)) {
+      genes.use <- c()
+      for(obj in input){
+        genes.use <- c(genes.use, obj@var.genes)
+      }
+      genes.use <- unique(genes.use)
+      if (length(x = genes.use) == 0) {
+        stop("No variable genes present. Run MeanVarPlot and retry")
+      }
+    }
+    for(i in 1:length(input)){
+      mat.list[[i]] <- input[[i]]@scale.data[genes.use, ]
+    }
+  }
+  else{
+    stop("input data not Seurat objects")
+  }
+  num.sets <- length(mat.list)
+  if(standardize){
+    for (i in 1:num.sets){
+      mat.list[[i]] <- Seurat:::Standardize(mat.list[[i]], display_progress = F)
+    }
+  }
+  ws <- list()
+  for (i in 1:num.sets){
+    ws[[i]] <- irlba(mat.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = F]
+  }
+  ws.init <- ws
+  ws.final <- list()
+  cors <- NULL
+  for(i in 1:length(ws)){
+    ws.final[[i]] <- matrix(0, nrow=ncol(mat.list[[i]]), ncol=num.ccs)
+  }
+  for (cc in 1:num.ccs){
+    print(paste0("Computing CC ", cc))
+    ws <- list()
+    for (i in 1:length(ws.init)){
+      ws[[i]] <- ws.init[[i]][, cc]
+    }
+    cur.iter <- 1
+    crit.old <- -10
+    crit <- -20
+    storecrits <- NULL
+    while(cur.iter <= niter && abs(crit.old - crit)/abs(crit.old) > 0.001 && crit.old !=0){
+      crit.old <- crit
+      crit <- GetCrit(mat.list, ws, num.sets)
+      storecrits <- c(storecrits, crit)
+      cur.iter <- cur.iter + 1
+      for(i in 1:num.sets){
+        sumabsthis <- sqrt(ncol(mat.list[[i]]))
+        ws[[i]] <- UpdateW(mat.list, i, num.sets, sumabsthis, ws, ws.final)
+      }
+    }
+    for(i in 1:length(ws)){
+      ws.final[[i]][, cc] <- ws[[i]]
+    }
+    cors <- c(cors, GetCors(mat.list, ws, num.sets))
+  }
+  results <- list(ws=ws.final, ws.init=ws.init, num.sets = num.sets, cors=cors)
+  combined.object <- input[[1]]
+  for(i in 2:length(input)){
+    combined.object <- AddSamples(combined.object, new.data = input[[i]]@raw.data, do.scale = F, do.center = F, do.normalize = F)
+  }
+  combined.object <- NormalizeData(combined.object)
+  combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
+  combined.object <- ScaleData(object = combined.object)
+  combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
+  genes.use = human@var.genes
+  combined.object@var.genes <- genes.use
+  cca.data <- results$ws[[1]]
+  for(i in 2:length(input)){
+    cca.data <- rbind(cca.data, results$ws[[i]])
+  }
+  rownames(cca.data) <- colnames(combined.object@data)
+  combined.object <- SetDimReduction(
+    object = combined.object,
+    reduction.type = "cca",
+    slot = "cell.embeddings",
+    new.data = cca.data
+  )
+  combined.object <- SetDimReduction(
+    object = combined.object,
+    reduction.type = "cca",
+    slot = "key",
+    new.data = "CC"
+  )
+  combined.object <- ProjectDim(
+    object = combined.object,
+    reduction.type = "cca",
+    do.print = FALSE
+  )
+  combined.object <- SetDimReduction(
+    object = combined.object,
+    reduction.type = "cca",
+    slot = "gene.loadings",
+    new.data = GetGeneLoadings(
+      object = combined.object,
+      reduction.type = "cca",
+      use.full = TRUE,
+      genes.use = genes.use
+    )
+  )
+  return(combined.object)
+}
+
 
 #' Calculate the ratio of variance explained by ICA or PCA to CCA
 #'
@@ -770,24 +893,17 @@ AlignSubspace <- function(
                           ... = parameters.to.store)
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
-  levels.split <- names(x = sort(x = table(object@ident)))
-  if (length(x = levels.split) != 2) {
-    stop(paste0(
-      "There are not two options for ",
-      grouping.var,
-      ". \n Current groups include: ",
-      paste(levels.split, collapse = ", ")
-    ))
+  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  num.groups <- length(levels.split)
+  objects <- list()
+  for (i in 1:num.groups){
+    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
   }
-  objects <- list(
-    SubsetData(object = object, ident.use = levels.split[1]),
-    SubsetData(object = object, ident.use = levels.split[2])
-  )
   object@ident <- ident.orig
   cc.loadings <- list()
   scaled.data <- list()
   cc.embeds <- list()
-  for (i in 1:2) {
+  for (i in 1:num.groups) {
     cat(paste0("Rescaling group ", i, "\n"), file = stderr())
     objects[[i]] <- ScaleData(object = objects[[i]])
     objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
@@ -807,114 +923,118 @@ AlignSubspace <- function(
     )
     scaled.data[[i]] <- objects[[i]]@scale.data
   }
-  cc.embeds.both <- GetCellEmbeddings(object = object, reduction.type = reduction.type)
-  colnames(cc.embeds.both) <- paste0("A", colnames(x = cc.embeds.both))
-  cc.embeds.orig <- cc.embeds.both
+  cc.embeds.all <- GetCellEmbeddings(object = object, reduction.type = reduction.type)
+  colnames(cc.embeds.all) <- paste0("A", colnames(x = cc.embeds.all))
+  cc.embeds.orig <- cc.embeds.all
   for (cc.use in dims.align) {
-    cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
-    genes.rank <- data.frame(
-      rank(x = abs(x = cc.loadings[[1]][, cc.use])),
-      rank(x = abs(x = cc.loadings[[2]][, cc.use])),
-      cc.loadings[[1]][, cc.use],
-      cc.loadings[[2]][, cc.use]
-    )
-    genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
-    genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-    genes.top <- rownames(x = genes.rank)[1:200]
-    bicors <- list()
-    for (i in 1:2) {
-      cc.vals <- cc.embeds[[i]][, cc.use]
-      bicors[[i]] <- pbsapply(
-        X = genes.top,
+    for (g in 2:num.groups){
+      cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
+      genes.rank <- data.frame(
+        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
+        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
+        cc.loadings[[1]][, cc.use],
+        cc.loadings[[g]][, cc.use]
+      )
+      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.top <- rownames(x = genes.rank)[1:200]
+      bicors <- list()
+      for (i in c(1, g)) {
+        cc.vals <- cc.embeds[[i]][, cc.use]
+        bicors[[i]] <- pbsapply(
+          X = genes.top,
+          FUN = function(x) {
+            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+          }
+        )
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = bicors[[1]])),
+        rank(x = abs(x = bicors[[g]])),
+        bicors[[1]],
+        bicors[[g]]
+      )
+      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.use <- rownames(x = genes.rank)[1:num.genes]
+      metagenes <- list()
+      multvar.data <- list()
+      for (i in c(1, g)) {
+        scaled.use <- sweep(
+          x = scaled.data[[i]][genes.use, ],
+          MARGIN = 1,
+          STATS = sign(x = genes.rank[genes.use, which(c(1, g) == i) + 2]),
+          FUN = "*"
+        )
+        scaled.use <- scaled.use[, names(x = sort(x = cc.embeds[[i]][, cc.use]))]
+        metagenes[[i]] <- apply(
+          X = scaled.use[genes.use, ],
+          MARGIN = 2,
+          FUN = mean,
+          remove.na = TRUE
+        )
+        metagenes[[i]] <- (
+          cc.loadings[[i]][genes.use, cc.use] %*% scaled.data[[i]][genes.use, ]
+        )[1, colnames(x = scaled.use)]
+      }
+      mean.difference <- mean(x = ReferenceRange(x = metagenes[[g]])) -
+        mean(x = ReferenceRange(x = metagenes[[1]]))
+      metric.use <- "Euclidean"
+      align.1 <- ReferenceRange(x = metagenes[[g]])
+      align.2 <- ReferenceRange(x = metagenes[[1]])
+      a1q <- sapply(
+        X = seq(from = 0, to = 1, by = 0.001),
         FUN = function(x) {
-          return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+          return(quantile(x = align.1, probs = x))
         }
       )
-    }
-    genes.rank <- data.frame(
-      rank(x = abs(x = bicors[[1]])),
-      rank(x = abs(x = bicors[[2]])),
-      bicors[[1]],
-      bicors[[2]]
-    )
-    genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
-    genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-    genes.use <- rownames(x = genes.rank)[1:num.genes]
-    metagenes <- list()
-    multvar.data <- list()
-    for (i in 1:2) {
-      scaled.use <- sweep(
-        x = scaled.data[[i]][genes.use, ],
-        MARGIN = 1,
-        STATS = sign(x = genes.rank[genes.use, i + 2]),
-        FUN = "*"
+      a2q <- sapply(
+        X = seq(from = 0, to = 1, by = 0.001),
+        FUN = function(x) {
+          quantile(x = align.2, probs = x)
+        }
       )
-      scaled.use <- scaled.use[, names(x = sort(x = cc.embeds[[i]][, cc.use]))]
-      metagenes[[i]] <- apply(
-        X = scaled.use[genes.use, ],
-        MARGIN = 2,
-        FUN = mean,
-        remove.na = TRUE
-      )
-      metagenes[[i]] <- (
-        cc.loadings[[i]][genes.use, cc.use] %*% scaled.data[[i]][genes.use, ]
-      )[1, colnames(x = scaled.use)]
-    }
-
-    mean.difference <- mean(x = ReferenceRange(x = metagenes[[1]])) -
-      mean(x = ReferenceRange(x = metagenes[[2]]))
-    metric.use <- "Euclidean"
-    align.1 <- ReferenceRange(x = metagenes[[1]])
-    align.2 <- ReferenceRange(x = metagenes[[2]])
-    a1q <- sapply(
-      X = seq(from = 0, to = 1, by = 0.001),
-      FUN = function(x) {
-        return(quantile(x = align.1, probs = x))
+      iqr <- (a1q - a2q)[100:900]
+      iqr.x <- which.min(x = abs(x = iqr))
+      iqrmin <- iqr[iqr.x]
+      if (show.plots) {
+        print(iqrmin)
       }
-    )
-    a2q <- sapply(
-      X = seq(from = 0, to = 1, by = 0.001),
-      FUN = function(x) {
-        quantile(x = align.2, probs = x)
+      align.2 <- align.2 + iqrmin
+      alignment <- dtw(
+        x = align.1,
+        y = align.2,
+        keep = TRUE,
+        dist.method = metric.use
+      )
+      alignment.map <- data.frame(alignment$index1, alignment$index2)
+      alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
+      alignment.map$cc_data2 <- sort(cc.embeds[[1]][, cc.use])[alignment$index2]
+      alignment.map.orig <- alignment.map
+      alignment.map$dups <- duplicated(x = alignment.map$alignment.index1) |
+        duplicated(x = alignment.map$alignment.index1, fromLast = TRUE)
+      alignment.map %>% group_by(alignment.index1) %>% mutate(cc_data1 = ifelse(dups, mean(cc_data2), cc_data1)) -> alignment.map
+      alignment.map <- alignment.map[! duplicated(x = alignment.map$alignment.index1), ]
+      cc.embeds.all[names(x = sort(x = cc.embeds[[g]][, cc.use])), cc.use] <- alignment.map$cc_data2
+      if (show.plots) {
+        par(mfrow = c(3, 2))
+        plot(x = ReferenceRange(x = metagenes[[1]]), main = cc.use)
+        plot(x = ReferenceRange(x = metagenes[[g]]))
+        plot(
+          x = ReferenceRange(x = metagenes[[1]])[(alignment.map.orig$alignment.index2)],
+          pch = 16
+        )
+        points(
+          x = ReferenceRange(metagenes[[g]])[(alignment.map.orig$alignment.index1)],
+          col = "red",
+          pch = 16,
+          cex = 0.4
+        )
+        plot(x = density(x = alignment.map$cc_data2))
+        lines(x = density(x = sort(x = cc.embeds[[g]][, cc.use])), col = "red")
+        plot(x = alignment.map.orig$cc_data1)
+        points(x = alignment.map.orig$cc_data2, col = "red")
       }
-    )
-    iqr <- (a1q - a2q)[100:900]
-    iqr.x <- which.min(x = abs(x = iqr))
-    iqrmin <- iqr[iqr.x]
-    if (show.plots) {
-      print(iqrmin)
-    }
-    align.2 <- align.2 + iqrmin
-    alignment <- dtw(
-      x = align.1,
-      y = align.2,
-      keep = TRUE,
-      dist.method = metric.use
-    )
-    alignment.map <- data.frame(alignment$index1, alignment$index2)
-    alignment.map$cc_data1 <- sort(cc.embeds[[1]][, cc.use])[alignment$index1]
-    alignment.map$cc_data2 <- sort(cc.embeds[[2]][, cc.use])[alignment$index2]
-    alignment.map.orig <- alignment.map
-    alignment.map <- alignment.map[! duplicated(x = alignment.map$alignment.index1), ]
-    cc.embeds.both[names(x = sort(x = cc.embeds[[1]][, cc.use])), cc.use] <- alignment.map$cc_data2
-    if (show.plots) {
-      par(mfrow = c(3, 2))
-      plot(x = ReferenceRange(x = metagenes[[1]]), main = cc.use)
-      plot(x = ReferenceRange(x = metagenes[[2]]))
-      plot(
-        x = ReferenceRange(x = metagenes[[1]])[(alignment.map.orig$alignment.index1)],
-        pch = 16
-      )
-      points(
-        x = ReferenceRange(metagenes[[2]])[(alignment.map.orig$alignment.index2)],
-        col = "red",
-        pch = 16,
-        cex = 0.4
-      )
-      plot(x = density(x = alignment.map$cc_data2))
-      lines(x = density(x = sort(x = cc.embeds[[2]][, cc.use])), col = "red")
-      plot(x = alignment.map.orig$cc_data1)
-      points(x = alignment.map.orig$cc_data2, col = "red")
     }
   }
   new.type <- paste0(reduction.type, ".aligned")
@@ -930,7 +1050,7 @@ AlignSubspace <- function(
     object = object,
     reduction.type = new.type,
     slot = "cell.embeddings",
-    new.data = scale(x = cc.embeds.both)
+    new.data = scale(x = cc.embeds.all)
   )
   object <- SetDimReduction(
     object = object,
