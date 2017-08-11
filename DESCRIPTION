@@ -1,7 +1,7 @@
 Package: Seurat
-Version: 2.0.0.900
-Date: 07/17/17
-Title: Seurat : R toolkit for single cell genomics
+Version: 2.0.0
+Date: 2017-07-17
+Title: Seurat : R Toolkit for Single Cell Genomics
 Description: Seurat : R toolkit for single cell genomics.
 Author: Rahul Satija
 Maintainer: Satija Lab <seuratpackage@gmail.com>
@@ -10,6 +10,7 @@ Depends:
     R (>= 3.2.0),
     ggplot2,
     cowplot,
+    Matrix,
 SystemRequirements: Java (>= 1.6)
 Imports:
     methods,
@@ -31,28 +32,26 @@ Imports:
     dplyr,
     RColorBrewer,
     MASS,
-    Matrix,
     irlba,
     reshape2,
     gridExtra,
     gplots,
     gdata,
     Rcpp,
-    RcppEigen,
-    RcppProgress,
     tclust,
     ranger,
     compositions,
+    NMF,
     NMOF,
     dtw,
     SDMTools,
     plotly,
     diffusionMap,
     Hmisc,
-    httr,
-    tidyr
+    tidyr,
+    ggjoy
 LinkingTo: Rcpp, RcppEigen, RcppProgress
-License: GPL-3
+License: file LICENSE
 Collate: 
     'RcppExports.R'
     'seurat.R'
@@ -75,14 +74,13 @@ Collate:
     'preprocessing.R'
     'preprocessing_internal.R'
     'printing_utilities.R'
-    'seuratFxns.R'
+    'scoring.R'
     'snn.R'
     'spatial.R'
     'spatial_internal.R'
     'tSNE_project.R'
     'utilities.R'
     'utilities_internal.R'
-    'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
     testthat

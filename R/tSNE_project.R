@@ -1,4 +1,6 @@
-
+#
+#' @importFrom stats optim
+#
 project_map <- function(
   z,
   x_old,

@@ -1,7 +1,7 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
-#' parameters, see \code{\link{PrintPCAParams}}.
+#' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
@@ -15,6 +15,9 @@
 #' the PCs
 #' @param pcs.print PCs to print genes for
 #' @param genes.print Number of genes to print for each PC
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
+#' @param assay.type Data type, RNA by default. Can be changed for multimodal
 #' @param \dots Additional arguments to be passed to IRLBA
 #'
 #'@importFrom irlba irlba
@@ -36,12 +39,16 @@ RunPCA <- function(
   do.print = TRUE,
   pcs.print = 1:5,
   genes.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC",
+  assay.type="RNA",
   ...
 ) {
   data.use <- PrepDR(
     object = object,
     genes.use = pc.genes,
-    use.imputed = use.imputed)
+    use.imputed = use.imputed,
+    assay.type = assay.type)
   pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
@@ -64,7 +71,7 @@ RunPCA <- function(
     }
   }
   rownames(x = gene.loadings) <- rownames(x = data.use)
-  colnames(x = gene.loadings) <- paste0("PC", 1:pcs.compute)
+  colnames(x = gene.loadings) <- paste0(reduction.key, 1:pcs.compute)
   rownames(x = cell.embeddings) <- colnames(x = data.use)
   colnames(x = cell.embeddings) <- colnames(x = gene.loadings)
   pca.obj <- new(
@@ -72,16 +79,18 @@ RunPCA <- function(
     gene.loadings = gene.loadings,
     cell.embeddings = cell.embeddings,
     sdev = sdev,
-    key = "PC"
+    key = reduction.key
   )
-  object@dr$pca <- pca.obj
+  #object@dr[reduction.name] <- pca.obj
+  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
+
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if(is.null(object@calc.params$RunPCA$pc.genes)){
     object@calc.params$RunPCA$pc.genes <- rownames(data.use)
   }
   if(do.print){
-    PrintPCA(object = object, pcs.print = pcs.print, genes.print = genes.print)
+    PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
   }
   return(object)
 }
@@ -91,7 +100,7 @@ RunPCA <- function(
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.
 #' For details about stored ICA calculation parameters, see
-#' \code{\link{PrintICAParams}}.
+#' \code{PrintICAParams}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
@@ -106,6 +115,8 @@ RunPCA <- function(
 #' @param ica.function ICA function from ica package to run (options: icafast,
 #' icaimax, icajade)
 #' @param seed.use Random seed to use for fastica
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. ica by default
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. IC by default
 #' @param \dots Additional arguments to be passed to fastica
 #'
 #' @importFrom ica icafast icaimax icajade
@@ -126,6 +137,8 @@ RunICA <- function(
   genes.print = 50,
   ica.function = "icafast",
   seed.use = 1,
+  reduction.name = "ica",
+  reduction.key = "IC",
   ...
 ) {
   data.use <- PrepDR(
@@ -143,8 +156,8 @@ RunICA <- function(
     cell.embeddings <- ica.results$S
   }
   gene.loadings <- (as.matrix(x = data.use ) %*% as.matrix(x = cell.embeddings))
-  colnames(x = gene.loadings) <- paste0("IC", 1:ncol(x = gene.loadings))
-  colnames(x = cell.embeddings) <- paste0("IC", 1:ncol(x = cell.embeddings))
+  colnames(x = gene.loadings) <- paste0(reduction.key, 1:ncol(x = gene.loadings))
+  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
   ica.obj <- new(
     Class = "dim.reduction",
     gene.loadings = gene.loadings,
@@ -152,14 +165,16 @@ RunICA <- function(
     sdev = sqrt(x = ica.results$vafs),
     key = "IC"
   )
-  object@dr$ica <- ica.obj
+
+  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
+
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
   if(is.null(object@calc.params$ICA$ic.genes)){
     object@calc.params$ICA$ic.genes <- rownames(data.use)
   }
-  if(do.print){
-    PrintICA(object = object, ics.print = ics.print, genes.print = genes.print)
+  if(print.results){
+    PrintDim(object = object, dims.print = ics.print, genes.print = genes.print,reduction.type = reduction.name)
   }
   return(object)
 }
@@ -170,7 +185,7 @@ RunICA <- function(
 #' Run t-SNE dimensionality reduction on selected features. Has the option of
 #' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 #' or running based on a set of genes. For details about stored TSNE calculation
-#' parameters, see \code{\link{PrintTSNEParams}}.
+#' parameters, see \code{PrintTSNEParams}.
 #'
 #' @param object Seurat object
 #' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
@@ -189,8 +204,10 @@ RunICA <- function(
 #' (default is 2). For example, set to 3 for a 3d tSNE
 #' @param \dots Additional arguments to the tSNE call. Most commonly used is
 #' perplexity (expected number of neighbors default is 30)
-#' @param distance.matrix If set, tuns tSNE on the given distance matrix
+#' @param distance.matrix If set, runs tSNE on the given distance matrix
 #' instead of data matrix (experimental)
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
 #'
 #' @return Returns a Seurat object with a tSNE embedding in
 #' object@@dr$tsne@cell.embeddings
@@ -211,6 +228,8 @@ RunTSNE <- function(
   add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
   ...
 ) {
   if (! is.null(x = distance.matrix)) {
@@ -245,25 +264,25 @@ RunTSNE <- function(
   }
   if (add.iter > 0) {
     data.tsne <- tsne(
-      x = data.use,
+      X = data.use,
       initial_config = as.matrix(x = data.tsne),
       max_iter = add.iter,
       ...
     )
   }
-  colnames(x = data.tsne) <- paste0("tSNE_", 1:ncol(x = data.tsne))
+  colnames(x = data.tsne) <- paste0(reduction.key, 1:ncol(x = data.tsne))
   rownames(x = data.tsne) <- rownames(x = data.use)
   object <- SetDimReduction(
     object = object,
-    reduction.type = "tsne",
+    reduction.type = reduction.name,
     slot = "cell.embeddings",
     new.data = data.tsne
   )
   object <- SetDimReduction(
     object = object,
-    reduction.type = "tsne",
+    reduction.type = reduction.name,
     slot = "key",
-    new.data = "tSNE_"
+    new.data = reduction.key
   )
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
@@ -283,6 +302,7 @@ RunTSNE <- function(
 #'
 #'
 #' @param object Seurat object
+#' @param reduction.type Reduction to use
 #' @param dims.print Number of dims to print genes for
 #' @param dims.store Number of dims to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
@@ -403,7 +423,7 @@ ProjectPCA <- function(
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
 #' For details about stored CCA calculation parameters, see
-#' \code{\link{PrintCCAParams}}.
+#' \code{PrintCCAParams}.
 #'
 #' @param object Seurat object
 #' @param object2 Optional second object. If object2 is passed, object1 will be
@@ -572,17 +592,23 @@ RunCCA <- function(
       )
     )
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    combined.object <- SetCalcParams(object = combined.object,
-                                     calculation = "RunCCA",
-                                     ... = parameters.to.store)
-    combined.object <- SetSingleCalcParam(object = combined.object,
-                                          calculation = "RunCCA",
-                                          parameter = "object.project",
-                                          value = object@project.name)
-    combined.object <- SetSingleCalcParam(object = combined.object,
-                                          calculation = "RunCCA",
-                                          parameter = "object2.project",
-                                          value = object2@project.name)
+    combined.object <- SetCalcParams(
+      object = combined.object,
+      calculation = "RunCCA",
+      ... = parameters.to.store
+    )
+    combined.object <- SetSingleCalcParam(
+      object = combined.object,
+      calculation = "RunCCA",
+      parameter = "object.project",
+      value = object@project.name
+    )
+    combined.object <- SetSingleCalcParam(
+      object = combined.object,
+      calculation = "RunCCA",
+      parameter = "object2.project",
+      value = object2@project.name
+    )
     return(combined.object)
   } else {
     object <- SetDimReduction(
@@ -598,14 +624,18 @@ RunCCA <- function(
       new.data = "CC"
     )
 
-    object <- ProjectDim(object = object,
-                         reduction.type = "cca",
-                         do.print = FALSE)
+    object <- ProjectDim(
+      object = object,
+      reduction.type = "cca",
+      do.print = FALSE
+    )
     object@scale.data[is.na(x = object@scale.data)] <- 0
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    object <- SetCalcParams(object = object,
-                                     calculation = "RunCCA",
-                                     ... = parameters.to.store)
+    object <- SetCalcParams(
+      object = object,
+      calculation = "RunCCA",
+      ... = parameters.to.store
+    )
     return(object)
   }
 }
@@ -751,7 +781,10 @@ CalcVarExpRatio <- function(
 #'  object@@dr$reduction.type.aligned
 #'
 #' @importFrom dtw dtw
+#' @importFrom graphics points
+#' @importFrom stats quantile density
 #' @importFrom pbapply pbapply
+#' @importFrom graphics par plot lines
 #'
 #' @export
 #'
@@ -764,9 +797,11 @@ AlignSubspace <- function(
   show.plots = FALSE
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
-  object <- SetCalcParams(object = object,
-                          calculation = paste0("AlignSubspace.", reduction.type),
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = paste0("AlignSubspace.", reduction.type),
+    ... = parameters.to.store
+  )
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident)))
@@ -953,11 +988,14 @@ AlignSubspace <- function(
 #' @param q.use Quantile to use
 #' @param max.dim Max dimension to keep from diffusion calculation
 #' @param scale.clip Max/min value for scaled data. Default is 3
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. dm by default
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. DM by default
 #' @param ... Additional arguments to the diffuse call
 #'
 #' @return Returns a Seurat object with a diffusion map
 #'
 #' @import diffusionMap
+#' @importFrom stats dist
 #'
 #' @export
 #'
@@ -970,6 +1008,8 @@ RunDiffusion <- function(
   q.use = 0.01,
   max.dim = 2,
   scale.clip = 10,
+  reduction.name = "dm",
+  reduction.key = "DM",
   ...
 ) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
@@ -996,14 +1036,14 @@ RunDiffusion <- function(
                           ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
-    diffuse( # Where is diffuse?
+    diffuse( 
       D = data.dist,
       neigen = max.dim,
       maxdim = max.dim,
       ...
     )$X
   )
-  colnames(x = data.diffusion) <- paste0("DM", 1:ncol(x = data.diffusion))
+  colnames(x = data.diffusion) <- paste0(reduction.key, 1:ncol(x = data.diffusion))
   rownames(x = data.diffusion) <- cells.use
   for (i in 1:max.dim) {
     x <- data.diffusion[,i]
@@ -1016,13 +1056,13 @@ RunDiffusion <- function(
   }
   object <- SetDimReduction(
     object = object,
-    reduction.type = "dm",
+    reduction.type = reduction.use,
     slot = "cell.embeddings",
     new.data = as.matrix(x = data.diffusion)
   )
   object <- SetDimReduction(
     object = object,
-    reduction.type = "dm",
+    reduction.type = reduction.use,
     slot = "key",
     new.data = "DM"
   )

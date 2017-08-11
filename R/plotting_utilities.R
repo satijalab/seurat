@@ -5,7 +5,7 @@
 #' @param ... Extra parameters to be passed to theme()
 #' @import ggplot2
 #' @return A ggplot2 theme object
-#' @seealso \code{\link{theme}}
+#' @seealso \code{theme}
 #' @import ggplot2
 #' @export
 #'
@@ -65,8 +65,8 @@ DarkTheme <- function(...) {
 #'
 #' @return The names of the points selected
 #'
-#' @seealso \code{\link{locator}}
-#' @seealso \code{\link{ggplot2::ggplot_build}}
+#' @seealso \code{locator}
+#' @seealso \code{ggplot2::ggplot_build}
 #' @export
 #'
 FeatureLocator <- function(plot, data.plot, ...) {
@@ -87,8 +87,8 @@ FeatureLocator <- function(plot, data.plot, ...) {
 #' @param dark.theme Plot using a dark theme?
 #' @param ... Extra parameters to be passed to plotly::layout
 #'
-#' @seealso \code{\link{plotly::layout}}
-#' @seealso \code{\link{ggplot2::ggplot_build}}
+#' @seealso \code{plotly::layout}
+#' @seealso \code{ggplot2::ggplot_build}
 #' @export
 #'
 HoverLocator <- function(
@@ -115,11 +115,13 @@ HoverLocator <- function(
     info <- apply(
       X = features.info,
       MARGIN = 1,
-      FUN = paste,
-      collapse = '</br>'
+      FUN = function(x, names) {
+        return(paste0(names, ': ', x, collapse = '<br>'))
+      },
+      names = colnames(x = features.info)
     )
     data.info <- data.frame(
-      feature = paste(rownames(x = features.info), info, sep = '</br>'),
+      feature = paste(rownames(x = features.info), info, sep = '<br>'),
       row.names = rownames(x = features.info)
     )
     plot.build <- merge(x = plot.build, y = data.info, by = 0)
@@ -181,6 +183,10 @@ HoverLocator <- function(
 #' @param mid middle color. Optional.
 #' @param k number of steps (colors levels) to include between low and high values
 #'
+#' @return A color palette for plotting
+#'
+#' @importFrom grDevices col2rgb rgb
+#'
 #' @export
 #'
 CustomPalette <- function(
@@ -214,10 +220,30 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#shortcut to make black-white palette
+#' A black and white color palette
+#'
+#' @param ... Extra parameters to CustomPalette
+#'
+#' @return A color palette
+#'
+#' @seealso \code{CustomPalette}
+#'
 #' @export
-bwCols <- CustomPalette(low = "white", high="black", k = 50)
+#'
+BlackAndWhite <- function(...) {
+  return(CustomPalette(low = "white", high="black", ...))
+}
 
+#' A purple and yellow color palette
+#'
+#' @param ... Extra parameters to CustomPalette
+#'
+#' @return A color palette
+#'
+#' @seealso \code{CustomPalette}
+#'
 #' @export
-#shortcut to make purple-yellow palette, which is default in most Seurat heatmaps
-pyCols <- CustomPalette(low = "magenta", high = "yellow", mid = "black")
+#'
+PurpleAndYellow <- function(...) {
+  return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
+}

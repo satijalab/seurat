@@ -16,5 +16,5 @@ A ggplot2 theme object
 Add a dark theme to ggplot objects
 }
 \seealso{
-\code{\link{theme}}
+\code{theme}
 }

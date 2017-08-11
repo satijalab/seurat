@@ -6,7 +6,8 @@
 \usage{
 RunICA(object, ic.genes = NULL, ics.compute = 50, use.imputed = FALSE,
   rev.ica = FALSE, print.results = TRUE, ics.print = 1:5,
-  genes.print = 50, ica.function = "icafast", seed.use = 1, ...)
+  genes.print = 50, ica.function = "icafast", seed.use = 1,
+  reduction.name = "ica", reduction.key = "IC", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -32,6 +33,10 @@ icaimax, icajade)}
 
 \item{seed.use}{Random seed to use for fastica}
 
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. ica by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. IC by default}
+
 \item{\dots}{Additional arguments to be passed to fastica}
 }
 \value{
@@ -41,5 +46,5 @@ object@dr$ica
 \description{
 Run fastica algorithm from the ica package for ICA dimensionality reduction.
 For details about stored ICA calculation parameters, see
-\code{\link{PrintICAParams}}.
+\code{PrintICAParams}.
 }

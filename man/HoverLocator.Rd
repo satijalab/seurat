@@ -21,7 +21,7 @@ HoverLocator(plot, data.plot, features.info = NULL, dark.theme = FALSE, ...)
 Get quick information from a scatterplot by hovering over points
 }
 \seealso{
-\code{\link{plotly::layout}}
+\code{plotly::layout}
 
-\code{\link{ggplot2::ggplot_build}}
+\code{ggplot2::ggplot_build}
 }

@@ -4,11 +4,26 @@
 \alias{KClustDimension}
 \title{Perform spectral k-means clustering on single cells}
 \usage{
-KClustDimension(object, dims.use = c(1, 2), cells.use = NULL, pt.size = 4,
-  reduction.use = "tsne", k.use = 5, set.ident = T, seed.use = 1, ...)
+KClustDimension(object, dims.use = c(1, 2), reduction.use = "tsne",
+  k.use = 5, set.ident = TRUE, seed.use = 1)
+}
+\arguments{
+\item{object}{A Seurat object}
+
+\item{dims.use}{Dimensions to use for clustering}
+
+\item{reduction.use}{Dimmensional Reduction to use for k-means clustering}
+
+\item{k.use}{Number of clusters}
+
+\item{set.ident}{Set identity of Seurat object}
+
+\item{seed.use}{Random seed to use}
+}
+\value{
+Object with clustering information
 }
 \description{
 Find point clounds single cells in a low-dimensional space using k-means clustering.
 Can be useful for smaller datasets, where graph-based clustering can perform poorly
-TODO : add documentation here
 }

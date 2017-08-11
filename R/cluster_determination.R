@@ -200,7 +200,11 @@ SetClusters <- function(object, clusters = NULL) {
 #'
 #' @param object Seurat object with cluster assignments
 #' @param file Path to file to write cluster assignments to
+#'
 #' @return No return value. Writes clusters assignments to specified file.
+#'
+#' @importFrom utils write.table
+#'
 #' @export
 #'
 SaveClusters <- function(object, file) {
@@ -257,6 +261,7 @@ NumberClusters <- function(object) {
 #' @return Vector of cluster ids
 #'
 #' @import Matrix
+#' @importFrom stats predict
 #' @importFrom ranger ranger
 #'
 #' @export
@@ -369,10 +374,10 @@ BuildRFClassifier <- function(
 #' @param assay.type Type of data to normalize for (default is RNA), but can be changed for multimodal analyses.
 #' @param \dots Additional parameters passed to kmeans (or tkmeans)
 #'
+#' @importFrom stats kmeans
 #' @importFrom tclust tkmeans
 #'
 #' @return Seurat object where the k-means results for genes is stored in
-#'
 #' object@@kmeans.obj[[1]], and the k-means results for cells is stored in
 #' object@@kmeans.col[[1]]. The cluster for each cell is stored in object@@meta.data[,"kmeans.ident"]
 #' and also object@@ident (if set.ident=TRUE)
@@ -386,13 +391,17 @@ DoKMeans <- function(
   k.seed = 1,
   do.plot = FALSE,
   data.cut = 2.5,
-  k.cols = pyCols,
+  k.cols = PurpleAndYellow(),
   set.ident = TRUE,
   do.constrained = FALSE,
   assay.type="RNA",
   ...
 ) {
-  data.use.orig=GetAssayData(object,assay.type,slot = "scale.data")
+  data.use.orig <- GetAssayData(
+    object = object,
+    assay.type = assay.type,
+    slot = "scale.data"
+  )
   data.use <- MinMax(data = data.use.orig, min = data.cut * (-1), max = data.cut)
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   genes.use <- genes.use[genes.use %in% rownames(x = data.use)]
@@ -400,7 +409,7 @@ DoKMeans <- function(
   kmeans.data <- data.use[genes.use, cells.use]
   if (do.constrained) {
     set.seed(seed = k.seed)
-    kmeans.obj <- tkmeans(objectkmeans.data, k = k.genes, ...)
+    kmeans.obj <- tkmeans(x = kmeans.data, k = k.genes, ...)
   } else {
     set.seed(seed = k.seed)
     kmeans.obj <- kmeans(x = kmeans.data, centers = k.genes, ...)
@@ -464,6 +473,7 @@ DoKMeans <- function(
 #' object@@cluster.tree[[1]]
 #'
 #' @importFrom ape as.phylo
+#' @importFrom stats dist hclust
 #'
 #' @export
 #'
@@ -606,27 +616,31 @@ DBClustDimension <- function(
   return(object)
 }
 
-
-
-
 #' Perform spectral k-means clustering on single cells
 #'
 #' Find point clounds single cells in a low-dimensional space using k-means clustering.
 #' Can be useful for smaller datasets, where graph-based clustering can perform poorly
-#' TODO : add documentation here
+#'
+#' @param object A Seurat object
+#' @param dims.use Dimensions to use for clustering
+#' @param reduction.use Dimmensional Reduction to use for k-means clustering
+#' @param k.use Number of clusters
+#' @param set.ident Set identity of Seurat object
+#' @param seed.use Random seed to use
+#'
+#' @return Object with clustering information
+#'
+#' @importFrom stats kmeans
 #'
 #' @export
 #'
 KClustDimension <- function(
   object,
   dims.use = c(1,2),
-  cells.use = NULL,
-  pt.size = 4,
   reduction.use = "tsne",
   k.use = 5,
-  set.ident = T,
-  seed.use = 1,
-  ...
+  set.ident = TRUE,
+  seed.use = 1
 ) {
   dim.code <- GetDimReduction(
     object = object,

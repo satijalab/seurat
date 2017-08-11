@@ -11,6 +11,8 @@ ProjectDim(object, reduction.type = "pca", dims.print = 1:5,
 \arguments{
 \item{object}{Seurat object}
 
+\item{reduction.type}{Reduction to use}
+
 \item{dims.print}{Number of dims to print genes for}
 
 \item{dims.store}{Number of dims to store (default is 30)}

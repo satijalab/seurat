@@ -4,10 +4,10 @@
 \alias{AddSamples}
 \title{Add samples into existing Seurat object.}
 \usage{
-AddSamples(object, new.data, project = NULL, min.cells = 3,
-  min.genes = 1000, is.expr = 0, normalization.method = NULL,
-  scale.factor = 10000, do.scale = TRUE, do.center = TRUE,
-  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
+AddSamples(object, new.data, project = NULL, min.cells = 0, min.genes = 0,
+  is.expr = 0, do.normalize = TRUE, scale.factor = 10000,
+  do.scale = FALSE, do.center = FALSE, names.field = 1,
+  names.delim = "_", meta.data = NULL, save.raw = TRUE,
   add.cell.id = NULL)
 }
 \arguments{
@@ -24,9 +24,8 @@ many cells}
 
 \item{is.expr}{Expression threshold for 'detected' gene}
 
-\item{normalization.method}{Normalize the data after merging. Default is TRUE.
-If set, will perform the same normalization strategy as stored for the first
-object}
+\item{do.normalize}{Normalize the data after merging. Default is TRUE.
+If set, will perform the same normalization strategy as stored in the object}
 
 \item{scale.factor}{scale factor in the log normalization}
 

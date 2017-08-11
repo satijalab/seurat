@@ -28,6 +28,9 @@ AllNeighborCells <- function(bin, dist = 1) {
 }
 
 #FetchClosest bin, used internally in spatial mapping
+#
+#' @importFrom stats dist
+#
 FetchClosest <- function(bin, all.centroids, num.cell) {
   bin.y <- (bin - 1) %/% 8 + 1
   bin.x <- (bin - 1) %% 8 + 1
@@ -48,17 +51,20 @@ slimdmvnorm <- function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) {
   return(logretval)
 }
 
-
 # Documentation
 ###############
 #Internal, not documented for now
+#
+#' @importFrom NMF aheatmap
+#' @importFrom utils write.table
+#
 CalcInsitu <- function(
   object,
   gene,
   do.plot = TRUE,
   do.write = FALSE,
   write.dir = "~/window/insitu/",
-  col.use = bwCols,
+  col.use = BlackAndWhite(),
   do.norm = FALSE,
   cells.use = NULL,
   do.return = FALSE,
@@ -137,26 +143,12 @@ CalcInsitu <- function(
   return(object)
 }
 
-
-
-# Documentation
-###############
-#Not documented for now
-#' @export
-PosteriorPlot <- function(object, name) {
-  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
-  VlnPlot(
-    object = object,
-    features.plot = post.names,
-    inc.first=TRUE,
-    inc.final=TRUE,
-    by.k=TRUE
-  )
-}
-
 # Documentation
 ###############
 #Internal, not documented for now
+#
+#' @importFrom stats dnorm
+#
 map.cell.score <- function(gene, gene.value, insitu.bin, mu, sigma, alpha) {
   code.1 <- paste(gene, insitu.bin, sep=".")
   mu.use <- mu[paste(code.1, "mu", sep="."), 1]
@@ -179,8 +171,9 @@ map.cell.score <- function(gene, gene.value, insitu.bin, mu, sigma, alpha) {
 }
 
 #Internal, not documented for now
-#' @export
-#'
+#
+#' @importFrom NMF aheatmap
+#
 MapCell <- function(
   object,
   cell.name,
@@ -258,7 +251,7 @@ MapCell <- function(
       Rowv = NA,
       Colv = NA,
       txt = txt.matrix,
-      col = bwCols
+      col = BlackAndWhite()
     )
     aheatmap(x = scale.probs, Rowv = NA, Colv = NA)
     ResetPar()
@@ -278,6 +271,9 @@ spatial.info <- setClass(
 )
 
 #Internal, not documented for now
+#
+#' @importFrom stats dist
+#
 iter.k.fit <- function(scale.data, cell.ident, data.use) {
   means.all <- sapply(
     X = sort(x = unique(x = cell.ident)),
@@ -305,4 +301,116 @@ iter.k.fit <- function(scale.data, cell.ident, data.use) {
     FUN = mean
   ))[cell.ident]
   return(cell.ident)
+}
+
+#return cell centroid after spatial mappings (both X and Y)
+CellCentroid <- function(cell.probs) {
+  centroid.x <- XCellCentroid(cell.probs = cell.probs)
+  centroid.y <- YCellCentroid(cell.probs = cell.probs)
+  centroid.bin <- 8 * (centroid.y - 1) + centroid.x
+  return(centroid.bin)
+}
+
+#return x-coordinate cell centroid
+XCellCentroid <- function(cell.probs) {
+  centroid.x <- round(x = sum(sapply(
+    X = 1:64,
+    FUN = function(x) {
+      return((x - 1) %% 8 + 1)
+    }
+  ) * cell.probs))
+  return(centroid.x)
+}
+
+#return y-coordinate cell centroid
+YCellCentroid <- function(cell.probs) {
+  centroid.y <- round(x = sum(sapply(
+    X = 1:64,
+    FUN = function(x) {
+      return((x - 1) %/% 8 + 1)
+    }
+  ) * cell.probs))
+  return(centroid.y)
+}
+
+#return x and y-coordinate cell centroid
+ExactCellCentroid <- function(cell.probs) {
+  # centroid.x=(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
+  centroid.x <- XCellCentroid(cell.probs = cell.probs)
+  # centroid.y=(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs))
+  centroid.y <- YCellCentroid(cell.probs = cell.probs)
+  return(c(centroid.x, centroid.y))
+}
+
+# Documentation
+###############
+#Internal, not documented for now
+#
+#' @importFrom mixtools plot.mixEM
+#
+FitGeneMix <- function(
+  object,
+  gene,
+  do.k = 3,
+  use.mixtools = TRUE,
+  do.plot = FALSE,
+  plot.with.imputed = TRUE,
+  min.bin.size = 10
+) {
+  data.fit <- as.numeric(x = object@imputed[gene, ])
+  mixtools.fit <- normalmixEM(x = data.fit, k = do.k)
+  comp.order <- order(mixtools.fit$mu)
+  mixtools.posterior <- data.frame(mixtools.fit$posterior[, comp.order])
+  colnames(x = mixtools.posterior) <- unlist(
+    x = lapply(
+      X = 1:do.k,
+      FUN = function(x) {
+        return(paste(gene, x - 1, "post", sep="."))
+      }
+    )
+  )
+  #mixtools.mu=data.frame(mixtools.fit$mu[comp.order])
+  #mixtools.sigma=data.frame(mixtools.fit$sigma[comp.order])
+  #mixtools.alpha=data.frame(mixtools.fit$lambda[comp.order])
+  #rownames(mixtools.mu)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"mu",sep=".")))
+  #rownames(mixtools.sigma)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"sigma",sep=".")))
+  #rownames(mixtools.alpha)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"alpha",sep=".")))
+  #object@mix.mu = rbind(minusr(object@mix.mu,gene), mixtools.mu);
+  #object@mix.sigma = rbind(minusr(object@mix.sigma,gene), mixtools.sigma);
+  #o#bject@mu.alpha =rbind(minusr(object@mu.alpha,gene), mixtools.alpha);
+  if (do.plot) {
+    nCol <- 2
+    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
+    par(mfrow = c(num.row, nCol))
+    plot.mixEM(x = mixtools.fit, which = 2)
+    plot.data <- as.numeric(x = object@imputed[gene, ])
+    if (! plot.with.imputed) {
+      plot.data <- as.numeric(x = object@data[gene, ])
+    }
+    unlist(
+      x = lapply(
+        X = 1:do.k,
+        FUN = function(x) {
+          plot(
+            x = plot.data,
+            y = mixtools.posterior[, x],
+            ylab = paste0("Posterior for Component ", x - 1),
+            xlab = gene,
+            main = gene
+          )
+        }
+      )
+    )
+  }
+  new.mix.probs <- data.frame(
+    SubsetColumn(
+      data = object@spatial@mix.probs,
+      code = paste0(gene, "."),
+      invert = TRUE
+    ),
+    row.names = rownames(x = object@spatial@mix.probs)
+  )
+  colnames(x = new.mix.probs)[1] <- "nGene"
+  object@spatial@mix.probs <- cbind(new.mix.probs, mixtools.posterior)
+  return(object)
 }

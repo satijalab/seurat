@@ -41,6 +41,8 @@ in either of the two populations. Meant to speed up the function by not testing 
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
+\item{do.print}{Print status updates}
+
 \item{random.seed}{Random seed for downsampling}
 
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}

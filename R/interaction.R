@@ -4,12 +4,14 @@
 #'
 #' @param object1 First Seurat object to merge
 #' @param object2 Second Seurat object to merge
+#' @param project Project name (string)
 #' @param min.cells Include genes with detected expression in at least this
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Normalize the data after merging. Default is TRUE.
+#' @param do.normalize Normalize the data after merging. Default is TRUE.
 #' If set, will perform the same normalization strategy as stored for the first object
+#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default, so run ScaleData after merging.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -18,9 +20,6 @@
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param meta.data Additional metadata to add to the Seurat object. Should be
-#' a data frame where the rows are cell names, and the columns are additional
-#' metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
 #' which will save memory downstream for large datasets
 #' @param add.cell.id1 String to be appended to the names of all cells in object1
@@ -40,7 +39,7 @@ MergeSeurat <- function(
   min.cells = 0,
   min.genes = 0,
   is.expr = 0,
-  do.normalize=TRUE,
+  do.normalize = TRUE,
   scale.factor = 1e4,
   do.scale = FALSE,
   do.center = FALSE,
@@ -57,53 +56,33 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (! missing(add.cell.id1)) {
-    object1@cell.names <- paste(object1@cell.names, add.cell.id1, sep = ".")
+    object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
     colnames(x = object1@raw.data) <- paste(
-      colnames(x = object1@raw.data),
       add.cell.id1,
-      sep = "."
+      colnames(x = object1@raw.data),
+      sep = "_"
     )
     rownames(x = object1@meta.data) <- paste(
-      rownames(x = object1@meta.data),
       add.cell.id1,
-      sep = "."
+      rownames(x = object1@meta.data),
+      sep = "_"
     )
   }
   if (! missing(add.cell.id2)) {
-    object2@cell.names <- paste(object2@cell.names, add.cell.id2, sep = ".")
+  object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
     colnames(x = object2@raw.data) <- paste(
-      colnames(x = object2@raw.data),
       add.cell.id2,
-      sep = "."
+      colnames(x = object2@raw.data),
+      sep = "_"
     )
     rownames(x = object2@meta.data) <- paste(
-      rownames(x = object2@meta.data),
       add.cell.id2,
-      sep = "."
+      rownames(x = object2@meta.data),
+      sep = "_"
     )
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
-    warning("Duplicate cell names, enforcing uniqueness via make.unique()")
-    object2.names <- as.list(
-      x = make.unique(
-        names = c(
-          colnames(x = object1@raw.data),
-          colnames(x = object2@raw.data)
-        )
-      )[(ncol(x = object1@raw.data) + 1):(ncol(x = object1@raw.data) + ncol(x = object2@raw.data))]
-    )
-    names(x = object2.names) <- colnames(x = object2@raw.data)
-    colnames(x = object2@raw.data) <- object2.names
-    object2@cell.names <- unlist(
-      x = unname(
-        obj = object2.names[object2@cell.names]
-      )
-    )
-    rownames(x = object2@meta.data) <- unlist(
-      x = unname(
-        obj = object2.names[rownames(x = object2@meta.data)]
-      )
-    )
+    stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
   }
   merged.raw.data <- RowMergeSparseMatrices(
     mat1 = object1@raw.data[,object1@cell.names],
@@ -135,20 +114,36 @@ MergeSeurat <- function(
   )
 
   if (do.normalize) {
-    merged.object <- NormalizeData(object = merged.object,
-                                   assay.type = "RNA",
-                                   scale.factor = GetCalcParam(object = object1,
-                                                               calculation = "NormalizeData",
-                                                               parameter = "scale.factor"),
-                                   normalization.method = GetCalcParam(object = object1,
-                                                                       calculation = "NormalizeData",
-                                                                       parameter = "normalization.method"))
+    normalization.method.use = GetCalcParam(
+      object = object1,
+      calculation = "NormalizeData",
+      parameter = "normalization.method"
+    )
+    scale.factor.use = GetCalcParam(
+      object = object1,
+      calculation = "NormalizeData",
+      parameter = "scale.factor"
+    )
+
+    if (is.null(normalization.method.use)) {
+      normalization.method.use="LogNormalize"
+      scale.factor.use=10000
+    }
+    merged.object <- NormalizeData(
+      object = merged.object,
+      assay.type = "RNA",
+      normalization.method=normalization.method.use,
+      scale.factor=scale.factor.use
+
+    )
   }
 
   if (do.scale | do.center) {
-    merged.object <- ScaleData(object = merged.object,
-                               do.scale = do.scale,
-                               do.center = do.center)
+    merged.object <- ScaleData(
+      object = merged.object,
+      do.scale = do.scale,
+      do.center = do.center
+    )
   }
 
   merged.meta.data %>% filter(
@@ -169,9 +164,8 @@ MergeSeurat <- function(
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
-#' @param normalization.method Normalize the data after merging. Default is TRUE.
-#' If set, will perform the same normalization strategy as stored for the first
-#' object
+#' @param do.normalize Normalize the data after merging. Default is TRUE.
+#' If set, will perform the same normalization strategy as stored in the object
 #' @param scale.factor scale factor in the log normalization
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based z-score)
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -197,13 +191,13 @@ AddSamples <- function(
   object,
   new.data,
   project = NULL,
-  min.cells = 3,
-  min.genes = 1000,
+  min.cells = 0,
+  min.genes = 0,
   is.expr = 0,
-  normalization.method = NULL,
+  do.normalize = TRUE,
   scale.factor = 1e4,
-  do.scale=TRUE,
-  do.center = TRUE,
+  do.scale = FALSE,
+  do.center = FALSE,
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
@@ -214,27 +208,10 @@ AddSamples <- function(
     stop("Object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (! missing(x = add.cell.id)) {
-    colnames(x= new.data) <- paste(colnames(x = new.data), add.cell.id, sep = ".")
+    colnames(x= new.data) <- paste(add.cell.id, colnames(x = new.data),  sep = "_")
   }
   if (any(colnames(x = new.data) %in% object@cell.names)) {
-    warning("Duplicate cell names, enforcing uniqueness via make.unique()")
-    new.data.names <- as.list(
-      x = make.unique(
-        names = c(
-          colnames(x = object@raw.data),
-          colnames(x = new.data)
-        )
-      )[(ncol(x = object@raw.data) + 1):(ncol(x = object@raw.data) + ncol(x = new.data))]
-    )
-    names(x = new.data.names) <- colnames(x = new.data)
-    colnames(x = new.data) <- new.data.names
-    if (! is.null(x = meta.data)){
-      rownames(x = meta.data) <- unlist(
-        x = unname(
-          obj = new.data.names[rownames(x = meta.data)]
-        )
-      )
-    }
+    stop("Duplicate cell names, please provide 'add.cell.id' for unique names")
   }
   combined.data <- RowMergeSparseMatrices(
     mat1 = object@raw.data[, object@cell.names],
@@ -253,6 +230,15 @@ AddSamples <- function(
       )
     )
   }
+  combined.meta.data$nGene <- NULL
+  combined.meta.data$nUMI <- NULL
+  if (! is.null(x = add.cell.id)) {
+    combined.meta.data$orig.ident <- factor(
+      x = combined.meta.data$orig.ident,
+      levels = c(levels(x = combined.meta.data$orig.ident), add.cell.id)
+    )
+    combined.meta.data[colnames(new.data), ] <- add.cell.id
+  }
   project <- SetIfNull(x = project, default = object@project.name)
   new.object <- CreateSeuratObject(
     raw.data = combined.data,
@@ -260,15 +246,44 @@ AddSamples <- function(
     min.cells = min.cells,
     min.genes = min.genes,
     is.expr = is.expr,
-    normalization.method = normalization.method,
     scale.factor = scale.factor,
-    do.scale = do.scale,
-    do.center = do.center,
+    do.scale = F,
+    do.center = F,
     names.field = names.field,
     names.delim = names.delim,
     save.raw = save.raw
   )
-  new.object@meta.data <- combined.meta.data[new.object@cell.names,]
+  if (do.normalize) {
+    normalization.method.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "normalization.method"
+    )
+    scale.factor.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "scale.factor"
+    )
+    if (is.null(x = normalization.method.use)) {
+      normalization.method.use <- "LogNormalize"
+      scale.factor.use <- 10000
+    }
+    new.object <- NormalizeData(
+      object = new.object,
+      assay.type = "RNA",
+      normalization.method = normalization.method.use,
+      scale.factor = scale.factor.use
+    )
+  }
+  if (do.scale | do.center) {
+    new.object <- ScaleData(
+      object = new.object,
+      do.scale = do.scale,
+      do.center = do.center
+    )
+  }
+  new.object@meta.data$orig.ident <- NULL
+  new.object@meta.data <- cbind(new.object@meta.data, combined.meta.data)
   return(new.object)
 }
 
@@ -297,6 +312,8 @@ AddSamples <- function(
 #' use.imputed=TRUE)
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
+#'
+#' @importFrom stats complete.cases
 #'
 #' @export
 #'
@@ -487,46 +504,37 @@ FetchData <- function(
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   data.return <- data.frame(row.names = cells.use)
   data.expression <- as.matrix(x = data.frame(row.names = cells.use))
+  if (length(which(c(use.imputed, use.scaled, use.raw))) > 1) {
+    stop("Can only set one of the following to TRUE: use.imputed, use.scaled, use.raw")
+  }
+  slot.use <- "data"
   # if any vars passed are genes, subset expression data
   gene.check <- vars.all %in% rownames(object@data)
-  #data.expression <- matrix()
-  if (all(gene.check)){
-    if (use.imputed) {
-      data.expression <- object@imputed[vars.all, cells.use,drop = FALSE]
-    }
-    if (use.scaled) {
-      data.expression <- object@scale.data[vars.all, cells.use, drop = FALSE]
-    }
-    if (use.raw) {
-      data.expression <-  object@raw.data[vars.all, cells.use, drop = FALSE]
-    } else {
-      data.expression <- object@data[vars.all, cells.use, drop = FALSE ]
-    }
-    return(t(x = as.matrix(x = data.expression)))
-  } else if (any(gene.check)) {
-    if (use.imputed) {
-      data.expression <- object@imputed[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    if(use.scaled) {
-      data.expression <-  object@scale.data[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    if (use.raw) {
-      data.expression <- object@raw.data[vars.all[gene.check], cells.use, drop = FALSE]
-    } else {
-      data.expression <- object@data[vars.all[gene.check], cells.use, drop = FALSE]
-    }
-    data.expression <- t(x = data.expression)
+  if (use.scaled) {
+    slot.use <- "scale.data"
+    gene.check <- vars.all %in% rownames(object@scale.data)
   }
-  #now check for multimodal data
+  if (use.raw) {
+    slot.use <- "raw.data"
+  }
+  if (any(gene.check)) {
+    if (use.imputed) {
+      gene.check <- vars.all %in% rownames(object@imputed)
+      if (length(object@imputed) == 0) {
+        stop ("Imputed expression values not calculated yet.")
+      }
+      data.expression <- t(object@imputed[vars.all[gene.check], cells.use, drop = FALSE])
+    } else {
+      data.expression <- GetAssayData(object, assay.type = "RNA", slot = slot.use)
+      data.expression <- t(data.expression[vars.all[gene.check], cells.use, drop = FALSE])
+    }
+    if (all(gene.check)) {
+      return(as.matrix(x = data.expression))
+    }
+  }
+  # now check for multimodal data
   if (length(x = object@assay) > 0) {
     data.types <- names(x = object@assay)
-    slot.use <- "data"
-    if (use.scaled) {
-      slot.use <- "scale.data"
-    }
-    if (use.raw) {
-      slot.use <- "raw.data"
-    }
     for (data.type in data.types) {
       all_data <- (GetAssayData(
         object = object,
@@ -681,7 +689,7 @@ WhichCells <- function(
     if(! is.null(x = accept.value)) {
       pass.inds <- which(x = subset.data == accept.value)
     } else {
-      pass.inds <- which(x = (subset.data >= accept.low) & (subset.data <= accept.high))
+      pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
     }
     cells.use <- rownames(x = data.use)[pass.inds]
   }

@@ -6,7 +6,7 @@
 \usage{
 GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
   pch.use = 16, cex.use = 1.5, use.imputed = FALSE, use.scaled = FALSE,
-  use.raw = FALSE, do.hover = FALSE, data.hover = NULL,
+  use.raw = FALSE, do.hover = FALSE, data.hover = "ident",
   do.identify = FALSE, dark.theme = FALSE, do.spline = FALSE,
   spline.span = 0.75, ...)
 }
@@ -34,7 +34,7 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{do.hover}{Enable hovering over points to view information}
 
-\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name}
+\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 

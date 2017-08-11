@@ -14,11 +14,13 @@ NegBinomDETest(object, cells.1, cells.2, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{genes.use}{Genes to test. Default is to use all genes}
+\item{genes.use}{Genes to use for test}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+\item{latent.vars}{Latent variables to test}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
+\item{print.bar}{Print progress bar}
+
+\item{min.cells}{Minimum number of cells threshold}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

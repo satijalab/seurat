@@ -60,15 +60,21 @@ JackStraw <- function(
   } else {
     applyFunction <- sapply
   }
-  rev.pca <- GetCalcParam(object = object,
-                          calculation = "PCA",
-                          parameter = "rev.pca")
-  weight.by.var <- GetCalcParam(object = object,
-                                  calculation = "PCA",
-                                  parameter = "weight.by.var")
-  data.use.scaled <- GetAssayData(object = object,
-                                  assay.type = "RNA",
-                                  slot = "scale.data")[pc.genes,]
+  rev.pca <- GetCalcParam(
+    object = object,
+    calculation = "RunPCA",
+    parameter = "rev.pca"
+  )
+  weight.by.var <- GetCalcParam(
+    object = object,
+    calculation = "RunPCA",
+    parameter = "weight.by.var"
+  )
+  data.use.scaled <- GetAssayData(
+    object = object,
+    assay.type = "RNA",
+    slot = "scale.data"
+  )[pc.genes,]
   fake.pcVals.raw <- applyFunction(
     X = 1:num.replicate,
     FUN = function(x)
@@ -79,7 +85,7 @@ JackStraw <- function(
         r2.use = num.pc,
         seed.use = x,
         rev.pca = rev.pca,
-        weight.by.var
+        weight.by.var = weight.by.var
       )),
     simplify = FALSE
   )
@@ -94,7 +100,7 @@ JackStraw <- function(
       ))))
     }
   )
-  jackStraw.fakePC <- as.matrix(fake.pcVals)
+  jackStraw.fakePC <- as.matrix(x = fake.pcVals)
   jackStraw.empP <- as.matrix(
     sapply(
       X = 1:num.pc,
@@ -115,49 +121,15 @@ JackStraw <- function(
     fake.pc.scores = fake.pcVals,
     emperical.p.value.full = matrix()
   )
-  object <- SetDimReduction(object = object,
-                            reduction.type = "pca",
-                            slot = "jackstraw",
-                            new.data = jackstraw.obj)
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = "pca",
+    slot = "jackstraw",
+    new.data = jackstraw.obj
+  )
 
   return(object)
 }
-
-# Documentatin
-##############
-#' @export
-#'
-JackRandom <- function(
-  scaled.data,
-  prop.use = 0.01,
-  r1.use = 1,
-  r2.use = 5,
-  seed.use = 1,
-  rev.pca = FALSE,
-  weight.by.var = weight.by.var
-) {
-  set.seed(seed = seed.use)
-  rand.genes <- sample(
-    x = rownames(x = scaled.data),
-    size = nrow(x = scaled.data) * prop.use
-  )
-  # make sure that rand.genes is at least 3
-  if (length(x = rand.genes) < 3){
-    rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
-  }
-  data.mod <- scaled.data
-  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
-  temp.object <- new("seurat")
-  temp.object@scale.data <- data.mod
-  temp.object <- RunPCA(temp.object, pcs.compute = r2.use, pc.genes = rownames(data.mod),
-                     rev.pca = rev.pca, weight.by.var = weight.by.var,
-                     do.print = F)
-  fake.x <- PCALoad(temp.object)
-  fake.rot <- PCAEmbed(temp.object)
-  return(fake.x[rand.genes, r1.use:r2.use])
-}
-
-
 
 #' Significant genes from a PCA
 #'
@@ -205,7 +177,7 @@ PCASigGenes <- function(
       use.full = use.full,
       do.balanced = FALSE
     )
-    genes.use <- ainb(a = pc.top.genes, b = genes.use)
+    genes.use <- intersect(x = pc.top.genes, y = genes.use)
   }
   return(genes.use)
 }

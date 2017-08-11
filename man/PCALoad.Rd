@@ -12,6 +12,8 @@ PCALoad(object, dims.use = NULL, genes.use = NULL, use.full = FALSE)
 \item{dims.use}{Dimensions to include (default is all stored dims)}
 
 \item{genes.use}{Genes to include (default is all genes)}
+
+\item{use.full}{Return projected gene loadings (default is FALSE)}
 }
 \value{
 PCA gene loading matrix for given genes and PCs

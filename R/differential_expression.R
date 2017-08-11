@@ -24,11 +24,11 @@
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
+#' @param latent.vars Variables to test
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #'
-#' @import VGAM
 #' @import pbapply
 #'
 #' @export
@@ -185,8 +185,8 @@ FindMarkers <- function(
       cells.2 = cells.2,
       genes.use = genes.use,
       latent.vars = latent.vars,
-      print.bar = print.bar,
-      min.cells # PoissonDETest doesn't have something for min.cells
+      print.bar = print.bar
+      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
   #return results
@@ -381,6 +381,7 @@ FindMarkersNode <- function(
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @param do.print Print status updates
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #'
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
@@ -632,18 +633,21 @@ DiffExpTest <- function(
 #'
 #' Identifies differentially expressed genes between two groups of cells using
 #' a negative binomial generalized linear model
-#
 #'
-#' @inheritParams FindMarkers
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
+#' @param min.cells Minimum number of cells threshold
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula
 #'
 #' @export
 #'
@@ -733,8 +737,15 @@ NegBinomDETest <- function(
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
+#' @param min.cells Minimum number of cells threshold
 #'
 #' @return Returns a p-value ranked data frame of test results.
+#'
+#' @importFrom stats p.adjust
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
 #'
@@ -809,8 +820,8 @@ NegBinomRegDETest <- function(
           y = to.test.data[j, ],
           theta = theta.fit[j],
           latent.data = to.test,
-          com.frac = latent.vars,
-          grp.frac = 'NegBinomRegDETest.group'
+          com.fac = latent.vars,
+          grp.fac = 'NegBinomRegDETest.group'
         ))
       }
     )
@@ -830,15 +841,18 @@ NegBinomRegDETest <- function(
 #' Identifies differentially expressed genes between two groups of cells using
 #' a poisson generalized linear model
 #
-#' @inheritParams FindMarkers
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
 #' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula glm
 #'
 #' @export
 #'
@@ -971,8 +985,6 @@ TobitTest <- function(
 #' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
 #' putative differentially expressed genes.
 #'
-#' @import ROCR
-#'
 #' @export
 #'
 MarkerTest <- function(
@@ -1005,6 +1017,7 @@ MarkerTest <- function(
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
+#' @importFrom stats t.test
 #' @importFrom pbapply pblapply
 #'
 #' @export

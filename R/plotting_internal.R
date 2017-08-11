@@ -6,6 +6,8 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
+#' @importFrom graphics axis
+#
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
   #   Take advantage of functions as first class objects
@@ -91,6 +93,8 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #
 # @return A dataframe of x and y coordinates for points selected
 #
+#' @importFrom graphics locator
+#
 PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
@@ -137,6 +141,8 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 # @param dark.theme Plot in dark theme
 #
 # @return A ggplot2 scatterplot
+#
+#' @importFrom stats na.omit
 #
 SingleFeaturePlot <- function(
   data.use,
@@ -253,6 +259,9 @@ SingleFeaturePlot <- function(
 # @param no.legend Remove legend from plot
 # @param dark.theme Plot in dark theme
 #
+#' @import RColorBrewer
+#' @importFrom grDevices colors
+#
 # @return A blended ggplot2 scatterplot
 #
 BlendPlot <- function(
@@ -325,7 +334,7 @@ BlendPlot <- function(
     SetQuantile(cutoff = max.cutoff[1], data = data.gene[features.plot[1], ]),
     SetQuantile(cutoff = max.cutoff[2], data = data.gene[features.plot[2], ])
   )
-  data.gene <- na.omit(object = data.frame(data.use[features.plot, ]))
+  data.gene <- stats::na.omit(object = data.frame(data.use[features.plot, ]))
   cell.names <- colnames(x = data.gene)
   #   Minimum and maximum masking
   data.gene <- matrix(
@@ -458,7 +467,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
     }
   }
   #   Convert to a 3 by `length(colors)` matrix of RGB values
-  rgb.vals <- sapply(X = colors, FUN = col2rgb)
+  rgb.vals <- sapply(X = colors, FUN = grDevices::col2rgb)
   if (nrow(x = rgb.vals) != 3) {
     rgb.vals <- t(x = rgb.vals)
   }
@@ -478,7 +487,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
       dimnames = list(c('red', 'green', 'blue'), 'blend')
     )
   } else {
-    result <- rgb(
+    result <- grDevices::rgb(
       matrix(data = blend, ncol = 3),
       alpha = alpha.value,
       maxColorValue = 255
@@ -521,7 +530,7 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to be passed to theme()
 # @import ggplot2
 # @return A ggplot2 theme object
-# @seealso \code{\link{theme}}
+# @seealso \code{theme}
 # @import ggplot2
 # @export
 #
@@ -568,6 +577,8 @@ ResetPar <- function(...) {
 #
 # @return A ggplot-based violin plot
 #
+#' @importFrom stats rnorm
+#
 SingleVlnPlot <- function(
   feature,
   data,
@@ -587,6 +598,9 @@ SingleVlnPlot <- function(
   legend.position,
   remove.legend
 ) {
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
   set.seed(seed = 42)
   data$ident <- cell.ident
   if (do.sort) {
@@ -611,7 +625,7 @@ SingleVlnPlot <- function(
     data = data,
     mapping = aes(
       x = factor(x = ident),
-      y = eval(expr = parse(text = feature))
+      y = feature
     )
   ) +
     geom_violin(
@@ -635,10 +649,11 @@ SingleVlnPlot <- function(
     ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
-    xlab("Cell Type") +
+    xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
   } else {
@@ -667,6 +682,130 @@ SingleVlnPlot <- function(
   }
   return(plot)
 }
+
+# Plot a single feature on a joy plot
+#
+# @param feature Feature to plot
+# @param data Data to plot
+# @param cell.ident Idents to use
+# @param do.sort Sort identity classes (on the x-axis) by the average
+# expression of the attribute being potted
+# @param y.max Maximum Y value to plot
+# @param size.x.use X axis title font size
+# @param size.y.use Y axis title font size
+# @param size.title.use Main title font size
+# @param cols.use Colors to use for plotting
+# @param gene.names
+# @param y.log plot Y axis on log scale
+# @param x.lab.rot Rotate x-axis labels
+# @param y.lab.rot Rotate y-axis labels
+# @param legend.position Position the legend for the plot
+# @param remove.legend Remove the legend from the plot
+#
+# @return A ggplot-based violin plot
+#
+#' @importFrom stats rnorm
+#' @importFrom ggjoy geom_joy theme_joy
+#
+SingleJoyPlot <- function(
+  feature,
+  data,
+  cell.ident,
+  do.sort,
+  y.max,
+  size.x.use,
+  size.y.use,
+  size.title.use,
+  cols.use,
+  gene.names,
+  y.log,
+  x.lab.rot,
+  y.lab.rot,
+  legend.position,
+  remove.legend
+) {
+  set.seed(seed = 42)
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
+  data$ident <- cell.ident
+  if (do.sort) {
+    data$ident <- factor(
+      x = data$ident,
+      levels = names(x = rev(x = sort(x = tapply(
+        X = data[, feature],
+        INDEX = data$ident,
+        FUN = mean
+      ))))
+    )
+  }
+  if (y.log) {
+    noise <- rnorm(n = length(x = data[, feature])) / 200
+    data[, feature] <- data[, feature] + 1
+  } else {
+    noise <- rnorm(n = length(x = data[, feature])) / 100000
+  }
+  data[, feature] <- data[, feature] + noise
+  y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
+  plot <- ggplot(
+    data = data,
+    mapping = aes(
+        x = feature,
+        y = factor(ident)
+    )
+  ) +
+    geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
+  scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+  scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+  plot <- plot+theme(
+      legend.position = legend.position,
+      axis.title.x = element_text(
+        face = "bold",
+        colour = "#990000",
+        size = size.x.use
+      ),
+      axis.title.y = element_text(
+        face = "bold",
+        colour = "#990000",
+        size = size.y.use
+      )
+    ) +
+    guides(fill = guide_legend(title = NULL)) +
+    #geom_jitter(height = 0, size = point.size.use) +
+    ylab("Identity") +
+    NoGrid() +
+    ggtitle(feature) +
+    theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
+  if (y.log) {
+    plot <- plot + scale_x_log10()
+  } else {
+    #plot <- plot + xlim(min(data[, feature]), y.max)
+  }
+  if (feature %in% gene.names) {
+    if (y.log) {
+      plot <- plot + xlab(label = "Log Expression level")
+    } else {
+      plot <- plot + xlab(label = "Expression level")
+    }
+  } else {
+    plot <- plot + xlab(label = "")
+  }
+  if (! is.null(x = cols.use)) {
+    plot <- plot + scale_fill_manual(values = cols.use)
+  }
+  if (x.lab.rot) {
+    plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  }
+  if (y.lab.rot) {
+    plot <- plot + theme(axis.text.x = element_text(angle = 90))
+  }
+  if (remove.legend) {
+    plot <- plot + theme(legend.position = "none")
+  }
+  return(plot)
+}
+
 
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
@@ -699,6 +838,10 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
+#
+#' @importFrom graphics axis mtext rect abline text title hist
+#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#
 heatmap2NoKey <- function (
   x,
   Rowv = TRUE,
@@ -1230,4 +1373,90 @@ heatmap2NoKey <- function (
   )
   invisible(x = retval)
   par(mar = oldMar)
+}
+
+# Documentation
+###############
+PlotDim <- function(
+  ndim,
+  object,
+  reduction.type,
+  use.scaled,
+  use.full,
+  cells.use,
+  num.genes,
+  group.by,
+  disp.min,
+  disp.max,
+  col.low,
+  col.mid,
+  col.high,
+  slim.col.label,
+  do.balanced,
+  remove.key,
+  cex.col,
+  cex.row,
+  group.label.loc,
+  group.label.rot,
+  group.cex,
+  group.spacing
+) {
+  if (is.numeric(x = (cells.use))) {
+    cells.use <- DimTopCells(
+      object = object,
+      dim.use = ndim,
+      reduction.type = reduction.type,
+      num.cells = cells.use,
+      do.balanced = do.balanced
+    )
+  } else {
+    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  }
+  genes.use <- rev(x = DimTopGenes(
+    object = object,
+    dim.use = ndim,
+    reduction.type = reduction.type,
+    num.genes = num.genes,
+    use.full = use.full,
+    do.balanced = do.balanced
+  ))
+  dim.scores <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "cell.embeddings"
+  )
+  dim.key <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "key"
+  )
+  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+  if (! use.scaled) {
+    data.use <- as.matrix(object@data[genes.use, cells.ordered])
+  } else {
+    data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  }
+  return(DoHeatmap(
+    object = object,
+    data.use = data.use,
+    cells.use = cells.use,
+    genes.use = genes.use,
+    group.by = group.by,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    col.low = col.low,
+    col.mid = col.mid,
+    col.high = col.high,
+    slim.col.label = slim.col.label,
+    remove.key = remove.key,
+    cex.col = cex.col,
+    cex.row = cex.row,
+    group.label.loc = group.label.loc,
+    group.label.rot = group.label.rot,
+    group.cex = group.cex,
+    group.spacing = group.spacing,
+    title = paste0(dim.key, ndim),
+    do.plot = FALSE
+  ))
 }
