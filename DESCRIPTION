@@ -51,7 +51,7 @@ Imports:
     tidyr,
     ggjoy
 LinkingTo: Rcpp, RcppEigen, RcppProgress
-License: GPL-3
+License: file LICENSE
 Collate: 
     'RcppExports.R'
     'seurat.R'
