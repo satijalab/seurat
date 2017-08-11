@@ -715,6 +715,10 @@ FindVariableGenes <- function(
   if (do.plot) {
     VariableGenePlot(
       object = object,
+      x.low.cutoff = x.low.cutoff,
+      x.high.cutoff = x.high.cutoff,
+      y.cutoff = y.cutoff,
+      y.high.cutoff = y.high.cutoff,
       ...
     )
   }

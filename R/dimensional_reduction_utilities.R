@@ -180,6 +180,30 @@ SetDimReduction <- function(
       slot,
       "<- new.data"
     )))
+    if (slot == "key") {
+      cell.embeddings=GetCellEmbeddings(object = object,reduction.type = reduction.type)
+      colnames(cell.embeddings)=paste(new.data,1:ncol(cell.embeddings),sep="")
+      
+      gene.loadings <- GetDimReduction(
+        object = object,
+        reduction.type = reduction.type,
+        slot = "gene.loadings"
+      )
+      gene.loadings.full <- GetDimReduction(
+        object = object,
+        reduction.type = reduction.type,
+        slot = "gene.loadings.full"
+      )
+      
+      if (length(gene.loadings > 0)) {
+        colnames(gene.loadings)=paste(new.data,1:ncol(gene.loadings),sep="")
+        object=SetDimReduction(object,reduction.type = reduction.type, slot = "gene.loadings", new.data = gene.loadings)
+      }
+      if (length(gene.loadings.full > 0)) {
+        colnames(gene.loadings.full)=paste(new.data,1:ncol(gene.loadings.full),sep="")
+        object=SetDimReduction(object,reduction.type = reduction.type, slot = "gene.loadings.full", new.data = gene.loadings.full)
+      }
+    }
   } else {
     new.dr <- new(Class = "dim.reduction")
     eval(expr = parse(text = paste0("new.dr@", slot, "<- new.data")))
