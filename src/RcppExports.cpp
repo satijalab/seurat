@@ -154,24 +154,26 @@ BEGIN_RCPP
 END_RCPP
 }
 // FastExpMean
-Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat);
-RcppExport SEXP _Seurat_FastExpMean(SEXP matSEXP) {
+Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progress);
+RcppExport SEXP _Seurat_FastExpMean(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastExpMean(mat));
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastExpMean(mat, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
 // FastLogVMR
-Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat);
-RcppExport SEXP _Seurat_FastLogVMR(SEXP matSEXP) {
+Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
+RcppExport SEXP _Seurat_FastLogVMR(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(FastLogVMR(mat));
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastLogVMR(mat, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -188,8 +190,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastCov", (DL_FUNC) &_Seurat_FastCov, 2},
     {"_Seurat_FastCovMats", (DL_FUNC) &_Seurat_FastCovMats, 3},
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
-    {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 1},
-    {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 1},
+    {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
+    {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {NULL, NULL, 0}
 };
 

@@ -260,11 +260,16 @@ Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
 
 /* Calculates the row means of the logged values in non-log space */
 //[[Rcpp::export]]
-Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat){
+Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowmeans(mat.rows());
   mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene means" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
     double rm = 0;
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
       rm += expm1(it.value());
@@ -278,11 +283,16 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat){
 /* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 log-space) */
 //[[Rcpp::export]]
-Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat){
+Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowdisp(mat.rows());
   mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene variance to mean ratios" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
     double rm = 0;
     double v = 0;
     int nnZero = 0;
@@ -296,6 +306,7 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat){
     }
     v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
     rowdisp[k] = log(v/rm);
+
   }
   return(rowdisp);
 }

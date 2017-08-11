@@ -626,6 +626,7 @@ SampleUMI <- function(
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param do.cpp Run c++ version of mean.function and dispersion.function if they
 #' exist.
+#' @param display.progress show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
@@ -652,6 +653,7 @@ FindVariableGenes <- function(
   do.recalc = TRUE,
   sort.results = TRUE,
   do.cpp = TRUE,
+  display.progress = TRUE,
   ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
@@ -677,9 +679,9 @@ FindVariableGenes <- function(
       if(class(data) != "dgCMatrix"){
         data <- as(as.matrix(data), "dgCMatrix")
       }
-      gene.mean <- FastExpMean(data)
+      gene.mean <- FastExpMean(data, display.progress)
       names(gene.mean) <- genes.use
-      gene.dispersion <- FastLogVMR(data)
+      gene.dispersion <- FastLogVMR(data, display.progress)
       names(gene.dispersion) <- genes.use
     }
     if(!do.cpp){
@@ -689,8 +691,10 @@ FindVariableGenes <- function(
       gene.dispersion.scaled <- gene.mean
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-      print("Calculating gene dispersion")
-      pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      if(display.progress){
+        print("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      }
       for (i in 1:max.bin) {
         my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
         my.inds <- my.inds[my.inds <= length(x = genes.use)]
@@ -698,9 +702,13 @@ FindVariableGenes <- function(
         data.iter <- data[genes.iter, , drop = F]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-        setTxtProgressBar(pb = pb, value = i)
+        if(display.progress) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
       }
-      close(con = pb)
+      if(display.progress){
+        close(con = pb)
+      }
     }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
