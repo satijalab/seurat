@@ -264,7 +264,7 @@ RunTSNE <- function(
   }
   if (add.iter > 0) {
     data.tsne <- tsne(
-      x = data.use,
+      X = data.use,
       initial_config = as.matrix(x = data.tsne),
       max_iter = add.iter,
       ...
@@ -1056,13 +1056,13 @@ RunDiffusion <- function(
   }
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.type,
+    reduction.type = reduction.use,
     slot = "cell.embeddings",
     new.data = as.matrix(x = data.diffusion)
   )
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.type,
+    reduction.type = reduction.use,
     slot = "key",
     new.data = "DM"
   )

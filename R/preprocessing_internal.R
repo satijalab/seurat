@@ -220,7 +220,7 @@ RegressOutNBreg <- function(
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop=FALSE]
-  latent.data <- FetchData(boject = object, vars.all = latent.vars)
+  latent.data <- FetchData(object = object, vars.all = latent.vars)
   bin.size <- 128
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)

@@ -185,8 +185,8 @@ FindMarkers <- function(
       cells.2 = cells.2,
       genes.use = genes.use,
       latent.vars = latent.vars,
-      print.bar = print.bar,
-      min.cells # PoissonDETest doesn't have something for min.cells
+      print.bar = print.bar
+      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
   #return results
@@ -820,8 +820,8 @@ NegBinomRegDETest <- function(
           y = to.test.data[j, ],
           theta = theta.fit[j],
           latent.data = to.test,
-          com.frac = latent.vars,
-          grp.frac = 'NegBinomRegDETest.group'
+          com.fac = latent.vars,
+          grp.fac = 'NegBinomRegDETest.group'
         ))
       }
     )
