@@ -430,7 +430,8 @@ RunCCA <- function(
   num.cc = 20,
   genes.use,
   scale.data = TRUE,
-  rescale.groups = FALSE
+  rescale.groups = FALSE,
+  ...
 ) {
   if (! missing(x = object2) && (! missing(x = group1) || ! missing(x = group2))) {
     warning("Both object2 and group set. Continuing with objects defining the groups")
@@ -536,7 +537,8 @@ RunCCA <- function(
       object1 = object,
       object2 = object2,
       do.scale = FALSE,
-      do.center = FALSE
+      do.center = FALSE,
+      ...
     )
     # to improve, to pull the same normalization and scale params as previously used
     combined.object <- ScaleData(object = combined.object)
