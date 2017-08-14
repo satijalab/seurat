@@ -183,7 +183,8 @@ SetDimReduction <- function(
     if (slot == "key") {
       cell.embeddings=GetCellEmbeddings(object = object,reduction.type = reduction.type)
       colnames(cell.embeddings)=paste(new.data,1:ncol(cell.embeddings),sep="")
-      
+      object=SetDimReduction(object,reduction.type = reduction.type, slot = "cell.embeddings", new.data = cell.embeddings)
+
       gene.loadings <- GetDimReduction(
         object = object,
         reduction.type = reduction.type,
@@ -194,7 +195,6 @@ SetDimReduction <- function(
         reduction.type = reduction.type,
         slot = "gene.loadings.full"
       )
-      
       if (length(gene.loadings > 0)) {
         colnames(gene.loadings)=paste(new.data,1:ncol(gene.loadings),sep="")
         object=SetDimReduction(object,reduction.type = reduction.type, slot = "gene.loadings", new.data = gene.loadings)
