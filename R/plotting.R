@@ -2092,7 +2092,7 @@ VizICA <- function(
   VizDimReduction(
     object = object,
     reduction.type = "ica",
-    dims.use = pcs.use,
+    dims.use = ics.use,
     num.genes = num.genes,
     use.full = use.full,
     font.size = font.size,
