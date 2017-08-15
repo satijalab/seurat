@@ -4,8 +4,8 @@
 #' @rdname Seurat-deprecated
 #' @name Seurat-deprecated
 #' @param ... Parameters to be passed to the modern version of the function
-#' @export vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
-#' @aliases vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
+#' @export vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut VizClassification
+#' @aliases vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut VizClassification
 #' @section Details:
 #' \tabular{rl}{
 #'   \code{vlnPlot} \tab now a synonym for \code{VlnPlot}\cr
@@ -94,6 +94,7 @@
 #'   \code{minusr} \tab now a synonym for \code{SubsetRow}\cr
 #'   \code{minusc} \tab now a synonym for \code{SubsetColumn}\cr
 #'   \code{RegressOut} \tab now part of \code{ScaleData}\cr
+#'   \code{VizClassification} \tab has been removed without replacement\cr
 #' }
 #'
 vlnPlot <- function(...) {
@@ -602,4 +603,11 @@ RegressOut <- function(...) {
     msg = "RegressOut functionality has been incorporated into ScaleData. See ?ScaleData for usage details."
   )
   stop()
+}
+
+VizClassification <- function(...) {
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'VizClassification has been removed without replacement'
+  )
 }

@@ -1266,7 +1266,7 @@ heatmap2NoKey <- function (
   ##else plot.new()
   key <- FALSE
   if (! is.null(x = main))
-    title(main = main, cex.main = 1.5 * op[["cex.main"]])
+    title(main = main, cex.main = 1.5 * par()[["cex.main"]])
   if (key) {
     par(mar = c(5, 4, 2, 1), cex = 0.75)
     tmpbreaks <- breaks

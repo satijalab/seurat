@@ -2604,37 +2604,37 @@ VariableGenePlot <- function(
   }
 }
 
-#' Highlight classification results
-#'
-#' This function is useful to view where proportionally the clusters returned from
-#' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
-#' function to color clusters in object.
-#'
-#' @param object Seurat object on which the classifier was trained and
-#' onto which the classification results will be highlighted
-#' @param clusters vector of cluster ids (output of ClassifyCells)
-#' @param ... additional parameters to pass to FeaturePlot()
-#'
-#' @return Returns a feature plot with clusters highlighted by proportion of cells
-#' mapping to that cluster
-#'
-#' @export
-#'
-VizClassification <- function(object, clusters, ...) {
-  cluster.dist <- prop.table(x = table(out)) # What is out?
-  object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
-  for (cluster in 1:length(x = cluster.dist)) {
-    cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
-    if (length(x = cells.to.highlight) > 0) {
-      object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
-    }
-  }
-  if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
-    return(FeaturePlot(object, "Classification", ...))
-  }
-  cols.use = c("#f6f6f6", "black")
-  return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
-}
+# #' Highlight classification results
+# #'
+# #' This function is useful to view where proportionally the clusters returned from
+# #' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
+# #' function to color clusters in object.
+# #'
+# #' @param object Seurat object on which the classifier was trained and
+# #' onto which the classification results will be highlighted
+# #' @param clusters vector of cluster ids (output of ClassifyCells)
+# #' @param ... additional parameters to pass to FeaturePlot()
+# #'
+# #' @return Returns a feature plot with clusters highlighted by proportion of cells
+# #' mapping to that cluster
+# #'
+# #' @export
+# #'
+# VizClassification <- function(object, clusters, ...) {
+#   cluster.dist <- prop.table(x = table(out)) # What is out?
+#   object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
+#   for (cluster in 1:length(x = cluster.dist)) {
+#     cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
+#     if (length(x = cells.to.highlight) > 0) {
+#       object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
+#     }
+#   }
+#   if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
+#     return(FeaturePlot(object, "Classification", ...))
+#   }
+#   cols.use = c("#f6f6f6", "black")
+#   return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
+# }
 
 #' Plot phylogenetic tree
 #'
