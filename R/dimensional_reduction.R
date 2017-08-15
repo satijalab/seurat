@@ -437,10 +437,16 @@ ProjectPCA <- function(
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
+#' @param ... Extra parameters to MergeSeurat
+#'
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
 #' one object is passed, the same object is returned. If two are passed, a
 #' combined object is returned.
+#'
+#' @seealso \code{MergeSeurat}
+#'
 #' @export
+#'
 RunCCA <- function(
   object,
   object2,

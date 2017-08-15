@@ -5,7 +5,7 @@
 \title{Perform Canonical Correlation Analysis}
 \usage{
 RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
-  scale.data = TRUE, rescale.groups = FALSE)
+  scale.data = TRUE, rescale.groups = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,6 +28,8 @@ that are also present in both objects.}
 \item{scale.data}{Use the scaled data from the object}
 
 \item{rescale.groups}{Rescale each set of cells independently}
+
+\item{...}{Extra parameters to MergeSeurat}
 }
 \value{
 Returns Seurat object with the CCA stored in the @dr$cca slot. If
@@ -38,4 +40,7 @@ combined object is returned.
 Runs a canonical correlation analysis using a diagonal implementation of CCA.
 For details about stored CCA calculation parameters, see
 \code{PrintCCAParams}.
+}
+\seealso{
+\code{MergeSeurat}
 }
