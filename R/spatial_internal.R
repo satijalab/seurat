@@ -123,9 +123,9 @@ CalcInsitu <- function(
     write.table(
       x = insilico.stain,
       file = paste0(write.dir, gene, ".txt"),
-      quote=FALSE,
-      row.names=FALSE,
-      col.names=FALSE
+      quote = FALSE,
+      row.names = FALSE,
+      col.names = FALSE
     )
   }
   if (do.plot) {
@@ -133,8 +133,8 @@ CalcInsitu <- function(
       x = insilico.stain,
       Rowv = NA,
       Colv = NA,
-      col = col.use,
-      main=title.use
+      color = col.use,
+      main = title.use
     )
   }
   if (do.return) {
@@ -251,7 +251,7 @@ MapCell <- function(
       Rowv = NA,
       Colv = NA,
       txt = txt.matrix,
-      col = BlackAndWhite()
+      color = BlackAndWhite()
     )
     aheatmap(x = scale.probs, Rowv = NA, Colv = NA)
     ResetPar()
@@ -382,7 +382,7 @@ FitGeneMix <- function(
     nCol <- 2
     num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
     par(mfrow = c(num.row, nCol))
-    plot.mixEM(x = mixtools.fit, which = 2)
+    plot.mixEM(x = mixtools.fit, whichplots = 2)
     plot.data <- as.numeric(x = object@imputed[gene, ])
     if (! plot.with.imputed) {
       plot.data <- as.numeric(x = object@data[gene, ])
