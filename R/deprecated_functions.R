@@ -4,17 +4,15 @@
 #' @rdname Seurat-deprecated
 #' @name Seurat-deprecated
 #' @param ... Parameters to be passed to the modern version of the function
-#' @export vlnPlot subsetData mean.var.plot pca PCA project.pca print.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha reorder.ident average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test diff.t.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot dim.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
-#' @aliases vlnPlot subsetData mean.var.plot pca PCA project.pca print.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha reorder.ident average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test diff.t.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot dim.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
+#' @export vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
+#' @aliases vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut
 #' @section Details:
 #' \tabular{rl}{
 #'   \code{vlnPlot} \tab now a synonym for \code{VlnPlot}\cr
 #'   \code{subsetData} \tab now a synonym for \code{SubsetData}\cr
-#'   \code{mean.var.plot} \tab now a synonym for \code{MeanVarPlot}\cr
 #'   \code{pca} \tab now a synonym for \code{RunPCA}\cr
 #'   \code{PCA} \tab now a synonym for \code{PCA}\cr
 #'   \code{project.pca} \tab now a synonym for \code{ProjectPCA}\cr
-#'   \code{print.pca} \tab now a synonym for \code{PrintPCA}\cr
 #'   \code{viz.pca} \tab now a synonym for \code{VizPCA}\cr
 #'   \code{set.ident} \tab now a synonym for \code{SetIdent}\cr
 #'   \code{pca.plot} \tab now a synonym for \code{PCAPlot}\cr
@@ -37,7 +35,6 @@
 #'   \code{ica} \tab now a synonym for \code{RunICA}\cr
 #'   \code{ICA} \tab now a synonym for \code{RunICA}\cr
 #'   \code{cluster.alpha} \tab now a synonym for \code{AverageDetectionRate}\cr
-#'   \code{reorder.ident} \tab now a synonym for \code{ReorderIdent}\cr
 #'   \code{average.pca} \tab now a synonym for \code{AveragePCA}\cr
 #'   \code{average.expression} \tab now a synonym for \code{AverageExpression}\cr
 #'   \code{icTopGenes} \tab now a synonym for \code{ICTopGenes}\cr
@@ -51,7 +48,6 @@
 #'   \code{tobit.test} \tab now a synonym for \code{TobitTest}\cr
 #'   \code{batch.gene} \tab has been removed and may be restored at a later date\cr
 #'   \code{marker.test} \tab now a synonym for \code{MarkerTest}\cr
-#'   \code{diff.t.test} \tab now a synonym for \code{DiffTTest}\cr
 #'   \code{which.cells} \tab now a synonym for \code{WhichCells}\cr
 #'   \code{set.all.ident} \tab now a synonym for \code{SetAllIdent}\cr
 #'   \code{rename.ident} \tab now a synonym for \code{RenameIdent}\cr
@@ -70,7 +66,6 @@
 #'   \code{feature.plot.keynote} \tab has been removed without replacement\cr
 #'   \code{feature.heatmap} \tab now a synonym for \code{FeatureHeatmap}\cr
 #'   \code{ica.plot} \tab now a synonym for \code{ICAPlot}\cr
-#'   \code{dim.plot} \tab now a synonym for \code{DimPlot}\cr
 #'   \code{spatial.de} \tab has been removed and may be replaced at a later date\cr
 #'   \code{DBclust_dimension} \tab now a synonym for \code{DBClustDimension}\cr
 #'   \code{Kclust_dimension} \tab now a synonym for \code{KClustDimension}\cr
@@ -111,11 +106,6 @@ subsetData <- function(...) {
     SubsetData(...)
 }
 
-mean.var.plot <- function(...) {
-    .Deprecated("MeanVarPlot", package="Seurat")
-    MeanVarPlot(...)
-}
-
 pca <- function(...) {
     .Deprecated("RunPCA", package="Seurat")
     RunPCA(...)
@@ -129,11 +119,6 @@ PCA <- function(...) {
 project.pca <- function(...) {
     .Deprecated("ProjectPCA", package="Seurat")
     ProjectPCA(...)
-}
-
-print.pca <- function(...) {
-    .Deprecated("PrintPCA", package="Seurat")
-    PrintPCA(...)
 }
 
 viz.pca <- function(...) {
@@ -256,11 +241,6 @@ cluster.alpha <- function(...) {
     AverageDetectionRate(...)
 }
 
-reorder.ident <- function(...) {
-    .Deprecated("ReorderIdent", package="Seurat")
-    ReorderIdent(...)
-}
-
 average.pca <- function(...) {
     .Deprecated("AveragePCA", package="Seurat")
     AveragePCA(...)
@@ -329,11 +309,6 @@ batch.gene <- function(...) {
 marker.test <- function(...) {
     .Deprecated("MarkerTest ", package="Seurat")
     MarkerTest(...)
-}
-
-diff.t.test <- function(...) {
-    .Deprecated("DiffTTest", package="Seurat")
-    DiffTTest(...)
 }
 
 which.cells <- function(...) {
@@ -435,11 +410,6 @@ feature.heatmap <- function(...) {
 ica.plot <- function(...) {
     .Deprecated("ICAPlot ", package="Seurat")
     ICAPlot(...)
-}
-
-dim.plot <- function(...) {
-    .Deprecated("DimPlot ", package="Seurat")
-    DimPlot(...)
 }
 
 spatial.de <- function(...) {

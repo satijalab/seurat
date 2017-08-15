@@ -4,11 +4,9 @@
 \alias{Seurat-deprecated}
 \alias{vlnPlot}
 \alias{subsetData}
-\alias{mean.var.plot}
 \alias{pca}
 \alias{PCA}
 \alias{project.pca}
-\alias{print.pca}
 \alias{viz.pca}
 \alias{set.ident}
 \alias{pca.plot}
@@ -32,7 +30,6 @@
 \alias{ica}
 \alias{ICA}
 \alias{cluster.alpha}
-\alias{reorder.ident}
 \alias{average.pca}
 \alias{average.expression}
 \alias{icTopGenes}
@@ -46,7 +43,6 @@
 \alias{tobit.test}
 \alias{batch.gene}
 \alias{marker.test}
-\alias{diff.t.test}
 \alias{which.cells}
 \alias{set.all.ident}
 \alias{rename.ident}
@@ -65,7 +61,6 @@
 \alias{feature.plot.keynote}
 \alias{feature.heatmap}
 \alias{ica.plot}
-\alias{dim.plot}
 \alias{spatial.de}
 \alias{DBclust_dimension}
 \alias{Kclust_dimension}
@@ -108,11 +103,9 @@ These functions are provided for compatibility with older version of the Seurat 
 \tabular{rl}{
   \code{vlnPlot} \tab now a synonym for \code{VlnPlot}\cr
   \code{subsetData} \tab now a synonym for \code{SubsetData}\cr
-  \code{mean.var.plot} \tab now a synonym for \code{MeanVarPlot}\cr
   \code{pca} \tab now a synonym for \code{RunPCA}\cr
   \code{PCA} \tab now a synonym for \code{PCA}\cr
   \code{project.pca} \tab now a synonym for \code{ProjectPCA}\cr
-  \code{print.pca} \tab now a synonym for \code{PrintPCA}\cr
   \code{viz.pca} \tab now a synonym for \code{VizPCA}\cr
   \code{set.ident} \tab now a synonym for \code{SetIdent}\cr
   \code{pca.plot} \tab now a synonym for \code{PCAPlot}\cr
@@ -135,7 +128,6 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{ica} \tab now a synonym for \code{RunICA}\cr
   \code{ICA} \tab now a synonym for \code{RunICA}\cr
   \code{cluster.alpha} \tab now a synonym for \code{AverageDetectionRate}\cr
-  \code{reorder.ident} \tab now a synonym for \code{ReorderIdent}\cr
   \code{average.pca} \tab now a synonym for \code{AveragePCA}\cr
   \code{average.expression} \tab now a synonym for \code{AverageExpression}\cr
   \code{icTopGenes} \tab now a synonym for \code{ICTopGenes}\cr
@@ -149,7 +141,6 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{tobit.test} \tab now a synonym for \code{TobitTest}\cr
   \code{batch.gene} \tab has been removed and may be restored at a later date\cr
   \code{marker.test} \tab now a synonym for \code{MarkerTest}\cr
-  \code{diff.t.test} \tab now a synonym for \code{DiffTTest}\cr
   \code{which.cells} \tab now a synonym for \code{WhichCells}\cr
   \code{set.all.ident} \tab now a synonym for \code{SetAllIdent}\cr
   \code{rename.ident} \tab now a synonym for \code{RenameIdent}\cr
@@ -168,7 +159,6 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{feature.plot.keynote} \tab has been removed without replacement\cr
   \code{feature.heatmap} \tab now a synonym for \code{FeatureHeatmap}\cr
   \code{ica.plot} \tab now a synonym for \code{ICAPlot}\cr
-  \code{dim.plot} \tab now a synonym for \code{DimPlot}\cr
   \code{spatial.de} \tab has been removed and may be replaced at a later date\cr
   \code{DBclust_dimension} \tab now a synonym for \code{DBClustDimension}\cr
   \code{Kclust_dimension} \tab now a synonym for \code{KClustDimension}\cr
