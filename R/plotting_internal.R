@@ -891,6 +891,7 @@ heatmap2NoKey <- function (
   axRowCol="black",
   lwid = NULL,
   dimTitle = NULL,
+  pc_title = NULL,
   ...
 ) {
   scale01 <- function(x, low = min(x), high = max(x)) {
@@ -1084,38 +1085,6 @@ heatmap2NoKey <- function (
   max.breaks <- max(breaks)
   x[x < min.breaks] <- min.breaks
   x[x > max.breaks] <- max.breaks
-  #  if (missing(lhei) || is.null(lhei))
-  #    lhei <- c(keysize, 4)
-  #  if (missing(lwid) || is.null(lwid))
-  #    lwid <- c(keysize, 4)
-  #  if (missing(lmat) || is.null(lmat)) {
-  #    lmat <- rbind(4:3, 2:1)
-  #    if (!missing(ColSideColors)) {
-  #      if (!is.character(ColSideColors) || length(ColSideColors) !=
-  #        nc)
-  #        stop("'ColSideColors' must be a character vector of length ncol(x)")
-  #      lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] +
-  #        1)
-  #      lhei <- c(lhei[1], 0.2, lhei[2])
-  #    }
-  #    if (!missing(RowSideColors)) {
-  #      if (!is.character(RowSideColors) || length(RowSideColors) !=
-  #        nr)
-  #        stop("'RowSideColors' must be a character vector of length nrow(x)")
-  #      lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) -
-  #        1), 1), lmat[, 2] + 1)
-  #      lwid <- c(lwid[1], 0.2, lwid[2])
-  #    }
-  #    lmat[is.na(lmat)] <- 0
-  #  }
-  #  if (length(lhei) != nrow(lmat))
-  #    stop("lhei must have length = nrow(lmat) = ", nrow(lmat))
-  #  if (length(lwid) != ncol(lmat))
-  #    stop("lwid must have length = ncol(lmat) =", ncol(lmat))
-  #  op <- par(no.readonly = TRUE)
-  #  on.exit(par(op))
-  #  layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
-
   if (! missing(x = RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(x = rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
@@ -1145,6 +1114,9 @@ heatmap2NoKey <- function (
   # add pc number as title if plotting pc heatmaps
   if(is.null(x = dimTitle)) {
     dimTitle <- ""
+  }
+  if (is.null(x = pc_title)) {
+    pc_title <- ''
   }
   #print(dimTitle)
   image(
