@@ -16,8 +16,8 @@ dim.reduction <- setClass(
 )
 
 # Prep data for dimensional reduction
-# 
-# Common checks and preparatory steps before running certain dimensional 
+#
+# Common checks and preparatory steps before running certain dimensional
 # reduction techniques
 #
 # @param object        Seurat object
@@ -35,7 +35,7 @@ PrepDR <- function(
 ) {
 
   if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
-    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector 
+    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector
           of genes names in genes.use and retry.")
   }
   if (use.imputed) {
@@ -56,7 +56,7 @@ PrepDR <- function(
 #
 # @param i            Dimension for which to pull genes
 # @param dim.scores   Matrix containing the dimensional reduction scores
-# @param do.balanced  Whether to pull genes associated with both large and small 
+# @param do.balanced  Whether to pull genes associated with both large and small
 #                     scores (+/-)
 # @param num.genes    Number of genes to return
 
@@ -80,12 +80,12 @@ GetTopGenes <- function(
   }
 }
 
-# Check group exists either as an ident or that all cells passed as vector are 
+# Check group exists either as an ident or that all cells passed as vector are
 # present
 #
 # @param object    Seurat object
 # @param group     Identity or vector of cell names
-# @param group.id  Corresponds to the the either group1 or group2 parameter from 
+# @param group.id  Corresponds to the the either group1 or group2 parameter from
 #                  RunCCA
 
 CheckGroup <- function(object, group, group.id) {
@@ -107,9 +107,9 @@ CheckGroup <- function(object, group, group.id) {
 # Check that genes have non-zero variance
 #
 # @param data.use   Gene expression matrix (genes are rows)
-# @param genes.use  Genes in expression matrix to check 
+# @param genes.use  Genes in expression matrix to check
 #
-# @return           Returns a vector of genes that is the subset of genes.use 
+# @return           Returns a vector of genes that is the subset of genes.use
 #                   that have non-zero variance
 #
 CheckGenes <- function(data.use, genes.use) {
@@ -121,15 +121,15 @@ CheckGenes <- function(data.use, genes.use) {
 
 # Run the diagonal canonical correlation procedure
 #
-# @param mat1         First matrix 
+# @param mat1         First matrix
 # @param mat2         Second matrix
-# @param standardize  Standardize matrices - scales columns to have unit 
+# @param standardize  Standardize matrices - scales columns to have unit
 #                     variance and mean 0
 # @param k            Number of canonical correlation vectors (CCs) to calculate
 #
-# @return             Returns the canonical correlation vectors - corresponding 
-#                     to the left and right singular vectors after SVD - as well 
-#                     as the singular values. 
+# @return             Returns the canonical correlation vectors - corresponding
+#                     to the left and right singular vectors after SVD - as well
+#                     as the singular values.
 #
 CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20) {
   set.seed(seed = 42)
@@ -144,18 +144,18 @@ CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20) {
 
 # Calculate percent variance explained
 #
-# Projects dataset onto the orthonormal space defined by some dimensional 
-# reduction technique (e.g. PCA, CCA) and calculates the percent of the 
-# variance in gene expression explained by each cell in that lower dimensional 
+# Projects dataset onto the orthonormal space defined by some dimensional
+# reduction technique (e.g. PCA, CCA) and calculates the percent of the
+# variance in gene expression explained by each cell in that lower dimensional
 # space.
 #
 # @param object          Seurat object
 # @param reduction.type  Name of the reduction to use for the projection
-# @param dims.use        Vector of dimensions to project onto (default is the 
+# @param dims.use        Vector of dimensions to project onto (default is the
 #                        1:number stored for given technique)
 # @param genes.use       vector of genes to use in calculation
 #
-# @return                Returns a Seurat object wih the variance in gene 
+# @return                Returns a Seurat object wih the variance in gene
 #                        expression explained by each cell in a low dimensional
 #                        space stored as metadata.
 #
@@ -185,13 +185,13 @@ CalcProjectedVar <- function(
 }
 
 # Calculate a low dimensional projection of the data. First forms an orthonormal
-# basis of the gene loadings via QR decomposition, projects the data onto that 
-# basis, and reconstructs the data using on the dimensions specified. 
+# basis of the gene loadings via QR decomposition, projects the data onto that
+# basis, and reconstructs the data using on the dimensions specified.
 #
 # @param object          Seurat object
-# @param reduction.type  Type of dimensional reduction to use 
+# @param reduction.type  Type of dimensional reduction to use
 # @param dims.use        Dimensions to use in calculation
-# @param genes.use       Genes to consider when calculating 
+# @param genes.use       Genes to consider when calculating
 #
 # @return                Returns a matrix with the low dimensional reconstruction
 #
@@ -205,14 +205,12 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
   x.vec <- GetGeneLoadings(
     object = object,
     reduction.type = reduction.type,
-    dims.use = dims.use
-  )[genes.use, ]
+    dims.use = dims.use,
+    genes.use = genes.use
+  )
   # form orthonormal basis via QR
   x.norm <- qr.Q(qr = qr(x = x.vec))
-  if (missing(x = genes.use)) {
-    genes.use <- rownames(x = x.vec)
-  }
-  data.use <- object@scale.data[genes.use, ]
+  data.use <- object@scale.data[rownames(x.vec), ]
   # project data onto othronormal basis
   projected.data <- t(x = data.use) %*% x.norm
   # reconstruct data using only dims specified
