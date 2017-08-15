@@ -302,9 +302,9 @@ RegressOutNBreg <- function(
     setTxtProgressBar(pb, i)
   }
   close(pb)
-  dimnames(pr) <- dimnames(cm)
+  dimnames(x = pr) <- dimnames(x = cm)
   pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
   pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- r
+  object@scale.data <- pr
   return(object)
 }

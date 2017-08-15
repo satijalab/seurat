@@ -930,7 +930,7 @@ AlignSubspace <- function(
     alignment <- dtw(
       x = align.1,
       y = align.2,
-      keep = TRUE,
+      keep.internals = TRUE,
       dist.method = metric.use
     )
     alignment.map <- data.frame(alignment$index1, alignment$index2)
@@ -1044,7 +1044,7 @@ RunDiffusion <- function(
                           ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
-    diffuse( 
+    diffuse(
       D = data.dist,
       neigen = max.dim,
       maxdim = max.dim,

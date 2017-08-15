@@ -80,7 +80,7 @@ JackStraw <- function(
     FUN = function(x)
       return(JackRandom(
         scaled.data = data.use.scaled,
-        prop = prop.freq,
+        prop.use = prop.freq,
         r1.use = 1,
         r2.use = num.pc,
         seed.use = x,
