@@ -158,6 +158,7 @@ SingleFeaturePlot <- function(
   no.legend,
   dark.theme
 ) {
+  globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat')
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
@@ -278,6 +279,7 @@ BlendPlot <- function(
   no.legend,
   dark.theme
 ) {
+  globalVariables(names = c('x', 'y'), package = 'Seurat')
   num.cols <- length(x = cols.use)
   #   Create a vector of colors that weren't provided
   cols.not.provided <- colors(distinct = TRUE)
@@ -598,6 +600,7 @@ SingleVlnPlot <- function(
   legend.position,
   remove.legend
 ) {
+  globalVariables(names = 'ident', package = 'Seurat')
   feature.name <- colnames(data)
   colnames(data) <- "feature"
   feature <- "feature"
@@ -724,6 +727,7 @@ SingleJoyPlot <- function(
   legend.position,
   remove.legend
 ) {
+  globalVariables(names = 'ident', package = 'Seurat')
   set.seed(seed = 42)
   feature.name <- colnames(data)
   colnames(data) <- "feature"

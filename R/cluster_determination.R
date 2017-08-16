@@ -486,6 +486,7 @@ BuildClusterTree <- function(
   do.reorder = FALSE,
   reorder.numeric = FALSE
 ) {
+  globalVariables(names = 'WeightedEuclideanDist', package = 'Seurat')
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {

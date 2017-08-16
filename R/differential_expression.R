@@ -49,6 +49,7 @@ FindMarkers <- function(
   latent.vars = "nUMI",
   min.cells = 3
 ) {
+  globalVariables(names = 'avg_diff', package = 'Seurat')
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   if (max.cells.per.ident < Inf) {
     object <- SubsetData(
@@ -252,6 +253,7 @@ FindAllMarkers <- function(
   min.cells = 3,
   latent.vars = "nUMI"
 ) {
+  globalVariables(names = c('myAUC', 'p_val', 'avg_diff'), package = 'Seurat')
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   ident.use <- object@ident
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
@@ -406,10 +408,10 @@ FindAllMarkersNode <- function(
   random.seed = 1,
   min.cells = 3
 ) {
+  globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat')
   if(length(object@cluster.tree) == 0){
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
   }
-
   genes.use <- SetIfNull(x = genes.use, default = rownames(object@data))
   node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
   ident.use <- object@ident
@@ -864,6 +866,7 @@ PoissonDETest <- function(
   latent.vars = NULL,
   print.bar = TRUE
 ) {
+  globalVariables(names = 'min.cells', package = 'Seurat')
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
