@@ -445,6 +445,11 @@ DoKMeans <- function(
   return(object)
 }
 
+globalVariables(
+  names = 'WeightedEuclideanDist',
+  package = 'Seurat',
+  add = TRUE
+)
 #' Phylogenetic Analysis of Identity Classes
 #'
 #' Constructs a phylogenetic tree relating the 'average' cell from each
@@ -474,7 +479,6 @@ DoKMeans <- function(
 #'
 #' @importFrom ape as.phylo
 #' @importFrom stats dist hclust
-#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -487,11 +491,6 @@ BuildClusterTree <- function(
   do.reorder = FALSE,
   reorder.numeric = FALSE
 ) {
-  globalVariables(
-    names = 'WeightedEuclideanDist',
-    package = 'Seurat',
-    add = FALSE
-  )
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {

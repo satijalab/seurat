@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #' Gene expression markers of identity classes
 #'
 #' Finds markers (differentially expressed genes) for identity classes
@@ -30,7 +34,6 @@
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #'
 #' @import pbapply
-#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -50,7 +53,6 @@ FindMarkers <- function(
   latent.vars = "nUMI",
   min.cells = 3
 ) {
-  globalVariables(names = 'avg_diff', package = 'Seurat', add = FALSE)
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   if (max.cells.per.ident < Inf) {
     object <- SubsetData(
@@ -205,6 +207,11 @@ FindMarkers <- function(
   return(to.return)
 }
 
+globalVariables(
+  names = c('myAUC', 'p_val', 'avg_diff'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Gene expression markers for all identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
@@ -233,8 +240,6 @@ FindMarkers <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param latent.vars remove the effects of these variables
 #'
-#' @importFrom utils globalVariables
-#'
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #'
@@ -256,11 +261,6 @@ FindAllMarkers <- function(
   min.cells = 3,
   latent.vars = "nUMI"
 ) {
-  globalVariables(
-    names = c('myAUC', 'p_val', 'avg_diff'),
-    package = 'Seurat',
-    add = FALSE
-  )
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   ident.use <- object@ident
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
@@ -366,6 +366,7 @@ FindMarkersNode <- function(
   return(to.return)
 }
 
+globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' Find all markers for a node
 #'
 #' This function finds markers for all splits at or below the specified node
@@ -396,7 +397,6 @@ FindMarkersNode <- function(
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #'
 #' @importFrom ape drop.tip
-#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -416,7 +416,6 @@ FindAllMarkersNode <- function(
   random.seed = 1,
   min.cells = 3
 ) {
-  globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = FALSE)
   if(length(object@cluster.tree) == 0){
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
   }
@@ -846,6 +845,7 @@ NegBinomRegDETest <- function(
   return(res)
 }
 
+globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -862,7 +862,6 @@ NegBinomRegDETest <- function(
 #' genes.
 #'
 #' @importFrom pbapply pbapply
-#' @importFrom utils globalVariables
 #' @importFrom stats var as.formula glm
 #'
 #' @export
@@ -875,7 +874,6 @@ PoissonDETest <- function(
   latent.vars = NULL,
   print.bar = TRUE
 ) {
-  globalVariables(names = 'min.cells', package = 'Seurat', add = FALSE)
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]

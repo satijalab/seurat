@@ -1,4 +1,5 @@
 #' @import methods
+#' @importFrom utils globalVariables
 NULL
 
 ################################################################################
