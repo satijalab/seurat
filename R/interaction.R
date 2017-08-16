@@ -656,13 +656,20 @@ WhichCells <- function(
   random.seed = 1
 ) {
   set.seed(seed = random.seed)
+  
+  if(!is.null(subset.name) && subset.name != "ident"){
+    object <- SetAllIdent(object, id = subset.name)
+  }
+  
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
   ident <- setdiff(x = ident, y = ident.remove)
+  
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
     stop(paste("Identity :", bad.idents, "not found.   "))
   }
+  
   cells.to.use <- character()
   for (id in ident) {
     cells.in.ident <- object@ident[cells.use]
@@ -674,24 +681,6 @@ WhichCells <- function(
     cells.to.use <- c(cells.to.use, cells.in.ident)
   }
   cells.use <- cells.to.use
-  if (! is.null(x = subset.name)){
-    subset.name <- as.character(subset.name)
-    data.use <- FetchData(
-      object = object,
-      vars.all = subset.name,
-      cells.use = cells.use
-    )
-    if (length(x = data.use) == 0) {
-      stop(paste("Error : ", id, " not found"))
-    }
-    subset.data <- data.use[, subset.name, drop = F]
-    if(! is.null(x = accept.value)) {
-      pass.inds <- which(x = subset.data == accept.value)
-    } else {
-      pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
-    }
-    cells.use <- rownames(x = data.use)[pass.inds]
-  }
   return(cells.use)
 }
 
