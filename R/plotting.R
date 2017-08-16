@@ -61,7 +61,7 @@ DoHeatmap <- function(
   group.spacing = 0.15,
   do.plot = TRUE
 ) {
-  globalVariables(names = c('cell', 'gene'), package = 'Seurat')
+  globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = FALSE)
   if (is.null(x = data.use)) {
     if (use.scaled) {
       data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
@@ -661,7 +661,8 @@ DotPlot <- function(
 ) {
   globalVariables(
     names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
-    package = 'Seurat'
+    package = 'Seurat',
+    add = FALSE
   )
   if (! missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -755,7 +756,8 @@ SplitDotPlotGG <- function(
 ) {
   globalVariables(
     names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
-    package = 'Seurat'
+    package = 'Seurat',
+    add = FALSE
   )
   if (! missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -1131,7 +1133,8 @@ FeatureHeatmap <- function(
 ) {
   globalVariables(
     names = c('gene', 'dim1', 'dim2', 'ident', 'cell', 'scaled.expression'),
-    package = 'Seurat'
+    package = 'Seurat',
+    add = FALSE
   )
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -1414,7 +1417,7 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  globalVariables(names = 'Value', package = 'Seurat')
+  globalVariables(names = 'Value', package = 'Seurat', add = FALSE)
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1518,7 +1521,7 @@ GenePlot <- function(
   spline.span = 0.75,
   ...
 ) {
-  globalVariables(names = c('x', 'y'), package = 'Seurat')
+  globalVariables(names = c('x', 'y'), package = 'Seurat', add = FALSE)
   cell.ids <- SetIfNull(x = cell.ids, default = object@cell.names)
   #   Don't transpose the data.frame for better compatability with FeatureLocator and the rest of Seurat
   data.use <- as.data.frame(
@@ -1675,7 +1678,7 @@ CellPlot <- function(
   do.identify = FALSE,
   ...
 ) {
-  globalVariables(names = c('x', 'y'), package = 'Seurat')
+  globalVariables(names = c('x', 'y'), package = 'Seurat', add = FALSE)
   gene.ids <- SetIfNull(x = gene.ids, default = rownames(x = object@data))
   #   Transpose this data.frame so that the genes are in the row for
   #   easy selecting with do.identify
@@ -2193,7 +2196,7 @@ DimPlot <- function(
   dark.theme = FALSE,
   ...
 ) {
-  globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat')
+  globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = FALSE)
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
@@ -2826,7 +2829,11 @@ KMeansHeatmap <- function(
 #' @export
 #'
 NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
-  globalVariables(names = c('cluster', 'avg_diff', 'gene'), package = 'Seurat')
+  globalVariables(
+    names = c('cluster', 'avg_diff', 'gene'),
+    package = 'Seurat',
+    add = FALSE
+  )
   tree <- object@cluster.tree[[1]]
   node <- SetIfNull(x = node, default = min(marker.list$cluster))
   node.order <- c(node, DFT(tree = tree, node = node))
