@@ -474,6 +474,7 @@ DoKMeans <- function(
 #'
 #' @importFrom ape as.phylo
 #' @importFrom stats dist hclust
+#' @importFrom utils globalVariables
 #'
 #' @export
 #'

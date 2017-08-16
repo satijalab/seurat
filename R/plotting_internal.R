@@ -143,6 +143,7 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 # @return A ggplot2 scatterplot
 #
 #' @importFrom stats na.omit
+#' @importFrom utils globalVariables
 #
 SingleFeaturePlot <- function(
   data.use,
@@ -262,6 +263,7 @@ SingleFeaturePlot <- function(
 #
 #' @import RColorBrewer
 #' @importFrom grDevices colors
+#' @importFrom utils globalVariables
 #
 # @return A blended ggplot2 scatterplot
 #
@@ -580,6 +582,7 @@ ResetPar <- function(...) {
 # @return A ggplot-based violin plot
 #
 #' @importFrom stats rnorm
+#' @importFrom utils globalVariables
 #
 SingleVlnPlot <- function(
   feature,
@@ -708,6 +711,7 @@ SingleVlnPlot <- function(
 # @return A ggplot-based violin plot
 #
 #' @importFrom stats rnorm
+#' @importFrom utils globalVariables
 #' @importFrom ggjoy geom_joy theme_joy
 #
 SingleJoyPlot <- function(
