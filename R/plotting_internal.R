@@ -145,6 +145,7 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 #' @importFrom stats na.omit
 #' @importFrom utils globalVariables
 #
+globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat', add = TRUE)
 SingleFeaturePlot <- function(
   data.use,
   feature,
@@ -159,7 +160,6 @@ SingleFeaturePlot <- function(
   no.legend,
   dark.theme
 ) {
-  globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat', add = FALSE)
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
@@ -267,6 +267,7 @@ SingleFeaturePlot <- function(
 #
 # @return A blended ggplot2 scatterplot
 #
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 BlendPlot <- function(
   data.use,
   features.plot,
@@ -281,7 +282,6 @@ BlendPlot <- function(
   no.legend,
   dark.theme
 ) {
-  globalVariables(names = c('x', 'y'), package = 'Seurat', add = FALSE)
   num.cols <- length(x = cols.use)
   #   Create a vector of colors that weren't provided
   cols.not.provided <- colors(distinct = TRUE)
@@ -584,6 +584,7 @@ ResetPar <- function(...) {
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleVlnPlot <- function(
   feature,
   data,
@@ -603,7 +604,6 @@ SingleVlnPlot <- function(
   legend.position,
   remove.legend
 ) {
-  globalVariables(names = 'ident', package = 'Seurat', add = FALSE)
   feature.name <- colnames(data)
   colnames(data) <- "feature"
   feature <- "feature"
@@ -714,6 +714,7 @@ SingleVlnPlot <- function(
 #' @importFrom utils globalVariables
 #' @importFrom ggjoy geom_joy theme_joy
 #
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleJoyPlot <- function(
   feature,
   data,
@@ -731,7 +732,6 @@ SingleJoyPlot <- function(
   legend.position,
   remove.legend
 ) {
-  globalVariables(names = 'ident', package = 'Seurat', add = FALSE)
   set.seed(seed = 42)
   feature.name <- colnames(data)
   colnames(data) <- "feature"

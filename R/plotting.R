@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' Gene expression heatmap
 #'
 #' Draws a heatmap of single cell gene expression using ggplot2.
@@ -32,7 +36,6 @@
 #'
 #' @importFrom dplyr %>%
 #' @importFrom reshape2 melt
-#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -61,7 +64,6 @@ DoHeatmap <- function(
   group.spacing = 0.15,
   do.plot = TRUE
 ) {
-  globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = FALSE)
   if (is.null(x = data.use)) {
     if (use.scaled) {
       data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
@@ -615,6 +617,11 @@ DotPlotOld <- function(
   axis(side = 2, at = 1:ncol(x = avg.alpha), colnames(x = avg.alpha), las = 1)
 }
 
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different
@@ -641,7 +648,6 @@ DotPlotOld <- function(
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 #'
 #' @importFrom tidyr gather
-#' @importFrom utils globalVariables
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #'
 #' @export
@@ -659,11 +665,6 @@ DotPlot <- function(
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
-  globalVariables(
-    names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
-    package = 'Seurat',
-    add = FALSE
-  )
   if (! missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
@@ -712,7 +713,11 @@ DotPlot <- function(
   }
 }
 
-
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Split Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
@@ -737,7 +742,6 @@ DotPlot <- function(
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
-#' @importFrom utils globalVariables
 #' @export
 SplitDotPlotGG <- function(
   object,
@@ -754,11 +758,6 @@ SplitDotPlotGG <- function(
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
-  globalVariables(
-    names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
-    package = 'Seurat',
-    add = FALSE
-  )
   if (! missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
@@ -1073,6 +1072,11 @@ FeaturePlot <- function(
   }
 }
 
+globalVariables(
+  names = c('gene', 'dim1', 'dim2', 'ident', 'cell', 'scaled.expression'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Vizualization of multiple features
 #'
 #' Similar to FeaturePlot, however, also splits the plot by visualizing each
@@ -1105,7 +1109,6 @@ FeaturePlot <- function(
 #'
 #' @return No return value, only a graphical output
 #'
-#' @importFrom utils globalVariables
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
 #' @seealso \code{FeaturePlot}
@@ -1131,11 +1134,6 @@ FeatureHeatmap <- function(
   plot.horiz = FALSE,
   key.position = "right"
 ) {
-  globalVariables(
-    names = c('gene', 'dim1', 'dim2', 'ident', 'cell', 'scaled.expression'),
-    package = 'Seurat',
-    add = FALSE
-  )
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
@@ -1378,6 +1376,7 @@ OldDoHeatmap <- function(
   }
 }
 
+globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'
 #' Plots the results of the JackStraw analysis for PCA significance. For each
@@ -1404,7 +1403,6 @@ OldDoHeatmap <- function(
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @import gridExtra
-#' @importFrom utils globalVariables
 #' @importFrom stats qqplot runif prop.test qunif
 #'
 #' @export
@@ -1417,7 +1415,7 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  globalVariables(names = 'Value', package = 'Seurat', add = FALSE)
+
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1471,6 +1469,7 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Scatter plot of single cell data
 #'
 #' Creates a scatter plot of two features (typically gene expression), across a
@@ -1498,7 +1497,6 @@ JackStrawPlot <- function(
 #'
 #' @return No return, only graphical output
 #'
-#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -1521,7 +1519,6 @@ GenePlot <- function(
   spline.span = 0.75,
   ...
 ) {
-  globalVariables(names = c('x', 'y'), package = 'Seurat', add = FALSE)
   cell.ids <- SetIfNull(x = cell.ids, default = object@cell.names)
   #   Don't transpose the data.frame for better compatability with FeatureLocator and the rest of Seurat
   data.use <- as.data.frame(
@@ -1638,6 +1635,7 @@ GenePlot <- function(
   }
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Cell-cell scatter plot
 #'
 #' Creates a plot of scatter plot of genes across two single cells
@@ -1660,7 +1658,6 @@ GenePlot <- function(
 #' @return No return value (plots a scatter plot)
 #'
 #' @importFrom stats cor
-#' @importFrom utils globalVariables
 #' @importFrom graphics smoothScatter
 #'
 #' @export
@@ -1678,7 +1675,6 @@ CellPlot <- function(
   do.identify = FALSE,
   ...
 ) {
-  globalVariables(names = c('x', 'y'), package = 'Seurat', add = FALSE)
   gene.ids <- SetIfNull(x = gene.ids, default = rownames(x = object@data))
   #   Transpose this data.frame so that the genes are in the row for
   #   easy selecting with do.identify
@@ -2132,6 +2128,7 @@ VizICA <- function(
   )
 }
 
+globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique (PCA by default).
@@ -2169,7 +2166,6 @@ VizICA <- function(
 #'
 #' @import SDMTools
 #' @importFrom stats median
-#' @importFrom utils globalVariables
 #' @importFrom dplyr summarize group_by
 #'
 #' @export
@@ -2196,7 +2192,6 @@ DimPlot <- function(
   dark.theme = FALSE,
   ...
 ) {
-  globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = FALSE)
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
@@ -2809,6 +2804,11 @@ KMeansHeatmap <- function(
   )
 }
 
+globalVariables(
+  names = c('cluster', 'avg_diff', 'gene'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Node Heatmap
 #'
 #' Takes an object, a marker list (output of FindAllMarkers), and a node
@@ -2821,7 +2821,6 @@ KMeansHeatmap <- function(
 #' @param max.genes Maximum number of genes to keep for each division
 #' @param ... Additional parameters to pass to DoHeatmap
 #'
-#' @importFrom utils globalVariables
 #' @importFrom dplyr %>% group_by filter top_n select
 #'
 #' @return Plots heatmap. No return value.
@@ -2829,11 +2828,6 @@ KMeansHeatmap <- function(
 #' @export
 #'
 NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
-  globalVariables(
-    names = c('cluster', 'avg_diff', 'gene'),
-    package = 'Seurat',
-    add = FALSE
-  )
   tree <- object@cluster.tree[[1]]
   node <- SetIfNull(x = node, default = min(marker.list$cluster))
   node.order <- c(node, DFT(tree = tree, node = node))

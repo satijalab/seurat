@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' Merge Seurat Objects
 #'
 #' Merge two Seurat objects
@@ -28,7 +32,6 @@
 #' @return Merged Seurat object
 #'
 #' @import Matrix
-#' @importFrom utils globalVariables
 #' @importFrom dplyr full_join filter
 #'
 #' @export
@@ -50,7 +53,6 @@ MergeSeurat <- function(
   add.cell.id1 = NULL,
   add.cell.id2 = NULL
 ) {
-  globalVariables(names = 'cell.name', package = 'Seurat', add = FALSE)
   if (length(x = object1@raw.data) < 2) {
     stop("First object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
