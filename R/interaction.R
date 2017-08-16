@@ -28,6 +28,7 @@
 #' @return Merged Seurat object
 #'
 #' @import Matrix
+#' @importFrom utils globalVariables
 #' @importFrom dplyr full_join filter
 #'
 #' @export

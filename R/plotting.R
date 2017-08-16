@@ -30,8 +30,9 @@
 #'
 #' @return Returns a ggplot2 plot object
 #'
-#' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
+#' @importFrom reshape2 melt
+#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -636,10 +637,15 @@ DotPlotOld <- function(
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
+#'
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @importFrom tidyr gather
+#' @importFrom utils globalVariables
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @export
+#'
 DotPlot <- function(
   object,
   genes.plot,
@@ -730,6 +736,7 @@ DotPlot <- function(
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
+#' @importFrom utils globalVariables
 #' @export
 SplitDotPlotGG <- function(
   object,
@@ -1096,6 +1103,7 @@ FeaturePlot <- function(
 #'
 #' @return No return value, only a graphical output
 #'
+#' @importFrom utils globalVariables
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
 #' @seealso \code{FeaturePlot}
@@ -1393,6 +1401,7 @@ OldDoHeatmap <- function(
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @import gridExtra
+#' @importFrom utils globalVariables
 #' @importFrom stats qqplot runif prop.test qunif
 #'
 #' @export
@@ -1485,6 +1494,8 @@ JackStrawPlot <- function(
 #' @param \dots Additional arguments to be passed to plot.
 #'
 #' @return No return, only graphical output
+#'
+#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -1646,6 +1657,7 @@ GenePlot <- function(
 #' @return No return value (plots a scatter plot)
 #'
 #' @importFrom stats cor
+#' @importFrom utils globalVariables
 #' @importFrom graphics smoothScatter
 #'
 #' @export
@@ -2154,6 +2166,7 @@ VizICA <- function(
 #'
 #' @import SDMTools
 #' @importFrom stats median
+#' @importFrom utils globalVariables
 #' @importFrom dplyr summarize group_by
 #'
 #' @export
@@ -2805,6 +2818,7 @@ KMeansHeatmap <- function(
 #' @param max.genes Maximum number of genes to keep for each division
 #' @param ... Additional parameters to pass to DoHeatmap
 #'
+#' @importFrom utils globalVariables
 #' @importFrom dplyr %>% group_by filter top_n select
 #'
 #' @return Plots heatmap. No return value.

@@ -30,6 +30,7 @@
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #'
 #' @import pbapply
+#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -232,6 +233,8 @@ FindMarkers <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param latent.vars remove the effects of these variables
 #'
+#' @importFrom utils globalVariables
+#'
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #'
@@ -389,6 +392,7 @@ FindMarkersNode <- function(
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #'
 #' @importFrom ape drop.tip
+#' @importFrom utils globalVariables
 #'
 #' @export
 #'
@@ -854,6 +858,7 @@ NegBinomRegDETest <- function(
 #' genes.
 #'
 #' @importFrom pbapply pbapply
+#' @importFrom utils globalVariables
 #' @importFrom stats var as.formula glm
 #'
 #' @export
