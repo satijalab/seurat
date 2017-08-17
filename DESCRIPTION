@@ -2,7 +2,7 @@ Package: Seurat
 Version: 2.0.0
 Date: 2017-07-17
 Title: Tools for Single Cell Genomics
-Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. Butler, A. and Satija, R. (2017) <doi:https://doi.org/10.1101/164889>
+Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data; Butler, A. and Satija, R. (2017) <doi:https://doi.org/10.1101/164889>
 Author: Rahul Satija
 Maintainer: Satija Lab <seuratpackage@gmail.com>
 URL: http://www.satijalab.org/seurat
@@ -52,6 +52,7 @@ Imports:
     ggjoy
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
+LazyData: true
 Collate: 
     'RcppExports.R'
     'seurat.R'
