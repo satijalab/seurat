@@ -8,6 +8,7 @@
 #' @param genes.regress gene to run regression for (default is all genes)
 #' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
 #' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param display.progress display progress bar for regression procedure.
 #'
 #' @return Returns the residuals from the regression model
 #'
@@ -20,7 +21,8 @@ RegressOutResid <- function(
   vars.to.regress,
   genes.regress = NULL,
   model.use = 'linear',
-  use.umi = FALSE
+  use.umi = FALSE,
+  display.progress = TRUE
 ) {
   possible.models <- c("linear", "poisson", "negbinom")
   if (! model.use %in% possible.models){
@@ -42,8 +44,10 @@ RegressOutResid <- function(
   }
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print(paste("Regressing out", vars.to.regress))
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  if(display.progress){
+    print(paste("Regressing out", vars.to.regress))
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  }
   data.resid <- c()
   data.use <- object@data[genes.regress, , drop = FALSE];
   if (model.use != "linear") {
@@ -98,9 +102,13 @@ RegressOutResid <- function(
     if (i > 1) {
       data.resid=rbind(data.resid,new.data)
     }
-    setTxtProgressBar(pb, i)
+    if(display.progress) {
+      setTxtProgressBar(pb, i)
+    }
   }
-  close(pb)
+  if (display.progress) {
+    close(pb)
+  }
   rownames(x = data.resid) <- genes.regress
   if (use.umi) {
     data.resid <- log1p(

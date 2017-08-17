@@ -27,6 +27,7 @@
 #' the rows are cell names, and the columns are additional metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in  object@@raw.data
 #' which will save memory downstream for large datasets
+#' @param display.progress display progress bar for normalization and/or scaling procedure.
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
 #' object@@data, object@@meta.data, object@@ident, also initialized.
@@ -51,7 +52,8 @@ CreateSeuratObject <- function(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  save.raw = TRUE
+  save.raw = TRUE,
+  display.progress = TRUE
 ) {
   seurat.version <- packageVersion("Seurat")
   object <- new(
@@ -74,11 +76,7 @@ CreateSeuratObject <- function(
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
   object@data <- object.raw.data[, cells.use]
-  # to save memory downstream, especially for large objects if raw.data no
-  # longer needed
-  if (!(save.raw)) {
-    object@raw.data <- matrix()
-  }
+
   # filter genes on the number of cells expressing
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
@@ -116,18 +114,25 @@ CreateSeuratObject <- function(
     object <- NormalizeData(object = object,
                             assay.type = "RNA",
                             normalization.method = normalization.method,
-                            scale.factor = scale.factor)
+                            scale.factor = scale.factor,
+                            display.progress = display.progress)
   }
   if(do.scale | do.center) {
     object <- ScaleData(object = object,
                         do.scale = do.scale,
-                        do.center = do.center)
+                        do.center = do.center,
+                        display.progress = display.progress)
   }
   spatial.obj <- new(
     Class = "spatial.info",
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
+  # to save memory downstream, especially for large objects if raw.data no
+  # longer needed
+  if (!(save.raw)) {
+    object@raw.data <- matrix()
+  }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
@@ -437,7 +442,8 @@ ScaleData <- function(
       vars.to.regress = vars.to.regress,
       genes.regress = genes.use,
       use.umi = use.umi,
-      model.use = model.use
+      model.use = model.use,
+      display.progress = display.progress
     )
     if (model.use != "linear") {
       use.umi <- TRUE
@@ -546,7 +552,7 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
   }
   # call Rcpp function to normalize
   if (display.progress) {
-    print("Performing log-normalization")
+    cat("Performing log-normalization\n", file = stderr())
   }
   norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
   colnames(x = norm.data) <- colnames(x = data)
