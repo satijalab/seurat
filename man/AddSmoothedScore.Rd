@@ -29,3 +29,8 @@ been imputed).}
 \description{
 Smooths expression values across the k-nearest neighbors based on dimensional reduction
 }
+\examples{
+pbmc_small <- AddSmoothedScore(object = pbmc_small)
+
+
+}
