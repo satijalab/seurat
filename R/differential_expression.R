@@ -276,18 +276,24 @@ FindAllMarkers <- function(
     )
   }
   for (i in 1:length(x = idents.all)) {
-    genes.de[[i]] <- FindMarkers(
-      object = object,
-      ident.1 = idents.all[i],
-      ident.2 = NULL,
-      genes.use = genes.use,
-      thresh.use = thresh.use,
-      test.use = test.use,
-      min.pct = min.pct,
-      min.diff.pct = min.diff.pct,
-      print.bar = print.bar,
-      min.cells = min.cells,
-      latent.vars = latent.vars
+    genes.de[[i]] <- tryCatch(
+      {
+        FindMarkers(object = object,
+                    ident.1 = idents.all[i],
+                    ident.2 = NULL,
+                    genes.use = genes.use,
+                    thresh.use = thresh.use,
+                    test.use = test.use,
+                    min.pct = min.pct,
+                    min.diff.pct = min.diff.pct,
+                    print.bar = print.bar,
+                    min.cells = min.cells,
+                    latent.vars = latent.vars
+        )
+      },
+      error = function(cond){
+        return(NULL)
+      }
     )
     if (do.print) {
       print(paste("Calculating cluster", idents.all[i]))
