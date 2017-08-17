@@ -22,6 +22,6 @@ Apply a ceiling and floor to all values in a matrix
 \examples{
 mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
 mat
-MinMax(x = mat)
+MinMax(data = mat, min = 4, max = 5)
 
 }
