@@ -15,6 +15,14 @@ A ggplot2 theme object
 \description{
 Add a dark theme to ggplot objects
 }
+\examples{
+\dontrun{
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+p + DarkTheme(legend.position = 'none')
+}
+
+}
 \seealso{
 \code{theme}
 }

@@ -28,3 +28,8 @@ or scale.data slot, depending on the method
 \description{
 Normalize data for a given assay
 }
+\examples{
+pbmc_small
+pmbc_small <- NormalizeData(object = pbmc_small)
+
+}

@@ -3,6 +3,11 @@
 #' @return A vector with the same values of x, just in random order
 #' @export
 #'
+#' @examples
+#' v <- seq(10)
+#' v2 <- Shuffle(x = v)
+#' v2
+#'
 Shuffle <- function(x) {
   return(x[base::sample.int(
     n = base::length(x = x),
@@ -20,8 +25,13 @@ Shuffle <- function(x) {
 #' @param data A data frame or matrix
 #'
 #' @return A data frame or matrix with values removed by row
-
+#'
 #' @export
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' nrow(x = df)
+#' nrow (x = RemoveFromTable(to.remove = 20, data = df))
 #'
 RemoveFromTable <- function(to.remove, data) {
   remove.indecies <- apply(
@@ -81,15 +91,19 @@ UpdateSeuratObject <- function(object) {
     }
   }
   seurat.version <- packageVersion("Seurat")
-  new.object <- new("seurat",
-                    raw.data = object@raw.data,
-                    version = seurat.version)
+  new.object <- new(
+    "seurat",
+    raw.data = object@raw.data,
+    version = seurat.version
+  )
   new.slots <- slotNames(new.object)
   for(s in new.slots){
-    new.object <- FillSlot(slot.name = s, old.object = object,
-                              new.object = new.object)
+    new.object <- FillSlot(
+      slot.name = s,
+      old.object = object,
+      new.object = new.object
+    )
   }
-
   # Copy over old slots if they have info stored
   if(length(object@kmeans.obj) > 0){
     new.object@kmeans@gene.kmeans.obj <- object@kmeans.obj
@@ -109,13 +123,14 @@ UpdateSeuratObject <- function(object) {
   }
   if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
      length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
-    new.object@spatial <- new("spatial.info",
-                              mix.probs = object@mix.probs,
-                              mix.param = object@mix.param,
-                              final.prob = object@final.prob,
-                              insitu.matrix = object@insitu.matrix)
+    new.object@spatial <- new(
+      "spatial.info",
+      mix.probs = object@mix.probs,
+      mix.param = object@mix.param,
+      final.prob = object@final.prob,
+      insitu.matrix = object@insitu.matrix
+    )
   }
-
   # Conversion from development versions prior to 2.0.0
   if ((.hasSlot(object, "dr"))) {
     for (i in 1:length(object@dr)) {
@@ -158,7 +173,6 @@ UpdateSeuratObject <- function(object) {
     )
     new.object@dr$tsne <- tsne.obj
   }
-
   if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
     if (class(object@snn.dense) == "data.frame") {
       object@snn.dense <- as.matrix(x = object@snn.dense)
@@ -168,7 +182,6 @@ UpdateSeuratObject <- function(object) {
   else{
     new.object@snn <- object@snn.sparse
   }
-
   return(new.object)
 }
 
@@ -198,6 +211,11 @@ SubsetRow <- function(data, code, invert = FALSE) {
 #' @importFrom stats runif
 #'
 #' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+#' mat
+#' MatrixRowShuffle(x = mat)
 #'
 MatrixRowShuffle <- function(x) {
   x2 <- x
@@ -234,6 +252,12 @@ SubsetColumn <- function(data, code, invert = FALSE) {
 #' @param max all values above this max value will be replaced with max
 #' @return Returns matrix after performing these floor and ceil operations
 #' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+#' mat
+#' MinMax(x = mat)
+#'
 MinMax <- function(data, min, max) {
   data2 <- data
   data2[data2 > max] <- max
@@ -264,13 +288,16 @@ ExtractField <- function(string, field = 1, delim = "_") {
 #' Calculate variance of logged values in non-log space (return answer in
 #' log-space)
 #'
-#' @param x value or vector of values
+#' @param x A vector of values
 #'
 #' @return Returns the variance in log-space
 #'
 #' @importFrom stats var
 #'
 #' @export
+#'
+#' @examples
+#' ExpVar(x = c(1, 2, 3))
 #'
 ExpVar <- function(x) {
   return(log1p(var(expm1(x))))
@@ -280,13 +307,16 @@ ExpVar <- function(x) {
 #'
 #' Calculate SD of logged values in non-log space (return answer in log-space)
 #'
-#' @param x value or vector of values
+#' @param x A vector of values
 #'
 #' @return Returns the standard deviation in log-space
 #'
 #' @importFrom stats sd
 #'
 #' @export
+#'
+#' @examples
+#' ExpSD(x = c(1, 2, 3))
 #'
 ExpSD <- function(x) {
   return(log1p(sd(expm1(x))))
@@ -296,10 +326,15 @@ ExpSD <- function(x) {
 #'
 #' Calculate mean of logged values in non-log space (return answer in log-space)
 #'
-#' @param x value or vector of values
+#' @param x A vector of values
 #'
 #' @return Returns the mean in log-space
+#'
 #' @export
+#'
+#' @examples
+#' ExpMean(x = c(1, 2, 3))
+#'
 ExpMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
 }
@@ -309,13 +344,16 @@ ExpMean <- function(x) {
 #' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 #' log-space)
 #'
-#' @param x value or vector of values
+#' @param x A vector of values
 #'
 #' @return Returns the VMR in log-space
 #'
 #' @importFrom stats var
 #'
 #' @export
+#'
+#' @examples
+#' LogVMR(x = c(1, 2, 3))
 #'
 LogVMR <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
@@ -581,11 +619,7 @@ MergeNode <- function(object, node.use = NULL) {
   return(object)
 }
 
-
-
-
 #' Calculate smoothed expression values
-#'
 #'
 #' Smooths expression values across the k-nearest neighbors based on dimensional reduction
 #'
@@ -654,7 +688,6 @@ AddSmoothedScore <- function(
 #'
 #' Uses L1-constrained linear models (LASSO) to impute single cell gene
 #' expression values.
-#'
 #'
 #' @param object Seurat object
 #' @param genes.use A vector of genes (predictors) that can be used for

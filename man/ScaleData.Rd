@@ -79,3 +79,7 @@ expression level for each gene by dividing the centered gene expression
 levels by their standard deviations if center is TRUE and by their root mean
 square otherwise.
 }
+\examples{
+pbmc_small <- ScaleData(object = pbmc_small)
+
+}
