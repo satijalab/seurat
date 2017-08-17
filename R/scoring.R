@@ -7,6 +7,7 @@
 #'
 #' @param object Seurat object
 #' @param genes.list Gene expression programs in list
+#' @param genes.pool List of genes to check expression levels agains, defaults to rownames(x = object@data)
 #' @param n.bin Number of bins of aggregate expression levels for all analyzed genes
 #' @param seed.use Random seed for sampling
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
@@ -68,7 +69,9 @@ AddModuleScore <- function(
       'exiting...'
     ))
   }
-  if (is.null(x = genes.pool)) genes.pool = rownames(object@data)
+  if (is.null(x = genes.pool)) {
+    genes.pool = rownames(x = object@data)
+  }
   data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
   data.cut <- as.numeric(x = cut2(
@@ -129,7 +132,7 @@ AddModuleScore <- function(
 #'
 #' @return A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
 #'
-#' @seealso \code{\link{AddModuleScore}}
+#' @seealso \code{AddModuleScore}
 #'
 #' @export
 #'

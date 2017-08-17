@@ -33,6 +33,7 @@
 #'
 #' @import stringr
 #' @import pbapply
+#' @importFrom utils packageVersion
 #' @importFrom Matrix colSums rowSums
 #'
 #' @export
@@ -53,18 +54,21 @@ CreateSeuratObject <- function(
   save.raw = TRUE
 ) {
   seurat.version <- packageVersion("Seurat")
-  object <- new(Class = "seurat",
-                raw.data = raw.data,
-                is.expr = is.expr,
-                project.name = project,
-                version = seurat.version
-                )
+  object <- new(
+    Class = "seurat",
+    raw.data = raw.data,
+    is.expr = is.expr,
+    project.name = project,
+    version = seurat.version
+  )
 
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now
 
-  object.raw.data=object@raw.data
-  if (is.expr > 0) object.raw.data[object.raw.data < is.expr] = 0
+  object.raw.data <- object@raw.data
+  if (is.expr > 0) {
+    object.raw.data[object.raw.data < is.expr] = 0
+  }
   num.genes <- colSums(object.raw.data > is.expr)
   num.mol <- colSums(object.raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
@@ -278,6 +282,8 @@ NormalizeData <- function(
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
 #' @export
 #'
 ScaleDataR <- function(
@@ -379,6 +385,8 @@ ScaleDataR <- function(
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
+#'
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
 #'
@@ -631,11 +639,12 @@ SampleUMI <- function(
 #' @inheritParams VariableGenePlot
 #'
 #' @importFrom MASS kde2d
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
 #' The result of all analysis is stored in object@@hvg.info
 #'
-#' @seealso \code{\link{VariableGenePlot}}
+#' @seealso \code{VariableGenePlot}
 #'
 #' @export
 #'

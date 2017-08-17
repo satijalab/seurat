@@ -183,7 +183,8 @@ SetDimReduction <- function(
     if (slot == "key") {
       cell.embeddings=GetCellEmbeddings(object = object,reduction.type = reduction.type)
       colnames(cell.embeddings)=paste(new.data,1:ncol(cell.embeddings),sep="")
-      
+      object=SetDimReduction(object,reduction.type = reduction.type, slot = "cell.embeddings", new.data = cell.embeddings)
+
       gene.loadings <- GetDimReduction(
         object = object,
         reduction.type = reduction.type,
@@ -194,7 +195,6 @@ SetDimReduction <- function(
         reduction.type = reduction.type,
         slot = "gene.loadings.full"
       )
-      
       if (length(gene.loadings > 0)) {
         colnames(gene.loadings)=paste(new.data,1:ncol(gene.loadings),sep="")
         object=SetDimReduction(object,reduction.type = reduction.type, slot = "gene.loadings", new.data = gene.loadings)
@@ -296,6 +296,7 @@ ICAEmbed <- function(
 #' @param object Seurat object
 #' @param dims.use Dimensions to include (default is all stored dims)
 #' @param genes.use Genes to include (default is all genes)
+#' @param use.full Return projected gene loadings (default is FALSE)
 #'
 #' @return PCA gene loading matrix for given genes and PCs
 #'
@@ -323,6 +324,7 @@ PCALoad <- function(
 #' @param object Seurat object
 #' @param dims.use Dimensions to include (default is all stored dims)
 #' @param genes.use Genes to include (default is all)
+#' @param use.full Return projected gene loadings (default is FALSE)
 #'
 #' @return ICA gene loading matrix for given genes and ICs
 #'
@@ -377,8 +379,8 @@ DMLoad <- function(
 #' Return a list of genes with the strongest contribution to a set of components
 #'
 #' @param object Seurat object
+#' @param dim.use Dimension to use
 #' @param reduction.type Dimensional reduction to find the highest score for
-#' @param pc.use Components to use
 #' @param num.genes Number of genes to return
 #' @param use.full Use the full PCA (projected PCA). Default i s FALSE
 #' @param do.balanced Return an equal number of genes with both + and - scores.
@@ -446,7 +448,7 @@ DimTopGenes <- function(
 #' @param object Seurat object
 #' @param pc.use Principal components to use
 #' @param num.genes Number of genes to return
-#' @param use.full Use the full PCA (projected PCA). Default i s FALSE
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
 #' @param do.balanced Return an equal number of genes with both + and - PC scores.
 #'
 #' @return Returns a vector of genes
@@ -478,6 +480,7 @@ PCTopGenes <- function(
 #' @param object Seurat object
 #' @param ic.use Independent components to use
 #' @param num.genes Number of genes to return
+#' @param use.full Use the full ICA (projected ICA), default is FALSE
 #' @param do.balanced Return an equal number of genes with both + and - IC scores.
 #'
 #' @return Returns a vector of genes
@@ -683,7 +686,7 @@ PrintDim <- function(
 #' Prints a set of genes that most strongly define a set of principal components
 #'
 #' @inheritParams VizPCA
-#' @param pcs.print Set of PCs to print genes for
+#' @param ics.print Set of ICs to print genes for
 #' @param genes.print Number of genes to print for each PC
 #'
 #' @return Only text output

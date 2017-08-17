@@ -6,7 +6,8 @@
 \usage{
 RunPCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
   rev.pca = FALSE, weight.by.var = TRUE, do.print = TRUE,
-  pcs.print = 1:5, genes.print = 30, ...)
+  pcs.print = 1:5, genes.print = 30, reduction.name = "pca",
+  reduction.key = "PC", assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,6 +31,12 @@ the PCs}
 
 \item{genes.print}{Number of genes to print for each PC}
 
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. pca by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. PC by default}
+
+\item{assay.type}{Data type, RNA by default. Can be changed for multimodal}
+
 \item{\dots}{Additional arguments to be passed to IRLBA}
 }
 \value{
@@ -38,5 +45,5 @@ object@dr$pca.
 }
 \description{
 Run a PCA dimensionality reduction. For details about stored PCA calculation
-parameters, see \code{\link{PrintPCAParams}}.
+parameters, see \code{PrintPCAParams}.
 }

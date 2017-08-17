@@ -109,6 +109,8 @@ FillSlot <- function(slot.name, old.object, new.object){
 #
 # @returns integrated value
 #
+#' @importFrom stats pchisq
+#
 FisherIntegrate <- function(pvals) {
   return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
 }
@@ -413,6 +415,8 @@ MeanGreaterThan <- function(x, min = 0) {
 #
 # @return The variance of x where x > min
 #
+#' @importFrom stats var
+#
 VarianceGreaterThan <- function(x, min = 0) {
   return(var(x = x[x > min]))
 }
@@ -422,6 +426,8 @@ VarianceGreaterThan <- function(x, min = 0) {
 # @param x Values to calculate the coefficient of variation
 #
 # @return The coefficient of variation of x
+#
+#' @importFrom stats sd
 #
 CoefVar <- function(x) {
   return(sd(x = x) / mean(x = x))
@@ -459,6 +465,9 @@ Same <- function(x) {
   return(x)
 }
 
+#
+#' @importFrom stats residuals
+#
 NBResiduals <- function(fmla, regression.mat, gene) {
   fit <- 0
   try(
@@ -532,20 +541,22 @@ BiweightMidcor <- function(x, y){
 # @return returns the prepped vector
 #
 BicorPrep <- function(x, verbose = FALSE){
-  if(mad(x) == 0) {
-    if(verbose){
+  if (stats::mad(x) == 0) {
+    if (verbose){
       warning('mad == 0, using robust standardization')
     }
-    xat <- x - mean(x)
-    xab <- sqrt(sum((x - mean(x)) ^ 2))
+    xat <- x - mean(x = x)
+    xab <- sqrt(x = sum((x - mean(x = x)) ^ 2))
     result <- xat / xab
-    return(result)
-  }else{
-    ua <- (x - median(x)) / (9 * mad(x) * qnorm(0.75))
-    i.x <- ifelse(ua <= -1 | ua >= 1, 0, 1)
-    wax <- ((1 - (ua^2))^2) * i.x
-    xat <- (x - median(x)) * wax
-    xab <- sqrt(sum(xat^2))
+    return (result)
+  } else {
+    ua <- (x - stats::median(x = x)) /
+      (9 * stats::mad(x = x) *
+         stats::qnorm(p = 0.75))
+    i.x <- ifelse(test = ua <= -1 | ua >= 1, yes = 0, no = 1)
+    wax <- ((1 - (ua ^ 2)) ^ 2) * i.x
+    xat <- (x - stats::median(x = x)) * wax
+    xab <- sqrt(x = sum(xat ^ 2))
     result <- xat / xab
     return(result)
   }

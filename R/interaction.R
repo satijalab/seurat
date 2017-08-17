@@ -1,15 +1,21 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' Merge Seurat Objects
 #'
 #' Merge two Seurat objects
 #'
 #' @param object1 First Seurat object to merge
 #' @param object2 Second Seurat object to merge
+#' @param project Project name (string)
 #' @param min.cells Include genes with detected expression in at least this
 #' many cells
 #' @param min.genes Include cells where at least this many genes are detected
 #' @param is.expr Expression threshold for 'detected' gene
 #' @param do.normalize Normalize the data after merging. Default is TRUE.
 #' If set, will perform the same normalization strategy as stored for the first object
+#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default, so run ScaleData after merging.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based
@@ -18,9 +24,6 @@
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param meta.data Additional metadata to add to the Seurat object. Should be
-#' a data frame where the rows are cell names, and the columns are additional
-#' metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
 #' which will save memory downstream for large datasets
 #' @param add.cell.id1 String to be appended to the names of all cells in object1
@@ -313,6 +316,8 @@ AddSamples <- function(
 #' use.imputed=TRUE)
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
+#'
+#' @importFrom stats complete.cases
 #'
 #' @export
 #'

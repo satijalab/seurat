@@ -1,7 +1,7 @@
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
-#' parameters, see \code{\link{PrintPCAParams}}.
+#' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
@@ -100,7 +100,7 @@ RunPCA <- function(
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.
 #' For details about stored ICA calculation parameters, see
-#' \code{\link{PrintICAParams}}.
+#' \code{PrintICAParams}.
 #'
 #' @param object Seurat object
 #' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
@@ -185,7 +185,7 @@ RunICA <- function(
 #' Run t-SNE dimensionality reduction on selected features. Has the option of
 #' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 #' or running based on a set of genes. For details about stored TSNE calculation
-#' parameters, see \code{\link{PrintTSNEParams}}.
+#' parameters, see \code{PrintTSNEParams}.
 #'
 #' @param object Seurat object
 #' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
@@ -264,7 +264,7 @@ RunTSNE <- function(
   }
   if (add.iter > 0) {
     data.tsne <- tsne(
-      x = data.use,
+      X = data.use,
       initial_config = as.matrix(x = data.tsne),
       max_iter = add.iter,
       ...
@@ -302,6 +302,7 @@ RunTSNE <- function(
 #'
 #'
 #' @param object Seurat object
+#' @param reduction.type Reduction to use
 #' @param dims.print Number of dims to print genes for
 #' @param dims.store Number of dims to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
@@ -422,7 +423,7 @@ ProjectPCA <- function(
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
 #' For details about stored CCA calculation parameters, see
-#' \code{\link{PrintCCAParams}}.
+#' \code{PrintCCAParams}.
 #'
 #' @param object Seurat object
 #' @param object2 Optional second object. If object2 is passed, object1 will be
@@ -436,10 +437,16 @@ ProjectPCA <- function(
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
+#' @param ... Extra parameters to MergeSeurat
+#'
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
 #' one object is passed, the same object is returned. If two are passed, a
 #' combined object is returned.
+#'
+#' @seealso \code{MergeSeurat}
+#'
 #' @export
+#'
 RunCCA <- function(
   object,
   object2,
@@ -449,7 +456,8 @@ RunCCA <- function(
   num.cc = 20,
   genes.use,
   scale.data = TRUE,
-  rescale.groups = FALSE
+  rescale.groups = FALSE,
+  ...
 ) {
   if (! missing(x = object2) && (! missing(x = group1) || ! missing(x = group2))) {
     warning("Both object2 and group set. Continuing with objects defining the groups")
@@ -555,7 +563,8 @@ RunCCA <- function(
       object1 = object,
       object2 = object2,
       do.scale = FALSE,
-      do.center = FALSE
+      do.center = FALSE,
+      ...
     )
     # to improve, to pull the same normalization and scale params as previously used
     combined.object <- ScaleData(object = combined.object)
@@ -780,7 +789,10 @@ CalcVarExpRatio <- function(
 #'  object@@dr$reduction.type.aligned
 #'
 #' @importFrom dtw dtw
+#' @importFrom graphics points
+#' @importFrom stats quantile density
 #' @importFrom pbapply pbapply
+#' @importFrom graphics par plot lines
 #'
 #' @export
 #'
@@ -793,9 +805,11 @@ AlignSubspace <- function(
   show.plots = FALSE
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
-  object <- SetCalcParams(object = object,
-                          calculation = paste0("AlignSubspace.", reduction.type),
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = paste0("AlignSubspace.", reduction.type),
+    ... = parameters.to.store
+  )
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident)))
@@ -916,7 +930,7 @@ AlignSubspace <- function(
     alignment <- dtw(
       x = align.1,
       y = align.2,
-      keep = TRUE,
+      keep.internals = TRUE,
       dist.method = metric.use
     )
     alignment.map <- data.frame(alignment$index1, alignment$index2)
@@ -989,6 +1003,7 @@ AlignSubspace <- function(
 #' @return Returns a Seurat object with a diffusion map
 #'
 #' @import diffusionMap
+#' @importFrom stats dist
 #'
 #' @export
 #'
@@ -1029,7 +1044,7 @@ RunDiffusion <- function(
                           ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
-    diffuse( 
+    diffuse(
       D = data.dist,
       neigen = max.dim,
       maxdim = max.dim,
@@ -1049,13 +1064,13 @@ RunDiffusion <- function(
   }
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.type,
+    reduction.type = reduction.use,
     slot = "cell.embeddings",
     new.data = as.matrix(x = data.diffusion)
   )
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.type,
+    reduction.type = reduction.use,
     slot = "key",
     new.data = "DM"
   )

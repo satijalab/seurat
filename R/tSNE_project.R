@@ -1,4 +1,6 @@
-
+#
+#' @importFrom stats optim
+#
 project_map <- function(
   z,
   x_old,
@@ -101,7 +103,7 @@ Hbeta <- function(D, beta) {
   P <- exp(x = -D * beta)
   sumP <- sum(P)
   if (sumP < 1e-8) { #In this case it means that no point is proximal.
-    P <- ones(length(x = P), 1) / length(x = P)
+    P <- rep(length(x = P), 1) / length(x = P)
     sumP <- sum(P)
     flagP <- 0
   }

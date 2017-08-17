@@ -21,7 +21,7 @@ The names of the points selected
 Select points on a scatterplot and get information about them
 }
 \seealso{
-\code{\link{locator}}
+\code{locator}
 
-\code{\link{ggplot2::ggplot_build}}
+\code{ggplot2::ggplot_build}
 }

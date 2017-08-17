@@ -23,7 +23,7 @@ AverageExpression(object, genes.use = NULL, return.seurat = FALSE,
 
 \item{show.progress}{Show progress bar (default is T)}
 
-\item{...}{Arguments to be passed to methods such as \code{\link{Seurat}}}
+\item{...}{Arguments to be passed to methods such as \code{Seurat}}
 }
 \value{
 Returns a matrix with genes as rows, identity classes as columns.

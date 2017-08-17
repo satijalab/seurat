@@ -61,5 +61,5 @@ common feature (i.e. co-express a gene), even within an identity class. Best
 understood by example.
 }
 \seealso{
-\code{\link{FeaturePlot}}
+\code{FeaturePlot}
 }

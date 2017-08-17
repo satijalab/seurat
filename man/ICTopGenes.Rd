@@ -14,6 +14,8 @@ ICTopGenes(object, ic.use = 1, num.genes = 30, use.full = FALSE,
 
 \item{num.genes}{Number of genes to return}
 
+\item{use.full}{Use the full ICA (projected ICA), default is FALSE}
+
 \item{do.balanced}{Return an equal number of genes with both + and - IC scores.}
 }
 \value{

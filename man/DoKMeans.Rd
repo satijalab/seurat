@@ -5,8 +5,9 @@
 \title{K-Means Clustering}
 \usage{
 DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = 0,
-  k.seed = 1, do.plot = FALSE, data.cut = 2.5, k.cols = pyCols,
-  set.ident = TRUE, do.constrained = FALSE, assay.type = "RNA", ...)
+  k.seed = 1, do.plot = FALSE, data.cut = 2.5,
+  k.cols = PurpleAndYellow(), set.ident = TRUE, do.constrained = FALSE,
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,7 +39,6 @@ class to its K-means cluster (default is TRUE)}
 }
 \value{
 Seurat object where the k-means results for genes is stored in
-
 object@kmeans.obj[[1]], and the k-means results for cells is stored in
 object@kmeans.col[[1]]. The cluster for each cell is stored in object@meta.data[,"kmeans.ident"]
 and also object@ident (if set.ident=TRUE)

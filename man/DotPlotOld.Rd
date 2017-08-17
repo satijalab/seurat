@@ -8,7 +8,7 @@ The size of the dot encodes the percentage of cells within a class, while the co
 AverageExpression level of 'expressing' cells (green is high).}
 \usage{
 DotPlotOld(object, genes.plot, cex.use = 2, cols.use = NULL,
-  thresh.col = 2.5, dot.min = 0.05, group.by = NULL, ...)
+  thresh.col = 2.5, dot.min = 0.05, group.by = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

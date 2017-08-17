@@ -6,7 +6,7 @@
 \usage{
 RunDiffusion(object, cells.use = NULL, dims.use = 1:5, genes.use = NULL,
   reduction.use = "pca", q.use = 0.01, max.dim = 2, scale.clip = 10,
-  ...)
+  reduction.name = "dm", reduction.key = "DM", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,6 +27,10 @@ diffusion map. Default is PCA}
 \item{max.dim}{Max dimension to keep from diffusion calculation}
 
 \item{scale.clip}{Max/min value for scaled data. Default is 3}
+
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. dm by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. DM by default}
 
 \item{...}{Additional arguments to the diffuse call}
 }
