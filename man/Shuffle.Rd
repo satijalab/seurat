@@ -15,3 +15,9 @@ A vector with the same values of x, just in random order
 \description{
 Shuffle a vector
 }
+\examples{
+v <- seq(10)
+v2 <- Shuffle(x = v)
+v2
+
+}

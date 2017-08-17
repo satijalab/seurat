@@ -9,6 +9,13 @@
 #' @import ggplot2
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+#' p + DarkTheme(legend.position = 'none')
+#' }
+#'
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
   black.background <- element_rect(fill = 'black')
@@ -69,6 +76,13 @@ DarkTheme <- function(...) {
 #' @seealso \code{ggplot2::ggplot_build}
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+#' FeatureLocator(plot = p, data.plot = df)
+#' }
+#'
 FeatureLocator <- function(plot, data.plot, ...) {
   points.located <- PointLocator(plot = plot, ...)
   #   The rownames for points.located correspond to the row indecies
@@ -90,6 +104,13 @@ FeatureLocator <- function(plot, data.plot, ...) {
 #' @seealso \code{plotly::layout}
 #' @seealso \code{ggplot2::ggplot_build}
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+#' HoverLocator(plot = p, data.plot = df)
+#' }
 #'
 HoverLocator <- function(
   plot,
@@ -188,6 +209,10 @@ HoverLocator <- function(
 #' @importFrom grDevices col2rgb rgb
 #'
 #' @export
+#'
+#' @examples
+#' myPalette <- CustomPalette()
+#' myPalette
 #'
 CustomPalette <- function(
   low = "white",

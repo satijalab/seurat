@@ -7,7 +7,7 @@
 ExpVar(x)
 }
 \arguments{
-\item{x}{value or vector of values}
+\item{x}{A vector of values}
 }
 \value{
 Returns the variance in log-space
@@ -15,4 +15,8 @@ Returns the variance in log-space
 \description{
 Calculate variance of logged values in non-log space (return answer in
 log-space)
+}
+\examples{
+ExpVar(x = c(1, 2, 3))
+
 }
