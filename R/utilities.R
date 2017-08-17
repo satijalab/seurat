@@ -440,19 +440,23 @@ AverageDetectionRate <- function(object, thresh.min = 0) {
 #'
 AveragePCA <- function(object) {
   ident.use <- object@ident
-  data.all <- data.frame(row.names = colnames(x = object@pca.rot))
+  data.all <- GetDimReduction(
+    object = object,
+    reduction.type = 'pca',
+    slot = 'cell.embeddings'
+  )
   for (i in levels(x = ident.use)) {
     temp.cells <- WhichCells(object = object, ident = i)
     if (length(x = temp.cells) == 1) {
       data.temp <- apply(
-        X = data.frame((object@pca.rot[c(temp.cells, temp.cells), ])),
+        X = data.frame((data.all[c(temp.cells, temp.cells), ])),
         MARGIN = 2,
         FUN = mean
       )
     }
     if (length(x = temp.cells) > 1) {
       data.temp <- apply(
-        X = object@pca.rot[temp.cells, ],
+        X = data.all[temp.cells, ],
         MARGIN = 2,
         FUN = mean
       )
@@ -460,7 +464,7 @@ AveragePCA <- function(object) {
     data.all <- cbind(data.all, data.temp)
     colnames(x = data.all)[ncol(x = data.all)] <- i
   }
-  return((data.all))
+  return(data.all)
 }
 
 #' Averaged gene expression by identity class
@@ -669,7 +673,7 @@ AddSmoothedScore <- function(
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
   dim.code <- GetDimReduction(
     object = object,
-    reduction.type = reduction.use,
+    reduction.type = tolower(x = reduction.use),
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
