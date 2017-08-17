@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #' Gene expression markers of identity classes
 #'
 #' Finds markers (differentially expressed genes) for identity classes
@@ -212,6 +216,11 @@ FindMarkers <- function(
   return(to.return)
 }
 
+globalVariables(
+  names = c('myAUC', 'p_val', 'avg_diff'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Gene expression markers for all identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
@@ -372,6 +381,7 @@ FindMarkersNode <- function(
   return(to.return)
 }
 
+globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' Find all markers for a node
 #'
 #' This function finds markers for all splits at or below the specified node
@@ -424,7 +434,6 @@ FindAllMarkersNode <- function(
   if(length(object@cluster.tree) == 0){
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
   }
-
   genes.use <- SetIfNull(x = genes.use, default = rownames(object@data))
   node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
   ident.use <- object@ident
@@ -851,6 +860,7 @@ NegBinomRegDETest <- function(
   return(res)
 }
 
+globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using

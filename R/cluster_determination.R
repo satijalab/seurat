@@ -445,6 +445,11 @@ DoKMeans <- function(
   return(object)
 }
 
+globalVariables(
+  names = 'WeightedEuclideanDist',
+  package = 'Seurat',
+  add = TRUE
+)
 #' Phylogenetic Analysis of Identity Classes
 #'
 #' Constructs a phylogenetic tree relating the 'average' cell from each

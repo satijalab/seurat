@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' Merge Seurat Objects
 #'
 #' Merge two Seurat objects

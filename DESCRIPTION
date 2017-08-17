@@ -1,7 +1,7 @@
 Package: Seurat
 Version: 2.0.0
 Date: 2017-07-17
-Title: Seurat : R Toolkit for Single Cell Genomics
+Title: An R Toolkit for Single Cell Genomics
 Description: A toolkit for QC, analysis, and exploration of single cell RNA-seq data. Seurat aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data.
 Author: Rahul Satija
 Maintainer: Satija Lab <seuratpackage@gmail.com>
@@ -51,7 +51,7 @@ Imports:
     tidyr,
     ggjoy
 LinkingTo: Rcpp, RcppEigen, RcppProgress
-License: file LICENSE
+License: GPL-3 | file LICENSE
 Collate: 
     'RcppExports.R'
     'seurat.R'

@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' Gene expression heatmap
 #'
 #' Draws a heatmap of single cell gene expression using ggplot2.
@@ -30,8 +34,8 @@
 #'
 #' @return Returns a ggplot2 plot object
 #'
-#' @importFrom reshape2 melt
 #' @importFrom dplyr %>%
+#' @importFrom reshape2 melt
 #'
 #' @export
 #'
@@ -613,6 +617,11 @@ DotPlotOld <- function(
   axis(side = 2, at = 1:ncol(x = avg.alpha), colnames(x = avg.alpha), las = 1)
 }
 
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different
@@ -635,10 +644,14 @@ DotPlotOld <- function(
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
+#'
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @importFrom tidyr gather
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @export
+#'
 DotPlot <- function(
   object,
   genes.plot,
@@ -700,7 +713,11 @@ DotPlot <- function(
   }
 }
 
-
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Split Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
@@ -1055,6 +1072,11 @@ FeaturePlot <- function(
   }
 }
 
+globalVariables(
+  names = c('gene', 'dim1', 'dim2', 'ident', 'cell', 'scaled.expression'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Vizualization of multiple features
 #'
 #' Similar to FeaturePlot, however, also splits the plot by visualizing each
@@ -1354,6 +1376,7 @@ OldDoHeatmap <- function(
   }
 }
 
+globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'
 #' Plots the results of the JackStraw analysis for PCA significance. For each
@@ -1392,6 +1415,7 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
+
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1445,6 +1469,7 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Scatter plot of single cell data
 #'
 #' Creates a scatter plot of two features (typically gene expression), across a
@@ -1471,6 +1496,7 @@ JackStrawPlot <- function(
 #' @param \dots Additional arguments to be passed to plot.
 #'
 #' @return No return, only graphical output
+#'
 #'
 #' @export
 #'
@@ -1609,6 +1635,7 @@ GenePlot <- function(
   }
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Cell-cell scatter plot
 #'
 #' Creates a plot of scatter plot of genes across two single cells
@@ -2092,7 +2119,7 @@ VizICA <- function(
   VizDimReduction(
     object = object,
     reduction.type = "ica",
-    dims.use = pcs.use,
+    dims.use = ics.use,
     num.genes = num.genes,
     use.full = use.full,
     font.size = font.size,
@@ -2101,6 +2128,7 @@ VizICA <- function(
   )
 }
 
+globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique (PCA by default).
@@ -2604,37 +2632,37 @@ VariableGenePlot <- function(
   }
 }
 
-#' Highlight classification results
-#'
-#' This function is useful to view where proportionally the clusters returned from
-#' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
-#' function to color clusters in object.
-#'
-#' @param object Seurat object on which the classifier was trained and
-#' onto which the classification results will be highlighted
-#' @param clusters vector of cluster ids (output of ClassifyCells)
-#' @param ... additional parameters to pass to FeaturePlot()
-#'
-#' @return Returns a feature plot with clusters highlighted by proportion of cells
-#' mapping to that cluster
-#'
-#' @export
-#'
-VizClassification <- function(object, clusters, ...) {
-  cluster.dist <- prop.table(x = table(out)) # What is out?
-  object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
-  for (cluster in 1:length(x = cluster.dist)) {
-    cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
-    if (length(x = cells.to.highlight) > 0) {
-      object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
-    }
-  }
-  if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
-    return(FeaturePlot(object, "Classification", ...))
-  }
-  cols.use = c("#f6f6f6", "black")
-  return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
-}
+# #' Highlight classification results
+# #'
+# #' This function is useful to view where proportionally the clusters returned from
+# #' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
+# #' function to color clusters in object.
+# #'
+# #' @param object Seurat object on which the classifier was trained and
+# #' onto which the classification results will be highlighted
+# #' @param clusters vector of cluster ids (output of ClassifyCells)
+# #' @param ... additional parameters to pass to FeaturePlot()
+# #'
+# #' @return Returns a feature plot with clusters highlighted by proportion of cells
+# #' mapping to that cluster
+# #'
+# #' @export
+# #'
+# VizClassification <- function(object, clusters, ...) {
+#   cluster.dist <- prop.table(x = table(out)) # What is out?
+#   object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
+#   for (cluster in 1:length(x = cluster.dist)) {
+#     cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
+#     if (length(x = cells.to.highlight) > 0) {
+#       object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
+#     }
+#   }
+#   if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
+#     return(FeaturePlot(object, "Classification", ...))
+#   }
+#   cols.use = c("#f6f6f6", "black")
+#   return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
+# }
 
 #' Plot phylogenetic tree
 #'
@@ -2776,6 +2804,11 @@ KMeansHeatmap <- function(
   )
 }
 
+globalVariables(
+  names = c('cluster', 'avg_diff', 'gene'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Node Heatmap
 #'
 #' Takes an object, a marker list (output of FindAllMarkers), and a node

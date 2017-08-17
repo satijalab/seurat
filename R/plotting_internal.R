@@ -143,7 +143,9 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 # @return A ggplot2 scatterplot
 #
 #' @importFrom stats na.omit
+#' @importFrom utils globalVariables
 #
+globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat', add = TRUE)
 SingleFeaturePlot <- function(
   data.use,
   feature,
@@ -261,9 +263,11 @@ SingleFeaturePlot <- function(
 #
 #' @import RColorBrewer
 #' @importFrom grDevices colors
+#' @importFrom utils globalVariables
 #
 # @return A blended ggplot2 scatterplot
 #
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 BlendPlot <- function(
   data.use,
   features.plot,
@@ -578,7 +582,9 @@ ResetPar <- function(...) {
 # @return A ggplot-based violin plot
 #
 #' @importFrom stats rnorm
+#' @importFrom utils globalVariables
 #
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleVlnPlot <- function(
   feature,
   data,
@@ -705,8 +711,10 @@ SingleVlnPlot <- function(
 # @return A ggplot-based violin plot
 #
 #' @importFrom stats rnorm
+#' @importFrom utils globalVariables
 #' @importFrom ggjoy geom_joy theme_joy
 #
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleJoyPlot <- function(
   feature,
   data,
@@ -891,6 +899,7 @@ heatmap2NoKey <- function (
   axRowCol="black",
   lwid = NULL,
   dimTitle = NULL,
+  pc_title = NULL,
   ...
 ) {
   scale01 <- function(x, low = min(x), high = max(x)) {
@@ -1084,38 +1093,6 @@ heatmap2NoKey <- function (
   max.breaks <- max(breaks)
   x[x < min.breaks] <- min.breaks
   x[x > max.breaks] <- max.breaks
-  #  if (missing(lhei) || is.null(lhei))
-  #    lhei <- c(keysize, 4)
-  #  if (missing(lwid) || is.null(lwid))
-  #    lwid <- c(keysize, 4)
-  #  if (missing(lmat) || is.null(lmat)) {
-  #    lmat <- rbind(4:3, 2:1)
-  #    if (!missing(ColSideColors)) {
-  #      if (!is.character(ColSideColors) || length(ColSideColors) !=
-  #        nc)
-  #        stop("'ColSideColors' must be a character vector of length ncol(x)")
-  #      lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] +
-  #        1)
-  #      lhei <- c(lhei[1], 0.2, lhei[2])
-  #    }
-  #    if (!missing(RowSideColors)) {
-  #      if (!is.character(RowSideColors) || length(RowSideColors) !=
-  #        nr)
-  #        stop("'RowSideColors' must be a character vector of length nrow(x)")
-  #      lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) -
-  #        1), 1), lmat[, 2] + 1)
-  #      lwid <- c(lwid[1], 0.2, lwid[2])
-  #    }
-  #    lmat[is.na(lmat)] <- 0
-  #  }
-  #  if (length(lhei) != nrow(lmat))
-  #    stop("lhei must have length = nrow(lmat) = ", nrow(lmat))
-  #  if (length(lwid) != ncol(lmat))
-  #    stop("lwid must have length = ncol(lmat) =", ncol(lmat))
-  #  op <- par(no.readonly = TRUE)
-  #  on.exit(par(op))
-  #  layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
-
   if (! missing(x = RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(x = rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
@@ -1145,6 +1122,9 @@ heatmap2NoKey <- function (
   # add pc number as title if plotting pc heatmaps
   if(is.null(x = dimTitle)) {
     dimTitle <- ""
+  }
+  if (is.null(x = pc_title)) {
+    pc_title <- ''
   }
   #print(dimTitle)
   image(
@@ -1294,7 +1274,7 @@ heatmap2NoKey <- function (
   ##else plot.new()
   key <- FALSE
   if (! is.null(x = main))
-    title(main = main, cex.main = 1.5 * op[["cex.main"]])
+    title(main = main, cex.main = 1.5 * par()[["cex.main"]])
   if (key) {
     par(mar = c(5, 4, 2, 1), cex = 0.75)
     tmpbreaks <- breaks
