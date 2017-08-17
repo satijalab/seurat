@@ -1,7 +1,8 @@
 # Tests for functions dependent on a seurat object
 set.seed(42)
 
-pbmc.test <- as(as.matrix(read.table("../../inst/extdata/pbmc_raw.txt", sep = "\t", row.names = 1)), "dgCMatrix")
+pbmc.file <- system.file('extdata', 'pbmc_raw.txt', package = 'Seurat')
+pbmc.test <- as(as.matrix(read.table(pbmc.file, sep = "\t", row.names = 1)), "dgCMatrix")
 
 # Tests for object creation (via CreateSeuratObject)
 # --------------------------------------------------------------------------------

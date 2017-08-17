@@ -70,8 +70,8 @@ CreateSeuratObject <- function(
   object.raw.data <- object@raw.data
   if (is.expr > 0) {
     # suppress Matrix package note:
-    # Note: method with signature ‘CsparseMatrix#Matrix#missing#replValue’ chosen for function ‘[<-’,
-    # target signature ‘dgCMatrix#lgeMatrix#missing#numeric’.
+    # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
+    # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
     # "Matrix#ldenseMatrix#missing#replValue" would also be valid
     suppressMessages(object.raw.data[object.raw.data < is.expr] <- 0)
   }
