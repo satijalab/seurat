@@ -6,7 +6,5 @@
 #' \describe{
 #'   \item{raw.data}{Raw expression data}
 #' }
-#'
 #' @source https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k
-#'
 "pbmc_small"
