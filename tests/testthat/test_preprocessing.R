@@ -16,7 +16,6 @@ object <- CreateSeuratObject(raw.data = pbmc.test,
                              meta.data = fake.meta.data,
                              save.raw = F,
                              display.progress = F)
-
 test_that("object initialization actually creates seurat object", {
   expect_is(object, "seurat")
 })
@@ -100,7 +99,6 @@ test_that("LogNormalize normalizes properly", {
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
-
 object <- ScaleData(object, do.cpp = F, display.progress = F)
 test_that("Old R implementation (ScaleDataR) works properly", {
   expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
