@@ -695,7 +695,6 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
   combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
   combined.object <- ScaleData(object = combined.object)
   combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
-  genes.use = human@var.genes
   combined.object@var.genes <- genes.use
   cca.data <- results$ws[[1]]
   for(i in 2:length(input)){
