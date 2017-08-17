@@ -20,6 +20,14 @@ HoverLocator(plot, data.plot, features.info = NULL, dark.theme = FALSE, ...)
 \description{
 Get quick information from a scatterplot by hovering over points
 }
+\examples{
+\dontrun{
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
+HoverLocator(plot = p, data.plot = df)
+}
+
+}
 \seealso{
 \code{plotly::layout}
 

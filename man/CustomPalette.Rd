@@ -21,3 +21,8 @@ A color palette for plotting
 \description{
 Creates a custom color palette based on low, middle, and high color values
 }
+\examples{
+myPalette <- CustomPalette()
+myPalette
+
+}

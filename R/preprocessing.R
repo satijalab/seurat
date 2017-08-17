@@ -237,6 +237,10 @@ Read10X <- function(data.dir = NULL){
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pmbc_small <- NormalizeData(object = pbmc_small)
+#'
 NormalizeData <- function(
   object,
   assay.type = "RNA",
@@ -245,9 +249,11 @@ NormalizeData <- function(
   display.progress = TRUE
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
-  object <- SetCalcParams(object = object,
-                          calculation = "NormalizeData",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "NormalizeData",
+    ... = parameters.to.store
+  )
   if(is.null(normalization.method)) {
     return(object)
   }
@@ -394,6 +400,9 @@ ScaleDataR <- function(
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- ScaleData(object = pbmc_small)
 #'
 ScaleData <- function(
   object,
@@ -654,6 +663,9 @@ SampleUMI <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
+#'
 FindVariableGenes <- function(
   object,
   mean.function = ExpMean,
@@ -674,9 +686,11 @@ FindVariableGenes <- function(
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
   parameters.to.store$mean.function <- as.character(substitute(mean.function))
   parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
-  object <- SetCalcParams(object = object,
-                          calculation = "FindVariableGenes",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "FindVariableGenes",
+    ... = parameters.to.store
+  )
   data <- object@data
   genes.use <- rownames(x = object@data)
   if (do.recalc) {

@@ -7,11 +7,15 @@
 ExpMean(x)
 }
 \arguments{
-\item{x}{value or vector of values}
+\item{x}{A vector of values}
 }
 \value{
 Returns the mean in log-space
 }
 \description{
 Calculate mean of logged values in non-log space (return answer in log-space)
+}
+\examples{
+ExpMean(x = c(1, 2, 3))
+
 }

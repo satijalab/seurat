@@ -7,7 +7,7 @@
 LogVMR(x)
 }
 \arguments{
-\item{x}{value or vector of values}
+\item{x}{A vector of values}
 }
 \value{
 Returns the VMR in log-space
@@ -15,4 +15,8 @@ Returns the VMR in log-space
 \description{
 Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 log-space)
+}
+\examples{
+LogVMR(x = c(1, 2, 3))
+
 }
