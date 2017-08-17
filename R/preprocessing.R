@@ -74,7 +74,12 @@ CreateSeuratObject <- function(
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
   object@data <- object.raw.data[, cells.use]
-  # Filter genes on the number of cells expressing
+  # to save memory downstream, especially for large objects if raw.data no
+  # longer needed
+  if (!(save.raw)) {
+    object@raw.data <- matrix()
+  }
+  # filter genes on the number of cells expressing
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
   if (min.cells > 0) {
@@ -82,11 +87,6 @@ CreateSeuratObject <- function(
     genes.use <- names(num.cells[which(num.cells >= min.cells)])
     object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
-  }
-  # to save memory downstream, especially for large objects if raw.data no
-  # longer needed
-  if (!(save.raw)) {
-    object@raw.data <- matrix()
   }
   object@ident <- factor(
     x = unlist(
@@ -641,6 +641,9 @@ SampleUMI <- function(
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
+#' @param do.cpp Run c++ version of mean.function and dispersion.function if they
+#' exist.
+#' @param display.progress show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
@@ -670,6 +673,8 @@ FindVariableGenes <- function(
   num.bin = 20,
   do.recalc = TRUE,
   sort.results = TRUE,
+  do.cpp = TRUE,
+  display.progress = TRUE,
   ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
@@ -681,26 +686,53 @@ FindVariableGenes <- function(
     ... = parameters.to.store
   )
   data <- object@data
+  genes.use <- rownames(x = object@data)
   if (do.recalc) {
-    genes.use <- rownames(x = object@data)
-    gene.mean <- rep(x = 0, length(x = genes.use))
-    names(x = gene.mean) <- genes.use
-    gene.dispersion <- gene.mean
-    gene.dispersion.scaled <- gene.mean
-    bin.size <- 1000
-    max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-    print("Calculating gene dispersion")
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-    for (i in 1:max.bin) {
-      my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = genes.use)]
-      genes.iter <- genes.use[my.inds]
-      data.iter <- data[genes.iter, , drop = F]
-      gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
-      gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-      setTxtProgressBar(pb = pb, value = i)
+    if(do.cpp){
+      if(! identical(mean.function, ExpMean)){
+        warning("No equivalent mean.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
+      if(! identical(dispersion.function, LogVMR)){
+        warning("No equivalent dispersion.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
     }
-    close(con = pb)
+    if (do.cpp ){
+      if(class(data) != "dgCMatrix"){
+        data <- as(as.matrix(data), "dgCMatrix")
+      }
+      gene.mean <- FastExpMean(data, display.progress)
+      names(gene.mean) <- genes.use
+      gene.dispersion <- FastLogVMR(data, display.progress)
+      names(gene.dispersion) <- genes.use
+    }
+    if(!do.cpp){
+      gene.mean <- rep(x = 0, length(x = genes.use))
+      names(x = gene.mean) <- genes.use
+      gene.dispersion <- gene.mean
+      gene.dispersion.scaled <- gene.mean
+      bin.size <- 1000
+      max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
+      if(display.progress){
+        print("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      }
+      for (i in 1:max.bin) {
+        my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
+        my.inds <- my.inds[my.inds <= length(x = genes.use)]
+        genes.iter <- genes.use[my.inds]
+        data.iter <- data[genes.iter, , drop = F]
+        gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
+        gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
+        if(display.progress) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
+      }
+      if(display.progress){
+        close(con = pb)
+      }
+    }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
     data_x_bin <- cut(x = gene.mean, breaks = num.bin)

@@ -78,7 +78,7 @@ FindMarkers <- function(
     }
   }
   cells.2 <- setdiff(x = cells.2, y = cells.1)
-  #error checking
+  # error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
     return(NULL)
@@ -87,7 +87,14 @@ FindMarkers <- function(
     print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
     return(NULL)
   }
-  #gene selection (based on percent expressed)
+  if (length(cells.1) < min.cells) {
+    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+  }
+  if (length(cells.2) < min.cells) {
+    stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+  }
+
+  # gene selection (based on percent expressed)
   thresh.min <- 0
   data.temp1 <- round(
     x = apply(
@@ -116,16 +123,15 @@ FindMarkers <- function(
   alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
   names(x = alpha.min) <- rownames(x = data.alpha)
   genes.use <- names(x = which(x = alpha.min > min.pct))
+  if(length(genes.use) == 0) {
+    stop("No genes pass min.pct threshold")
+  }
   alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
   genes.use <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
-
-  if (length(cells.1) < min.cells) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
-  }
-  if (length(cells.2) < min.cells) {
-    stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+  if(length(genes.use) == 0) {
+    stop("No genes pass min.diff.pct threshold")
   }
 
   #gene selection (based on average difference)
@@ -134,6 +140,9 @@ FindMarkers <- function(
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
   genes.use <- intersect(x = genes.use, y = genes.diff)
+  if(length(genes.use) == 0) {
+    stop("No genes pass thresh.use threshold")
+  }
   #perform DR
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
@@ -276,18 +285,24 @@ FindAllMarkers <- function(
     )
   }
   for (i in 1:length(x = idents.all)) {
-    genes.de[[i]] <- FindMarkers(
-      object = object,
-      ident.1 = idents.all[i],
-      ident.2 = NULL,
-      genes.use = genes.use,
-      thresh.use = thresh.use,
-      test.use = test.use,
-      min.pct = min.pct,
-      min.diff.pct = min.diff.pct,
-      print.bar = print.bar,
-      min.cells = min.cells,
-      latent.vars = latent.vars
+    genes.de[[i]] <- tryCatch(
+      {
+        FindMarkers(object = object,
+                    ident.1 = idents.all[i],
+                    ident.2 = NULL,
+                    genes.use = genes.use,
+                    thresh.use = thresh.use,
+                    test.use = test.use,
+                    min.pct = min.pct,
+                    min.diff.pct = min.diff.pct,
+                    print.bar = print.bar,
+                    min.cells = min.cells,
+                    latent.vars = latent.vars
+        )
+      },
+      error = function(cond){
+        return(NULL)
+      }
     )
     if (do.print) {
       print(paste("Calculating cluster", idents.all[i]))
