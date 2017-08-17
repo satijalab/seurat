@@ -34,3 +34,7 @@ Returns gene expression for an 'average' single cell in each identity class
 \details{
 Output is in log-space, but averaging is done in non-log space.
 }
+\examples{
+head(AverageExpression(object = pbmc_small))
+
+}

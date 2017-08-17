@@ -274,7 +274,12 @@ MinMax <- function(data, min, max) {
 #' @param delim Delimiter to use, set to underscore by default.
 #'
 #' @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
+#'
 #' @export
+#'
+#' @examples
+#' ExtractField(string = 'Hello World', field = 1, delim = '_')
+#'
 ExtractField <- function(string, field = 1, delim = "_") {
   fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
   if (length(x = fields) == 1) {
@@ -397,6 +402,9 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #'
 #' @export
 #'
+#' @examples
+#' head(AverageDetectionRate(object = pbmc_small))
+#'
 AverageDetectionRate <- function(object, thresh.min = 0) {
   ident.use <- object@ident
   data.all <- data.frame(row.names = rownames(x = object@data))
@@ -425,6 +433,10 @@ AverageDetectionRate <- function(object, thresh.min = 0) {
 #' @return Returns a matrix with genes as rows, identity classes as columns
 #'
 #' @export
+#'
+#' @examples
+#'
+#' head(AveragePCA(object = pbmc_small))
 #'
 AveragePCA <- function(object) {
   ident.use <- object@ident
@@ -466,8 +478,14 @@ AveragePCA <- function(object) {
 #' @inheritParams FetchData
 #' @param show.progress Show progress bar (default is T)
 #' @param ... Arguments to be passed to methods such as \code{Seurat}
+#'
 #' @return Returns a matrix with genes as rows, identity classes as columns.
+#'
 #' @export
+#'
+#' @examples
+#' head(AverageExpression(object = pbmc_small))
+#'
 AverageExpression <- function(
   object,
   genes.use = NULL,
@@ -632,6 +650,10 @@ MergeNode <- function(object, node.use = NULL) {
 #' @importFrom FNN get.knn
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- AddSmoothedScore(object = pbmc_small)
+#'
 #'
 AddSmoothedScore <- function(
   object,
