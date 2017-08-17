@@ -5,7 +5,7 @@
 \title{Regress out technical effects and cell cycle}
 \usage{
 RegressOutResid(object, vars.to.regress, genes.regress = NULL,
-  model.use = "linear", use.umi = FALSE)
+  model.use = "linear", use.umi = FALSE, display.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,6 +17,8 @@ RegressOutResid(object, vars.to.regress, genes.regress = NULL,
 \item{model.use}{Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'}
 
 \item{use.umi}{Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'}
+
+\item{display.progress}{display progress bar for regression procedure.}
 }
 \value{
 Returns the residuals from the regression model

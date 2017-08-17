@@ -67,6 +67,8 @@ test_that("Fast implementation of row scaling returns expected values", {
                FastRowScale(mat, scale = FALSE, display_progress = FALSE))
   expect_equal(t(scale(t(mat), scale = FALSE, center = F))[1:10, 1:10],
                FastRowScale(mat, scale = FALSE, center = F, display_progress = FALSE))
+  mat.clipped <- FastRowScale(mat, scale_max = 0.2, display_progress = F)
+  expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
 # should be the equivalent of scale(mat, TRUE, apply(mat, 2, sd))
@@ -89,6 +91,8 @@ test_that("Fast implementation of row scaling returns expected values", {
   expect_equal(t(scale(t(as.matrix(mat)), scale = FALSE, center = F))[1:10, 1:15],
                FastSparseRowScale(mat, scale = FALSE, center = F, display_progress = FALSE),
                check.attributes = FALSE)
+  mat.clipped <- FastSparseRowScale(mat, scale_max = 0.2, display_progress = F)
+  expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
 # Tests for fast basic stats functions
@@ -104,6 +108,16 @@ test_that("Fast implementation of covariance returns expected values", {
   expect_equal(fcv[10,10], 5.6650068)
   expect_equal(fcv, cv)
 })
+
+mat2 <- replicate(10, rchisq(10, 4))
+fcv <- FastCovMats(mat1 = mat, mat2 = mat2)
+cv <- cov(mat, mat2)
+test_that("Fast implementation of covariance returns expected values for matrices", {
+  expect_equal(fcv[1,1], 1.523417, tolerance = 1e-6)
+  expect_equal(fcv[10,10], -0.6031694, tolerance = 1e-6)
+  expect_equal(fcv, cv)
+})
+
 
 merged.mat <- FastRBind(mat, fcv)
 test_that("Fast implementation of rbind returns expected values", {

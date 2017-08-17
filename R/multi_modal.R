@@ -40,6 +40,9 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
       }
       to.return <- object@scale.data
     }
+    if(is.null(to.return)) {
+      return(to.return)
+    }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided
     if (length(x = object@cell.names) == ncol(to.return)) {
       return(to.return)
