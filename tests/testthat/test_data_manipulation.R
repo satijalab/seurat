@@ -93,6 +93,8 @@ test_that("Fast implementation of row scaling returns expected values", {
 
 # Tests for fast basic stats functions
 # --------------------------------------------------------------------------------
+context("Fast Basic Stats Functions")
+
 set.seed(42)
 mat <- replicate(10, rchisq(10, 4))
 fcv <- FastCov(mat)
@@ -112,25 +114,25 @@ test_that("Fast implementation of rbind returns expected values", {
 
 mat <- as(mat, "dgCMatrix")
 test_that("Fast implementation of ExpMean returns expected values",{
-  expect_equal(ExpMean(mat[1,]), FastExpMean(mat)[1])
-  expect_equal(ExpMean(mat[5,]), FastExpMean(mat)[5])
-  expect_equal(ExpMean(mat[10,]), FastExpMean(mat)[10])
-  expect_equal(length(FastExpMean(mat)), nrow(mat))
-  expect_error(FastExpMean(mat[1, ]))
-  expect_equal(FastExpMean(mat[1, ,drop = F]), ExpMean(mat[1,]))
-  expect_equal(FastExpMean(mat)[1], 6.493418, tolerance = 1e-6)
-  expect_equal(FastExpMean(mat)[5], 6.255206, tolerance = 1e-6)
-  expect_equal(FastExpMean(mat)[10], 7.84965, tolerance = 1e-6)
+  expect_equal(ExpMean(mat[1,]), FastExpMean(mat, display_progress = F)[1])
+  expect_equal(ExpMean(mat[5,]), FastExpMean(mat, display_progress = F)[5])
+  expect_equal(ExpMean(mat[10,]), FastExpMean(mat, display_progress = F)[10])
+  expect_equal(length(FastExpMean(mat, display_progress = F)), nrow(mat))
+  expect_error(FastExpMean(mat[1, ], display_progress = F))
+  expect_equal(FastExpMean(mat[1, ,drop = F], display_progress = F), ExpMean(mat[1,]))
+  expect_equal(FastExpMean(mat, display_progress = F)[1], 6.493418, tolerance = 1e-6)
+  expect_equal(FastExpMean(mat, display_progress = F)[5], 6.255206, tolerance = 1e-6)
+  expect_equal(FastExpMean(mat, display_progress = F)[10], 7.84965, tolerance = 1e-6)
 })
 test_that("Fast implementation of LogVMR returns expected values", {
-  expect_equal(LogVMR(mat[1,]), FastLogVMR(mat)[1])
-  expect_equal(LogVMR(mat[5,]), FastLogVMR(mat)[5])
-  expect_equal(LogVMR(mat[10,]), FastLogVMR(mat)[10])
-  expect_equal(length(FastExpMean(mat)), nrow(mat))
-  expect_error(FastLogVMR(mat[1, ]))
-  expect_equal(FastLogVMR(mat[1, ,drop = F]), LogVMR(mat[1,]))
-  expect_equal(FastLogVMR(mat)[1], 7.615384, tolerance = 1e-6)
-  expect_equal(FastLogVMR(mat)[5], 7.546768, tolerance = 1e-6)
-  expect_equal(FastLogVMR(mat)[10], 10.11755, tolerance = 1e-6)
+  expect_equal(LogVMR(mat[1,]), FastLogVMR(mat, display_progress = F)[1])
+  expect_equal(LogVMR(mat[5,]), FastLogVMR(mat, display_progress = F)[5])
+  expect_equal(LogVMR(mat[10,]), FastLogVMR(mat, display_progress = F)[10])
+  expect_equal(length(FastExpMean(mat, display_progress = F)), nrow(mat))
+  expect_error(FastLogVMR(mat[1, ], display_progress = F))
+  expect_equal(FastLogVMR(mat[1, ,drop = F], display_progress = F), LogVMR(mat[1,]))
+  expect_equal(FastLogVMR(mat, display_progress = F)[1], 7.615384, tolerance = 1e-6)
+  expect_equal(FastLogVMR(mat, display_progress = F)[5], 7.546768, tolerance = 1e-6)
+  expect_equal(FastLogVMR(mat, display_progress = F)[10], 10.11755, tolerance = 1e-6)
 })
 
