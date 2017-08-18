@@ -36,8 +36,8 @@ genes.
 }
 \examples{
 pbmc_small
-pbmc_small <- ProjectPCA(pbmc_small, reduction.type = "pca")
-Vizualize top projected genes in heatmap 
+pbmc_small <- ProjectPCA(pbmc_small)
+# Vizualize top projected genes in heatmap
 PCHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T)
 
 }
