@@ -28,9 +28,17 @@ pbmc_small
 # Simulate adding a new dimensional reduction
 new.cell.embeddings <- GetCellEmbeddings(object = pbmc_small, reduction.type = "pca")
 new.gene.loadings <- GetGeneLoadings(object = pbmc_small, reduction.type = "pca")
-SetDimReduction(object = object, reduction.type = "new.pca",
-                slot = "cell.embeddings", new.data = new.cell.embeddings)
-SetDimReduction(object = object, reduction.type = "new.pca",
-                slot = "gene.loadings", new.data = new.gene.loadings)
+SetDimReduction(
+  object = pbmc_small,
+  reduction.type = "new.pca",
+  slot = "cell.embeddings",
+  new.data = new.cell.embeddings
+)
+SetDimReduction(
+  object = pbmc_small,
+  reduction.type = "new.pca",
+  slot = "gene.loadings",
+  new.data = new.gene.loadings
+)
 
 }
