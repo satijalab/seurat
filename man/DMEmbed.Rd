@@ -19,3 +19,6 @@ Diffusion maps embedding matrix for given cells and DMs
 \description{
 Pull Diffusion maps cell embedding matrix
 }
+\examples{
+
+}

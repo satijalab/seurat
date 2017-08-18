@@ -14,6 +14,14 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' # Get the PCA cell embeddings and print the top left corner
+#' GetDimReduction(object = pbmc_small, reduction.type = "pca",
+#'                 slot = "cell.embeddings")[1:5, 1:5]
+#' # Get the standard deviation of each PC
+#' GetDimReduction(object = pbmc_small, reduction.type = "pca", slot = "sdev")
+#'
 GetDimReduction <- function(
   object,
   reduction.type = "pca",
@@ -43,6 +51,11 @@ GetDimReduction <- function(
 #' @return Cell embedding matrix for given reduction, cells, and dimensions
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Examine the head of the first 5 PC cell embeddings
+#' head(GetCellEmbeddings(object = pbmc_small, reduction.type = "pca", dims.use = 1:5))
 #'
 GetCellEmbeddings <- function(
   object,
@@ -100,6 +113,12 @@ GetCellEmbeddings <- function(
 #' @param use.full Return projected gene loadings (default is FALSE)
 #' @return Gene loading matrix for given reduction, cells, and genes
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Examine the head of the first 5 PC gene loadings
+#' head(GetGeneLoadings(object = pbmc_small, reduction.type = "pca", dims.use = 1:5))
+#'
 GetGeneLoadings <- function(
   object,
   reduction.type = "pca",
@@ -166,6 +185,17 @@ GetGeneLoadings <- function(
 #' @param new.data New data to set
 #' @return Seurat object with updated slot
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Simulate adding a new dimensional reduction
+#' new.cell.embeddings <- GetCellEmbeddings(object = pbmc_small, reduction.type = "pca")
+#' new.gene.loadings <- GetGeneLoadings(object = pbmc_small, reduction.type = "pca")
+#' SetDimReduction(object = object, reduction.type = "new.pca",
+#'                 slot = "cell.embeddings", new.data = new.cell.embeddings)
+#' SetDimReduction(object = object, reduction.type = "new.pca",
+#'                 slot = "gene.loadings", new.data = new.gene.loadings)
+#'
 SetDimReduction <- function(
   object,
   reduction.type,
@@ -225,6 +255,8 @@ SetDimReduction <- function(
 #' @return Diffusion maps embedding matrix for given cells and DMs
 #'
 #' @export
+#'
+#' @examples
 #'
 DMEmbed <- function(
   object,

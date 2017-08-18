@@ -23,3 +23,9 @@ Cell embedding matrix for given reduction, cells, and dimensions
 Pull cell embeddings matrix for specified stored dimensional reduction
 analysis
 }
+\examples{
+pbmc_small
+# Examine the head of the first 5 PC cell embeddings
+head(GetCellEmbeddings(object = pbmc_small, reduction.type = "pca", dims.use = 1:5))
+
+}
