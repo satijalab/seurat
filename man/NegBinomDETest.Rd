@@ -30,3 +30,10 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 a negative binomial generalized linear model
 }
+\examples{
+pbmc_small
+# Note, not recommended for particularly small datasets - expect warnings
+NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+
+}
