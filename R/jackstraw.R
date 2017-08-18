@@ -12,9 +12,9 @@
 #' replicate
 #' @param do.print Print the number of replicates that have been processed.
 #'
-#' @return Returns a Seurat object where object@@jackStraw.empP represents
+#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
-#' run, object@@jackStraw.empP.full then represents p-values for all genes.
+#' run, object@dr$pca@jackstraw@emperical.p.value.full then represents p-values for all genes.
 #'
 #' @importFrom pbapply pbsapply
 #'
@@ -22,6 +22,10 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
+#' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+#' 
 JackStraw <- function(
   object,
   num.pc = 20,
@@ -147,6 +151,9 @@ JackStraw <- function(
 #' at least one of the given PCs.
 #'
 #' @export
+#'
+#' @examples
+#' PCASigGenes(pbmc_small, pcs.use = 1:2)
 #'
 PCASigGenes <- function(
   object,

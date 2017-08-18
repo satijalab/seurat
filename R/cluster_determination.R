@@ -306,6 +306,15 @@ NumberClusters <- function(object) {
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' # take the first 10 cells as test data and train on the remaining 70 cells
+#' test.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:10])
+#' train.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[11:80])
+#' predicted.classes <- ClassifyCells(object = train.pbmc,
+#'                                    training.classes = train.pbmc@ident,
+#'                                    new.data = test.pbmc@data)
+#'
 ClassifyCells <- function(
   object,
   classifier,
@@ -358,6 +367,12 @@ ClassifyCells <- function(
 #' @importFrom ranger ranger
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Builds the random forest classifier to be used with ClassifyCells
+#' # Useful if you want to use the same classifier with several sets of new data
+#' classifier <- BuildRFClassifier(pbmc_small, training.classes = pbmc_small@ident)
 #'
 BuildRFClassifier <- function(
   object,
@@ -423,6 +438,14 @@ BuildRFClassifier <- function(
 #' and also object@@ident (if set.ident=TRUE)
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Cluster on genes only
+#' pbmc_small <- DoKMeans(pbmc_small, k.genes = 3)
+#' # Cluster on genes and cell
+#' pbmc_small <- DoKMeans(pbmc_small, k.genes = 3, k.cells = 3)
+#'
 DoKMeans <- function(
   object,
   genes.use = NULL,
@@ -458,6 +481,7 @@ DoKMeans <- function(
   names(x = kmeans.obj$cluster) <- genes.use
 
   #if we are going to k-means cluster cells in addition to genes
+  kmeans.col <- c()
   if (k.cells > 0) {
     kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)
     names(x = kmeans.col$cluster) <- cells.use
@@ -521,6 +545,10 @@ globalVariables(
 #' @importFrom stats dist hclust
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- BuildClusterTree(pbmc_small, do.plot = FALSE)
 #'
 BuildClusterTree <- function(
   object,
@@ -611,7 +639,6 @@ BuildClusterTree <- function(
 }
 
 
-
 #' Perform spectral density clustering on single cells
 #'
 #' Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN).
@@ -627,6 +654,11 @@ BuildClusterTree <- function(
 #' @param ... Additional arguments to be passed to the dbscan function
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Density based clustering on the first two tSNE dimensions
+#' pbmc_small <- DBClustDimension(pbmc_small)
 #'
 DBClustDimension <- function(
   object,
@@ -678,6 +710,11 @@ DBClustDimension <- function(
 #' @importFrom stats kmeans
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # K-means clustering on the first two tSNE dimensions
+#' pbmc_small <- KClustDimension(pbmc_small)
 #'
 KClustDimension <- function(
   object,
