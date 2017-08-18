@@ -16,6 +16,12 @@
 #'
 #' @export
 #'
+#' @examples
+#' # Note that the PBMC test example object does not contain spatially restricted, examples below are only demonstrate code
+#' \dontrun{
+#' pmbc_small <- GetCentroids(pbmc_small, cells.use=pbmc_small@cell.names)
+#' }
+#'
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@finalprob))
   #Error checking
@@ -65,6 +71,12 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
 #' @importFrom stats cov
 #'
 #' @export
+#'
+#' @examples
+#' # Note that the PBMC test example object does not contain spatially restricted, examples below are only demonstrate code
+#' \dontrun{
+#' pmbc_small <- RefinedMapping(pbmc_small, genes.use=pbmc_small@var.genes)
+#' }
 #'
 RefinedMapping <- function(object, genes.use) {
   genes.use <- intersect(x = genes.use, y = rownames(x = object@imputed))
@@ -140,6 +152,12 @@ RefinedMapping <- function(object, genes.use) {
 #'
 #' @export
 #'
+#' @examples
+#' # Note that the PBMC test example object does not contain spatially restricted, examples below are only demonstrate code
+#' \dontrun{
+#' pmbc_small <- InitialMapping(pbmc_small)
+#' }
+#'
 InitialMapping <- function(object, cells.use = NULL) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   every.prob <- sapply(
@@ -183,6 +201,12 @@ InitialMapping <- function(object, cells.use = NULL) {
 #' @importFrom mixtools normalmixEM
 #'
 #' @export
+#'
+#' @examples
+#' # Note that the PBMC test example object does not contain spatially restricted, examples below are only demonstrate code
+#' \dontrun{
+#' pmbc_small <- FitGeneK(object = pbmc_small, gene = "MS4A1")
+#' }
 #'
 FitGeneK <- function(
   object,
