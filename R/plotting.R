@@ -1098,6 +1098,8 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
+
+
 #' Vizualization of multiple features
 #'
 #' Similar to FeaturePlot, however, also splits the plot by visualizing each
@@ -1133,9 +1135,13 @@ globalVariables(
 #' @importFrom tidyr gather
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
-#' @seealso \code{FeaturePlot}
+#' @seealso \code{\link{FeaturePlot}}
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' FeatureHeatmap(object = pbmc_small, features.plot = "PC1")
 #'
 FeatureHeatmap <- function(
   object,
@@ -1175,7 +1181,7 @@ FeatureHeatmap <- function(
   data.plot$ident <- as.character(x = object@ident)
   data.plot$cell <- rownames(x = data.plot)
   features.plot <- gsub('-', '\\.', features.plot)
-  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
+  data.plot  %>% gather(key = "gene", value = "expression", -dim1, -dim2, -ident, -cell) -> data.plot
   if (sep.scale) {
     data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   } else {
@@ -2781,6 +2787,11 @@ PlotClusterTree <- function(object, ...) {
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' PlotClusterTree(pbmc_small)
+#' ColorTSNESplit(pbmc_small, node = 6)
+#'
 ColorTSNESplit <- function(
   object,
   node,
@@ -2791,11 +2802,7 @@ ColorTSNESplit <- function(
 ) {
   tree <- object@cluster.tree[[1]]
   split <- tree$edge[which(x = tree$edge[,1] == node), ][, 2]
-  all.children <- DFT(
-    tree = tree,
-    node = tree$edge[,1][1],
-    only.children = TRUE
-  )
+  all.children <- sort(x = tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]])
   left.group <- DFT(tree = tree, node = split[1], only.children = TRUE)
   right.group <- DFT(tree = tree, node = split[2], only.children = TRUE)
   if (any(is.na(x = left.group))) {
@@ -2804,7 +2811,9 @@ ColorTSNESplit <- function(
   if (any(is.na(x = right.group))) {
     right.group <- split[2]
   }
-  remaining.group <- setdiff(x = all.children, y = c(left.group, right.group))
+  left.group <- MapVals(v = left.group, from = all.children, to = tree$tip.label)
+  right.group <- MapVals(v = right.group, from = all.children, to = tree$tip.label)
+  remaining.group <- setdiff(x = tree$tip.label, y = c(left.group, right.group))
   left.cells <- WhichCells(object = object, ident = left.group)
   right.cells <- WhichCells(object = object, ident = right.group)
   remaining.cells <- WhichCells(object = object, ident = remaining.group)
