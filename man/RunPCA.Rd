@@ -14,7 +14,7 @@ RunPCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
 
 \item{pc.genes}{Genes to use as input for PCA. Default is object@var.genes}
 
-\item{pcs.compute}{Total Number of PCs to compute and store}
+\item{pcs.compute}{Total Number of PCs to compute and store (20 by default)}
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
@@ -46,4 +46,17 @@ object@dr$pca.
 \description{
 Run a PCA dimensionality reduction. For details about stored PCA calculation
 parameters, see \code{PrintPCAParams}.
+}
+\examples{
+pbmc_small
+# Run PCA on variable genes (default)
+pbmc_small <- RunPCA(pbmc_small)
+# Run PCA on different gene set (in this case all genes)
+pbmc_small=RunPCA(pbmc_small,pc.genes = rownames(pbmc_small@data))
+# Run PCA but compute more than 20 dimensions
+pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
+# Plot results
+\dontrun{
+PCAPlot(pbmc_small)
+}
 }

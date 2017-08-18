@@ -5,7 +5,7 @@
 #'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
-#' @param pcs.compute Total Number of PCs to compute and store
+#' @param pcs.compute Total Number of PCs to compute and store (20 by default)
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
@@ -29,6 +29,18 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' # Run PCA on variable genes (default)
+#' pbmc_small <- RunPCA(pbmc_small)
+#' # Run PCA on different gene set (in this case all genes)
+#' pbmc_small=RunPCA(pbmc_small,pc.genes = rownames(pbmc_small@data))
+#' # Run PCA but compute more than 20 dimensions
+#' pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
+#' # Plot results
+#' \dontrun{
+#' PCAPlot(pbmc_small)
+#' }
 RunPCA <- function(
   object,
   pc.genes = NULL,
@@ -95,7 +107,6 @@ RunPCA <- function(
   return(object)
 }
 
-
 #' Run Independent Component Analysis on gene expression
 #'
 #' Run fastica algorithm from the ica package for ICA dimensionality reduction.
@@ -126,6 +137,17 @@ RunPCA <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' # Run ICA on variable genes (default)
+#' pbmc_small <- RunICA(pbmc_small, ics.compute=5)
+#' # Run ICA on different gene set (in this case all genes)
+#' pbmc_small=RunICA(pbmc_small,pc.genes = rownames(pbmc_small@data))
+#' # Plot results
+#' \dontrun{
+#' ICAPlot(pbmc_small)
+#' }
+#' 
 RunICA <- function(
   object,
   ic.genes = NULL,
@@ -167,7 +189,6 @@ RunICA <- function(
   )
 
   eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
-
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
   if(is.null(object@calc.params$ICA$ic.genes)){
@@ -178,7 +199,6 @@ RunICA <- function(
   }
   return(object)
 }
-
 
 #' Run t-distributed Stochastic Neighbor Embedding
 #'
@@ -217,6 +237,18 @@ RunICA <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' # Run tSNE on first five PCs, note that for test dataset (only 80 cells) we can't use default perplexity of 30
+#' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "pca", dims.use = 1:5, perplexity=10)
+#' # Run tSNE on first five independent components from ICA
+#' pbmc_small <- RunICA(pbmc_small,ics.compute=5)
+#' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "ica", dims.use = 1:5, perplexity=10)
+#' # Plot results
+#' \dontrun{
+#' TSNEPlot(pbmc_small)
+#' }
+#' 
 RunTSNE <- function(
   object,
   reduction.use = "pca",
@@ -319,6 +351,14 @@ RunTSNE <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
+#' Vizualize top projected genes in heatmap 
+#' \dontrun{
+#' DimHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T,reduction.type = "pca")
+#' }
+#' 
 ProjectDim <- function(
   object,
   reduction.type = "pca",
@@ -398,6 +438,14 @@ ProjectDim <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- ProjectPCA(pbmc_small, reduction.type = "pca")
+#' Vizualize top projected genes in heatmap 
+#' \dontrun{
+#' PCHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T)
+#' }
+#'
 ProjectPCA <- function(
   object,
   do.print = TRUE,
@@ -446,6 +494,17 @@ ProjectPCA <- function(
 #' @seealso \code{MergeSeurat}
 #'
 #' @export
+#'
+#'@examples
+#' pbmc_small
+#' #As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca=RunCCA(pbmc1,pbmc2)
+#' # Print results
+#' PrintDim(pbmc_cca,reduction.type = 'cca')
 #'
 RunCCA <- function(
   object,
@@ -660,6 +719,17 @@ RunCCA <- function(
 #' @return Returns Seurat object with ratio of variance explained stored in
 #' object@@meta.data$var.ratio
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Requires CCA to have previously been run
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca=RunCCA(pbmc1,pbmc2)
+#' pbmc_cca=CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
 #'
 CalcVarExpRatio <- function(
   object,
