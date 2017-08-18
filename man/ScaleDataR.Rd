@@ -27,9 +27,3 @@ Returns a seurat object with object@scale.data updated with scaled and/or center
 \description{
 Old R based implementation of ScaleData. Scales and centers the data
 }
-\examples{
-\dontrun{
-pbmc_small <- ScaleDataR(object = pbmc_small)
-}
-
-}
