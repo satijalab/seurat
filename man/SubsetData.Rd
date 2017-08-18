@@ -48,7 +48,7 @@ original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
 \examples{
-pbmc1 <- SubsetData(object = pbmc_small, cell.names = pbmc_small@cell.names[1:40])
+pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
 pbmc1
 
 }
