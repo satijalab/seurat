@@ -811,6 +811,7 @@ PrintICA <- function(
 #' @return Only text output
 #'
 #' @export
+#'
 #' @examples
 #' pbmc_small
 #' PrintPCA(object = pbmc_small)
