@@ -17,7 +17,7 @@
 #' @param scale.factor If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-#' can specify do.scale=T (and do.center=T) here.
+#' can specify do.scale = TRUE (and do.center = TRUE) here.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
 #' @param names.field For the initial identity class for each cell, choose this field from the
 #' cell's column name

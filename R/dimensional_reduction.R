@@ -236,7 +236,8 @@ RunICA <- function(
 #'
 #' @examples
 #' pbmc_small
-#' # Run tSNE on first five PCs, note that for test dataset (only 80 cells) we can't use default perplexity of 30
+#' # Run tSNE on first five PCs, note that for test dataset (only 80 cells)
+#' # we can't use default perplexity of 30
 #' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "pca", dims.use = 1:5, perplexity=10)
 #' # Run tSNE on first five independent components from ICA
 #' pbmc_small <- RunICA(pbmc_small,ics.compute=5)
@@ -350,7 +351,7 @@ RunTSNE <- function(
 #' pbmc_small
 #' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
 #' # Vizualize top projected genes in heatmap
-#' DimHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T,reduction.type = "pca")
+#' DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
 #'
 ProjectDim <- function(
   object,
@@ -435,7 +436,7 @@ ProjectDim <- function(
 #' pbmc_small
 #' pbmc_small <- ProjectPCA(pbmc_small)
 #' # Vizualize top projected genes in heatmap
-#' PCHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T)
+#' PCHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE)
 #'
 ProjectPCA <- function(
   object,

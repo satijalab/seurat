@@ -24,7 +24,7 @@ Prints a set of genes that most strongly define a set of independent components
 \examples{
 pbmc_small
 pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
-pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = FALSE)
 PrintICA(object = pbmc_small)
 # Options for how many dimensions and how many genes to print
 PrintICA(object = pbmc_small, ics.print = 1:2, genes.print = 5)
