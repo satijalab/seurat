@@ -761,6 +761,16 @@ globalVariables(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
 #' @export
+#'
+#' @examples
+#' # Create a simulated grouping variable
+#' pbmc_small@meta.data$groups <- sample(
+#'   x = c("g1", "g2"),
+#'   size = length(x = pbmc_small@cell.names),
+#'   replace = TRUE
+#' )
+#' SplitDotPlotGG(pbmc_small, grouping.var = "groups", genes.plot = pbmc_small@var.genes[1:5])
+#'
 SplitDotPlotGG <- function(
   object,
   grouping.var,
@@ -784,9 +794,9 @@ SplitDotPlotGG <- function(
     vars.all = grouping.var
   )[names(x = object@ident), 1]
   idents.old <- levels(x = object@ident)
-  object@ident <- paste(object@ident, grouping.data, sep="_")
+  idents.new <- paste(object@ident, grouping.data, sep="_")
   object@ident <- factor(
-    x = object@ident,
+    x = idents.new,
     levels = unlist(x = lapply(
       X = idents.old,
       FUN = function(x) {
