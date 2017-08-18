@@ -510,7 +510,7 @@ ScaleData <- function(
     data = NA,
     nrow = length(x = genes.use),
     ncol = ncol(x = object@data
-  )
+    )
   )
   rownames(scaled.data) <- genes.use
   if(length(object@cell.names) <= min.cells.to.block) {
