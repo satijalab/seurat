@@ -34,3 +34,10 @@ cell is in the 'on' or 'off' state for any gene. Followed by a greedy
 k-means step where cells are allowed to flip states based on the overall
 structure of the data (see Manuscript for details)
 }
+\examples{
+# Note that the PBMC test example object does not contain spatially restricted, examples below are only demonstrate code
+\dontrun{
+pmbc_small <- FitGeneK(object = pbmc_small, gene = "MS4A1")
+}
+
+}
