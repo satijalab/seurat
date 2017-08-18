@@ -26,3 +26,10 @@ the marker, average differences)
 \description{
 Finds markers that are conserved between the two groups
 }
+\examples{
+pbmc_small
+# Create a simulated grouping variable
+pbmc_small@meta.data$groups <- sample(c("g1", "g2"), size = length(pbmc_small@cell.names), replace = T)
+FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
+
+}

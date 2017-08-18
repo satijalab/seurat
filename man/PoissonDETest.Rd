@@ -4,7 +4,7 @@
 \alias{PoissonDETest}
 \title{Poisson test for UMI-count based data}
 \usage{
-PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
+PoissonDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
   latent.vars = NULL, print.bar = TRUE)
 }
 \arguments{
@@ -13,6 +13,8 @@ PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
 \item{cells.1}{Group 1 cells}
 
 \item{cells.2}{Group 2 cells}
+
+\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 
 \item{genes.use}{Genes to use for test}
 
@@ -27,4 +29,11 @@ genes.
 \description{
 Identifies differentially expressed genes between two groups of cells using
 a poisson generalized linear model
+}
+\examples{
+pbmc_small
+# Note, expect warnings with example dataset due to min.cells threshold.
+PoissonDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+
 }

@@ -25,3 +25,11 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
 }
+\examples{
+pbmc_small
+\dontrun{
+TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+}
+
+}
