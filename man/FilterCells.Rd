@@ -30,7 +30,11 @@ parameter (for example, a gene), to subset on.
 }
 \examples{
 head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
-pbmc_filtered <- FilterCells(object = pbmc_small, subset.names = 'LTB', high.thresholds = 6)
+pbmc_filtered <- FilterCells(
+  object = pbmc_small,
+  subset.names = 'LTB',
+  high.thresholds = 6
+)
 head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
 
 }
