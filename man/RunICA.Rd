@@ -55,7 +55,6 @@ pbmc_small <- RunICA(pbmc_small, ics.compute=5)
 # Run ICA on different gene set (in this case all genes)
 pbmc_small=RunICA(pbmc_small,pc.genes = rownames(pbmc_small@data))
 # Plot results
-\dontrun{
 ICAPlot(pbmc_small)
-}
+
 }

@@ -38,9 +38,8 @@
 #' # Run PCA but compute more than 20 dimensions
 #' pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
 #' # Plot results
-#' \dontrun{
 #' PCAPlot(pbmc_small)
-#' }
+#' 
 RunPCA <- function(
   object,
   pc.genes = NULL,
@@ -144,9 +143,7 @@ RunPCA <- function(
 #' # Run ICA on different gene set (in this case all genes)
 #' pbmc_small=RunICA(pbmc_small,pc.genes = rownames(pbmc_small@data))
 #' # Plot results
-#' \dontrun{
 #' ICAPlot(pbmc_small)
-#' }
 #' 
 RunICA <- function(
   object,
@@ -245,9 +242,7 @@ RunICA <- function(
 #' pbmc_small <- RunICA(pbmc_small,ics.compute=5)
 #' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "ica", dims.use = 1:5, perplexity=10)
 #' # Plot results
-#' \dontrun{
 #' TSNEPlot(pbmc_small)
-#' }
 #' 
 RunTSNE <- function(
   object,
@@ -355,9 +350,7 @@ RunTSNE <- function(
 #' pbmc_small
 #' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
 #' Vizualize top projected genes in heatmap 
-#' \dontrun{
 #' DimHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T,reduction.type = "pca")
-#' }
 #' 
 ProjectDim <- function(
   object,
@@ -442,9 +435,7 @@ ProjectDim <- function(
 #' pbmc_small
 #' pbmc_small <- ProjectPCA(pbmc_small, reduction.type = "pca")
 #' Vizualize top projected genes in heatmap 
-#' \dontrun{
 #' PCHeatmap(pbmc_small,pc.use = 1,use.full = T,do.balanced = T)
-#' }
 #'
 ProjectPCA <- function(
   object,
@@ -502,7 +493,7 @@ ProjectPCA <- function(
 #' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
-#' pbmc_cca=RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
 #' # Print results
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
 #'
@@ -728,8 +719,8 @@ RunCCA <- function(
 #' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
-#' pbmc_cca=RunCCA(pbmc1,pbmc2)
-#' pbmc_cca=CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
 #'
 CalcVarExpRatio <- function(
   object,
@@ -866,6 +857,30 @@ CalcVarExpRatio <- function(
 #'
 #' @export
 #'
+#' Calculate the ratio of variance explained by ICA or PCA to CCA
+#'
+#' @param object Seurat object
+#' @param reduction.type type of dimensional reduction to compare to CCA (pca,
+#' pcafast, ica)
+#' @param grouping.var variable to group by
+#' @param dims.use Vector of dimensions to project onto (default is the 1:number
+#'  stored for cca)
+#'
+#' @return Returns Seurat object with ratio of variance explained stored in
+#' object@@meta.data$var.ratio
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Requires CCA to have previously been run
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- AlignSubspace(pbmc_cca,reduction.type = "cca", grouping.var = "group", dims.align = 1:2)
+#' 
 AlignSubspace <- function(
   object,
   reduction.type,
@@ -1062,8 +1077,8 @@ AlignSubspace <- function(
 #' genes (instead of running on a set of reduced dimensions). Not set (NULL) by
 #' default
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
-#' diffusion map. Default is PCA
-#' @param q.use Quantile to use
+#' diffusion map input. Default is PCA
+#' @param q.use Quantile to clip diffusion map components at. This addresses an issue where 1-2 cells will have extreme values that obscure all other points. 0.01 by default
 #' @param max.dim Max dimension to keep from diffusion calculation
 #' @param scale.clip Max/min value for scaled data. Default is 3
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. dm by default
@@ -1076,7 +1091,16 @@ AlignSubspace <- function(
 #' @importFrom stats dist
 #'
 #' @export
-#'
+#' 
+#' @examples
+#' pbmc_small
+#' # Run Diffusion on variable genes 
+#' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
+#' # Run Diffusion map on first 10 PCs
+#' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
+#' # Plot results
+#' DMPlot(pbmc_small)
+#' 
 RunDiffusion <- function(
   object,
   cells.use = NULL,
@@ -1134,13 +1158,13 @@ RunDiffusion <- function(
   }
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.use,
+    reduction.type = reduction.name,
     slot = "cell.embeddings",
     new.data = as.matrix(x = data.diffusion)
   )
   object <- SetDimReduction(
     object = object,
-    reduction.type = reduction.use,
+    reduction.type = reduction.name,
     slot = "key",
     new.data = "DM"
   )

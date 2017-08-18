@@ -56,7 +56,6 @@ pbmc_small=RunPCA(pbmc_small,pc.genes = rownames(pbmc_small@data))
 # Run PCA but compute more than 20 dimensions
 pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
 # Plot results
-\dontrun{
 PCAPlot(pbmc_small)
-}
+
 }
