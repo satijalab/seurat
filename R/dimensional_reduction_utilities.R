@@ -257,6 +257,9 @@ SetDimReduction <- function(
 #' @export
 #'
 #' @examples
+#' pbmc_small
+#' pbmc_small <- RunDiffusion(pbmc_small, genes.use = pbmc_small@var.genes)
+#' head(DMEmbed(object = pbmc_small))
 #'
 DMEmbed <- function(
   object,
@@ -283,6 +286,12 @@ DMEmbed <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' head(PCAEmbed(pbmc_small))
+#' # Optionally, you can specify subsets of dims or cells to use
+#' PCAEmbed(pbmc_small, dims.use = 1:5, cells.use = pbmc_small@cell.names[1:5])
+#'
 PCAEmbed <- function(
   object,
   dims.use = NULL,
@@ -307,6 +316,13 @@ PCAEmbed <- function(
 #' @return ICA cell embeddings matrix for given cells and ICs
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- RunICA(pbmc_small, ics.compute = 10, ics.print = 0)
+#' head(ICAEmbed(pbmc_small))
+#' # Optionally, you can specify subsets of dims or cells to use
+#' ICAEmbed(pbmc_small, dims.use = 1:5, cells.use = pbmc_small@cell.names[1:5])
 #'
 ICAEmbed <- function(
   object,
@@ -333,6 +349,12 @@ ICAEmbed <- function(
 #' @return PCA gene loading matrix for given genes and PCs
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' head(PCALoad(pbmc_small))
+#' # Optionally, you can specify subsets of dims or genes to use
+#' PCALoad(pbmc_small, dims.use = 1:5, genes.use = pbmc_small@var.genes[1:5])
 #'
 PCALoad <- function(
   object,
@@ -362,6 +384,13 @@ PCALoad <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- RunICA(pbmc_small, ics.compute = 10, ics.print = 0)
+#' head(ICALoad(pbmc_small))
+#' # Optionally, you can specify subsets of dims or cells to use
+#' ICALoad(pbmc_small, dims.use = 1:5, genes.use = pbmc_small@var.genes[1:5])
+#'
 ICALoad <- function(
   object,
   dims.use = NULL,
@@ -371,33 +400,6 @@ ICALoad <- function(
   return(GetGeneLoadings(
     object = object,
     reduction.type = "ica",
-    dims.use = dims.use,
-    genes.use = genes.use,
-    use.full = use.full
-  ))
-}
-
-#' Diffusion Maps Gene Loading Accessor Function
-#'
-#' Pull the diffusion maps gene loadings matrix
-#'
-#' @param object Seurat object
-#' @param dims.use Dimensions to include (default is all stored dims)
-#' @param genes.use Genes to include (default is all)
-#' @param use.full Return projected gene loadings (default is FALSE)#'
-#' @return Diffusion maps gene loading matrix for given genes and DMs
-#'
-#' @export
-#'
-DMLoad <- function(
-  object,
-  dims.use = NULL,
-  genes.use = NULL,
-  use.full = FALSE
-) {
-  return(GetGeneLoadings(
-    object = object,
-    reduction.type = "dm",
     dims.use = dims.use,
     genes.use = genes.use,
     use.full = use.full
@@ -420,6 +422,12 @@ DMLoad <- function(
 #' @return Returns a vector of genes
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+#' # After projection:
+#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
 #'
 DimTopGenes <- function(
   object,
@@ -487,6 +495,12 @@ DimTopGenes <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' PCTopGenes(object = pbmc_small, pc.use = 1)
+#' # After projection:
+#' PCTopGenes(object = pbmc_small, pc.use = 1, use.full = TRUE)
+#'
 PCTopGenes <- function(
   object,
   pc.use = 1,
@@ -519,6 +533,14 @@ PCTopGenes <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' ICTopGenes(object = pbmc_small, ic.use = 1)
+#' # After projection:
+#' ICTopGenes(object = pbmc_small, ic.use = 1, use.full = TRUE)
+#'
 ICTopGenes <- function(
   object,
   ic.use = 1,
@@ -549,6 +571,12 @@ ICTopGenes <- function(
 #' @return Returns a vector of cells
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' head(DimTopCells(object = pbmc_small, reduction.type = "pca"))
+#' # Can specify which dimension and how many cells to return
+#' DimTopCells(object = pbmc_small, reduction.type = "pca", dim.use = 2, num.cells = 5)
 #'
 DimTopCells <- function(
   object,
@@ -597,6 +625,12 @@ DimTopCells <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' head(PCTopCells(object = pbmc_small))
+#' # Can specify which dimension and how many cells to return
+#' DimTopCells(object = pbmc_small, dim.use = 2, num.cells = 5)
+#'
 PCTopCells <- function(
   object,
   pc.use = 1,
@@ -625,6 +659,14 @@ PCTopCells <- function(
 #' @return Returns a vector of cells
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' ICTopCells(object = pbmc_small)
+#' # Can specify which dimension and how many cells to return
+#' ICTopCells(object = pbmc_small, ic.use = 2, num.cells = 5)
 #'
 ICTopCells <- function(
   object,
@@ -656,6 +698,14 @@ ICTopCells <- function(
 #' @return Set of genes defining the components
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' PrintDim(object = pbmc_small, reduction.type = "pca")
+#' # Options for how many dimensions and how many genes to print
+#' PrintDim(object = pbmc_small, reduction.type = "pca", dims.print = 1:2, genes.print = 5)
+#' # Can also print for the projected PCA
+#' PrintDim(object = pbmc_small, reduction.type = "pca", use.full = TRUE)
 #'
 PrintDim <- function(
   object,
@@ -713,9 +763,9 @@ PrintDim <- function(
   }
 }
 
-#' Print the results of a PCA analysis
+#' Print the results of a ICA analysis
 #'
-#' Prints a set of genes that most strongly define a set of principal components
+#' Prints a set of genes that most strongly define a set of independent components
 #'
 #' @inheritParams VizPCA
 #' @param ics.print Set of ICs to print genes for
@@ -724,6 +774,16 @@ PrintDim <- function(
 #' @return Only text output
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' PrintICA(object = pbmc_small)
+#' # Options for how many dimensions and how many genes to print
+#' PrintICA(object = pbmc_small, ics.print = 1:2, genes.print = 5)
+#' # Can also print for the projected PCA
+#' PrintICA(object = pbmc_small, use.full = TRUE)
 #'
 PrintICA <- function(
   object,
@@ -750,7 +810,13 @@ PrintICA <- function(
 #'
 #' @return Only text output
 #'
-#' @export
+#' @examples
+#' pbmc_small
+#' PrintPCA(object = pbmc_small)
+#' # Options for how many dimensions and how many genes to print
+#' PrintPCA(object = pbmc_small, pcs.print = 1:2, genes.print = 5)
+#' # Can also print for the projected PCA
+#' PrintPCA(object = pbmc_small, use.full = TRUE)
 #'
 PrintPCA <- function(
   object,
