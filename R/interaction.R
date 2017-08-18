@@ -849,7 +849,7 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #' pbmc_small@ident[cluster2]
 #' pbmc_small <- SetIdent(
 #'   object = pbmc_small,
-#'   cell.use = cluster2,
+#'   cells.use = cluster2,
 #'   ident.use = 'cluster_2'
 #' )
 #' pbmc_small@ident[cluster2]
