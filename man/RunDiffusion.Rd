@@ -42,7 +42,7 @@ Run diffusion map
 }
 \examples{
 pbmc_small
-# Run Diffusion on variable genes 
+# Run Diffusion on variable genes
 pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 # Run Diffusion map on first 10 PCs
 pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)

@@ -37,10 +37,6 @@ globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
-#' @examples
-#' markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
-#' head(markers)
-#'
 FindMarkers <- function(
   object,
   ident.1,
@@ -258,10 +254,6 @@ globalVariables(
 #'
 #' @export
 #'
-#' @examples
-#' all_markers <- FindAllMarkers(object = pbmc_small)
-#' head(x = all_markers)
-#'
 FindAllMarkers <- function(
   object,
   genes.use = NULL,
@@ -361,6 +353,9 @@ FindAllMarkers <- function(
 #'
 #' @export
 #'
+#' @examples
+#' FindMarkersNode(pbmc_small, 5)
+#'
 FindMarkersNode <- function(
   object,
   node,
@@ -423,6 +418,9 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' FindAllMarkersNode(pbmc_small)
+#'
 FindAllMarkersNode <- function(
   object,
   node = NULL,
@@ -448,7 +446,7 @@ FindAllMarkersNode <- function(
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
   all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-  descendants1 <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
+  descendants <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
   drop.children <- setdiff(tree.use$tip.label, descendants)
   keep.children <- setdiff(tree.use$tip.label, drop.children)
   orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))

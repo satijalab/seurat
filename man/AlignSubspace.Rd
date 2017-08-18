@@ -19,23 +19,10 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 \item{num.genes}{Number of genes to use in construction of "metagene"}
 
 \item{show.plots}{show debugging plots}
-
-\item{object}{Seurat object}
-
-\item{reduction.type}{type of dimensional reduction to compare to CCA (pca,
-pcafast, ica)}
-
-\item{grouping.var}{variable to group by}
-
-\item{dims.use}{Vector of dimensions to project onto (default is the 1:number
-stored for cca)}
 }
 \value{
 Returns Seurat object with the dims aligned, stored in
  object@dr$reduction.type.aligned
-
-Returns Seurat object with ratio of variance explained stored in
-object@meta.data$var.ratio
 }
 \description{
 Aligns subspaces so that they line up across grouping variable (only
