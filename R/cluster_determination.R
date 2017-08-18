@@ -250,8 +250,11 @@ SaveClusters <- function(object, file) {
 #' @examples
 #' # Append "Cluster_" to cluster IDs to demonstrate numerical conversion
 #' new.cluster.labels <- paste0("Cluster_", pbmc_small@ident)
-#' pbmc_small <- SetIdent(object = pbmc_small, cells.use = pbmc_small@cell.names,
-#'                        ident.use = new.cluster.labels)
+#' pbmc_small <- SetIdent(
+#'   object = pbmc_small,
+#'   cells.use = pbmc_small@cell.names,
+#'   ident.use = new.cluster.labels
+#' )
 #' unique(pbmc_small@ident)
 #' # Now relabel the IDs numerically starting from 1
 #' pbmc_small <- NumberClusters(pbmc_small)
@@ -311,9 +314,11 @@ NumberClusters <- function(object) {
 #' # take the first 10 cells as test data and train on the remaining 70 cells
 #' test.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:10])
 #' train.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[11:80])
-#' predicted.classes <- ClassifyCells(object = train.pbmc,
-#'                                    training.classes = train.pbmc@ident,
-#'                                    new.data = test.pbmc@data)
+#' predicted.classes <- ClassifyCells(
+#'   object = train.pbmc,
+#'   training.classes = train.pbmc@ident,
+#'   new.data = test.pbmc@data
+#' )
 #'
 ClassifyCells <- function(
   object,
