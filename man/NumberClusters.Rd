@@ -17,9 +17,9 @@ starting from 1.
 Convert the cluster labels to a numeric representation
 }
 \examples{
-# Append "Cluster_" to cluster IDs to demonstrate numerical conversion 
+# Append "Cluster_" to cluster IDs to demonstrate numerical conversion
 new.cluster.labels <- paste0("Cluster_", pbmc_small@ident)
-pbmc_small <- SetIdent(object = pbmc_small, cells.use = pbmc_small@cell.names, 
+pbmc_small <- SetIdent(object = pbmc_small, cells.use = pbmc_small@cell.names,
                        ident.use = new.cluster.labels)
 unique(pbmc_small@ident)
 # Now relabel the IDs numerically starting from 1
