@@ -20,15 +20,20 @@ replicate}
 \item{do.print}{Print the number of replicates that have been processed.}
 }
 \value{
-Returns a Seurat object where object@jackStraw.empP represents
+Returns a Seurat object where object@dr$pca@jackstraw@emperical.p.value represents
 p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
-run, object@jackStraw.empP.full then represents p-values for all genes.
+run, object@dr$pca@jackstraw@emperical.p.value.full then represents p-values for all genes.
 }
 \description{
 Randomly permutes a subset of data, and calculates projected PCA scores for
 these 'random' genes. Then compares the PCA scores for the 'random' genes
 with the observed PCA scores to determine statistical signifance. End result
 is a p-value for each gene's association with each principal component.
+}
+\examples{
+pbmc_small = suppressWarnings(JackStraw(pbmc_small))
+head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+
 }
 \references{
 Inspired by Chung et al, Bioinformatics (2014)
