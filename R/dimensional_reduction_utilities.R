@@ -191,10 +191,18 @@ GetGeneLoadings <- function(
 #' # Simulate adding a new dimensional reduction
 #' new.cell.embeddings <- GetCellEmbeddings(object = pbmc_small, reduction.type = "pca")
 #' new.gene.loadings <- GetGeneLoadings(object = pbmc_small, reduction.type = "pca")
-#' SetDimReduction(object = object, reduction.type = "new.pca",
-#'                 slot = "cell.embeddings", new.data = new.cell.embeddings)
-#' SetDimReduction(object = object, reduction.type = "new.pca",
-#'                 slot = "gene.loadings", new.data = new.gene.loadings)
+#' SetDimReduction(
+#'   object = pbmc_small,
+#'   reduction.type = "new.pca",
+#'   slot = "cell.embeddings",
+#'   new.data = new.cell.embeddings
+#' )
+#' SetDimReduction(
+#'   object = pbmc_small,
+#'   reduction.type = "new.pca",
+#'   slot = "gene.loadings",
+#'   new.data = new.gene.loadings
+#' )
 #'
 SetDimReduction <- function(
   object,
@@ -536,7 +544,7 @@ PCTopGenes <- function(
 #' @examples
 #' pbmc_small
 #' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
-#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = FALSE)
 #' ICTopGenes(object = pbmc_small, ic.use = 1)
 #' # After projection:
 #' ICTopGenes(object = pbmc_small, ic.use = 1, use.full = TRUE)
@@ -663,7 +671,7 @@ PCTopCells <- function(
 #' @examples
 #' pbmc_small
 #' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
-#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = FALSE)
 #' ICTopCells(object = pbmc_small)
 #' # Can specify which dimension and how many cells to return
 #' ICTopCells(object = pbmc_small, ic.use = 2, num.cells = 5)
@@ -778,7 +786,7 @@ PrintDim <- function(
 #' @examples
 #' pbmc_small
 #' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
-#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = F)
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = FALSE)
 #' PrintICA(object = pbmc_small)
 #' # Options for how many dimensions and how many genes to print
 #' PrintICA(object = pbmc_small, ics.print = 1:2, genes.print = 5)

@@ -34,7 +34,7 @@ normalization method (i.e. LogNormalize) here directly.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-can specify do.scale=T (and do.center=T) here.}
+can specify do.scale = TRUE (and do.center = TRUE) here.}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based centering)}
 
