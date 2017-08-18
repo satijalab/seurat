@@ -25,3 +25,7 @@ genes.
 Identifies differentially expressed genes between two groups of cells using
 the LRT model proposed in McDavid et al, Bioinformatics, 2013
 }
+\examples{
+DiffExpTest(pbmc_small, cells.1 = pbmc_small@cell.names[1:20], cells.2 = pbmc_small@cell.names[50:70])
+
+}

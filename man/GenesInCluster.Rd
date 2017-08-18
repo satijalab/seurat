@@ -19,3 +19,10 @@ A vector of genes who are members in the cluster.num k-means cluster(s)
 \description{
 After k-means analysis, previously run with DoKMeans, returns a set of genes associated with each cluster
 }
+\examples{
+pbmc_small
+# Cluster on genes only
+pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+pbmc_small <- GenesInCluster(object = pbmc_small, cluster.num = 1)
+
+}
