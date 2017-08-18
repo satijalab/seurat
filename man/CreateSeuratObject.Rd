@@ -59,9 +59,3 @@ object@data, object@meta.data, object@ident, also initialized.
 \description{
 Initializes the Seurat object and some optional filtering
 }
-\examples{
-pbmc_raw <- read.table(file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'), as.is = TRUE)
-pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
-pbmc_small
-
-}

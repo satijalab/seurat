@@ -28,9 +28,3 @@ Creates a Seurat object containing only a subset of the cells in the
 original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
-\examples{
-head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
-pbmc_filtered <- FilterCells(object = pbmc_small, subset.names = 'LTB', high.thresholds = 6)
-head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
-
-}

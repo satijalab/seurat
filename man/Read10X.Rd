@@ -18,12 +18,3 @@ Returns a sparse matrix with rows and columns labeled
 \description{
 Enables easy loading of sparse data matrices provided by 10X genomics.
 }
-\examples{
-\dontrun{
-data_dir <- 'path/to/data/directory'
-list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
-expression_matrix <- Read10X(data.dir = data_dir)
-seurat_object = CreateSeuratObject(raw.data = expression_matrix)
-}
-
-}

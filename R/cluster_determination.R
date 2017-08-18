@@ -129,6 +129,7 @@ FindClusters <- function(
       old.parameters$time <- NULL
       if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
         warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+        object <- SetAllIdent(object, paste0("res.", r))
         next
       }
     }
