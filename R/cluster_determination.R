@@ -50,6 +50,14 @@ NULL
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pmbc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", dims.use = 1:10,
+#'                            save.SNN = TRUE)
+#' # To explore a range of clustering options, pass a vector of values to the resolution parameter
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+#'                            resolution = c(0.4, 0.8, 1.2), dims.use = 1:10, save.SNN = TRUE)
+#'
 FindClusters <- function(
   object,
   genes.use = NULL,
@@ -119,7 +127,7 @@ FindClusters <- function(
       old.parameters <- GetAllCalcParam(object = object,
                                         calculation = paste0("FindClusters.res.", r))
       old.parameters$time <- NULL
-      if(all(old.parameters %in% parameters.to.store)){
+      if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
         warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
         next
       }
@@ -161,6 +169,11 @@ FindClusters <- function(
 #' @return Returns a dataframe with cell names and cluster assignments
 #' @export
 #'
+#'@examples
+#' pbmc_small
+#' clusters <- GetClusters(object = pbmc_small)
+#' head(clusters)
+#'
 GetClusters <- function(object) {
   clusters <- data.frame(cell.name = names(object@ident), cluster = object@ident)
   rownames(clusters) <- NULL
@@ -180,6 +193,13 @@ GetClusters <- function(object) {
 #' @return Returns a Seurat object with the identities set to the cluster
 #' assignments that were passed.
 #' @export
+#'
+#'@examples
+#' pbmc_small
+#' # Get clusters as a dataframe with GetClusters.
+#' clusters <- GetClusters(object = pbmc_small)
+#' # Use SetClusters to set cluster IDs
+#' pbmc_small <- SetClusters(object = pbmc_small, clusters = clusters)
 #'
 SetClusters <- function(object, clusters = NULL) {
   if(!(all(c("cell.name", "cluster") %in% colnames(clusters)))){
@@ -207,6 +227,13 @@ SetClusters <- function(object, clusters = NULL) {
 #'
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' file.loc <- "~/Desktop/cluster_assignments.tsv"
+#' SaveClusters(object = pbmc_small, file = file.loc)
+#' }
+#'
 SaveClusters <- function(object, file) {
   my.clusters <- GetClusters(object = object)
   write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = F)
@@ -219,9 +246,22 @@ SaveClusters <- function(object, file) {
 #' starting from 1.
 #'
 #' @export
+#'
+#' @examples
+#' # Append "Cluster_" to cluster IDs to demonstrate numerical conversion
+#' new.cluster.labels <- paste0("Cluster_", pbmc_small@ident)
+#' pbmc_small <- SetIdent(object = pbmc_small, cells.use = pbmc_small@cell.names,
+#'                        ident.use = new.cluster.labels)
+#' unique(pbmc_small@ident)
+#' # Now relabel the IDs numerically starting from 1
+#' pbmc_small <- NumberClusters(pbmc_small)
+#' unique(pbmc_small@ident)
+#'
 NumberClusters <- function(object) {
   clusters <- unique(x = object@ident)
-  if (typeof(x = clusters) == "integer") {
+  if(any(sapply(X = clusters,
+                FUN = function(x) { !grepl("\\D", x) }))
+     ) {
     n <- as.numeric(x = max(clusters)) + 1
     for (i in clusters) {
       object <- SetIdent(
