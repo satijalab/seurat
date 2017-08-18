@@ -39,6 +39,9 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' DoHeatmap(object = pbmc_small)
+#'
 DoHeatmap <- function(
   object,
   data.use = NULL,
@@ -269,6 +272,10 @@ DoHeatmap <- function(
 #' returns a list of ggplot objects.
 #'
 #' @export
+#'
+#' @examples
+#' VlnPlot(object = pbmc_small, features.plot = 'PC1')
+#'
 VlnPlot <- function(
   object,
   features.plot,
@@ -427,6 +434,9 @@ VlnPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' JoyPlot(object = pbmc_small, features.plot = 'PC1')
+#'
 JoyPlot <- function(
   object,
   features.plot,
@@ -563,6 +573,10 @@ JoyPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlotOld(object = pbmc_small, genes.plot = cd_genes)
+#'
 DotPlotOld <- function(
   object,
   genes.plot,
@@ -651,6 +665,10 @@ globalVariables(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #'
 #' @export
+#'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlot(object = pbmc_small, genes.plot = cd_genes)
 #'
 DotPlot <- function(
   object,
@@ -899,6 +917,9 @@ SplitDotPlotGG <- function(
 #'
 #' @export
 #'
+#' @examples
+#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+#'
 FeaturePlot <- function(
   object,
   features.plot,
@@ -1109,6 +1130,7 @@ globalVariables(
 #'
 #' @return No return value, only a graphical output
 #'
+#' @importFrom tidyr gather
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
 #' @seealso \code{FeaturePlot}
@@ -1500,6 +1522,9 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
+#'
 GenePlot <- function(
   object,
   gene1,
@@ -1662,6 +1687,9 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
+#'
 CellPlot <- function(
   object,
   cell1,
@@ -1747,6 +1775,9 @@ CellPlot <- function(
 #' @importFrom graphics par
 #'
 #' @export
+#'
+#' @examples
+#' DimHeatmap(object = pbmc_small)
 #'
 DimHeatmap <- function(
   object,
@@ -1875,6 +1906,9 @@ DimHeatmap <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PCHeatmap(object = pbmc_small)
+#'
 PCHeatmap <- function(
   object,
   pc.use = 1,
@@ -1935,6 +1969,10 @@ PCHeatmap <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' ICHeatmap(object = pbmc_small)
+#'
 ICHeatmap <- function(
   object,
   ic.use = 1,
@@ -1988,6 +2026,9 @@ ICHeatmap <- function(
 #' @importFrom graphics axis
 #'
 #' @export
+#'
+#' @examples
+#' VizDimReduction(object = pbmc_small)
 #'
 VizDimReduction <- function(
   object,
@@ -2069,6 +2110,9 @@ VizDimReduction <- function(
 #'
 #' @export
 #'
+#' @examples
+#' VizPCA(object = pbmc_small)
+#'
 VizPCA <- function(
   object,
   pcs.use = 1:5,
@@ -2106,6 +2150,10 @@ VizPCA <- function(
 #' @return Graphical, no return value
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' VizICA(object = pbmc_small)
 #'
 VizICA <- function(
   object,
@@ -2169,6 +2217,9 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @importFrom dplyr summarize group_by
 #'
 #' @export
+#'
+#' @examples
+#' DimPlot(object = pbmc_small)
 #'
 DimPlot <- function(
   object,
@@ -2332,6 +2383,9 @@ DimPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PCAPlot(object = pbmc_small)
+#'
 PCAPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
 }
@@ -2348,6 +2402,11 @@ PCAPlot <- function(object, ...) {
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunDiffusion(object = pbmc_small)
+#' DMPlot(object = pbmc_small)
+#'
 DMPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
 }
@@ -2364,6 +2423,10 @@ DMPlot <- function(object, ...) {
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' ICAPlot(object = pbmc_small)
 #'
 ICAPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "ica", ...))
@@ -2389,6 +2452,9 @@ ICAPlot <- function(object, ...) {
 #' @seealso DimPlot
 #'
 #' @export
+#'
+#' @examples
+#' TSNEPlot(object = pbmc_small)
 #'
 TSNEPlot <- function(
   object,
@@ -2429,6 +2495,9 @@ TSNEPlot <- function(
 #' @return Returns ggplot object
 #'
 #' @export
+#'
+#' @examples
+#' DimElbowPlot(object = pbmc_small)
 #'
 DimElbowPlot <- function(
   object,
@@ -2485,6 +2554,9 @@ DimElbowPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PCElbowPlot(object = pbmc_small)
+#'
 PCElbowPlot <- function(object, num.pc = 20) {
   return(DimElbowPlot(
     object = object,
@@ -2518,6 +2590,9 @@ PCElbowPlot <- function(object, num.pc = 20) {
 #' @importFrom graphics axis points smoothScatter contour points text
 #'
 #' @export
+#'
+#' @examples
+#' VariableGenePlot(object = pbmc_small)
 #'
 VariableGenePlot <- function(
   object,
@@ -2678,6 +2753,9 @@ VariableGenePlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PlotClusterTree(object = pbmc_small)
+#'
 PlotClusterTree <- function(object, ...) {
   if (length(x = object@cluster.tree) == 0) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
@@ -2698,8 +2776,11 @@ PlotClusterTree <- function(object, ...) {
 #' @param color2 Color for the right side of the split
 #' @param color3 Color for all other cells
 #' @inheritDotParams TSNEPlot -object
+#'
 #' @return Returns a tSNE plot
+#'
 #' @export
+#'
 ColorTSNESplit <- function(
   object,
   node,
@@ -2761,6 +2842,10 @@ ColorTSNESplit <- function(
 #' @seealso \code{DoHeatmap}
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' KMeansHeatmap(object = pbmc_small)
 #'
 KMeansHeatmap <- function(
   object,

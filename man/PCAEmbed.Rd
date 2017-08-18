@@ -19,3 +19,10 @@ PCA cell embedding matrix for given cells and PCs
 \description{
 Pull PCA cell embedding matrix
 }
+\examples{
+pbmc_small
+head(PCAEmbed(pbmc_small))
+# Optionally, you can specify subsets of dims or cells to use
+PCAEmbed(pbmc_small, dims.use = 1:5, cells.use = pbmc_small@cell.names[1:5])
+
+}

@@ -67,3 +67,7 @@ Returns a ggplot2 plot object
 \description{
 Draws a heatmap of single cell gene expression using ggplot2.
 }
+\examples{
+DoHeatmap(object = pbmc_small)
+
+}

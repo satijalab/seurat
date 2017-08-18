@@ -26,3 +26,10 @@ Returns a vector of genes
 \description{
 Return a list of genes with the strongest contribution to a set of components
 }
+\examples{
+pbmc_small
+DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+# After projection:
+DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+
+}

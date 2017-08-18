@@ -29,3 +29,8 @@ Graphical, no return value
 \description{
 Visualize top genes associated with principal components
 }
+\examples{
+pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+VizICA(object = pbmc_small)
+
+}

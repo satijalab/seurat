@@ -21,3 +21,10 @@ PCA gene loading matrix for given genes and PCs
 \description{
 Pull the PCA gene loadings matrix
 }
+\examples{
+pbmc_small
+head(PCALoad(pbmc_small))
+# Optionally, you can specify subsets of dims or genes to use
+PCALoad(pbmc_small, dims.use = 1:5, genes.use = pbmc_small@var.genes[1:5])
+
+}

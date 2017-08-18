@@ -257,7 +257,6 @@ globalVariables(
 #' statistics (p-values, ROC score, etc.)
 #'
 #' @export
-#'
 #' @examples
 #' all_markers <- FindAllMarkers(object = pbmc_small)
 #' head(x = all_markers)
@@ -361,6 +360,9 @@ FindAllMarkers <- function(
 #'
 #' @export
 #'
+#' @examples
+#' FindMarkersNode(pbmc_small, 5)
+#'
 FindMarkersNode <- function(
   object,
   node,
@@ -423,6 +425,9 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' FindAllMarkersNode(pbmc_small)
+#'
 FindAllMarkersNode <- function(
   object,
   node = NULL,
@@ -448,7 +453,7 @@ FindAllMarkersNode <- function(
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
   all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-  descendants1 <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
+  descendants <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
   drop.children <- setdiff(tree.use$tip.label, descendants)
   keep.children <- setdiff(tree.use$tip.label, drop.children)
   orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
@@ -525,6 +530,12 @@ FindAllMarkersNode <- function(
 #' the marker, average differences)
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Create a simulated grouping variable
+#' pbmc_small@meta.data$groups <- sample(c("g1", "g2"), size = length(pbmc_small@cell.names), replace = T)
+#' FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
 #'
 FindConservedMarkers <- function(
   object,
@@ -630,6 +641,10 @@ FindConservedMarkers <- function(
 #' genes.
 #'
 #' @export
+#' @examples
+#' pbmc_small
+#' DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 DiffExpTest <- function(
   object,
@@ -682,6 +697,12 @@ DiffExpTest <- function(
 #' @importFrom stats var as.formula
 #'
 #' @export
+#'
+#'@examples
+#' pbmc_small
+#' # Note, not recommended for particularly small datasets - expect warnings
+#' NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 NegBinomDETest <- function(
   object,
@@ -877,6 +898,7 @@ globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param genes.use Genes to use for test
 #' @param latent.vars Latent variables to test
 #' @param print.bar Print progress bar
@@ -889,10 +911,17 @@ globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#'@examples
+#' pbmc_small
+#' # Note, expect warnings with example dataset due to min.cells threshold.
+#' PoissonDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#'
 PoissonDETest <- function(
   object,
   cells.1,
   cells.2,
+  min.cells = 3,
   genes.use = NULL,
   latent.vars = NULL,
   print.bar = TRUE
@@ -980,6 +1009,13 @@ PoissonDETest <- function(
 #'
 #' @export
 #'
+#'@examples
+#' pbmc_small
+#' \dontrun{
+#' TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#' }
+#'
 TobitTest <- function(
   object,
   cells.1,
@@ -1020,6 +1056,11 @@ TobitTest <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#'
 MarkerTest <- function(
   object,
   cells.1,
@@ -1055,6 +1096,10 @@ MarkerTest <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 DiffTTest <- function(
   object,
   cells.1,

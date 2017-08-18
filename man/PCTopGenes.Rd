@@ -25,3 +25,10 @@ Returns a vector of genes
 Return a list of genes with the strongest contribution to a set of principal
 components
 }
+\examples{
+pbmc_small
+PCTopGenes(object = pbmc_small, pc.use = 1)
+# After projection:
+PCTopGenes(object = pbmc_small, pc.use = 1, use.full = TRUE)
+
+}

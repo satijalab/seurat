@@ -29,6 +29,11 @@ display only the identity class name once for each group}
 \description{
 Plot k-means clusters
 }
+\examples{
+pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+KMeansHeatmap(object = pbmc_small)
+
+}
 \seealso{
 \code{DoHeatmap}
 }

@@ -64,6 +64,10 @@ graphical output.
 Graphs the output of a dimensional reduction technique (PCA by default).
 Cells are colored by their identity class.
 }
+\examples{
+DimPlot(object = pbmc_small)
+
+}
 \seealso{
 \code{FeatureLocator}
 }

@@ -647,10 +647,19 @@ AverageExpression <- function(
 #'
 #' @param object Seurat object
 #' @param node.use Merge children of this node
+#' @param rebuild.tree Rebuild cluster tree after the merge?
+#' @param ... Extra parameters to BuildClusterTree, used only if rebuild.tree = TRUE
+#'
+#' @seealso \code{BuildClusterTree}
 #'
 #' @export
 #'
-MergeNode <- function(object, node.use = NULL) {
+#' @examples
+#' PlotClusterTree(object = pbmc_small)
+#' pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
+#' PlotClusterTree(object = pbmc_small)
+#'
+MergeNode <- function(object, node.use = NULL, rebuild.tree = FALSE, ...) {
   object.tree <- object@cluster.tree[[1]]
   node.children <- DFT(
     tree = object.tree,
@@ -665,6 +674,9 @@ MergeNode <- function(object, node.use = NULL) {
       cells.use = children.cells,
       ident.use = min(node.children)
     )
+  }
+  if (rebuild.tree) {
+    object <- BuildClusterTree(object = object, ...)
   }
   return(object)
 }
@@ -685,7 +697,6 @@ MergeNode <- function(object, node.use = NULL) {
 #'
 #' @examples
 #' pbmc_small <- AddSmoothedScore(object = pbmc_small)
-#'
 #'
 AddSmoothedScore <- function(
   object,
@@ -809,6 +820,13 @@ AddImputedScore <- function(
 #' @return A vector of genes who are members in the cluster.num k-means cluster(s)
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Cluster on genes only
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' pbmc_small <- GenesInCluster(object = pbmc_small, cluster.num = 1)
+#'
 GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
   toReturn <- unlist(
     x = lapply(

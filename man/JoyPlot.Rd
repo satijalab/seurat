@@ -64,3 +64,7 @@ returns a list of ggplot objects.
 Draws a joy plot of single cell data (gene expression, metrics, PC
 scores, etc.)
 }
+\examples{
+JoyPlot(object = pbmc_small, features.plot = 'PC1')
+
+}
