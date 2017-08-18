@@ -19,3 +19,7 @@ Returns assay data
 \description{
 Pull information for specified stored dimensional reduction analysis
 }
+\examples{
+GetAssayData(pbmc_small, assay.type = 'CITE', slot = 'raw.data')
+
+}
