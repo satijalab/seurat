@@ -24,3 +24,10 @@ Returns a vector of cells
 \description{
 Return a list of genes with the strongest contribution to a set of components
 }
+\examples{
+pbmc_small
+head(DimTopCells(object = pbmc_small, reduction.type = "pca"))
+# Can specify which dimension and how many cells to return
+DimTopCells(object = pbmc_small, reduction.type = "pca", dim.use = 2, num.cells = 5)
+
+}

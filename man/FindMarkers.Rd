@@ -55,8 +55,3 @@ Matrix containing a ranked list of putative markers, and associated statistics (
 \description{
 Finds markers (differentially expressed genes) for identity classes
 }
-\examples{
-markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
-head(markers)
-
-}

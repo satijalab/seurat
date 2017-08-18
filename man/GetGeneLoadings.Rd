@@ -24,3 +24,9 @@ Gene loading matrix for given reduction, cells, and genes
 \description{
 Pull gene loadings matrix for specified stored dimensional reduction analysis.
 }
+\examples{
+pbmc_small
+# Examine the head of the first 5 PC gene loadings
+head(GetGeneLoadings(object = pbmc_small, reduction.type = "pca", dims.use = 1:5))
+
+}
