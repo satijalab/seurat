@@ -10,11 +10,9 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + DarkTheme(legend.position = 'none')
-#' }
 #'
 DarkTheme <- function(...) {
   #   Some constants for easier changing in the future
@@ -255,6 +253,10 @@ CustomPalette <- function(
 #'
 #' @export
 #'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlackAndWhite())
+#'
 BlackAndWhite <- function(...) {
   return(CustomPalette(low = "white", high="black", ...))
 }
@@ -268,6 +270,10 @@ BlackAndWhite <- function(...) {
 #' @seealso \code{CustomPalette}
 #'
 #' @export
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlackAndWhite())
 #'
 PurpleAndYellow <- function(...) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
