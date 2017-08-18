@@ -19,12 +19,37 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 \item{num.genes}{Number of genes to use in construction of "metagene"}
 
 \item{show.plots}{show debugging plots}
+
+\item{object}{Seurat object}
+
+\item{reduction.type}{type of dimensional reduction to compare to CCA (pca,
+pcafast, ica)}
+
+\item{grouping.var}{variable to group by}
+
+\item{dims.use}{Vector of dimensions to project onto (default is the 1:number
+stored for cca)}
 }
 \value{
 Returns Seurat object with the dims aligned, stored in
  object@dr$reduction.type.aligned
+
+Returns Seurat object with ratio of variance explained stored in
+object@meta.data$var.ratio
 }
 \description{
 Aligns subspaces so that they line up across grouping variable (only
 implemented for case with 2 categories in grouping.var)
+}
+\examples{
+pbmc_small
+# Requires CCA to have previously been run
+# As CCA requires two datasets, we will split our test object into two just for this example
+pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+pbmc1@meta.data$group <- "group1"
+pbmc2@meta.data$group <- "group2"
+pbmc_cca <- RunCCA(pbmc1,pbmc2)
+pbmc_cca <- AlignSubspace(pbmc_cca,reduction.type = "cca", grouping.var = "group", dims.align = 1:2)
+
 }

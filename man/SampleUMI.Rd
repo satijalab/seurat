@@ -22,3 +22,9 @@ Matrix with downsampled data
 Downsample each cell to a specified number of UMIs. Includes
 an option to upsample cells below specified UMI as well.
 }
+\examples{
+raw_data = as.matrix(x = pbmc_small@raw.data)
+downsampled = SampleUMI(data = raw_data)
+head(x = downsampled)
+
+}
