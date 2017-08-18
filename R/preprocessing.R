@@ -39,6 +39,11 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_raw <- read.table(file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'), as.is = TRUE)
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small
+#'
 CreateSeuratObject <- function(
   raw.data,
   project = "SeuratProject",
@@ -161,6 +166,14 @@ CreateSeuratObject <- function(
 #' @importFrom Matrix readMM
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
+#' expression_matrix <- Read10X(data.dir = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
 #'
 Read10X <- function(data.dir = NULL){
   full.data <- list()
@@ -301,6 +314,11 @@ NormalizeData <- function(
 #'
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' pbmc_small <- ScaleDataR(object = pbmc_small)
+#' }
+#'
 ScaleDataR <- function(
   object,
   genes.use = NULL,
@@ -345,7 +363,6 @@ ScaleDataR <- function(
   object@scale.data[is.na(object@scale.data)] <- 0
   return(object)
 }
-
 
 #' Scale and center the data.
 #'
@@ -407,6 +424,10 @@ ScaleDataR <- function(
 #'
 #' @examples
 #' pbmc_small <- ScaleData(object = pbmc_small)
+#' \dontrun{
+#' # To regress out certain effects
+#' pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
+#' }
 #'
 ScaleData <- function(
   object,
@@ -556,6 +577,12 @@ ScaleData <- function(
 #'
 #' @export
 #'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
 LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
@@ -588,6 +615,11 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
 #' @return Matrix with downsampled data
 #'
 #' @export
+#'
+#' @examples
+#' raw_data = as.matrix(x = pbmc_small@raw.data)
+#' downsampled = SampleUMI(data = raw_data)
+#' head(x = downsampled)
 #'
 SampleUMI <- function(
   data,
@@ -669,6 +701,7 @@ SampleUMI <- function(
 #'
 #' @examples
 #' pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
+#' pbmc_small@var.genes
 #'
 FindVariableGenes <- function(
   object,
@@ -810,6 +843,11 @@ FindVariableGenes <- function(
 #'
 #' @export
 #'
+#' @examples
+#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' pbmc_filtered <- FilterCells(object = pbmc_small, subset.names = 'LTB', high.thresholds = 6)
+#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
+#'
 FilterCells <- function(
   object,
   subset.names,
@@ -818,9 +856,11 @@ FilterCells <- function(
   cells.use = NULL
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
-  object <- SetCalcParams(object = object,
-                          calculation = "FilterCells",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "FilterCells",
+    ... = parameters.to.store
+  )
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
   }

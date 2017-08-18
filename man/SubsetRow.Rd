@@ -20,3 +20,8 @@ do not contain code, otherwise returns data where rownames contain code
 \description{
 Return a subset of rows for a matrix or data frame
 }
+\examples{
+cd_genes <- SubsetRow(data = pbmc_small@raw.data, code = 'CD')
+head(as.matrix(cd_genes)[, 1:4])
+
+}
