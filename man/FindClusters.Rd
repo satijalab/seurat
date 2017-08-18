@@ -79,10 +79,10 @@ van Eck (2013) \emph{The European Physical Journal B}.
 }
 \examples{
 pbmc_small
-pmbc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", dims.use = 1:10, 
+pmbc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", dims.use = 1:10,
                            save.SNN = TRUE)
 # To explore a range of clustering options, pass a vector of values to the resolution parameter
-pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", 
+pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
                            resolution = c(0.4, 0.8, 1.2), dims.use = 1:10, save.SNN = TRUE)
 
 }

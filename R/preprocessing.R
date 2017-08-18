@@ -39,6 +39,14 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small
+#'
 CreateSeuratObject <- function(
   raw.data,
   project = "SeuratProject",
@@ -70,8 +78,8 @@ CreateSeuratObject <- function(
   object.raw.data <- object@raw.data
   if (is.expr > 0) {
     # suppress Matrix package note:
-    # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
-    # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
+    # Note: method with signature ‘CsparseMatrix#Matrix#missing#replValue’ chosen for function ‘[<-’,
+    # target signature ‘dgCMatrix#lgeMatrix#missing#numeric’.
     # "Matrix#ldenseMatrix#missing#replValue" would also be valid
     suppressMessages(object.raw.data[object.raw.data < is.expr] <- 0)
   }
@@ -809,6 +817,15 @@ FindVariableGenes <- function(
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
 #' @export
+#'
+#' @examples
+#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' pbmc_filtered <- FilterCells(
+#'   object = pbmc_small,
+#'   subset.names = 'LTB',
+#'   high.thresholds = 6
+#' )
+#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
 #'
 FilterCells <- function(
   object,

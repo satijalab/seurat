@@ -52,10 +52,10 @@ NULL
 #'
 #' @examples
 #' pbmc_small
-#' pmbc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", dims.use = 1:10, 
+#' pmbc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", dims.use = 1:10,
 #'                            save.SNN = TRUE)
 #' # To explore a range of clustering options, pass a vector of values to the resolution parameter
-#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca", 
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
 #'                            resolution = c(0.4, 0.8, 1.2), dims.use = 1:10, save.SNN = TRUE)
 #'
 FindClusters <- function(
@@ -127,8 +127,9 @@ FindClusters <- function(
       old.parameters <- GetAllCalcParam(object = object,
                                         calculation = paste0("FindClusters.res.", r))
       old.parameters$time <- NULL
-      if(all(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]])))){
+      if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
         warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+        object <- SetAllIdent(object, paste0("res.", r))
         next
       }
     }
@@ -173,7 +174,7 @@ FindClusters <- function(
 #' pbmc_small
 #' clusters <- GetClusters(object = pbmc_small)
 #' head(clusters)
-#' 
+#'
 GetClusters <- function(object) {
   clusters <- data.frame(cell.name = names(object@ident), cluster = object@ident)
   rownames(clusters) <- NULL
@@ -200,7 +201,7 @@ GetClusters <- function(object) {
 #' clusters <- GetClusters(object = pbmc_small)
 #' # Use SetClusters to set cluster IDs
 #' pbmc_small <- SetClusters(object = pbmc_small, clusters = clusters)
-#' 
+#'
 SetClusters <- function(object, clusters = NULL) {
   if(!(all(c("cell.name", "cluster") %in% colnames(clusters)))){
     stop("The clusters parameter must be the output from GetClusters (i.e.
@@ -226,14 +227,14 @@ SetClusters <- function(object, clusters = NULL) {
 #' @importFrom utils write.table
 #'
 #' @export
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' pbmc_small
 #' file.loc <- "~/Desktop/cluster_assignments.tsv"
 #' SaveClusters(object = pbmc_small, file = file.loc)
 #' }
-#' 
+#'
 SaveClusters <- function(object, file) {
   my.clusters <- GetClusters(object = object)
   write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = F)
@@ -246,20 +247,23 @@ SaveClusters <- function(object, file) {
 #' starting from 1.
 #'
 #' @export
-#' 
+#'
 #' @examples
-#' # Append "Cluster_" to cluster IDs to demonstrate numerical conversion 
+#' # Append "Cluster_" to cluster IDs to demonstrate numerical conversion
 #' new.cluster.labels <- paste0("Cluster_", pbmc_small@ident)
-#' pbmc_small <- SetIdent(object = pbmc_small, cells.use = pbmc_small@cell.names, 
-#'                        ident.use = new.cluster.labels)
+#' pbmc_small <- SetIdent(
+#'   object = pbmc_small,
+#'   cells.use = pbmc_small@cell.names,
+#'   ident.use = new.cluster.labels
+#' )
 #' unique(pbmc_small@ident)
 #' # Now relabel the IDs numerically starting from 1
 #' pbmc_small <- NumberClusters(pbmc_small)
 #' unique(pbmc_small@ident)
-#' 
+#'
 NumberClusters <- function(object) {
   clusters <- unique(x = object@ident)
-  if(any(sapply(X = clusters, 
+  if(any(sapply(X = clusters,
                 FUN = function(x) { !grepl("\\D", x) }))
      ) {
     n <- as.numeric(x = max(clusters)) + 1
@@ -305,6 +309,17 @@ NumberClusters <- function(object) {
 #' @importFrom ranger ranger
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # take the first 10 cells as test data and train on the remaining 70 cells
+#' test.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:10])
+#' train.pbmc <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[11:80])
+#' predicted.classes <- ClassifyCells(
+#'   object = train.pbmc,
+#'   training.classes = train.pbmc@ident,
+#'   new.data = test.pbmc@data
+#' )
 #'
 ClassifyCells <- function(
   object,
@@ -358,6 +373,12 @@ ClassifyCells <- function(
 #' @importFrom ranger ranger
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Builds the random forest classifier to be used with ClassifyCells
+#' # Useful if you want to use the same classifier with several sets of new data
+#' classifier <- BuildRFClassifier(pbmc_small, training.classes = pbmc_small@ident)
 #'
 BuildRFClassifier <- function(
   object,
@@ -423,6 +444,14 @@ BuildRFClassifier <- function(
 #' and also object@@ident (if set.ident=TRUE)
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Cluster on genes only
+#' pbmc_small <- DoKMeans(pbmc_small, k.genes = 3)
+#' # Cluster on genes and cell
+#' pbmc_small <- DoKMeans(pbmc_small, k.genes = 3, k.cells = 3)
+#'
 DoKMeans <- function(
   object,
   genes.use = NULL,
@@ -458,6 +487,7 @@ DoKMeans <- function(
   names(x = kmeans.obj$cluster) <- genes.use
 
   #if we are going to k-means cluster cells in addition to genes
+  kmeans.col <- c()
   if (k.cells > 0) {
     kmeans.col <- kmeans(x = t(x = kmeans.data), centers = k.cells)
     names(x = kmeans.col$cluster) <- cells.use
@@ -521,6 +551,10 @@ globalVariables(
 #' @importFrom stats dist hclust
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- BuildClusterTree(pbmc_small, do.plot = FALSE)
 #'
 BuildClusterTree <- function(
   object,
@@ -611,7 +645,6 @@ BuildClusterTree <- function(
 }
 
 
-
 #' Perform spectral density clustering on single cells
 #'
 #' Find point clounds single cells in a two-dimensional space using density clustering (DBSCAN).
@@ -627,6 +660,11 @@ BuildClusterTree <- function(
 #' @param ... Additional arguments to be passed to the dbscan function
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Density based clustering on the first two tSNE dimensions
+#' pbmc_small <- DBClustDimension(pbmc_small)
 #'
 DBClustDimension <- function(
   object,
@@ -678,6 +716,11 @@ DBClustDimension <- function(
 #' @importFrom stats kmeans
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # K-means clustering on the first two tSNE dimensions
+#' pbmc_small <- KClustDimension(pbmc_small)
 #'
 KClustDimension <- function(
   object,

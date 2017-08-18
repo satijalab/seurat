@@ -17,3 +17,9 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Stashes the identity in data.info to be retrieved later. Useful if, for example, testing multiple clustering parameters
 }
+\examples{
+head(x = pbmc_small@meta.data)
+pbmc_small <- StashIdent(object = pbmc_small, save.name = 'cluster.ident')
+head(x = pbmc_small@meta.data)
+
+}

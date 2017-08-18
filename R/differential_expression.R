@@ -37,6 +37,10 @@ globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
+#' head(markers)
+#'
 FindMarkers <- function(
   object,
   ident.1,
@@ -253,6 +257,10 @@ globalVariables(
 #' statistics (p-values, ROC score, etc.)
 #'
 #' @export
+#'
+#' @examples
+#' all_markers <- FindAllMarkers(object = pbmc_small)
+#' head(x = all_markers)
 #'
 FindAllMarkers <- function(
   object,
