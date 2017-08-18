@@ -12,6 +12,7 @@
   \item{var.genes}{Variable genes}
   \item{dr}{Dimmensional reductions: currently PCA and tSNE}
   \item{hvg.info}{Information about highly variable genes}
+  \item{cluster.tree}{Cluster tree}
   \item{calc.params}{Parameters for calculations done thus far}
 }}
 \source{

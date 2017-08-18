@@ -10,6 +10,7 @@
 #'   \item{var.genes}{Variable genes}
 #'   \item{dr}{Dimmensional reductions: currently PCA and tSNE}
 #'   \item{hvg.info}{Information about highly variable genes}
+#'   \item{cluster.tree}{Cluster tree}
 #'   \item{calc.params}{Parameters for calculations done thus far}
 #' }
 #' @source https://support.10xgenomics.com/single-cell-gene-expression/datasets/1.1.0/pbmc3k
