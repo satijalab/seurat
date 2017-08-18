@@ -406,6 +406,13 @@ LogVMR <- function(x) {
 #'
 #' @export
 #'
+#' @examples
+#' # Define custom distance matrix
+#' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
+#' 
+#' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", slot = "scale.data")
+#' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
+#'
 CustomDistance <- function(my.mat, my.function, ...) {
   n <- ncol(x = my.mat)
   mat <- matrix(data = 0, ncol = n, nrow = n)
@@ -688,7 +695,10 @@ MergeNode <- function(object, node.use = NULL, rebuild.tree = FALSE, ...) {
 #' @inheritParams FeaturePlot
 #' @inheritParams AddImputedScore
 #' @param genes.fit Genes to calculate smoothed values for
-#' @param k k-param for k-nearest neighbor calculation
+#' @param dim.1 Dimension 1 to use for dimensional reduction
+#' @param dim.2 Dimension 2 to use for dimensional reduction
+#' @param reduction.use Dimensional reduction to use
+#' @param k k-param for k-nearest neighbor calculation. 30 by default
 #' @param do.log Whether to perform smoothing in log space. Default is false.
 #'
 #' @importFrom FNN get.knn
@@ -696,14 +706,14 @@ MergeNode <- function(object, node.use = NULL, rebuild.tree = FALSE, ...) {
 #' @export
 #'
 #' @examples
-#' pbmc_small <- AddSmoothedScore(object = pbmc_small)
+#' pbmc_small <- AddSmoothedScore(object = pbmc_small, genes.fit = "MS4A1", reduction.use = "pca")
 #'
 AddSmoothedScore <- function(
   object,
   genes.fit = NULL,
   dim.1 = 1,
   dim.2 = 2,
-  reduction.use = "tSNE",
+  reduction.use = "tsne",
   k = 30,
   do.log = FALSE,
   do.print = FALSE
@@ -712,7 +722,7 @@ AddSmoothedScore <- function(
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
   dim.code <- GetDimReduction(
     object = object,
-    reduction.type = tolower(x = reduction.use),
+    reduction.type = reduction.use,
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
@@ -771,6 +781,9 @@ AddSmoothedScore <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small <- AddImputedScore(object = pbmc_small, genes.fit = "MS4A1")
+#'
 AddImputedScore <- function(
   object,
   genes.use = NULL,
@@ -790,7 +803,7 @@ AddImputedScore <- function(
       FUN = function(x) {
         return(
           lasso.fxn(
-            lasso.input = t(x = object@data[genes.use[genes.use != x], ]),
+            lasso.input = as.matrix(t(x = object@data[genes.use[genes.use != x], ])),
             genes.obs = object@data[x, ],
             s.use = s.use,
             gene.name = x,

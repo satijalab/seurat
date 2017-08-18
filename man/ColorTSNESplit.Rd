@@ -35,3 +35,9 @@ Returns a tSNE plot
 Returns a tSNE plot colored based on whether the cells fall in clusters
 to the left or to the right of a node split in the cluster tree.
 }
+\examples{
+pbmc_small
+PlotClusterTree(pbmc_small)
+ColorTSNESplit(pbmc_small, node = 6)
+
+}
