@@ -27,3 +27,9 @@ Object with clustering information
 Find point clounds single cells in a low-dimensional space using k-means clustering.
 Can be useful for smaller datasets, where graph-based clustering can perform poorly
 }
+\examples{
+pbmc_small
+# K-means clustering on the first two tSNE dimensions
+pbmc_small <- KClustDimension(pbmc_small)
+
+}

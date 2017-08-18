@@ -19,3 +19,10 @@ Returns a matrix with the normalize and log transformed data
 \description{
 Normalize count data per cell and transform to log scale
 }
+\examples{
+mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+mat
+mat_norm <- LogNormalize(data = mat)
+mat_norm
+
+}

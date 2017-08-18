@@ -69,6 +69,7 @@ see relevant functions for exact details.
 }
 \examples{
 pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
+pbmc_small@var.genes
 
 }
 \seealso{

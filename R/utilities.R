@@ -29,7 +29,10 @@ Shuffle <- function(x) {
 #' @export
 #'
 #' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' df <- data.frame(
+#'   x = rnorm(n = 100, mean = 20, sd = 2),
+#'   y = rbinom(n = 100, size = 100, prob = 0.2)
+#' )
 #' nrow(x = df)
 #' nrow (x = RemoveFromTable(to.remove = 20, data = df))
 #'
@@ -55,9 +58,22 @@ RemoveFromTable <- function(to.remove, data) {
 #' Converts stored data matrices to sparse matrices to save space. Converts
 #' object@@raw.data and object@@data to sparse matrices.
 #' @param object Seurat object
+#'
 #' @return Returns a seurat object with data converted to sparse matrices.
+#'
 #' @import Matrix
+#'
 #' @export
+#'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' class(x = pbmc_small@raw.data)
+#' pbmc_small <- MakeSparse(object = pbmc_small)
+#' class(x = pbmc_small@raw.data)
 #'
 MakeSparse <- function(object) {
   if (class(object@raw.data) == "data.frame") {
@@ -82,6 +98,11 @@ MakeSparse <- function(object) {
 #' @importFrom utils packageVersion
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
+#' }
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
@@ -196,6 +217,10 @@ UpdateSeuratObject <- function(object) {
 #'
 #' @export
 #'
+#' @examples
+#' cd_genes <- SubsetRow(data = pbmc_small@raw.data, code = 'CD')
+#' head(as.matrix(cd_genes)[, 1:4])
+#'
 SubsetRow <- function(data, code, invert = FALSE) {
   return(data[grep(pattern = code, x = rownames(x = data), invert = invert), ])
 }
@@ -240,6 +265,9 @@ MatrixRowShuffle <- function(x) {
 #' do not contain code, otherwise returns data where colnames contain code
 #'
 #' @export
+#'
+#' @examples
+#' head(as.matrix(SubsetColumn(data = pbmc_small@raw.data, code = 'ATGC'))[, 1:4])
 #'
 SubsetColumn <- function(data, code, invert = FALSE) {
   return(data[, grep(pattern = code, x = colnames(x = data), invert = invert)])
@@ -804,6 +832,10 @@ GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
 #' @return Values from search present in match with the case of match
 #'
 #' @export
+#'
+#' @examples
+#' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
+#' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small@raw.data))
 #'
 CaseMatch <- function(search, match) {
   search.match <- sapply(

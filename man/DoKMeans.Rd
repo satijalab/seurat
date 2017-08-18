@@ -49,3 +49,11 @@ Perform k=means clustering on both genes and single cells
 \details{
 K-means and heatmap are calculated on object@scale.data
 }
+\examples{
+pbmc_small
+# Cluster on genes only
+pbmc_small <- DoKMeans(pbmc_small, k.genes = 3)
+# Cluster on genes and cell
+pbmc_small <- DoKMeans(pbmc_small, k.genes = 3, k.cells = 3)
+
+}

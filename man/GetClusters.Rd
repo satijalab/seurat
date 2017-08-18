@@ -16,3 +16,9 @@ Returns a dataframe with cell names and cluster assignments
 Retrieve cluster IDs as a dataframe. First column will be the cell name,
 second column will be the current cluster identity (pulled from object@ident).
 }
+\examples{
+pbmc_small
+clusters <- GetClusters(object = pbmc_small)
+head(clusters)
+
+}

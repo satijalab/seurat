@@ -15,3 +15,9 @@ Returns a Seurat object compatible with latest changes
 \description{
 Updates Seurat objects to new structure for storing data/calculations.
 }
+\examples{
+\dontrun{
+updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
+}
+
+}
