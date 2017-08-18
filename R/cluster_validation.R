@@ -139,12 +139,13 @@ ValidateClusters <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
 #'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
 #' pbmc_small <- ValidateSpecificClusters(pbmc_small, cluster1 = 1,
 #'                                        cluster2 = 2,  pc.use = 1:10)
-#'
+#'}
 #'
 ValidateSpecificClusters <- function(
   object,
