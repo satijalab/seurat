@@ -34,3 +34,8 @@ Intuitive way of visualizing how gene expression changes across different identi
 The size of the dot encodes the percentage of cells within a class, while the color encodes the
 AverageExpression level of 'expressing' cells (green is high).
 }
+\examples{
+cd_genes <- c("CD247", "CD3E", "CD9")
+DotPlotOld(object = pbmc_small, genes.plot = cd_genes)
+
+}

@@ -32,3 +32,7 @@ Graphical, no return value
 \description{
 Visualize top genes associated with reduction components
 }
+\examples{
+VizDimReduction(object = pbmc_small)
+
+}

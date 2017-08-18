@@ -53,3 +53,7 @@ No return, only graphical output
 Creates a scatter plot of two features (typically gene expression), across a
 set of single cells. Cells are colored by their identity class.
 }
+\examples{
+GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
+
+}

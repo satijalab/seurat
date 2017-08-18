@@ -45,3 +45,8 @@ Draws a heatmap focusing on a principal component. Both cells and genes are sort
 principal component scores. Allows for nice visualization of sources of heterogeneity
 in the dataset."()
 }
+\examples{
+pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+ICHeatmap(object = pbmc_small)
+
+}
