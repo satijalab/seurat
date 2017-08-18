@@ -39,6 +39,14 @@
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small
+#'
 CreateSeuratObject <- function(
   raw.data,
   project = "SeuratProject",
@@ -809,6 +817,15 @@ FindVariableGenes <- function(
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
 #' @export
+#'
+#' @examples
+#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' pbmc_filtered <- FilterCells(
+#'   object = pbmc_small,
+#'   subset.names = 'LTB',
+#'   high.thresholds = 6
+#' )
+#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
 #'
 FilterCells <- function(
   object,

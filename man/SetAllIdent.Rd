@@ -18,3 +18,9 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Switch identity class definition to another variable
 }
+\examples{
+head(x = pbmc_small@ident)
+pbmc_small <- SetAllIdent(object = pbmc_small, id = 'orig.ident')
+head(x = pbmc_small@ident)
+
+}

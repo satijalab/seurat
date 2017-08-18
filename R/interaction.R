@@ -36,6 +36,16 @@ globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' # Split pbmc_small for this example
+#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+#' pbmc1
+#' pbmc2 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+#' pbmc2
+#' # Merge pbmc1 and pbmc2 into one Seurat object
+#' pbmc_merged <- MergeSeurat(object1 = pbmc1, object2 = pbmc2)
+#' pbmc_merged
+#'
 MergeSeurat <- function(
   object1,
   object2,
@@ -191,6 +201,15 @@ MergeSeurat <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+#' pbmc1
+#' pbmc2 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+#' pbmc2_data <- pbmc2@data
+#' dim(pbmc2_data)
+#' pbmc_added <- AddSamples(object = pbmc1, new.data = pbmc2_data)
+#' pbmc_added
+#'
 AddSamples <- function(
   object,
   new.data,
@@ -321,6 +340,10 @@ AddSamples <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+#' pbmc1
+#'
 SubsetData <- function(
   object,
   cells.use = NULL,
@@ -433,6 +456,11 @@ SubsetData <- function(
 #'
 #' @export
 #'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- ReorderIdent(object = pbmc_small)
+#' head(x = pbmc_small@ident)
+#'
 ReorderIdent <- function(
   object,
   feature = "PC1",
@@ -496,6 +524,10 @@ ReorderIdent <- function(
 #' @return A data frame with cells as rows and cellular data as columns
 #'
 #' @export
+#'
+#' @examples
+#' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+#' head(x = pc1)
 #'
 FetchData <- function(
   object,
@@ -617,6 +649,9 @@ FetchData <- function(
 #'
 #' @export
 #'
+#' @examples
+#' FastWhichCells(object = pbmc_small, group.by = 'res.1', subset.value = 1)
+#'
 FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
   object <- SetAllIdent(object = object, id = group.by)
   cells.return <- WhichCells(object = object, ident = subset.value)
@@ -647,6 +682,9 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
 #' @return A vector of cell names
 #'
 #' @export
+#'
+#' @examples
+#' WhichCells(object = pbmc_small, ident = 2)
 #'
 WhichCells <- function(
   object,
@@ -710,6 +748,11 @@ WhichCells <- function(
 #'
 #' @export
 #'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- SetAllIdent(object = pbmc_small, id = 'orig.ident')
+#' head(x = pbmc_small@ident)
+#'
 SetAllIdent <- function(object, id = NULL) {
   id <- SetIfNull(x = id, default = "orig.ident")
   if (id %in% colnames(x = object@meta.data)) {
@@ -735,6 +778,15 @@ SetAllIdent <- function(object, id = NULL) {
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
 #' @export
+#'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- RenameIdent(
+#'   object = pbmc_small,
+#'   old.ident.name = 0,
+#'   new.ident.name = 'cluster_0'
+#' )
+#' head(x = pbmc_small@ident)
 #'
 RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
   if (! old.ident.name %in% object@ident) {
@@ -766,6 +818,11 @@ RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
 #'
 #' @export
 #'
+#' @examples
+#' head(x = pbmc_small@meta.data)
+#' pbmc_small <- StashIdent(object = pbmc_small, save.name = 'cluster.ident')
+#' head(x = pbmc_small@meta.data)
+#'
 StashIdent <- function(object, save.name = "oldIdent") {
   object@meta.data[, save.name] <- as.character(x = object@ident)
   return(object)
@@ -786,6 +843,16 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #' @importFrom gdata drop.levels
 #'
 #' @export
+#'
+#' @examples
+#' cluster2 <- WhichCells(object = pbmc_small, ident = 2)
+#' pbmc_small@ident[cluster2]
+#' pbmc_small <- SetIdent(
+#'   object = pbmc_small,
+#'   cells.use = cluster2,
+#'   ident.use = 'cluster_2'
+#' )
+#' pbmc_small@ident[cluster2]
 #'
 SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
@@ -828,6 +895,15 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
 #' columns in object@@meta.data
 #'
 #' @export
+#'
+#' @examples
+#' cluster_letters <- LETTERS[pbmc_small@ident]
+#' pbmc_small <- AddMetaData(
+#'   object = pbmc_small,
+#'   metadata = cluster_letters,
+#'   col.name = 'letter.idents'
+#' )
+#' head(x = pbmc_small@meta.data)
 #'
 AddMetaData <- function(object, metadata, col.name = NULL) {
   if (typeof(x = metadata) != "list") {

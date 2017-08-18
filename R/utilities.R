@@ -29,7 +29,10 @@ Shuffle <- function(x) {
 #' @export
 #'
 #' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' df <- data.frame(
+#'   x = rnorm(n = 100, mean = 20, sd = 2),
+#'   y = rbinom(n = 100, size = 100, prob = 0.2)
+#' )
 #' nrow(x = df)
 #' nrow (x = RemoveFromTable(to.remove = 20, data = df))
 #'
@@ -63,7 +66,10 @@ RemoveFromTable <- function(to.remove, data) {
 #' @export
 #'
 #' @examples
-#' pbmc_raw <- read.table(file = system.file('extdata', 'pbmc_raw.txt', package = Seurat), as.is = TRUE)
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
 #' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
 #' class(x = pbmc_small@raw.data)
 #' pbmc_small <- MakeSparse(object = pbmc_small)
@@ -826,6 +832,10 @@ GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
 #' @return Values from search present in match with the case of match
 #'
 #' @export
+#'
+#' @examples
+#' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
+#' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small@raw.data))
 #'
 CaseMatch <- function(search, match) {
   search.match <- sapply(

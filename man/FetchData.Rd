@@ -27,3 +27,8 @@ A data frame with cells as rows and cellular data as columns
 Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
 of cells in a Seurat object
 }
+\examples{
+pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+head(x = pc1)
+
+}
