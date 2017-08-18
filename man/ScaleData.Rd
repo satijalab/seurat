@@ -81,5 +81,9 @@ square otherwise.
 }
 \examples{
 pbmc_small <- ScaleData(object = pbmc_small)
+\dontrun{
+# To regress out certain effects
+pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
+}
 
 }

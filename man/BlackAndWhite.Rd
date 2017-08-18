@@ -15,6 +15,11 @@ A color palette
 \description{
 A black and white color palette
 }
+\examples{
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+plot(df, col = BlackAndWhite())
+
+}
 \seealso{
 \code{CustomPalette}
 }

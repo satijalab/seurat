@@ -22,6 +22,32 @@
 #'
 #' @export
 #'
+#' @examples
+#' cd_genes <- list(c(
+#'   'CD79B',
+#'   'CD79A',
+#'   'CD19',
+#'   'CD180',
+#'   'CD200',
+#'   'CD3D',
+#'   'CD2',
+#'   'CD3E',
+#'   'CD7',
+#'   'CD8A',
+#'   'CD14',
+#'   'CD1C',
+#'   'CD68',
+#'   'CD9',
+#'   'CD247'
+#' ))
+#' pbmc_small <- AddModuleScore(
+#'   object = pbmc_small,
+#'   genes.list = cd_genes,
+#'   ctrl.size = 5,
+#'   enrich.name = 'CD_Genes'
+#' )
+#' head(x = pbmc_small@meta.data)
+#'
 AddModuleScore <- function(
   object,
   genes.list = NULL,
@@ -135,6 +161,19 @@ AddModuleScore <- function(
 #' @seealso \code{AddModuleScore}
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # pbmc_small doesn't have any cell-cycle genes
+#' # To run CellCycleScoring, please use a dataset with cell-cycle genes
+#' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
+#' pbmc_small <- CellCycleScoring(
+#'   object = pbmc_small,
+#'   g2m.genes = cc.genes$g2m.genes,
+#'   s.genes = cc.genes$s.genes
+#' )
+#' head(x = pbmc_small@meta.data)
+#' }
 #'
 CellCycleScoring <- function(
   object,
