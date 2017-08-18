@@ -22,7 +22,16 @@ Seurat object with updated slot
 Store information for specified assay, for multimodal analysis
 }
 \examples{
-df <- t(data.frame(x = round(rnorm(n = 80, mean = 20, sd = 2)), y = round(rbinom(n = 80, size = 100, prob = 0.2))))
-pbmc_small = SetAssayData(pbmc_small,assay.type = 'CITE', new.data = df, slot = 'raw.data')
+# Simulate CITE-Seq results
+df <- t(x = data.frame(
+  x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
+  y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+))
+pbmc_small = SetAssayData(
+  object = pbmc_small,
+  assay.type = 'CITE',
+  new.data = df,
+  slot = 'raw.data'
+)
 
 }
