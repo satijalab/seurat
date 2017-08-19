@@ -20,9 +20,9 @@ Probabilistically maps single cells based on (imputed) gene expression
 estimates, a set of mixture models, and an in situ spatial reference map.
 }
 \examples{
+\dontrun{
 # Note that the PBMC test example object does not contain spatially restricted
 # examples below are only demonstrate code
-\dontrun{
 pmbc_small <- InitialMapping(pbmc_small)
 }
 
