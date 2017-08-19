@@ -1285,6 +1285,10 @@ FeatureHeatmap <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' OldDoHeatmap(object = pbmc_small, genes.use = pbmc_small@var.genes)
+#'
 OldDoHeatmap <- function(
   object,
   cells.use = NULL,

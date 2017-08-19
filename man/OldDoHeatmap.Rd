@@ -57,3 +57,8 @@ to heatmap.2. Otherwise, no return value, only a graphical output
 Draws a heatmap of single cell gene expression using the heatmap.2 function. Has been replaced by the ggplot2
 version (now in DoHeatmap), but kept for legacy
 }
+\examples{
+pbmc_small
+OldDoHeatmap(object = pbmc_small, genes.use = pbmc_small@var.genes)
+
+}
