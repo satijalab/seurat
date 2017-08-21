@@ -107,7 +107,7 @@ MakeSparse <- function(object) {
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
     if(packageVersion("Seurat") >= package_version("2.0.0")){
-      cat("Object representation is consistent with the most current Seurat version.")
+      cat("Object representation is consistent with the most current Seurat version.\n")
       return(object)
     }
   }
