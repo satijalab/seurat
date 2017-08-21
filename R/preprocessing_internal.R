@@ -1,21 +1,21 @@
-#' Regress out technical effects and cell cycle
-#'
-#' Remove unwanted effects from scale.data
-#'
-#' @keywords internal
-#' @param object Seurat object
-#' @param vars.to.regress effects to regress out
-#' @param genes.regress gene to run regression for (default is all genes)
-#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#' @param display.progress display progress bar for regression procedure.
-#'
-#' @return Returns the residuals from the regression model
-#'
+# Regress out technical effects and cell cycle
+#
+# Remove unwanted effects from scale.data
+#
+# @keywords internal
+# @param object Seurat object
+# @param vars.to.regress effects to regress out
+# @param genes.regress gene to run regression for (default is all genes)
+# @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
+# @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+# @param display.progress display progress bar for regression procedure.
+#
+# @return Returns the residuals from the regression model
+#
 #' @import Matrix
 #' @importFrom stats as.formula lm residuals glm
 #' @importFrom utils txtProgressBar setTxtProgressBar
-#'
+#
 RegressOutResid <- function(
   object,
   vars.to.regress,

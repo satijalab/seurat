@@ -31,3 +31,12 @@ a likelihood ratio test of negative binomial generalized linear models where
 the overdispersion parameter theta is determined by pooling information
 across genes.
 }
+\examples{
+# Note, not recommended for particularly small datasets - expect warnings
+NegBinomDETest(
+  object = pbmc_small,
+  cells.1 = WhichCells(object = pbmc_small, ident = 1),
+  cells.2 = WhichCells(object = pbmc_small, ident = 2)
+)
+
+}

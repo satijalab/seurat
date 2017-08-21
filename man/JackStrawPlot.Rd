@@ -37,6 +37,10 @@ The p-value for each PC is based on a proportion test comparing the number
 of genes with a p-value below a particular threshold (score.thresh), compared with the
 proportion of genes expected under a uniform distribution of p-values.
 }
+\examples{
+JackStrawPlot(object = pbmc_small)
+
+}
 \author{
 Thanks to Omri Wurtzel for integrating with ggplot
 }

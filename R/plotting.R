@@ -1449,6 +1449,9 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #'
 #' @export
 #'
+#' @examples
+#' JackStrawPlot(object = pbmc_small)
+#'
 JackStrawPlot <- function(
   object,
   PCs = 1:5,
