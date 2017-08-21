@@ -1285,6 +1285,10 @@ FeatureHeatmap <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' OldDoHeatmap(object = pbmc_small, genes.use = pbmc_small@var.genes)
+#'
 OldDoHeatmap <- function(
   object,
   cells.use = NULL,
@@ -2913,24 +2917,24 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
-#' Node Heatmap
-#'
-#' Takes an object, a marker list (output of FindAllMarkers), and a node
-#' and plots a heatmap where genes are ordered vertically by the splits present
-#' in the object@@cluster.tree slot.
-#'
-#' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
-#' @param marker.list List of marker genes given from the FindAllMarkersNode function
-#' @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
-#' @param max.genes Maximum number of genes to keep for each division
-#' @param ... Additional parameters to pass to DoHeatmap
-#'
-#' @importFrom dplyr %>% group_by filter top_n select
-#'
-#' @return Plots heatmap. No return value.
-#'
-#' @export
-#'
+# Node Heatmap
+#
+# Takes an object, a marker list (output of FindAllMarkers), and a node
+# and plots a heatmap where genes are ordered vertically by the splits present
+# in the object@@cluster.tree slot.
+#
+# @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
+# @param marker.list List of marker genes given from the FindAllMarkersNode function
+# @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
+# @param max.genes Maximum number of genes to keep for each division
+# @param ... Additional parameters to pass to DoHeatmap
+#
+# @importFrom dplyr %>% group_by filter top_n select
+#
+# @return Plots heatmap. No return value.
+#
+# @export
+#
 NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
   tree <- object@cluster.tree[[1]]
   node <- SetIfNull(x = node, default = min(marker.list$cluster))
@@ -2975,26 +2979,5 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     slim.col.label = TRUE,
     remove.key = TRUE,
     ...
-  )
-}
-
-#' Posterior Plot
-#'
-#' @param object A Seurat object
-#' @param name Spatial code
-#'
-#' @seealso \code{SubsetColumn}
-#' @seealso \code{VlnPlot}
-#'
-#' @export
-#'
-PosteriorPlot <- function(object, name) {
-  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
-  VlnPlot(
-    object = object,
-    features.plot = post.names,
-    inc.first = TRUE,
-    inc.final = TRUE,
-    by.k = TRUE
   )
 }

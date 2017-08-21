@@ -17,9 +17,9 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Note that the PBMC test example object does not contain spatially restricted
 #' # examples below are only demonstrate code
-#' \dontrun{
 #' pmbc_small <- GetCentroids(pbmc_small, cells.use=pbmc_small@cell.names)
 #' }
 #'
@@ -74,9 +74,9 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Note that the PBMC test example object does not contain spatially restricted
 #' # examples below are only demonstrate code
-#' \dontrun{
 #' pmbc_small <- RefinedMapping(pbmc_small, genes.use=pbmc_small@var.genes)
 #' }
 #'
@@ -155,9 +155,9 @@ RefinedMapping <- function(object, genes.use) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Note that the PBMC test example object does not contain spatially restricted
 #' # examples below are only demonstrate code
-#' \dontrun{
 #' pmbc_small <- InitialMapping(pbmc_small)
 #' }
 #'
@@ -206,9 +206,9 @@ InitialMapping <- function(object, cells.use = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Note that the PBMC test example object does not contain spatially restricted
 #' # examples below are only demonstrate code
-#' \dontrun{
 #' pmbc_small <- FitGeneK(object = pbmc_small, gene = "MS4A1")
 #' }
 #'
