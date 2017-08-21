@@ -2929,7 +2929,7 @@ globalVariables(
 # @param max.genes Maximum number of genes to keep for each division
 # @param ... Additional parameters to pass to DoHeatmap
 #
-# @importFrom dplyr %>% group_by filter top_n select
+#' @importFrom dplyr %>% group_by filter top_n select
 #
 # @return Plots heatmap. No return value.
 #
