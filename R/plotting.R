@@ -1131,7 +1131,7 @@ FeatureHeatmap <- function(
   data.plot$ident <- as.character(x = object@ident)
   data.plot$cell <- rownames(x = data.plot)
   features.plot <- gsub('-', '\\.', features.plot)
-  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
+  data.plot  %>% gather(gene, expression, !!features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
   if (sep.scale) {
     data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   } else {
