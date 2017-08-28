@@ -23,3 +23,11 @@ and that also considers the covariance structure between genes.
 \details{
 Full details given in spatial mapping manuscript.
 }
+\examples{
+\dontrun{
+# Note that the PBMC test example object does not contain spatially restricted
+# examples below are only demonstrate code
+pmbc_small <- RefinedMapping(pbmc_small, genes.use=pbmc_small@var.genes)
+}
+
+}

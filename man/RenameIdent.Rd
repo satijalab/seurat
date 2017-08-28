@@ -19,3 +19,13 @@ A Seurat object where object@ident has been appropriately modified
 \description{
 Can also be used to join identity classes together (for example, to merge clusters).
 }
+\examples{
+head(x = pbmc_small@ident)
+pbmc_small <- RenameIdent(
+  object = pbmc_small,
+  old.ident.name = 0,
+  new.ident.name = 'cluster_0'
+)
+head(x = pbmc_small@ident)
+
+}

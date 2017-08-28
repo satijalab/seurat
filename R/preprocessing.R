@@ -17,7 +17,7 @@
 #' @param scale.factor If normalizing on the cell level, this sets the scale factor.
 #' @param do.scale In object@@scale.data, perform row-scaling (gene-based
 #' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-#' can specify do.scale=T (and do.center=T) here.
+#' can specify do.scale = TRUE (and do.center = TRUE) here.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
 #' @param names.field For the initial identity class for each cell, choose this field from the
 #' cell's column name
@@ -27,15 +27,25 @@
 #' the rows are cell names, and the columns are additional metadata fields
 #' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in  object@@raw.data
 #' which will save memory downstream for large datasets
+#' @param display.progress display progress bar for normalization and/or scaling procedure.
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
 #' object@@data, object@@meta.data, object@@ident, also initialized.
 #'
 #' @import stringr
 #' @import pbapply
+#' @importFrom utils packageVersion
 #' @importFrom Matrix colSums rowSums
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small
 #'
 CreateSeuratObject <- function(
   raw.data,
@@ -50,31 +60,35 @@ CreateSeuratObject <- function(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  save.raw = TRUE
+  save.raw = TRUE,
+  display.progress = TRUE
 ) {
   seurat.version <- packageVersion("Seurat")
-  object <- new(Class = "seurat",
-                raw.data = raw.data,
-                is.expr = is.expr,
-                project.name = project,
-                version = seurat.version
-                )
+  object <- new(
+    Class = "seurat",
+    raw.data = raw.data,
+    is.expr = is.expr,
+    project.name = project,
+    version = seurat.version
+  )
 
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now
 
-  object.raw.data=object@raw.data
-  if (is.expr > 0) object.raw.data[object.raw.data < is.expr] = 0
+  object.raw.data <- object@raw.data
+  if (is.expr > 0) {
+    # suppress Matrix package note:
+    # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
+    # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
+    # "Matrix#ldenseMatrix#missing#replValue" would also be valid
+    suppressMessages(object.raw.data[object.raw.data < is.expr] <- 0)
+  }
   num.genes <- colSums(object.raw.data > is.expr)
   num.mol <- colSums(object.raw.data)
   cells.use <- names(num.genes[which(num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
   object@data <- object.raw.data[, cells.use]
-  # to save memory downstream, especially for large objects if raw.data no
-  # longer needed
-  if (!(save.raw)) {
-    object@raw.data <- matrix()
-  }
+
   # filter genes on the number of cells expressing
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
@@ -112,18 +126,25 @@ CreateSeuratObject <- function(
     object <- NormalizeData(object = object,
                             assay.type = "RNA",
                             normalization.method = normalization.method,
-                            scale.factor = scale.factor)
+                            scale.factor = scale.factor,
+                            display.progress = display.progress)
   }
   if(do.scale | do.center) {
     object <- ScaleData(object = object,
                         do.scale = do.scale,
-                        do.center = do.center)
+                        do.center = do.center,
+                        display.progress = display.progress)
   }
   spatial.obj <- new(
     Class = "spatial.info",
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
+  # to save memory downstream, especially for large objects if raw.data no
+  # longer needed
+  if (!(save.raw)) {
+    object@raw.data <- matrix()
+  }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
@@ -148,6 +169,14 @@ CreateSeuratObject <- function(
 #' @importFrom Matrix readMM
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
+#' expression_matrix <- Read10X(data.dir = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
 #'
 Read10X <- function(data.dir = NULL){
   full.data <- list()
@@ -228,6 +257,10 @@ Read10X <- function(data.dir = NULL){
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' pmbc_small <- NormalizeData(object = pbmc_small)
+#'
 NormalizeData <- function(
   object,
   assay.type = "RNA",
@@ -236,9 +269,11 @@ NormalizeData <- function(
   display.progress = TRUE
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
-  object <- SetCalcParams(object = object,
-                          calculation = "NormalizeData",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "NormalizeData",
+    ... = parameters.to.store
+  )
   if(is.null(normalization.method)) {
     return(object)
   }
@@ -278,7 +313,14 @@ NormalizeData <- function(
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled and/or centered data.
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small <- ScaleDataR(object = pbmc_small)
+#' }
 #'
 ScaleDataR <- function(
   object,
@@ -321,16 +363,26 @@ ScaleDataR <- function(
     }
     close(pb)
   }
-
-  object@scale.data[is.na(object@scale.data)]=0
+  object@scale.data[is.na(object@scale.data)] <- 0
   return(object)
 }
 
-
 #' Scale and center the data.
 #'
-#' Scales and centers the data. If latent variables are provided (latent.vars), their effects are
-#' removed through regression and the resulting residuals are then scaled and centered.
+#' Scales and centers genes in the dataset. If variables are provided in vars.to.regress,
+#' they are individually regressed against each gene, and the resulting residuals are
+#' then scaled and centered.
+#'
+#' ScaleData now incorporates the functionality of the function formerly known
+#' as RegressOut (which regressed out given the effects of provided variables
+#' and then scaled the residuals). To make use of the regression functionality,
+#' simply pass the variables you want to remove to the vars.to.regress parameter.
+#'
+#' Setting center to TRUE will center the expression for each gene by subtracting
+#' the average expression for that gene. Setting scale to TRUE will scale the
+#' expression level for each gene by dividing the centered gene expression
+#' levels by their standard deviations if center is TRUE and by their root mean
+#' square otherwise.
 #'
 #'
 #' @param object Seurat object
@@ -338,7 +390,8 @@ ScaleDataR <- function(
 #' in object@@data.
 #' @param data.use Can optionally pass a matrix of data to scale, default is
 #' object@data[genes.use, ]
-#' @param latent.vars effects to regress out
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
@@ -359,21 +412,31 @@ ScaleDataR <- function(
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
-#' @param check.for.norm Check to see if data has been normalized, if not, output a warning (TRUE by default)
 #' We've maintained support for our previous implementation in R for
 #' reproducibility (set this to FALSE) as results can change slightly due to
 #' differences in numerical precision which could affect downstream calculations.
+#' @param check.for.norm Check to see if data has been normalized, if not,
+#' output a warning (TRUE by default)
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- ScaleData(object = pbmc_small)
+#' \dontrun{
+#' # To regress out certain effects
+#' pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
+#' }
 #'
 ScaleData <- function(
   object,
   genes.use = NULL,
   data.use = NULL,
-  latent.vars,
+  vars.to.regress,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -384,7 +447,7 @@ ScaleData <- function(
   display.progress = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE,
-  check.for.norm=TRUE
+  check.for.norm = TRUE
 ) {
   data.use <- SetIfNull(
     x = data.use,
@@ -411,13 +474,14 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if(!missing(latent.vars)){
-    data.use <- RegressOut(
+  if (! missing(vars.to.regress)) {
+    data.use <- RegressOutResid(
       object = object,
-      latent.vars = latent.vars,
+      vars.to.regress = vars.to.regress,
       genes.regress = genes.use,
       use.umi = use.umi,
-      model.use = model.use
+      model.use = model.use,
+      display.progress = display.progress
     )
     if (model.use != "linear") {
       use.umi <- TRUE
@@ -448,7 +512,7 @@ ScaleData <- function(
     data = NA,
     nrow = length(x = genes.use),
     ncol = ncol(x = object@data
-  )
+    )
   )
   rownames(scaled.data) <- genes.use
   if(length(object@cell.names) <= min.cells.to.block) {
@@ -500,7 +564,7 @@ ScaleData <- function(
     new.data = scaled.data
   )
   gc()
-  object@scale.data[is.na(object@scale.data)]=0
+  object@scale.data[is.na(object@scale.data)] <- 0
   return(object)
 }
 
@@ -518,6 +582,12 @@ ScaleData <- function(
 #'
 #' @export
 #'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
 LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
@@ -527,7 +597,7 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
   }
   # call Rcpp function to normalize
   if (display.progress) {
-    print("Performing log-normalization")
+    cat("Performing log-normalization\n", file = stderr())
   }
   norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
   colnames(x = norm.data) <- colnames(x = data)
@@ -550,6 +620,11 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
 #' @return Matrix with downsampled data
 #'
 #' @export
+#'
+#' @examples
+#' raw_data = as.matrix(x = pbmc_small@raw.data)
+#' downsampled = SampleUMI(data = raw_data)
+#' head(x = downsampled)
 #'
 SampleUMI <- function(
   data,
@@ -613,17 +688,25 @@ SampleUMI <- function(
 #' is 20)
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
+#' @param do.cpp Run c++ version of mean.function and dispersion.function if they
+#' exist.
+#' @param display.progress show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
 #' @importFrom MASS kde2d
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
 #' The result of all analysis is stored in object@@hvg.info
 #'
-#' @seealso \code{\link{VariableGenePlot}}
+#' @seealso \code{VariableGenePlot}
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
+#' pbmc_small@var.genes
 #'
 FindVariableGenes <- function(
   object,
@@ -638,35 +721,66 @@ FindVariableGenes <- function(
   num.bin = 20,
   do.recalc = TRUE,
   sort.results = TRUE,
+  do.cpp = TRUE,
+  display.progress = TRUE,
   ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
   parameters.to.store$mean.function <- as.character(substitute(mean.function))
   parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
-  object <- SetCalcParams(object = object,
-                          calculation = "FindVariableGenes",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "FindVariableGenes",
+    ... = parameters.to.store
+  )
   data <- object@data
+  genes.use <- rownames(x = object@data)
   if (do.recalc) {
-    genes.use <- rownames(x = object@data)
-    gene.mean <- rep(x = 0, length(x = genes.use))
-    names(x = gene.mean) <- genes.use
-    gene.dispersion <- gene.mean
-    gene.dispersion.scaled <- gene.mean
-    bin.size <- 1000
-    max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-    print("Calculating gene dispersion")
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-    for (i in 1:max.bin) {
-      my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = genes.use)]
-      genes.iter <- genes.use[my.inds]
-      data.iter <- data[genes.iter, , drop = F]
-      gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
-      gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-      setTxtProgressBar(pb = pb, value = i)
+    if(do.cpp){
+      if(! identical(mean.function, ExpMean)){
+        warning("No equivalent mean.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
+      if(! identical(dispersion.function, LogVMR)){
+        warning("No equivalent dispersion.function implemented in c++ yet, falling back to R version")
+        do.cpp <- FALSE
+      }
     }
-    close(con = pb)
+    if (do.cpp ){
+      if(class(data) != "dgCMatrix"){
+        data <- as(as.matrix(data), "dgCMatrix")
+      }
+      gene.mean <- FastExpMean(data, display.progress)
+      names(gene.mean) <- genes.use
+      gene.dispersion <- FastLogVMR(data, display.progress)
+      names(gene.dispersion) <- genes.use
+    }
+    if(!do.cpp){
+      gene.mean <- rep(x = 0, length(x = genes.use))
+      names(x = gene.mean) <- genes.use
+      gene.dispersion <- gene.mean
+      gene.dispersion.scaled <- gene.mean
+      bin.size <- 1000
+      max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
+      if(display.progress){
+        print("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      }
+      for (i in 1:max.bin) {
+        my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
+        my.inds <- my.inds[my.inds <= length(x = genes.use)]
+        genes.iter <- genes.use[my.inds]
+        data.iter <- data[genes.iter, , drop = F]
+        gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
+        gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
+        if(display.progress) {
+          setTxtProgressBar(pb = pb, value = i)
+        }
+      }
+      if(display.progress){
+        close(con = pb)
+      }
+    }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
     data_x_bin <- cut(x = gene.mean, breaks = num.bin)
@@ -695,6 +809,10 @@ FindVariableGenes <- function(
   if (do.plot) {
     VariableGenePlot(
       object = object,
+      x.low.cutoff = x.low.cutoff,
+      x.high.cutoff = x.high.cutoff,
+      y.cutoff = y.cutoff,
+      y.high.cutoff = y.high.cutoff,
       ...
     )
   }
@@ -730,6 +848,15 @@ FindVariableGenes <- function(
 #'
 #' @export
 #'
+#' @examples
+#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' pbmc_filtered <- FilterCells(
+#'   object = pbmc_small,
+#'   subset.names = 'LTB',
+#'   high.thresholds = 6
+#' )
+#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
+#'
 FilterCells <- function(
   object,
   subset.names,
@@ -738,9 +865,11 @@ FilterCells <- function(
   cells.use = NULL
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
-  object <- SetCalcParams(object = object,
-                          calculation = "FilterCells",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "FilterCells",
+    ... = parameters.to.store
+  )
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
   }

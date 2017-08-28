@@ -1,12 +1,27 @@
+#' Zebrafish analysis functions
+#'
+#' These functions are for the zebrafish analysis from Satija et al. 2015
+#' @rdname zfRenderSeurat
+#' @name zfRenderSeurat
+#' @aliases zf.cells.render zf.anchor.render zf.insitu.vec.lateral zf.insitu.lateral zf.insitu.dorsal zf.insitu.ventral zf.insitu.side
+#'
+#' @references Satija R*, Farrell JA*, Gennert D, Schier AF, Regev A.
+#' Spatial reconstruction of single-cell gene expression data.
+#' Nature Biotechnology. 2015
+#'
+#' @importFrom grDevices colorRampPalette
+#'
 
-#' Draw 3D in situ predictions from Zebrafish dataset
-#'
-#' From Jeff Farrell
-#'
-#' @param data Predicted expression levels across Zebrafish bins
-#' @param label Plot label
-#'
-#' @export
+
+# Draw 3D in situ predictions from Zebrafish dataset
+#
+# From Jeff Farrell
+#
+# @param data Predicted expression levels across Zebrafish bins
+# @param label Plot label
+# @param ... Extra parameters
+#
+# @export
 situ3d <- function(data, label = NULL, ...) {
   # Call Seurat function to get the in situ values out.
   exp.1 <- data

@@ -28,6 +28,20 @@ assay <- setClass(
 #'
 #' @export
 #'
+#' @examples
+#' # Simulate CITE-Seq results
+#' df <- t(x = data.frame(
+#'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
+#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+#' ))
+#' pbmc_small <- SetAssayData(
+#'   object = pbmc_small,
+#'   assay.type = 'CITE',
+#'   new.data = df,
+#'   slot = 'raw.data'
+#' )
+#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'raw.data')
+#'
 GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
@@ -40,16 +54,19 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
       }
       to.return <- object@scale.data
     }
+    if(is.null(to.return)) {
+      return(to.return)
+    }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided
     if (length(x = object@cell.names) == ncol(to.return)) {
       return(to.return)
     }
     return(to.return[, object@cell.names])
   }
-  if (! (assay.type %in% names(objectobject@assay))) {
+  if (! (assay.type %in% names(object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
-  if (! (slot %in% slotNames(eval(envir = parse(text = paste0("object@assay$", assay.type)))))) {
+  if (! (slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
   to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
@@ -70,6 +87,19 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #'
 #' @export
 #'
+#' @examples
+#' # Simulate CITE-Seq results
+#' df <- t(x = data.frame(
+#'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
+#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+#' ))
+#' pbmc_small = SetAssayData(
+#'   object = pbmc_small,
+#'   assay.type = 'CITE',
+#'   new.data = df,
+#'   slot = 'raw.data'
+#' )
+#'
 SetAssayData <- function(object, assay.type, slot, new.data) {
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
@@ -81,7 +111,7 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
     }
     return(object)
   }
-  if (assay.type %in% names(objectobject@assay)) {
+  if (assay.type %in% names(object@assay)) {
     eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot, "<- new.data")))
   } else {
     new.assay <- new(Class = "assay")

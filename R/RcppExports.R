@@ -45,3 +45,11 @@ FastRBind <- function(mat1, mat2) {
     .Call('_Seurat_FastRBind', PACKAGE = 'Seurat', mat1, mat2)
 }
 
+FastExpMean <- function(mat, display_progress) {
+    .Call('_Seurat_FastExpMean', PACKAGE = 'Seurat', mat, display_progress)
+}
+
+FastLogVMR <- function(mat, display_progress) {
+    .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
+}
+

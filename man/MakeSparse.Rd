@@ -16,3 +16,14 @@ Returns a seurat object with data converted to sparse matrices.
 Converts stored data matrices to sparse matrices to save space. Converts
 object@raw.data and object@data to sparse matrices.
 }
+\examples{
+pbmc_raw <- read.table(
+  file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+  as.is = TRUE
+)
+pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+class(x = pbmc_small@raw.data)
+pbmc_small <- MakeSparse(object = pbmc_small)
+class(x = pbmc_small@raw.data)
+
+}

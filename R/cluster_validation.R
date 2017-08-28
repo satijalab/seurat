@@ -2,21 +2,31 @@
 NULL
 #' Cluster Validation
 #'
-#' Methods for validating the legitimacy of clusters using classification. SVMs 
-#' are used as the basis for the classification. Merging is done based on the 
+#' Methods for validating the legitimacy of clusters using classification. SVMs
+#' are used as the basis for the classification. Merging is done based on the
 #' connectivity from an SNN graph.
 #'
 #' @param object Seurat object
 #' @param pc.use Which PCs to use to define genes in model construction
 #' @param top.genes Use the top X genes for each PC in model construction
-#' @param min.connectivity Threshold of connectedness for comparison of two 
+#' @param min.connectivity Threshold of connectedness for comparison of two
 #' clusters
 #' @param acc.cutoff Accuracy cutoff for classifier
 #' @param verbose Controls whether to display progress and merging results
 #' @importFrom caret trainControl train
-#' @return Returns a Seurat object, object@@ident has been updated with new 
+#' @return Returns a Seurat object, object@@ident has been updated with new
 #' cluster info
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # May throw warnings when cluster sizes are particularly small
+#' \dontrun{
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+#'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
+#' pbmc_small <- ValidateClusters(pbmc_small, pc.use = 1:10)
+#'}
+#'
 ValidateClusters <- function(
   object,
   pc.use = NULL,
@@ -29,7 +39,7 @@ ValidateClusters <- function(
   if (length(x = object@snn) > 1) {
     SNN.use <- object@snn
   } else {
-    stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in 
+    stop("SNN matrix required. Please run BuildSNN() to save the SNN matrix in
          the object slot")
   }
   if (is.null(pc.use)){
@@ -127,6 +137,16 @@ ValidateClusters <- function(
 #' @return Returns a Seurat object, object@@ident has been updated with
 #' new cluster info
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+#'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
+#' pbmc_small <- ValidateSpecificClusters(pbmc_small, cluster1 = 1,
+#'                                        cluster2 = 2,  pc.use = 1:10)
+#'}
+#'
 ValidateSpecificClusters <- function(
   object,
   cluster1 = NULL,
@@ -177,8 +197,8 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
   d2 <- WhichCells(object = object, ident = group2)
   y  <- as.numeric(x = object@ident[c(d1, d2)]) - 1
   x  <- data.frame(as.matrix(t(
-    x = object@data[PCTopGenes(object = object, pc.use = pcs, num.genes = 
-                                 num.genes), c(d1, d2)] 
+    x = object@data[PCTopGenes(object = object, pc.use = pcs, num.genes =
+                                 num.genes), c(d1, d2)]
     )))
   xv <- apply(X = x, MARGIN = 2, FUN = var)
   x  <- x[, names(x = which(xv > 0))]
@@ -211,6 +231,14 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #' each internal node split or each split provided in the node list.
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+#'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
+#' pbmc_small <- BuildClusterTree(pbmc_small, reorder.numeric = TRUE, do.reorder = TRUE)
+#' AssessNodes(pbmc_small)
+#'
 AssessNodes <- function(object, node.list, all.below = FALSE) {
   tree <- object@cluster.tree[[1]]
   if (missing(x = node.list)) {
@@ -256,6 +284,18 @@ AssessNodes <- function(object, node.list, all.below = FALSE) {
 #' @return Returns the Out of Bag error for a random forest classifier
 #' trained on the split from the given node
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+#'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
+#' pbmc_small <- BuildClusterTree(pbmc_small, reorder.numeric = TRUE, do.reorder = TRUE)
+#' # Assess based on a given node
+#' AssessSplit(pbmc_small, node = 11)
+#' # Asses based on two given clusters (or vectors of clusters)
+#' AssessSplit(pbmc_small, cluster1 = 5, cluster2 = 6)
+#' AssessSplit(pbmc_small, cluster1 = 4, cluster2 = c(5, 6))
+#'
 AssessSplit <- function(
   object,
   node,

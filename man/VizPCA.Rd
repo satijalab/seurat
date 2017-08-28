@@ -29,3 +29,7 @@ Graphical, no return value
 \description{
 Visualize top genes associated with principal components
 }
+\examples{
+VizPCA(object = pbmc_small)
+
+}

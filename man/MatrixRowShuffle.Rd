@@ -15,3 +15,9 @@ Returns a scrambled matrix, where each row is shuffled independently
 \description{
 Creates a matrix where correlation structure has been removed, but overall values are the same
 }
+\examples{
+mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+mat
+MatrixRowShuffle(x = mat)
+
+}

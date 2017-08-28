@@ -14,7 +14,7 @@ PCTopGenes(object, pc.use = 1, num.genes = 30, use.full = FALSE,
 
 \item{num.genes}{Number of genes to return}
 
-\item{use.full}{Use the full PCA (projected PCA). Default i s FALSE}
+\item{use.full}{Use the full PCA (projected PCA). Default is FALSE}
 
 \item{do.balanced}{Return an equal number of genes with both + and - PC scores.}
 }
@@ -24,4 +24,11 @@ Returns a vector of genes
 \description{
 Return a list of genes with the strongest contribution to a set of principal
 components
+}
+\examples{
+pbmc_small
+PCTopGenes(object = pbmc_small, pc.use = 1)
+# After projection:
+PCTopGenes(object = pbmc_small, pc.use = 1, use.full = TRUE)
+
 }

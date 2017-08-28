@@ -17,3 +17,11 @@ No return value. Writes clusters assignments to specified file.
 \description{
 Save cluster assignments to a TSV file
 }
+\examples{
+\dontrun{
+pbmc_small
+file.loc <- "~/Desktop/cluster_assignments.tsv"
+SaveClusters(object = pbmc_small, file = file.loc)
+}
+
+}

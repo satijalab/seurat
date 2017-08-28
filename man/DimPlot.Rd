@@ -53,6 +53,8 @@ different shapes on cells.}
 \item{no.axes}{Setting to TRUE will remove the axes}
 
 \item{dark.theme}{Use a dark theme for the plot}
+
+\item{...}{Extra parameters to FeatureLocator for do.identify = TRUE}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -61,4 +63,11 @@ graphical output.
 \description{
 Graphs the output of a dimensional reduction technique (PCA by default).
 Cells are colored by their identity class.
+}
+\examples{
+DimPlot(object = pbmc_small)
+
+}
+\seealso{
+\code{FeatureLocator}
 }

@@ -6,7 +6,7 @@
 \usage{
 RunDiffusion(object, cells.use = NULL, dims.use = 1:5, genes.use = NULL,
   reduction.use = "pca", q.use = 0.01, max.dim = 2, scale.clip = 10,
-  ...)
+  reduction.name = "dm", reduction.key = "DM", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,13 +20,17 @@ genes (instead of running on a set of reduced dimensions). Not set (NULL) by
 default}
 
 \item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the
-diffusion map. Default is PCA}
+diffusion map input. Default is PCA}
 
-\item{q.use}{Quantile to use}
+\item{q.use}{Quantile to clip diffusion map components at. This addresses an issue where 1-2 cells will have extreme values that obscure all other points. 0.01 by default}
 
 \item{max.dim}{Max dimension to keep from diffusion calculation}
 
 \item{scale.clip}{Max/min value for scaled data. Default is 3}
+
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. dm by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. DM by default}
 
 \item{...}{Additional arguments to the diffuse call}
 }
@@ -35,4 +39,14 @@ Returns a Seurat object with a diffusion map
 }
 \description{
 Run diffusion map
+}
+\examples{
+pbmc_small
+# Run Diffusion on variable genes
+pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
+# Run Diffusion map on first 10 PCs
+pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
+# Plot results
+DMPlot(pbmc_small)
+
 }

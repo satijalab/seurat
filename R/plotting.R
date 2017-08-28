@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' Gene expression heatmap
 #'
 #' Draws a heatmap of single cell gene expression using ggplot2.
@@ -19,6 +23,7 @@
 #' @param slim.col.label display only the identity class name once for each group
 #' @param remove.key Removes the color key from the plot.
 #' @param rotate.key Rotate color scale horizantally
+#' @param title Title for plot
 #' @param cex.col Controls size of column labels (cells)
 #' @param cex.row Controls size of row labels (genes)
 #' @param group.label.loc Place group labels on bottom or top of plot.
@@ -26,11 +31,17 @@
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
 #' @param do.plot Whether to display the plot.
-#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
+#'
 #' @return Returns a ggplot2 plot object
-#' @importFrom reshape2 melt
+#'
 #' @importFrom dplyr %>%
+#' @importFrom reshape2 melt
+#'
 #' @export
+#'
+#' @examples
+#' DoHeatmap(object = pbmc_small)
+#'
 DoHeatmap <- function(
   object,
   data.use = NULL,
@@ -54,8 +65,7 @@ DoHeatmap <- function(
   group.label.rot = FALSE,
   group.cex = 15,
   group.spacing = 0.15,
-  do.plot = TRUE,
-  ...
+  do.plot = TRUE
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
@@ -91,7 +101,7 @@ DoHeatmap <- function(
   )
   data.use <- data.use[genes.use, cells.use]
   if ((!use.scaled)) {
-    data.use =as.matrix(x = data.use)
+    data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
   }
   data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
@@ -105,7 +115,7 @@ DoHeatmap <- function(
   breaks <- seq(
     from = min(data.use$expression),
     to = max(data.use$expression),
-    length = length(x = pyCols) + 1
+    length = length(x = PurpleAndYellow()) + 1
   )
   data.use$gene <- with(
     data = data.use,
@@ -118,7 +128,7 @@ DoHeatmap <- function(
   # might be a solution if we want discrete interval units, makes the legend clunky though
   #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = T)
   #heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
-  #                  scale_fill_manual(values = pyCols, name= "Expression") +
+  #                  scale_fill_manual(values = PurpleAndYellow(), name= "Expression") +
   #                  scale_y_discrete(position = "right", labels = rev(genes.use)) +
   #                  theme(axis.line=element_blank(), axis.title.y=element_blank(),
   #                        axis.ticks.y = element_blank())
@@ -254,11 +264,18 @@ DoHeatmap <- function(
 #' @param do.return Return a ggplot2 object (default : FALSE)
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#'
 #' @import ggplot2
-#' @importFrom cowplot plot_grid
+#' @importFrom cowplot plot_grid get_legend
+#'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
+#'
 #' @export
+#'
+#' @examples
+#' VlnPlot(object = pbmc_small, features.plot = 'PC1')
+#'
 VlnPlot <- function(
   object,
   features.plot,
@@ -291,7 +308,7 @@ VlnPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...))
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...), check.names = F)
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -378,7 +395,6 @@ VlnPlot <- function(
   }
 }
 
-
 #' Single cell joy plot
 #'
 #' Draws a joy plot of single cell data (gene expression, metrics, PC
@@ -407,11 +423,20 @@ VlnPlot <- function(
 #' @param do.return Return a ggplot2 object (default : FALSE)
 #' @param return.plotlist Return the list of individual plots instead of compiled plot.
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#'
 #' @import ggplot2
+#' @importFrom cowplot get_legend
+#' @importFrom ggjoy geom_joy theme_joy
 #' @importFrom cowplot plot_grid
+#'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
+#'
 #' @export
+#'
+#' @examples
+#' JoyPlot(object = pbmc_small, features.plot = 'PC1')
+#'
 JoyPlot <- function(
   object,
   features.plot,
@@ -442,7 +467,8 @@ JoyPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...))
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...),
+                         check.names = F)
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -527,9 +553,8 @@ JoyPlot <- function(
   }
 }
 
-
-#' Dot plot visualization
-#'
+#' Old Dot plot visualization (pre-ggplot implementation)
+#
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
 #' The size of the dot encodes the percentage of cells within a class, while the color encodes the
 #' AverageExpression level of 'expressing' cells (green is high).
@@ -541,17 +566,25 @@ JoyPlot <- function(
 #' @param thresh.col The raw data value which corresponds to a red dot (lowest expression)
 #' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05)
 #' @param group.by Factor to group the cells by
+#'
 #' @return Only graphical output
+#'
+#' @importFrom graphics axis
+#'
 #' @export
-DotPlot <- function(
+#'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlotOld(object = pbmc_small, genes.plot = cd_genes)
+#'
+DotPlotOld <- function(
   object,
   genes.plot,
   cex.use = 2,
   cols.use = NULL,
   thresh.col = 2.5,
   dot.min = 0.05,
-  group.by = NULL,
-  ...
+  group.by = NULL
 ) {
   if (! is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
@@ -598,31 +631,49 @@ DotPlot <- function(
   axis(side = 2, at = 1:ncol(x = avg.alpha), colnames(x = avg.alpha), las = 1)
 }
 
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Dot plot visualization
 #'
-#' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
-#' The size of the dot encodes the percentage of cells within a class, while the color encodes the
-#' AverageExpression level of 'expressing' cells (green is high).
+#' Intuitive way of visualizing how gene expression changes across different
+#' identity classes (clusters). The size of the dot encodes the percentage of
+#' cells within a class, while the color encodes the AverageExpression level of
+#' 'expressing' cells (blue is high).
 #'
 #' @param object Seurat object
 #' @param genes.plot Input vector of genes
 #' @param cols.use colors to plot
-#' @param col.min Minimum scaled average expression threshold (everything smaller will be set to this)
-#' @param col.max Maximum scaled average expression threshold (everything larger will be set to this)
-#' @param dot.min The fraction of cells at which to draw the smallest dot (default is 0.05).
+#' @param col.min Minimum scaled average expression threshold (everything smaller
+#'  will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger
+#' will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot
+#' (default is 0.05). All cell groups with less than this expressing the given
+#' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param group.by Factor to group the cells by
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
+#'
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @importFrom tidyr gather
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
+#'
 #' @export
-DotPlotGG <- function(
+#'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlot(object = pbmc_small, genes.plot = cd_genes)
+#'
+DotPlot <- function(
   object,
   genes.plot,
-  cols.use = c("green", "red"),
+  cols.use = c("lightgrey", "blue"),
   col.min = -2.5,
   col.max = 2.5,
   dot.min = 0,
@@ -646,15 +697,15 @@ DotPlotGG <- function(
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = ExpMean(x = expression),
+      avg.exp = mean(expm1(x = expression)),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
-    mutate(avg.exp = as.numeric(x = scale(center = avg.exp))) %>%
+    mutate(avg.exp.scale = scale(x = avg.exp)) %>%
     mutate(avg.exp.scale = MinMax(
-      data = avg.exp,
+      data = avg.exp.scale,
       max = col.max,
       min = col.min
     )) ->  data.to.plot
@@ -680,7 +731,11 @@ DotPlotGG <- function(
   }
 }
 
-
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Split Dot plot visualization
 #'
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
@@ -706,6 +761,16 @@ DotPlotGG <- function(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #' @importFrom tidyr gather
 #' @export
+#'
+#' @examples
+#' # Create a simulated grouping variable
+#' pbmc_small@meta.data$groups <- sample(
+#'   x = c("g1", "g2"),
+#'   size = length(x = pbmc_small@cell.names),
+#'   replace = TRUE
+#' )
+#' SplitDotPlotGG(pbmc_small, grouping.var = "groups", genes.plot = pbmc_small@var.genes[1:5])
+#'
 SplitDotPlotGG <- function(
   object,
   grouping.var,
@@ -729,9 +794,9 @@ SplitDotPlotGG <- function(
     vars.all = grouping.var
   )[names(x = object@ident), 1]
   idents.old <- levels(x = object@ident)
-  object@ident <- paste(object@ident, grouping.data, sep="_")
+  idents.new <- paste(object@ident, grouping.data, sep="_")
   object@ident <- factor(
-    x = object@ident,
+    x = idents.new,
     levels = unlist(x = lapply(
       X = idents.old,
       FUN = function(x) {
@@ -861,6 +926,9 @@ SplitDotPlotGG <- function(
 #' @return No return value, only a graphical output
 #'
 #' @export
+#'
+#' @examples
+#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
 #'
 FeaturePlot <- function(
   object,
@@ -1037,6 +1105,13 @@ FeaturePlot <- function(
   }
 }
 
+globalVariables(
+  names = c('gene', 'dim1', 'dim2', 'ident', 'cell', 'scaled.expression'),
+  package = 'Seurat',
+  add = TRUE
+)
+
+
 #' Vizualization of multiple features
 #'
 #' Similar to FeaturePlot, however, also splits the plot by visualizing each
@@ -1069,11 +1144,16 @@ FeaturePlot <- function(
 #'
 #' @return No return value, only a graphical output
 #'
+#' @importFrom tidyr gather
 #' @importFrom dplyr %>% mutate_each group_by select ungroup
 #'
 #' @seealso \code{\link{FeaturePlot}}
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' FeatureHeatmap(object = pbmc_small, features.plot = "PC1")
 #'
 FeatureHeatmap <- function(
   object,
@@ -1113,7 +1193,7 @@ FeatureHeatmap <- function(
   data.plot$ident <- as.character(x = object@ident)
   data.plot$cell <- rownames(x = data.plot)
   features.plot <- gsub('-', '\\.', features.plot)
-  data.plot  %>% gather(gene, expression, features.plot, -dim1, -dim2, -ident, -cell) -> data.plot
+  data.plot  %>% gather(key = "gene", value = "expression", -dim1, -dim2, -ident, -cell) -> data.plot
   if (sep.scale) {
     data.plot %>% group_by(ident, gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   } else {
@@ -1208,6 +1288,10 @@ FeatureHeatmap <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' OldDoHeatmap(object = pbmc_small, genes.use = pbmc_small@var.genes)
+#'
 OldDoHeatmap <- function(
   object,
   cells.use = NULL,
@@ -1217,7 +1301,7 @@ OldDoHeatmap <- function(
   draw.line = TRUE,
   do.return = FALSE,
   order.by.ident = TRUE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   slim.col.label = FALSE,
   group.by = NULL,
   remove.key = FALSE,
@@ -1337,6 +1421,7 @@ OldDoHeatmap <- function(
   }
 }
 
+globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'
 #' Plots the results of the JackStraw analysis for PCA significance. For each
@@ -1363,8 +1448,12 @@ OldDoHeatmap <- function(
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @import gridExtra
+#' @importFrom stats qqplot runif prop.test qunif
 #'
 #' @export
+#'
+#' @examples
+#' JackStrawPlot(object = pbmc_small)
 #'
 JackStrawPlot <- function(
   object,
@@ -1374,6 +1463,7 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
+
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -1427,6 +1517,7 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Scatter plot of single cell data
 #'
 #' Creates a scatter plot of two features (typically gene expression), across a
@@ -1454,7 +1545,11 @@ JackStrawPlot <- function(
 #'
 #' @return No return, only graphical output
 #'
+#'
 #' @export
+#'
+#' @examples
+#' GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
 #'
 GenePlot <- function(
   object,
@@ -1591,6 +1686,7 @@ GenePlot <- function(
   }
 }
 
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Cell-cell scatter plot
 #'
 #' Creates a plot of scatter plot of genes across two single cells
@@ -1612,7 +1708,13 @@ GenePlot <- function(
 #'
 #' @return No return value (plots a scatter plot)
 #'
+#' @importFrom stats cor
+#' @importFrom graphics smoothScatter
+#'
 #' @export
+#'
+#' @examples
+#' CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
 CellPlot <- function(
   object,
@@ -1677,17 +1779,31 @@ CellPlot <- function(
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
 #' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams PCTopGenes
-#' @inheritParams VizPCA
+#' @param object Seurat object.
+#' @param reduction.type Which dimmensional reduction t use
+#' @param dim.use Dimensions to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes NUmber of genes to plot
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Color to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
-#' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
+#' @param label.columns Labels for columns
+#' @param ... Extra parameters for heatmap plotting.
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #'
+#' @importFrom graphics par
+#'
 #' @export
+#'
+#' @examples
+#' DimHeatmap(object = pbmc_small)
 #'
 DimHeatmap <- function(
   object,
@@ -1699,7 +1815,7 @@ DimHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1791,106 +1907,33 @@ DimHeatmap <- function(
   par(mfrow = orig_par)
 }
 
-PlotDim <- function(
-  ndim,
-  object,
-  reduction.type,
-  use.scaled,
-  use.full,
-  cells.use,
-  num.genes,
-  group.by,
-  disp.min,
-  disp.max,
-  col.low,
-  col.mid,
-  col.high,
-  slim.col.label,
-  do.balanced,
-  remove.key,
-  cex.col,
-  cex.row,
-  group.label.loc,
-  group.label.rot,
-  group.cex,
-  group.spacing
-) {
-  if (is.numeric(x = (cells.use))) {
-    cells.use <- DimTopCells(
-      object = object,
-      dim.use = ndim,
-      reduction.type = reduction.type,
-      num.cells = cells.use,
-      do.balanced = do.balanced
-    )
-  } else {
-    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  }
-  genes.use <- rev(x = DimTopGenes(
-    object = object,
-    dim.use = ndim,
-    reduction.type = reduction.type,
-    num.genes = num.genes,
-    use.full = use.full,
-    do.balanced = do.balanced
-  ))
-  dim.scores <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "cell.embeddings"
-  )
-  dim.key <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "key"
-  )
-  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
-  if (! use.scaled) {
-    data.use <- as.matrix(object@data[genes.use, cells.ordered])
-  } else {
-    data.use <- object@scale.data[genes.use, cells.ordered]
-    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
-  }
-  return(DoHeatmap(
-    object = object,
-    data.use = data.use,
-    cells.use = cells.use,
-    genes.use = genes.use,
-    group.by = group.by,
-    disp.min = disp.min,
-    disp.max = disp.max,
-    col.low = col.low,
-    col.mid = col.mid,
-    col.high = col.high,
-    slim.col.label = slim.col.label,
-    remove.key = remove.key,
-    cex.col = cex.col,
-    cex.row = cex.row,
-    group.label.loc = group.label.loc,
-    group.label.rot = group.label.rot,
-    group.cex = group.cex,
-    group.spacing = group.spacing,
-    title = paste0(dim.key, ndim),
-    do.plot = FALSE
-  ))
-}
-
 #' Principal component heatmap
 #'
 #' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their principal component scores.
 #' Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams PCTopGenes
-#' @inheritParams VizPCA
+#' @param object Seurat object.
+#' @param pc.use PCs to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes Number of genes to plot
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Color to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
 #' @param label.columns Whether to label the columns. Default is TRUE for 1 PC, FALSE for > 1 PC
+#' @param ... Extra parameters for DimHeatmap
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #'
 #' @export
+#'
+#' @examples
+#' PCHeatmap(object = pbmc_small)
 #'
 PCHeatmap <- function(
   object,
@@ -1901,7 +1944,7 @@ PCHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1933,15 +1976,28 @@ PCHeatmap <- function(
 #' principal component scores. Allows for nice visualization of sources of heterogeneity
 #' in the dataset."()
 #'
-#' @inheritParams DoHeatmap
-#' @inheritParams ICTopGenes
-#' @inheritParams VizICA
+#' @param object Seurat object
+#' @param ic.use Components to use
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes NUmber of genes to plot
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param do.return If TRUE, returns plot object, otherwise plots plot object
+#' @param col.use Colors to plot.
 #' @param use.scale Default is TRUE: plot scaled data. If FALSE, plot raw data on the heatmap.
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param remove.key Removes the color key from the plot.
+#' @param label.columns Labels for columns
+#' @param ... Extra parameters passed to DimHeatmap
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' ICHeatmap(object = pbmc_small)
 #'
 ICHeatmap <- function(
   object,
@@ -1951,7 +2007,7 @@ ICHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   do.return = FALSE,
-  col.use = pyCols,
+  col.use = PurpleAndYellow(),
   use.scale = TRUE,
   do.balanced = FALSE,
   remove.key = FALSE,
@@ -1993,7 +2049,12 @@ ICHeatmap <- function(
 #'
 #' @return Graphical, no return value
 #'
+#' @importFrom graphics axis
+#'
 #' @export
+#'
+#' @examples
+#' VizDimReduction(object = pbmc_small)
 #'
 VizDimReduction <- function(
   object,
@@ -2075,6 +2136,9 @@ VizDimReduction <- function(
 #'
 #' @export
 #'
+#' @examples
+#' VizPCA(object = pbmc_small)
+#'
 VizPCA <- function(
   object,
   pcs.use = 1:5,
@@ -2113,6 +2177,10 @@ VizPCA <- function(
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' VizICA(object = pbmc_small)
+#'
 VizICA <- function(
   object,
   ics.use = 1:5,
@@ -2125,7 +2193,7 @@ VizICA <- function(
   VizDimReduction(
     object = object,
     reduction.type = "ica",
-    dims.use = pcs.use,
+    dims.use = ics.use,
     num.genes = num.genes,
     use.full = use.full,
     font.size = font.size,
@@ -2134,6 +2202,7 @@ VizICA <- function(
   )
 }
 
+globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique (PCA by default).
@@ -2162,14 +2231,21 @@ VizICA <- function(
 #' @param no.legend Setting to TRUE will remove the legend
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
+#' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
 #' graphical output.
 #'
+#' @seealso \code{FeatureLocator}
+#'
 #' @import SDMTools
+#' @importFrom stats median
 #' @importFrom dplyr summarize group_by
 #'
 #' @export
+#'
+#' @examples
+#' DimPlot(object = pbmc_small)
 #'
 DimPlot <- function(
   object,
@@ -2333,6 +2409,9 @@ DimPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PCAPlot(object = pbmc_small)
+#'
 PCAPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
 }
@@ -2349,6 +2428,11 @@ PCAPlot <- function(object, ...) {
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunDiffusion(object = pbmc_small)
+#' DMPlot(object = pbmc_small)
+#'
 DMPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
 }
@@ -2365,6 +2449,10 @@ DMPlot <- function(object, ...) {
 #' @param \dots Additional parameters to DimPlot, for example, which dimensions to plot.
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+#' ICAPlot(object = pbmc_small)
 #'
 ICAPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "ica", ...))
@@ -2390,6 +2478,9 @@ ICAPlot <- function(object, ...) {
 #' @seealso DimPlot
 #'
 #' @export
+#'
+#' @examples
+#' TSNEPlot(object = pbmc_small)
 #'
 TSNEPlot <- function(
   object,
@@ -2431,6 +2522,9 @@ TSNEPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' DimElbowPlot(object = pbmc_small)
+#'
 DimElbowPlot <- function(
   object,
   reduction.type = "pca",
@@ -2439,11 +2533,13 @@ DimElbowPlot <- function(
   ylab = "",
   title = ""
 ) {
-  data.use <- GetDimReduction(object = object,
-                              reduction.type = reduction.type,
-                              slot = "sdev")
+  data.use <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "sdev"
+  )
   if (length(data.use) == 0) {
-    stop(paste("No standard deviation info stored for", reduction.use))
+    stop(paste("No standard deviation info stored for", reduction.type))
   }
   if (length(x = data.use) < dims.plot) {
     warning(paste(
@@ -2484,6 +2580,9 @@ DimElbowPlot <- function(
 #'
 #' @export
 #'
+#' @examples
+#' PCElbowPlot(object = pbmc_small)
+#'
 PCElbowPlot <- function(object, num.pc = 20) {
   return(DimElbowPlot(
     object = object,
@@ -2512,7 +2611,14 @@ PCElbowPlot <- function(object, num.pc = 20) {
 #' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
 #'
+#' @importFrom stats cor loess smooth.spline
+#' @importFrom grDevices col2rgb
+#' @importFrom graphics axis points smoothScatter contour points text
+#'
 #' @export
+#'
+#' @examples
+#' VariableGenePlot(object = pbmc_small)
 #'
 VariableGenePlot <- function(
   object,
@@ -2627,37 +2733,37 @@ VariableGenePlot <- function(
   }
 }
 
-#' Highlight classification results
-#'
-#' This function is useful to view where proportionally the clusters returned from
-#' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
-#' function to color clusters in object.
-#'
-#' @param object Seurat object on which the classifier was trained and
-#' onto which the classification results will be highlighted
-#' @param clusters vector of cluster ids (output of ClassifyCells)
-#' @param ... additional parameters to pass to FeaturePlot()
-#'
-#' @return Returns a feature plot with clusters highlighted by proportion of cells
-#' mapping to that cluster
-#'
-#' @export
-#'
-VizClassification <- function(object, clusters, ...) {
-  cluster.dist <- prop.table(x = table(out)) # What is out?
-  object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
-  for (cluster in 1:length(x = cluster.dist)) {
-    cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
-    if (length(x = cells.to.highlight) > 0) {
-      object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
-    }
-  }
-  if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
-    return(FeaturePlot(object, "Classification", ...))
-  }
-  cols.use = c("#f6f6f6", "black")
-  return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
-}
+# #' Highlight classification results
+# #'
+# #' This function is useful to view where proportionally the clusters returned from
+# #' classification map to the clusters present in the given object. Utilizes the FeaturePlot()
+# #' function to color clusters in object.
+# #'
+# #' @param object Seurat object on which the classifier was trained and
+# #' onto which the classification results will be highlighted
+# #' @param clusters vector of cluster ids (output of ClassifyCells)
+# #' @param ... additional parameters to pass to FeaturePlot()
+# #'
+# #' @return Returns a feature plot with clusters highlighted by proportion of cells
+# #' mapping to that cluster
+# #'
+# #' @export
+# #'
+# VizClassification <- function(object, clusters, ...) {
+#   cluster.dist <- prop.table(x = table(out)) # What is out?
+#   object@meta.data$Classification <- numeric(nrow(x = object@meta.data))
+#   for (cluster in 1:length(x = cluster.dist)) {
+#     cells.to.highlight <- WhichCells(object, names(cluster.dist[cluster]))
+#     if (length(x = cells.to.highlight) > 0) {
+#       object@meta.data[cells.to.highlight, ]$Classification <- cluster.dist[cluster]
+#     }
+#   }
+#   if (any(grepl(pattern = "cols.use", x = deparse(match.call())))) {
+#     return(FeaturePlot(object, "Classification", ...))
+#   }
+#   cols.use = c("#f6f6f6", "black")
+#   return(FeaturePlot(object, "Classification", cols.use = cols.use, ...))
+# }
 
 #' Plot phylogenetic tree
 #'
@@ -2672,6 +2778,9 @@ VizClassification <- function(object, clusters, ...) {
 #' @importFrom ape nodelabels
 #'
 #' @export
+#'
+#' @examples
+#' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
   if (length(x = object@cluster.tree) == 0) {
@@ -2693,8 +2802,16 @@ PlotClusterTree <- function(object, ...) {
 #' @param color2 Color for the right side of the split
 #' @param color3 Color for all other cells
 #' @inheritDotParams TSNEPlot -object
+#'
 #' @return Returns a tSNE plot
+#'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' PlotClusterTree(pbmc_small)
+#' ColorTSNESplit(pbmc_small, node = 6)
+#'
 ColorTSNESplit <- function(
   object,
   node,
@@ -2705,11 +2822,7 @@ ColorTSNESplit <- function(
 ) {
   tree <- object@cluster.tree[[1]]
   split <- tree$edge[which(x = tree$edge[,1] == node), ][, 2]
-  all.children <- DFT(
-    tree = tree,
-    node = tree$edge[,1][1],
-    only.children = TRUE
-  )
+  all.children <- sort(x = tree$edge[,2][!tree$edge[,2] %in% tree$edge[,1]])
   left.group <- DFT(tree = tree, node = split[1], only.children = TRUE)
   right.group <- DFT(tree = tree, node = split[2], only.children = TRUE)
   if (any(is.na(x = left.group))) {
@@ -2718,7 +2831,9 @@ ColorTSNESplit <- function(
   if (any(is.na(x = right.group))) {
     right.group <- split[2]
   }
-  remaining.group <- setdiff(x = all.children, y = c(left.group, right.group))
+  left.group <- MapVals(v = left.group, from = all.children, to = tree$tip.label)
+  right.group <- MapVals(v = right.group, from = all.children, to = tree$tip.label)
+  remaining.group <- setdiff(x = tree$tip.label, y = c(left.group, right.group))
   left.cells <- WhichCells(object = object, ident = left.group)
   right.cells <- WhichCells(object = object, ident = right.group)
   remaining.cells <- WhichCells(object = object, ident = remaining.group)
@@ -2747,15 +2862,19 @@ ColorTSNESplit <- function(
 #' @param cells.use Cells to include in the heatmap
 #' @param genes.cluster Clusters to include in heatmap
 #' @param max.genes Maximum number of genes to include in the heatmap
-#' @param slim.col.labels Instead of displaying every cell name on the heatmap,
+#' @param slim.col.label Instead of displaying every cell name on the heatmap,
 #' display only the identity class name once for each group
 #' @param remove.key Removes teh color key from the plot
 #' @param row.lines Color separations of clusters
 #' @param ... Extra parameters to DoHeatmap
 #'
-#' @seealso \code{\link{DoHeatmap}}
+#' @seealso \code{DoHeatmap}
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' KMeansHeatmap(object = pbmc_small)
 #'
 KMeansHeatmap <- function(
   object,
@@ -2783,40 +2902,45 @@ KMeansHeatmap <- function(
     }
   )
   #print(cluster.lengths)
-  if (row.lines) {
-    rowsep.use <- cumsum(x = cluster.lengths)
-  } else {
-    rowsep.use <- NA
-  }
+  # if (row.lines) {
+  #   rowsep.use <- cumsum(x = cluster.lengths)
+  # } else {
+  #   rowsep.use <- NA
+  # }
   DoHeatmap(
     object = object,
     cells.use = cells.use,
     genes.use = genes.use,
     slim.col.label = slim.col.label,
     remove.key = remove.key,
-    rowsep = rowsep.use,
+    # rowsep = rowsep.use,
     ...
   )
 }
 
-#' Node Heatmap
-#'
-#' Takes an object, a marker list (output of FindAllMarkers), and a node
-#' and plots a heatmap where genes are ordered vertically by the splits present
-#' in the object@@cluster.tree slot.
-#'
-#' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
-#' @param marker.list List of marker genes given from the FindAllMarkersNode function
-#' @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
-#' @param max.genes Maximum number of genes to keep for each division
-#' @param ... Additional parameters to pass to DoHeatmap
-#'
+globalVariables(
+  names = c('cluster', 'avg_diff', 'gene'),
+  package = 'Seurat',
+  add = TRUE
+)
+# Node Heatmap
+#
+# Takes an object, a marker list (output of FindAllMarkers), and a node
+# and plots a heatmap where genes are ordered vertically by the splits present
+# in the object@@cluster.tree slot.
+#
+# @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
+# @param marker.list List of marker genes given from the FindAllMarkersNode function
+# @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
+# @param max.genes Maximum number of genes to keep for each division
+# @param ... Additional parameters to pass to DoHeatmap
+#
 #' @importFrom dplyr %>% group_by filter top_n select
-#'
-#' @return Plots heatmap. No return value.
-#'
-#' @export
-#'
+#
+# @return Plots heatmap. No return value.
+#
+# @export
+#
 NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
   tree <- object@cluster.tree[[1]]
   node <- SetIfNull(x = node, default = min(marker.list$cluster))

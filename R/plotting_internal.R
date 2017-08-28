@@ -6,6 +6,8 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
+#' @importFrom graphics axis
+#
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
   #   Take advantage of functions as first class objects
@@ -91,6 +93,8 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #
 # @return A dataframe of x and y coordinates for points selected
 #
+#' @importFrom graphics locator
+#
 PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
@@ -138,6 +142,10 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 #
 # @return A ggplot2 scatterplot
 #
+#' @importFrom stats na.omit
+#' @importFrom utils globalVariables
+#
+globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat', add = TRUE)
 SingleFeaturePlot <- function(
   data.use,
   feature,
@@ -253,8 +261,13 @@ SingleFeaturePlot <- function(
 # @param no.legend Remove legend from plot
 # @param dark.theme Plot in dark theme
 #
+#' @import RColorBrewer
+#' @importFrom grDevices colors
+#' @importFrom utils globalVariables
+#
 # @return A blended ggplot2 scatterplot
 #
+globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 BlendPlot <- function(
   data.use,
   features.plot,
@@ -325,7 +338,7 @@ BlendPlot <- function(
     SetQuantile(cutoff = max.cutoff[1], data = data.gene[features.plot[1], ]),
     SetQuantile(cutoff = max.cutoff[2], data = data.gene[features.plot[2], ])
   )
-  data.gene <- na.omit(object = data.frame(data.use[features.plot, ]))
+  data.gene <- stats::na.omit(object = data.frame(data.use[features.plot, ]))
   cell.names <- colnames(x = data.gene)
   #   Minimum and maximum masking
   data.gene <- matrix(
@@ -458,7 +471,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
     }
   }
   #   Convert to a 3 by `length(colors)` matrix of RGB values
-  rgb.vals <- sapply(X = colors, FUN = col2rgb)
+  rgb.vals <- sapply(X = colors, FUN = grDevices::col2rgb)
   if (nrow(x = rgb.vals) != 3) {
     rgb.vals <- t(x = rgb.vals)
   }
@@ -478,7 +491,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
       dimnames = list(c('red', 'green', 'blue'), 'blend')
     )
   } else {
-    result <- rgb(
+    result <- grDevices::rgb(
       matrix(data = blend, ncol = 3),
       alpha = alpha.value,
       maxColorValue = 255
@@ -521,7 +534,7 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to be passed to theme()
 # @import ggplot2
 # @return A ggplot2 theme object
-# @seealso \code{\link{theme}}
+# @seealso \code{theme}
 # @import ggplot2
 # @export
 #
@@ -568,6 +581,10 @@ ResetPar <- function(...) {
 #
 # @return A ggplot-based violin plot
 #
+#' @importFrom stats rnorm
+#' @importFrom utils globalVariables
+#
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleVlnPlot <- function(
   feature,
   data,
@@ -587,6 +604,9 @@ SingleVlnPlot <- function(
   legend.position,
   remove.legend
 ) {
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
   set.seed(seed = 42)
   data$ident <- cell.ident
   if (do.sort) {
@@ -611,7 +631,7 @@ SingleVlnPlot <- function(
     data = data,
     mapping = aes(
       x = factor(x = ident),
-      y = eval(expr = parse(text = feature))
+      y = feature
     )
   ) +
     geom_violin(
@@ -635,10 +655,11 @@ SingleVlnPlot <- function(
     ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
-    xlab("Cell Type") +
+    xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
   } else {
@@ -689,6 +710,11 @@ SingleVlnPlot <- function(
 #
 # @return A ggplot-based violin plot
 #
+#' @importFrom stats rnorm
+#' @importFrom utils globalVariables
+#' @importFrom ggjoy geom_joy theme_joy
+#
+globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleJoyPlot <- function(
   feature,
   data,
@@ -707,6 +733,9 @@ SingleJoyPlot <- function(
   remove.legend
 ) {
   set.seed(seed = 42)
+  feature.name <- colnames(data)
+  colnames(data) <- "feature"
+  feature <- "feature"
   data$ident <- cell.ident
   if (do.sort) {
     data$ident <- factor(
@@ -729,14 +758,13 @@ SingleJoyPlot <- function(
   plot <- ggplot(
     data = data,
     mapping = aes(
-        x = eval(expr = parse(text = feature)),
+        x = feature,
         y = factor(ident)
     )
   ) +
     geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
   scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
   scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-  
   plot <- plot+theme(
       legend.position = legend.position,
       axis.title.x = element_text(
@@ -756,6 +784,7 @@ SingleJoyPlot <- function(
     NoGrid() +
     ggtitle(feature) +
     theme(plot.title = element_text(size = size.title.use, face = "bold"))
+  plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_x_log10()
   } else {
@@ -768,7 +797,7 @@ SingleJoyPlot <- function(
       plot <- plot + xlab(label = "Expression level")
     }
   } else {
-    plot <- plot + ylab(label = "")
+    plot <- plot + xlab(label = "")
   }
   if (! is.null(x = cols.use)) {
     plot <- plot + scale_fill_manual(values = cols.use)
@@ -817,6 +846,10 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
+#
+#' @importFrom graphics axis mtext rect abline text title hist
+#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#
 heatmap2NoKey <- function (
   x,
   Rowv = TRUE,
@@ -866,6 +899,7 @@ heatmap2NoKey <- function (
   axRowCol="black",
   lwid = NULL,
   dimTitle = NULL,
+  pc_title = NULL,
   ...
 ) {
   scale01 <- function(x, low = min(x), high = max(x)) {
@@ -1059,38 +1093,6 @@ heatmap2NoKey <- function (
   max.breaks <- max(breaks)
   x[x < min.breaks] <- min.breaks
   x[x > max.breaks] <- max.breaks
-  #  if (missing(lhei) || is.null(lhei))
-  #    lhei <- c(keysize, 4)
-  #  if (missing(lwid) || is.null(lwid))
-  #    lwid <- c(keysize, 4)
-  #  if (missing(lmat) || is.null(lmat)) {
-  #    lmat <- rbind(4:3, 2:1)
-  #    if (!missing(ColSideColors)) {
-  #      if (!is.character(ColSideColors) || length(ColSideColors) !=
-  #        nc)
-  #        stop("'ColSideColors' must be a character vector of length ncol(x)")
-  #      lmat <- rbind(lmat[1, ] + 1, c(NA, 1), lmat[2, ] +
-  #        1)
-  #      lhei <- c(lhei[1], 0.2, lhei[2])
-  #    }
-  #    if (!missing(RowSideColors)) {
-  #      if (!is.character(RowSideColors) || length(RowSideColors) !=
-  #        nr)
-  #        stop("'RowSideColors' must be a character vector of length nrow(x)")
-  #      lmat <- cbind(lmat[, 1] + 1, c(rep(NA, nrow(lmat) -
-  #        1), 1), lmat[, 2] + 1)
-  #      lwid <- c(lwid[1], 0.2, lwid[2])
-  #    }
-  #    lmat[is.na(lmat)] <- 0
-  #  }
-  #  if (length(lhei) != nrow(lmat))
-  #    stop("lhei must have length = nrow(lmat) = ", nrow(lmat))
-  #  if (length(lwid) != ncol(lmat))
-  #    stop("lwid must have length = ncol(lmat) =", ncol(lmat))
-  #  op <- par(no.readonly = TRUE)
-  #  on.exit(par(op))
-  #  layout(lmat, widths = lwid, heights = lhei, respect = FALSE)
-
   if (! missing(x = RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(x = rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
@@ -1120,6 +1122,9 @@ heatmap2NoKey <- function (
   # add pc number as title if plotting pc heatmaps
   if(is.null(x = dimTitle)) {
     dimTitle <- ""
+  }
+  if (is.null(x = pc_title)) {
+    pc_title <- ''
   }
   #print(dimTitle)
   image(
@@ -1269,7 +1274,7 @@ heatmap2NoKey <- function (
   ##else plot.new()
   key <- FALSE
   if (! is.null(x = main))
-    title(main = main, cex.main = 1.5 * op[["cex.main"]])
+    title(main = main, cex.main = 1.5 * par()[["cex.main"]])
   if (key) {
     par(mar = c(5, 4, 2, 1), cex = 0.75)
     tmpbreaks <- breaks
@@ -1348,4 +1353,109 @@ heatmap2NoKey <- function (
   )
   invisible(x = retval)
   par(mar = oldMar)
+}
+
+# Documentation
+###############
+PlotDim <- function(
+  ndim,
+  object,
+  reduction.type,
+  use.scaled,
+  use.full,
+  cells.use,
+  num.genes,
+  group.by,
+  disp.min,
+  disp.max,
+  col.low,
+  col.mid,
+  col.high,
+  slim.col.label,
+  do.balanced,
+  remove.key,
+  cex.col,
+  cex.row,
+  group.label.loc,
+  group.label.rot,
+  group.cex,
+  group.spacing
+) {
+  if (is.numeric(x = (cells.use))) {
+    cells.use <- DimTopCells(
+      object = object,
+      dim.use = ndim,
+      reduction.type = reduction.type,
+      num.cells = cells.use,
+      do.balanced = do.balanced
+    )
+  } else {
+    cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  }
+  genes.use <- rev(x = DimTopGenes(
+    object = object,
+    dim.use = ndim,
+    reduction.type = reduction.type,
+    num.genes = num.genes,
+    use.full = use.full,
+    do.balanced = do.balanced
+  ))
+  dim.scores <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "cell.embeddings"
+  )
+  dim.key <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "key"
+  )
+  cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
+  if (! use.scaled) {
+    data.use <- as.matrix(object@data[genes.use, cells.ordered])
+  } else {
+    data.use <- object@scale.data[genes.use, cells.ordered]
+    data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  }
+  return(DoHeatmap(
+    object = object,
+    data.use = data.use,
+    cells.use = cells.use,
+    genes.use = genes.use,
+    group.by = group.by,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    col.low = col.low,
+    col.mid = col.mid,
+    col.high = col.high,
+    slim.col.label = slim.col.label,
+    remove.key = remove.key,
+    cex.col = cex.col,
+    cex.row = cex.row,
+    group.label.loc = group.label.loc,
+    group.label.rot = group.label.rot,
+    group.cex = group.cex,
+    group.spacing = group.spacing,
+    title = paste0(dim.key, ndim),
+    do.plot = FALSE
+  ))
+}
+
+# Posterior Plot
+#
+# @param object A Seurat object
+# @param name Spatial code
+#
+# @seealso \code{SubsetColumn}
+# @seealso \code{VlnPlot}
+#
+PosteriorPlot <- function(object, name) {
+  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
+  VlnPlot(
+    object = object,
+    features.plot = post.names,
+    inc.first = TRUE,
+    inc.final = TRUE,
+    by.k = TRUE
+  )
 }

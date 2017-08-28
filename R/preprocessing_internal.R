@@ -1,24 +1,28 @@
-#' Regress out technical effects and cell cycle
-#'
-#' Remove unwanted effects from scale.data
-#'
-#' @keywords internal
-#' @param object Seurat object
-#' @param latent.vars effects to regress out
-#' @param genes.regress gene to run regression for (default is all genes)
-#' @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#'
-#' @return Returns the residuals from the regression model
-#'
+# Regress out technical effects and cell cycle
+#
+# Remove unwanted effects from scale.data
+#
+# @keywords internal
+# @param object Seurat object
+# @param vars.to.regress effects to regress out
+# @param genes.regress gene to run regression for (default is all genes)
+# @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
+# @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+# @param display.progress display progress bar for regression procedure.
+#
+# @return Returns the residuals from the regression model
+#
 #' @import Matrix
-#'
-RegressOut <- function(
+#' @importFrom stats as.formula lm residuals glm
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
+RegressOutResid <- function(
   object,
-  latent.vars,
+  vars.to.regress,
   genes.regress = NULL,
   model.use = 'linear',
-  use.umi = FALSE
+  use.umi = FALSE,
+  display.progress = TRUE
 ) {
   possible.models <- c("linear", "poisson", "negbinom")
   if (! model.use %in% possible.models){
@@ -33,15 +37,17 @@ RegressOut <- function(
   }
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  latent.data <- FetchData(object = object, vars.all = latent.vars)
+  latent.data <- FetchData(object = object, vars.all = vars.to.regress)
   bin.size <- 100
   if (model.use == 'negbinom') {
     bin.size <- 5
   }
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print(paste("Regressing out", latent.vars))
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  if(display.progress){
+    print(paste("Regressing out", vars.to.regress))
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  }
   data.resid <- c()
   data.use <- object@data[genes.regress, , drop = FALSE];
   if (model.use != "linear") {
@@ -64,7 +70,7 @@ RegressOut <- function(
             object = paste0(
               "GENE ",
               " ~ ",
-              paste(latent.vars, collapse = "+")
+              paste(vars.to.regress, collapse = "+")
             )
           )
           if (model.use == 'linear') {
@@ -96,9 +102,13 @@ RegressOut <- function(
     if (i > 1) {
       data.resid=rbind(data.resid,new.data)
     }
-    setTxtProgressBar(pb, i)
+    if(display.progress) {
+      setTxtProgressBar(pb, i)
+    }
   }
-  close(pb)
+  if (display.progress) {
+    close(pb)
+  }
   rownames(x = data.resid) <- genes.regress
   if (use.umi) {
     data.resid <- log1p(
@@ -126,8 +136,10 @@ RegressOut <- function(
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
 #
 #' @import Matrix
-#' @importFrom MASS theta.ml negative.binomial
 #' @import parallel
+#' @importFrom stats glm residuals
+#' @importFrom MASS theta.ml negative.binomial
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutNB <- function(
   object,
@@ -201,8 +213,10 @@ RegressOutNB <- function(
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #
 #' @import Matrix
-#' @importFrom MASS theta.ml negative.binomial
 #' @import parallel
+#' @importFrom MASS theta.ml negative.binomial
+#' @importFrom stats glm loess residuals
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutNBreg <- function(
   object,
@@ -214,7 +228,7 @@ RegressOutNBreg <- function(
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop=FALSE]
-  latent.data <- FetchData(boject = object, vars.all = latent.vars)
+  latent.data <- FetchData(object = object, vars.all = latent.vars)
   bin.size <- 128
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
@@ -296,9 +310,9 @@ RegressOutNBreg <- function(
     setTxtProgressBar(pb, i)
   }
   close(pb)
-  dimnames(pr) <- dimnames(cm)
+  dimnames(x = pr) <- dimnames(x = cm)
   pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
   pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- r
+  object@scale.data <- pr
   return(object)
 }

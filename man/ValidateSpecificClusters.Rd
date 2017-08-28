@@ -29,3 +29,13 @@ Methods for validating the legitimacy of two specific clusters using
 classification. SVMs are used as the basis for the classification.
 Merging is done based on the connectivity from an SNN graph.
 }
+\examples{
+\dontrun{
+pbmc_small
+pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
+                           dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
+pbmc_small <- ValidateSpecificClusters(pbmc_small, cluster1 = 1,
+                                       cluster2 = 2,  pc.use = 1:10)
+}
+
+}

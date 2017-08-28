@@ -21,3 +21,11 @@ Easily set the cluster assignments using the output of GetClusters() ---
 a dataframe with cell names as the first column and cluster assignments as
 the second.
 }
+\examples{
+pbmc_small
+# Get clusters as a dataframe with GetClusters.
+clusters <- GetClusters(object = pbmc_small)
+# Use SetClusters to set cluster IDs
+pbmc_small <- SetClusters(object = pbmc_small, clusters = clusters)
+
+}

@@ -1,3 +1,7 @@
+#' @include seurat.R
+NULL
+
+globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #' Gene expression markers of identity classes
 #'
 #' Finds markers (differentially expressed genes) for identity classes
@@ -24,14 +28,18 @@
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
+#' @param latent.vars Variables to test
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #'
-#' @import VGAM
 #' @import pbapply
 #'
 #' @export
+#'
+#' @examples
+#' markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
+#' head(markers)
 #'
 FindMarkers <- function(
   object,
@@ -74,7 +82,7 @@ FindMarkers <- function(
     }
   }
   cells.2 <- setdiff(x = cells.2, y = cells.1)
-  #error checking
+  # error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
     return(NULL)
@@ -83,7 +91,14 @@ FindMarkers <- function(
     print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
     return(NULL)
   }
-  #gene selection (based on percent expressed)
+  if (length(cells.1) < min.cells) {
+    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+  }
+  if (length(cells.2) < min.cells) {
+    stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+  }
+
+  # gene selection (based on percent expressed)
   thresh.min <- 0
   data.temp1 <- round(
     x = apply(
@@ -112,16 +127,15 @@ FindMarkers <- function(
   alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
   names(x = alpha.min) <- rownames(x = data.alpha)
   genes.use <- names(x = which(x = alpha.min > min.pct))
+  if(length(genes.use) == 0) {
+    stop("No genes pass min.pct threshold")
+  }
   alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
   genes.use <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
-
-  if (length(cells.1) < min.cells) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
-  }
-  if (length(cells.2) < min.cells) {
-    stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
+  if(length(genes.use) == 0) {
+    stop("No genes pass min.diff.pct threshold")
   }
 
   #gene selection (based on average difference)
@@ -130,6 +144,9 @@ FindMarkers <- function(
   total.diff <- (data.1 - data.2)
   genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
   genes.use <- intersect(x = genes.use, y = genes.diff)
+  if(length(genes.use) == 0) {
+    stop("No genes pass thresh.use threshold")
+  }
   #perform DR
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
@@ -185,8 +202,8 @@ FindMarkers <- function(
       cells.2 = cells.2,
       genes.use = genes.use,
       latent.vars = latent.vars,
-      print.bar = print.bar,
-      min.cells # PoissonDETest doesn't have something for min.cells
+      print.bar = print.bar
+      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
   #return results
@@ -203,6 +220,11 @@ FindMarkers <- function(
   return(to.return)
 }
 
+globalVariables(
+  names = c('myAUC', 'p_val', 'avg_diff'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Gene expression markers for all identity classes
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
@@ -235,6 +257,9 @@ FindMarkers <- function(
 #' statistics (p-values, ROC score, etc.)
 #'
 #' @export
+#' @examples
+#' all_markers <- FindAllMarkers(object = pbmc_small)
+#' head(x = all_markers)
 #'
 FindAllMarkers <- function(
   object,
@@ -267,18 +292,24 @@ FindAllMarkers <- function(
     )
   }
   for (i in 1:length(x = idents.all)) {
-    genes.de[[i]] <- FindMarkers(
-      object = object,
-      ident.1 = idents.all[i],
-      ident.2 = NULL,
-      genes.use = genes.use,
-      thresh.use = thresh.use,
-      test.use = test.use,
-      min.pct = min.pct,
-      min.diff.pct = min.diff.pct,
-      print.bar = print.bar,
-      min.cells = min.cells,
-      latent.vars = latent.vars
+    genes.de[[i]] <- tryCatch(
+      {
+        FindMarkers(object = object,
+                    ident.1 = idents.all[i],
+                    ident.2 = NULL,
+                    genes.use = genes.use,
+                    thresh.use = thresh.use,
+                    test.use = test.use,
+                    min.pct = min.pct,
+                    min.diff.pct = min.diff.pct,
+                    print.bar = print.bar,
+                    min.cells = min.cells,
+                    latent.vars = latent.vars
+        )
+      },
+      error = function(cond){
+        return(NULL)
+      }
     )
     if (do.print) {
       print(paste("Calculating cluster", idents.all[i]))
@@ -329,6 +360,9 @@ FindAllMarkers <- function(
 #'
 #' @export
 #'
+#' @examples
+#' FindMarkersNode(pbmc_small, 5)
+#'
 FindMarkersNode <- function(
   object,
   node,
@@ -357,6 +391,7 @@ FindMarkersNode <- function(
   return(to.return)
 }
 
+globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' Find all markers for a node
 #'
 #' This function finds markers for all splits at or below the specified node
@@ -381,6 +416,7 @@ FindMarkersNode <- function(
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#' @param do.print Print status updates
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #'
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
@@ -388,6 +424,9 @@ FindMarkersNode <- function(
 #' @importFrom ape drop.tip
 #'
 #' @export
+#'
+#' @examples
+#' FindAllMarkersNode(pbmc_small)
 #'
 FindAllMarkersNode <- function(
   object,
@@ -408,14 +447,13 @@ FindAllMarkersNode <- function(
   if(length(object@cluster.tree) == 0){
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
   }
-
   genes.use <- SetIfNull(x = genes.use, default = rownames(object@data))
   node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
   ident.use <- object@ident
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
   all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-  descendants1 <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
+  descendants <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
   drop.children <- setdiff(tree.use$tip.label, descendants)
   keep.children <- setdiff(tree.use$tip.label, drop.children)
   orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
@@ -492,6 +530,16 @@ FindAllMarkersNode <- function(
 #' the marker, average differences)
 #'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Create a simulated grouping variable
+#' pbmc_small@meta.data$groups <- sample(
+#'   x = c("g1", "g2"),
+#'   size = length(x = pbmc_small@cell.names),
+#'   replace = TRUE
+#' )
+#' FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
 #'
 FindConservedMarkers <- function(
   object,
@@ -597,6 +645,10 @@ FindConservedMarkers <- function(
 #' genes.
 #'
 #' @export
+#' @examples
+#' pbmc_small
+#' DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 DiffExpTest <- function(
   object,
@@ -632,20 +684,29 @@ DiffExpTest <- function(
 #'
 #' Identifies differentially expressed genes between two groups of cells using
 #' a negative binomial generalized linear model
-#
 #'
-#' @inheritParams FindMarkers
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
+#' @param min.cells Minimum number of cells threshold
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula
 #'
 #' @export
+#'
+#'@examples
+#' pbmc_small
+#' # Note, not recommended for particularly small datasets - expect warnings
+#' NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 NegBinomDETest <- function(
   object,
@@ -733,10 +794,25 @@ NegBinomDETest <- function(
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
+#' @param min.cells Minimum number of cells threshold
 #'
 #' @return Returns a p-value ranked data frame of test results.
 #'
+#' @importFrom stats p.adjust
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
 #' @export
+#'
+#' @examples
+#' # Note, not recommended for particularly small datasets - expect warnings
+#' NegBinomDETest(
+#'   object = pbmc_small,
+#'   cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'   cells.2 = WhichCells(object = pbmc_small, ident = 2)
+#' )
 #'
 NegBinomRegDETest <- function(
   object,
@@ -809,8 +885,8 @@ NegBinomRegDETest <- function(
           y = to.test.data[j, ],
           theta = theta.fit[j],
           latent.data = to.test,
-          com.frac = latent.vars,
-          grp.frac = 'NegBinomRegDETest.group'
+          com.fac = latent.vars,
+          grp.fac = 'NegBinomRegDETest.group'
         ))
       }
     )
@@ -825,27 +901,39 @@ NegBinomRegDETest <- function(
   return(res)
 }
 
+globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #' Poisson test for UMI-count based data
 #'
 #' Identifies differentially expressed genes between two groups of cells using
 #' a poisson generalized linear model
 #
-#' @inheritParams FindMarkers
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param genes.use Genes to use for test
+#' @param latent.vars Latent variables to test
+#' @param print.bar Print progress bar
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
 #' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula glm
 #'
 #' @export
+#'
+#'@examples
+#' pbmc_small
+#' # Note, expect warnings with example dataset due to min.cells threshold.
+#' PoissonDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 PoissonDETest <- function(
   object,
   cells.1,
   cells.2,
+  min.cells = 3,
   genes.use = NULL,
   latent.vars = NULL,
   print.bar = TRUE
@@ -933,6 +1021,13 @@ PoissonDETest <- function(
 #'
 #' @export
 #'
+#'@examples
+#' pbmc_small
+#' \dontrun{
+#' TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#' }
+#'
 TobitTest <- function(
   object,
   cells.1,
@@ -971,9 +1066,12 @@ TobitTest <- function(
 #' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
 #' putative differentially expressed genes.
 #'
-#' @import ROCR
-#'
 #' @export
+#'
+#' @examples
+#' pbmc_small
+#' MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 MarkerTest <- function(
   object,
@@ -1005,10 +1103,15 @@ MarkerTest <- function(
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
+#' @importFrom stats t.test
 #' @importFrom pbapply pblapply
 #'
 #' @export
 #'
+#' @examples
+#' pbmc_small
+#' DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 DiffTTest <- function(
   object,
   cells.1,

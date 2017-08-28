@@ -40,3 +40,7 @@ No return value (plots a scatter plot)
 \description{
 Creates a plot of scatter plot of genes across two single cells
 }
+\examples{
+CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
+
+}

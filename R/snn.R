@@ -33,6 +33,18 @@ NULL
 #' @importFrom Matrix sparseMatrix
 #' @return Returns the object with object@@snn filled
 #' @export
+#'
+#' @examples
+#'
+#' pbmc_small
+#' # Compute an SNN on the gene expression level
+#' pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
+#'
+#' # More commonly, we build the SNN on a dimensionally reduced form of the data
+#' # such as the first 10 principle components.
+#'
+#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
+#'
 BuildSNN <- function(
   object,
   genes.use = NULL,
@@ -48,23 +60,20 @@ BuildSNN <- function(
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
-  } else if (is.null(x = genes.use) && is.null(x = dims.use)) {
-    genes.use <- object@var.genes
-    data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
-  } else if (! is.null(x = dims.use)) {
-    data.use <- GetCellEmbeddings(object, reduction.type = reduction.type,
-                                    dims.use = dims.use)
-  } else if (!is.null(genes.use) && is.null(dims.use)) {
+  } else if (is.null(x = dims.use)) {
+    genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
   } else {
-      stop("Data error!")
+    data.use <- GetCellEmbeddings(object = object,
+                                  reduction.type = reduction.type,
+                                  dims.use = dims.use)
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
   if (CalcInfoExists(object, "BuildSNN")){
     parameters.to.store$object <- NULL
     old.parameters <- GetAllCalcParam(object, "BuildSNN")
     old.parameters$time <- NULL
-    if(all(old.parameters %in% parameters.to.store)){
+    if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
       warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
       return(object)
     }
@@ -95,8 +104,8 @@ BuildSNN <- function(
       knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
       knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
     }
-    nn.large <- knn.mat
-    nn.ranked <- knn.mat[, 2:k.param]
+    nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
+    nn.ranked <- knn.mat[, 1:k.param]
   }
   w <- CalcSNNSparse(
     cell.names = object@cell.names,
@@ -149,7 +158,9 @@ BuildSNN <- function(
 # @param print.output  Whether or not to print output to the console
 # @return              Returns an adjacency matrix representation of the SNN
 #                      graph
-
+#
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
 CalcSNNSparse <- function(
   cell.names,
   k.param,

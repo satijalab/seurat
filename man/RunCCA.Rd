@@ -5,7 +5,7 @@
 \title{Perform Canonical Correlation Analysis}
 \usage{
 RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
-  scale.data = TRUE, rescale.groups = FALSE)
+  scale.data = TRUE, rescale.groups = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,6 +28,8 @@ that are also present in both objects.}
 \item{scale.data}{Use the scaled data from the object}
 
 \item{rescale.groups}{Rescale each set of cells independently}
+
+\item{...}{Extra parameters to MergeSeurat}
 }
 \value{
 Returns Seurat object with the CCA stored in the @dr$cca slot. If
@@ -37,5 +39,20 @@ combined object is returned.
 \description{
 Runs a canonical correlation analysis using a diagonal implementation of CCA.
 For details about stored CCA calculation parameters, see
-\code{\link{PrintCCAParams}}.
+\code{PrintCCAParams}.
+}
+\examples{
+pbmc_small
+# As CCA requires two datasets, we will split our test object into two just for this example
+pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+pbmc1@meta.data$group <- "group1"
+pbmc2@meta.data$group <- "group2"
+pbmc_cca <- RunCCA(pbmc1,pbmc2)
+# Print results
+PrintDim(pbmc_cca,reduction.type = 'cca')
+
+}
+\seealso{
+\code{MergeSeurat}
 }

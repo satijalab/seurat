@@ -25,3 +25,8 @@ genes.
 Identify differentially expressed genes between two groups of cells using
 the Student's t-test
 }
+\examples{
+pbmc_small
+DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+}

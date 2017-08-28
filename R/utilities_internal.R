@@ -109,6 +109,8 @@ FillSlot <- function(slot.name, old.object, new.object){
 #
 # @returns integrated value
 #
+#' @importFrom stats pchisq
+#
 FisherIntegrate <- function(pvals) {
   return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
 }
@@ -413,6 +415,8 @@ MeanGreaterThan <- function(x, min = 0) {
 #
 # @return The variance of x where x > min
 #
+#' @importFrom stats var
+#
 VarianceGreaterThan <- function(x, min = 0) {
   return(var(x = x[x > min]))
 }
@@ -422,6 +426,8 @@ VarianceGreaterThan <- function(x, min = 0) {
 # @param x Values to calculate the coefficient of variation
 #
 # @return The coefficient of variation of x
+#
+#' @importFrom stats sd
 #
 CoefVar <- function(x) {
   return(sd(x = x) / mean(x = x))
@@ -459,28 +465,20 @@ Same <- function(x) {
   return(x)
 }
 
+#
+#' @importFrom stats residuals
+#
 NBResiduals <- function(fmla, regression.mat, gene) {
   fit <- 0
-  try(expr = fit <- glm.nb(formula = fmla, data = regression.mat), silent=TRUE)
+  try(
+    fit <- glm.nb(fmla,
+    data = regression.mat),
+    silent=TRUE)
   if (class(fit)[1] == 'numeric') {
-    message(sprintf(
-      'glm.nb failed for gene %s; trying again with glm and family=negative.binomial(theta=0.1)',
-      gene
-    ))
-    try(
-      expr = fit <- glm(
-        formula = fmla,
-        data = regression.mat,
-        family = negative.binomial(theta = 0.1)
-      ),
-      silent = TRUE
-    )
-    if (class(fit)[1] == 'numeric') {
-      message('glm and family=negative.binomial(theta=0.1) failed; falling back to scale(log10(y+1))')
-      return(scale(x = log10(x = regression.mat[, 'GENE'] + 1))[, 1])
-    }
+    message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
+    return(scale(log(regression.mat[, 'GENE']+1))[, 1])
   }
-  return(residuals(object = fit, type='pearson'))
+  return(residuals(fit, type='pearson'))
 }
 
 
@@ -543,21 +541,40 @@ BiweightMidcor <- function(x, y){
 # @return returns the prepped vector
 #
 BicorPrep <- function(x, verbose = FALSE){
-  if(mad(x) == 0) {
-    if(verbose){
+  if (stats::mad(x) == 0) {
+    if (verbose){
       warning('mad == 0, using robust standardization')
     }
-    xat <- x - mean(x)
-    xab <- sqrt(sum((x - mean(x)) ^ 2))
+    xat <- x - mean(x = x)
+    xab <- sqrt(x = sum((x - mean(x = x)) ^ 2))
     result <- xat / xab
-    return(result)
-  }else{
-    ua <- (x - median(x)) / (9 * mad(x) * qnorm(0.75))
-    i.x <- ifelse(ua <= -1 | ua >= 1, 0, 1)
-    wax <- ((1 - (ua^2))^2) * i.x
-    xat <- (x - median(x)) * wax
-    xab <- sqrt(sum(xat^2))
+    return (result)
+  } else {
+    ua <- (x - stats::median(x = x)) /
+      (9 * stats::mad(x = x) *
+         stats::qnorm(p = 0.75))
+    i.x <- ifelse(test = ua <= -1 | ua >= 1, yes = 0, no = 1)
+    wax <- ((1 - (ua ^ 2)) ^ 2) * i.x
+    xat <- (x - stats::median(x = x)) * wax
+    xab <- sqrt(x = sum(xat ^ 2))
     result <- xat / xab
     return(result)
   }
+}
+
+# Check the length of components of a list
+#
+# @param values A list whose components should be checked
+# @param cutoff A minimum value to check for
+#
+# @return a vector of logicals
+#
+LengthCheck <- function(values, cutoff = 0) {
+  return(vapply(
+    X = values,
+    FUN = function(x) {
+      return(length(x = x) > cutoff)
+    },
+    FUN.VALUE = logical(1)
+  ))
 }

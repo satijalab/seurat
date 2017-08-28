@@ -4,7 +4,7 @@
 \alias{PoissonDETest}
 \title{Poisson test for UMI-count based data}
 \usage{
-PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
+PoissonDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
   latent.vars = NULL, print.bar = TRUE)
 }
 \arguments{
@@ -14,9 +14,13 @@ PoissonDETest(object, cells.1, cells.2, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{genes.use}{Genes to test. Default is to use all genes}
+\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+\item{genes.use}{Genes to use for test}
+
+\item{latent.vars}{Latent variables to test}
+
+\item{print.bar}{Print progress bar}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed
@@ -25,4 +29,11 @@ genes.
 \description{
 Identifies differentially expressed genes between two groups of cells using
 a poisson generalized linear model
+}
+\examples{
+pbmc_small
+# Note, expect warnings with example dataset due to min.cells threshold.
+PoissonDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+
 }

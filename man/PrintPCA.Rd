@@ -21,3 +21,12 @@ Only text output
 \description{
 Prints a set of genes that most strongly define a set of principal components
 }
+\examples{
+pbmc_small
+PrintPCA(object = pbmc_small)
+# Options for how many dimensions and how many genes to print
+PrintPCA(object = pbmc_small, pcs.print = 1:2, genes.print = 5)
+# Can also print for the projected PCA
+PrintPCA(object = pbmc_small, use.full = TRUE)
+
+}

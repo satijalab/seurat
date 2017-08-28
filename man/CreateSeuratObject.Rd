@@ -7,7 +7,8 @@
 CreateSeuratObject(raw.data, project = "SeuratProject", min.cells = 0,
   min.genes = 0, is.expr = 0, normalization.method = NULL,
   scale.factor = 10000, do.scale = FALSE, do.center = FALSE,
-  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE)
+  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
+  display.progress = TRUE)
 }
 \arguments{
 \item{raw.data}{Raw input data}
@@ -33,7 +34,7 @@ normalization method (i.e. LogNormalize) here directly.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-can specify do.scale=T (and do.center=T) here.}
+can specify do.scale = TRUE (and do.center = TRUE) here.}
 
 \item{do.center}{In object@scale.data, perform row-centering (gene-based centering)}
 
@@ -48,6 +49,8 @@ the rows are cell names, and the columns are additional metadata fields}
 
 \item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in  object@raw.data
 which will save memory downstream for large datasets}
+
+\item{display.progress}{display progress bar for normalization and/or scaling procedure.}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.
@@ -55,4 +58,13 @@ object@data, object@meta.data, object@ident, also initialized.
 }
 \description{
 Initializes the Seurat object and some optional filtering
+}
+\examples{
+pbmc_raw <- read.table(
+  file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+  as.is = TRUE
+)
+pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+pbmc_small
+
 }

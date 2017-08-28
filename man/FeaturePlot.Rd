@@ -65,3 +65,7 @@ No return value, only a graphical output
 Colors single cells on a dimensional reduction plot according to a 'feature'
 (i.e. gene expression, PC scores, number of genes detected, etc.)
 }
+\examples{
+FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+
+}
