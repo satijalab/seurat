@@ -18,3 +18,8 @@ No return value. Only prints to console.
 \description{
 Print the parameters chosen for the latest stored ICA calculation.
 }
+\examples{
+pbmc_small <- RunICA(object = pbmc_small, ics.compute = 5)
+PrintICAParams(object = pbmc_small, raw = TRUE)
+
+}

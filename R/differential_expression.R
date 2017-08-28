@@ -806,6 +806,14 @@ NegBinomDETest <- function(
 #'
 #' @export
 #'
+#' @examples
+#' # Note, not recommended for particularly small datasets - expect warnings
+#' NegBinomDETest(
+#'   object = pbmc_small,
+#'   cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'   cells.2 = WhichCells(object = pbmc_small, ident = 2)
+#' )
+#'
 NegBinomRegDETest <- function(
   object,
   cells.1,

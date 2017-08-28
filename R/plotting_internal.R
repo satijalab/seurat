@@ -1440,3 +1440,22 @@ PlotDim <- function(
     do.plot = FALSE
   ))
 }
+
+# Posterior Plot
+#
+# @param object A Seurat object
+# @param name Spatial code
+#
+# @seealso \code{SubsetColumn}
+# @seealso \code{VlnPlot}
+#
+PosteriorPlot <- function(object, name) {
+  post.names <- colnames(x = SubsetColumn(data = object@spatial@mix.probs, code = name))
+  VlnPlot(
+    object = object,
+    features.plot = post.names,
+    inc.first = TRUE,
+    inc.final = TRUE,
+    by.k = TRUE
+  )
+}

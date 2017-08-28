@@ -19,3 +19,7 @@ No return value. Only prints to console.
 \description{
 Print the parameters chosen for the latest stored PCA calculation.
 }
+\examples{
+PrintPCAParams(object = pbmc_small)
+
+}

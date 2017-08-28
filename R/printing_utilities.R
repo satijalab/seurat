@@ -9,8 +9,15 @@
 #' @param raw Print the entire contents of the calculation settings slot (calc.params)
 #' for the RunPCA calculation.
 #' @param return.list Return the calculation parameters as a list
+#'
 #' @return Prints the calculation settings and optionally returns them as a list
+#'
 #' @export
+#'
+#' @examples
+#' PrintCalcParams(object = pbmc_small, calculation = 'RunPCA')
+#' PrintCalcParams(object = pbmc_small, calculation = 'RunPCA', raw = TRUE)
+#'
 PrintCalcParams <- function(object, calculation, raw = FALSE,
                             return.list = FALSE) {
   if(is.null(object@calc.params[[calculation]])){
@@ -59,8 +66,14 @@ PrintCalcParams <- function(object, calculation, raw = FALSE,
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunPCA calculation. Default (FALSE) will print a nicely
 #' formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' PrintPCAParams(object = pbmc_small)
+#'
 PrintPCAParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$RunPCA)){
     stop("PCA has not been computed yet")
@@ -109,8 +122,15 @@ PrintPCAParams <- function(object, raw = FALSE){
 #' @param object Seurat object
 #' @param raw Print the entire contents of the calculation settings slot (calc.params) for the ICA
 #' calculation. Default (FALSE) will print a nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- RunICA(object = pbmc_small, ics.compute = 5)
+#' PrintICAParams(object = pbmc_small, raw = TRUE)
+#'
 PrintICAParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$ICA)){
     stop("ICA has not been computed yet")
@@ -158,8 +178,14 @@ PrintICAParams <- function(object, raw = FALSE){
 #' @param object Seurat object
 #' @param raw Print the entire contents of the calculation settings slot (calc.params) for the
 #' RunTSNE calculation. Default (FALSE) will print a nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' PrintTSNEParams(object = pbmc_small)
+#'
 PrintTSNEParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$RunTSNE)){
     stop("TSNE has not been computed yet")
@@ -234,8 +260,20 @@ PrintTSNEParams <- function(object, raw = FALSE){
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunCCA calculation. Default (FALSE) will print a nicely
 #' formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' PrintCCAParams(object = pbmc_cca)
+#'
 PrintCCAParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$RunCCA)){
     stop("CCA has not been computed yet")
@@ -335,8 +373,22 @@ PrintCCAParams <- function(object, raw = FALSE){
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for CalcVarExpRatio. Default (FALSE) will print a nicely
 #' formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' # Requires CCA to have previously been run
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
+#' PrintCalcVarExpRatioParams(object = pbmc_cca)
+#'
 PrintCalcVarExpRatioParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$CalcVarExpRatio)){
     stop("CalcVarExpRatio has not been computed yet")
@@ -382,8 +434,24 @@ PrintCalcVarExpRatioParams <- function(object, raw = FALSE){
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the AlignSubspace calculation. Default (FALSE) will print a
 #' nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Requires CCA to have previously been run
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- AlignSubspace(pbmc_cca,reduction.type = "cca", grouping.var = "group", dims.align = 1:2)
+#' PrintAlignSubspaceParams(object = pbmc_small)
+#' }
+#'
 PrintAlignSubspaceParams <- function(object, raw = FALSE){
   to.print <- names(object@calc.params)[grepl("AlignSubspace.",
                                               names(object@calc.params))]
@@ -439,8 +507,16 @@ PrintAlignSubspaceParams <- function(object, raw = FALSE){
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the RunDiffusion calculation. Default (FALSE) will print a
 #' nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' # Run Diffusion on variable genes
+#' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
+#' PrintDMParams(object = pbmc_small)
+#'
 PrintDMParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$RunDiffusion)){
     stop("Diffusion map has not been computed yet")
@@ -512,8 +588,15 @@ PrintDMParams <- function(object, raw = FALSE){
 #' @param object Seurat object
 #' @param raw Print the entire contents of the calculation settings slot (calc.params) for the
 #' BuildSNN calculation. Default (FALSE) will print a nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' pbmc_small <- BuildSNN(object = pbmc_small)
+#' PrintSNNParams(object = pbmc_small)
+#'
 PrintSNNParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$BuildSNN)){
     stop("SNN has not been computed yet")
@@ -597,8 +680,14 @@ PrintSNNParams <- function(object, raw = FALSE){
 #' @param raw Print the entire contents of the calculation settings slot
 #' (calc.params) for the FindClusters calculation. Default (FALSE) will print a
 #' nicely formatted summary.
+#'
 #' @return No return value. Only prints to console.
+#'
 #' @export
+#'
+#' @examples
+#' PrintFindClustersParams(object = pbmc_small, raw = TRUE)
+#'
 PrintFindClustersParams <- function(object, resolution, raw = FALSE){
   to.print <- names(object@calc.params)[grepl("FindClusters",
                                               names(object@calc.params))]
@@ -707,4 +796,3 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
     }
   }
 }
-

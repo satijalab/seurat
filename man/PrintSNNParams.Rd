@@ -18,3 +18,8 @@ No return value. Only prints to console.
 \description{
 Print the parameters chosen for the latest stored SNN calculation (via BuildSNN or FindClusters).
 }
+\examples{
+pbmc_small <- BuildSNN(object = pbmc_small)
+PrintSNNParams(object = pbmc_small)
+
+}

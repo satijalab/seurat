@@ -23,3 +23,7 @@ No return value. Only prints to console.
 Print the parameters chosen for the latest FindClusters calculation for each
 stored resolution.
 }
+\examples{
+PrintFindClustersParams(object = pbmc_small, raw = TRUE)
+
+}

@@ -24,3 +24,8 @@ Prints the calculation settings and optionally returns them as a list
 Print entire contents of calculation settings slot (calc.params) for given
 calculation.
 }
+\examples{
+PrintCalcParams(object = pbmc_small, calculation = 'RunPCA')
+PrintCalcParams(object = pbmc_small, calculation = 'RunPCA', raw = TRUE)
+
+}
