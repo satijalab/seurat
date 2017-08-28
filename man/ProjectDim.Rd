@@ -11,6 +11,8 @@ ProjectDim(object, reduction.type = "pca", dims.print = 1:5,
 \arguments{
 \item{object}{Seurat object}
 
+\item{reduction.type}{Reduction to use}
+
 \item{dims.print}{Number of dims to print genes for}
 
 \item{dims.store}{Number of dims to store (default is 30)}
@@ -37,4 +39,11 @@ Takes a pre-computed dimensional reduction (typically calculated on a subset
 of genes) and projects this onto the entire dataset (all genes). Note that
 the cell loadings will remain unchanged, but now there are gene loadings for
 all genes.
+}
+\examples{
+pbmc_small
+pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
+# Vizualize top projected genes in heatmap
+DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
+
 }

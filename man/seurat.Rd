@@ -17,30 +17,46 @@ are listed below.
 }
 \section{Slots}{
 
- \describe{
-   \item{\code{raw.data}:}{\code{"ANY"}, The raw project data }
-   \item{\code{data}:}{\code{"ANY"}, The expression matrix (log-scale) }
-   \item{\code{scale.data}:}{\code{"ANY"}, The scaled (after z-scoring
-   each gene) expression matrix. Used for PCA, ICA, and heatmap plotting}
-   \item{\code{var.genes}:}{\code{"vector"},  Variable genes across single cells }
-   \item{\code{is.expr}:}{\code{"numeric"}, Expression threshold to determine if a gene is expressed }
-   \item{\code{ident}:}{\code{"factor"},  The 'identity class' for each single cell }
-   \item{\code{meta.data}:}{\code{"data.frame"}, Contains information about metadata each cell, starting with # of genes detected (nGene)
-   the original identity class (orig.ident), user-provided information (through AddMetaData), etc.  }
-   \item{\code{project.name}:}{\code{"character"}, Name of the project (for record keeping) }
-   \item{\code{dr}:}{\code{"list"}, List of stored dimensional reductions. Named by technique }
-   \item{\code{assay}:}{\code{"list"}, List of additional assays for multimodal analysis. Named by technique }
-   \item{\code{hvg.info}:}{\code{"data.frame"}, The output of the mean/variability analysis for all genes }
-   \item{\code{imputed}:}{\code{"data.frame"}, Matrix of imputed gene scores }
-   \item{\code{cell.names}:}{\code{"vector"},  Names of all single cells (column names of the expression matrix) }
-   \item{\code{cluster.tree}:}{\code{"list"},  List where the first element is a phylo object containing the
-   phylogenetic tree relating different identity classes }
-   \item{\code{snn}:}{\code{"dgCMatrix"}, Sparse matrix object representation of the SNN graph }
-   \item{\code{calc.params}:}{\code{"list"}, Named list to store all calculation related parameters choices}
-   \item{\code{kmeans}:}{\code{"ANY"}, Stores output of gene-based clustering from DoKMeans}
-   \item{\code{spatial}:}{\code{"ANY"},Stores internal data and calculations for spatial mapping of single cells}
-   \item{\code{misc}:}{\code{"ANY"}, Miscellaneous spot to store any data alongisde the object (for example, gene lists)}
-   \item{\code{version}:}{\code{"ANY"}, Version of package used in object creation}
-}
-}
+\describe{
+\item{\code{raw.data}}{The raw project data}
+
+\item{\code{data}}{The normalized expression matrix (log-scale)}
+
+\item{\code{scale.data}}{scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization}
+
+\item{\code{var.genes}}{Vector of genes exhibiting high variance across single cells}
+
+\item{\code{is.expr}}{Expression threshold to determine if a gene is expressed (0 by default)}
+
+\item{\code{ident}}{THe 'identity class' for each cell}
+
+\item{\code{meta.data}}{Contains meta-information about each cell, starting with number of genes detected (nGene)
+and the original identity class (orig.ident); more information is added using \code{AddMetaData}}
+
+\item{\code{project.name}}{Name of hte project (for record keeping)}
+
+\item{\code{dr}}{List of stored dimmensional reductions; named by technique}
+
+\item{\code{assay}}{List of additional assays for multimodal analysis; named by technique}
+
+\item{\code{hvg.info}}{The output of the mean/variability analysis for all genes}
+
+\item{\code{imputed}}{Matrix of imputed gene scores}
+
+\item{\code{cell.names}}{Names of all single cells (column names of the expression matrix)}
+
+\item{\code{cluster.tree}}{List where the first element is a phylo object containing the phylogenetic tree relating different identity classes}
+
+\item{\code{snn}}{Spare matrix object representation of the SNN graph}
+
+\item{\code{calc.params}}{Named list to store all calculation-related parameter choices}
+
+\item{\code{kmeans}}{Stores output of gene-based clustering from \code{DoKMeans}}
+
+\item{\code{spatial}}{Stores internal data and calculations for spatial mapping of single cells}
+
+\item{\code{misc}}{Miscellaneous spot to store any data alongisde the object (for example, gene lists)}
+
+\item{\code{version}}{Version of package used in object creation}
+}}
 

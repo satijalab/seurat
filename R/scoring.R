@@ -7,6 +7,7 @@
 #'
 #' @param object Seurat object
 #' @param genes.list Gene expression programs in list
+#' @param genes.pool List of genes to check expression levels agains, defaults to rownames(x = object@data)
 #' @param n.bin Number of bins of aggregate expression levels for all analyzed genes
 #' @param seed.use Random seed for sampling
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
@@ -21,6 +22,32 @@
 #'
 #' @export
 #'
+#' @examples
+#' cd_genes <- list(c(
+#'   'CD79B',
+#'   'CD79A',
+#'   'CD19',
+#'   'CD180',
+#'   'CD200',
+#'   'CD3D',
+#'   'CD2',
+#'   'CD3E',
+#'   'CD7',
+#'   'CD8A',
+#'   'CD14',
+#'   'CD1C',
+#'   'CD68',
+#'   'CD9',
+#'   'CD247'
+#' ))
+#' pbmc_small <- AddModuleScore(
+#'   object = pbmc_small,
+#'   genes.list = cd_genes,
+#'   ctrl.size = 5,
+#'   enrich.name = 'CD_Genes'
+#' )
+#' head(x = pbmc_small@meta.data)
+#'
 AddModuleScore <- function(
   object,
   genes.list = NULL,
@@ -31,6 +58,7 @@ AddModuleScore <- function(
   use.k = FALSE,
   enrich.name = "Cluster"
 ) {
+  genes.old <- genes.list
   if (use.k) {
     genes.list <- list()
     for (i in as.numeric(x = names(x = table(object@kmeans.obj[[1]]$cluster)))) {
@@ -49,7 +77,27 @@ AddModuleScore <- function(
     )
     cluster.length <- length(x = genes.list)
   }
-  if (is.null(x = genes.pool)) genes.pool = rownames(object@data)
+  if (! all(LengthCheck(values = genes.list))) {
+    warning(paste(
+      'Could not find enough genes in the object from the following gene lists:',
+      paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
+      'Attempting to match case...'
+    ))
+    genes.list <- lapply(
+      X = genes.old,
+      FUN = CaseMatch, match = rownames(x = object@data)
+    )
+  }
+  if (! all(LengthCheck(values = genes.list))) {
+    stop(paste(
+      'The following gene lists do not have enough genes present in the object:',
+      paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
+      'exiting...'
+    ))
+  }
+  if (is.null(x = genes.pool)) {
+    genes.pool = rownames(x = object@data)
+  }
   data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
   data.cut <- as.numeric(x = cut2(
@@ -110,9 +158,22 @@ AddModuleScore <- function(
 #'
 #' @return A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
 #'
-#' @seealso \link{\code{AddModuleScore}}
+#' @seealso \code{AddModuleScore}
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # pbmc_small doesn't have any cell-cycle genes
+#' # To run CellCycleScoring, please use a dataset with cell-cycle genes
+#' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
+#' pbmc_small <- CellCycleScoring(
+#'   object = pbmc_small,
+#'   g2m.genes = cc.genes$g2m.genes,
+#'   s.genes = cc.genes$s.genes
+#' )
+#' head(x = pbmc_small@meta.data)
+#' }
 #'
 CellCycleScoring <- function(
   object,

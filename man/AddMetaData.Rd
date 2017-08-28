@@ -26,3 +26,13 @@ alignment rate, experimental batch, or subpopulation identity). The
 advantage of adding it to the Seurat object is so that it can be
 analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
 }
+\examples{
+cluster_letters <- LETTERS[pbmc_small@ident]
+pbmc_small <- AddMetaData(
+  object = pbmc_small,
+  metadata = cluster_letters,
+  col.name = 'letter.idents'
+)
+head(x = pbmc_small@meta.data)
+
+}

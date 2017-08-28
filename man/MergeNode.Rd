@@ -4,13 +4,26 @@
 \alias{MergeNode}
 \title{Merge childen of a node}
 \usage{
-MergeNode(object, node.use = NULL)
+MergeNode(object, node.use = NULL, rebuild.tree = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node.use}{Merge children of this node}
+
+\item{rebuild.tree}{Rebuild cluster tree after the merge?}
+
+\item{...}{Extra parameters to BuildClusterTree, used only if rebuild.tree = TRUE}
 }
 \description{
 Merge the childen of a node into a single identity class
+}
+\examples{
+PlotClusterTree(object = pbmc_small)
+pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
+PlotClusterTree(object = pbmc_small)
+
+}
+\seealso{
+\code{BuildClusterTree}
 }

@@ -39,3 +39,7 @@ Finds markers (differentially expressed genes) based on a branching point (node)
 the phylogenetic tree. Markers that define clusters in the left branch are positive markers.
 Markers that define the right branch are negative markers.
 }
+\examples{
+FindMarkersNode(pbmc_small, 5)
+
+}

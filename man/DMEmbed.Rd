@@ -19,3 +19,9 @@ Diffusion maps embedding matrix for given cells and DMs
 \description{
 Pull Diffusion maps cell embedding matrix
 }
+\examples{
+pbmc_small
+pbmc_small <- RunDiffusion(pbmc_small, genes.use = pbmc_small@var.genes)
+head(DMEmbed(object = pbmc_small))
+
+}

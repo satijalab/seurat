@@ -31,3 +31,7 @@ object@imputed
 Uses L1-constrained linear models (LASSO) to impute single cell gene
 expression values.
 }
+\examples{
+pbmc_small <- AddImputedScore(object = pbmc_small, genes.fit = "MS4A1")
+
+}

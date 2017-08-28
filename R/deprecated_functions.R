@@ -4,100 +4,97 @@
 #' @rdname Seurat-deprecated
 #' @name Seurat-deprecated
 #' @param ... Parameters to be passed to the modern version of the function
-#' @export vlnPlot subsetData mean.var.plot pca PCA project.pca print.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha reorder.ident average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test diff.t.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot dim.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc
-#' @aliases vlnPlot subsetData mean.var.plot pca PCA project.pca print.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha reorder.ident average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test diff.t.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot dim.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc
+#' @export vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tsne.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut VizClassification
+#' @aliases vlnPlot subsetData pca PCA project.pca viz.pca set.ident pca.plot pcHeatmap jackStraw jackStrawPlot run_tsne tsne.plot find.markers find_all_markers genePlot feature.plot tnse.plot buildClusterTree plotClusterTree plotNoiseModel add_samples subsetCells project.samples run_diffusion ica ICA cluster.alpha average.pca average.expression icTopGenes pcTopGenes pcTopCells fetch.data viz.ica regulatorScore find.markers.node diffExp.test tobit.test batch.gene marker.test which.cells set.all.ident rename.ident posterior.plot map.cell get.centroids refined.mapping initial.mapping calc.insitu fit.gene.k fit.gene.mix addSmoothedScore addImputedScore getNewScore calcNoiseModels feature.plot.keynote feature.heatmap ica.plot spatial.de DBclust_dimension Kclust_dimension pca.sig.genes doHeatMap icHeatmap doKMeans genes.in.cluster kMeansHeatmap cell.cor.matrix gene.cor.matrix calinskiPlot dot.plot addMetaData removePC geneScorePlot cellPlot jackStraw.permutation.test jackStrawMC jackStrawFull writ.table jackRandom MeanVarPlot HeatmapNode minusr minusc RegressOut VizClassification
 #' @section Details:
 #' \tabular{rl}{
-#'   \code{vlnPlot} \tab now a synonym for \code{\link{VlnPlot}}\cr
-#'   \code{subsetData} \tab now a synonym for \code{\link{SubsetData}}\cr
-#'   \code{mean.var.plot} \tab now a synonym for \code{\link{MeanVarPlot}}\cr
-#'   \code{pca} \tab now a synonym for \code{\link{RunPCA}}\cr
-#'   \code{PCA} \tab now a synonym for \code{\link{PCA}}\cr
-#'   \code{project.pca} \tab now a synonym for \code{\link{ProjectPCA}}\cr
-#'   \code{print.pca} \tab now a synonym for \code{\link{PrintPCA}}\cr
-#'   \code{viz.pca} \tab now a synonym for \code{\link{VizPCA}}\cr
-#'   \code{set.ident} \tab now a synonym for \code{\link{SetIdent}}\cr
-#'   \code{pca.plot} \tab now a synonym for \code{\link{PCAPlot}}\cr
-#'   \code{pcHeatmap} \tab now a synonym for \code{\link{PCHeatmap}}\cr
-#'   \code{jackStraw} \tab now a synonym for \code{\link{JackStraw}}\cr
-#'   \code{jackStrawPlot} \tab now a synonym for \code{\link{JackStrawPlot}}\cr
-#'   \code{run_tsne} \tab now a synonym for \code{\link{RunTSNE}}\cr
-#'   \code{tsne.plot} \tab now a synonym for \code{\link{TSNEPlot}}\cr
-#'   \code{find.markers} \tab now a synonym for \code{\link{FindMarkers}}\cr
-#'   \code{find_all_markers} \tab now a synonym for \code{\link{FindAllMarkers}}\cr
-#'   \code{genePlot} \tab now a synonym for \code{\link{GenePlot}}\cr
-#'   \code{feature.plot} \tab now a synonym for \code{\link{FeaturePlot}}\cr
-#'   \code{buildClusterTree} \tab now a synonym for \code{\link{BuildClusterTree}}\cr
-#'   \code{plotClusterTree} \tab now a synonym for \code{\link{PlotClusterTree}}\cr
-#'   \code{plotNoiseModel} \tab now a synonym for \code{\link{PlotNoiseModel}}\cr
-#'   \code{add_samples} \tab now a synonym for \code{\link{AddSamples}}\cr
+#'   \code{vlnPlot} \tab now a synonym for \code{VlnPlot}\cr
+#'   \code{subsetData} \tab now a synonym for \code{SubsetData}\cr
+#'   \code{pca} \tab now a synonym for \code{RunPCA}\cr
+#'   \code{PCA} \tab now a synonym for \code{PCA}\cr
+#'   \code{project.pca} \tab now a synonym for \code{ProjectPCA}\cr
+#'   \code{viz.pca} \tab now a synonym for \code{VizPCA}\cr
+#'   \code{set.ident} \tab now a synonym for \code{SetIdent}\cr
+#'   \code{pca.plot} \tab now a synonym for \code{PCAPlot}\cr
+#'   \code{pcHeatmap} \tab now a synonym for \code{PCHeatmap}\cr
+#'   \code{jackStraw} \tab now a synonym for \code{JackStraw}\cr
+#'   \code{jackStrawPlot} \tab now a synonym for \code{JackStrawPlot}\cr
+#'   \code{run_tsne} \tab now a synonym for \code{RunTSNE}\cr
+#'   \code{tsne.plot} \tab now a synonym for \code{TSNEPlot}\cr
+#'   \code{find.markers} \tab now a synonym for \code{FindMarkers}\cr
+#'   \code{find_all_markers} \tab now a synonym for \code{FindAllMarkers}\cr
+#'   \code{genePlot} \tab now a synonym for \code{GenePlot}\cr
+#'   \code{feature.plot} \tab now a synonym for \code{FeaturePlot}\cr
+#'   \code{buildClusterTree} \tab now a synonym for \code{BuildClusterTree}\cr
+#'   \code{plotClusterTree} \tab now a synonym for \code{PlotClusterTree}\cr
+#'   \code{plotNoiseModel} \tab has been removed and may be replaced at a later date\cr
+#'   \code{add_samples} \tab now a synonym for \code{AddSamples}\cr
 #'   \code{subsetCells} \tab now deleted\cr
-#'   \code{project.samples} \tab now a synonym for \code{\link{ProjectSamples}}\cr
-#'   \code{run_diffusion} \tab now a synonym for \code{\link{RunDiffusion}}\cr
-#'   \code{ica} \tab now a synonym for \code{\link{RunICA}}\cr
-#'   \code{ICA} \tab now a synonym for \code{\link{RunICA}}\cr
-#'   \code{cluster.alpha} \tab now a synonym for \code{\link{AverageDetectionRate}}\cr
-#'   \code{reorder.ident} \tab now a synonym for \code{\link{ReorderIdent}}\cr
-#'   \code{average.pca} \tab now a synonym for \code{\link{AveragePCA}}\cr
-#'   \code{average.expression} \tab now a synonym for \code{\link{AverageExpression}}\cr
-#'   \code{icTopGenes} \tab now a synonym for \code{\link{ICTopGenes}}\cr
-#'   \code{pcTopGenes} \tab now a synonym for \code{\link{PCTopGenes}}\cr
-#'   \code{pcTopCells} \tab now a synonym for \code{\link{PCTopCells}}\cr
-#'   \code{fetch.data} \tab now a synonym for \code{\link{FetchData}}\cr
-#'   \code{viz.ica} \tab now a synonym for \code{\link{VizIca}}\cr
+#'   \code{project.samples} \tab has been removed and may be replaced at a later date\cr
+#'   \code{run_diffusion} \tab now a synonym for \code{RunDiffusion}\cr
+#'   \code{ica} \tab now a synonym for \code{RunICA}\cr
+#'   \code{ICA} \tab now a synonym for \code{RunICA}\cr
+#'   \code{cluster.alpha} \tab now a synonym for \code{AverageDetectionRate}\cr
+#'   \code{average.pca} \tab now a synonym for \code{AveragePCA}\cr
+#'   \code{average.expression} \tab now a synonym for \code{AverageExpression}\cr
+#'   \code{icTopGenes} \tab now a synonym for \code{ICTopGenes}\cr
+#'   \code{pcTopGenes} \tab now a synonym for \code{PCTopGenes}\cr
+#'   \code{pcTopCells} \tab now a synonym for \code{PCTopCells}\cr
+#'   \code{fetch.data} \tab now a synonym for \code{FetchData}\cr
+#'   \code{viz.ica} \tab now a synonym for \code{VizIca}\cr
 #'   \code{regulatorScore} \tab now deleted\cr
-#'   \code{find.markers.node} \tab now a synonym for \code{\link{FindMarkersNode}}\cr
-#'   \code{diffExp.test} \tab now a synonym for \code{\link{DiffExpTest}}\cr
-#'   \code{tobit.test} \tab now a synonym for \code{\link{TobitTest}}\cr
-#'   \code{batch.gene} \tab now a synonym for \code{\link{BatchGene}}\cr
-#'   \code{marker.test} \tab now a synonym for \code{\link{MarkerTest}}\cr
-#'   \code{diff.t.test} \tab now a synonym for \code{\link{DiffTTest}}\cr
-#'   \code{which.cells} \tab now a synonym for \code{\link{WhichCells}}\cr
-#'   \code{set.all.ident} \tab now a synonym for \code{\link{SetAllIdent}}\cr
-#'   \code{rename.ident} \tab now a synonym for \code{\link{RenameIdent}}\cr
-#'   \code{posterior.plot} \tab now a synonym for \code{\link{PosteriorPlot}}\cr
-#'   \code{map.cell} \tab now a synonym for \code{\link{MapCell}}\cr
-#'   \code{get.centroids} \tab now a synonym for \code{\link{GetCentroids}}\cr
-#'   \code{refined.mapping} \tab now a synonym for \code{\link{RefinedMapping}}\cr
-#'   \code{initial.mapping} \tab now a synonym for \code{\link{InitialMapping}}\cr
-#'   \code{calc.insitu} \tab now a synonym for \code{\link{CalcInsitu}}\cr
-#'   \code{fit.gene.k} \tab now a synonym for \code{\link{FitGeneK}}\cr
-#'   \code{fit.gene.mix} \tab now a synonym for \code{\link{FitGeneMix}}\cr
-#'   \code{addSmoothedScore} \tab now a synonym for \code{\link{AddSmoothedScore}}\cr
-#'   \code{addImputedScore} \tab now a synonym for \code{\link{AddImputedScore}}\cr
-#'   \code{getNewScore} \tab now a synonym for \code{\link{GetNewScore}}\cr
-#'   \code{calcNoiseModels} \tab now a synonym for \code{\link{CalcNoiseModels}}\cr
-#'   \code{feature.plot.keynote} \tab now a synonym for \code{\link{FeaturePlotKeynote}}\cr
-#'   \code{feature.heatmap} \tab now a synonym for \code{\link{FeatureHeatmap}}\cr
-#'   \code{ica.plot} \tab now a synonym for \code{\link{ICAPlot}}\cr
-#'   \code{dim.plot} \tab now a synonym for \code{\link{DimPlot}}\cr
-#'   \code{spatial.de} \tab now a synonym for \code{\link{SpatialDe}}\cr
-#'   \code{DBclust_dimension} \tab now a synonym for \code{\link{DBClustDimension}}\cr
-#'   \code{Kclust_dimension} \tab now a synonym for \code{\link{KClustDimension}}\cr
-#'   \code{pca.sig.genes} \tab now a synonym for \code{\link{PCASigGenes}}\cr
-#'   \code{doHeatMap} \tab now a synonym for \code{\link{DoHeatMap}}\cr
-#'   \code{icHeatmap} \tab now a synonym for \code{\link{ICHeatmap}}\cr
-#'   \code{doKMeans} \tab now a synonym for \code{\link{DoKMeans}}\cr
-#'   \code{genes.in.cluster} \tab now a synonym for \code{\link{GenesInCluster}}\cr
-#'   \code{kMeansHeatmap} \tab now a synonym for \code{\link{KMeansHeatmap}}\cr
-#'   \code{cell.cor.matrix} \tab now a synonym for \code{\link{CellCorMatrix}}\cr
-#'   \code{gene.cor.matrix} \tab now a synonym for \code{\link{GeneCorMatrix}}\cr
-#'   \code{calinskiPlot} \tab now a synonym for \code{\link{CalinskiPlot}}\cr
-#'   \code{dot.plot} \tab now a synonym for \code{\link{DotPlot}}\cr
-#'   \code{addMetaData} \tab now a synonym for \code{\link{AddMetaData}}\cr
-#'   \code{removePC} \tab now a synonym for \code{\link{RemovePC}}\cr
+#'   \code{find.markers.node} \tab now a synonym for \code{FindMarkersNode}\cr
+#'   \code{diffExp.test} \tab now a synonym for \code{DiffExpTest}\cr
+#'   \code{tobit.test} \tab now a synonym for \code{TobitTest}\cr
+#'   \code{batch.gene} \tab has been removed and may be restored at a later date\cr
+#'   \code{marker.test} \tab now a synonym for \code{MarkerTest}\cr
+#'   \code{which.cells} \tab now a synonym for \code{WhichCells}\cr
+#'   \code{set.all.ident} \tab now a synonym for \code{SetAllIdent}\cr
+#'   \code{rename.ident} \tab now a synonym for \code{RenameIdent}\cr
+#'   \code{posterior.plot} \tab now a synonym for \code{PosteriorPlot}\cr
+#'   \code{map.cell} \tab has been deprecated\cr
+#'   \code{get.centroids} \tab now a synonym for \code{GetCentroids}\cr
+#'   \code{refined.mapping} \tab now a synonym for \code{RefinedMapping}\cr
+#'   \code{initial.mapping} \tab now a synonym for \code{InitialMapping}\cr
+#'   \code{calc.insitu} \tab now a synonym for \code{CalcInsitu}\cr
+#'   \code{fit.gene.k} \tab now a synonym for \code{FitGeneK}\cr
+#'   \code{fit.gene.mix} \tab now a synonym for \code{FitGeneMix}\cr
+#'   \code{addSmoothedScore} \tab now a synonym for \code{AddSmoothedScore}\cr
+#'   \code{addImputedScore} \tab now a synonym for \code{AddImputedScore}\cr
+#'   \code{getNewScore} \tab has been removed without replacement\cr
+#'   \code{calcNoiseModels} \tab has been removed and may be replaced at a later date\cr
+#'   \code{feature.plot.keynote} \tab has been removed without replacement\cr
+#'   \code{feature.heatmap} \tab now a synonym for \code{FeatureHeatmap}\cr
+#'   \code{ica.plot} \tab now a synonym for \code{ICAPlot}\cr
+#'   \code{spatial.de} \tab has been removed and may be replaced at a later date\cr
+#'   \code{DBclust_dimension} \tab now a synonym for \code{DBClustDimension}\cr
+#'   \code{Kclust_dimension} \tab now a synonym for \code{KClustDimension}\cr
+#'   \code{pca.sig.genes} \tab now a synonym for \code{PCASigGenes}\cr
+#'   \code{doHeatMap} \tab now a synonym for \code{DoHeatMap}\cr
+#'   \code{icHeatmap} \tab now a synonym for \code{ICHeatmap}\cr
+#'   \code{doKMeans} \tab now a synonym for \code{DoKMeans}\cr
+#'   \code{genes.in.cluster} \tab now a synonym for \code{GenesInCluster}\cr
+#'   \code{kMeansHeatmap} \tab now a synonym for \code{KMeansHeatmap}\cr
+#'   \code{cell.cor.matrix} \tab has been removed and may be replaced at a later date\cr
+#'   \code{gene.cor.matrix} \tab has been removed and may be replaced at a later date\cr
+#'   \code{calinskiPlot} \tab has been removed and may be replaced at a later date\cr
+#'   \code{dot.plot} \tab now a synonym for \code{DotPlot}\cr
+#'   \code{addMetaData} \tab now a synonym for \code{AddMetaData}\cr
+#'   \code{removePC} \tab has been removed and may be replaced at a later date\cr
 #'   \code{geneScorePlot} \tab now deleted\cr
-#'   \code{cellPlot} \tab now a synonym for \code{\link{CellPlot}}\cr
-#'   \code{jackStraw.permutation.test} \tab now a synonym for \code{\link{JackStrawPermutationTest}}\cr
-#'   \code{jackStrawMC} \tab now a synonym for \code{\link{JackStrawMC}}\cr
-#'   \code{jackStrawFull} \tab now a synonym for \code{\link{JackStrawFull}}\cr
-#'   \code{PCAFast} \tab now a synonym for \code{\link{PCA}}\cr
-#'   \code{writ.table} \tab is delteded without replacement\cr
-#'   \code{jackRandom} \tab now a synonym for \code{\link{JackRandom}}\cr
-#'   \code{MeanVarPlot} \tab now a synonym for \code{\link{FindVariableGenes}}\cr
-#'   \code{myPalette} \tab now a synonym for \code{\link{CustomPalette}}\cr
-#'   \code{minusr} \tab now a synonym for \code{\link{SubsetRow}}\cr
-#'   \code{minusc} \tab now a synonym for \code{\link{SubsetColumn}}\cr
+#'   \code{cellPlot} \tab now a synonym for \code{CellPlot}\cr
+#'   \code{jackStraw.permutation.test} \tab has been deleted\cr
+#'   \code{jackStrawMC} \tab has been deleted\cr
+#'   \code{jackStrawFull} \tab has been deleted\cr
+#'   \code{PCAFast} \tab now a synonym for \code{PCA}\cr
+#'   \code{writ.table} \tab has been removed without replacement\cr
+#'   \code{jackRandom} \tab has been removed without replacement\cr
+#'   \code{MeanVarPlot} \tab now a synonym for \code{FindVariableGenes}\cr
+#'   \code{myPalette} \tab now a synonym for \code{CustomPalette}\cr
+#'   \code{minusr} \tab now a synonym for \code{SubsetRow}\cr
+#'   \code{minusc} \tab now a synonym for \code{SubsetColumn}\cr
+#'   \code{RegressOut} \tab now part of \code{ScaleData}\cr
+#'   \code{VizClassification} \tab has been removed without replacement\cr
 #' }
 #'
 vlnPlot <- function(...) {
@@ -108,11 +105,6 @@ vlnPlot <- function(...) {
 subsetData <- function(...) {
     .Deprecated("SubsetData", package="Seurat")
     SubsetData(...)
-}
-
-mean.var.plot <- function(...) {
-    .Deprecated("MeanVarPlot", package="Seurat")
-    MeanVarPlot(...)
 }
 
 pca <- function(...) {
@@ -128,11 +120,6 @@ PCA <- function(...) {
 project.pca <- function(...) {
     .Deprecated("ProjectPCA", package="Seurat")
     ProjectPCA(...)
-}
-
-print.pca <- function(...) {
-    .Deprecated("PrintPCA", package="Seurat")
-    PrintPCA(...)
 }
 
 viz.pca <- function(...) {
@@ -206,8 +193,12 @@ plotClusterTree <- function(...) {
 }
 
 plotNoiseModel <- function(...) {
-    .Deprecated("PlotNoiseModel", package="Seurat")
-    PlotNoiseModel(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'plotNoiseModel has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("PlotNoiseModel", package="Seurat")
+    # PlotNoiseModel(...)
 }
 
 add_samples <- function(...) {
@@ -223,8 +214,12 @@ subsetCells <- function(...) {
 }
 
 project.samples <- function(...) {
-    .Deprecated("ProjectSamples", package="Seurat")
-    ProjectSamples(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'project.samples has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("ProjectSamples", package="Seurat")
+    # ProjectSamples(...)
 }
 
 run_diffusion <- function(...) {
@@ -245,11 +240,6 @@ ICA <- function(...) {
 cluster.alpha <- function(...) {
     .Deprecated("AverageDetectionRate", package="Seurat")
     AverageDetectionRate(...)
-}
-
-reorder.ident <- function(...) {
-    .Deprecated("ReorderIdent", package="Seurat")
-    ReorderIdent(...)
 }
 
 average.pca <- function(...) {
@@ -309,18 +299,17 @@ tobit.test <- function(...) {
 }
 
 batch.gene <- function(...) {
-    .Deprecated("BatchGene", package="Seurat")
-    BatchGene(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'batch.gene has been removed and may be restored at a later date'
+  )
+    # .Deprecated("BatchGene", package="Seurat")
+    # BatchGene(...)
 }
 
 marker.test <- function(...) {
     .Deprecated("MarkerTest ", package="Seurat")
     MarkerTest(...)
-}
-
-diff.t.test <- function(...) {
-    .Deprecated("DiffTTest", package="Seurat")
-    DiffTTest(...)
 }
 
 which.cells <- function(...) {
@@ -343,8 +332,12 @@ posterior.plot <- function(...) {
 }
 
 map.cell <- function(...) {
-    .Deprecated("MapCell", package="Seurat")
-    MapCell(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'map.cell has been removed and may be restored at a later date'
+  )
+    # .Deprecated("MapCell", package="Seurat")
+    # MapCell(...)
 }
 
 get.centroids <- function(...) {
@@ -388,18 +381,26 @@ addImputedScore <- function(...) {
 }
 
 getNewScore <- function(...) {
-    .Deprecated("GetNewScore ", package="Seurat")
-    GetNewScore(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'getNewScore has been removed without replacement'
+  )
 }
 
 calcNoiseModels <- function(...) {
-    .Deprecated("CalcNoiseModels ", package="Seurat")
-    CalcNoiseModels(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'calcNoiseModels has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("CalcNoiseModels ", package="Seurat")
+    # CalcNoiseModels(...)
 }
 
 feature.plot.keynote <- function(...) {
-    .Deprecated("FeaturePlotKeynote ", package="Seurat")
-    FeaturePlotKeynote(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'feature.plot.keynote has been removed without replacement'
+  )
 }
 
 feature.heatmap <- function(...) {
@@ -412,14 +413,13 @@ ica.plot <- function(...) {
     ICAPlot(...)
 }
 
-dim.plot <- function(...) {
-    .Deprecated("DimPlot ", package="Seurat")
-    DimPlot(...)
-}
-
 spatial.de <- function(...) {
-    .Deprecated("SpatialDe ", package="Seurat")
-    SpatialDe(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'spatial.de has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("SpatialDe ", package="Seurat")
+    # SpatialDe(...)
 }
 
 DBclust_dimension <- function(...) {
@@ -463,18 +463,30 @@ kMeansHeatmap <- function(...) {
 }
 
 cell.cor.matrix <- function(...) {
-    .Deprecated("CellCorMatrix ", package="Seurat")
-    CellCorMatrix(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'cell.cor.matrix has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("CellCorMatrix ", package="Seurat")
+    # CellCorMatrix(...)
 }
 
 gene.cor.matrix <- function(...) {
-    .Deprecated("GeneCorMatrix ", package="Seurat")
-    GeneCorMatrix(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'gene.cor.matrix has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("GeneCorMatrix ", package="Seurat")
+    # GeneCorMatrix(...)
 }
 
 calinskiPlot <- function(...) {
-    .Deprecated("CalinskiPlot ", package="Seurat")
-    CalinskiPlot(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'calinksiPlot has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("CalinskiPlot ", package="Seurat")
+    # CalinskiPlot(...)
 }
 
 dot.plot <- function(...) {
@@ -488,8 +500,12 @@ addMetaData <- function(...) {
 }
 
 removePC <- function(...) {
-    .Deprecated("RemovePC ", package="Seurat")
-    RemovePC(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'removePC has been removed and may be replaced at a later date'
+  )
+    # .Deprecated("RemovePC ", package="Seurat")
+    # RemovePC(...)
 }
 
 geneScorePlot <- function(...) {
@@ -505,18 +521,24 @@ cellPlot <- function(...) {
 }
 
 jackStraw.permutation.test <- function(...) {
-    .Deprecated("JackStrawPermutationTest ", package="Seurat")
-    JackStrawPermutationTest(...)
+  .Deprecated(
+    package="Seurat",
+    msg = 'jackStraw.permutation.test has been removed without replacement'
+  )
 }
 
 jackStrawMC <- function(...) {
-    .Deprecated("JackStrawMC ", package="Seurat")
-    JackStrawMC(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'jackStrawMC has been removed without replacement'
+  )
 }
 
 jackStrawFull <- function(...) {
-    .Deprecated("JackStrawFull ", package="Seurat")
-    JackStrawFull(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'jackStrawFull has been removed without replacement'
+  )
 }
 
 PCAFast <- function(...) {
@@ -533,8 +555,12 @@ writ.table <- function(...) {
 }
 
 jackRandom <- function(...) {
-  .Deprecated(new = 'JackRandom', package = 'Seurat')
-  JackRandom(...)
+  .Deprecated(
+    package = 'Seurat',
+    msg = "jackRandom has bee removed; it may be added back in the future"
+  )
+  # .Deprecated(new = 'JackRandom', package = 'Seurat')
+  # JackRandom(...)
 }
 
 MeanVarPlot <- function(...) {
@@ -570,4 +596,18 @@ minusc <- function(...) {
   SubsetColumn(..., invert = TRUE)
 }
 
+RegressOut <- function(...) {
+  .Deprecated(
+    new = "ScaleData",
+    package = "Seurat",
+    msg = "RegressOut functionality has been incorporated into ScaleData. See ?ScaleData for usage details."
+  )
+  stop()
+}
 
+VizClassification <- function(...) {
+  .Deprecated(
+    package = 'Seurat',
+    msg = 'VizClassification has been removed without replacement'
+  )
+}

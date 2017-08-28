@@ -10,7 +10,7 @@ DoHeatmap(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
   col.high = "#FFFF00", slim.col.label = FALSE, remove.key = FALSE,
   rotate.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
   group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
-  group.spacing = 0.15, do.plot = TRUE, ...)
+  group.spacing = 0.15, do.plot = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -45,6 +45,8 @@ and genes as rows.}
 
 \item{rotate.key}{Rotate color scale horizantally}
 
+\item{title}{Title for plot}
+
 \item{cex.col}{Controls size of column labels (cells)}
 
 \item{cex.row}{Controls size of row labels (genes)}
@@ -58,12 +60,14 @@ and genes as rows.}
 \item{group.spacing}{Controls amount of space between columns.}
 
 \item{do.plot}{Whether to display the plot.}
-
-\item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for multimodal analysis}
 }
 \value{
 Returns a ggplot2 plot object
 }
 \description{
 Draws a heatmap of single cell gene expression using ggplot2.
+}
+\examples{
+DoHeatmap(object = pbmc_small)
+
 }

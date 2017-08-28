@@ -19,7 +19,9 @@
 # @param temp.file.location   Directory where intermediate files will be written.
 # @return                     Seurat object with identities set to the results
 #                             of the clustering procedure.
-
+#
+#' @importFrom utils read.table write.table
+#
 RunModularityClustering <- function(
   object,
   SNN = matrix(),

@@ -8,7 +8,7 @@ FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,
-  sort.results = TRUE, ...)
+  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -39,6 +39,11 @@ is 20)}
 
 \item{sort.results}{If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion}
 
+\item{do.cpp}{Run c++ version of mean.function and dispersion.function if they
+exist.}
+
+\item{display.progress}{show progress bar for calculations}
+
 \item{...}{Extra parameters to VariableGenePlot}
 }
 \value{
@@ -62,6 +67,11 @@ is the mean expression level, and for Y-axis it is the log(Variance/mean). All m
 calculations are not performed in log-space, but the results are reported in log-space -
 see relevant functions for exact details.
 }
+\examples{
+pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
+pbmc_small@var.genes
+
+}
 \seealso{
-\code{\link{VariableGenePlot}}
+\code{VariableGenePlot}
 }

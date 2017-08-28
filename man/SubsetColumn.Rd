@@ -20,3 +20,7 @@ do not contain code, otherwise returns data where colnames contain code
 \description{
 Return a subset of columns for a matrix or data frame
 }
+\examples{
+head(as.matrix(SubsetColumn(data = pbmc_small@raw.data, code = 'ATGC'))[, 1:4])
+
+}

@@ -19,3 +19,8 @@ Cells are colored by their identity class.
 This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
 arguments which can be passed in here.
 }
+\examples{
+pbmc_small <- RunICA(object = pbmc_small, ics.compute = 25, print.results = FALSE)
+ICAPlot(object = pbmc_small)
+
+}

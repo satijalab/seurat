@@ -23,3 +23,22 @@ Seurat object with updated slot
 \description{
 Set information for specified stored dimensional reduction analysis
 }
+\examples{
+pbmc_small
+# Simulate adding a new dimensional reduction
+new.cell.embeddings <- GetCellEmbeddings(object = pbmc_small, reduction.type = "pca")
+new.gene.loadings <- GetGeneLoadings(object = pbmc_small, reduction.type = "pca")
+SetDimReduction(
+  object = pbmc_small,
+  reduction.type = "new.pca",
+  slot = "cell.embeddings",
+  new.data = new.cell.embeddings
+)
+SetDimReduction(
+  object = pbmc_small,
+  reduction.type = "new.pca",
+  slot = "gene.loadings",
+  new.data = new.gene.loadings
+)
+
+}

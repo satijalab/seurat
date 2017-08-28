@@ -4,29 +4,48 @@
 \alias{DotPlot}
 \title{Dot plot visualization}
 \usage{
-DotPlot(object, genes.plot, cex.use = 2, cols.use = NULL,
-  thresh.col = 2.5, dot.min = 0.05, group.by = NULL, ...)
+DotPlot(object, genes.plot, cols.use = c("lightgrey", "blue"),
+  col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6, group.by,
+  plot.legend = FALSE, do.return = FALSE, x.lab.rot = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{genes.plot}{Input vector of genes}
 
-\item{cex.use}{Scaling factor for the dots (scales all dot sizes)}
-
 \item{cols.use}{colors to plot}
 
-\item{thresh.col}{The raw data value which corresponds to a red dot (lowest expression)}
+\item{col.min}{Minimum scaled average expression threshold (everything smaller
+will be set to this)}
 
-\item{dot.min}{The fraction of cells at which to draw the smallest dot (default is 0.05)}
+\item{col.max}{Maximum scaled average expression threshold (everything larger
+will be set to this)}
+
+\item{dot.min}{The fraction of cells at which to draw the smallest dot
+(default is 0.05). All cell groups with less than this expressing the given
+gene will have no dot drawn.}
+
+\item{dot.scale}{Scale the size of the points, similar to cex}
 
 \item{group.by}{Factor to group the cells by}
+
+\item{plot.legend}{plots the legends}
+
+\item{do.return}{Return ggplot2 object}
+
+\item{x.lab.rot}{Rotate x-axis labels}
 }
 \value{
-Only graphical output
+default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 }
 \description{
-Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
-The size of the dot encodes the percentage of cells within a class, while the color encodes the
-AverageExpression level of 'expressing' cells (green is high).
+Intuitive way of visualizing how gene expression changes across different
+identity classes (clusters). The size of the dot encodes the percentage of
+cells within a class, while the color encodes the AverageExpression level of
+'expressing' cells (blue is high).
+}
+\examples{
+cd_genes <- c("CD247", "CD3E", "CD9")
+DotPlot(object = pbmc_small, genes.plot = cd_genes)
+
 }

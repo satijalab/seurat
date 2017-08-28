@@ -14,6 +14,8 @@ ICTopGenes(object, ic.use = 1, num.genes = 30, use.full = FALSE,
 
 \item{num.genes}{Number of genes to return}
 
+\item{use.full}{Use the full ICA (projected ICA), default is FALSE}
+
 \item{do.balanced}{Return an equal number of genes with both + and - IC scores.}
 }
 \value{
@@ -22,4 +24,13 @@ Returns a vector of genes
 \description{
 Return a list of genes with the strongest contribution to a set of
 indepdendent components
+}
+\examples{
+pbmc_small
+pbmc_small <- RunICA(object = pbmc_small, ics.compute = 10, ics.print = 0)
+pbmc_small <- ProjectDim(object = pbmc_small, reduction.type = "ica", do.print = FALSE)
+ICTopGenes(object = pbmc_small, ic.use = 1)
+# After projection:
+ICTopGenes(object = pbmc_small, ic.use = 1, use.full = TRUE)
+
 }

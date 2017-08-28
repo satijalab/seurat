@@ -17,18 +17,23 @@ KMeansHeatmap(object, cells.use = object@cell.names, genes.cluster = NULL,
 
 \item{max.genes}{Maximum number of genes to include in the heatmap}
 
+\item{slim.col.label}{Instead of displaying every cell name on the heatmap,
+display only the identity class name once for each group}
+
 \item{remove.key}{Removes teh color key from the plot}
 
 \item{row.lines}{Color separations of clusters}
 
 \item{...}{Extra parameters to DoHeatmap}
-
-\item{slim.col.labels}{Instead of displaying every cell name on the heatmap,
-display only the identity class name once for each group}
 }
 \description{
 Plot k-means clusters
 }
+\examples{
+pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+KMeansHeatmap(object = pbmc_small)
+
+}
 \seealso{
-\code{\link{DoHeatmap}}
+\code{DoHeatmap}
 }

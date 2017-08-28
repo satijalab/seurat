@@ -31,6 +31,10 @@ Cells are colored by their identity class.
 This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
 arguments which can be passed in here.
 }
+\examples{
+TSNEPlot(object = pbmc_small)
+
+}
 \seealso{
 DimPlot
 }

@@ -6,14 +6,15 @@
 \usage{
 RunPCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
   rev.pca = FALSE, weight.by.var = TRUE, do.print = TRUE,
-  pcs.print = 1:5, genes.print = 30, ...)
+  pcs.print = 1:5, genes.print = 30, reduction.name = "pca",
+  reduction.key = "PC", assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{pc.genes}{Genes to use as input for PCA. Default is object@var.genes}
 
-\item{pcs.compute}{Total Number of PCs to compute and store}
+\item{pcs.compute}{Total Number of PCs to compute and store (20 by default)}
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
@@ -30,6 +31,12 @@ the PCs}
 
 \item{genes.print}{Number of genes to print for each PC}
 
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. pca by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. PC by default}
+
+\item{assay.type}{Data type, RNA by default. Can be changed for multimodal}
+
 \item{\dots}{Additional arguments to be passed to IRLBA}
 }
 \value{
@@ -38,5 +45,17 @@ object@dr$pca.
 }
 \description{
 Run a PCA dimensionality reduction. For details about stored PCA calculation
-parameters, see \code{\link{PrintPCAParams}}.
+parameters, see \code{PrintPCAParams}.
+}
+\examples{
+pbmc_small
+# Run PCA on variable genes (default)
+pbmc_small <- RunPCA(pbmc_small)
+# Run PCA on different gene set (in this case all genes)
+pbmc_small=RunPCA(pbmc_small,pc.genes = rownames(pbmc_small@data))
+# Run PCA but compute more than 20 dimensions
+pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
+# Plot results
+PCAPlot(pbmc_small)
+
 }

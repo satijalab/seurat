@@ -33,7 +33,7 @@ Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int
           }
         }
       }
-    } 
+    }
   return(data);
 }
 
@@ -61,17 +61,17 @@ Eigen::SparseMatrix<double> RunUMISamplingPerCell(Eigen::SparseMatrix<double> da
         }
       }
     }
-  } 
+  }
   return(data);
 }
 
 
 typedef Eigen::Triplet<double> T;
 // [[Rcpp::export]]
-Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::RowMajor> mat1, Eigen::SparseMatrix<double, Eigen::RowMajor> mat2, std::vector< std::string > mat1_rownames, 
+Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::RowMajor> mat1, Eigen::SparseMatrix<double, Eigen::RowMajor> mat2, std::vector< std::string > mat1_rownames,
                                              std::vector< std::string > mat2_rownames, std::vector< std::string > all_rownames){
-  
-  
+
+
   // Set up hash maps for rowname based lookup
   std::unordered_map<std::string, int> mat1_map;
   for(int i = 0; i < mat1_rownames.size(); i++){
@@ -81,14 +81,14 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
   for(int i = 0; i < mat2_rownames.size(); i++){
     mat2_map[mat2_rownames[i]] = i;
   }
-  
+
   // set up tripletList for new matrix creation
   std::vector<T> tripletList;
   int num_rows = all_rownames.size();
   int num_col1 = mat1.cols();
   int num_col2 = mat2.cols();
 
-  
+
   tripletList.reserve(mat1.nonZeros() + mat2.nonZeros());
   for(int i = 0; i < num_rows; i++){
     std::string key = all_rownames[i];
@@ -128,11 +128,11 @@ Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2){
 }
 
 
-/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R. 
+/* Performs row scaling and/or centering. Equivalent to using t(scale(t(mat))) in R.
    Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
-Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true, 
+Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center = true,
                              double scale_max = 10, bool display_progress = true){
   Progress p(mat.rows(), display_progress);
   Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
@@ -162,7 +162,7 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center
   return scaled_mat;
 }
 
-/* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R. 
+/* Performs column scaling and/or centering. Equivalent to using scale(mat, TRUE, apply(x,2,sd)) in R.
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
@@ -180,7 +180,7 @@ Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress = true){
 }
 
 // [[Rcpp::export]]
-Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true, 
+Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale = true, bool center = true,
                                    double scale_max = 10, bool display_progress = true){
   mat = mat.transpose();
   Progress p(mat.outerSize(), display_progress);
@@ -188,7 +188,7 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
     double colMean = 0;
-    double colSdev = 0; 
+    double colSdev = 0;
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
     {
       colMean += it.value();
@@ -257,3 +257,59 @@ Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2){
   mat3 << mat1, mat2;
   return(mat3);
 }
+
+/* Calculates the row means of the logged values in non-log space */
+//[[Rcpp::export]]
+Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progress){
+  int ncols = mat.cols();
+  Eigen::VectorXd rowmeans(mat.rows());
+  mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene means" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double rm = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      rm += expm1(it.value());
+    }
+    rm = rm / ncols;
+    rowmeans[k] = log1p(rm);
+  }
+  return(rowmeans);
+}
+
+/* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
+log-space) */
+//[[Rcpp::export]]
+Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progress){
+  int ncols = mat.cols();
+  Eigen::VectorXd rowdisp(mat.rows());
+  mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene variance to mean ratios" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double rm = 0;
+    double v = 0;
+    int nnZero = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      rm += expm1(it.value());
+    }
+    rm = rm / ncols;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      v += pow(expm1(it.value()) - rm, 2);
+      nnZero += 1;
+    }
+    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
+    rowdisp[k] = log(v/rm);
+
+  }
+  return(rowdisp);
+}
+
+
+

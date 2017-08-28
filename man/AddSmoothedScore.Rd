@@ -5,21 +5,20 @@
 \title{Calculate smoothed expression values}
 \usage{
 AddSmoothedScore(object, genes.fit = NULL, dim.1 = 1, dim.2 = 2,
-  reduction.use = "tSNE", k = 30, do.log = FALSE, do.print = FALSE)
+  reduction.use = "tsne", k = 30, do.log = FALSE, do.print = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{genes.fit}{Genes to calculate smoothed values for}
 
-\item{dim.1}{Dimension for x-axis (default 1)}
+\item{dim.1}{Dimension 1 to use for dimensional reduction}
 
-\item{dim.2}{Dimension for y-axis (default 2)}
+\item{dim.2}{Dimension 2 to use for dimensional reduction}
 
-\item{reduction.use}{Which dimensionality reduction to use. Default is
-"tsne", can also be "pca", or "ica", assuming these are precomputed.}
+\item{reduction.use}{Dimensional reduction to use}
 
-\item{k}{k-param for k-nearest neighbor calculation}
+\item{k}{k-param for k-nearest neighbor calculation. 30 by default}
 
 \item{do.log}{Whether to perform smoothing in log space. Default is false.}
 
@@ -28,4 +27,8 @@ been imputed).}
 }
 \description{
 Smooths expression values across the k-nearest neighbors based on dimensional reduction
+}
+\examples{
+pbmc_small <- AddSmoothedScore(object = pbmc_small, genes.fit = "MS4A1", reduction.use = "pca")
+
 }

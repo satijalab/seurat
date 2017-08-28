@@ -205,14 +205,12 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
   x.vec <- GetGeneLoadings(
     object = object,
     reduction.type = reduction.type,
-    dims.use = dims.use
-  )[genes.use, ]
+    dims.use = dims.use,
+    genes.use = genes.use
+  )
   # form orthonormal basis via QR
   x.norm <- qr.Q(qr = qr(x = x.vec))
-  if (missing(x = genes.use)) {
-    genes.use <- rownames(x = x.vec)
-  }
-  data.use <- object@scale.data[genes.use, ]
+  data.use <- object@scale.data[rownames(x.vec), ]
   # project data onto othronormal basis
   projected.data <- t(x = data.use) %*% x.norm
   # reconstruct data using only dims specified

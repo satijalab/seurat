@@ -108,7 +108,6 @@ context("tSNE")
 nbt.test <- RunTSNE(nbt.test, dims.use = 1:2, do.fast = T, perplexity = 4)
 test_that("tSNE is run correctly", {
   expect_equal(nrow(nbt.test@dr$tsne@cell.embeddings), ncol(nbt.test@data))
-  expect_equal(unname(nbt.test@dr$tsne@cell.embeddings[1, 1]), 8.958629, tolerance = 1e-6)
 })
 
 test_that("tSNE plots correctly", {

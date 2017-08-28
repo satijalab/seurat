@@ -16,6 +16,13 @@
 #'
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' # Note that the PBMC test example object does not contain spatially restricted
+#' # examples below are only demonstrate code
+#' pmbc_small <- GetCentroids(pbmc_small, cells.use=pbmc_small@cell.names)
+#' }
+#'
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@finalprob))
   #Error checking
@@ -62,8 +69,16 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
 #' in object@@final.prob
 #'
 #' @import fpc
+#' @importFrom stats cov
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Note that the PBMC test example object does not contain spatially restricted
+#' # examples below are only demonstrate code
+#' pmbc_small <- RefinedMapping(pbmc_small, genes.use=pbmc_small@var.genes)
+#' }
 #'
 RefinedMapping <- function(object, genes.use) {
   genes.use <- intersect(x = genes.use, y = rownames(x = object@imputed))
@@ -139,6 +154,13 @@ RefinedMapping <- function(object, genes.use) {
 #'
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#' # Note that the PBMC test example object does not contain spatially restricted
+#' # examples below are only demonstrate code
+#' pmbc_small <- InitialMapping(pbmc_small)
+#' }
+#'
 InitialMapping <- function(object, cells.use = NULL) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   every.prob <- sapply(
@@ -155,49 +177,6 @@ InitialMapping <- function(object, cells.use = NULL) {
   object@spatial@finalprob <- data.frame(every.prob)
   rownames(x = object@spatial@finalprob) <- paste0("bin.", rownames(x = object@spatial@finalprob))
   return(object)
-}
-
-#return cell centroid after spatial mappings (both X and Y)
-#' @export
-CellCentroid <- function(cell.probs) {
-  centroid.x <- XCellCentroid(cell.probs = cell.probs)
-  centroid.y <- YCellCentroid(cell.probs = cell.probs)
-  centroid.bin <- 8 * (centroid.y - 1) + centroid.x
-  return(centroid.bin)
-}
-
-#return x-coordinate cell centroid
-#' @export
-XCellCentroid <- function(cell.probs) {
-  centroid.x <- round(x = sum(sapply(
-    X = 1:64,
-    FUN = function(x) {
-      return((x - 1) %% 8 + 1)
-    }
-  ) * cell.probs))
-  return(centroid.x)
-}
-
-#return y-coordinate cell centroid
-#' @export
-YCellCentroid <- function(cell.probs) {
-  centroid.y <- round(x = sum(sapply(
-    X = 1:64,
-    FUN = function(x) {
-      return((x - 1) %/% 8 + 1)
-    }
-  ) * cell.probs))
-  return(centroid.y)
-}
-
-#return x and y-coordinate cell centroid
-#' @export
-ExactCellCentroid <- function(cell.probs) {
-  # centroid.x=(sum(sapply(1:64,function(x)(x-1)%%8+1)*cell.probs))
-  centroid.x <- XCellCentroid(cell.probs = cell.probs)
-  # centroid.y=(sum(sapply(1:64,function(x)(x-1)%/%8+1)*cell.probs))
-  centroid.y <- YCellCentroid(cell.probs = cell.probs)
-  return(c(centroid.x, centroid.y))
 }
 
 #' Build mixture models of gene expression
@@ -220,9 +199,18 @@ ExactCellCentroid <- function(cell.probs) {
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@spatial@@mix.probs
 #'
+#' @importFrom graphics hist
+#' @importFrom stats dnorm sd
 #' @importFrom mixtools normalmixEM
 #'
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' # Note that the PBMC test example object does not contain spatially restricted
+#' # examples below are only demonstrate code
+#' pmbc_small <- FitGeneK(object = pbmc_small, gene = "MS4A1")
+#' }
 #'
 FitGeneK <- function(
   object,
@@ -330,75 +318,3 @@ FitGeneK <- function(
   }
   return(object)
 }
-
-# Documentation
-###############
-#Internal, not documented for now
-#' @export
-FitGeneMix <- function(
-  object,
-  gene,
-  do.k = 3,
-  use.mixtools = TRUE,
-  do.plot = FALSE,
-  plot.with.imputed = TRUE,
-  min.bin.size = 10
-) {
-  data.fit <- as.numeric(x = object@imputed[gene, ])
-  mixtools.fit <- normalmixEM(x = data.fit, k = do.k)
-  comp.order <- order(mixtools.fit$mu)
-  mixtools.posterior <- data.frame(mixtools.fit$posterior[, comp.order])
-  colnames(x = mixtools.posterior) <- unlist(
-    x = lapply(
-      X = 1:do.k,
-      FUN = function(x) {
-        return(paste(gene, x - 1, "post", sep="."))
-      }
-    )
-  )
-  #mixtools.mu=data.frame(mixtools.fit$mu[comp.order])
-  #mixtools.sigma=data.frame(mixtools.fit$sigma[comp.order])
-  #mixtools.alpha=data.frame(mixtools.fit$lambda[comp.order])
-  #rownames(mixtools.mu)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"mu",sep=".")))
-  #rownames(mixtools.sigma)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"sigma",sep=".")))
-  #rownames(mixtools.alpha)=unlist(lapply(1:do.k,function(x)paste(gene,x-1,"alpha",sep=".")))
-  #object@mix.mu = rbind(minusr(object@mix.mu,gene), mixtools.mu);
-  #object@mix.sigma = rbind(minusr(object@mix.sigma,gene), mixtools.sigma);
-  #o#bject@mu.alpha =rbind(minusr(object@mu.alpha,gene), mixtools.alpha);
-  if (do.plot) {
-    nCol <- 2
-    num.row <- floor(x = (do.k + 1) / nCol - (1e-5)) + 1
-    par(mfrow = c(num.row, nCol))
-    plot.mixEM(x = mixtools.fit, which = 2)
-    plot.data <- as.numeric(x = object@imputed[gene, ])
-    if (! plot.with.imputed) {
-      plot.data <- as.numeric(x = object@data[gene, ])
-    }
-    unlist(
-      x = lapply(
-        X = 1:do.k,
-        FUN = function(x) {
-          plot(
-            x = plot.data,
-            y = mixtools.posterior[, x],
-            ylab = paste0("Posterior for Component ", x - 1),
-            xlab = gene,
-            main = gene
-          )
-        }
-      )
-    )
-  }
-  new.mix.probs <- data.frame(
-    SubsetColumn(
-      data = object@spatial@mix.probs,
-      code = paste0(gene, "."),
-      invert = TRUE
-    ),
-    row.names = rownames(x = object@spatial@mix.probs)
-  )
-  colnames(x = new.mix.probs)[1] <- "nGene"
-  object@spatial@mix.probs <- cbind(new.mix.probs, mixtools.posterior)
-  return(object)
-}
-

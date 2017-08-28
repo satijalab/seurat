@@ -34,3 +34,10 @@ projects this onto the entire dataset (all genes). Note that the cell
 loadings remains unchanged, but now there are gene loading scores for all
 genes.
 }
+\examples{
+pbmc_small
+pbmc_small <- ProjectPCA(pbmc_small)
+# Vizualize top projected genes in heatmap
+PCHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE)
+
+}

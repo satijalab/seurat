@@ -26,3 +26,11 @@ calculated mapping probabilities for each bin.
 Currently, Seurat assumes that the tissue of interest has an 8x8 bin
 structure. This will be broadened in a future release.
 }
+\examples{
+\dontrun{
+# Note that the PBMC test example object does not contain spatially restricted
+# examples below are only demonstrate code
+pmbc_small <- GetCentroids(pbmc_small, cells.use=pbmc_small@cell.names)
+}
+
+}

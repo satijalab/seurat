@@ -6,7 +6,8 @@
 \usage{
 RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
   genes.use = NULL, seed.use = 1, do.fast = TRUE, add.iter = 0,
-  dim.embed = 2, distance.matrix = NULL, ...)
+  dim.embed = 2, distance.matrix = NULL, reduction.name = "tsne",
+  reduction.key = "tSNE_", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,8 +34,12 @@ of this}
 \item{dim.embed}{The dimensional space of the resulting tSNE embedding
 (default is 2). For example, set to 3 for a 3d tSNE}
 
-\item{distance.matrix}{If set, tuns tSNE on the given distance matrix
+\item{distance.matrix}{If set, runs tSNE on the given distance matrix
 instead of data matrix (experimental)}
+
+\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. tsne by default}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default}
 
 \item{\dots}{Additional arguments to the tSNE call. Most commonly used is
 perplexity (expected number of neighbors default is 30)}
@@ -47,5 +52,17 @@ object@dr$tsne@cell.embeddings
 Run t-SNE dimensionality reduction on selected features. Has the option of
 running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 or running based on a set of genes. For details about stored TSNE calculation
-parameters, see \code{\link{PrintTSNEParams}}.
+parameters, see \code{PrintTSNEParams}.
+}
+\examples{
+pbmc_small
+# Run tSNE on first five PCs, note that for test dataset (only 80 cells)
+# we can't use default perplexity of 30
+pbmc_small <- RunTSNE(pbmc_small, reduction.use = "pca", dims.use = 1:5, perplexity=10)
+# Run tSNE on first five independent components from ICA
+pbmc_small <- RunICA(pbmc_small,ics.compute=5)
+pbmc_small <- RunTSNE(pbmc_small, reduction.use = "ica", dims.use = 1:5, perplexity=10)
+# Plot results
+TSNEPlot(pbmc_small)
+
 }

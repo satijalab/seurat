@@ -10,6 +10,8 @@ DimTopGenes(object, dim.use = 1, reduction.type = "pca", num.genes = 30,
 \arguments{
 \item{object}{Seurat object}
 
+\item{dim.use}{Dimension to use}
+
 \item{reduction.type}{Dimensional reduction to find the highest score for}
 
 \item{num.genes}{Number of genes to return}
@@ -17,12 +19,17 @@ DimTopGenes(object, dim.use = 1, reduction.type = "pca", num.genes = 30,
 \item{use.full}{Use the full PCA (projected PCA). Default i s FALSE}
 
 \item{do.balanced}{Return an equal number of genes with both + and - scores.}
-
-\item{pc.use}{Components to use}
 }
 \value{
 Returns a vector of genes
 }
 \description{
 Return a list of genes with the strongest contribution to a set of components
+}
+\examples{
+pbmc_small
+DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+# After projection:
+DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+
 }

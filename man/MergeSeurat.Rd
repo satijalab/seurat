@@ -15,6 +15,8 @@ MergeSeurat(object1, object2, project = NULL, min.cells = 0,
 
 \item{object2}{Second Seurat object to merge}
 
+\item{project}{Project name (string)}
+
 \item{min.cells}{Include genes with detected expression in at least this
 many cells}
 
@@ -24,6 +26,8 @@ many cells}
 
 \item{do.normalize}{Normalize the data after merging. Default is TRUE.
 If set, will perform the same normalization strategy as stored for the first object}
+
+\item{scale.factor}{If normalizing on the cell level, this sets the scale factor.}
 
 \item{do.scale}{In object@scale.data, perform row-scaling (gene-based
 z-score). FALSE by default, so run ScaleData after merging.}
@@ -43,14 +47,21 @@ which will save memory downstream for large datasets}
 \item{add.cell.id1}{String to be appended to the names of all cells in object1}
 
 \item{add.cell.id2}{String to be appended to the names of all cells in object2}
-
-\item{meta.data}{Additional metadata to add to the Seurat object. Should be
-a data frame where the rows are cell names, and the columns are additional
-metadata fields}
 }
 \value{
 Merged Seurat object
 }
 \description{
 Merge two Seurat objects
+}
+\examples{
+# Split pbmc_small for this example
+pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+pbmc1
+pbmc2 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+pbmc2
+# Merge pbmc1 and pbmc2 into one Seurat object
+pbmc_merged <- MergeSeurat(object1 = pbmc1, object2 = pbmc2)
+pbmc_merged
+
 }

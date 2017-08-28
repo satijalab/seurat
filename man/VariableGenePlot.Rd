@@ -49,3 +49,7 @@ VariableGenePlot(object, do.text = TRUE, cex.use = 0.5,
 \description{
 View variable genes
 }
+\examples{
+VariableGenePlot(object = pbmc_small)
+
+}

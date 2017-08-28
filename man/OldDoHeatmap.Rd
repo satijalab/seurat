@@ -6,9 +6,9 @@
 \usage{
 OldDoHeatmap(object, cells.use = NULL, genes.use = NULL, disp.min = NULL,
   disp.max = NULL, draw.line = TRUE, do.return = FALSE,
-  order.by.ident = TRUE, col.use = pyCols, slim.col.label = FALSE,
-  group.by = NULL, remove.key = FALSE, cex.col = NULL, do.scale = TRUE,
-  ...)
+  order.by.ident = TRUE, col.use = PurpleAndYellow(),
+  slim.col.label = FALSE, group.by = NULL, remove.key = FALSE,
+  cex.col = NULL, do.scale = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -56,4 +56,9 @@ to heatmap.2. Otherwise, no return value, only a graphical output
 \description{
 Draws a heatmap of single cell gene expression using the heatmap.2 function. Has been replaced by the ggplot2
 version (now in DoHeatmap), but kept for legacy
+}
+\examples{
+pbmc_small
+OldDoHeatmap(object = pbmc_small, genes.use = pbmc_small@var.genes)
+
 }

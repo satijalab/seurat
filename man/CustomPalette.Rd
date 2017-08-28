@@ -15,6 +15,14 @@ CustomPalette(low = "white", high = "red", mid = NULL, k = 50)
 
 \item{k}{number of steps (colors levels) to include between low and high values}
 }
+\value{
+A color palette for plotting
+}
 \description{
 Creates a custom color palette based on low, middle, and high color values
+}
+\examples{
+myPalette <- CustomPalette()
+myPalette
+
 }

@@ -28,3 +28,17 @@ Returns Seurat object with the dims aligned, stored in
 Aligns subspaces so that they line up across grouping variable (only
 implemented for case with 2 categories in grouping.var)
 }
+\examples{
+\dontrun{
+pbmc_small
+# Requires CCA to have previously been run
+# As CCA requires two datasets, we will split our test object into two just for this example
+pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+pbmc1@meta.data$group <- "group1"
+pbmc2@meta.data$group <- "group2"
+pbmc_cca <- RunCCA(pbmc1,pbmc2)
+pbmc_cca <- AlignSubspace(pbmc_cca,reduction.type = "cca", grouping.var = "group", dims.align = 1:2)
+}
+
+}
