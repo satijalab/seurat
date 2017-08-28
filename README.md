@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=develop)](https://travis-ci.org/satijalab/seurat)
 [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/satijalab/seurat?branch=develop&svg=true)](https://ci.appveyor.com/project/satijalab/seurat/branch/develop)
-[![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat) 
+[![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat) 
+[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat) 
 
 # Seurat v2.0
 
