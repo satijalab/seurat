@@ -122,16 +122,61 @@ test_that("ScaleData returns expected values when input is not sparse", {
   expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
 })
 
+# Tests for various regression techniques
+context("Regression")
+
+object <- ScaleData(object,
+                    vars.to.regress = "nUMI",
+                    genes.use = rownames(object@data)[1:10],
+                    display.progress = F,
+                    model.use = "linear")
+
+test_that("Linear regression works as expected", {
+  expect_equal(dim(object@scale.data), c(10, 59))
+  expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
+  expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
+  expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
+})
+
 object <- ScaleData(object,
                     vars.to.regress = "nUMI",
                     genes.use = rownames(object@data)[1:10],
                     display.progress = F,
                     model.use = "negbinom")
-test_that("Regression works as expected", {
+
+test_that("Negative binomial regression works as expected", {
   expect_equal(dim(object@scale.data), c(10, 59))
   expect_equal(object@scale.data[1, 1], -0.4150756, tolerance = 1e-6)
   expect_equal(object@scale.data[5, 25], -0.6586565, tolerance = 1e-6)
   expect_equal(object@scale.data[10, 59], -0.4537495, tolerance = 1e-6)
+})
+
+object <- suppressWarnings(RegressOutNB(object = object,
+                                        latent.vars = "nUMI",
+                                        genes.regress = rownames(object@data)[1:10]))
+
+test_that("Other negative binomial regression works as expected", {
+  expect_equal(dim(object@scale.data), c(10, 59))
+  expect_equal(object@scale.data[1, 1], -0.274358, tolerance = 1e-6)
+  expect_equal(object@scale.data[5, 25], -0.5623909, tolerance = 1e-6)
+  expect_equal(object@scale.data[10, 59], -0.3456492, tolerance = 1e-6)
+})
+
+test_that("Regression error handling checks out", {
+  expect_error(ScaleData(object, vars.to.regress = "nUMI", model.use = "not.a.model"))
+})
+
+object <- ScaleData(object,
+                    vars.to.regress = "nUMI",
+                    genes.use = rownames(object@data)[1:10],
+                    display.progress = F,
+                    model.use = "poisson")
+
+test_that("Poisson regression works as expected", {
+  expect_equal(dim(object@scale.data), c(10, 59))
+  expect_equal(object@scale.data[1, 1], -0.6115097, tolerance = 1e-6)
+  expect_equal(object@scale.data[5, 25], -0.5971585, tolerance = 1e-6)
+  expect_equal(object@scale.data[10, 59], -0.4533085, tolerance = 1e-6)
 })
 
 # Tests for SampleUMI
