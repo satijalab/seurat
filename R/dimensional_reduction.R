@@ -1004,7 +1004,8 @@ AlignSubspace <- function(
         x = align.1,
         y = align.2,
         keep = TRUE,
-        dist.method = metric.use
+        dist.method = metric.use,
+        step.pattern = mvmStepPattern(round(0.05 * length(align.2)))
       )
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
@@ -1012,9 +1013,9 @@ AlignSubspace <- function(
       alignment.map.orig <- alignment.map
       alignment.map$dups <- duplicated(x = alignment.map$alignment.index1) |
         duplicated(x = alignment.map$alignment.index1, fromLast = TRUE)
-      alignment.map %>% group_by(alignment.index1) %>% mutate(cc_data1 = ifelse(dups, mean(cc_data2), cc_data1)) -> alignment.map
+      alignment.map %>% group_by(alignment.index1) %>% mutate(cc_data1_mapped = ifelse(dups, mean(cc_data2), cc_data2)) -> alignment.map
       alignment.map <- alignment.map[! duplicated(x = alignment.map$alignment.index1), ]
-      cc.embeds.all[names(x = sort(x = cc.embeds[[g]][, cc.use])), cc.use] <- alignment.map$cc_data2
+      cc.embeds.all[names(x = sort(x = cc.embeds[[g]][, cc.use])), cc.use] <- alignment.map$cc_data1_mapped
       if (show.plots) {
         par(mfrow = c(3, 2))
         plot(x = ReferenceRange(x = metagenes[[1]]), main = cc.use)
@@ -1029,8 +1030,8 @@ AlignSubspace <- function(
           pch = 16,
           cex = 0.4
         )
-        plot(x = density(x = alignment.map$cc_data2))
-        lines(x = density(x = sort(x = cc.embeds[[g]][, cc.use])), col = "red")
+        plot(x = density(x = alignment.map$cc_data1_mapped))
+        lines(x = density(x = sort(x = cc.embeds[[1]][, cc.use])), col = "red")
         plot(x = alignment.map.orig$cc_data1)
         points(x = alignment.map.orig$cc_data2, col = "red")
       }
