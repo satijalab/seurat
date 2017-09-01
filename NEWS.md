@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ### Added
 - C++ implementation for parts of FindVariableGenes
 
+## [2.0.1] - 2017-08-18
+### Added
+ - Now available on CRAN
+ - Updated documentation complete with examples
+ - Example datasets: `pbmc_small` and `cc.genes`
+
 ## [2.0.0] - 2017-07-26
 ### Added
 - New method for aligning scRNA-seq datasets

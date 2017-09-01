@@ -1793,12 +1793,14 @@ CellPlot <- function(
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
 #' @param remove.key Removes the color key from the plot.
 #' @param label.columns Labels for columns
+#' @param check.plot Check that plotting will finish in a reasonable amount of time
 #' @param ... Extra parameters for heatmap plotting.
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #'
 #' @importFrom graphics par
+#' @importFrom utils menu
 #'
 #' @export
 #'
@@ -1820,6 +1822,7 @@ DimHeatmap <- function(
   do.balanced = FALSE,
   remove.key = FALSE,
   label.columns = NULL,
+  check.plot = TRUE,
   ...
 ) {
   num.row <- floor(x = length(x = dim.use) / 3.01) + 1
@@ -1882,6 +1885,14 @@ DimHeatmap <- function(
         new.data <- as.matrix(x = new.data)
       }
       data.use <- rbind(data.use, new.data)
+    }
+    if(check.plot & any(dim(data.use) > 700) & (remove.key == FALSE & length(dim.use) == 1)) {
+      choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
+      if(choice == 1){
+        check.plot = FALSE
+      } else {
+        return()
+      }
     }
     #data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
