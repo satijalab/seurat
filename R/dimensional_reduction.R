@@ -689,7 +689,7 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
   results <- list(ws=ws.final, ws.init=ws.init, num.sets = num.sets, cors=cors)
   combined.object <- input[[1]]
   for(i in 2:length(input)){
-    combined.object <- AddSamples(combined.object, new.data = input[[i]]@raw.data, do.scale = F, do.center = F, do.normalize = F)
+    combined.object <- MergeSeurat(object1 = combined.object, object2 = input[[i]], do.scale = F, do.center = F, do.normalize = F)
   }
   combined.object <- NormalizeData(combined.object)
   combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
