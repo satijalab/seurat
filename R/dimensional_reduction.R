@@ -1125,7 +1125,7 @@ AlignSubspace <- function(
           dist.method = metric.use
         )
       } else if (step.pattern == "mvmStepPattern"){
-        elast.use <- SetIfNull(mvm.elast, round(0.05 * abs(length(align.2)) - length(align.1)))
+        elast.use <- SetIfNull(mvm.elast, round(0.05 * abs(length(align.2) - length(align.1))))
         alignment <- dtw(
           x = align.1,
           y = align.2,
