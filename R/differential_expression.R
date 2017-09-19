@@ -142,7 +142,9 @@ FindMarkers <- function(
   data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = ExpMean)
   data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = ExpMean)
   total.diff <- (data.1 - data.2)
-  genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
+  if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
+  if (only.pos) genes.diff <- names(x = which(x = total.diff > thresh.use))
+  
   genes.use <- intersect(x = genes.use, y = genes.diff)
   if(length(genes.use) == 0) {
     stop("No genes pass thresh.use threshold")
