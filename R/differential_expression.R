@@ -206,6 +206,17 @@ FindMarkers <- function(
       # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
+  if (test.use == "MAST") {
+    to.return <- MASTDETest(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      latent.vars = latent.vars,
+      print.bar = print.bar
+      # min.cells # PoissonDETest doesn't have something for min.cells
+    )
+  }
   #return results
   to.return[, "avg_diff"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
