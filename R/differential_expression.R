@@ -222,6 +222,18 @@ FindMarkers <- function(
       # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
+    if (test.use == "DESeq2") {
+      to.return <- DESeq2DETest(
+        object = object,
+        cells.1 = cells.1,
+        cells.2 = cells.2,
+        genes.use = genes.use,
+        latent.vars = latent.vars,
+        print.bar = print.bar,
+        ...
+        # min.cells # PoissonDETest doesn't have something for min.cells
+      )
+  }
   #return results
   to.return[, "avg_diff"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
@@ -1124,6 +1136,79 @@ MASTDETest <- function(
   return(to.return)
 }
 
+#' Differential expression using DESeq2 
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' DESeq2
+#' 
+#' @references Love MI, Huber W and Anders S (2014). “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
+#' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param min.cells Minimum number of cells expressing the gene in at least one 
+#' of the two groups
+#' @param genes.use Genes to use for test
+#' @param latent.vars Confounding variables to adjust for in DE test. Default is 
+#' "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For 
+#' non-UMI based data, set to nGene instead. 
+#' @param \dots Additional parameters to zero-inflated regression (zlm) function 
+#' in MAST
+#'
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
+#'
+#' @export
+#'
+#'@examples
+#' pbmc_small
+#' MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#'
+DESeq2DETest <- function(
+  object,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  genes.use = NULL,
+  latent.vars = NULL,
+  print.bar = TRUE,
+  ...
+) {
+  
+  tryCatch(
+    expr = library(DESeq2),
+    error = function(e) {
+      stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
+    }
+  )
+  
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
+  # check that the gene made it through the any filtering that was done
+  genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
+  coldata=object@meta.data[c(cells.1,cells.2),]
+  coldata[cells.1, "group"] <- "Group1"
+  coldata[cells.2, "group"] <- "Group2"
+  coldata$group <- factor(x = coldata$group)
+  coldata$wellKey <- rownames(coldata)
+  countdata.test <- object@raw.data[genes.use, rownames(coldata)]
+  fdat <- data.frame(rownames(countdata.test))
+  colnames(fdat)[1] <- "primerid"
+  rownames(fdat) <- fdat[, 1]
+  
+  dds1 <- DESeqDataSetFromMatrix(countData = countdata.test,
+                                 colData = coldata,
+                                 design = ~ group )
+  dds1=estimateSizeFactors(dds1)
+  dds1=estimateDispersions(dds1,fitType="local")
+  dds1=nbinomWaldTest(dds1)
+  res=results(dds1,contrast = c("group","Group1","Group2"),alpha=0.05)  
+  p_val <- res$pvalue
+  genes.return <- rownames(res)
+  
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
 
 #' Differential expression testing using Tobit models
 #'
