@@ -1092,7 +1092,7 @@ MASTDETest <- function(
     object = paste0(" ~ ", paste(latent.vars, collapse="+"))
   )
   
-  zlmCond <- MAST::zlm(formula = fmla, data = sca)
+  zlmCond <- MAST::zlm(formula = fmla, sca = sca)
   summaryCond <- summary(zlmCond, doLRT='conditionGroup2') 
   
   
