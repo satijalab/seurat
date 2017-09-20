@@ -5,7 +5,7 @@
 \title{Differential expression using MAST}
 \usage{
 MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE)
+  latent.vars = NULL, print.bar = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +19,8 @@ MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 \item{genes.use}{Genes to use for test}
 
 \item{latent.vars}{Confounding variables to adjust for in DE test. Default is "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For non-UMI based data, set to nGene instead.}
+
+\item{\dots}{Additional parameters to zero-inflated regression (zlm) function in MAST}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

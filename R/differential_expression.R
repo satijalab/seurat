@@ -30,6 +30,7 @@ globalVariables(names = 'avg_diff', package = 'Seurat', add = TRUE)
 #' @param random.seed Random seed for downsampling
 #' @param latent.vars Variables to test
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param \dots Additional parameters to pass to specific DE functions
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
 #'
@@ -55,7 +56,8 @@ FindMarkers <- function(
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = "nUMI",
-  min.cells = 3
+  min.cells = 3,
+  ...
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   if (max.cells.per.ident < Inf) {
@@ -215,7 +217,8 @@ FindMarkers <- function(
       cells.2 = cells.2,
       genes.use = genes.use,
       latent.vars = latent.vars,
-      print.bar = print.bar
+      print.bar = print.bar,
+      ...
       # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
@@ -265,6 +268,7 @@ globalVariables(
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param latent.vars remove the effects of these variables
+#' @param \dots Additional parameters to pass to specific DE functions
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
@@ -288,7 +292,8 @@ FindAllMarkers <- function(
   do.print = FALSE,
   random.seed = 1,
   min.cells = 3,
-  latent.vars = "nUMI"
+  latent.vars = "nUMI",
+  ...
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   ident.use <- object@ident
@@ -317,7 +322,8 @@ FindAllMarkers <- function(
                     min.diff.pct = min.diff.pct,
                     print.bar = print.bar,
                     min.cells = min.cells,
-                    latent.vars = latent.vars
+                    latent.vars = latent.vars,
+                    ...
         )
       },
       error = function(cond){
@@ -431,7 +437,8 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print Print status updates
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
-#'
+#' @param \dots Additional parameters to pass to specific DE functions
+#' 
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
 #'
 #' @importFrom ape drop.tip
@@ -455,7 +462,8 @@ FindAllMarkersNode <- function(
   return.thresh = 1e-2,
   do.print = FALSE,
   random.seed = 1,
-  min.cells = 3
+  min.cells = 3,
+  ...
 ) {
   if(length(object@cluster.tree) == 0){
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
@@ -1033,6 +1041,7 @@ PoissonDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param genes.use Genes to use for test
 #' @param latent.vars Confounding variables to adjust for in DE test. Default is "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For non-UMI based data, set to nGene instead. 
+#' @param \dots Additional parameters to zero-inflated regression (zlm) function in MAST
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -1051,7 +1060,8 @@ MASTDETest <- function(
   min.cells = 3,
   genes.use = NULL,
   latent.vars = NULL,
-  print.bar = TRUE
+  print.bar = TRUE,
+  ...
 ) {
   
   tryCatch(
@@ -1092,7 +1102,7 @@ MASTDETest <- function(
     object = paste0(" ~ ", paste(latent.vars, collapse="+"))
   )
   
-  zlmCond <- MAST::zlm(formula = fmla, sca = sca)
+  zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
   summaryCond <- summary(zlmCond, doLRT='conditionGroup2') 
   
   
