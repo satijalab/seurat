@@ -33,14 +33,16 @@ genes.
 \description{
 Identifies differentially expressed genes between two groups of cells using
 a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
-the DE testing. For more info on MAST, please see: 
-Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
-Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
-https://github.com/RGLab/MAST/
+the DE testing.
 }
 \examples{
 pbmc_small
 MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 
+}
+\references{
+Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
+Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
+https://github.com/RGLab/MAST/
 }

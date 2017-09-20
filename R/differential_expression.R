@@ -1034,11 +1034,11 @@ PoissonDETest <- function(
 #'
 #' Identifies differentially expressed genes between two groups of cells using
 #' a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
-#' the DE testing. For more info on MAST, please see: 
-#' Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
+#' the DE testing.
+#' 
+#' @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
 #' Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
 #' https://github.com/RGLab/MAST/
-#
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
