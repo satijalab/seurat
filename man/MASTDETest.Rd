@@ -14,13 +14,17 @@ MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
+\item{min.cells}{Minimum number of cells expressing the gene in at least one 
+of the two groups}
 
 \item{genes.use}{Genes to use for test}
 
-\item{latent.vars}{Confounding variables to adjust for in DE test. Default is "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For non-UMI based data, set to nGene instead.}
+\item{latent.vars}{Confounding variables to adjust for in DE test. Default is 
+"nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For 
+non-UMI based data, set to nGene instead.}
 
-\item{\dots}{Additional parameters to zero-inflated regression (zlm) function in MAST}
+\item{\dots}{Additional parameters to zero-inflated regression (zlm) function 
+in MAST}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed
@@ -28,7 +32,11 @@ genes.
 }
 \description{
 Identifies differentially expressed genes between two groups of cells using
-a hurdle model tailored to scRNA-seq data.
+a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
+the DE testing. For more info on MAST, please see: 
+Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
+Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
+https://github.com/RGLab/MAST/
 }
 \examples{
 pbmc_small

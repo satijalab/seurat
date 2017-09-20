@@ -1033,15 +1033,23 @@ PoissonDETest <- function(
 #' Differential expression using MAST 
 #'
 #' Identifies differentially expressed genes between two groups of cells using
-#' a hurdle model tailored to scRNA-seq data.
+#' a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
+#' the DE testing. For more info on MAST, please see: 
+#' Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
+#' Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
+#' https://github.com/RGLab/MAST/
 #
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
-#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param min.cells Minimum number of cells expressing the gene in at least one 
+#' of the two groups
 #' @param genes.use Genes to use for test
-#' @param latent.vars Confounding variables to adjust for in DE test. Default is "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For non-UMI based data, set to nGene instead. 
-#' @param \dots Additional parameters to zero-inflated regression (zlm) function in MAST
+#' @param latent.vars Confounding variables to adjust for in DE test. Default is 
+#' "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For 
+#' non-UMI based data, set to nGene instead. 
+#' @param \dots Additional parameters to zero-inflated regression (zlm) function 
+#' in MAST
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -1080,45 +1088,41 @@ MASTDETest <- function(
     cells.use = c(cells.1, cells.2),
     use.raw = TRUE
   )
-  if (length(latent.vars) > 0) my.latent = scale(my.latent)
+  if (length(latent.vars) > 0) {
+    my.latent <- scale(my.latent)
+  }
   coldata <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  coldata[cells.1,"group"] <- "Group1"
-  coldata[cells.2,"group"] <- "Group2"
+  coldata[cells.1, "group"] <- "Group1"
+  coldata[cells.2, "group"] <- "Group2"
   coldata$group <- factor(x = coldata$group)
-  coldata$wellKey=rownames(coldata)
+  coldata$wellKey <- rownames(coldata)
   latent.vars <- c("condition", latent.vars)
-  
-  
-  countdata.test=object@data[genes.use,rownames(coldata)]
-  fdat=data.frame(rownames(countdata.test))
-  colnames(fdat)[1]="primerid"
-  rownames(fdat)=fdat[,1]
-  sca <- MAST::FromMatrix(as.matrix(countdata.test),coldata,fdat)
-  cond<-factor(colData(sca)$group)
-  cond<-relevel(cond,"Group1")
-  colData(sca)$condition<-cond
-  
+  countdata.test <- object@data[genes.use, rownames(coldata)]
+  fdat <- data.frame(rownames(countdata.test))
+  colnames(fdat)[1] <- "primerid"
+  rownames(fdat) <- fdat[, 1]
+  sca <- MAST::FromMatrix(exprsArray = as.matrix(countdata.test), 
+                          cData = coldata, 
+                          fData = fdat)
+  cond <- factor(colData(sca)$group)
+  cond <- relevel(cond, "Group1")
+  colData(sca)$condition <- cond
   fmla <- as.formula(
-    object = paste0(" ~ ", paste(latent.vars, collapse="+"))
+    object = paste0(" ~ ", paste(latent.vars, collapse = "+"))
   )
-  
   zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
-  summaryCond <- summary(zlmCond, doLRT='conditionGroup2') 
-  
-  
+  summaryCond <- summary(zlmCond, doLRT = 'conditionGroup2') 
   summaryDt <- summaryCond$datatable
+  
   #fcHurdle <- merge(summaryDt[contrast=='conditionGroup2' & component=='H',.(primerid, `Pr(>Chisq)`)], #hurdle P values
   #                  summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid') #logFC coefficients
-  
   #fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val=subset(summaryDt,component=="H")[,4]
-  genes.return=subset(summaryDt,component=="H")[,1]
+  
+  p_val <- subset(summaryDt, component == "H")[, 4]
+  genes.return <- subset(summaryDt, component == "H")[, 1]
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
-
-
-
 
 
 #' Differential expression testing using Tobit models
