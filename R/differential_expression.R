@@ -222,6 +222,18 @@ FindMarkers <- function(
       # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
+  if (test.use == "wilcox") {
+    to.return <- WilcoxDETest(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      latent.vars = latent.vars,
+      print.bar = print.bar,
+      ...
+      # min.cells # PoissonDETest doesn't have something for min.cells
+    )
+  }
     if (test.use == "DESeq2") {
       to.return <- DESeq2DETest(
         object = object,
@@ -1149,9 +1161,6 @@ MASTDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one 
 #' of the two groups
 #' @param genes.use Genes to use for test
-#' @param latent.vars Confounding variables to adjust for in DE test. Default is 
-#' "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For 
-#' non-UMI based data, set to nGene instead. 
 #' @param \dots Additional parameters to zero-inflated regression (zlm) function 
 #' in MAST
 #'
@@ -1162,7 +1171,7 @@ MASTDETest <- function(
 #'
 #'@examples
 #' pbmc_small
-#' MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#' DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
 #'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 DESeq2DETest <- function(
@@ -1206,6 +1215,53 @@ DESeq2DETest <- function(
   p_val <- res$pvalue
   genes.return <- rownames(res)
   
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
+
+#' Differential expression using Wilcoxon Rank Sum  
+#'
+#' Identifies differentially expressed genes between two groups of cells using
+#' a Wilcoxon Rank Sum test
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param min.cells Minimum number of cells expressing the gene in at least one 
+#' of the two groups
+#' @param genes.use Genes to use for test
+#'
+#' @return Returns a p-value ranked matrix of putative differentially expressed
+#' genes.
+#'
+#' @export
+#'
+#'@examples
+#' pbmc_small
+#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#'
+WilcoxDETest <- function(
+  object,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  genes.use = NULL,
+  latent.vars = NULL,
+  print.bar = TRUE,
+  ...
+) {
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
+  # check that the gene made it through the any filtering that was done
+  genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
+  coldata=object@meta.data[c(cells.1,cells.2),]
+  coldata[cells.1, "group"] <- "Group1"
+  coldata[cells.2, "group"] <- "Group2"
+  coldata$group <- factor(x = coldata$group)
+  coldata$wellKey <- rownames(coldata)
+  countdata.test <- object@data[genes.use, rownames(coldata)]
+  #p_val=pbapply::
+  p_val <- pbsapply(1:nrow(countdata.test),function(x) wilcox.test(countdata.test[x,] ~ coldata$group)$p.value)
+  genes.return <- rownames(countdata.test)
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
