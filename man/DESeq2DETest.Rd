@@ -28,9 +28,11 @@ Identifies differentially expressed genes between two groups of cells using
 DESeq2
 }
 \details{
-This test does not support pre-filtering of genes based on average difference (or percent detection rate) between cell groups. 
-However, genes may be pre-filtered based on their minimum detection rate (min.pct) across both cell groups.
-To use this method, please install DESeq2, using the instructions at https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+This test does not support pre-filtering of genes based on average difference 
+(or percent detection rate) between cell groups. However, genes may be 
+pre-filtered based on their minimum detection rate (min.pct) across both cell 
+groups. To use this method, please install DESeq2, using the instructions at
+ https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }
 \examples{
 pbmc_small
@@ -39,6 +41,7 @@ DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
 
 }
 \references{
-Love MI, Huber W and Anders S (2014). “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
+Love MI, Huber W and Anders S (2014). “Moderated estimation of 
+fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }

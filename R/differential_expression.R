@@ -17,39 +17,56 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param test.use Denotes which test to use. Available options are:
 ##' \itemize{
 ##'  \item{"wilcox"} : Wilcoxon rank sum test (default)
-##'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression, (McDavid et al., Bioinformatics, 2013)
+##'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression, 
+##'  (McDavid et al., Bioinformatics, 2013)
 ##'  \item{"roc"} : Standard AUC classifier
 ##'  \item{"t"} : Student's t-test
-##'  \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et al., Nature Biotech, 2014)
-##'  \item{"poisson"} : Likelihood ratio test assuming an underlying poisson distribution. Use only for UMI-based datasets
-##'  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
-##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a covariate (Finak et al, Genome Biology, 2015)
-##'  \item{"DESeq2} : DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014)
-##'  \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated data, as described in (Van der Berge et al, bioRxiv)
+##'  \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et 
+##'  al., Nature Biotech, 2014)
+##'  \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
+##'   distribution. Use only for UMI-based datasets
+##'  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative 
+##'  binomial distribution. Use only for UMI-based datasets
+##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a 
+##'  covariate (Finak et al, Genome Biology, 2015)
+##'  \item{"DESeq2} : DE based on a model using the negative binomial 
+##'  distribution (Love et al, Genome Biology, 2014)
+##'  \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
+##'   data, as described in (Van der Berge et al, bioRxiv)
 ##' }
 ##'
 #' @param test.use Denotes which test to use. Available options are:
 #' "bimod" , "roc" (standard AUC classifier), "t"
 #' (Students t-test), and "tobit" , 'poisson', and 'negbinom'.
-#' The latter two options should only be used on UMI datasets, and assume an underlying
-#' poisson or negative-binomial distribution
-#' @param min.pct  only test genes that are detected in a minimum fraction of min.pct cells
-#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expressed. Default is 0.1
-#' @param min.diff.pct  only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
+#' The latter two options should only be used on UMI datasets, and assume an 
+#' underlying poisson or negative-binomial distribution
+#' @param min.pct  only test genes that are detected in a minimum fraction of 
+#' min.pct cells in either of the two populations. Meant to speed up the function 
+#' by not testing genes that are very infrequently expressed. Default is 0.1
+#' @param min.diff.pct  only test genes that show a minimum difference in the 
+#' fraction of detection between the two groups. Set to -Inf by default
 #' @param only.pos Only return positive markers (FALSE by default)
-#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling. Not activated by default (set to Inf)
+#' @param print.bar Print a progress bar once expression testing begins (uses 
+#' pbapply to do this)
+#' @param max.cells.per.ident Down sample each identity class to a max number. 
+#' Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
 #' @param latent.vars Variables to test
-#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
-#' @param pseudocount.use Pseudocount to add to averaged expression values when calculating logFC. 1 by default.
+#' @param min.cells Minimum number of cells expressing the gene in at least one 
+#' of the two groups
+#' @param pseudocount.use Pseudocount to add to averaged expression values when 
+#' calculating logFC. 1 by default.
 #' @param \dots Additional parameters to pass to specific DE functions
-#' @seealso \code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and \code{\link{DESeq2DETest}}
-#' for more information on these methods
-#' @return Matrix containing a ranked list of putative markers, and associated statistics (p-values, ROC score, etc.)
-#' @details p-value adjustment is performed using bonferroni correction based on the total number of genes in the dataset. 
-#' Other correction methods are not recommended, as Seurat pre-filters genes using the arguments above, reducing the number of tests performed.
-#' Lastly, as Aaron Lun has pointed out, p-values should be interpreted cautiously, as the genes used for clustering are the same genes tested for differential expression.
+#' @seealso \code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and 
+#' \code{\link{DESeq2DETest}} for more information on these methods
+#' @return Matrix containing a ranked list of putative markers, and associated 
+#' statistics (p-values, ROC score, etc.)
+#' @details p-value adjustment is performed using bonferroni correction based on 
+#' the total number of genes in the dataset. Other correction methods are not 
+#' recommended, as Seurat pre-filters genes using the arguments above, reducing 
+#' the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values 
+#' should be interpreted cautiously, as the genes used for clustering are the 
+#' same genes tested for differential expression.
 #' @import pbapply
 #'
 #' @export
@@ -73,16 +90,15 @@ FindMarkers <- function(
   random.seed = 1,
   latent.vars = "nUMI",
   min.cells = 3,
-  pseudocount.use=1,
+  pseudocount.use = 1,
   ...
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
-
-  methods.noprefiliter=c("DESeq2","zingeR")
+  methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
-    genes.use=rownames(x = object@data)
-    min.diff.pct=-Inf
-    thresh.use=0
+    genes.use <- rownames(x = object@data)
+    min.diff.pct <- -Inf
+    thresh.use <- 0
   }
   
   # in case the user passed in cells instead of identity classes
@@ -245,7 +261,6 @@ FindMarkers <- function(
       latent.vars = latent.vars,
       print.bar = print.bar,
       ...
-      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
   if (test.use == "zingeR") {
@@ -256,7 +271,6 @@ FindMarkers <- function(
       genes.use = genes.use,
       print.bar = print.bar,
       ...
-      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
   if (test.use == "wilcox") {
@@ -268,7 +282,6 @@ FindMarkers <- function(
       latent.vars = latent.vars,
       print.bar = print.bar,
       ...
-      # min.cells # PoissonDETest doesn't have something for min.cells
     )
   }
     if (test.use == "DESeq2") {
@@ -280,7 +293,6 @@ FindMarkers <- function(
         latent.vars = latent.vars,
         print.bar = print.bar,
         ...
-        # min.cells # PoissonDETest doesn't have something for min.cells
       )
   }
   #return results
@@ -1180,7 +1192,8 @@ MASTDETest <- function(
 #' Identifies differentially expressed genes between two groups of cells using
 #' DESeq2
 #' 
-#' @references Love MI, Huber W and Anders S (2014). “Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
+#' @references Love MI, Huber W and Anders S (2014). “Moderated estimation of 
+#' fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
 #' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
@@ -1192,9 +1205,11 @@ MASTDETest <- function(
 #' genes.
 #'
 #' @details 
-#' This test does not support pre-filtering of genes based on average difference (or percent detection rate) between cell groups. 
-#' However, genes may be pre-filtered based on their minimum detection rate (min.pct) across both cell groups.
-#' To use this method, please install DESeq2, using the instructions at https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#' This test does not support pre-filtering of genes based on average difference 
+#' (or percent detection rate) between cell groups. However, genes may be 
+#' pre-filtered based on their minimum detection rate (min.pct) across both cell 
+#' groups. To use this method, please install DESeq2, using the instructions at
+#'  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #' @export
 #'
 #'@examples
@@ -1223,7 +1238,7 @@ DESeq2DETest <- function(
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
-  coldata=object@meta.data[c(cells.1,cells.2),]
+  coldata <- object@meta.data[c(cells.1, cells.2), ]
   coldata[cells.1, "group"] <- "Group1"
   coldata[cells.2, "group"] <- "Group2"
   coldata$group <- factor(x = coldata$group)
@@ -1236,10 +1251,10 @@ DESeq2DETest <- function(
   dds1 <- DESeqDataSetFromMatrix(countData = countdata.test,
                                  colData = coldata,
                                  design = ~ group )
-  dds1=estimateSizeFactors(dds1)
-  dds1=estimateDispersions(dds1,fitType="local")
-  dds1=nbinomWaldTest(dds1)
-  res=results(dds1,contrast = c("group","Group1","Group2"),alpha=0.05)  
+  dds1 <- estimateSizeFactors(dds1)
+  dds1 <- estimateDispersions(dds1, fitType = "local")
+  dds1 <- nbinomWaldTest(dds1)
+  res <- results(dds1, contrast = c("group", "Group1", "Group2"), alpha = 0.05)  
   p_val <- res$pvalue
   genes.return <- rownames(res)
   
@@ -1252,8 +1267,9 @@ DESeq2DETest <- function(
 #' Identifies differentially expressed genes between two groups of cells using
 #' zingeR-DESeq2
 #' 
-#' @references Van Der Verge K, Soneson C, Love MI, Robinson MD,  Clement LS (2017). "zingeR: unlocking RNA-seq tools for zero-inflation and single cell applications" biorXiv.
-#' https://github.com/statOmics/zingeR
+#' @references Van Der Verge K, Soneson C, Love MI, Robinson MD,  Clement LS (2017). 
+#' "zingeR: unlocking RNA-seq tools for zero-inflation and single cell
+#'  applications" biorXiv. https://github.com/statOmics/zingeR
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
@@ -1264,9 +1280,11 @@ DESeq2DETest <- function(
 #' genes.
 #'
 #' @details 
-#' This test does not support pre-filtering of genes based on average difference (or percent detection rate) between cell groups. 
-#' However, genes may be pre-filtered based on their minimum detection rate (min.pct) across both cell groups. 
-#' To use this method, please install zingeR, using the instructions at https://github.com/statOmics/zingeR
+#' This test does not support pre-filtering of genes based on average difference
+#' (or percent detection rate) between cell groups. However, genes may be
+#' pre-filtered based on their minimum detection rate (min.pct) across both cell 
+#' groups.To use this method, please install zingeR, using the instructions at
+#' https://github.com/statOmics/zingeR
 #' @export
 #'@examples
 #' pbmc_small
@@ -1294,7 +1312,7 @@ zingeRDETest <- function(
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
-  coldata=object@meta.data[c(cells.1,cells.2),]
+  coldata <- object@meta.data[c(cells.1, cells.2), ]
   coldata[cells.1, "group"] <- "Group1"
   coldata[cells.2, "group"] <- "Group2"
   coldata$group <- factor(x = coldata$group)
@@ -1305,15 +1323,17 @@ zingeRDETest <- function(
   rownames(fdat) <- fdat[, 1]
   
   dds1 <- DESeqDataSetFromMatrix(countData = countdata.test,colData = coldata,  design = ~ group )
-  design=model.matrix(~coldata$group)
-  weights <- zeroWeightsLS(counts=countdata.test, design=design, maxit=200, normalization="DESeq2_poscounts", colData=coldata, designFormula=~group)
-  assays(dds1)[["weights"]]=weights
-  dds1 = DESeq2::estimateSizeFactors(dds1, type="poscounts")
-  dds1 = estimateDispersions(dds1)
-  dds1 = nbinomWaldTest(dds1, betaPrior=TRUE, useT=TRUE, df=rowSums(weights)-2)
-  res = results(dds1)
-  p_val = res$pvalue
-  genes.return=rownames(res)
+  design <- model.matrix(~coldata$group)
+  weights <- zeroWeightsLS(counts = countdata.test, design = design, maxit = 200, 
+                           normalization = "DESeq2_poscounts", colData = coldata, 
+                           designFormula =~ group)
+  assays(dds1)[["weights"]] <- weights
+  dds1 <- DESeq2::estimateSizeFactors(dds1, type = "poscounts")
+  dds1 <- estimateDispersions(dds1)
+  dds1 <- nbinomWaldTest(dds1, betaPrior=TRUE, useT=TRUE, df=rowSums(weights)-2)
+  res <- results(dds1)
+  p_val <- res$pvalue
+  genes.return <- rownames(res)
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
@@ -1352,14 +1372,16 @@ WilcoxDETest <- function(
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
-  coldata=object@meta.data[c(cells.1,cells.2),]
+  coldata <- object@meta.data[c(cells.1, cells.2), ]
   coldata[cells.1, "group"] <- "Group1"
   coldata[cells.2, "group"] <- "Group2"
   coldata$group <- factor(x = coldata$group)
   coldata$wellKey <- rownames(coldata)
   countdata.test <- object@data[genes.use, rownames(coldata)]
   #p_val=pbapply::
-  p_val <- pbsapply(1:nrow(countdata.test),function(x) wilcox.test(countdata.test[x,] ~ coldata$group)$p.value)
+  p_val <- pbsapply(1:nrow(countdata.test), function(x) {
+    wilcox.test(countdata.test[x, ] ~ coldata$group)$p.value
+  })
   genes.return <- rownames(countdata.test)
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)

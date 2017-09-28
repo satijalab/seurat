@@ -28,9 +28,11 @@ Identifies differentially expressed genes between two groups of cells using
 zingeR-DESeq2
 }
 \details{
-This test does not support pre-filtering of genes based on average difference (or percent detection rate) between cell groups. 
-However, genes may be pre-filtered based on their minimum detection rate (min.pct) across both cell groups. 
-To use this method, please install zingeR, using the instructions at https://github.com/statOmics/zingeR
+This test does not support pre-filtering of genes based on average difference
+(or percent detection rate) between cell groups. However, genes may be
+pre-filtered based on their minimum detection rate (min.pct) across both cell 
+groups.To use this method, please install zingeR, using the instructions at
+https://github.com/statOmics/zingeR
 }
 \examples{
 pbmc_small
@@ -39,6 +41,7 @@ DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
 
 }
 \references{
-Van Der Verge K, Soneson C, Love MI, Robinson MD,  Clement LS (2017). "zingeR: unlocking RNA-seq tools for zero-inflation and single cell applications" biorXiv.
-https://github.com/statOmics/zingeR
+Van Der Verge K, Soneson C, Love MI, Robinson MD,  Clement LS (2017). 
+"zingeR: unlocking RNA-seq tools for zero-inflation and single cell
+ applications" biorXiv. https://github.com/statOmics/zingeR
 }

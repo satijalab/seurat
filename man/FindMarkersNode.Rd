@@ -23,15 +23,22 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
  \item{"wilcox"} : Wilcoxon rank sum test (default)
- \item{"bimod"} : Likelihood-ratio test for single cell gene expression, (McDavid et al., Bioinformatics, 2013)
+ \item{"bimod"} : Likelihood-ratio test for single cell gene expression, 
+ (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Standard AUC classifier
  \item{"t"} : Student's t-test
- \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et al., Nature Biotech, 2014)
- \item{"poisson"} : Likelihood ratio test assuming an underlying poisson distribution. Use only for UMI-based datasets
- \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative binomial distribution. Use only for UMI-based datasets
- \item{"MAST} : GLM-framework that treates cellular detection rate as a covariate (Finak et al, Genome Biology, 2015)
- \item{"DESeq2} : DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014)
- \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated data, as described in (Van der Berge et al, bioRxiv)
+ \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et 
+ al., Nature Biotech, 2014)
+ \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
+  distribution. Use only for UMI-based datasets
+ \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative 
+ binomial distribution. Use only for UMI-based datasets
+ \item{"MAST} : GLM-framework that treates cellular detection rate as a 
+ covariate (Finak et al, Genome Biology, 2015)
+ \item{"DESeq2} : DE based on a model using the negative binomial 
+ distribution (Love et al, Genome Biology, 2014)
+ \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
+  data, as described in (Van der Berge et al, bioRxiv)
 }}
 
 \item{...}{Additional arguments passed to FindMarkers}
