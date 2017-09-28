@@ -117,22 +117,26 @@ BuildSNN <- function(
   )
   object@snn <- w
   if (plot.SNN) {
-    if (length(x = object@dr$tsne@cell.embeddings) < 1) {
+    if(!"tsne" %in% names(object@dr)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
-      net <- graph.adjacency(
-        adjmatrix = w,
-        mode = "undirected",
-        weighted = TRUE,
-        diag = FALSE
-      )
-      plot.igraph(
-        x = net,
-        layout = as.matrix(x = object@dr$tsne@cell.embeddings),
-        edge.width = E(graph = net)$weight,
-        vertex.label = NA,
-        vertex.size = 0
-      )
+      if (nrow(object@dr$tsne@cell.embeddings) != length(x = object@cell.names)) {
+        warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
+      } else {
+        net <- graph.adjacency(
+          adjmatrix = as.matrix(w),
+          mode = "undirected",
+          weighted = TRUE,
+          diag = FALSE
+        )
+        plot.igraph(
+          x = net,
+          layout = as.matrix(x = object@dr$tsne@cell.embeddings),
+          edge.width = E(graph = net)$weight,
+          vertex.label = NA,
+          vertex.size = 0
+        )
+      }
     }
   }
   return(object)
