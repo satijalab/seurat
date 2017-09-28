@@ -94,7 +94,7 @@ Collate:
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
-    testthat
-    MAST
-    DESeq2
+    testthat,
+    MAST,
+    DESeq2,
     zingeR
