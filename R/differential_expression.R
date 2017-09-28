@@ -42,6 +42,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param random.seed Random seed for downsampling
 #' @param latent.vars Variables to test
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param pseudocount.use Pseudocount to add to averaged expression values when calculating logFC. 1 by default.
 #' @param \dots Additional parameters to pass to specific DE functions
 #' @seealso \code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and \code{\link{DESeq2DETest}}
 #' for more information on these methods
@@ -72,6 +73,7 @@ FindMarkers <- function(
   random.seed = 1,
   latent.vars = "nUMI",
   min.cells = 3,
+  pseudocount.use=1,
   ...
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
@@ -158,8 +160,8 @@ FindMarkers <- function(
   }
 
   #gene selection (based on average difference)
-  data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = ExpMean)
-  data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = ExpMean)
+  data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
   if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
   if (only.pos) genes.diff <- names(x = which(x = total.diff > thresh.use))
@@ -305,22 +307,7 @@ globalVariables(
 #'
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 #'
-#' @param object Seurat object
-#' @param genes.use Genes to test. Default is to all genes
-#' @param thresh.use Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
-#' @param test.use Denotes which test to use. Seurat currently implements
-#' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-#' al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
-#' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-#' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
-#' The latter two options should only be used on UMI datasets, and assume an underlying
-#' poisson or negative-binomial distribution
-#' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
-#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
-#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
-#' @param only.pos Only return positive markers (FALSE by default)
+#' @inheritParams FindMarkers
 #' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
 #' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
 #' @param random.seed Random seed for downsampling
