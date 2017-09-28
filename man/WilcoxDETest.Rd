@@ -14,10 +14,14 @@ WilcoxDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one 
+\item{min.cells}{Minimum number of cells expressing the gene in at least one
 of the two groups}
 
 \item{genes.use}{Genes to use for test}
+
+\item{latent.vars}{...}
+
+\item{print.bar}{Print a progress bar}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

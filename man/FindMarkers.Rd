@@ -27,47 +27,47 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
  \item{"wilcox"} : Wilcoxon rank sum test (default)
- \item{"bimod"} : Likelihood-ratio test for single cell gene expression, 
+ \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
  \item{"roc"} : Standard AUC classifier
  \item{"t"} : Student's t-test
- \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et 
+ \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et
  al., Nature Biotech, 2014)
  \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
   distribution. Use only for UMI-based datasets
- \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative 
+ \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
  binomial distribution. Use only for UMI-based datasets
- \item{"MAST} : GLM-framework that treates cellular detection rate as a 
+ \item{"MAST} : GLM-framework that treates cellular detection rate as a
  covariate (Finak et al, Genome Biology, 2015)
- \item{"DESeq2} : DE based on a model using the negative binomial 
+ \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
  \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
   data, as described in (Van der Berge et al, bioRxiv)
 }}
 
-\item{min.pct}{only test genes that are detected in a minimum fraction of 
-min.pct cells in either of the two populations. Meant to speed up the function 
+\item{min.pct}{only test genes that are detected in a minimum fraction of
+min.pct cells in either of the two populations. Meant to speed up the function
 by not testing genes that are very infrequently expressed. Default is 0.1}
 
-\item{min.diff.pct}{only test genes that show a minimum difference in the 
+\item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses 
+\item{print.bar}{Print a progress bar once expression testing begins (uses
 pbapply to do this)}
 
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
-\item{max.cells.per.ident}{Down sample each identity class to a max number. 
+\item{max.cells.per.ident}{Down sample each identity class to a max number.
 Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{random.seed}{Random seed for downsampling}
 
 \item{latent.vars}{Variables to test}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one 
+\item{min.cells}{Minimum number of cells expressing the gene in at least one
 of the two groups}
 
-\item{pseudocount.use}{Pseudocount to add to averaged expression values when 
+\item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
@@ -75,22 +75,22 @@ calculating logFC. 1 by default.}
 \item{test.use}{Denotes which test to use. Available options are:
 "bimod" , "roc" (standard AUC classifier), "t"
 (Students t-test), and "tobit" , 'poisson', and 'negbinom'.
-The latter two options should only be used on UMI datasets, and assume an 
+The latter two options should only be used on UMI datasets, and assume an
 underlying poisson or negative-binomial distribution}
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated 
+Matrix containing a ranked list of putative markers, and associated
 statistics (p-values, ROC score, etc.)
 }
 \description{
 Finds markers (differentially expressed genes) for identity classes
 }
 \details{
-p-value adjustment is performed using bonferroni correction based on 
-the total number of genes in the dataset. Other correction methods are not 
-recommended, as Seurat pre-filters genes using the arguments above, reducing 
-the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values 
-should be interpreted cautiously, as the genes used for clustering are the 
+p-value adjustment is performed using bonferroni correction based on
+the total number of genes in the dataset. Other correction methods are not
+recommended, as Seurat pre-filters genes using the arguments above, reducing
+the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
+should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
 \examples{
@@ -99,6 +99,6 @@ head(markers)
 
 }
 \seealso{
-\code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and 
+\code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and
 \code{\link{DESeq2DETest}} for more information on these methods
 }

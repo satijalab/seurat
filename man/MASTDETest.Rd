@@ -5,7 +5,7 @@
 \title{Differential expression using MAST}
 \usage{
 MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE, ...)
+  latent.vars = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,16 +14,16 @@ MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 
 \item{cells.2}{Group 2 cells}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one 
+\item{min.cells}{Minimum number of cells expressing the gene in at least one
 of the two groups}
 
 \item{genes.use}{Genes to use for test}
 
-\item{latent.vars}{Confounding variables to adjust for in DE test. Default is 
-"nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For 
+\item{latent.vars}{Confounding variables to adjust for in DE test. Default is
+"nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
 non-UMI based data, set to nGene instead.}
 
-\item{\dots}{Additional parameters to zero-inflated regression (zlm) function 
+\item{\dots}{Additional parameters to zero-inflated regression (zlm) function
 in MAST}
 }
 \value{
@@ -32,20 +32,22 @@ genes.
 }
 \description{
 Identifies differentially expressed genes between two groups of cells using
-a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
+a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run
 the DE testing.
 }
 \details{
 To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
 }
 \examples{
-pbmc_small
-MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-            cells.2 = WhichCells(object = pbmc_small, ident = 2))
+\dontrun{
+  pbmc_small
+  MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+              cells.2 = WhichCells(object = pbmc_small, ident = 2))
+}
 
 }
 \references{
-Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based 
-Analysis of Single Cell Transcriptomics. R package version 1.2.1. 
+Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
+Analysis of Single Cell Transcriptomics. R package version 1.2.1.
 https://github.com/RGLab/MAST/
 }

@@ -15,7 +15,7 @@ TobitTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses 
+\item{print.bar}{Print a progress bar once expression testing begins (uses
 pbapply to do this)}
 }
 \value{
