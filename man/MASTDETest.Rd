@@ -35,6 +35,9 @@ Identifies differentially expressed genes between two groups of cells using
 a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run 
 the DE testing.
 }
+\details{
+To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
+}
 \examples{
 pbmc_small
 MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
