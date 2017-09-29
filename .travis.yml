@@ -21,5 +21,10 @@ r_binary_packages:
   - httr
   - tidyr
   - ranger
+r_github_packages:
+  - statOmics/zingeR
+  - Bioconductor-mirror/DESeq2
+  - Bioconductor-mirror/edgeR
+  - Bioconductor-mirror/MAST
 warnings_are_errors: false
 dist: trusty
