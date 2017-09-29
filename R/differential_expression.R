@@ -263,7 +263,7 @@ FindMarkers <- function(
     )
   }
   if (test.use == "zingeR") {
-    to.return <- ZingeRDETest(
+    to.return <- zingeRDETest(
       object = object,
       cells.1 = cells.1,
       cells.2 = cells.2,
@@ -295,7 +295,7 @@ FindMarkers <- function(
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
-  to.return$p_val_adj = to.return$p_val / nrow(object@data)
+  to.return$p_val_adj = to.return$p_val * nrow(object@data)
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
   } else {
@@ -1301,7 +1301,7 @@ DESeq2DETest <- function(
 #'               cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #' }
 #'
-ZingeRDETest <- function(
+zingeRDETest <- function(
   object,
   cells.1,
   cells.2,
