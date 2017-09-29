@@ -259,17 +259,15 @@ FindMarkers <- function(
       cells.2 = cells.2,
       genes.use = genes.use,
       latent.vars = latent.vars,
-      print.bar = print.bar,
       ...
     )
   }
   if (test.use == "zingeR") {
-    to.return <- zingeRDETest(
+    to.return <- ZingeRDETest(
       object = object,
       cells.1 = cells.1,
       cells.2 = cells.2,
       genes.use = genes.use,
-      print.bar = print.bar,
       ...
     )
   }
@@ -291,7 +289,6 @@ FindMarkers <- function(
         cells.2 = cells.2,
         genes.use = genes.use,
         latent.vars = latent.vars,
-        print.bar = print.bar,
         ...
       )
   }
@@ -1328,9 +1325,9 @@ ZingeRDETest <- function(
   fdat <- data.frame(rownames(x = countdata.test))
   colnames(x = fdat)[1] <- "primerid"
   rownames(x = fdat) <- fdat[, 1]
-
   dds1 <- DESeq2::DESeqDataSetFromMatrix(
-    countData = countdata.test,colData = coldata,
+    countData = countdata.test,
+    colData = coldata,
     design = ~ group
   )
   design <- model.matrix(~coldata$group)
