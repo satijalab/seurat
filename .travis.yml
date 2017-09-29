@@ -24,9 +24,9 @@ r_binary_packages:
 bioc_packages:
   - GenomeInfoDbData
 r_github_packages:
-  - statOmics/zingeR
   - Bioconductor-mirror/DESeq2
   - Bioconductor-mirror/edgeR
   - Bioconductor-mirror/MAST
+  - statOmics/zingeR
 warnings_are_errors: false
 dist: trusty
