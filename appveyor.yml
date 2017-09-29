@@ -19,6 +19,7 @@ environment:
 build_script:
   - travis-tool.sh install_deps
   - travis-tool.sh r_binary_install curl
+  - travis-tool.sh bioc_install GenomeInfoDbData
   - travis-tool.sh github_package statOmics/zingeR
   - travis-tool.sh github_package Bioconductor-mirror/DESeq2
   - travis-tool.sh github_package Bioconductor-mirror/edgeR

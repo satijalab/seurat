@@ -21,6 +21,8 @@ r_binary_packages:
   - httr
   - tidyr
   - ranger
+bioc_packages:
+  - GenomeInfoDbData
 r_github_packages:
   - statOmics/zingeR
   - Bioconductor-mirror/DESeq2
