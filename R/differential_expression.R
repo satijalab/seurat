@@ -11,9 +11,9 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
 #' @param genes.use Genes to test. Default is to use all genes
-#' @param thresh.use Limit testing to genes which show, on average, at least
+#' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-#' Increasing thresh.use speeds up the function, but can miss weaker signals.
+#' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
 #' @param test.use Denotes which test to use. Available options are:
 ##' \itemize{
 ##'  \item{"wilcox"} : Wilcoxon rank sum test (default)
@@ -80,7 +80,7 @@ FindMarkers <- function(
   ident.1,
   ident.2 = NULL,
   genes.use = NULL,
-  thresh.use = 0.25,
+  logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
@@ -98,7 +98,7 @@ FindMarkers <- function(
   if (test.use %in% methods.noprefiliter) {
     genes.use <- rownames(x = object@data)
     min.diff.pct <- -Inf
-    thresh.use <- 0
+    logfc.threshold <- 0
   }
 
   # in case the user passed in cells instead of identity classes
@@ -179,12 +179,12 @@ FindMarkers <- function(
   data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
-  if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > thresh.use))
-  if (only.pos) genes.diff <- names(x = which(x = total.diff > thresh.use))
+  if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
+  if (only.pos) genes.diff <- names(x = which(x = total.diff > logfc.threshold))
 
   genes.use <- intersect(x = genes.use, y = genes.diff)
   if(length(genes.use) == 0) {
-    stop("No genes pass thresh.use threshold")
+    stop("No genes pass logfc.threshold threshold")
   }
 
   if (max.cells.per.ident < Inf) {
@@ -337,7 +337,7 @@ globalVariables(
 FindAllMarkers <- function(
   object,
   genes.use = NULL,
-  thresh.use = 0.25,
+  logfc.threshold = 0.25,
   test.use = "bimod",
   min.pct = 0.1,
   min.diff.pct = 0.05,
@@ -372,7 +372,7 @@ FindAllMarkers <- function(
                     ident.1 = idents.all[i],
                     ident.2 = NULL,
                     genes.use = genes.use,
-                    thresh.use = thresh.use,
+                    logfc.threshold = logfc.threshold,
                     test.use = test.use,
                     min.pct = min.pct,
                     min.diff.pct = min.diff.pct,
@@ -445,7 +445,7 @@ FindMarkersNode <- function(
   node,
   tree.use = NULL,
   genes.use = NULL,
-  thresh.use = 0.25,
+  logfc.threshold = 0.25,
   test.use = "bimod",
   ...
 ) {
@@ -461,7 +461,7 @@ FindMarkersNode <- function(
     ident.1 = nodes.1,
     ident.2 = nodes.2,
     genes.use = genes.use,
-    thresh.use = thresh.use,
+    logfc.threshold = logfc.threshold,
     test.use = test.use,
     ...
   )
@@ -476,7 +476,7 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
 #' @param node Node from which to start identifying split markers, default is top node.
 #' @param genes.use Genes to test. Default is to use all genes
-#' @param thresh.use Limit testing to genes which show, on average, at least
+#' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells.
 #' @param test.use Denotes which test to use. Seurat currently implements
 #' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
@@ -510,7 +510,7 @@ FindAllMarkersNode <- function(
   object,
   node = NULL,
   genes.use = NULL,
-  thresh.use = 0.25,
+  logfc.threshold = 0.25,
   test.use = "bimod",
   min.pct = 0.1,
   min.diff.pct = 0.05,
@@ -548,7 +548,7 @@ FindAllMarkersNode <- function(
       node = i,
       tree.use = tree.use,
       genes.use = genes.use,
-      thresh.use = thresh.use,
+      logfc.threshold = logfc.threshold,
       test.use = test.use,
       min.pct = min.pct,
       min.diff.pct = min.diff.pct,
