@@ -1235,7 +1235,6 @@ DESeq2DETest <- function(
   )
   p_val <- res$pvalue
   genes.return <- rownames(x = res)
-
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
@@ -1263,8 +1262,7 @@ DESeq2DETest <- function(
 #'
 #' @examples
 #' pbmc_small
-#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 WilcoxDETest <- function(
   object,
@@ -1288,7 +1286,7 @@ WilcoxDETest <- function(
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata$group)$p.value, ...)
+      return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
     }
   )
   genes.return <- rownames(x = countdata.test)
