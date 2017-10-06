@@ -1335,7 +1335,7 @@ WilcoxDETest <- function(
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata$group)$p.value, ...)
+      return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
     }
   )
   genes.return <- rownames(x = countdata.test)
