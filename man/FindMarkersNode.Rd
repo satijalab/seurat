@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
 FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "bimod", ...)
+  logfc.threshold = 0.25, test.use = "bimod", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,9 +16,9 @@ FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
