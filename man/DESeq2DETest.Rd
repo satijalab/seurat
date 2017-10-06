@@ -43,7 +43,7 @@ groups. To use this method, please install DESeq2, using the instructions at
 
 }
 \references{
-Love MI, Huber W and Anders S (2014). “Moderated estimation of
-fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
+Love MI, Huber W and Anders S (2014). "Moderated estimation of
+fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }

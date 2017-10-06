@@ -94,6 +94,7 @@ Collate:
 RoxygenNote: 6.0.1
 Suggests:
     testthat,
+    SummarizedExperiment,
     MAST,
     DESeq2,
     zingeR
