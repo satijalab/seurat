@@ -37,8 +37,11 @@ https://github.com/statOmics/zingeR
 \examples{
 \dontrun{
  pbmc_small
- DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-              cells.2 = WhichCells(object = pbmc_small, ident = 2))
+ zingeRDETest(
+   object = pbmc_small,
+   cells.1 = WhichCells(object = pbmc_small, ident = 1),
+   cells.2 = WhichCells(object = pbmc_small, ident = 2)
+ )
 }
 
 }
