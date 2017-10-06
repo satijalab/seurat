@@ -5,7 +5,7 @@
 \title{Differential expression using Wilcoxon Rank Sum}
 \usage{
 WilcoxDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE, ...)
+  latent.vars = NULL, print.bar = TRUE, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -22,6 +22,8 @@ of the two groups}
 \item{latent.vars}{...}
 
 \item{print.bar}{Print a progress bar}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

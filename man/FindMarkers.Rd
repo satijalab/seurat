@@ -5,10 +5,10 @@
 \title{Gene expression markers of identity classes}
 \usage{
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "wilcox", min.pct = 0.1,
+  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI",
-  min.cells = 3, pseudocount.use = 1, ...)
+  min.cells = 3, pseudocount.use = 1, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,9 +20,9 @@ use all other cells for comparison.}
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -69,6 +69,8 @@ of the two groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
 

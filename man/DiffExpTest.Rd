@@ -4,7 +4,8 @@
 \alias{DiffExpTest}
 \title{Likelihood ratio test for zero-inflated data}
 \usage{
-DiffExpTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
+DiffExpTest(object, cells.1, cells.2, assay.type = "RNA", genes.use = NULL,
+  print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -12,6 +13,8 @@ DiffExpTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
 \item{cells.1}{Group 1 cells}
 
 \item{cells.2}{Group 2 cells}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
