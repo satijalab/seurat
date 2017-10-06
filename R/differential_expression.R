@@ -1152,8 +1152,8 @@ MASTDETest <- function(
   #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
   # ) #logFC coefficients
   # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val <- summaryDt[summaryDt[, "component"] == "H",4]
-  genes.return <- summaryDt[summaryDt[, 'component'] == 'H'][, 1]
+  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
+  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
   # p_val <- subset(summaryDt, component == "H")[, 4]
   # genes.return <- subset(summaryDt, component == "H")[, 1]
   to.return <- data.frame(p_val, row.names = genes.return)
