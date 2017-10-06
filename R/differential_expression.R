@@ -1310,8 +1310,8 @@ zingeRDETest <- function(
   latent.vars = NULL,
   ...
 ) {
-  if(!require('zingeR')) {
-  	stop("Please install zingeR - learn more at https://github.com/statOmics/zingeR")
+  if (!requireNamespace('zingeR', quietly = TRUE)) {
+    stop("Please install zingeR - learn more at https://github.com/statOmics/zingeR")
   }
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   # check that the gene made it through the any filtering that was done
