@@ -1191,8 +1191,8 @@ MASTDETest <- function(
 #' Identifies differentially expressed genes between two groups of cells using
 #' DESeq2
 #'
-#' @references Love MI, Huber W and Anders S (2014). “Moderated estimation of
-#' fold change and dispersion for RNA-seq data with DESeq2.” Genome Biology.
+#' @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
+#' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 #' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
