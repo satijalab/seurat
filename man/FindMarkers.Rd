@@ -71,12 +71,6 @@ of the two groups}
 calculating logFC. 1 by default.}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
-
-\item{test.use}{Denotes which test to use. Available options are:
-"bimod" , "roc" (standard AUC classifier), "t"
-(Students t-test), and "tobit" , 'poisson', and 'negbinom'.
-The latter two options should only be used on UMI datasets, and assume an
-underlying poisson or negative-binomial distribution}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
@@ -99,6 +93,6 @@ head(markers)
 
 }
 \seealso{
-\code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and
+\code{\link{MASTDETest}}, \code{\link{zingeRDETest}}, and
 \code{\link{DESeq2DETest}} for more information on these methods
 }
