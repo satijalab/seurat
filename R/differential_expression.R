@@ -1262,7 +1262,8 @@ DESeq2DETest <- function(
 #'
 #' @examples
 #' pbmc_small
-#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #'
 WilcoxDETest <- function(
   object,
