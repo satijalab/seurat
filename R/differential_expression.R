@@ -31,8 +31,6 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 ##'  covariate (Finak et al, Genome Biology, 2015)
 ##'  \item{"DESeq2} : DE based on a model using the negative binomial
 ##'  distribution (Love et al, Genome Biology, 2014)
-##'  \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
-##'   data, as described in (Van der Berge et al, bioRxiv)
 ##' }
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
@@ -51,8 +49,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param \dots Additional parameters to pass to specific DE functions
-#' @seealso \code{\link{MASTDETest}}, \code{\link{zingeRDETest}}, and
-#' \code{\link{DESeq2DETest}} for more information on these methods
+#' @seealso \code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @details p-value adjustment is performed using bonferroni correction based on
@@ -94,7 +91,6 @@ FindMarkers <- function(
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-
   # in case the user passed in cells instead of identity classes
   if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
     cells.1 <- intersect(x = ident.1, y = object@cell.names)
@@ -112,7 +108,6 @@ FindMarkers <- function(
     }
   }
   cells.2 <- setdiff(x = cells.2, y = cells.1)
-
   # error checking
   if (length(x = cells.1) == 0) {
     print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
@@ -128,7 +123,6 @@ FindMarkers <- function(
   if (length(cells.2) < min.cells) {
     stop(paste("Cell group 2 has fewer than", as.character(min.cells), " cells in identity class", ident.2))
   }
-
   # gene selection (based on percent expressed)
   thresh.min <- 0
   data.temp1 <- round(
@@ -158,35 +152,31 @@ FindMarkers <- function(
   alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
   names(x = alpha.min) <- rownames(x = data.alpha)
   genes.use <- names(x = which(x = alpha.min > min.pct))
-  if(length(genes.use) == 0) {
+  if (length(x = genes.use) == 0) {
     stop("No genes pass min.pct threshold")
   }
   alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
   genes.use <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
-  if(length(genes.use) == 0) {
+  if (length(x = genes.use) == 0) {
     stop("No genes pass min.diff.pct threshold")
   }
-
   #gene selection (based on average difference)
   data.1 <- apply(X = object@data[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   data.2 <- apply(X = object@data[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
   if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
   if (only.pos) genes.diff <- names(x = which(x = total.diff > logfc.threshold))
-
   genes.use <- intersect(x = genes.use, y = genes.diff)
-  if(length(genes.use) == 0) {
+  if (length(x = genes.use) == 0) {
     stop("No genes pass logfc.threshold threshold")
   }
-
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
     if (length(cells.1) > max.cells.per.ident) cells.1 = sample(x = cells.1, size = max.cells.per.ident)
     if (length(cells.2) > max.cells.per.ident) cells.2 = sample(x = cells.2, size = max.cells.per.ident)
   }
-
   #perform DR
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
@@ -256,22 +246,12 @@ FindMarkers <- function(
       ...
     )
   }
-  if (test.use == "zingeR") {
-    to.return <- zingeRDETest(
-      object = object,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      ...
-    )
-  }
   if (test.use == "wilcox") {
     to.return <- WilcoxDETest(
       object = object,
       cells.1 = cells.1,
       cells.2 = cells.2,
       genes.use = genes.use,
-      latent.vars = latent.vars,
       print.bar = print.bar,
       ...
     )
@@ -282,7 +262,6 @@ FindMarkers <- function(
         cells.1 = cells.1,
         cells.2 = cells.2,
         genes.use = genes.use,
-        latent.vars = latent.vars,
         ...
       )
   }
@@ -1081,7 +1060,6 @@ PoissonDETest <- function(
   return(to.return)
 }
 
-# globalVariables(names = 'component', package = 'Seurat')
 #' Differential expression using MAST
 #'
 #' Identifies differentially expressed genes between two groups of cells using
@@ -1174,8 +1152,10 @@ MASTDETest <- function(
   #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
   # ) #logFC coefficients
   # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val <- subset(summaryDt, component == "H")[, 4]
-  genes.return <- subset(summaryDt, component == "H")[, 1]
+  p_val <- summaryDt[summaryDt[, "component"] == "H",4]
+  genes.return <- summaryDt[summaryDt[, 'component'] == 'H'][, 1]
+  # p_val <- subset(summaryDt, component == "H")[, 4]
+  # genes.return <- subset(summaryDt, component == "H")[, 1]
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
@@ -1194,6 +1174,7 @@ MASTDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one
 #' of the two groups
 #' @param genes.use Genes to use for test
+#' @param ... Extra parameters to pass to DESeq2::results
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
@@ -1221,7 +1202,6 @@ DESeq2DETest <- function(
   cells.2,
   min.cells = 3,
   genes.use = NULL,
-  latent.vars = NULL,
   ...
 ) {
   if (!'DESeq2' %in% rownames(x = installed.packages())) {
@@ -1250,99 +1230,9 @@ DESeq2DETest <- function(
   res <- DESeq2::results(
     object = dds1,
     contrast = c("group", "Group1", "Group2"),
-    alpha = 0.05
+    alpha = 0.05,
+    ...
   )
-  p_val <- res$pvalue
-  genes.return <- rownames(x = res)
-
-  to.return <- data.frame(p_val, row.names = genes.return)
-  return(to.return)
-}
-
-#' Differential expression using zingeR-DESeq2 pipeline
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' zingeR-DESeq2
-#'
-#' @references Van Der Verge K, Soneson C, Love MI, Robinson MD,  Clement LS (2017).
-#' "zingeR: unlocking RNA-seq tools for zero-inflation and single cell
-#'  applications" biorXiv. https://github.com/statOmics/zingeR
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param min.cells Minimum number of cells expressing the gene in at least one
-#' of the two groups
-#' @param genes.use Genes to use for test
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @details
-#' This test does not support pre-filtering of genes based on average difference
-#' (or percent detection rate) between cell groups. However, genes may be
-#' pre-filtered based on their minimum detection rate (min.pct) across both cell
-#' groups.To use this method, please install zingeR, using the instructions at
-#' https://github.com/statOmics/zingeR
-#'
-#' @importFrom stats model.matrix
-#' @importFrom utils installed.packages
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#'  pbmc_small
-#'  DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'               cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#' }
-#'
-zingeRDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  min.cells = 3,
-  genes.use = NULL,
-  latent.vars = NULL,
-  ...
-) {
-  if (!requireNamespace('zingeR', quietly = TRUE)) {
-    stop("Please install zingeR - learn more at https://github.com/statOmics/zingeR")
-  }
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
-  coldata <- object@meta.data[c(cells.1, cells.2), ]
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
-  coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- as.matrix(x = object@raw.data)[genes.use, rownames(x = coldata)]
-  fdat <- data.frame(rownames(x = countdata.test))
-  colnames(x = fdat)[1] <- "primerid"
-  rownames(x = fdat) <- fdat[, 1]
-  dds1 <- DESeq2::DESeqDataSetFromMatrix(
-    countData = countdata.test,
-    colData = coldata,
-    design = ~ group
-  )
-  design <- model.matrix(~coldata$group)
-  weights <- zingeR::zeroWeightsLS(
-    counts = countdata.test,
-    design = design,
-    maxit = 200,
-    normalization = "DESeq2_poscounts",
-    colData = coldata,
-    designFormula = ~group
-  )
-  SummarizedExperiment::assays(dds1)[["weights"]] <- weights
-  dds1 <- DESeq2::estimateSizeFactors(object = dds1, type = "poscounts")
-  dds1 <- DESeq2::estimateDispersions(object = dds1)
-  dds1 <- DESeq2::nbinomWaldTest(
-    object = dds1,
-    betaPrior = TRUE,
-    useT = TRUE,
-    df = rowSums(weights) - 2
-  )
-  res <- DESeq2::results(object = dds1)
   p_val <- res$pvalue
   genes.return <- rownames(x = res)
   to.return <- data.frame(p_val, row.names = genes.return)
@@ -1359,8 +1249,8 @@ zingeRDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one
 #' of the two groups
 #' @param genes.use Genes to use for test
-#' @param latent.vars ...
 #' @param print.bar Print a progress bar
+#' @param ... Extra parameters passed to wilcox.test
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -1381,7 +1271,6 @@ WilcoxDETest <- function(
   cells.2,
   min.cells = 3,
   genes.use = NULL,
-  latent.vars = NULL,
   print.bar = TRUE,
   ...
 ) {
@@ -1398,7 +1287,7 @@ WilcoxDETest <- function(
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata$group)$p.value)
+      return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
     }
   )
   genes.return <- rownames(x = countdata.test)
