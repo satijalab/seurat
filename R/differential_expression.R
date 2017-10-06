@@ -1174,7 +1174,7 @@ MASTDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one
 #' of the two groups
 #' @param genes.use Genes to use for test
-#' @param ... Extra parameters
+#' @param ... Extra parameters to pass to DESeq2::results
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
@@ -1230,7 +1230,8 @@ DESeq2DETest <- function(
   res <- DESeq2::results(
     object = dds1,
     contrast = c("group", "Group1", "Group2"),
-    alpha = 0.05
+    alpha = 0.05,
+    ...
   )
   p_val <- res$pvalue
   genes.return <- rownames(x = res)
