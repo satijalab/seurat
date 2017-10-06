@@ -4,7 +4,7 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, genes.use = NULL, thresh.use = 0.25,
+FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
   test.use = "bimod", min.pct = 0.1, min.diff.pct = 0.05,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   return.thresh = 0.01, do.print = FALSE, random.seed = 1,
@@ -15,9 +15,9 @@ FindAllMarkers(object, genes.use = NULL, thresh.use = 0.25,
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -36,8 +36,6 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
  covariate (Finak et al, Genome Biology, 2015)
  \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
- \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
-  data, as described in (Van der Berge et al, bioRxiv)
 }}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of

@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes}
 \usage{
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "wilcox", min.pct = 0.1,
+  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI",
   min.cells = 3, pseudocount.use = 1, ...)
@@ -20,9 +20,9 @@ use all other cells for comparison.}
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
@@ -41,8 +41,6 @@ Increasing thresh.use speeds up the function, but can miss weaker signals.}
  covariate (Finak et al, Genome Biology, 2015)
  \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
- \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
-  data, as described in (Van der Berge et al, bioRxiv)
 }}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
@@ -71,12 +69,6 @@ of the two groups}
 calculating logFC. 1 by default.}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
-
-\item{test.use}{Denotes which test to use. Available options are:
-"bimod" , "roc" (standard AUC classifier), "t"
-(Students t-test), and "tobit" , 'poisson', and 'negbinom'.
-The latter two options should only be used on UMI datasets, and assume an
-underlying poisson or negative-binomial distribution}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
@@ -99,6 +91,5 @@ head(markers)
 
 }
 \seealso{
-\code{\link{MASTDETest}}, \code{\link{zingerDETest}}, and
-\code{\link{DESeq2DETest}} for more information on these methods
+\code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
 }
