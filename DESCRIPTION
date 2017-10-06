@@ -93,4 +93,7 @@ Collate:
     'utilities_internal.R'
 RoxygenNote: 6.0.1
 Suggests:
-    testthat
+    testthat,
+    MAST,
+    DESeq2,
+    zingeR
