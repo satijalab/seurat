@@ -23,10 +23,7 @@ r_binary_packages:
   - ranger
 bioc_packages:
   - GenomeInfoDbData
-r_github_packages:
-  - Bioconductor-mirror/DESeq2
-  - Bioconductor-mirror/edgeR
-  - Bioconductor-mirror/MAST
-  - statOmics/zingeR
+  - DESeq2
+  - MAST
 warnings_are_errors: false
 dist: trusty

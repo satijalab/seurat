@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [In develop]
 ### Added
-- Support for using MAST, DESeq2, and zingeR packages for differential expression testing in FindMarkers
+- Support for using MAST and DESeq2 packages for differential expression testing in FindMarkers
 
 ### Changed
 - Default DE test changed to Wilcoxon rank sum test
