@@ -18,7 +18,7 @@ of the two groups}
 
 \item{genes.use}{Genes to use for test}
 
-\item{...}{Extra parameters}
+\item{...}{Extra parameters to pass to DESeq2::results}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed
