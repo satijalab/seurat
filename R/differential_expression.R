@@ -34,12 +34,6 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 ##'  \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
 ##'   data, as described in (Van der Berge et al, bioRxiv)
 ##' }
-##'
-#' @param test.use Denotes which test to use. Available options are:
-#' "bimod" , "roc" (standard AUC classifier), "t"
-#' (Students t-test), and "tobit" , 'poisson', and 'negbinom'.
-#' The latter two options should only be used on UMI datasets, and assume an
-#' underlying poisson or negative-binomial distribution
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
 #' by not testing genes that are very infrequently expressed. Default is 0.1
