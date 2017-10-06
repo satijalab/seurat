@@ -37,8 +37,6 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  covariate (Finak et al, Genome Biology, 2015)
  \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
- \item{"zingeR} : Implements the zingeR-DESeq2 workflow for zero-inflated
-  data, as described in (Van der Berge et al, bioRxiv)
 }}
 
 \item{...}{Additional arguments passed to FindMarkers}
