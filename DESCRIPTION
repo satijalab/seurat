@@ -96,5 +96,4 @@ Suggests:
     testthat,
     SummarizedExperiment,
     MAST,
-    DESeq2,
-    zingeR
+    DESeq2
