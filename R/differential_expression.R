@@ -48,6 +48,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' of the two groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #' @seealso \code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
 #' @return Matrix containing a ranked list of putative markers, and associated
@@ -68,7 +69,6 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #'
 FindMarkers <- function(
   object,
-  assay.type = "RNA",
   ident.1,
   ident.2 = NULL,
   genes.use = NULL,
@@ -83,6 +83,7 @@ FindMarkers <- function(
   latent.vars = "nUMI",
   min.cells = 3,
   pseudocount.use = 1,
+  assay.type = "RNA",
   ...
 ) {
   data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
@@ -311,6 +312,7 @@ globalVariables(
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
 #' @param latent.vars remove the effects of these variables
+#' @param assay.type Type of assay to perform DE for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated
@@ -323,7 +325,6 @@ globalVariables(
 #'
 FindAllMarkers <- function(
   object,
-  assay.type = "RNA",
   genes.use = NULL,
   logfc.threshold = 0.25,
   test.use = "bimod",
@@ -337,6 +338,7 @@ FindAllMarkers <- function(
   random.seed = 1,
   min.cells = 3,
   latent.vars = "nUMI",
+  assay.type = "RNA",
   ...
 ) {
   data.1 <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
@@ -420,6 +422,7 @@ FindAllMarkers <- function(
 #' @inheritParams FindMarkers
 #' @param node The node in the phylogenetic tree to use as a branch point
 #' @param tree.use Can optionally pass the tree to be used. Default uses the tree in object@@cluster.tree
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param ... Additional arguments passed to FindMarkers
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated
@@ -432,12 +435,12 @@ FindAllMarkers <- function(
 #'
 FindMarkersNode <- function(
   object,
-  assay.type = "RNA",
   node,
   tree.use = NULL,
   genes.use = NULL,
   logfc.threshold = 0.25,
   test.use = "bimod",
+  assay.type = "RNA",
   ...
 ) {
   data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "RNA")
@@ -488,6 +491,7 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print Print status updates
 #' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #'
 #' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
@@ -501,7 +505,6 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #'
 FindAllMarkersNode <- function(
   object,
-  assay.type = "RNA",
   node = NULL,
   genes.use = NULL,
   logfc.threshold = 0.25,
@@ -515,6 +518,7 @@ FindAllMarkersNode <- function(
   do.print = FALSE,
   random.seed = 1,
   min.cells = 3,
+  assay.type = "RNA",
   ...
 ) {
   if(length(object@cluster.tree) == 0){
@@ -598,6 +602,7 @@ FindAllMarkersNode <- function(
 #' @param ident.2 A second identity class for comparison. If NULL (default) - use all other cells
 #' for comparison.
 #' @param grouping.var grouping variable
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param \dots parameters to pass to FindMarkers
 #'
 #' @return Matrix containing a ranked list of putative conserved markers, and associated statistics
@@ -618,10 +623,10 @@ FindAllMarkersNode <- function(
 #'
 FindConservedMarkers <- function(
   object,
-  assay.type = "RNA",
   ident.1,
   ident.2 = NULL,
   grouping.var,
+  assay.type = "RNA",
   ...
 ) {
   object.var <- FetchData(object = object, vars.all = grouping.var)
@@ -718,6 +723,7 @@ FindConservedMarkers <- function(
 #' @param object Seurat object
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
 #'
@@ -729,9 +735,9 @@ FindConservedMarkers <- function(
 #'
 DiffExpTest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
+  assay.type = "RNA",
   genes.use = NULL,
   print.bar = TRUE
 ) {
@@ -771,6 +777,7 @@ DiffExpTest <- function(
 #' @param latent.vars Latent variables to test
 #' @param print.bar Print progress bar
 #' @param min.cells Minimum number of cells threshold
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -789,13 +796,13 @@ DiffExpTest <- function(
 #'
 NegBinomDETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   genes.use = NULL,
   latent.vars = NULL,
   print.bar = TRUE,
-  min.cells = 3
+  min.cells = 3,
+  assay.type = "RNA"
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
@@ -878,6 +885,7 @@ NegBinomDETest <- function(
 #' @param latent.vars Latent variables to test
 #' @param print.bar Print progress bar
 #' @param min.cells Minimum number of cells threshold
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #'
 #' @return Returns a p-value ranked data frame of test results.
 #'
@@ -896,13 +904,13 @@ NegBinomDETest <- function(
 #'
 NegBinomRegDETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   genes.use = NULL,
   latent.vars = NULL,
   print.bar = TRUE,
-  min.cells = 3
+  min.cells = 3,
+  assay.type = "RNA"
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
@@ -995,6 +1003,7 @@ globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #' @param genes.use Genes to use for test
 #' @param latent.vars Latent variables to test
 #' @param print.bar Print progress bar
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -1012,13 +1021,13 @@ globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
 #'
 PoissonDETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   min.cells = 3,
   genes.use = NULL,
   latent.vars = NULL,
-  print.bar = TRUE
+  print.bar = TRUE,
+  assay.type = "RNA"
 ) {
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
@@ -1108,6 +1117,7 @@ PoissonDETest <- function(
 #' @param latent.vars Confounding variables to adjust for in DE test. Default is
 #' "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
 #' non-UMI based data, set to nGene instead.
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param \dots Additional parameters to zero-inflated regression (zlm) function
 #' in MAST
 #' @details
@@ -1130,12 +1140,12 @@ PoissonDETest <- function(
 #'
 MASTDETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   min.cells = 3,
   genes.use = NULL,
   latent.vars = NULL,
+  assay.type = "RNA",
   ...
 ) {
   # Check for MAST
@@ -1206,6 +1216,7 @@ MASTDETest <- function(
 #' @param min.cells Minimum number of cells expressing the gene in at least one
 #' of the two groups
 #' @param genes.use Genes to use for test
+#' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param ... Extra parameters to pass to DESeq2::results
 #' @return Returns a p-value ranked matrix of putative differentially expressed
 #' genes.
@@ -1230,11 +1241,11 @@ MASTDETest <- function(
 #'
 DESeq2DETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   min.cells = 3,
   genes.use = NULL,
+  assay.type = "RNA",
   ...
 ) {
   if (!'DESeq2' %in% rownames(x = installed.packages())) {
@@ -1284,6 +1295,7 @@ DESeq2DETest <- function(
 #' of the two groups
 #' @param genes.use Genes to use for test
 #' @param print.bar Print a progress bar
+#' @param assay.type Type of assay to perform DE for (default is RNA)
 #' @param ... Extra parameters passed to wilcox.test
 #'
 #' @return Returns a p-value ranked matrix of putative differentially expressed
@@ -1301,12 +1313,12 @@ DESeq2DETest <- function(
 #'
 WilcoxDETest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   min.cells = 3,
   genes.use = NULL,
   print.bar = TRUE,
+  assay.type = "RNA",
   ...
 ) {
   data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
@@ -1353,11 +1365,11 @@ WilcoxDETest <- function(
 #'
 TobitTest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   genes.use = NULL,
-  print.bar = TRUE
+  print.bar = TRUE,
+  assay.type = "RNA"
 ) {
   data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
@@ -1400,11 +1412,11 @@ TobitTest <- function(
 #'
 MarkerTest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   genes.use = NULL,
-  print.bar = TRUE
+  print.bar = TRUE,
+  assay.type = "RNA"
 ) {
   data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
@@ -1441,11 +1453,11 @@ MarkerTest <- function(
 #'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 DiffTTest <- function(
   object,
-  assay.type = "RNA",
   cells.1,
   cells.2,
   genes.use = NULL,
-  print.bar = TRUE
+  print.bar = TRUE,
+  assay.type = "RNA"
 ) {
   data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))

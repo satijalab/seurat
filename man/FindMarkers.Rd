@@ -8,7 +8,7 @@ FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI",
-  min.cells = 3, pseudocount.use = 1, ...)
+  min.cells = 3, pseudocount.use = 1, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -67,6 +67,8 @@ of the two groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
 }

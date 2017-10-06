@@ -5,7 +5,7 @@
 \title{Poisson test for UMI-count based data}
 \usage{
 PoissonDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE)
+  latent.vars = NULL, print.bar = TRUE, assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,6 +21,8 @@ PoissonDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 \item{latent.vars}{Latent variables to test}
 
 \item{print.bar}{Print progress bar}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed
