@@ -2263,7 +2263,7 @@ DimPlot <- function(
   dim.1 = 1,
   dim.2 = 2,
   cells.use = NULL,
-  pt.size = 3,
+  pt.size = 1,
   do.return = FALSE,
   do.bare = FALSE,
   cols.use = NULL,
@@ -2273,7 +2273,7 @@ DimPlot <- function(
   data.hover = 'ident',
   do.identify = FALSE,
   do.label = FALSE,
-  label.size = 1,
+  label.size = 4,
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
@@ -2423,7 +2423,7 @@ DimPlot <- function(
 #' PCAPlot(object = pbmc_small)
 #'
 PCAPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "pca", label.size = 4, ...))
 }
 
 #' Plot Diffusion map
@@ -2444,7 +2444,7 @@ PCAPlot <- function(object, ...) {
 #' DMPlot(object = pbmc_small)
 #'
 DMPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "dm", label.size = 4, ...))
 }
 
 #' Plot ICA map
