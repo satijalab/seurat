@@ -5,7 +5,7 @@
 \title{Differential expression using MAST}
 \usage{
 MASTDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, ...)
+  latent.vars = NULL, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -22,6 +22,8 @@ of the two groups}
 \item{latent.vars}{Confounding variables to adjust for in DE test. Default is
 "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
 non-UMI based data, set to nGene instead.}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{\dots}{Additional parameters to zero-inflated regression (zlm) function
 in MAST}
