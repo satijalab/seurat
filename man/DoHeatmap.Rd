@@ -62,8 +62,6 @@ and genes as rows.}
 \item{assay.type}{to plot heatmap for (default is RNA)}
 
 \item{do.plot}{Whether to display the plot.}
-
-\item{Assay}{to plot heatmap for (default is RNA)}
 }
 \value{
 Returns a ggplot2 plot object
