@@ -58,6 +58,8 @@ Returns a dataframe with a ranked list of putative markers for each node and ass
 This function finds markers for all splits at or below the specified node
 }
 \examples{
+pbmc_small
+
 FindAllMarkersNode(pbmc_small)
 
 }

@@ -284,7 +284,7 @@ FindMarkers <- function(
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
   to.return$p_val_adj = to.return$p_val * nrow(GetAssayData(object = object,
-                                                            assay.type = assay.type, 
+                                                            assay.type = assay.type,
                                                             slot = "data"))
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
@@ -503,6 +503,8 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @export
 #'
 #' @examples
+#' pbmc_small
+#'
 #' FindAllMarkersNode(pbmc_small)
 #'
 FindAllMarkersNode <- function(
