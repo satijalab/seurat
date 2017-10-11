@@ -388,8 +388,8 @@ FindAllMarkers <- function(
   }
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
-    gde <- genes.de[[i]]
     if (is.null(unlist(gde))) next
+    gde <- genes.de[[i]]
     if (nrow(x = gde) > 0) {
       if (test.use == "roc") {
         gde <- subset(
@@ -572,10 +572,10 @@ FindAllMarkersNode <- function(
   }
   gde.all <- data.frame()
   for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
-    gde <- genes.de[[i]]
-    if (is.null(x = unlist(gde))) {
+    if (is.null(unlist(genes.de[i]))) {
       next
     }
+    gde <- genes.de[[i]]
     if (nrow(x = gde) > 0) {
       if (test.use == 'roc') {
         gde <- subset(
