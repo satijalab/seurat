@@ -283,7 +283,7 @@ FindMarkers <- function(
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
-  to.return$p_val_adj = p.adjust(p = to.return$p_val,method = "bonferroni", 
+  to.return$p_val_adj = p.adjust(p = to.return$p_val,method = "bonferroni",
                                  n =   nrow(GetAssayData(object = object,
                                                          assay.type = assay.type,
                                                          slot = "data")))
@@ -346,7 +346,6 @@ FindAllMarkers <- function(
 ) {
   data.1 <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.1))
-  ident.use <- object@ident
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
     return.thresh = 0.7
   }
@@ -362,20 +361,21 @@ FindAllMarkers <- function(
   for (i in 1:length(x = idents.all)) {
     genes.de[[i]] <- tryCatch(
       {
-        FindMarkers(object = object,
-                    assay.type = assay.type,
-                    ident.1 = idents.all[i],
-                    ident.2 = NULL,
-                    genes.use = genes.use,
-                    logfc.threshold = logfc.threshold,
-                    test.use = test.use,
-                    min.pct = min.pct,
-                    min.diff.pct = min.diff.pct,
-                    print.bar = print.bar,
-                    min.cells = min.cells,
-                    latent.vars = latent.vars,
-                    max.cells.per.ident = max.cells.per.ident,
-                    ...
+        FindMarkers(
+          object = object,
+          assay.type = assay.type,
+          ident.1 = idents.all[i],
+          ident.2 = NULL,
+          genes.use = genes.use,
+          logfc.threshold = logfc.threshold,
+          test.use = test.use,
+          min.pct = min.pct,
+          min.diff.pct = min.diff.pct,
+          print.bar = print.bar,
+          min.cells = min.cells,
+          latent.vars = latent.vars,
+          max.cells.per.ident = max.cells.per.ident,
+          ...
         )
       },
       error = function(cond){
@@ -388,8 +388,10 @@ FindAllMarkers <- function(
   }
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
+    if (is.null(x = unlist(x = genes.de[i]))) {
+      next
+    }
     gde <- genes.de[[i]]
-    if (is.null(unlist(gde))) next
     if (nrow(x = gde) > 0) {
       if (test.use == "roc") {
         gde <- subset(
@@ -412,7 +414,7 @@ FindAllMarkers <- function(
   if (only.pos) {
     return(subset(x = gde.all, subset = avg_logFC > 0))
   }
-  rownames(gde.all)=make.unique(as.character(gde.all$gene))
+  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
   return(gde.all)
 }
 
@@ -535,7 +537,6 @@ FindAllMarkersNode <- function(
   data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
-  ident.use <- object@ident
   tree.use <- object@cluster.tree[[1]]
   descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
   all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
@@ -572,10 +573,10 @@ FindAllMarkersNode <- function(
   }
   gde.all <- data.frame()
   for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
-    gde <- genes.de[[i]]
-    if (is.null(x = unlist(gde))) {
+    if (is.null(x = unlist(x = genes.de[i]))) {
       next
     }
+    gde <- genes.de[[i]]
     if (nrow(x = gde) > 0) {
       if (test.use == 'roc') {
         gde <- subset(
