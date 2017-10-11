@@ -284,7 +284,7 @@ FindMarkers <- function(
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
   to.return$p_val_adj = to.return$p_val * nrow(GetAssayData(object = object,
-                                                            assay.type = assay.type, 
+                                                            assay.type = assay.type,
                                                             slot = "data"))
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
@@ -445,7 +445,10 @@ FindMarkersNode <- function(
   assay.type = "RNA",
   ...
 ) {
-  data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "RNA")
+  data.use <- GetAssayData(
+    object = object,
+    assay.type = assay.type
+  )
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
   tree <- SetIfNull(x = tree.use, default = object@cluster.tree[[1]])
   ident.order <- tree$tip.label
@@ -503,6 +506,8 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @export
 #'
 #' @examples
+#' pbmc_small
+#'
 #' FindAllMarkersNode(pbmc_small)
 #'
 FindAllMarkersNode <- function(
@@ -523,7 +528,7 @@ FindAllMarkersNode <- function(
   assay.type = "RNA",
   ...
 ) {
-  if(length(object@cluster.tree) == 0){
+  if (length(object@cluster.tree) == 0) {
     stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
   }
   data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
@@ -539,11 +544,11 @@ FindAllMarkersNode <- function(
   orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
   tree.use <- drop.tip(tree.use, drop.children)
   new.nodes <- unique(tree.use$edge[,1])
-  if ((test.use == 'roc') && (return.thresh==1e-2)) {
+  if ((test.use == 'roc') && (return.thresh == 1e-2)) {
     return.thresh <- 0.7
   }
   genes.de <- list()
-  for (i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+  for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
     genes.de[[i]] <- FindMarkersNode(
       object = object,
       assay.type = assay.type,
@@ -565,7 +570,7 @@ FindAllMarkersNode <- function(
     }
   }
   gde.all <- data.frame()
-  for (i in ((tree.use$Nnode+2):max(tree.use$edge))) {
+  for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
     gde <- genes.de[[i]]
     if (is.null(x = unlist(gde))) {
       next
@@ -590,9 +595,10 @@ FindAllMarkersNode <- function(
       }
     }
   }
-  gde.all$cluster <- MapVals(v = gde.all$cluster,
-                             from = new.nodes,
-                             to = orig.nodes
+  gde.all$cluster <- MapVals(
+    v = gde.all$cluster,
+    from = new.nodes,
+    to = orig.nodes
   )
   return(gde.all)
 }

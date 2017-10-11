@@ -322,44 +322,6 @@ NormalizeData <- function(
   return(object)
 }
 
-#' Normalize raw data
-#'
-#' Normalize count data per cell and transform to centered log ratio
-#'
-#' @param data Matrix with the raw count data
-#'
-#' @return Returns a matrix with the custom normalization
-#'
-#' @import Matrix
-#'
-#' @export
-#'
-CustomNormalize <- function(data, custom_function, across) {
-  if (class(x = data) == "data.frame") {
-    data <- as.matrix(x = data)
-  }
-  if (class(x = data) != "dgCMatrix") {
-    data <- as(object = data, Class = "dgCMatrix")
-  }
-  if (across == 'cells'){
-    margin = 2
-  }
-  else if (across == 'genes'){
-    margin = 1
-  }
-  norm.data <- apply(
-    X = data, 
-    MARGIN = margin,
-    FUN = custom_function)
-  if(margin == 1){
-    norm.data = t(norm.data) 
-  }
-  colnames(x = norm.data) <- colnames(x = data)
-  rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
-}
-
-
 #' Old R based implementation of ScaleData. Scales and centers the data
 #'
 #' @param object Seurat object
