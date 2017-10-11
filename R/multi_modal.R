@@ -135,7 +135,9 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
 #' @export
 #'
 #' @examples
-#' cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(data.matrix = cbmc.rna)
+#' \dontrun{
+#' cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
+#' }
 #'
 CollapseSpeciesExpressionMatrix <- function(
   data.matrix,

@@ -283,7 +283,9 @@ FindMarkers <- function(
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
-  # to.return$p_val_adj = to.return$p_val * nrow(object@data)
+  to.return$p_val_adj = to.return$p_val * nrow(GetAssayData(object = object,
+                                                            assay.type = assay.type, 
+                                                            slot = "data"))
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
   } else {

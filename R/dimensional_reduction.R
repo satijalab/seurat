@@ -1,3 +1,6 @@
+
+
+
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
@@ -60,8 +63,8 @@ RunPCA <- function(
     genes.use = pc.genes,
     use.imputed = use.imputed,
     assay.type = assay.type)
-  pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
+    pcs.compute <- min(pcs.compute, ncol(x = data.use)-1)
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
     if(weight.by.var){
@@ -72,6 +75,7 @@ RunPCA <- function(
     cell.embeddings <- pca.results$v
   }
   else {
+    pcs.compute <- min(pcs.compute, nrow(x = data.use)-1)
     pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
     gene.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
