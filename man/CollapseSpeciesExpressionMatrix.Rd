@@ -23,6 +23,8 @@ A UMI count matrix. Rownames that started with prefix.1 have this prefix discard
 Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
 }
 \examples{
-cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(data.matrix = cbmc.rna)
+\dontrun{
+cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
+}
 
 }
