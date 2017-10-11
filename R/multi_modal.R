@@ -120,3 +120,31 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
   }
   return(object)
 }
+
+
+#' Slim down a multi-species expression matrix, when only one species is primarily of interenst.
+#'
+#' Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
+#'
+#' @param data.matrix A UMI count matrix. Should contain rownames that start with the ensuing arguments prefix.1 or prefix.2
+#' @param prefix.1 The prefix denoting rownames for the species of interest. Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.
+#' @param prefix.2 The prefix denoting rownames for the species of 'negative control' cells. Default is "MOUSE_". 
+#' @param features.controls.toKeep How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.
+#' @return A UMI count matrix. Rownames that started with prefix.1 have this prefix discarded. For rownames starting with prefix.2, only the most highly expressed features are kept, and the prefix is kept. All other rows are retained.
+#'
+#' @export
+#'
+#' @examples
+#' cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
+#'
+CollapseSpeciesExpressionMatrix <- function(data.matrix, prefix.1 = "HUMAN_", prefix.controls = "MOUSE_", features.controls.toKeep = 100) {
+  data.matrix.1 <- SubsetRow(data.matrix,prefix.1)
+  data.matrix.2 <- SubsetRow(data.matrix,prefix.2)
+  data.matrix.3 <- data.matrix[setdiff(rownames(data.matrix),c(rownames(data.matrix.1),rownames(data.matrix.2))),]
+  rownames(data.matrix.1)=make.unique(sapply(rownames(data.matrix.1), function(x) gsub(prefix.1,"",x)))
+  control.sums=rowSums(data.matrix.2)
+  control.keep=names(head(x = sort(control.sums,decreasing = T), n = features.controls.toKeep))
+  control.matrix.keep=data.matrix.2[control.keep,]
+  final.matrix=rbind(data.matrix.1,control.matrix.keep,data.matrix.3)
+  
+}
