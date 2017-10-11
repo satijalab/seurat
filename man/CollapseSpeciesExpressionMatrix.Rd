@@ -12,9 +12,9 @@ CollapseSpeciesExpressionMatrix(data.matrix, prefix.1 = "HUMAN_",
 
 \item{prefix.1}{The prefix denoting rownames for the species of interest. Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.}
 
-\item{features.controls.toKeep}{How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.}
+\item{prefix.controls}{The prefix denoting rownames for the species of 'negative control' cells. Default is "MOUSE_".}
 
-\item{prefix.2}{The prefix denoting rownames for the species of 'negative control' cells. Default is "MOUSE_".}
+\item{features.controls.toKeep}{How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.}
 }
 \value{
 A UMI count matrix. Rownames that started with prefix.1 have this prefix discarded. For rownames starting with prefix.2, only the most highly expressed features are kept, and the prefix is kept. All other rows are retained.
@@ -23,6 +23,6 @@ A UMI count matrix. Rownames that started with prefix.1 have this prefix discard
 Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
 }
 \examples{
-cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
+cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(data.matrix = cbmc.rna)
 
 }

@@ -30,7 +30,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param group.label.rot Whether to rotate the group label.
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
-#' @param Assay to plot heatmap for (default is RNA)
+#' @param assay.type to plot heatmap for (default is RNA)
 #' @param do.plot Whether to display the plot.
 #'
 #' @return Returns a ggplot2 plot object
