@@ -5,7 +5,7 @@
 \title{Differential expression using Wilcoxon Rank Sum}
 \usage{
 WilcoxDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  print.bar = TRUE, ...)
+  print.bar = TRUE, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +20,8 @@ of the two groups}
 \item{genes.use}{Genes to use for test}
 
 \item{print.bar}{Print a progress bar}
+
+\item{assay.type}{Type of assay to perform DE for (default is RNA)}
 
 \item{...}{Extra parameters passed to wilcox.test}
 }

@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
 FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
-  logfc.threshold = 0.25, test.use = "bimod", ...)
+  logfc.threshold = 0.25, test.use = "bimod", assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,6 +38,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
 }}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{...}{Additional arguments passed to FindMarkers}
 }

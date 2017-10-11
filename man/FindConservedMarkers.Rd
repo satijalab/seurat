@@ -4,7 +4,8 @@
 \alias{FindConservedMarkers}
 \title{Finds markers that are conserved between the two groups}
 \usage{
-FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var, ...)
+FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,6 +16,8 @@ FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var, ...)
 for comparison.}
 
 \item{grouping.var}{grouping variable}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{\dots}{parameters to pass to FindMarkers}
 }

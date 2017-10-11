@@ -5,7 +5,8 @@
 \title{Negative binomial test for UMI-count based data (regularized version)}
 \usage{
 NegBinomRegDETest(object, cells.1, cells.2, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE, min.cells = 3)
+  latent.vars = NULL, print.bar = TRUE, min.cells = 3,
+  assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,6 +22,8 @@ NegBinomRegDETest(object, cells.1, cells.2, genes.use = NULL,
 \item{print.bar}{Print progress bar}
 
 \item{min.cells}{Minimum number of cells threshold}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 }
 \value{
 Returns a p-value ranked data frame of test results.

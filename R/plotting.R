@@ -30,6 +30,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param group.label.rot Whether to rotate the group label.
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
+#' @param Assay to plot heatmap for (default is RNA)
 #' @param do.plot Whether to display the plot.
 #'
 #' @return Returns a ggplot2 plot object
@@ -65,13 +66,14 @@ DoHeatmap <- function(
   group.label.rot = FALSE,
   group.cex = 15,
   group.spacing = 0.15,
+  assay.type = "RNA",
   do.plot = TRUE
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "scale.data")
     } else {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "data")
     }
   }
   # note: data.use should have cells as column names, genes as row names
@@ -2261,7 +2263,7 @@ DimPlot <- function(
   dim.1 = 1,
   dim.2 = 2,
   cells.use = NULL,
-  pt.size = 3,
+  pt.size = 1,
   do.return = FALSE,
   do.bare = FALSE,
   cols.use = NULL,
@@ -2271,7 +2273,7 @@ DimPlot <- function(
   data.hover = 'ident',
   do.identify = FALSE,
   do.label = FALSE,
-  label.size = 1,
+  label.size = 4,
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
@@ -2421,7 +2423,7 @@ DimPlot <- function(
 #' PCAPlot(object = pbmc_small)
 #'
 PCAPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "pca", label.size = 4, ...))
 }
 
 #' Plot Diffusion map
@@ -2442,7 +2444,7 @@ PCAPlot <- function(object, ...) {
 #' DMPlot(object = pbmc_small)
 #'
 DMPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "dm", label.size = 4, ...))
 }
 
 #' Plot ICA map
