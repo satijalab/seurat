@@ -625,7 +625,12 @@ SingleVlnPlot <- function(
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
   }
-  data[, feature] <- data[, feature] + noise
+  
+  if (all(data[, feature] == data[, feature][1])) {
+    warning(paste0("All cells have the same value of ", feature, "."))
+  } else{
+    data[, feature] <- data[, feature] + noise
+  }
   y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
   plot <- ggplot(
     data = data,
