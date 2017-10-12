@@ -78,7 +78,10 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 
 #' Assay Data Mutator Function
 #'
-#' Store information for specified assay, for multimodal analysis
+#' Store information for specified assay, for multimodal analysis. new.data 
+#' needs to have cells as the columns and measurement features (e.g. genes, 
+#' proteins, etc ...) as rows. Additionally, all the cell names in the new.data
+#' must match the cell names in the object (object@@cell.names).
 #'
 #' @inheritParams GetAssayData
 #' @param new.data New data to insert
@@ -101,6 +104,9 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #' )
 #'
 SetAssayData <- function(object, assay.type, slot, new.data) {
+  if(! all(colnames(new.data) %in% object@cell.names)) {
+    stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
+  }
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
       (object@raw.data <- new.data)
