@@ -19,7 +19,10 @@ SetAssayData(object, assay.type, slot, new.data)
 Seurat object with updated slot
 }
 \description{
-Store information for specified assay, for multimodal analysis
+Store information for specified assay, for multimodal analysis. new.data 
+needs to have cells as the columns and measurement features (e.g. genes, 
+proteins, etc ...) as rows. Additionally, all the cell names in the new.data
+must match the cell names in the object (object@cell.names).
 }
 \examples{
 # Simulate CITE-Seq results

@@ -26,5 +26,4 @@ Valuable for CITE-seq analyses, where we typically spike in rare populations of 
 \dontrun{
 cbmc.rna.collapsed <- CollapseSpeciesExpressionMatrix(cbmc.rna)
 }
-
 }

@@ -100,8 +100,8 @@ FindClusters <- function(
   }
   if ((
     missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN) && snn.built
-  ) || reuse.SNN) {
+    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix) 
+    && snn.built) || reuse.SNN) {
     save.SNN <- TRUE
     if (reuse.SNN && !snn.built) {
       stop("No SNN stored to reuse.")
@@ -116,6 +116,9 @@ FindClusters <- function(
   } else {
     # if any SNN building parameters are provided or it hasn't been built, build
     # a new SNN
+    if(!is.null(distance.matrix)) {
+      force.recalc <- TRUE
+    }
     object <- BuildSNN(
       object = object,
       genes.use = genes.use,
@@ -135,10 +138,12 @@ FindClusters <- function(
     parameters.to.store$resolution <- r
     if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
       parameters.to.store$object <- NULL
+      parameters.to.store$print.output <- NULL
       old.parameters <- GetAllCalcParam(object = object,
                                         calculation = paste0("FindClusters.res.", r))
       old.parameters$time <- NULL
-      if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
+      old.parameters$print.output <- NULL
+      if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
         warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
         object <- SetAllIdent(object, paste0("res.", r))
         next
