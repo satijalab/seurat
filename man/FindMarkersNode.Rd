@@ -5,7 +5,7 @@
 \title{Gene expression markers of identity classes defined by a phylogenetic clade}
 \usage{
 FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "bimod", ...)
+  logfc.threshold = 0.25, test.use = "bimod", assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,17 +16,30 @@ FindMarkersNode(object, node, tree.use = NULL, genes.use = NULL,
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
-\item{test.use}{Denotes which test to use. Seurat currently implements
-"bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
-(Students t-test), and "tobit" (Tobit-test for differential gene expression,
-as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
-The latter two options should only be used on UMI datasets, and assume an underlying
-poisson or negative-binomial distribution}
+\item{test.use}{Denotes which test to use. Available options are:
+\itemize{
+ \item{"wilcox"} : Wilcoxon rank sum test (default)
+ \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
+ (McDavid et al., Bioinformatics, 2013)
+ \item{"roc"} : Standard AUC classifier
+ \item{"t"} : Student's t-test
+ \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et
+ al., Nature Biotech, 2014)
+ \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
+  distribution. Use only for UMI-based datasets
+ \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
+ binomial distribution. Use only for UMI-based datasets
+ \item{"MAST} : GLM-framework that treates cellular detection rate as a
+ covariate (Finak et al, Genome Biology, 2015)
+ \item{"DESeq2} : DE based on a model using the negative binomial
+ distribution (Love et al, Genome Biology, 2014)
+}}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{...}{Additional arguments passed to FindMarkers}
 }

@@ -605,6 +605,57 @@ RegressOut <- function(...) {
   stop()
 }
 
+PCAFast <- function(...) {
+  .Deprecated("PCA", package= "Seurat")
+  PCA(...)
+}
+
+writ.table <- function(...) {
+  .Deprecated(
+    new = 'write.table',
+    package = 'Seurat',
+    msg = "'writ.table' no longer exists, use 'write.table' instead"
+  )
+}
+
+jackRandom <- function(...) {
+  .Deprecated(new = 'JackRandom', package = 'Seurat')
+  JackRandom(...)
+}
+
+MeanVarPlot <- function(...) {
+  .Deprecated(new = 'FindVariableGenes', package = 'Seurat')
+  FindVariableGenes(...)
+}
+
+HeatmapNode <- function(...) {
+  .Deprecated(new = 'NodeHeatmap', package = 'Seurat')
+  NodeHeatmap(...)
+}
+
+myPalette <- function(...) {
+  .Deprecated(new = 'CustomPalette', package = 'Seurat')
+  CustomPalette(...)
+}
+
+minusr <- function(...) {
+  .Deprecated(
+    new = 'SubsetRow',
+    package = 'Seurat',
+    msg = "Use SubsetRow with 'invert = TRUE' instead"
+  )
+  SubsetRow(..., invert = TRUE)
+}
+
+minusc <- function(...) {
+  .Deprecated(
+    new = 'SubsetColumn',
+    package = 'Seurat',
+    msg = "Use SubsetColumn with 'invert = TRUE' instead"
+  )
+  SubsetColumn(..., invert = TRUE)
+}
+
 VizClassification <- function(...) {
   .Deprecated(
     package = 'Seurat',

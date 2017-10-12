@@ -4,33 +4,46 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, genes.use = NULL, thresh.use = 0.25,
-  test.use = "bimod", min.pct = 0.1, min.diff.pct = 0.05,
+FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
+  test.use = "bimod", min.pct = 0.1, min.diff.pct = -Inf,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   return.thresh = 0.01, do.print = FALSE, random.seed = 1,
-  min.cells = 3, latent.vars = "nUMI")
+  min.cells = 3, latent.vars = "nUMI", assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{genes.use}{Genes to test. Default is to all genes}
+\item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
-X-fold difference (log-scale) between the two groups of cells.
-Increasing thresh.use speeds up the function, but can miss weaker signals.}
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
+X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
-\item{test.use}{Denotes which test to use. Seurat currently implements
-"bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
-(Students t-test), and "tobit" (Tobit-test for differential gene expression,
-as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
-The latter two options should only be used on UMI datasets, and assume an underlying
-poisson or negative-binomial distribution}
+\item{test.use}{Denotes which test to use. Available options are:
+\itemize{
+ \item{"wilcox"} : Wilcoxon rank sum test (default)
+ \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
+ (McDavid et al., Bioinformatics, 2013)
+ \item{"roc"} : Standard AUC classifier
+ \item{"t"} : Student's t-test
+ \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et
+ al., Nature Biotech, 2014)
+ \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
+  distribution. Use only for UMI-based datasets
+ \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
+ binomial distribution. Use only for UMI-based datasets
+ \item{"MAST} : GLM-framework that treates cellular detection rate as a
+ covariate (Finak et al, Genome Biology, 2015)
+ \item{"DESeq2} : DE based on a model using the negative binomial
+ distribution (Love et al, Genome Biology, 2014)
+}}
 
-\item{min.pct}{- only test genes that are detected in a minimum fraction of min.pct cells
-in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression}
+\item{min.pct}{only test genes that are detected in a minimum fraction of
+min.pct cells in either of the two populations. Meant to speed up the function
+by not testing genes that are very infrequently expressed. Default is 0.1}
 
-\item{min.diff.pct}{- only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default}
+\item{min.diff.pct}{only test genes that show a minimum difference in the
+fraction of detection between the two groups. Set to -Inf by default}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
 
@@ -47,6 +60,10 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
 
 \item{latent.vars}{remove the effects of these variables}
+
+\item{assay.type}{Type of assay to perform DE for (default is RNA)}
+
+\item{\dots}{Additional parameters to pass to specific DE functions}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

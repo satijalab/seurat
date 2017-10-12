@@ -5,10 +5,10 @@
 \title{Find all markers for a node}
 \usage{
 FindAllMarkersNode(object, node = NULL, genes.use = NULL,
-  thresh.use = 0.25, test.use = "bimod", min.pct = 0.1,
+  logfc.threshold = 0.25, test.use = "bimod", min.pct = 0.1,
   min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, return.thresh = 0.01, do.print = FALSE,
-  random.seed = 1, min.cells = 3)
+  random.seed = 1, min.cells = 3, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object. Must have object@cluster.tree slot filled. Use BuildClusterTree() if not.}
@@ -17,7 +17,7 @@ FindAllMarkersNode(object, node = NULL, genes.use = NULL,
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{thresh.use}{Limit testing to genes which show, on average, at least
+\item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells.}
 
 \item{test.use}{Denotes which test to use. Seurat currently implements
@@ -46,6 +46,10 @@ in either of the two populations. Meant to speed up the function by not testing 
 \item{random.seed}{Random seed for downsampling}
 
 \item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
+
+\item{\dots}{Additional parameters to pass to specific DE functions}
 }
 \value{
 Returns a dataframe with a ranked list of putative markers for each node and associated statistics
@@ -54,6 +58,8 @@ Returns a dataframe with a ranked list of putative markers for each node and ass
 This function finds markers for all splits at or below the specified node
 }
 \examples{
+pbmc_small
+
 FindAllMarkersNode(pbmc_small)
 
 }

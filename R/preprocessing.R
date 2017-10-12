@@ -298,6 +298,27 @@ NormalizeData <- function(
       new.data = normalized.data
     )
   }
+  if (normalization.method == "genesCLR") {
+    raw.data <- GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "raw.data"
+    )
+    if (is.null(x = raw.data)) {
+      stop(paste("Raw data for", assay.type, "has not been set"))
+    }
+    normalized.data <- CustomNormalize(
+      data = raw.data,
+      custom_function = function(x) log1p((x)/(exp(sum(log1p((x)[x > 0]), na.rm=TRUE) / length(x+1)))),
+      across = "genes"
+    )
+    object <- SetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data",
+      new.data = normalized.data
+    )
+  }
   return(object)
 }
 

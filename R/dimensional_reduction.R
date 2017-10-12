@@ -1,3 +1,6 @@
+
+
+
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
@@ -60,8 +63,8 @@ RunPCA <- function(
     genes.use = pc.genes,
     use.imputed = use.imputed,
     assay.type = assay.type)
-  pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
+    pcs.compute <- min(pcs.compute, ncol(x = data.use)-1)
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
     if(weight.by.var){
@@ -72,6 +75,7 @@ RunPCA <- function(
     cell.embeddings <- pca.results$v
   }
   else {
+    pcs.compute <- min(pcs.compute, nrow(x = data.use)-1)
     pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
     gene.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
@@ -477,7 +481,9 @@ ProjectPCA <- function(
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
-#' @param ... Extra parameters to MergeSeurat
+#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects 
+#' passed, passed onto ScaleData in case with single object and rescale.groups
+#' set to TRUE)
 #'
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
 #' one object is passed, the same object is returned. If two are passed, a
@@ -576,12 +582,14 @@ RunCCA <- function(
       if (rescale.groups) {
         data.use1 <- ScaleData(
           object = object,
-          data.use = object@data[genes.use, cells.1]
+          data.use = object@data[genes.use, cells.1],
+          ...
         )
         data.use1 <- data.use1@scale.data
         data.use2 <- ScaleData(
           object = object,
-          data.use = object@data[genes.use, cells.2]
+          data.use = object@data[genes.use, cells.2],
+          ...
         )
         data.use2 <- data.use2@scale.data
       } else {
@@ -608,6 +616,9 @@ RunCCA <- function(
   )
   cca.data <- rbind(cca.results$u, cca.results$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
+  rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  # wipe old CCA slot
+  object@dr$cca <- NULL
   if (! missing(x = object2)) {
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(
@@ -621,7 +632,6 @@ RunCCA <- function(
     combined.object <- ScaleData(object = combined.object)
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
-    rownames(cca.data) <- colnames(combined.object@data)
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -670,6 +680,7 @@ RunCCA <- function(
     )
     return(combined.object)
   } else {
+    cca.data <- cca.data[object@cell.names, ]
     object <- SetDimReduction(
       object = object,
       reduction.type = "cca",
@@ -682,11 +693,21 @@ RunCCA <- function(
       slot = "key",
       new.data = "CC"
     )
-
     object <- ProjectDim(
       object = object,
       reduction.type = "cca",
       do.print = FALSE
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = "cca",
+      slot = "gene.loadings",
+      new.data = GetGeneLoadings(
+        object = object,
+        reduction.type = "cca",
+        use.full = TRUE,
+        genes.use = genes.use
+      )
     )
     object@scale.data[is.na(x = object@scale.data)] <- 0
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]

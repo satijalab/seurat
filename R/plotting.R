@@ -30,6 +30,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param group.label.rot Whether to rotate the group label.
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
+#' @param assay.type to plot heatmap for (default is RNA)
 #' @param do.plot Whether to display the plot.
 #'
 #' @return Returns a ggplot2 plot object
@@ -65,13 +66,14 @@ DoHeatmap <- function(
   group.label.rot = FALSE,
   group.cex = 15,
   group.spacing = 0.15,
+  assay.type = "RNA",
   do.plot = TRUE
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "scale.data")
     } else {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "data")
     }
   }
   # note: data.use should have cells as column names, genes as row names
@@ -1790,12 +1792,14 @@ CellPlot <- function(
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
 #' @param remove.key Removes the color key from the plot.
 #' @param label.columns Labels for columns
+#' @param check.plot Check that plotting will finish in a reasonable amount of time
 #' @param ... Extra parameters for heatmap plotting.
 #'
 #' @return If do.return==TRUE, a matrix of scaled values which would be passed
 #' to heatmap.2. Otherwise, no return value, only a graphical output
 #'
 #' @importFrom graphics par
+#' @importFrom utils menu
 #'
 #' @export
 #'
@@ -1817,6 +1821,7 @@ DimHeatmap <- function(
   do.balanced = FALSE,
   remove.key = FALSE,
   label.columns = NULL,
+  check.plot = TRUE,
   ...
 ) {
   num.row <- floor(x = length(x = dim.use) / 3.01) + 1
@@ -1879,6 +1884,14 @@ DimHeatmap <- function(
         new.data <- as.matrix(x = new.data)
       }
       data.use <- rbind(data.use, new.data)
+    }
+    if(check.plot & any(dim(data.use) > 700) & (remove.key == FALSE & length(dim.use) == 1)) {
+      choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
+      if(choice == 1){
+        check.plot = FALSE
+      } else {
+        return()
+      }
     }
     #data.use <- object@scale.data[genes.use, cells.ordered]
     data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
@@ -2250,7 +2263,7 @@ DimPlot <- function(
   dim.1 = 1,
   dim.2 = 2,
   cells.use = NULL,
-  pt.size = 3,
+  pt.size = 1,
   do.return = FALSE,
   do.bare = FALSE,
   cols.use = NULL,
@@ -2260,7 +2273,7 @@ DimPlot <- function(
   data.hover = 'ident',
   do.identify = FALSE,
   do.label = FALSE,
-  label.size = 1,
+  label.size = 4,
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
@@ -2410,7 +2423,7 @@ DimPlot <- function(
 #' PCAPlot(object = pbmc_small)
 #'
 PCAPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "pca", label.size = 4, ...))
 }
 
 #' Plot Diffusion map
@@ -2431,7 +2444,7 @@ PCAPlot <- function(object, ...) {
 #' DMPlot(object = pbmc_small)
 #'
 DMPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "dm", label.size = 4, ...))
 }
 
 #' Plot ICA map

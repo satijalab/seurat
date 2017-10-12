@@ -7,7 +7,8 @@
 DimHeatmap(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
   num.genes = 30, use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
   do.return = FALSE, col.use = PurpleAndYellow(), use.scale = TRUE,
-  do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...)
+  do.balanced = FALSE, remove.key = FALSE, label.columns = NULL,
+  check.plot = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object.}
@@ -37,6 +38,8 @@ DimHeatmap(object, reduction.type = "pca", dim.use = 1, cells.use = NULL,
 \item{remove.key}{Removes the color key from the plot.}
 
 \item{label.columns}{Labels for columns}
+
+\item{check.plot}{Check that plotting will finish in a reasonable amount of time}
 
 \item{...}{Extra parameters for heatmap plotting.}
 }

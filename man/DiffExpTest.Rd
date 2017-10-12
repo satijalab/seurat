@@ -4,7 +4,8 @@
 \alias{DiffExpTest}
 \title{Likelihood ratio test for zero-inflated data}
 \usage{
-DiffExpTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
+DiffExpTest(object, cells.1, cells.2, assay.type = "RNA", genes.use = NULL,
+  print.bar = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -13,9 +14,12 @@ DiffExpTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
 
 \item{cells.2}{Group 2 cells}
 
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
+
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+\item{print.bar}{Print a progress bar once expression testing begins (uses
+pbapply to do this)}
 }
 \value{
 Returns a p-value ranked matrix of putative differentially expressed

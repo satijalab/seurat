@@ -6,3 +6,4 @@ src/*.o
 src/*.so
 .DS_Store
 *.pdf
+*.Rproj
