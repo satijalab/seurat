@@ -2,6 +2,10 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [In Develop] - 2017-10-17
+### Changed
+ - JoyPlot has been replaced with RidgePlot
+
 ## [2.1.0] - 2017-10-12
 ### Added
 - Support for using MAST and DESeq2 packages for differential expression testing in FindMarkers

@@ -397,9 +397,9 @@ VlnPlot <- function(
   }
 }
 
-#' Single cell joy plot
+#' Single cell ridge plot
 #'
-#' Draws a joy plot of single cell data (gene expression, metrics, PC
+#' Draws a ridge plot of single cell data (gene expression, metrics, PC
 #' scores, etc.)
 #'
 #' @param object Seurat object
@@ -427,9 +427,8 @@ VlnPlot <- function(
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @import ggplot2
-#' @importFrom cowplot get_legend
-#' @importFrom ggjoy geom_joy theme_joy
-#' @importFrom cowplot plot_grid
+#' @importFrom cowplot get_legend plot_grid
+#' @importFrom ggridges geom_density_ridges theme_ridges
 #'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
@@ -437,9 +436,9 @@ VlnPlot <- function(
 #' @export
 #'
 #' @examples
-#' JoyPlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
 #'
-JoyPlot <- function(
+RidgePlot <- function(
   object,
   features.plot,
   ident.include = NULL,
@@ -469,8 +468,14 @@ JoyPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...),
-                         check.names = F)
+  data.use <- data.frame(
+    FetchData(
+      object = object,
+      vars.all = features.plot,
+      ...
+    ),
+    check.names = F
+  )
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -495,7 +500,7 @@ JoyPlot <- function(
   plots <- lapply(
     X = features.plot,
     FUN = function(x) {
-      return(SingleJoyPlot(
+      return(SingleRidgePlot(
         feature = x,
         data = data.use[, x, drop = FALSE],
         cell.ident = ident.use,
