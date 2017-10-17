@@ -330,7 +330,7 @@ FindAllMarkers <- function(
   object,
   genes.use = NULL,
   logfc.threshold = 0.25,
-  test.use = "bimod",
+  test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
   print.bar = TRUE,
@@ -444,7 +444,7 @@ FindMarkersNode <- function(
   tree.use = NULL,
   genes.use = NULL,
   logfc.threshold = 0.25,
-  test.use = "bimod",
+  test.use = "wilcox",
   assay.type = "RNA",
   ...
 ) {
@@ -518,7 +518,7 @@ FindAllMarkersNode <- function(
   node = NULL,
   genes.use = NULL,
   logfc.threshold = 0.25,
-  test.use = "bimod",
+  test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = 0.05,
   print.bar = TRUE,
