@@ -914,6 +914,10 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-  object@meta.data[, cols.add] <- metadata[rownames(x=object@meta.data), cols.add]
+  meta.add <- metadata[rownames(x = object@meta.data), cols.add]
+  if (all(is.null(x = meta.add))) {
+    stop("Metadata provided doesn't match the cells in this object")
+  }
+  object@meta.data[, cols.add] <- meta.add
   return(object)
 }
