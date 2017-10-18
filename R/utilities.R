@@ -409,7 +409,7 @@ LogVMR <- function(x) {
 #' @examples
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
-#' 
+#'
 #' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", slot = "scale.data")
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'
