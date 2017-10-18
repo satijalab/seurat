@@ -14,8 +14,7 @@ BuildClusterTree(object, genes.use = NULL, pcs.use = NULL, SNN.use = NULL,
 variable genes (object@var.genes). Assumes pcs.use=NULL (tree calculated in
 gene expression space)}
 
-\item{pcs.use}{If set, tree is calculated in PCA space, using the
-eigenvalue-WeightedEucleideanDist distance across these PC scores.}
+\item{pcs.use}{If set, tree is calculated in PCA space.}
 
 \item{SNN.use}{If SNN is passed, build tree based on SNN graph connectivity between clusters}
 
