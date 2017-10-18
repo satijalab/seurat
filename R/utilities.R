@@ -194,14 +194,16 @@ UpdateSeuratObject <- function(object) {
     )
     new.object@dr$tsne <- tsne.obj
   }
-  if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-    if (class(object@snn.dense) == "data.frame") {
-      object@snn.dense <- as.matrix(x = object@snn.dense)
+  if ((.hasSlot(object, "snn.sparse"))) {
+    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
+      if (class(object@snn.dense) == "data.frame") {
+        object@snn.dense <- as.matrix(x = object@snn.dense)
+      }
+      new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
     }
-    new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
-  }
-  else{
-    new.object@snn <- object@snn.sparse
+    else{
+      new.object@snn <- object@snn.sparse
+    }
   }
   return(new.object)
 }
@@ -409,7 +411,7 @@ LogVMR <- function(x) {
 #' @examples
 #' # Define custom distance matrix
 #' manhattan.distance <- function(x, y) return(sum(abs(x-y)))
-#' 
+#'
 #' input.data <- GetAssayData(pbmc_small, assay.type = "RNA", slot = "scale.data")
 #' cell.manhattan.dist <- CustomDistance(input.data, manhattan.distance)
 #'

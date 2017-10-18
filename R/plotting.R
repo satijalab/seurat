@@ -16,6 +16,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
 #' @param group.by Groups cells by this variable. Default is object@@ident
+#' @param group.order Order of groups from left to right in heatmap.
 #' @param draw.line Draw vertical lines delineating different groups
 #' @param col.low Color for lowest expression value
 #' @param col.mid Color for mid expression value
@@ -52,6 +53,7 @@ DoHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
+  group.order = NULL,
   draw.line = TRUE,
   col.low = "#FF00FF",
   col.mid = "#000000",
@@ -114,6 +116,14 @@ DoHeatmap <- function(
   names(x = data.use)[names(x = data.use) == 'variable'] <- 'gene'
   names(x = data.use)[names(x = data.use) == 'value'] <- 'expression'
   data.use$ident <- cells.ident[data.use$cell]
+  if(!is.null(group.order)) {
+    if(length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
+      data.use$ident <- factor(data.use$ident, levels = group.order)
+    } 
+    else {
+      stop("Invalid group.order")
+    }
+  }
   breaks <- seq(
     from = min(data.use$expression),
     to = max(data.use$expression),
