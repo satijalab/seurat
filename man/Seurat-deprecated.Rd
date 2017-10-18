@@ -89,6 +89,7 @@
 \alias{minusc}
 \alias{RegressOut}
 \alias{VizClassification}
+\alias{JoyPlot}
 \title{Deprecated function(s) in the Seurat package}
 \usage{
 vlnPlot(...)
@@ -189,6 +190,7 @@ These functions are provided for compatibility with older version of the Seurat 
   \code{minusc} \tab now a synonym for \code{SubsetColumn}\cr
   \code{RegressOut} \tab now part of \code{ScaleData}\cr
   \code{VizClassification} \tab has been removed without replacement\cr
+  \code{JoyPlot} \tab now a synonym for \code{RidgePlot}\cr
 }
 }
 
