@@ -5,7 +5,7 @@
 \title{Gene expression markers for all identity classes}
 \usage{
 FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
-  test.use = "bimod", min.pct = 0.1, min.diff.pct = -Inf,
+  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   return.thresh = 0.01, do.print = FALSE, random.seed = 1,
   min.cells = 3, latent.vars = "nUMI", assay.type = "RNA", ...)

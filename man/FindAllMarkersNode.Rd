@@ -5,7 +5,7 @@
 \title{Find all markers for a node}
 \usage{
 FindAllMarkersNode(object, node = NULL, genes.use = NULL,
-  logfc.threshold = 0.25, test.use = "bimod", min.pct = 0.1,
+  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, return.thresh = 0.01, do.print = FALSE,
   random.seed = 1, min.cells = 3, assay.type = "RNA", ...)
