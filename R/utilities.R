@@ -669,7 +669,7 @@ AverageExpression <- function(
 #' pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
 #' PlotClusterTree(object = pbmc_small)
 #'
-MergeNode <- function(object, node.use = NULL, rebuild.tree = FALSE, ...) {
+MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
   object.tree <- object@cluster.tree[[1]]
   node.children <- DFT(
     tree = object.tree,
