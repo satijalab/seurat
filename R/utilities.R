@@ -477,23 +477,24 @@ AverageDetectionRate <- function(object, thresh.min = 0) {
 #'
 AveragePCA <- function(object) {
   ident.use <- object@ident
-  data.all <- GetDimReduction(
+  embeddings <- GetDimReduction(
     object = object,
     reduction.type = 'pca',
     slot = 'cell.embeddings'
   )
+  data.all <- NULL
   for (i in levels(x = ident.use)) {
     temp.cells <- WhichCells(object = object, ident = i)
     if (length(x = temp.cells) == 1) {
       data.temp <- apply(
-        X = data.frame((data.all[c(temp.cells, temp.cells), ])),
+        X = data.frame((embeddings[c(temp.cells, temp.cells), ])),
         MARGIN = 2,
         FUN = mean
       )
     }
     if (length(x = temp.cells) > 1) {
       data.temp <- apply(
-        X = data.all[temp.cells, ],
+        X = embeddings[temp.cells, ],
         MARGIN = 2,
         FUN = mean
       )
