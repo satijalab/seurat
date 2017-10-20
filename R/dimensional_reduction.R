@@ -481,7 +481,7 @@ ProjectPCA <- function(
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
-#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects 
+#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
 #' passed, passed onto ScaleData in case with single object and rescale.groups
 #' set to TRUE)
 #'
@@ -632,6 +632,12 @@ RunCCA <- function(
     combined.object <- ScaleData(object = combined.object)
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
+    if("add.cell.id1" %in% names(list(...)) && "add.cell.id2" %in% names(list(...))) {
+      rownames(cca.data)[which(rownames(cca.data) == object@cell.names)] <-
+        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[which(rownames(cca.data) == object@cell.names)])
+      rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)] <-
+        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)])
+    }
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
