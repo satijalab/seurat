@@ -384,6 +384,7 @@ SubsetData <- function(
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed
   )
+  object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
   if(! is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
@@ -431,7 +432,6 @@ SubsetData <- function(
     }
   }
   #object@tsne.rot=object@tsne.rot[cells.use, ]
-  object@cell.names <- cells.use
   # object@gene.scores <- data.frame(object@gene.scores[cells.use,])
   # colnames(x = object@gene.scores)[1] <- "nGene"
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
