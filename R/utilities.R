@@ -590,7 +590,7 @@ AverageExpression <- function(
       }
       if (length(x = temp.cells) >1 ) {
         data.temp <- apply(
-          X = data.use[genes.assay, temp.cells],
+          X = data.use[genes.assay, temp.cells, drop = FALSE],
           MARGIN = 1,
           FUN = fxn.average
         )
