@@ -1,3 +1,6 @@
+
+
+
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
@@ -60,8 +63,8 @@ RunPCA <- function(
     genes.use = pc.genes,
     use.imputed = use.imputed,
     assay.type = assay.type)
-  pcs.compute <- min(pcs.compute, ncol(x = data.use))
   if (rev.pca) {
+    pcs.compute <- min(pcs.compute, ncol(x = data.use)-1)
     pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
     if(weight.by.var){
@@ -72,6 +75,7 @@ RunPCA <- function(
     cell.embeddings <- pca.results$v
   }
   else {
+    pcs.compute <- min(pcs.compute, nrow(x = data.use)-1)
     pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
     gene.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
@@ -94,7 +98,7 @@ RunPCA <- function(
   )
   #object@dr[reduction.name] <- pca.obj
   eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
-  
+
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if(is.null(object@calc.params$RunPCA$pc.genes)){
@@ -184,7 +188,7 @@ RunICA <- function(
     sdev = sqrt(x = ica.results$vafs),
     key = "IC"
   )
-  
+
   eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
@@ -477,7 +481,9 @@ ProjectPCA <- function(
 #' that are also present in both objects.
 #' @param scale.data Use the scaled data from the object
 #' @param rescale.groups Rescale each set of cells independently
-#' @param ... Extra parameters to MergeSeurat
+#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
+#' passed, passed onto ScaleData in case with single object and rescale.groups
+#' set to TRUE)
 #'
 #' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
 #' one object is passed, the same object is returned. If two are passed, a
@@ -576,12 +582,14 @@ RunCCA <- function(
       if (rescale.groups) {
         data.use1 <- ScaleData(
           object = object,
-          data.use = object@data[genes.use, cells.1]
+          data.use = object@data[genes.use, cells.1],
+          ...
         )
         data.use1 <- data.use1@scale.data
         data.use2 <- ScaleData(
           object = object,
-          data.use = object@data[genes.use, cells.2]
+          data.use = object@data[genes.use, cells.2],
+          ...
         )
         data.use2 <- data.use2@scale.data
       } else {
@@ -597,9 +605,9 @@ RunCCA <- function(
   genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
-  
+
   cat("Running CCA\n", file = stderr())
-  
+
   cca.results <- CanonCor(
     mat1 = data.use1,
     mat2 = data.use2,
@@ -608,6 +616,9 @@ RunCCA <- function(
   )
   cca.data <- rbind(cca.results$u, cca.results$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
+  rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  # wipe old CCA slot
+  object@dr$cca <- NULL
   if (! missing(x = object2)) {
     cat("Merging objects\n", file = stderr())
     combined.object <- MergeSeurat(
@@ -621,7 +632,12 @@ RunCCA <- function(
     combined.object <- ScaleData(object = combined.object)
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
-    rownames(cca.data) <- colnames(combined.object@data)
+    if("add.cell.id1" %in% names(list(...)) && "add.cell.id2" %in% names(list(...))) {
+      rownames(cca.data)[which(rownames(cca.data) == object@cell.names)] <-
+        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[which(rownames(cca.data) == object@cell.names)])
+      rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)] <-
+        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)])
+    }
     combined.object <- SetDimReduction(
       object = combined.object,
       reduction.type = "cca",
@@ -670,6 +686,7 @@ RunCCA <- function(
     )
     return(combined.object)
   } else {
+    cca.data <- cca.data[object@cell.names, ]
     object <- SetDimReduction(
       object = object,
       reduction.type = "cca",
@@ -682,11 +699,21 @@ RunCCA <- function(
       slot = "key",
       new.data = "CC"
     )
-    
     object <- ProjectDim(
       object = object,
       reduction.type = "cca",
       do.print = FALSE
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = "cca",
+      slot = "gene.loadings",
+      new.data = GetGeneLoadings(
+        object = object,
+        reduction.type = "cca",
+        use.full = TRUE,
+        genes.use = genes.use
+      )
     )
     object@scale.data[is.na(x = object@scale.data)] <- 0
     parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
@@ -966,9 +993,9 @@ CalcVarExpRatio <- function(
 #' @param dims.align Dims to align, default is all
 #' @param num.genes Number of genes to use in construction of "metagene"
 #' @param step.pattern Step pattern to use for DTW ("symmetric2", "mvmStepPattern")
-#' @param mvm.elast When using the mvmStepPattern, this sets the elasticity - 
-#' the maximum consecutive reference elements that are skippable. By default 
-#' this is set to the 5% of the difference in the number of cells being aligned. 
+#' @param mvm.elast When using the mvmStepPattern, this sets the elasticity -
+#' the maximum consecutive reference elements that are skippable. By default
+#' this is set to the 5% of the difference in the number of cells being aligned.
 #' @param show.plots show debugging plots
 #'
 #' @return Returns Seurat object with the dims aligned, stored in

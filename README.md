@@ -3,7 +3,7 @@
 [![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat) 
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat) 
 
-# Seurat v2.0
+# Seurat v2.1
 
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
@@ -19,6 +19,12 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
 Version History
+
+October 12, 2017
+* Version 2.1
+* Changes:
+   * Support for using MAST and DESeq2 packages for differential expression testing in FindMarkers
+   * Support for multi-modal single-cell data via \@assay slot
 
 July 26, 2017
 * Version 2.0

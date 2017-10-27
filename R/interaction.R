@@ -24,8 +24,6 @@ globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
-#' which will save memory downstream for large datasets
 #' @param add.cell.id1 String to be appended to the names of all cells in object1
 #' @param add.cell.id2 String to be appended to the names of all cells in object2
 #'
@@ -59,7 +57,6 @@ MergeSeurat <- function(
   do.center = FALSE,
   names.field = 1,
   names.delim = "_",
-  save.raw = TRUE,
   add.cell.id1 = NULL,
   add.cell.id2 = NULL
 ) {
@@ -69,7 +66,7 @@ MergeSeurat <- function(
   if (length(x = object2@raw.data) < 2) {
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
-  if (! missing(add.cell.id1)) {
+  if (!missing(x = add.cell.id1)) {
     object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
     colnames(x = object1@raw.data) <- paste(
       add.cell.id1,
@@ -82,7 +79,7 @@ MergeSeurat <- function(
       sep = "_"
     )
   }
-  if (! missing(add.cell.id2)) {
+  if (!missing(x = add.cell.id2)) {
   object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
     colnames(x = object2@raw.data) <- paste(
       add.cell.id2,
@@ -123,8 +120,7 @@ MergeSeurat <- function(
     do.scale = FALSE,
     do.center = FALSE,
     names.field = names.field,
-    names.delim = names.delim,
-    save.raw = save.raw
+    names.delim = names.delim
   )
 
   if (do.normalize) {
@@ -191,8 +187,6 @@ MergeSeurat <- function(
 #' @param meta.data Additional metadata to add to the Seurat object. Should be
 #' a data frame where the rows are cell names, and the columns are additional
 #' metadata fields
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in object@@raw.data
-#' which will save memory downstream for large datasets
 #' @param add.cell.id String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
 #' "cell1" becomes "cell1.rep1"
 #'
@@ -224,14 +218,17 @@ AddSamples <- function(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  save.raw = TRUE,
   add.cell.id = NULL
 ) {
   if (length(x = object@raw.data) < 2) {
     stop("Object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
-  if (! missing(x = add.cell.id)) {
-    colnames(x= new.data) <- paste(add.cell.id, colnames(x = new.data),  sep = "_")
+  if (!missing(x = add.cell.id)) {
+    colnames(x = new.data) <- paste(
+      add.cell.id,
+      colnames(x = new.data),
+      sep = "_"
+    )
   }
   if (any(colnames(x = new.data) %in% object@cell.names)) {
     stop("Duplicate cell names, please provide 'add.cell.id' for unique names")
@@ -253,10 +250,9 @@ AddSamples <- function(
       )
     )
   }
-
   combined.meta.data$nGene <- NULL
   combined.meta.data$nUMI <- NULL
-  if (! is.null(x = add.cell.id)) {
+  if (!is.null(x = add.cell.id)) {
     combined.meta.data$orig.ident <- factor(
       x = combined.meta.data$orig.ident,
       levels = c(levels(x = combined.meta.data$orig.ident), add.cell.id)
@@ -274,8 +270,7 @@ AddSamples <- function(
     do.scale = F,
     do.center = F,
     names.field = names.field,
-    names.delim = names.delim,
-    save.raw = save.raw
+    names.delim = names.delim
   )
   if (do.normalize) {
     normalization.method.use = GetCalcParam(
@@ -385,6 +380,7 @@ SubsetData <- function(
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed
   )
+  object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
   if(! is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
@@ -432,7 +428,6 @@ SubsetData <- function(
     }
   }
   #object@tsne.rot=object@tsne.rot[cells.use, ]
-  object@cell.names <- cells.use
   # object@gene.scores <- data.frame(object@gene.scores[cells.use,])
   # colnames(x = object@gene.scores)[1] <- "nGene"
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
@@ -915,6 +910,10 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-  object@meta.data[, cols.add] <- metadata[rownames(x=object@meta.data), cols.add]
+  meta.add <- metadata[rownames(x = object@meta.data), cols.add]
+  if (all(is.null(x = meta.add))) {
+    stop("Metadata provided doesn't match the cells in this object")
+  }
+  object@meta.data[, cols.add] <- meta.add
   return(object)
 }

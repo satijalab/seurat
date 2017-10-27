@@ -6,11 +6,12 @@
 \usage{
 DoHeatmap(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
   genes.use = NULL, disp.min = -2.5, disp.max = 2.5, group.by = "ident",
-  draw.line = TRUE, col.low = "#FF00FF", col.mid = "#000000",
-  col.high = "#FFFF00", slim.col.label = FALSE, remove.key = FALSE,
-  rotate.key = FALSE, title = NULL, cex.col = 10, cex.row = 10,
-  group.label.loc = "bottom", group.label.rot = FALSE, group.cex = 15,
-  group.spacing = 0.15, do.plot = TRUE)
+  group.order = NULL, draw.line = TRUE, col.low = "#FF00FF",
+  col.mid = "#000000", col.high = "#FFFF00", slim.col.label = FALSE,
+  remove.key = FALSE, rotate.key = FALSE, title = NULL, cex.col = 10,
+  cex.row = 10, group.label.loc = "bottom", group.label.rot = FALSE,
+  group.cex = 15, group.spacing = 0.15, assay.type = "RNA",
+  do.plot = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -30,6 +31,8 @@ and genes as rows.}
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
 \item{group.by}{Groups cells by this variable. Default is object@ident}
+
+\item{group.order}{Order of groups from left to right in heatmap.}
 
 \item{draw.line}{Draw vertical lines delineating different groups}
 
@@ -58,6 +61,8 @@ and genes as rows.}
 \item{group.cex}{Size of group label text}
 
 \item{group.spacing}{Controls amount of space between columns.}
+
+\item{assay.type}{to plot heatmap for (default is RNA)}
 
 \item{do.plot}{Whether to display the plot.}
 }

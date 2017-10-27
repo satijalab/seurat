@@ -21,8 +21,8 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 
 \item{step.pattern}{Step pattern to use for DTW ("symmetric2", "mvmStepPattern")}
 
-\item{mvm.elast}{When using the mvmStepPattern, this sets the elasticity - 
-the maximum consecutive reference elements that are skippable. By default 
+\item{mvm.elast}{When using the mvmStepPattern, this sets the elasticity -
+the maximum consecutive reference elements that are skippable. By default
 this is set to the 5% of the difference in the number of cells being aligned.}
 
 \item{show.plots}{show debugging plots}

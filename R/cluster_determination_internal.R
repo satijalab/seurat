@@ -55,15 +55,15 @@ RunModularityClustering <- function(
   }
   rownames(x = edge) <- NULL
   colnames(x = edge) <- NULL
-  edge <- edge[! duplicated(x = edge[, 1:2]), ]
-  temp.file.location <- SetIfNull(x = temp.file.location, default = seurat.dir)
+  edge <- edge[!duplicated(x = edge[, 1:2]), ]
+  temp.file.location <- SetIfNull(x = temp.file.location, default = tempfile())
   unique_ID <- sample(x = 10000:99999, size = 1)
-  edge_file <- paste0(temp.file.location, "edge_", unique_ID, ".txt")
-  output_file <- paste0(temp.file.location, "output_", unique_ID, ".txt")
+  edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
+  output_file <- paste0(temp.file.location, "_output_", unique_ID, ".txt")
   while (file.exists(edge_file)) {
     unique_ID <- sample(x = 10000:99999, size = 1)
-    edge_file <- paste0(temp.file.location, "edge_", unique_ID, ".txt")
-    output_file <- paste0(temp.file.location, "output", unique_ID, ".txt")
+    edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
+    output_file <- paste0(temp.file.location, "_output", unique_ID, ".txt")
   }
   if (print.output) {
     print.output <- 1
@@ -103,7 +103,7 @@ RunModularityClustering <- function(
   )
   file.remove(edge_file)
   file.remove(output_file)
-  return (object)
+  return(object)
 }
 
 # Group single cells that make up their own cluster in with the cluster they are
