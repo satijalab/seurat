@@ -4,7 +4,8 @@
 \alias{MarkerTest}
 \title{ROC-based marker discovery}
 \usage{
-MarkerTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
+MarkerTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE,
+  assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,7 +16,10 @@ MarkerTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE)
 
 \item{genes.use}{Genes to test. Default is to use all genes}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
+\item{print.bar}{Print a progress bar once expression testing begins (uses
+pbapply to do this)}
+
+\item{assay.type}{Type of assay to fetch data for (default is RNA)}
 }
 \value{
 Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of

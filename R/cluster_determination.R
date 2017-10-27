@@ -100,8 +100,8 @@ FindClusters <- function(
   }
   if ((
     missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN) && snn.built
-  ) || reuse.SNN) {
+    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
+    && snn.built) || reuse.SNN) {
     save.SNN <- TRUE
     if (reuse.SNN && !snn.built) {
       stop("No SNN stored to reuse.")
@@ -116,6 +116,9 @@ FindClusters <- function(
   } else {
     # if any SNN building parameters are provided or it hasn't been built, build
     # a new SNN
+    if(!is.null(distance.matrix)) {
+      force.recalc <- TRUE
+    }
     object <- BuildSNN(
       object = object,
       genes.use = genes.use,
@@ -135,10 +138,12 @@ FindClusters <- function(
     parameters.to.store$resolution <- r
     if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
       parameters.to.store$object <- NULL
+      parameters.to.store$print.output <- NULL
       old.parameters <- GetAllCalcParam(object = object,
                                         calculation = paste0("FindClusters.res.", r))
       old.parameters$time <- NULL
-      if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
+      old.parameters$print.output <- NULL
+      if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
         warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
         object <- SetAllIdent(object, paste0("res.", r))
         next
@@ -545,8 +550,7 @@ globalVariables(
 #' @param genes.use Genes to use for the analysis. Default is the set of
 #' variable genes (object@@var.genes). Assumes pcs.use=NULL (tree calculated in
 #' gene expression space)
-#' @param pcs.use If set, tree is calculated in PCA space, using the
-#' eigenvalue-WeightedEucleideanDist distance across these PC scores.
+#' @param pcs.use If set, tree is calculated in PCA space.
 #' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
 #' @param do.plot Plot the resulting phylogenetic tree
 #' @param do.reorder Re-order identity classes (factor ordering), according to
@@ -585,19 +589,7 @@ BuildClusterTree <- function(
   }
   if (! is.null(x = pcs.use)) {
     data.pca <- AveragePCA(object = object)
-    data.use <- data.pca[pcs.use,]
-    if (is.null(x = object@pca.obj[[1]]$sdev)) {
-      data.eigenval <- (object@pca.obj[[1]]$d) ^ 2
-    } else {
-      data.eigenval <- (object@pca.obj[[1]]$sdev) ^ 2
-    }
-    data.weights <- (data.eigenval / sum(data.eigenval))[pcs.use]
-    data.weights <- data.weights / sum(data.weights)
-    data.dist <- CustomDistance(
-      my.mat = data.pca[pcs.use, ],
-      my.function = WeightedEuclideanDist,
-      w = data.weights
-    )
+    data.dist <- dist(t(x = data.pca[pcs.use,]))
   }
   if (! is.null(x = SNN.use)) {
     num.clusters <- length(x = ident.names)
@@ -759,4 +751,3 @@ KClustDimension <- function(
   }
   return(object)
 }
-

@@ -5,10 +5,10 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
-  cells.use = NULL, pt.size = 3, do.return = FALSE, do.bare = FALSE,
+  cells.use = NULL, pt.size = 1, do.return = FALSE, do.bare = FALSE,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
-  do.label = FALSE, label.size = 1, no.legend = FALSE, no.axes = FALSE,
+  do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
   dark.theme = FALSE, ...)
 }
 \arguments{

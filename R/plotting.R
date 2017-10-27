@@ -16,6 +16,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
 #' @param group.by Groups cells by this variable. Default is object@@ident
+#' @param group.order Order of groups from left to right in heatmap.
 #' @param draw.line Draw vertical lines delineating different groups
 #' @param col.low Color for lowest expression value
 #' @param col.mid Color for mid expression value
@@ -30,6 +31,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param group.label.rot Whether to rotate the group label.
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
+#' @param assay.type to plot heatmap for (default is RNA)
 #' @param do.plot Whether to display the plot.
 #'
 #' @return Returns a ggplot2 plot object
@@ -51,6 +53,7 @@ DoHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
+  group.order = NULL,
   draw.line = TRUE,
   col.low = "#FF00FF",
   col.mid = "#000000",
@@ -65,13 +68,14 @@ DoHeatmap <- function(
   group.label.rot = FALSE,
   group.cex = 15,
   group.spacing = 0.15,
+  assay.type = "RNA",
   do.plot = TRUE
 ) {
   if (is.null(x = data.use)) {
     if (use.scaled) {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "scale.data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "scale.data")
     } else {
-      data.use <- GetAssayData(object,assay.type = "RNA",slot = "data")
+      data.use <- GetAssayData(object,assay.type = assay.type,slot = "data")
     }
   }
   # note: data.use should have cells as column names, genes as row names
@@ -112,6 +116,14 @@ DoHeatmap <- function(
   names(x = data.use)[names(x = data.use) == 'variable'] <- 'gene'
   names(x = data.use)[names(x = data.use) == 'value'] <- 'expression'
   data.use$ident <- cells.ident[data.use$cell]
+  if(!is.null(group.order)) {
+    if(length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
+      data.use$ident <- factor(data.use$ident, levels = group.order)
+    } 
+    else {
+      stop("Invalid group.order")
+    }
+  }
   breaks <- seq(
     from = min(data.use$expression),
     to = max(data.use$expression),
@@ -395,9 +407,9 @@ VlnPlot <- function(
   }
 }
 
-#' Single cell joy plot
+#' Single cell ridge plot
 #'
-#' Draws a joy plot of single cell data (gene expression, metrics, PC
+#' Draws a ridge plot of single cell data (gene expression, metrics, PC
 #' scores, etc.)
 #'
 #' @param object Seurat object
@@ -425,9 +437,8 @@ VlnPlot <- function(
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @import ggplot2
-#' @importFrom cowplot get_legend
-#' @importFrom ggjoy geom_joy theme_joy
-#' @importFrom cowplot plot_grid
+#' @importFrom cowplot get_legend plot_grid
+#' @importFrom ggridges geom_density_ridges theme_ridges
 #'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
@@ -435,9 +446,9 @@ VlnPlot <- function(
 #' @export
 #'
 #' @examples
-#' JoyPlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
 #'
-JoyPlot <- function(
+RidgePlot <- function(
   object,
   features.plot,
   ident.include = NULL,
@@ -467,8 +478,14 @@ JoyPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...),
-                         check.names = F)
+  data.use <- data.frame(
+    FetchData(
+      object = object,
+      vars.all = features.plot,
+      ...
+    ),
+    check.names = F
+  )
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -493,7 +510,7 @@ JoyPlot <- function(
   plots <- lapply(
     X = features.plot,
     FUN = function(x) {
-      return(SingleJoyPlot(
+      return(SingleRidgePlot(
         feature = x,
         data = data.use[, x, drop = FALSE],
         cell.ident = ident.use,
@@ -978,7 +995,6 @@ FeaturePlot <- function(
     slot = 'key'
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-
   data.plot <- as.data.frame(GetCellEmbeddings(
     object = object,
     reduction.type = reduction.use,
@@ -991,7 +1007,6 @@ FeaturePlot <- function(
   data.plot$y <- data.plot[, x2]
   data.plot$pt.size <- pt.size
   names(x = data.plot) <- c('x', 'y')
-
   data.use <- t(x = FetchData(
     object = object,
     vars.all = features.plot,
@@ -1199,7 +1214,6 @@ FeatureHeatmap <- function(
   } else {
     data.plot %>%  group_by(gene) %>% mutate(scaled.expression = scale(expression)) -> data.plot
   }
-
   min.exp <- SetQuantile(cutoff = min.exp, data = data.plot$scaled.expression)
   max.exp <- SetQuantile(cutoff = max.exp, data = data.plot$scaled.expression)
   data.plot$gene <- factor(x = data.plot$gene, levels = features.plot)
@@ -2264,7 +2278,7 @@ DimPlot <- function(
   dim.1 = 1,
   dim.2 = 2,
   cells.use = NULL,
-  pt.size = 3,
+  pt.size = 1,
   do.return = FALSE,
   do.bare = FALSE,
   cols.use = NULL,
@@ -2274,7 +2288,7 @@ DimPlot <- function(
   data.hover = 'ident',
   do.identify = FALSE,
   do.label = FALSE,
-  label.size = 1,
+  label.size = 4,
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
@@ -2424,7 +2438,7 @@ DimPlot <- function(
 #' PCAPlot(object = pbmc_small)
 #'
 PCAPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "pca", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "pca", label.size = 4, ...))
 }
 
 #' Plot Diffusion map
@@ -2445,7 +2459,7 @@ PCAPlot <- function(object, ...) {
 #' DMPlot(object = pbmc_small)
 #'
 DMPlot <- function(object, ...) {
-  return(DimPlot(object = object, reduction.use = "dm", label.size = 6, ...))
+  return(DimPlot(object = object, reduction.use = "dm", label.size = 4, ...))
 }
 
 #' Plot ICA map

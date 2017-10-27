@@ -200,11 +200,21 @@ scrambled.cells <- sample(nbt.test@cell.names)
 c1 <- SubsetData(nbt.test, cells.use = scrambled.cells[1:7])
 c2 <- SubsetData(nbt.test, cells.use = scrambled.cells[8:14])
 c3 <- RunCCA(c1, c2, genes.use = c1@var.genes, num.cc = 3)
+nbt.test <- SetIdent(nbt.test, cells.use = c1@cell.names, ident.use = "g1")
+nbt.test <- SetIdent(nbt.test, cells.use = c2@cell.names, ident.use = "g2")
+c4 <- RunCCA(nbt.test, group1 = "g1", group2 = "g2", genes.use = c1@var.genes, num.cc = 3)
+c4@dr$cca@cell.embeddings <- c4@dr$cca@cell.embeddings[c3@cell.names, ]
 
-test_that("CCA returns the expected cell.embeddings matrix values", {
+test_that("CCA returns the expected cell.embeddings matrix values when run on two objects", {
   expect_equal(nrow(c3@dr$cca@cell.embeddings), 14)
   expect_equal(ncol(c3@dr$cca@cell.embeddings), 3)
   expect_equal(abs(unname(c3@dr$cca@cell.embeddings[1,1])), 0.3108733, tolerance = 1e-6 )
   expect_equal(abs(unname(c3@dr$cca@cell.embeddings[14,3])), 0.6064297, tolerance = 1e-6 )
+})
+test_that("CCA returns the expected cell.embeddings matrix values when run on single object", {
+  expect_equal(nrow(c4@dr$cca@cell.embeddings), 14)
+  expect_equal(ncol(c4@dr$cca@cell.embeddings), 3)
+  expect_equal(abs(unname(c4@dr$cca@cell.embeddings[1,1])), 0.3108733, tolerance = 1e-6 )
+  expect_equal(abs(unname(c4@dr$cca@cell.embeddings[14,3])), 0.6064297, tolerance = 1e-6 )
 })
 

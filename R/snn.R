@@ -60,6 +60,7 @@ BuildSNN <- function(
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
+    force.recalc <- TRUE
   } else if (is.null(x = dims.use)) {
     genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
     data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
@@ -69,11 +70,14 @@ BuildSNN <- function(
                                   dims.use = dims.use)
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
-  if (CalcInfoExists(object, "BuildSNN")){
-    parameters.to.store$object <- NULL
+  parameters.to.store$object <- NULL
+  parameters.to.store$distance.matrix <- NULL
+  parameters.to.store$print.output <- NULL
+  if (CalcInfoExists(object, "BuildSNN") && ! force.recalc){
     old.parameters <- GetAllCalcParam(object, "BuildSNN")
     old.parameters$time <- NULL
-    if(all(suppressWarnings(unlist(lapply(X = 1:length(old.parameters), function(x) old.parameters[[x]] == parameters.to.store[[x]]))))){
+    old.parameters$print.output <- NULL
+    if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
       warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
       return(object)
     }
@@ -95,7 +99,7 @@ BuildSNN <- function(
     nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
     nn.large <- my.knn$nn.index
   } else {
-    warning("Building SNN based on a provided distance matrix")
+    cat("Building SNN based on a provided distance matrix\n", file = stderr())
     n <- nrow(x = distance.matrix)
     k.for.nn <- k.param * k.scale
     knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
@@ -117,22 +121,26 @@ BuildSNN <- function(
   )
   object@snn <- w
   if (plot.SNN) {
-    if (length(x = object@dr$tsne@cell.embeddings) < 1) {
+    if(!"tsne" %in% names(object@dr)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
-      net <- graph.adjacency(
-        adjmatrix = w,
-        mode = "undirected",
-        weighted = TRUE,
-        diag = FALSE
-      )
-      plot.igraph(
-        x = net,
-        layout = as.matrix(x = object@dr$tsne@cell.embeddings),
-        edge.width = E(graph = net)$weight,
-        vertex.label = NA,
-        vertex.size = 0
-      )
+      if (nrow(object@dr$tsne@cell.embeddings) != length(x = object@cell.names)) {
+        warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
+      } else {
+        net <- graph.adjacency(
+          adjmatrix = as.matrix(w),
+          mode = "undirected",
+          weighted = TRUE,
+          diag = FALSE
+        )
+        plot.igraph(
+          x = net,
+          layout = as.matrix(x = object@dr$tsne@cell.embeddings),
+          edge.width = E(graph = net)$weight,
+          vertex.label = NA,
+          vertex.size = 0
+        )
+      }
     }
   }
   return(object)

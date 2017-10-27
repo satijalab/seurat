@@ -625,7 +625,12 @@ SingleVlnPlot <- function(
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
   }
-  data[, feature] <- data[, feature] + noise
+
+  if (all(data[, feature] == data[, feature][1])) {
+    warning(paste0("All cells have the same value of ", feature, "."))
+  } else{
+    data[, feature] <- data[, feature] + noise
+  }
   y.max <- SetIfNull(x = y.max, default = max(data[, feature]))
   plot <- ggplot(
     data = data,
@@ -689,7 +694,7 @@ SingleVlnPlot <- function(
   return(plot)
 }
 
-# Plot a single feature on a joy plot
+# Plot a single feature on a ridge plot
 #
 # @param feature Feature to plot
 # @param data Data to plot
@@ -712,10 +717,10 @@ SingleVlnPlot <- function(
 #
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
-#' @importFrom ggjoy geom_joy theme_joy
+#' @importFrom ggridges geom_density_ridges theme_ridges
 #
 globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
-SingleJoyPlot <- function(
+SingleRidgePlot <- function(
   feature,
   data,
   cell.ident,
@@ -762,10 +767,11 @@ SingleJoyPlot <- function(
         y = factor(ident)
     )
   ) +
-    geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
-  scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
-  scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-  plot <- plot+theme(
+    geom_density_ridges(scale = 4, mapping = aes(fill = factor(x = ident))) +
+    theme_ridges() +
+    scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+    scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+  plot <- plot + theme(
       legend.position = legend.position,
       axis.title.x = element_text(
         face = "bold",
@@ -799,7 +805,7 @@ SingleJoyPlot <- function(
   } else {
     plot <- plot + xlab(label = "")
   }
-  if (! is.null(x = cols.use)) {
+  if (!is.null(x = cols.use)) {
     plot <- plot + scale_fill_manual(values = cols.use)
   }
   if (x.lab.rot) {
@@ -813,7 +819,6 @@ SingleJoyPlot <- function(
   }
   return(plot)
 }
-
 
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())

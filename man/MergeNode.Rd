@@ -4,7 +4,7 @@
 \alias{MergeNode}
 \title{Merge childen of a node}
 \usage{
-MergeNode(object, node.use = NULL, rebuild.tree = FALSE, ...)
+MergeNode(object, node.use, rebuild.tree = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

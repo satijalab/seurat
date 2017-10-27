@@ -2,15 +2,26 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [In develop]
+## [In Develop] - 2017-10-17
+### Changed
+ - JoyPlot has been replaced with RidgePlot
+ - FindClusters is now more robust in making temp files
+
+## [2.1.0] - 2017-10-12
 ### Added
-- C++ implementation for parts of FindVariableGenes
+- Support for using MAST and DESeq2 packages for differential expression testing in FindMarkers
+- Support for multi-modal single-cell data via @assay slot
+
+### Changed
+- Default DE test changed to Wilcoxon rank sum test
 
 ## [2.0.1] - 2017-08-18
 ### Added
  - Now available on CRAN
  - Updated documentation complete with examples
  - Example datasets: `pbmc_small` and `cc.genes`
+ - C++ implementation for parts of FindVariableGenes
+ - Minor bug fixes
 
 ## [2.0.0] - 2017-07-26
 ### Added
