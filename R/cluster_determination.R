@@ -558,6 +558,7 @@ globalVariables(
 #' helpful, for example, when drawing violin plots.
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
+#' @param show.progress Show progress updates
 #'
 #' @return A Seurat object where the cluster tree is stored in
 #' object@@cluster.tree[[1]]
@@ -578,13 +579,18 @@ BuildClusterTree <- function(
   SNN.use = NULL,
   do.plot = TRUE,
   do.reorder = FALSE,
-  reorder.numeric = FALSE
+  reorder.numeric = FALSE,
+  show.progress = TRUE
 ) {
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {
     genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
-    data.avg <- AverageExpression(object = object, genes.use = genes.use)
+    data.avg <- AverageExpression(
+      object = object,
+      genes.use = genes.use,
+      show.progress = show.progress
+    )
     data.dist <- dist(t(x = data.avg[genes.use, ]))
   }
   if (! is.null(x = pcs.use)) {
