@@ -6,7 +6,7 @@
 \usage{
 AlignSubspace(object, reduction.type, grouping.var, dims.align,
   num.genes = 30, step.pattern = "symmetric2", mvm.elast = NULL,
-  show.plots = FALSE)
+  show.plots = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,9 +23,11 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 
 \item{mvm.elast}{When using the mvmStepPattern, this sets the elasticity -
 the maximum consecutive reference elements that are skippable. By default
-this is set to the 5% of the difference in the number of cells being aligned.}
+this is set to the 5\% of the difference in the number of cells being aligned.}
 
 \item{show.plots}{show debugging plots}
+
+\item{...}{Additional parameters to ScaleData}
 }
 \value{
 Returns Seurat object with the dims aligned, stored in

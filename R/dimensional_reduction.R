@@ -995,8 +995,9 @@ CalcVarExpRatio <- function(
 #' @param step.pattern Step pattern to use for DTW ("symmetric2", "mvmStepPattern")
 #' @param mvm.elast When using the mvmStepPattern, this sets the elasticity -
 #' the maximum consecutive reference elements that are skippable. By default
-#' this is set to the 5% of the difference in the number of cells being aligned.
+#' this is set to the 5\% of the difference in the number of cells being aligned.
 #' @param show.plots show debugging plots
+#' @param ... Additional parameters to ScaleData
 #'
 #' @return Returns Seurat object with the dims aligned, stored in
 #'  object@@dr$reduction.type.aligned
@@ -1028,7 +1029,8 @@ AlignSubspace <- function(
   num.genes = 30,
   step.pattern = "symmetric2",
   mvm.elast = NULL,
-  show.plots = FALSE
+  show.plots = FALSE,
+  ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
   object <- SetCalcParams(object = object,
@@ -1048,7 +1050,7 @@ AlignSubspace <- function(
   cc.embeds <- list()
   for (i in 1:num.groups) {
     cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(object = objects[[i]])
+    objects[[i]] <- ScaleData(object = objects[[i]], ...)
     objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
