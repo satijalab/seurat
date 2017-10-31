@@ -644,7 +644,8 @@ BuildClusterTree <- function(
       genes.use = genes.use,
       pcs.use = pcs.use,
       do.plot = FALSE,
-      do.reorder = FALSE
+      do.reorder = FALSE,
+      show.progress = show.progress
     )
   }
   if (do.plot) {
