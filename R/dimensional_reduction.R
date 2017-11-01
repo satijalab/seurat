@@ -633,10 +633,10 @@ RunCCA <- function(
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
     if("add.cell.id1" %in% names(list(...)) && "add.cell.id2" %in% names(list(...))) {
-      rownames(cca.data)[which(rownames(cca.data) == object@cell.names)] <-
-        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[which(rownames(cca.data) == object@cell.names)])
-      rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)] <-
-        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)])
+      rownames(cca.data)[which(rownames(cca.data) %in% object@cell.names)] <-
+        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[which(rownames(cca.data) %in% object@cell.names)])
+      rownames(cca.data)[which(rownames(cca.data) %in% object2@cell.names)] <-
+        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[which(rownames(cca.data) %in% object2@cell.names)])
     }
     combined.object <- SetDimReduction(
       object = combined.object,
