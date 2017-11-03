@@ -509,7 +509,8 @@ AveragePCA <- function(object) {
 #'
 #' Returns gene expression for an 'average' single cell in each identity class
 #'
-#' Output is in log-space, but averaging is done in non-log space.
+#' Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
+#' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
 #' @param genes.use Genes to analyze. Default is all genes.
