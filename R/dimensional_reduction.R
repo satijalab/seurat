@@ -1100,6 +1100,8 @@ AlignSubspace <- function(
         bicors[[g]]
       )
       genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
+      # genes must be correlated in same direction in both datasets
+      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
       genes.use <- rownames(x = genes.rank)[1:num.genes]
       metagenes <- list()
