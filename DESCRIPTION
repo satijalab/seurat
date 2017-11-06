@@ -21,6 +21,7 @@ Depends:
     Matrix,
 SystemRequirements: Java (>= 1.6)
 Imports:
+    loomR,
     methods,
     ROCR,
     stringr,
@@ -78,6 +79,7 @@ Collate:
     'plotting.R'
     'plotting_internal.R'
     'plotting_utilities.R'
+    'preprocessing_generics.R'
     'preprocessing.R'
     'preprocessing_internal.R'
     'printing_utilities.R'

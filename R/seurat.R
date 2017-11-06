@@ -1,4 +1,5 @@
 #' @import methods
+#' @import loomR
 #' @importFrom utils globalVariables
 NULL
 

@@ -1,3 +1,8 @@
+#' @include seurat.R
+#' @include preprocessing_generics.R
+#' @importFrom methods setMethod
+NULL
+
 #' Initialize and setup the Seurat object
 #'
 #' Initializes the Seurat object and some optional filtering
@@ -233,87 +238,87 @@ Read10X <- function(data.dir = NULL){
   return(full.data)
 }
 
-#' Normalize Assay Data
+#' @rdname NormalizeData
+#' @exportMethod NormalizeData
 #'
-#' Normalize data for a given assay
-#'
-#' @param object Seurat object
-#' @param assay.type Type of assay to normalize for (default is RNA), but can be
-#' changed for multimodal analyses.
-#' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize). More methods to be added very shortly.
-#' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param display.progress display progress bar for scaling procedure.
-#'
-#' @return Returns object after normalization. Normalized data is stored in data
-#' or scale.data slot, depending on the method
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' pmbc_small <- NormalizeData(object = pbmc_small)
-#'
-NormalizeData <- function(
-  object,
-  assay.type = "RNA",
-  normalization.method = "LogNormalize",
-  scale.factor = 1e4,
-  display.progress = TRUE
-) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "NormalizeData",
-    ... = parameters.to.store
-  )
-  if(is.null(normalization.method)) {
+setMethod(
+  f = 'NormalizeData',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    assay.type = "RNA",
+    normalization.method = "LogNormalize",
+    scale.factor = 1e4,
+    display.progress = TRUE
+  ) {
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
+    object <- SetCalcParams(
+      object = object,
+      calculation = "NormalizeData",
+      ... = parameters.to.store
+    )
+    if (is.null(normalization.method)) {
+      return(object)
+    }
+    if (normalization.method == "LogNormalize") {
+      raw.data <- GetAssayData(
+        object = object,
+        assay.type = assay.type,
+        slot = "raw.data"
+      )
+      if (is.null(x = raw.data)) {
+        stop(paste("Raw data for", assay.type, "has not been set"))
+      }
+      normalized.data <- LogNormalize(
+        data = raw.data,
+        scale.factor = scale.factor,
+        display.progress = display.progress
+      )
+      object <- SetAssayData(
+        object = object,
+        assay.type = assay.type,
+        slot = "data",
+        new.data = normalized.data
+      )
+    }
+    if (normalization.method == "genesCLR") {
+      raw.data <- GetAssayData(
+        object = object,
+        assay.type = assay.type,
+        slot = "raw.data"
+      )
+      if (is.null(x = raw.data)) {
+        stop(paste("Raw data for", assay.type, "has not been set"))
+      }
+      normalized.data <- CustomNormalize(
+        data = raw.data,
+        custom_function = function(x) log1p((x)/(exp(sum(log1p((x)[x > 0]), na.rm = TRUE) / length(x + 1)))),
+        across = "genes"
+      )
+      object <- SetAssayData(
+        object = object,
+        assay.type = assay.type,
+        slot = "data",
+        new.data = normalized.data
+      )
+    }
     return(object)
   }
-  if (normalization.method == "LogNormalize") {
-    raw.data <- GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "raw.data"
-    )
-    if (is.null(x = raw.data)) {
-      stop(paste("Raw data for", assay.type, "has not been set"))
-    }
-    normalized.data <- LogNormalize(
-      data = raw.data,
-      scale.factor = scale.factor,
-      display.progress = display.progress
-    )
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data",
-      new.data = normalized.data
-    )
+)
+
+#' @rdname NormalizeData
+#' @exportMethod NormalizeData
+#'
+setMethod(
+  f = 'NormalizeData',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    display.progress = TRUE
+  ) {
+    print("LOOOOOOOOOOOM")
   }
-  if (normalization.method == "genesCLR") {
-    raw.data <- GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "raw.data"
-    )
-    if (is.null(x = raw.data)) {
-      stop(paste("Raw data for", assay.type, "has not been set"))
-    }
-    normalized.data <- CustomNormalize(
-      data = raw.data,
-      custom_function = function(x) log1p((x)/(exp(sum(log1p((x)[x > 0]), na.rm=TRUE) / length(x+1)))),
-      across = "genes"
-    )
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data",
-      new.data = normalized.data
-    )
-  }
-  return(object)
-}
+)
 
 #' Old R based implementation of ScaleData. Scales and centers the data
 #'
