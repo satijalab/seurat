@@ -30,10 +30,7 @@ NULL
 #'
 setGeneric(
   name = 'NormalizeData',
-  def = function(
-    object,
-    ...
-  ) {
+  def = function(object, ...) {
     return(standardGeneric(f = 'NormalizeData'))
   }
 )
@@ -95,10 +92,78 @@ setGeneric(
 #'
 setGeneric(
   name = 'FindVariableGenes',
-  def = function(
-    object,
-    ...
-  ) {
+  def = function(object, ...) {
     return(standardGeneric(f = 'FindVariableGenes'))
+  }
+)
+
+#' Scale and center the data.
+#'
+#' Scales and centers genes in the dataset. If variables are provided in vars.to.regress,
+#' they are individually regressed against each gene, and the resulting residuals are
+#' then scaled and centered.
+#'
+#' ScaleData now incorporates the functionality of the function formerly known
+#' as RegressOut (which regressed out given the effects of provided variables
+#' and then scaled the residuals). To make use of the regression functionality,
+#' simply pass the variables you want to remove to the vars.to.regress parameter.
+#'
+#' Setting center to TRUE will center the expression for each gene by subtracting
+#' the average expression for that gene. Setting scale to TRUE will scale the
+#' expression level for each gene by dividing the centered gene expression
+#' levels by their standard deviations if center is TRUE and by their root mean
+#' square otherwise.
+#'
+#'
+#' @param object Seurat object
+#' @param genes.use Vector of gene names to scale/center. Default is all genes
+#' in object@@data.
+#' @param data.use Can optionally pass a matrix of data to scale, default is
+#' object@data[genes.use, ]
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear
+#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param do.scale Whether to scale the data.
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of genes that are only expressed in
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
+#' @param block.size Default size for number of genes to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param display.progress Displays a progress bar for scaling procedure
+#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
+#' multimodal analyses.
+#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
+#' We've maintained support for our previous implementation in R for
+#' reproducibility (set this to FALSE) as results can change slightly due to
+#' differences in numerical precision which could affect downstream calculations.
+#' @param check.for.norm Check to see if data has been normalized, if not,
+#' output a warning (TRUE by default)
+#'
+#' @return Returns a seurat object with object@@scale.data updated with scaled
+#' and/or centered data.
+#'
+#' @rdname ScaleData
+#' @export ScaleData
+#'
+#' @examples
+#' pbmc_small <- ScaleData(object = pbmc_small)
+#' \dontrun{
+#' # To regress out certain effects
+#' pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
+#' }
+#'
+setGeneric(
+  name = 'ScaleData',
+  def = function(object, ...) {
+    return(standardGeneric(f = 'ScaleData'))
   }
 )
