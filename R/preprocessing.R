@@ -563,7 +563,7 @@ setMethod(
     do.center = TRUE,
     scale.max = 10,
     chunk.size = 1000,
-    normalized.matrix = 'layers/norm_data',
+    normalized.data = 'layers/norm_data',
     overwrite = FALSE,
     display.progress = TRUE,
     ...
@@ -581,10 +581,11 @@ setMethod(
       },
       MARGIN = 2,
       chunk.size = chunk.size,
-      dataset.use = normalized.matrix,
+      dataset.use = normalized.data,
       overwrite = overwrite,
       display.progress = display.progress
     )
+    gc(verbose = FALSE)
     invisible(x = object)
   }
 )
@@ -820,14 +821,14 @@ setMethod(
     y.high.cutoff = Inf,
     num.bin = 20,
     chunk.size = 1000,
-    normalized.matrix = 'layers/norm_data',
+    normalized.data = 'layers/norm_data',
     display.progress = TRUE,
     ...
   ) {
-    if (!normalized.matrix %in% list.datasets(object = object)) {
+    if (!normalized.data %in% list.datasets(object = object)) {
       stop(paste0(
         "Cannot find normalized matrix '",
-        normalized.matrix,
+        normalized.data,
         "' in the loom file, please run NormalizeData"
       ))
     }
@@ -844,7 +845,7 @@ setMethod(
       },
       chunk.size = chunk.size,
       MARGIN = 2,
-      dataset.use = normalized.matrix,
+      dataset.use = normalized.data,
       display.progress = display.progress,
       expected = 'vector'
     )
@@ -862,7 +863,7 @@ setMethod(
       },
       chunk.size = chunk.size,
       MARGIN = 2,
-      dataset.use = normalized.matrix,
+      dataset.use = normalized.data,
       display.progress = display.progress,
       expected = 'vector'
     )

@@ -70,7 +70,9 @@ setGeneric(
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param do.cpp Run c++ version of mean.function and dispersion.function if they
 #' exist.
-#' @param display.progress show progress bar for calculations
+#' @param chunk.size Chunk size to iterate over
+#' @param normalized.data Full path to normalized data in loom file
+#' @param display.progress Show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
@@ -147,6 +149,9 @@ setGeneric(
 #' differences in numerical precision which could affect downstream calculations.
 #' @param check.for.norm Check to see if data has been normalized, if not,
 #' output a warning (TRUE by default)
+#' @param chunk.size Chunk size to iterate over
+#' @param normalized.data Full path to normalized data in loom file
+#' @param Overwrite Overwrite existing dataset with name 'layers/\code{name}'
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.

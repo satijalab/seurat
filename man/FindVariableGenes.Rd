@@ -17,7 +17,7 @@ FindVariableGenes(object, ...)
 
 \S4method{FindVariableGenes}{loom}(object, x.low.cutoff = 0.1,
   x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20,
-  chunk.size = 1000, normalized.matrix = "layers/norm_data",
+  chunk.size = 1000, normalized.data = "layers/norm_data",
   display.progress = TRUE, ...)
 }
 \arguments{
@@ -54,7 +54,11 @@ is 20)}
 \item{do.cpp}{Run c++ version of mean.function and dispersion.function if they
 exist.}
 
-\item{display.progress}{show progress bar for calculations}
+\item{display.progress}{Show progress bar for calculations}
+
+\item{chunk.size}{Chunk size to iterate over}
+
+\item{normalized.data}{Full path to normalized data in loom file}
 }
 \value{
 Returns a Seurat object, placing variable genes in object@var.genes.

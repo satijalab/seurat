@@ -17,7 +17,7 @@ ScaleData(object, ...)
 
 \S4method{ScaleData}{loom}(object, name = "scale_data", do.scale = TRUE,
   do.center = TRUE, scale.max = 10, chunk.size = 1000,
-  normalized.matrix = "layers/norm_data", overwrite = FALSE,
+  normalized.data = "layers/norm_data", overwrite = FALSE,
   display.progress = TRUE, ...)
 }
 \arguments{
@@ -67,6 +67,12 @@ differences in numerical precision which could affect downstream calculations.}
 
 \item{check.for.norm}{Check to see if data has been normalized, if not,
 output a warning (TRUE by default)}
+
+\item{chunk.size}{Chunk size to iterate over}
+
+\item{normalized.data}{Full path to normalized data in loom file}
+
+\item{Overwrite}{Overwrite existing dataset with name 'layers/\code{name}'}
 }
 \value{
 Returns a seurat object with object@scale.data updated with scaled
