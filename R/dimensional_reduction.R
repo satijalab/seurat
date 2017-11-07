@@ -617,6 +617,12 @@ RunCCA <- function(
   cca.data <- rbind(cca.results$u, cca.results$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
   rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  cca.data <- apply(cca.data, MARGIN = 2, function(x){
+    if(sign(x[1]) == -1) {
+      x <- x * -1
+    }
+    return(x)
+  })
   # wipe old CCA slot
   object@dr$cca <- NULL
   if (! missing(x = object2)) {
@@ -815,6 +821,12 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
     cca.data <- rbind(cca.data, results$ws[[i]])
   }
   rownames(cca.data) <- colnames(combined.object@data)
+  cca.data <- apply(cca.data, MARGIN = 2, function(x){
+    if(sign(x[1]) == -1) {
+      x <- x * -1
+    }
+    return(x)
+  })
   combined.object <- SetDimReduction(
     object = combined.object,
     reduction.type = "cca",
