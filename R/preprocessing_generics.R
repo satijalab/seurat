@@ -12,6 +12,9 @@ NULL
 #' @param normalization.method Method for normalization. Default is
 #' log-normalization (LogNormalize). More methods to be added very shortly.
 #' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param chunk.size Chunk size to iterate over
+#' @param name Basename to store results matrix in 'layers'
+#' @param dataset.use Dataset to normalize, defaults to 'matrix'
 #' @param display.progress display progress bar for scaling procedure.
 #'
 #' @return Returns object after normalization. Normalized data is stored in data

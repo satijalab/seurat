@@ -307,6 +307,7 @@ setMethod(
 )
 
 #' @rdname NormalizeData
+#' @importFrom Matrix Matrix
 #' @exportMethod NormalizeData
 #'
 setMethod(
@@ -314,9 +315,28 @@ setMethod(
   signature = c('object' = 'loom'),
   definition = function(
     object,
+    scale.factor = 1e4,
+    chunk.size = 1000,
+    name = 'norm_data',
+    dataset.use = 'matrix',
     display.progress = TRUE
   ) {
-    print("LOOOOOOOOOOOM")
+    name <- paste('layers', basename(path = name[1]), sep = '/')
+    object$apply(
+      name = name,
+      FUN = function(mat) {
+        return(t(x = as.matrix(x = LogNorm(
+          data = Matrix(data = t(x = mat), sparse = TRUE),
+          scale_factor = scale.factor,
+          display_progress = FALSE
+        ))))
+      },
+      chunk.size = chunk.size,
+      dataset.use = dataset.use,
+      display.progress = display.progress
+    )
+    gc(verbose = FALSE)
+    invisible(x = object)
   }
 )
 

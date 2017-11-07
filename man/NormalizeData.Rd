@@ -13,7 +13,9 @@ NormalizeData(object, ...)
   normalization.method = "LogNormalize", scale.factor = 10000,
   display.progress = TRUE)
 
-\S4method{NormalizeData}{loom}(object, display.progress = TRUE)
+\S4method{NormalizeData}{loom}(object, scale.factor = 10000,
+  chunk.size = 1000, name = "norm_data", dataset.use = "matrix",
+  display.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,6 +29,12 @@ log-normalization (LogNormalize). More methods to be added very shortly.}
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
 \item{display.progress}{display progress bar for scaling procedure.}
+
+\item{chunk.size}{Chunk size to iterate over}
+
+\item{name}{Basename to store results matrix in 'layers'}
+
+\item{dataset.use}{Dataset to normalize, defaults to 'matrix'}
 }
 \value{
 Returns object after normalization. Normalized data is stored in data
