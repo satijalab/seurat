@@ -85,12 +85,11 @@ setMethod(
     cell.names = 'col_attrs/cell_names',
     norm.data = 'layers/norm_data',
     scale.data = 'layers/scale_data',
-    gene.means = 'row_attrs/gene_means',
-    gene.dispersion = 'row_attrs/gene_dispersion',
-    gene.scaled = 'row_attrs/gene_dispersion_scaled',
+    gene.means = 'row_attrs/gene.mean',
+    gene.dispersion = 'row_attrs/gene.dispersion',
+    gene.scaled = 'row_attrs/gene.dispersion.scaled',
     var.genes = 'row_attrs/var_genes'
   ) {
-    show(object = from)
     object.to <- switch(
       EXPR = to,
       'seurat' = {
@@ -128,12 +127,11 @@ setMethod(
           gc()
         }
         # Add meta data
-        meta.data <- names(x = from[['row_attrs']])
+        meta.data <- names(x = from[['col_attrs']])
         meta.data <- meta.data[!(meta.data %in% basename(path = cell.names))]
         if (length(x = meta.data) > 0) {
-          row.attrs <- from[['row_attrs']]
+          row.attrs <- from[['col_attrs']]
           meta.df <- data.frame('NA' = rep.int(x = NA, times = from$shape[1]))
-          colnames(x = meta.df) <- meta.data
           rownames(x = meta.df) <- colnames(x = raw.matrix)
           for (i in meta.data) {
             meta.df[, i] <- row.attrs[[i]][]

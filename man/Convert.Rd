@@ -14,9 +14,9 @@ Convert(from, to, ...)
 \S4method{Convert}{loom,character}(from, to, raw.data = "matrix",
   gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
   norm.data = "layers/norm_data", scale.data = "layers/scale_data",
-  gene.means = "row_attrs/gene_means",
-  gene.dispersion = "row_attrs/gene_dispersion",
-  gene.scaled = "row_attrs/gene_dispersion_scaled",
+  gene.means = "row_attrs/gene.mean",
+  gene.dispersion = "row_attrs/gene.dispersion",
+  gene.scaled = "row_attrs/gene.dispersion.scaled",
   var.genes = "row_attrs/var_genes")
 }
 \arguments{
