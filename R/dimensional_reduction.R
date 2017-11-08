@@ -1115,7 +1115,7 @@ AlignSubspace <- function(
       # genes must be correlated in same direction in both datasets
       genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.use <- rownames(x = genes.rank)[1:num.genes]
+      genes.use <- rownames(x = genes.rank)[1:min(num.genes, nrow(genes.rank))]
       metagenes <- list()
       multvar.data <- list()
       for (i in c(1, g)) {
