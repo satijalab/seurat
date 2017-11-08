@@ -70,6 +70,7 @@ setMethod(
 #' @param gene.scaled Path to scaled gene dispersion array (Optional, pass NULL to skip)
 #' @param var.gens Path to variable genes array (Optional, pass NULL to skip)
 #' @rdname Convert
+#' @importFrom Matrix Matrix
 #' @exportMethod Convert
 #'
 setMethod(
@@ -93,9 +94,55 @@ setMethod(
     object.to <- switch(
       EXPR = to,
       'seurat' = {
-        'looooooooooooooooooom'
-        # object <- CreateSeuratObject(raw.data = from[[raw.data]][, ])
-        # rownames(x = object@raw.data)
+        raw.matrix <- t(x = from[[raw.data]][, ])
+        rownames(x = raw.matrix) <- from[[gene.names]][]
+        colnames(x = raw.matrix) <- from[[cell.names]][]
+        raw.matrix <- Matrix(data = raw.matrix, sparse = TRUE)
+        object <- CreateSeuratObject(raw.data = raw.matrix)
+        if (!is.null(x = norm.data)) { # Add normalized data
+          norm.matrix <- t(x = from[[norm.data]][, ])
+          rownames(x = norm.matrix) <- rownames(x = raw.matrix)
+          colnames(x = norm.matrix) <- colnames(x = raw.matrix)
+          norm.matrix <- Matrix(data = norm.matrix, sparse = TRUE)
+          object@data <- norm.matrix
+          gc()
+        }
+        if (!is.null(x = scale.data)) { # Add scaled data
+          scale.matrix <- t(x = from[[scale.data]][, ])
+          rownames(x = scale.matrix) <- rownames(x = raw.matrix)
+          colnames(x = scale.matrix) <- colnames(x = scale.matrix)
+          object@scale.data <- scale.matrix
+          gc()
+        }
+        # Add variable genes
+        if (!is.null(x = gene.means) && !is.null(x = gene.dispersion) && !(is.null(gene.scaled))) {
+          object@hvg.info <- data.frame(
+            gene.mean = from[[gene.means]][],
+            gene.dispersion = from[[gene.dispersion]][],
+            gene.dispersion.scaled = from[[gene.scaled]][],
+            row.names = rownames(x = raw.matrix)
+          )
+          if (!is.null(x = var.genes)) {
+            object@var.genes <- rownames(x = raw.matrix)[from[[var.genes]][]]
+          }
+          gc()
+        }
+        # Add meta data
+        meta.data <- names(x = from[['row_attrs']])
+        meta.data <- meta.data[!(meta.data %in% basename(path = cell.names))]
+        if (length(x = meta.data) > 0) {
+          row.attrs <- from[['row_attrs']]
+          meta.df <- data.frame('NA' = rep.int(x = NA, times = from$shape[1]))
+          colnames(x = meta.df) <- meta.data
+          rownames(x = meta.df) <- colnames(x = raw.matrix)
+          for (i in meta.data) {
+            meta.df[, i] <- row.attrs[[i]][]
+          }
+          meta.df <- meta.df[, meta.data]
+          object@meta.data <- meta.df
+          gc()
+        }
+        object
       },
       stop(paste0("Cannot convert loom objects to class '", to, "'"))
     )
