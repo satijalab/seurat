@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @import loomR
 #' @importFrom methods signature
 NULL
 
@@ -31,13 +32,13 @@ setMethod(
     object.to <- switch(
       EXPR = to,
       'loom' = {
-        cell.order <- colnames(x = from@raw.data)
+        cell.order <- from@cell.names
         gene.order <- rownames(x = from@raw.data)
-        loomfile <- loomR::create(
+        loomfile <- create(
           filename = filename,
-          data = t(x = as.matrix(x = from@raw.data)),
+          data = t(x = as.matrix(x = from@raw.data[, cell.order])),
           cell.attrs = from@meta.data[cell.order, ],
-          layers = list('norm_data' = t(x = from@data)),
+          layers = list('norm_data' = t(x = from@data[, cell.order])),
           chunk.dims = chunk.dims
         )
         if (nrow(x = from@hvg.info) > 0) {
@@ -47,7 +48,9 @@ setMethod(
           loomfile$add.row.attribute(list('var_genes' = gene.order %in% from@var.genes))
         }
         if (!is.null(x = from@scale.data)) {
-          loomfile$add.layer(list('scale_data' = t(x = from@scale.data)))
+          loomfile$add.layer(list(
+            'scale_data' = as.matrix(x = t(x = as.data.frame(x = from@scale.data)[gene.order, cell.order]))
+          ))
         }
         loomfile
       },
