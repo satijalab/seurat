@@ -746,6 +746,7 @@ RunCCA <- function(
 #' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
 #' @export
 RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
+  set.seed(42)
   if(length(input) < 3){
     stop("Must give at least 3 objects/matrices for MultiCCA")
   }
