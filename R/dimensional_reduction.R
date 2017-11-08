@@ -1094,7 +1094,7 @@ AlignSubspace <- function(
       )
       genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:200]
+      genes.top <- rownames(x = genes.rank)[1:2000]
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]
