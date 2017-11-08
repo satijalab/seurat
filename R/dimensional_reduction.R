@@ -932,12 +932,13 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
-      temp.matrix=PrepDR(group.object,genes.use = genes.use)
+      temp.matrix <- PrepDR(group.object, genes.use = genes.use)
       group.object <- RunPCA(
         object = group.object,
         pc.genes = genes.use,
         do.print = FALSE,
-        center=rowMeans(temp.matrix)
+        center = rowMeans(temp.matrix),
+        pcs.compute = max(dims.use)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,
