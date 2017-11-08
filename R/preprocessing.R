@@ -806,6 +806,7 @@ setMethod(
   }
 )
 
+#' @param overwrite Overwrite previous results
 #' @rdname FindVariableGenes
 #' @importFrom hdf5r list.datasets
 #' @exportMethod FindVariableGenes
@@ -822,6 +823,7 @@ setMethod(
     num.bin = 20,
     chunk.size = 1000,
     normalized.data = 'layers/norm_data',
+    overwrite = FALSE,
     display.progress = TRUE,
     ...
   ) {
@@ -876,6 +878,15 @@ setMethod(
     # Find variable genes
     var.genes <- (gene.means > x.low.cutoff) & (gene.means < x.high.cutoff) & (scaled.dispersion > y.cutoff) & (scaled.dispersion < y.high.cutoff)
     # Add datasets
+    dset.names <- c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled', 'var_genes')
+    if (overwrite) {
+      row.attrs <- object[['row_attrs']]
+      for (i in dset.names) {
+        if (i %in% list.datasets(object = row.attrs)) {
+          row.attrs$link_delete(name = i)
+        }
+      }
+    }
     object$add.row.attribute(
       attribute = list(
         'gene_means' = gene.means,

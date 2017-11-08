@@ -18,7 +18,7 @@ FindVariableGenes(object, ...)
 \S4method{FindVariableGenes}{loom}(object, x.low.cutoff = 0.1,
   x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20,
   chunk.size = 1000, normalized.data = "layers/norm_data",
-  display.progress = TRUE, ...)
+  overwrite = FALSE, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -59,6 +59,8 @@ exist.}
 \item{chunk.size}{Chunk size to iterate over}
 
 \item{normalized.data}{Full path to normalized data in loom file}
+
+\item{overwrite}{Overwrite previous results}
 }
 \value{
 Returns a Seurat object, placing variable genes in object@var.genes.
