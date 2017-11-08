@@ -58,6 +58,7 @@ RunPCA <- function(
   assay.type="RNA",
   ...
 ) {
+  set.seed(42)
   data.use <- PrepDR(
     object = object,
     genes.use = pc.genes,
