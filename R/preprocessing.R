@@ -332,6 +332,7 @@ setMethod(
           display_progress = FALSE
         ))))
       },
+      MARGIN = 2,
       chunk.size = chunk.size,
       dataset.use = dataset.use,
       overwrite = overwrite,
@@ -579,7 +580,7 @@ setMethod(
           display_progress = FALSE
         )))
       },
-      MARGIN = 2,
+      MARGIN = 1,
       chunk.size = chunk.size,
       dataset.use = normalized.data,
       overwrite = overwrite,
@@ -846,7 +847,7 @@ setMethod(
         ))
       },
       chunk.size = chunk.size,
-      MARGIN = 2,
+      MARGIN = 1,
       dataset.use = normalized.data,
       display.progress = display.progress,
       expected = 'vector'
@@ -864,7 +865,7 @@ setMethod(
         ))
       },
       chunk.size = chunk.size,
-      MARGIN = 2,
+      MARGIN = 1,
       dataset.use = normalized.data,
       display.progress = display.progress,
       expected = 'vector'
