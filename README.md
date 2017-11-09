@@ -18,6 +18,10 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
+## Loom Tutorial
+
+A tutorial for loomR can be found [here](http://satijalab.org/loomR/loomR_tutorial.html). A full function and method reference can be found [here](http://satijalab.org/loomR/loomR.pdf).
+
 Version History
 
 October 12, 2017
