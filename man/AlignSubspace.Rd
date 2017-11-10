@@ -5,8 +5,7 @@
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
 AlignSubspace(object, reduction.type, grouping.var, dims.align,
-  num.genes = 30, step.pattern = "symmetric2", mvm.elast = NULL,
-  show.plots = FALSE, ...)
+  num.genes = 30, mvm.elast = NULL, show.plots = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,8 +17,6 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 \item{dims.align}{Dims to align, default is all}
 
 \item{num.genes}{Number of genes to use in construction of "metagene"}
-
-\item{step.pattern}{Step pattern to use for DTW ("symmetric2", "mvmStepPattern")}
 
 \item{mvm.elast}{When using the mvmStepPattern, this sets the elasticity -
 the maximum consecutive reference elements that are skippable. By default

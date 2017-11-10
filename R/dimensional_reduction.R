@@ -1009,7 +1009,6 @@ CalcVarExpRatio <- function(
 #' @param grouping.var Name of the grouping variable for which to align the scores
 #' @param dims.align Dims to align, default is all
 #' @param num.genes Number of genes to use in construction of "metagene"
-#' @param step.pattern Step pattern to use for DTW ("symmetric2", "mvmStepPattern")
 #' @param mvm.elast When using the mvmStepPattern, this sets the elasticity -
 #' the maximum consecutive reference elements that are skippable. By default
 #' this is set to the 5\% of the difference in the number of cells being aligned.
@@ -1021,7 +1020,6 @@ CalcVarExpRatio <- function(
 #'
 #' @importFrom dtw dtw
 #' @importFrom pbapply pbapply
-#' @importFrom dtw mvmStepPattern
 #'
 #' @export
 #'
@@ -1044,7 +1042,6 @@ AlignSubspace <- function(
   grouping.var,
   dims.align,
   num.genes = 30,
-  step.pattern = "symmetric2",
   mvm.elast = NULL,
   show.plots = FALSE,
   ...
@@ -1168,25 +1165,10 @@ AlignSubspace <- function(
         print(iqrmin)
       }
       align.2 <- align.2 + iqrmin
-      if (step.pattern == "symmetric2") {
-        alignment <- dtw(
-          x = align.1,
-          y = align.2,
-          keep = TRUE,
-          dist.method = metric.use
-        )
-      } else if (step.pattern == "mvmStepPattern"){
-        elast.use <- SetIfNull(mvm.elast, round(0.05 * abs(length(align.2) - length(align.1))))
-        alignment <- dtw(
-          x = align.1,
-          y = align.2,
-          keep = TRUE,
-          dist.method = metric.use,
-          step.pattern = mvmStepPattern(elasticity = elast.use)
-        )
-      } else {
-        stop("Invalid step.pattern")
-      }
+      alignment <- dtw(x = align.1,
+                       y = align.2,
+                       keep = TRUE,
+                       dist.method = metric.use)
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
       alignment.map$cc_data2 <- sort(cc.embeds[[1]][, cc.use])[alignment$index2]
