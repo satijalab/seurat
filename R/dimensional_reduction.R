@@ -21,6 +21,8 @@
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
 #' @param assay.type Data type, RNA by default. Can be changed for multimodal
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
 #' @param \dots Additional arguments to be passed to IRLBA
 #'
 #'@importFrom irlba irlba
@@ -56,9 +58,12 @@ RunPCA <- function(
   reduction.name = "pca",
   reduction.key = "PC",
   assay.type="RNA",
+  seed.use = 42,
   ...
 ) {
-  set.seed(42)
+  if (!is.null(seed.use)) {
+    set.seed(seed = seed.use)
+  }
   data.use <- PrepDR(
     object = object,
     genes.use = pc.genes,
