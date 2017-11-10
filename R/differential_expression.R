@@ -646,27 +646,21 @@ FindConservedMarkers <- function(
     ident.use = paste(object@ident, object.var[, 1], sep = "_")
   )
   levels.split <- names(x = sort(x = table(object.var[, 1])))
-  if (length(x = levels.split) != 2) {
-    stop(
-      paste0(
-        "There are not two options for ",
-        grouping.var,
-        ". \n Current groups include: ",
-        paste(levels.split, collapse = ", ")
-      )
-    )
-  }
+  num.groups <- length(levels.split)
   cells <- list()
-  for (i in 1:2) {
+  for (i in 1:num.groups) {
     cells[[i]] <- rownames(
       x = object.var[object.var[, 1] == levels.split[i], , drop = FALSE]
     )
   }
   marker.test <- list()
   # do marker tests
-  for (i in 1:2) {
+  for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
+    if(!ident.use.1 %in% object@ident) {
+      stop(paste0("Identity: ", ident.1, " not present in group ", level.use))
+    }
     cells.1 <- WhichCells(object = object, ident = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
@@ -687,6 +681,9 @@ FindConservedMarkers <- function(
       ),
       file = stderr()
     )
+    if(!ident.use.2 %in% object@ident) {
+      stop(paste0("Identity: ", ident.2, " not present in group ", level.use))
+    }
     marker.test[[i]] <- FindMarkers(
       object = object,
       assay.type = assay.type,
@@ -695,12 +692,10 @@ FindConservedMarkers <- function(
       ...
     )
   }
-  genes.conserved <- intersect(
-    x = rownames(x = marker.test[[1]]),
-    y = rownames(x = marker.test[[2]])
-  )
+
+  genes.conserved <- Reduce(intersect, lapply(marker.test, FUN = function(x) rownames(x)))
   markers.conserved <- list()
-  for (i in 1:2) {
+  for (i in 1:num.groups) {
     markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
     colnames(x = markers.conserved[[i]]) <- paste(
       levels.split[i],
@@ -708,7 +703,7 @@ FindConservedMarkers <- function(
       sep="_"
     )
   }
-  markers.combined <- cbind(markers.conserved[[1]], markers.conserved[[2]])
+  markers.combined <- Reduce(cbind, markers.conserved)
   pval.codes <- paste(levels.split, "p_val", sep = "_")
   markers.combined$max_pval <- apply(
     X = markers.combined[, pval.codes],
