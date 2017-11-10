@@ -1135,12 +1135,6 @@ AlignSubspace <- function(
           FUN = "*"
         )
         scaled.use <- scaled.use[, names(x = sort(x = cc.embeds[[i]][, cc.use]))]
-        metagenes[[i]] <- apply(
-          X = scaled.use[genes.use, ],
-          MARGIN = 2,
-          FUN = mean,
-          remove.na = TRUE
-        )
         metagenes[[i]] <- (
           cc.loadings[[i]][genes.use, cc.use] %*% scaled.data[[i]][genes.use, ]
         )[1, colnames(x = scaled.use)]
