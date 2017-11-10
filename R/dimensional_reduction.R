@@ -1008,6 +1008,9 @@ CalcVarExpRatio <- function(
 #' @param reduction.type reduction to align scores for
 #' @param grouping.var Name of the grouping variable for which to align the scores
 #' @param dims.align Dims to align, default is all
+#' @param num.possible.genes Number of possible genes to search when choosing
+#' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+#' but may result in metagenes constructed on fewer than num.genes genes.
 #' @param num.genes Number of genes to use in construction of "metagene"
 #' @param mvm.elast When using the mvmStepPattern, this sets the elasticity -
 #' the maximum consecutive reference elements that are skippable. By default
@@ -1041,6 +1044,7 @@ AlignSubspace <- function(
   reduction.type,
   grouping.var,
   dims.align,
+  num.possible.genes = 2000,
   num.genes = 30,
   mvm.elast = NULL,
   show.plots = FALSE,
@@ -1096,7 +1100,7 @@ AlignSubspace <- function(
       )
       genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:min(2000, nrow(genes.rank))]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]

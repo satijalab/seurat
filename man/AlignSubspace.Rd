@@ -5,7 +5,8 @@
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
 AlignSubspace(object, reduction.type, grouping.var, dims.align,
-  num.genes = 30, mvm.elast = NULL, show.plots = FALSE, ...)
+  num.possible.genes = 2000, num.genes = 30, mvm.elast = NULL,
+  show.plots = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,6 +16,10 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 \item{grouping.var}{Name of the grouping variable for which to align the scores}
 
 \item{dims.align}{Dims to align, default is all}
+
+\item{num.possible.genes}{Number of possible genes to search when choosing
+genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+but may result in metagenes constructed on fewer than num.genes genes.}
 
 \item{num.genes}{Number of genes to use in construction of "metagene"}
 
