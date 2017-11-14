@@ -810,6 +810,7 @@ setMethod(
 #' @param overwrite Overwrite previous results
 #' @rdname FindVariableGenes
 #' @importFrom hdf5r list.datasets
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @exportMethod FindVariableGenes
 #'
 setMethod(
@@ -835,42 +836,32 @@ setMethod(
         "' in the loom file, please run NormalizeData"
       ))
     }
-    # Calculate gene means
     if (display.progress) {
-      cat("Calculating gene means\n")
+      cat("Calculating gene means and dispersion\n")
+      pb <- txtProgressBar(char = '=', style = 3)
     }
-    gene.means <- object$map(
-      FUN = function(mat) {
-        return(FastExpMean(
-          mat = Matrix(data = t(x = mat), sparse = TRUE),
-          display_progress = FALSE
-        ))
-      },
+    batch <- object$batch.scan(
       chunk.size = chunk.size,
       MARGIN = 1,
-      dataset.use = normalized.data,
-      display.progress = display.progress,
-      expected = 'vector'
+      force.reset = TRUE
     )
+    # Preallocate memory for the results
+    gene.means <- vector(mode = 'numeric', length = object$shape[2])
+    raw.dispersion <- vector(mode = 'numeric', length = object$shape[2])
+    for (i in 1:length(x = batch)) {
+      chunk.indices <- object$batch.next(return.data = FALSE)
+      chunk.data <- object[[normalized.data]][, chunk.indices]
+      chunk.data <- Matrix(data = t(x = chunk.data), sparse = TRUE)
+      gene.means[chunk.indices] <- FastExpMean(mat = chunk.data, display_progress = FALSE)
+      raw.dispersion[chunk.indices] <- FastLogVMR(mat = chunk.data, display_progress = FALSE)
+      if (display.progress) {
+        setTxtProgressBar(pb = pb, value = i / length(x = batch))
+      }
+    }
+    # Clean out NAs
     gene.means[is.na(x = gene.means)] <- 0
-    # Calculate gene dispersion
-    if (display.progress) {
-      cat("\nCalculating gene dispersion\n")
-    }
-    raw.dispersion <- object$map(
-      FUN = function(mat) {
-        return(FastLogVMR(
-          mat = Matrix(data = t(x = mat), sparse = TRUE),
-          display_progress = FALSE
-        ))
-      },
-      chunk.size = chunk.size,
-      MARGIN = 1,
-      dataset.use = normalized.data,
-      display.progress = display.progress,
-      expected = 'vector'
-    )
     raw.dispersion[is.na(x = raw.dispersion)] <- 0
+    # Scale gene dispersion values
     data.x.bin <- cut(x = gene.means, breaks = num.bin)
     mean.y <- tapply(X = raw.dispersion, INDEX = data.x.bin, FUN = mean)
     sd.y <- tapply(X = raw.dispersion, INDEX = data.x.bin, FUN = sd)
