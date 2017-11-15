@@ -715,8 +715,11 @@ FindConservedMarkers <- function(
     MARGIN = 1,
     FUN = max
   )
-  markers.combined$combined_pval <- MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
-                                                  meta.method = meta.method)$meta.analysis$pval
+  combined.pval <- MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
+                                 meta.method = meta.method)$meta.analysis
+  combined.pval <- cbind(combined.pval$pval, combined.pval$FDR)
+  colnames(combined.pval) <- paste0(colnames(combined.pval), c(rep("_p_val", length(meta.method)), rep("_FDR", length(meta.method))))
+  markers.combined$combined_pval <- combined.pval
   markers.combined <- markers.combined[order(markers.combined$combined_pval[,1]), ]
   return(markers.combined)
 }
