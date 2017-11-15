@@ -609,15 +609,20 @@ FindAllMarkersNode <- function(
 #'
 #' @param object Seurat object
 #' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) - use all other cells
-#' for comparison.
+#' @param ident.2 A second identity class for comparison. If NULL (default) -
+#' use all other cells for comparison.
 #' @param grouping.var grouping variable
 #' @param assay.type Type of assay to fetch data for (default is RNA)
+#' @param meta.method method for combining p-values. See MetaDE::MetaDE.pvalue
+#' for details.
 #' @param \dots parameters to pass to FindMarkers
 #'
-#' @return Matrix containing a ranked list of putative conserved markers, and associated statistics
-#' (p-values within each group and a combined p-value (fisher_pval), percentage of cells expressing
-#' the marker, average differences)
+#' @return Matrix containing a ranked list of putative conserved markers, and
+#' associated statistics (p-values within each group and a combined p-value
+#' (such as Fishers combined p-value or others from the MetaDE package),
+#' percentage of cells expressing the marker, average differences)
+#'
+#' @importFrom MetaDE MetaDE.pvalue
 #'
 #' @export
 #'
@@ -637,6 +642,7 @@ FindConservedMarkers <- function(
   ident.2 = NULL,
   grouping.var,
   assay.type = "RNA",
+  meta.method = "minP",
   ...
 ) {
   object.var <- FetchData(object = object, vars.all = grouping.var)
@@ -692,7 +698,6 @@ FindConservedMarkers <- function(
       ...
     )
   }
-
   genes.conserved <- Reduce(intersect, lapply(marker.test, FUN = function(x) rownames(x)))
   markers.conserved <- list()
   for (i in 1:num.groups) {
@@ -710,12 +715,9 @@ FindConservedMarkers <- function(
     MARGIN = 1,
     FUN = max
   )
-  markers.combined$fisher_pval <- apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = FisherIntegrate
-  )
-  markers.combined <- markers.combined[order(markers.combined$fisher_pval), ]
+  markers.combined$combined_pval <- MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
+                                                  meta.method = meta.method)$meta.analysis$pval
+  markers.combined <- markers.combined[order(markers.combined$combined_pval[,1]), ]
   return(markers.combined)
 }
 
