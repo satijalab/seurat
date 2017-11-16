@@ -820,6 +820,61 @@ SingleRidgePlot <- function(
   return(plot)
 }
 
+# An internal dim plot
+#' @import ggplot2
+#
+globalVariables(
+  names = c('x', 'y', 'ident'),
+  package = 'Seurat',
+  add = TRUE
+)
+SingleDimPlot <- function(
+  data.plot,
+  labels,
+  pt.size,
+  do.bare,
+  cols.use,
+  no.legend,
+  no.axes,
+  dark.theme
+) {
+  p <- ggplot(data = data.plot, mapping = aes(x = x, y = y))
+  p <- p + geom_point(mapping = aes(color = factor(x = ident)), size = pt.size)
+  if (!is.null(x = cols.use)) {
+    p <- p + scale_color_manual(values = cols.use)
+  }
+  if (do.bare) {
+    return(p)
+  }
+  p <- p + xlab(label = labels[[1]]) + ylab(label = labels[[2]])
+  p <- p + scale_size(range = c(pt.size, pt.size))
+  p <- p + SetXAxisGG() + SetYAxisGG() + SetLegendPointsGG() + SetLegendTextGG()
+  p <- p + no.legend.title + theme_bw() + NoGrid()
+  p <- p + theme(legend.title = element_blank())
+  if (dark.theme) {
+    p <- p + DarkTheme()
+  }
+  if (no.legend) {
+    p <- p + theme(legend.position = 'none')
+  }
+  if (no.axes) {
+    p <- p + theme(
+      axis.line = element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.background = element_blank()
+    )
+  }
+  return(p)
+}
+
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
 

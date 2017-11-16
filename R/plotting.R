@@ -1,4 +1,6 @@
 #' @include seurat.R
+#' @include plotting_generics.R
+#' @importFrom methods setMethod
 NULL
 
 globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
@@ -119,7 +121,7 @@ DoHeatmap <- function(
   if(!is.null(group.order)) {
     if(length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
       data.use$ident <- factor(data.use$ident, levels = group.order)
-    } 
+    }
     else {
       stop("Invalid group.order")
     }
@@ -2228,22 +2230,6 @@ VizICA <- function(
 }
 
 globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
-#' Dimensional reduction plot
-#'
-#' Graphs the output of a dimensional reduction technique (PCA by default).
-#' Cells are colored by their identity class.
-#'
-#' @param object Seurat object
-#' @param reduction.use Which dimensionality reduction to use. Default is
-#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
-#' @param dim.1 Dimension for x-axis (default 1)
-#' @param dim.2 Dimension for y-axis (default 2)
-#' @param cells.use Vector of cells to plot (default is all cells)
-#' @param pt.size Adjust point size for plotting
-#' @param do.return Return a ggplot2 object (default : FALSE)
-#' @param do.bare Do only minimal formatting (default : FALSE)
-#' @param cols.use Vector of colors, each color corresponds to an identity
-#' class. By default, ggplot assigns colors.
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both different colors and
@@ -2253,173 +2239,239 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
-#' @param no.legend Setting to TRUE will remove the legend
-#' @param no.axes Setting to TRUE will remove the axes
-#' @param dark.theme Use a dark theme for the plot
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
-#'
-#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
-#' graphical output.
-#'
-#' @seealso \code{FeatureLocator}
 #'
 #' @import SDMTools
 #' @importFrom stats median
 #' @importFrom dplyr summarize group_by
 #'
-#' @export
+#' @rdname DimPlot
+#' @exportMethod DimPlot
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
 #'
-DimPlot <- function(
-  object,
-  reduction.use = "pca",
-  dim.1 = 1,
-  dim.2 = 2,
-  cells.use = NULL,
-  pt.size = 1,
-  do.return = FALSE,
-  do.bare = FALSE,
-  cols.use = NULL,
-  group.by = "ident",
-  pt.shape = NULL,
-  do.hover = FALSE,
-  data.hover = 'ident',
-  do.identify = FALSE,
-  do.label = FALSE,
-  label.size = 4,
-  no.legend = FALSE,
-  no.axes = FALSE,
-  dark.theme = FALSE,
-  ...
-) {
-  embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
-  if (length(x = embeddings.use) == 0) {
-    stop(paste(reduction.use, "has not been run for this object yet."))
-  }
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
-  dim.code <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.use,
-    slot = "key"
-  )
-  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
-  data.plot <- as.data.frame(x = embeddings.use)
-  # data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = ""))
-  cells.use <- intersect(x = cells.use, y = rownames(x = data.plot))
-  data.plot <- data.plot[cells.use, dim.codes]
-  ident.use <- as.factor(x = object@ident[cells.use])
-  if (group.by != "ident") {
-    ident.use <- as.factor(x = FetchData(
+setMethod(
+  f = 'DimPlot',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    reduction.use = "pca",
+    dim.1 = 1,
+    dim.2 = 2,
+    cells.use = NULL,
+    pt.size = 1,
+    do.return = FALSE,
+    do.bare = FALSE,
+    cols.use = NULL,
+    group.by = "ident",
+    pt.shape = NULL,
+    do.hover = FALSE,
+    data.hover = 'ident',
+    do.identify = FALSE,
+    do.label = FALSE,
+    label.size = 4,
+    no.legend = FALSE,
+    no.axes = FALSE,
+    dark.theme = FALSE,
+    ...
+  ) {
+    embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
+    if (length(x = embeddings.use) == 0) {
+      stop(paste(reduction.use, "has not been run for this object yet."))
+    }
+    cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+    dim.code <- GetDimReduction(
       object = object,
-      vars.all = group.by
-    )[cells.use, 1])
-  }
-  data.plot$ident <- ident.use
-  data.plot$x <- data.plot[, dim.codes[1]]
-  data.plot$y <- data.plot[, dim.codes[2]]
-  data.plot$pt.size <- pt.size
-  p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-    geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
-  if (! is.null(x = pt.shape)) {
-    shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
-    if (is.numeric(shape.val)) {
-      shape.val <- cut(x = shape.val, breaks = 5)
-    }
-    data.plot[, "pt.shape"] <- shape.val
-    p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-      geom_point(
-        mapping = aes(colour = factor(x = ident), shape = factor(x = pt.shape)),
-        size = pt.size
-      )
-  }
-  if (! is.null(x = cols.use)) {
-    p <- p + scale_colour_manual(values = cols.use)
-  }
-  p2 <- p +
-    xlab(label = dim.codes[[1]]) +
-    ylab(label = dim.codes[[2]]) +
-    scale_size(range = c(pt.size, pt.size))
-  p3 <- p2 +
-    SetXAxisGG() +
-    SetYAxisGG() +
-    SetLegendPointsGG(x = 6) +
-    SetLegendTextGG(x = 12) +
-    no.legend.title +
-    theme_bw() +
-    NoGrid()
-  p3 <- p3 + theme(legend.title = element_blank())
-  if (do.label) {
-    data.plot %>%
-      dplyr::group_by(ident) %>%
-      summarize(x = median(x = x), y = median(x = y)) -> centers
-    p3 <- p3 +
-      geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
-      geom_text(data = centers, mapping = aes(label = ident), size = label.size)
-  }
-  if (dark.theme) {
-    p <- p + DarkTheme()
-    p3 <- p3 + DarkTheme()
-  }
-  if (no.legend) {
-    p3 <- p3 + theme(legend.position = "none")
-  }
-  if (no.axes) {
-    p3 <- p3 + theme(
-      axis.line = element_blank(),
-      axis.text.x = element_blank(),
-      axis.text.y = element_blank(),
-      axis.ticks = element_blank(),
-      axis.title.x = element_blank(),
-      axis.title.y = element_blank(),
-      panel.background = element_blank(),
-      panel.border = element_blank(),
-      panel.grid.major = element_blank(),
-      panel.grid.minor = element_blank(),
-      plot.background = element_blank()
+      reduction.type = reduction.use,
+      slot = "key"
     )
-  }
-  if (do.identify || do.hover) {
-    if (do.bare) {
-      plot.use <- p
-    } else {
-      plot.use <- p3
+    dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+    data.plot <- as.data.frame(x = embeddings.use)
+    # data.plot <- as.data.frame(GetDimReduction(object, reduction.type = reduction.use, slot = ""))
+    cells.use <- intersect(x = cells.use, y = rownames(x = data.plot))
+    data.plot <- data.plot[cells.use, dim.codes]
+    ident.use <- as.factor(x = object@ident[cells.use])
+    if (!is.null(x = group.by) & group.by != "ident") {
+      ident.use <- as.factor(x = FetchData(
+        object = object,
+        vars.all = group.by
+      )[cells.use, 1])
     }
-    if (do.hover) {
-      if (is.null(x = data.hover)) {
-        features.info <- NULL
-      } else {
-        features.info <- FetchData(object = object, vars.all = data.hover)
+    data.plot$ident <- ident.use
+    data.plot$x <- data.plot[, dim.codes[1]]
+    data.plot$y <- data.plot[, dim.codes[2]]
+    data.plot$pt.size <- pt.size
+    # p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
+    #   geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
+    p <- SingleDimPlot(
+      data.plot = data.plot,
+      labels = dim.codes,
+      pt.size = pt.size,
+      do.bare = do.bare,
+      cols.use = cols.use,
+      no.legend = no.legend,
+      no.axes = no.axes,
+      dark.theme = dark.theme
+    )
+    if (!is.null(x = pt.shape)) {
+      shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
+      if (is.numeric(shape.val)) {
+        shape.val <- cut(x = shape.val, breaks = 5)
       }
-      return(HoverLocator(
-        plot = plot.use,
-        data.plot = data.plot,
-        features.info = features.info,
-        dark.theme = dark.theme
-      ))
-    } else if (do.identify) {
-      return(FeatureLocator(
-        plot = plot.use,
-        data.plot = data.plot,
-        dark.theme = dark.theme,
-        ...
-      ))
+      data.plot[, "pt.shape"] <- shape.val
+      p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
+        geom_point(
+          mapping = aes(colour = factor(x = ident), shape = factor(x = pt.shape)),
+          size = pt.size
+        )
     }
-  }
-  if (do.return) {
-    if (do.bare) {
+    # if (!is.null(x = cols.use)) {
+    #   p <- p + scale_colour_manual(values = cols.use)
+    # }
+    # p2 <- p +
+    #   xlab(label = dim.codes[[1]]) +
+    #   ylab(label = dim.codes[[2]]) +
+    #   scale_size(range = c(pt.size, pt.size))
+    # p3 <- p2 +
+    #   SetXAxisGG() +
+    #   SetYAxisGG() +
+    #   SetLegendPointsGG(x = 6) +
+    #   SetLegendTextGG(x = 12) +
+    #   no.legend.title +
+    #   theme_bw() +
+    #   NoGrid()
+    # p3 <- p3 + theme(legend.title = element_blank())
+    if (do.label) {
+      data.plot %>%
+        dplyr::group_by(ident) %>%
+        summarize(x = median(x = x), y = median(x = y)) -> centers
+      p <- p +
+        geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
+        geom_text(data = centers, mapping = aes(label = ident), size = label.size)
+    }
+    # if (dark.theme) {
+    #   p <- p + DarkTheme()
+    #   p3 <- p3 + DarkTheme()
+    # }
+    # if (no.legend) {
+    #   p3 <- p3 + theme(legend.position = "none")
+    # }
+    # if (no.axes) {
+    #   p3 <- p3 + theme(
+    #     axis.line = element_blank(),
+    #     axis.text.x = element_blank(),
+    #     axis.text.y = element_blank(),
+    #     axis.ticks = element_blank(),
+    #     axis.title.x = element_blank(),
+    #     axis.title.y = element_blank(),
+    #     panel.background = element_blank(),
+    #     panel.border = element_blank(),
+    #     panel.grid.major = element_blank(),
+    #     panel.grid.minor = element_blank(),
+    #     plot.background = element_blank()
+    #   )
+    # }
+    if (do.identify || do.hover) {
+      plot.use <- p
+      if (do.hover) {
+        if (is.null(x = data.hover)) {
+          features.info <- NULL
+        } else {
+          features.info <- FetchData(object = object, vars.all = data.hover)
+        }
+        return(HoverLocator(
+          plot = plot.use,
+          data.plot = data.plot,
+          features.info = features.info,
+          dark.theme = dark.theme
+        ))
+      } else if (do.identify) {
+        return(FeatureLocator(
+          plot = plot.use,
+          data.plot = data.plot,
+          dark.theme = dark.theme,
+          ...
+        ))
+      }
+    } else if (do.return) {
       return(p)
     } else {
-      return(p3)
+      print(p)
     }
   }
-  if (do.bare) {
-    print(p)
-  } else {
-    print(p3)
+)
+
+#' @param ident.use Identity to use
+#'
+#' @rdname DimPlot
+#' @importFrom hdf5r list.datasets
+#' @exportMethod DimPlot
+#'
+setMethod(
+  f = 'DimPlot',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    reduction.use = 'pca',
+    ident.use = 'col_attrs/ident',
+    dim.1 = 1,
+    dim.2 = 2,
+    cells.use = NULL,
+    pt.size = 1,
+    do.return = FALSE,
+    do.bare = FALSE,
+    cols.use = NULL,
+    no.legend = FALSE,
+    no.axes = FALSE,
+    dark.theme = FALSE
+  ) {
+    key <- switch(
+      EXPR = tolower(x = reduction.use),
+      'pca' = 'PC',
+      'tsne' = 'tSNE',
+      'ica' = 'IC',
+      stop(paste0("Unrecognized reduction: '", reduction.use, "'"))
+    )
+    dims.plot <- paste0(key, c(dim.1, dim.2))
+    if (!all(dims.plot %in% list.datasets(object = object, path = 'col_attrs'))) {
+      stop(paste(
+        "Cannot find dimensions",
+        paste(c(dim.1, dim.2), collapse = ' and '),
+        "for reduction:",
+        reduction.use
+      ))
+    } else {
+      dims.plot <- paste('col_attrs', dims.plot, sep = '/')
+    }
+    if (is.null(x = cells.use)) {
+      cells.use <- 1:object$shape[1]
+    } else if (!is.numeric(x = cells.use)) {
+      stop("'cells.use' must be numeric")
+    }
+    data.plot <- data.frame(
+      ident = as.factor(x = object[[ident.use]][cells.use]),
+      x = object[[dims.plot[1]]][cells.use],
+      y = object[[dims.plot[2]]][cells.use],
+      pt.size = pt.size
+    )
+    p <- SingleDimPlot(
+      data.plot = data.plot,
+      labels = basename(path = dims.plot),
+      pt.size = pt.size,
+      do.bare = do.bare,
+      cols.use = cols.use,
+      no.legend = no.legend,
+      no.axes = no.axes,
+      dark.theme = dark.theme
+    )
+    if (do.return) {
+      return(p)
+    } else {
+      print(p)
+    }
   }
-}
+)
 
 #' Plot PCA map
 #'
