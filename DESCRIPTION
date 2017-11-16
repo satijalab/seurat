@@ -70,6 +70,7 @@ Collate:
     'deprecated_functions.R'
     'differential_expression.R'
     'differential_expression_internal.R'
+    'dimensional_reduction_generics.R'
     'dimensional_reduction.R'
     'dimensional_reduction_internal.R'
     'dimensional_reduction_utilities.R'
