@@ -863,9 +863,7 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  object@meta.data$cell.name <- rownames(x = object@meta.data)
-  object@meta.data <- merge(x = object@meta.data, y = var.ratio, by = "cell.name")
-  rownames(x = object@meta.data) <- object@meta.data$cell.name
+  object <- AddMetaData(object, metadata = var.ratio)
   object@meta.data$cell.name <- NULL
   return(object)
 }
