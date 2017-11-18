@@ -767,6 +767,9 @@ RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standar
         stop("No variable genes present. Run MeanVarPlot and retry")
       }
     }
+    for(obj in object.list) {
+      genes.use <- CheckGenes(data.use = obj@scale.data, genes.use = genes.use)
+    }
     for(i in 1:length(object.list)){
       mat.list[[i]] <- object.list[[i]]@scale.data[genes.use, ]
     }
