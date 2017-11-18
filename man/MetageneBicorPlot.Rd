@@ -5,7 +5,8 @@
 \title{Plot CC bicor saturation plot}
 \usage{
 MetageneBicorPlot(object, bicor.data, grouping.var, dims.eval, gene.num = 30,
-  num.possible.genes = 2000, return.mat = FALSE, smooth = TRUE)
+  num.possible.genes = 2000, return.mat = FALSE, smooth = TRUE,
+  display.progress = TRUE)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -26,6 +27,8 @@ but may result in metagenes constructed on fewer than num.genes genes.}
 \item{return.mat}{Return data.matrix instead of ggplot2 object}
 
 \item{smooth}{Smooth curves}
+
+\item{display.progresss}{Show progress bar}
 }
 \description{
 The function provides a useful plot for evaluating the number of CCs to

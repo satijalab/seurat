@@ -4,10 +4,11 @@
 \alias{RunMultiCCA}
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
-RunMultiCCA(input, genes.use, niter = 25, num.ccs = 1, standardize = TRUE)
+RunMultiCCA(object.list, genes.use, niter = 25, num.ccs = 1,
+  standardize = TRUE)
 }
 \arguments{
-\item{input}{List of Seurat objects}
+\item{object.list}{List of Seurat objects}
 
 \item{genes.use}{Genes to use in mCCA}
 

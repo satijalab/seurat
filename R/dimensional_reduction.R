@@ -744,22 +744,22 @@ RunCCA <- function(
 #'
 #' Runs a canonical correlation analysis
 #'
-#' @param input List of Seurat objects
+#' @param object.list List of Seurat objects
 #' @param genes.use Genes to use in mCCA
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is union of object@var.genes
 #' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
 #' @export
-RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
+RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
   set.seed(42)
-  if(length(input) < 3){
+  if(length(object.list) < 3){
     stop("Must give at least 3 objects/matrices for MultiCCA")
   }
   mat.list <- list()
-  if(class(input[[1]]) == "seurat"){
+  if(class(object.list[[1]]) == "seurat"){
     if (missing(x = genes.use)) {
       genes.use <- c()
-      for(obj in input){
+      for(obj in object.list){
         genes.use <- c(genes.use, obj@var.genes)
       }
       genes.use <- unique(genes.use)
@@ -767,8 +767,8 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
         stop("No variable genes present. Run MeanVarPlot and retry")
       }
     }
-    for(i in 1:length(input)){
-      mat.list[[i]] <- input[[i]]@scale.data[genes.use, ]
+    for(i in 1:length(object.list)){
+      mat.list[[i]] <- object.list[[i]]@scale.data[genes.use, ]
     }
   }
   else{
@@ -816,9 +816,9 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
     cors <- c(cors, GetCors(mat.list, ws, num.sets))
   }
   results <- list(ws=ws.final, ws.init=ws.init, num.sets = num.sets, cors=cors)
-  combined.object <- input[[1]]
-  for(i in 2:length(input)){
-    combined.object <- MergeSeurat(object1 = combined.object, object2 = input[[i]], do.scale = F, do.center = F, do.normalize = F)
+  combined.object <- object.list[[1]]
+  for(i in 2:length(object.list)){
+    combined.object <- MergeSeurat(object1 = combined.object, object2 = object.list[[i]], do.scale = F, do.center = F, do.normalize = F)
   }
   combined.object <- NormalizeData(combined.object)
   combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
@@ -826,7 +826,7 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
   combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
   combined.object@var.genes <- genes.use
   cca.data <- results$ws[[1]]
-  for(i in 2:length(input)){
+  for(i in 2:length(object.list)){
     cca.data <- rbind(cca.data, results$ws[[i]])
   }
   rownames(cca.data) <- colnames(combined.object@data)
@@ -863,6 +863,12 @@ RunMultiCCA <- function(input, genes.use, niter = 25, num.ccs = 1, standardize =
       use.full = TRUE,
       genes.use = genes.use
     )
+  )
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunMultiCCA"))]
+  parameters.to.store$object.list <- NULL
+  combined.object <- SetCalcParams(object = combined.object,
+                                   calculation = "RunMultiCCA",
+                                   ... = parameters.to.store
   )
   return(combined.object)
 }
