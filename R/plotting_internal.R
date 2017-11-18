@@ -1547,7 +1547,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.poss
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
       bc.gene[cc.use, g] <- abs(genes.rank[gene.num, 4])
-      bc.gene.g1 <- c(bc.gene.g1, genes.rank[gene.num, 3])
+      bc.gene.g1 <- c(bc.gene.g1, abs(genes.rank[gene.num, 3]))
     }
     bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
 
