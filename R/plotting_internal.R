@@ -1477,8 +1477,10 @@ PosteriorPlot <- function(object, name) {
 # @param num.possible.genes Number of possible genes to search when choosing
 # genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
 # but may result in metagenes constructed on fewer than num.genes genes.
+# @param display.progress Show progress bar
 
-EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.possible.genes = 2000){
+EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
+                        num.possible.genes, display.progress) {
   reduction.type <-  "cca"
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
@@ -1494,7 +1496,8 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.poss
   cc.embeds <- list()
   for (i in 1:num.groups) {
     cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000)
+    objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000,
+                              display.progress = display.progress)
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
       reduction.type = reduction.type,
@@ -1512,10 +1515,18 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.poss
     scaled.data[[i]] <- objects[[i]]@scale.data
   }
   bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
+  if (display.progress) {
+    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
+    pb <- txtProgressBar(min = 0, max = length(dims.eval) * num.groups, style = 3)
+    pb.idx <- 0
+  }
   for (cc.use in dims.eval) {
     bc.gene.g1 <- c()
     for (g in 2:num.groups){
-      cat(paste0("Evaluating dimension ", cc.use, "\n"), file = stderr())
+      if (display.progress) {
+        pb.idx <- pb.idx + 1
+        setTxtProgressBar(pb, pb.idx)
+      }
       genes.rank <- data.frame(
         rank(x = abs(x = cc.loadings[[1]][, cc.use])),
         rank(x = abs(x = cc.loadings[[g]][, cc.use])),
@@ -1528,7 +1539,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.poss
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]
-        bicors[[i]] <- pbsapply(
+        bicors[[i]] <- sapply(
           X = genes.top,
           FUN = function(x) {
             return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
@@ -1550,7 +1561,9 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num = 30, num.poss
       bc.gene.g1 <- c(bc.gene.g1, abs(genes.rank[gene.num, 3]))
     }
     bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
-
+  }
+  if (display.progress) {
+    close(pb)
   }
   colnames(bc.gene) <- levels.split
   bc.gene <- as.data.frame(bc.gene)

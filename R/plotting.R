@@ -2948,23 +2948,23 @@ globalVariables(
   package = 'Seurat',
   add = TRUE
 )
-# Node Heatmap
-#
-# Takes an object, a marker list (output of FindAllMarkers), and a node
-# and plots a heatmap where genes are ordered vertically by the splits present
-# in the object@@cluster.tree slot.
-#
-# @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
-# @param marker.list List of marker genes given from the FindAllMarkersNode function
-# @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
-# @param max.genes Maximum number of genes to keep for each division
-# @param ... Additional parameters to pass to DoHeatmap
+#' Node Heatmap
+#'
+#' Takes an object, a marker list (output of FindAllMarkers), and a node
+#' and plots a heatmap where genes are ordered vertically by the splits present
+#' in the object@@cluster.tree slot.
+#'
+#' @param object Seurat object. Must have the cluster.tree slot filled (use BuildClusterTree)
+#' @param marker.list List of marker genes given from the FindAllMarkersNode function
+#' @param node Node in the cluster tree from which to start the plot, defaults to highest node in marker list
+#' @param max.genes Maximum number of genes to keep for each division
+#' @param ... Additional parameters to pass to DoHeatmap
 #
 #' @importFrom dplyr %>% group_by filter top_n select
 #
-# @return Plots heatmap. No return value.
+#' @return Plots heatmap. No return value.
 #
-# @export
+#' @export
 #
 NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
   tree <- object@cluster.tree[[1]]
@@ -3033,6 +3033,7 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
 #' but may result in metagenes constructed on fewer than num.genes genes.
 #' @param smooth Smooth curves
 #' @param return.mat Return data.matrix instead of ggplot2 object
+#' @param display.progresss Show progress bar
 #'
 #' @import ggplot2
 #' @export
@@ -3044,11 +3045,13 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
 
 MetageneBicorPlot <- function(object, bicor.data, grouping.var, dims.eval,
                               gene.num = 30, num.possible.genes = 2000,
-                              return.mat = FALSE, smooth = TRUE) {
+                              return.mat = FALSE, smooth = TRUE,
+                              display.progress = TRUE) {
   if(missing(bicor.data)){
     bicor.data <- EvaluateCCs(object = object, grouping.var = grouping.var,
                               dims.eval = dims.eval, gene.num = gene.num,
-                              num.possible.genes = num.possible.genes)
+                              num.possible.genes = num.possible.genes,
+                              display.progress = display.progress)
   }
   if(length(dims.eval) < 10 | !smooth){
     if(!missing(smooth) & smooth){
