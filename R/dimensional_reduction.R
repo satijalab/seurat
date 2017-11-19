@@ -746,6 +746,7 @@ RunCCA <- function(
 #'
 #' @param object.list List of Seurat objects
 #' @param genes.use Genes to use in mCCA
+#' @param niter Number of iterations to perform. Set by default to 25.
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is union of object@var.genes
 #' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
@@ -809,8 +810,7 @@ RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standar
       storecrits <- c(storecrits, crit)
       cur.iter <- cur.iter + 1
       for(i in 1:num.sets){
-        sumabsthis <- sqrt(ncol(mat.list[[i]]))
-        ws[[i]] <- UpdateW(mat.list, i, num.sets, sumabsthis, ws, ws.final)
+        ws[[i]] <- UpdateW(mat.list, i, num.sets, ws, ws.final)
       }
     }
     for(i in 1:length(ws)){

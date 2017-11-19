@@ -230,45 +230,23 @@ GetCrit <- function(mat.list, ws, num.sets){
   return(crit)
 }
 
-UpdateW <- function(mat.list, i, num.sets, sumabsthis, ws, ws.final){
+UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
   tots <- 0
   for(j in (1:num.sets)[-i]){
     diagmat <- (t(ws.final[[i]])%*%t(mat.list[[i]]))%*%(mat.list[[j]]%*%ws.final[[j]])
     diagmat[row(diagmat)!=col(diagmat)] <- 0
     tots <- tots + t(mat.list[[i]])%*%(mat.list[[j]]%*%ws[[j]]) - ws.final[[i]]%*%(diagmat%*%(t(ws.final[[j]])%*%ws[[j]]))
   }
-  sumabsthis <- BinarySearch(tots, sumabsthis)
-  w <- soft(tots, sumabsthis)/l2n(soft(tots, sumabsthis))
+  w <- tots/l2n(tots)
   return(w)
-}
-
-soft <- function(x,d){
-  return(sign(x)*pmax(0, abs(x)-d))
 }
 
 l2n <- function(vec){
   a <- sqrt(sum(vec^2))
-  if(a==0) a <- .05
-  return(a)
-}
-
-BinarySearch <- function(argu,sumabs){
-  if(l2n(argu)==0 || sum(abs(argu/l2n(argu)))<=sumabs) return(0)
-  lam1 <- 0
-  lam2 <- max(abs(argu))-1e-5
-  iter <- 1
-  while(iter < 150){
-    su <- soft(argu,(lam1+lam2)/2)
-    if(sum(abs(su/l2n(su)))<sumabs){
-      lam2 <- (lam1+lam2)/2
-    } else {
-      lam1 <- (lam1+lam2)/2
-    }
-    if((lam2-lam1)<1e-6) return((lam1+lam2)/2)
-    iter <- iter+1
+  if(a==0){
+    a <- .05
   }
-  warning("Didn't quite converge")
-  return((lam1+lam2)/2)
+  return(a)
 }
 
 GetCors <- function(mat.list, ws, num.sets){
