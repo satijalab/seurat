@@ -3059,11 +3059,11 @@ MetageneBicorPlot <- function(object, bicor.data, grouping.var, dims.eval,
     }
     p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
                 geom_line(aes(col = Group)) +
-                ylab(paste0("|Bicor| of ", gene.num, " gene")) + xlab("CC")
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
   } else {
     p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
                 geom_smooth(aes(col = Group), se = FALSE) +
-                ylab(paste0("|Bicor| of ", gene.num, " gene")) + xlab("CC")
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
   }
   print(p)
   if(return.mat) {
