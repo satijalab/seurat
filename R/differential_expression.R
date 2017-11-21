@@ -622,8 +622,6 @@ FindAllMarkersNode <- function(
 #' (such as Fishers combined p-value or others from the MetaDE package),
 #' percentage of cells expressing the marker, average differences)
 #'
-#' @importFrom MetaDE MetaDE.pvalue
-#'
 #' @export
 #'
 #' @examples
@@ -645,6 +643,9 @@ FindConservedMarkers <- function(
   meta.method = "minP",
   ...
 ) {
+  if (!'MetaDE' %in% rownames(x = installed.packages())) {
+    stop("Please install MetaDE (note Bioconductor dependencies) - learn more at https://cran.r-project.org/web/packages/MetaDE/index.html")
+  }
   object.var <- FetchData(object = object, vars.all = grouping.var)
   object <- SetIdent(
     object = object,
@@ -715,7 +716,7 @@ FindConservedMarkers <- function(
     MARGIN = 1,
     FUN = max
   )
-  combined.pval <- MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
+  combined.pval <- MetaDE::MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
                                  meta.method = meta.method)$meta.analysis
   combined.pval <- cbind(combined.pval$pval, combined.pval$FDR)
   colnames(combined.pval) <- paste0(colnames(combined.pval), c(rep("_p_val", length(meta.method)), rep("_FDR", length(meta.method))))
