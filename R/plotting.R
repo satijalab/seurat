@@ -3033,7 +3033,7 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
 #' but may result in metagenes constructed on fewer than num.genes genes.
 #' @param smooth Smooth curves
 #' @param return.mat Return data.matrix instead of ggplot2 object
-#' @param display.progresss Show progress bar
+#' @param display.progress Show progress bar
 #'
 #' @import ggplot2
 #' @export

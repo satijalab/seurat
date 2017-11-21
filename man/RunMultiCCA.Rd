@@ -10,13 +10,14 @@ RunMultiCCA(object.list, genes.use, niter = 25, num.ccs = 1,
 \arguments{
 \item{object.list}{List of Seurat objects}
 
-\item{genes.use}{Genes to use in mCCA}
+\item{genes.use}{Genes to use in mCCA.}
 
 \item{niter}{Number of iterations to perform. Set by default to 25.}
 
-\item{num.cc}{Number of canonical vectors to calculate}
+\item{num.ccs}{Number of canonical vectors to calculate}
 
-\item{genes.use}{Set of genes to use in CCA. Default is union of object@var.genes}
+\item{standardize}{standardize scale.data matrices to be centered (mean zero)
+and scaled to have a standard deviation of 1.}
 }
 \value{
 Returns a combined Seurat object with the CCA stored in the @dr$cca slot.

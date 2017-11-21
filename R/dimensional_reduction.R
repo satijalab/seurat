@@ -745,10 +745,11 @@ RunCCA <- function(
 #' Runs a canonical correlation analysis
 #'
 #' @param object.list List of Seurat objects
-#' @param genes.use Genes to use in mCCA
+#' @param genes.use Genes to use in mCCA.
 #' @param niter Number of iterations to perform. Set by default to 25.
-#' @param num.cc Number of canonical vectors to calculate
-#' @param genes.use Set of genes to use in CCA. Default is union of object@var.genes
+#' @param num.ccs Number of canonical vectors to calculate
+#' @param standardize standardize scale.data matrices to be centered (mean zero)
+#' and scaled to have a standard deviation of 1.
 #' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
 #' @export
 RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
@@ -781,7 +782,7 @@ RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standar
   num.sets <- length(mat.list)
   if(standardize){
     for (i in 1:num.sets){
-      mat.list[[i]] <- Seurat:::Standardize(mat.list[[i]], display_progress = F)
+      mat.list[[i]] <- Standardize(mat.list[[i]], display_progress = F)
     }
   }
   ws <- list()

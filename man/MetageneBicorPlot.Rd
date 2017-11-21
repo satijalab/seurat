@@ -28,7 +28,7 @@ but may result in metagenes constructed on fewer than num.genes genes.}
 
 \item{smooth}{Smooth curves}
 
-\item{display.progresss}{Show progress bar}
+\item{display.progress}{Show progress bar}
 }
 \description{
 The function provides a useful plot for evaluating the number of CCs to
