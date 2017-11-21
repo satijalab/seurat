@@ -1517,7 +1517,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
   bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
   if (display.progress) {
     cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
-    pb <- txtProgressBar(min = 0, max = length(dims.eval) * num.groups, style = 3)
+    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
     pb.idx <- 0
   }
   for (cc.use in dims.eval) {
