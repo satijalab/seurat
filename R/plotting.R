@@ -2259,6 +2259,7 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param plot.order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param plot.title Title for plot
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -2296,6 +2297,7 @@ DimPlot <- function(
   no.axes = FALSE,
   dark.theme = FALSE,
   plot.order = NULL,
+  plot.title = NULL,
   ...
 ) {
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
@@ -2362,6 +2364,9 @@ DimPlot <- function(
     theme_bw() +
     NoGrid()
   p3 <- p3 + theme(legend.title = element_blank())
+  if (!is.null(plot.title)) {
+    p3 <- p3 + ggtitle(plot.title) + theme(plot.title = element_text(hjust = 0.5))
+  }
   if (do.label) {
     data.plot %>%
       dplyr::group_by(ident) %>%
