@@ -28,11 +28,11 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
   #Error checking
   cell.names <- intersect(x = cells.use, y = colnames(x = object@spatial@finalprob))
   if (length(x = cell.names) != length(x = cells.use)) {
-    print(paste(
+    cat(paste(
       "Error",
       setdiff(x = cells.use, y = colnames(x = object@spatial@finalprob)),
       " have not been mapped"
-    ))
+    ), stderr())
     return(0)
   }
   if (get.exact) {

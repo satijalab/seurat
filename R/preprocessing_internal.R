@@ -45,8 +45,8 @@ RegressOutResid <- function(
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
   if(display.progress){
-    print(paste("Regressing out", vars.to.regress))
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    cat(paste("Regressing out", vars.to.regress), file = stderr())
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   }
   data.resid <- c()
   data.use <- object@data[genes.regress, , drop = FALSE];
@@ -154,11 +154,11 @@ RegressOutNB <- function(
   latent.data <- FetchData(object = object, vars.all = latent.vars)
   cat(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
   theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
-  print('Second run NB regression with fixed theta')
+  cat('Second run NB regression with fixed theta', file = stderr())
   bin.size <- 128
   bin.ind <- ceiling(1:length(genes.regress)/bin.size)
   max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   pr <- c()
   for (i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
@@ -232,9 +232,9 @@ RegressOutNBreg <- function(
   bin.size <- 128
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print(paste("Regressing out", latent.vars))
-  print('First run Poisson regression (to get initial mean), and estimate theta per gene')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  cat(paste("Regressing out", latent.vars), file = stderr())
+  cat('First run Poisson regression (to get initial mean), and estimate theta per gene', file = stderr())
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   theta.estimate <- c()
   for (i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
@@ -274,8 +274,8 @@ RegressOutNBreg <- function(
     )
     theta.fit[to.fix] <- min.theta
   }
-  print('Second run NB regression with fixed theta')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  cat('Second run NB regression with fixed theta', file = stderr())
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   pr <- c()
   for(i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]

@@ -188,8 +188,8 @@ CalcSNNSparse <- function(
   # speed things up (don't have to calculate all pairwise distances)
   # define the edge weights with Jaccard distance
   if (print.output) {
-    print("Constructing SNN")
-    pb <- txtProgressBar(min = 0, max = n.cells, style = 3)
+    cat("Constructing SNN", file = stderr())
+    pb <- txtProgressBar(min = 0, max = n.cells, style = 3, file = stderr())
   }
   for (i in 1:n.cells) {
     for (j in 1:ncol(x = nn.large)) {

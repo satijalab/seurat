@@ -153,12 +153,12 @@ GroupSingletons <- function(object, SNN) {
     )
   }
   if (length(x = singletons) > 0) {
-    print(paste(
+    cat(paste(
       length(x = singletons),
       "singletons identified.",
       length(x = unique(object@ident)),
       "final clusters."
-    ))
+    ), file = stderr())
   }
   return(object)
 }

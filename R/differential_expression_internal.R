@@ -166,8 +166,8 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
   genes.regress <- rownames(x = cm)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print('Running Poisson regression (to get initial mean), and theta estimation per gene')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  cat('Running Poisson regression (to get initial mean), and theta estimation per gene', file = stderr())
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   theta.estimate <- c()
   for (i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
