@@ -2,7 +2,12 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [In Develop] - 2017-10-17
+## [In Develop] - 2017-11-27
+### Added
+ - Change cluster order in DoHeatmap with group.order parameter 
+ - Ability to change plotting order and add a title to DimPlot
+ - do.clean and subset.raw options for SubsetData
+
 ### Changed
  - JoyPlot has been replaced with RidgePlot
  - FindClusters is now more robust in making temp files
