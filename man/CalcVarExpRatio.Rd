@@ -4,7 +4,8 @@
 \alias{CalcVarExpRatio}
 \title{Calculate the ratio of variance explained by ICA or PCA to CCA}
 \usage{
-CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use)
+CalcVarExpRatio(object, reduction.type = "pca", grouping.var, dims.use,
+  verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,6 +17,8 @@ pcafast, ica)}
 
 \item{dims.use}{Vector of dimensions to project onto (default is the 1:number
 stored for cca)}
+
+\item{verbose}{Display progress and other output}
 }
 \value{
 Returns Seurat object with ratio of variance explained stored in

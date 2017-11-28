@@ -309,7 +309,8 @@ CalcAlignmentMetric <- function(object, reduction.use = "cca.aligned", dims.use,
 #' pcafast, ica)
 #' @param grouping.var variable to group by
 #' @param dims.use Vector of dimensions to project onto (default is the 1:number
-#'  stored for cca)
+#' stored for cca)
+#' @param verbose Display progress and other output
 #'
 #' @return Returns Seurat object with ratio of variance explained stored in
 #' object@@meta.data$var.ratio
@@ -330,7 +331,8 @@ CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",
   grouping.var,
-  dims.use
+  dims.use,
+  verbose = TRUE
 ) {
   if (missing(x = grouping.var)) {
     stop("Need to provide grouping variable")
@@ -349,15 +351,21 @@ CalcVarExpRatio <- function(
   genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
   var.ratio <- data.frame()
   for (group in groups) {
-    cat(paste("Calculating for", group, "\n"), file = stderr())
+    if (verbose) {
+      cat(paste("Calculating for", group, "\n"), file = stderr())
+    }
     group.cells <- WhichCells(
       object = object,
       subset.name = grouping.var,
       accept.value = group
     )
-    cat(paste("\t Separating", group, "cells\n"), file = stderr())
+    if (verbose) {
+      cat(paste("\t Separating", group, "cells\n"), file = stderr())
+    }
     group.object <- SubsetData(object = object, cells.use = group.cells)
-    cat("\t Running Dimensional Reduction \n", file = stderr())
+    if (verbose) {
+      cat("\t Running Dimensional Reduction \n", file = stderr())
+    }
     ldp.cca <- CalcLDProj(
       object = group.object,
       reduction.type = "cca",
@@ -399,7 +407,8 @@ CalcVarExpRatio <- function(
       group.object <- RunICA(
         object = group.object,
         ic.genes = genes.use,
-        print.results = FALSE
+        print.results = FALSE,
+        ics.compute = max(dims.use)
       )
       ldp.ica <- CalcLDProj(
         object = group.object,
