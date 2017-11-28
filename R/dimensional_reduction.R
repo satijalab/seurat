@@ -1234,6 +1234,62 @@ AlignSubspace <- function(
   return(object)
 }
 
+
+#' Calculate an alignment score
+#'
+#' Calculates an alignment score to determine how well aligned two (or more)
+#' groups have been aligned. We first split the data into groups based on the
+#' grouping.var provided and randomly downsample all groups to have as many cells
+#' as in the smallest group. We then construct a nearest neighbor graph and ask
+#' for each cell, how many of its neighbors have the same group identity as it
+#' does. We then take the average over all cells, compare it to the expected
+#' value for perfectly mixed neighborhoods, and scale it to range from 0 to 1.
+#'
+#' xbar is the average number of neighbors belonging to any cells' same group,
+#' N is the number of groups in the given grouping.var, k is the number of
+#' neighbors in the KNN graph.
+#' \deqn{1 - \frac{\bar{x} - \frac{k}{N}}{k - \frac{k}{N}}}{1 - (xbar - k/N)/(k - k/N)}
+#'
+#' @param object Seurat object
+#' @param reduction.use Stored dimensional reduction on which to build NN graph.
+#' Usually going to be cca.aligned.
+#' @param dims.use Dimensions to use in building the NN graph
+#' @param grouping.var Grouping variable used in the alignment.
+#' @param nn Number of neighbors to calculate in the NN graph construction
+#'
+#' @importFrom FNN get.knn
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca", grouping.var = "group", dims.align = 1:5)
+#' CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var =  "group")
+#'
+CalcAlignmentMetric <- function(object, reduction.use = "cca.aligned", dims.use,
+                                grouping.var, nn){
+  object <- SetAllIdent(object, grouping.var)
+  object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
+  num.groups <- length(unique(object@ident))
+  if(missing(nn)){
+    nn <- ceiling(table(object@ident)[1] * 0.01 * num.groups)
+  }
+  dist.mat <- GetCellEmbeddings(object, reduction.type = reduction.use, dims.use = dims.use)
+  object.fnn <- get.knn(dist.mat, k = nn)
+  alignment.score <- sapply(1:length(object@cell.names), function(x) {
+    cell.id <- object@ident[x]
+    num.same.id <- length(which(object@ident[object.fnn$nn.index[x, ]] == cell.id))
+  })
+  alignment.score <- 1 - ((mean(alignment.score) - nn /num.groups) / (nn - nn/num.groups))
+  return(unname(alignment.score))
+}
+
+
 #' Run diffusion map
 #'
 #' @param object Seurat object
