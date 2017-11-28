@@ -1,20 +1,32 @@
 #' Align subspaces using dynamic time warping (DTW)
 #'
-#' Aligns subspaces so that they line up across grouping variable.
+#' Aligns subspaces across a given grouping variable.
 #'
+#' Following is a description for the two group case but this can be extended to
+#' arbitrarily many groups which works by performing pairwise alignment to a
+#' reference group (the largest group). First, we identify genes that are driving
+#' variation in both datasets by looking at the correlation of gene expression
+#' with each projection vector (e.g. CC1) in both datasets. For this we use the
+#' biweight midcorrelation (bicor) and choose the top num.genes with the strongest
+#' bicor to construct a 'metagene' for each dataset. We then scale each metagene
+#' to match its 95\% reference range and linearly shift them by the minimum
+#' difference between the two metagenes over the 10-90 quantile range. We then
+#' map each cell in the smaller dataset to a cell in the larger dataset using
+#' dynamic time warping (DTW) and apply the same map to the projection vectors (
+#' CC vectors) to place both datasets on a common aligned scale. We apply this
+#' procedue to each pair (group) of vectors individually for all specified in
+#' dims.align. For a full description of the method, see Butler et al 2017.
 #'
 #' @param object Seurat object
-#' @param reduction.type reduction to align scores for
+#' @param reduction.type Reduction to align scores for. Default is "cca".
 #' @param grouping.var Name of the grouping variable for which to align the scores
 #' @param dims.align Dims to align, default is all
 #' @param num.possible.genes Number of possible genes to search when choosing
 #' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
 #' but may result in metagenes constructed on fewer than num.genes genes.
-#' @param num.genes Number of genes to use in construction of "metagene"
-#' @param mvm.elast When using the mvmStepPattern, this sets the elasticity -
-#' the maximum consecutive reference elements that are skippable. By default
-#' this is set to the 5\% of the difference in the number of cells being aligned.
-#' @param show.plots show debugging plots
+#' @param num.genes Number of genes to use in construction of "metagene" (default
+#' is 30).
+#' @param show.plots Show debugging plots
 #' @param verbose Displays progress and other output
 #' @param ... Additional parameters to ScaleData
 #'
@@ -41,12 +53,11 @@
 #'
 AlignSubspace <- function(
   object,
-  reduction.type,
+  reduction.type = "cca",
   grouping.var,
   dims.align,
   num.possible.genes = 2000,
   num.genes = 30,
-  mvm.elast = NULL,
   show.plots = FALSE,
   verbose = TRUE,
   ...
@@ -68,8 +79,10 @@ AlignSubspace <- function(
   scaled.data <- list()
   cc.embeds <- list()
   for (i in 1:num.groups) {
-    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(object = objects[[i]], ...)
+    if (verbose){
+      cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    }
+    objects[[i]] <- ScaleData(object = objects[[i]], display.progress = verbose, ...)
     objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
@@ -94,7 +107,9 @@ AlignSubspace <- function(
   cc.embeds.orig <- cc.embeds.all
   for (cc.use in dims.align) {
     for (g in 2:num.groups){
-      cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
+      if (verbose) {
+        cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
+      }
       genes.rank <- data.frame(
         rank(x = abs(x = cc.loadings[[1]][, cc.use])),
         rank(x = abs(x = cc.loadings[[g]][, cc.use])),
@@ -107,12 +122,21 @@ AlignSubspace <- function(
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]
-        bicors[[i]] <- pbsapply(
-          X = genes.top,
-          FUN = function(x) {
-            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
-          }
-        )
+        if(verbose) {
+          bicors[[i]] <- pbsapply(
+            X = genes.top,
+            FUN = function(x) {
+              return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+            }
+          )
+        } else {
+          bicors[[i]] <- sapply(
+            X = genes.top,
+            FUN = function(x) {
+              return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+            }
+          )
+        }
       }
       genes.rank <- data.frame(
         rank(x = abs(x = bicors[[1]])),

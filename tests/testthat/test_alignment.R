@@ -19,4 +19,3 @@ test_that("Alignment returns expected values", {
   expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[40, 4], 0.004078839, tolerance = 1e-6)
   expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[80, 5], 0.2227416, tolerance = 1e-6)
 })
-

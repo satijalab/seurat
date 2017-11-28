@@ -4,14 +4,14 @@
 \alias{AlignSubspace}
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
-AlignSubspace(object, reduction.type, grouping.var, dims.align,
-  num.possible.genes = 2000, num.genes = 30, mvm.elast = NULL,
-  show.plots = FALSE, verbose = TRUE, ...)
+AlignSubspace(object, reduction.type = "cca", grouping.var, dims.align,
+  num.possible.genes = 2000, num.genes = 30, show.plots = FALSE,
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{reduction to align scores for}
+\item{reduction.type}{Reduction to align scores for. Default is "cca".}
 
 \item{grouping.var}{Name of the grouping variable for which to align the scores}
 
@@ -21,13 +21,10 @@ AlignSubspace(object, reduction.type, grouping.var, dims.align,
 genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
 but may result in metagenes constructed on fewer than num.genes genes.}
 
-\item{num.genes}{Number of genes to use in construction of "metagene"}
+\item{num.genes}{Number of genes to use in construction of "metagene" (default
+is 30).}
 
-\item{mvm.elast}{When using the mvmStepPattern, this sets the elasticity -
-the maximum consecutive reference elements that are skippable. By default
-this is set to the 5\% of the difference in the number of cells being aligned.}
-
-\item{show.plots}{show debugging plots}
+\item{show.plots}{Show debugging plots}
 
 \item{verbose}{Displays progress and other output}
 
@@ -38,7 +35,23 @@ Returns Seurat object with the dims aligned, stored in
  object@dr$reduction.type.aligned
 }
 \description{
-Aligns subspaces so that they line up across grouping variable.
+Aligns subspaces across a given grouping variable.
+}
+\details{
+Following is a description for the two group case but this can be extended to
+arbitrarily many groups which works by performing pairwise alignment to a
+reference group (the largest group). First, we identify genes that are driving
+variation in both datasets by looking at the correlation of gene expression
+with each projection vector (e.g. CC1) in both datasets. For this we use the
+biweight midcorrelation (bicor) and choose the top num.genes with the strongest
+bicor to construct a 'metagene' for each dataset. We then scale each metagene
+to match its 95\% reference range and linearly shift them by the minimum
+difference between the two metagenes over the 10-90 quantile range. We then
+map each cell in the smaller dataset to a cell in the larger dataset using
+dynamic time warping (DTW) and apply the same map to the projection vectors (
+CC vectors) to place both datasets on a common aligned scale. We apply this
+procedue to each pair (group) of vectors individually for all specified in
+dims.align. For a full description of the method, see Butler et al 2017.
 }
 \examples{
 \dontrun{
