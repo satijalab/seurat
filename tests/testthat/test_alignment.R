@@ -1,0 +1,22 @@
+# Tests for alignment related functions
+set.seed(42)
+
+# Tests for alignment (via AlignSubspace)
+# --------------------------------------------------------------------------------
+context("AlignSubspace")
+
+pbmc1 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+pbmc1@meta.data$group <- "group1"
+pbmc2@meta.data$group <- "group2"
+pbmc_cca <- RunCCA(pbmc1, pbmc2)
+pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca", dims.align = 1:5, grouping.var = "group")
+
+test_that("Alignment returns expected values", {
+  expect_equal(dim(pbmc_cca@dr$cca.aligned@cell.embeddings), c(80, 5))
+  expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[1, 1], 0.5337046, tolerance = 1e-6)
+  expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[5, 3], 1.836985, tolerance = 1e-6)
+  expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[40, 4], 0.004078839, tolerance = 1e-6)
+  expect_equal(pbmc_cca@dr$cca.aligned@cell.embeddings[80, 5], 0.2227416, tolerance = 1e-6)
+})
+

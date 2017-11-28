@@ -1099,7 +1099,9 @@ AlignSubspace <- function(
     )
     scaled.data[[i]] <- objects[[i]]@scale.data
   }
-  cc.embeds.all <- GetCellEmbeddings(object = object, reduction.type = reduction.type)
+  cc.embeds.all <- GetCellEmbeddings(object = object,
+                                     reduction.type = reduction.type,
+                                     dims.use = dims.align)
   colnames(cc.embeds.all) <- paste0("A", colnames(x = cc.embeds.all))
   cc.embeds.orig <- cc.embeds.all
   for (cc.use in dims.align) {
