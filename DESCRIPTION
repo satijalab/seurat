@@ -60,6 +60,7 @@ License: GPL-3 | file LICENSE
 LazyData: true
 Collate: 
     'RcppExports.R'
+    'alignment.R'
     'seurat.R'
     'cluster_determination.R'
     'cluster_determination_internal.R'
@@ -96,4 +97,3 @@ Suggests:
     MAST,
     DESeq2,
     MetaDE
-
