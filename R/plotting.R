@@ -1215,7 +1215,7 @@ FeatureHeatmap <- function(
     key.title.pos <- "left"
   }
   p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
-    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size, shape = pch.use)
   if (rotate.key) {
     p <- p + scale_colour_gradient(
       low = cols.use[1],
