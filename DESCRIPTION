@@ -91,6 +91,7 @@ Collate:
     'spatial.R'
     'spatial_internal.R'
     'tSNE_project.R'
+    'utilities_generics.R'
     'utilities.R'
     'utilities_internal.R'
     'zfRenderSeurat.R'

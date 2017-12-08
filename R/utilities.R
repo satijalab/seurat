@@ -1,3 +1,8 @@
+#' @include seurat.R
+#' @include utilities_generics.R
+#' @importFrom methods setMethod
+NULL
+
 #' Shuffle a vector
 #' @param x A vector
 #' @return A vector with the same values of x, just in random order
@@ -887,3 +892,43 @@ CaseMatch <- function(search, match) {
   )
   return(unlist(x = search.match))
 }
+
+#' @rdname BlockCov
+#' @exportMethod BlockCov
+#'
+setMethod(
+  f = 'BlockCov',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    mat = NULL,
+    chunk.size = 100,
+    display.progress = TRUE,
+    row.names = 'row_attrs/gene_names'
+  ) {
+    final.cov <- matrix(NA, nrow = object[[mat]]$dims[2], ncol = object[[mat]]$dims[2])
+    batch <- object$batch.scan(
+      chunk.size = chunk.size,
+      MARGIN = 1,
+      dataset.use = mat,
+      force.reset = TRUE
+    )
+    batch.indices <- list()
+    for (i in 1:length(x = batch)) {
+      batch.indices[[i]] <- object$batch.next(return.data = FALSE)
+    }
+    for(i in 1:length(x = batch)) {
+      batch1 <- object[[mat]][, batch.indices[[i]]]
+      for(j in i:length(x = batch)){
+        batch2 <- object[[mat]][, batch.indices[[j]]]
+        partial.cov <- cov(batch1, batch2)
+        final.cov[batch.indices[[i]], batch.indices[[j]]] <- partial.cov
+        final.cov[batch.indices[[j]], batch.indices[[i]]] <- t(partial.cov)
+      }
+    }
+    rownames(final.cov) <- object[[row.names]][]
+    colnames(final.cov) <- object[[row.names]][]
+    return(final.cov)
+  }
+)
+
