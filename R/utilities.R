@@ -904,12 +904,12 @@ setMethod(
     mat = NULL,
     chunk.size = 100,
     display.progress = TRUE,
+    rows.use = NULL,
     row.names = 'row_attrs/gene_names'
   ) {
-    final.cov <- matrix(NA, nrow = object[[mat]]$dims[2], ncol = object[[mat]]$dims[2])
     batch <- object$batch.scan(
       chunk.size = chunk.size,
-      MARGIN = 1,
+      MARGIN = 2,
       dataset.use = mat,
       force.reset = TRUE
     )
@@ -917,18 +917,39 @@ setMethod(
     for (i in 1:length(x = batch)) {
       batch.indices[[i]] <- object$batch.next(return.data = FALSE)
     }
-    for(i in 1:length(x = batch)) {
-      batch1 <- object[[mat]][, batch.indices[[i]]]
-      for(j in i:length(x = batch)){
-        batch2 <- object[[mat]][, batch.indices[[j]]]
-        partial.cov <- cov(batch1, batch2)
-        final.cov[batch.indices[[i]], batch.indices[[j]]] <- partial.cov
-        final.cov[batch.indices[[j]], batch.indices[[i]]] <- t(partial.cov)
-      }
+    if(is.null(rows.use)) {
+      rows.use <- 1:object[[mat]]$dims[2]
+    } else {
+      rows.use <- which(object[[rows.use]][])
     }
-    rownames(final.cov) <- object[[row.names]][]
-    colnames(final.cov) <- object[[row.names]][]
-    return(final.cov)
+    
+    batch1 <- object[[mat]][batch.indices[[1]], rows.use]
+    c1 <- cov(batch1)
+    m1 <- colMeans(batch1)
+    m.mat <- matrix(nrow = ncol(batch1), ncol = ncol(batch1))
+    n1 <- nrow(batch1)
+    
+    pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
+    for(i in 2:length(x = batch)) {
+      current.batch <- object[[mat]][batch.indices[[i]], rows.use]
+      m2 <- colMeans(current.batch)
+      for (j in 1:ncol(current.batch)) {
+        for (k in 1:ncol(current.batch)) {
+          m.mat[j, k] <- (m2[j] - m1[j]) * (m2[k] - m1[k])
+          m.mat[k, j] <- m.mat[j, k]
+        }
+      }
+      n2 <- n1 + nrow(current.batch)
+      c2 <- cov(current.batch)
+      c1 <- (n1 - 1) / (n2 - 1) * c1 + (nrow(current.batch) - 1)/(n2 - 1) * c2 + (n1 * nrow(current.batch))/(n2 *(n2 -1)) * m.mat
+      m1 <- (n1*m1 + nrow(current.batch)*m2)/n2
+      n1 <- n2
+      setTxtProgressBar(pb, i)
+    }
+    close(pb)
+    rownames(c1) <- object[[row.names]][rows.use]
+    colnames(c1) <- object[[row.names]][rows.use]
+    return(c1)
   }
 )
 

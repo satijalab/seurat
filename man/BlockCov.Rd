@@ -9,7 +9,8 @@
 BlockCov(object, ...)
 
 \S4method{BlockCov}{loom}(object, mat = NULL, chunk.size = 100,
-  display.progress = TRUE, row.names = "row_attrs/gene_names")
+  display.progress = TRUE, rows.use = NULL,
+  row.names = "row_attrs/gene_names")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,6 +20,10 @@ BlockCov(object, ...)
 \item{chunk.size}{size of chunk}
 
 \item{display.progress}{display progress bar}
+
+\item{rows.use}{rows to include in covariance calculation}
+
+\item{row.names}{location of associated rownames for labeling of final matrix}
 }
 \value{
 Returns the covariance matrix

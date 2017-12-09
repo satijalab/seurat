@@ -11,6 +11,8 @@ NULL
 #' @param mat path to matrix in loom file
 #' @param chunk.size size of chunk
 #' @param display.progress display progress bar
+#' @param rows.use rows to include in covariance calculation
+#' @param row.names location of associated rownames for labeling of final matrix
 #'
 #' @return Returns the covariance matrix
 #'
