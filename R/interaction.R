@@ -1,4 +1,6 @@
 #' @include seurat.R
+#' @include interaction_generics.R
+#' @importFrom methods setMethod
 NULL
 
 globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
@@ -917,3 +919,21 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   object@meta.data[, cols.add] <- meta.add
   return(object)
 }
+
+#' @rdname DownsampleSeurat
+#' @exportMethod DowsampleSeurat
+#'
+setMethod(
+  f = 'DownsampleSeurat',
+  signature = c('object' = 'seurat'),
+  definition = function(object, ...) {invisible(x = NULL)}
+)
+
+#' @rdname DownsampleSeurat
+#' @exportMethod DowsampleSeurat
+#'
+setMethod(
+  f = 'DownsampleSeurat',
+  signature = c('object' = 'loom'),
+  definition = function(object, ...) {invisible(x = NULL)}
+)
