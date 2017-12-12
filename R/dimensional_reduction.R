@@ -275,7 +275,7 @@ setMethod(
       colnames(gene.loadings) <- paste0("PC", 1:ncol(gene.loadings))
       gene.loadings <- as.data.frame(gene.loadings)
       missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
-      empty.rows <- as.data.frame(matrix(nrow = pfile$shape[2] - nrow(gene.loadings),
+      empty.rows <- as.data.frame(matrix(nrow = object$shape[2] - nrow(gene.loadings),
                                          ncol = ncol(gene.loadings)),
                                   row.names = missing.genes)
       colnames(empty.rows) <- colnames(gene.loadings)
