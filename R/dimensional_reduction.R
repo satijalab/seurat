@@ -247,10 +247,26 @@ setMethod(
         cat("Computing eigen decomposition\n", file = stderr())
       }
       pc.eigs <- eigen(cov.mat)
+
+      genes.use <- which(object[[gene.names]][] %in% rownames(cov.mat))
+      pc.values <- matrix(nrow = object$shape[1], ncol = pcs.compute)
+      batch <- object$batch.scan(
+        chunk.size = chunk.size,
+        MARGIN = 2,
+        dataset.use = "scale_data",
+        force.reset = TRUE
+      )
       if (display.progress) {
-        cat("Writing results\n", file = stderr())
+        cat("Computing PC Scores\n", file = stderr())
+        pb <- txtProgressBar(char = '=', style = 3)
       }
-      pc.values <- object$layers$scale_data[, which(object$row.attrs$var_genes[])] %*% pc.eigs$vectors
+      for (i in 1:length(x = batch)) {
+        current.batch <- object$batch.next(return.data = FALSE)
+        pc.values[current.batch, ] <- object$layers$scale_data[current.batch, genes.use] %*% pc.eigs$vectors[, 1:pcs.compute]
+        if (display.progress) {
+          setTxtProgressBar(pb = pb, value = i / length(x = batch))
+        }
+      }
       colnames(pc.values) <- paste0("PC", 1:ncol(pc.values))
       rownames(pc.values) <- object$col.attrs$cell_names[]
       pc.values <- pc.values[, 1:pcs.compute]
