@@ -105,6 +105,8 @@ setMethod(
   }
 )
 
+#' @param online.pca Compute PCA using online methods
+#' @param covariance.mat Covariance matrix to use if calculating a full PCA
 #' @param cells.initial Number of cells to use for initial PCA calculate
 #' @param chunk.size Number of cells to load into memory at any given time
 #' @param gene.names Path to gene names dataset
@@ -127,6 +129,8 @@ setMethod(
   definition = function(
     object,
     pcs.compute = 75,
+    online.pca = TRUE,
+    covariance.mat = NULL,
     cells.initial = 50000,
     chunk.size = 1000,
     gene.names = 'row_attrs/Gene',
@@ -138,101 +142,133 @@ setMethod(
     display.progress = TRUE,
     ...
   ) {
-    # Get variable genes
-    ngene <- min(ngene, object$shape[2])
-    if (display.progress) {
-      cat("Finding top", ngene, "variable genes\n", sep = ' ')
-    }
-    data.names <- object[[gene.names]][]
-    hvg.info <- data.frame(
-      means = object[[gene.means]][],
-      variance = object[[gene.variance]][],
-      row.names = make.unique(names = data.names)
-    )
-    hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
-    hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
-    hvg.use <- rownames(x = hvg.info)[1:ngene]
-    genes.use <- which(x = data.names %in% hvg.use)
-    # Initial PCA calculation
-    cells.use <- object$shape[1]
-    cells.initial <- min(cells.initial, cells.use)
-    if (display.progress) {
-      cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')
-    }
-    data <- object[[scale.data]][1:cells.initial, genes.use]
-    pca <- prcomp_irlba(x = data, n = pcs.compute)
-    xbar <- pca$center
-    pca <- list(
-      values = pca$sdev[1:pcs.compute] ^ 2,
-      vectors = pca$rotation[, 1:pcs.compute]
-    )
-    # Iterate through the rest of the data up to cells.use
-    iter.initial <- cells.initial + 1
-    batch <- object$batch.scan(
-      chunk.size = chunk.size,
-      MARGIN = 2,
-      index.use = c(iter.initial, cells.use),
-      dataset.use = scale.data,
-      force.reset = TRUE
-    )
-    if (display.progress) {
-      cat(
-        "Running",
-        length(x = batch),
-        "iterations of incremental PCA\n",
-        sep = ' '
+    if (online.pca) {
+      # Get variable genes
+      ngene <- min(ngene, object$shape[2])
+      if (display.progress) {
+        cat("Finding top", ngene, "variable genes\n", sep = ' ')
+      }
+      data.names <- object[[gene.names]][]
+      hvg.info <- data.frame(
+        means = object[[gene.means]][],
+        variance = object[[gene.variance]][],
+        row.names = make.unique(names = data.names)
       )
-      pb <- txtProgressBar(char = '=', style = 3)
-    }
-    for (i in batch) {
-      data <- object$batch.next()
-      data <- data[, genes.use]
-      for (j in 1:nrow(x = data)) {
-        n <- iter.initial + j + (nrow(x = data) * (i - 1)) - 2
-        xbar <- updateMean(
-          xbar = xbar,
-          x = data[j, ],
-          n = n
+      hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
+      hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
+      hvg.use <- rownames(x = hvg.info)[1:ngene]
+      genes.use <- which(x = data.names %in% hvg.use)
+      # Initial PCA calculation
+      cells.use <- object$shape[1]
+      cells.initial <- min(cells.initial, cells.use)
+      if (display.progress) {
+        cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')
+      }
+      data <- object[[scale.data]][1:cells.initial, genes.use]
+      pca <- prcomp_irlba(x = data, n = pcs.compute)
+      xbar <- pca$center
+      pca <- list(
+        values = pca$sdev[1:pcs.compute] ^ 2,
+        vectors = pca$rotation[, 1:pcs.compute]
+      )
+      # Iterate through the rest of the data up to cells.use
+      iter.initial <- cells.initial + 1
+      batch <- object$batch.scan(
+        chunk.size = chunk.size,
+        MARGIN = 2,
+        index.use = c(iter.initial, cells.use),
+        dataset.use = scale.data,
+        force.reset = TRUE
+      )
+      if (display.progress) {
+        cat(
+          "Running",
+          length(x = batch),
+          "iterations of incremental PCA\n",
+          sep = ' '
         )
-        pca <- incRpca(
-          lambda = pca$values,
-          U = pca$vectors,
-          x = data[j, ],
-          n = n,
-          q = pcs.compute,
-          center = xbar
-        )
+        pb <- txtProgressBar(char = '=', style = 3)
+      }
+      for (i in batch) {
+        data <- object$batch.next()
+        data <- data[, genes.use]
+        for (j in 1:nrow(x = data)) {
+          n <- iter.initial + j + (nrow(x = data) * (i - 1)) - 2
+          xbar <- updateMean(
+            xbar = xbar,
+            x = data[j, ],
+            n = n
+          )
+          pca <- incRpca(
+            lambda = pca$values,
+            U = pca$vectors,
+            x = data[j, ],
+            n = n,
+            q = pcs.compute,
+            center = xbar
+          )
+          if (display.progress) {
+            setTxtProgressBar(pb = pb, value = i / length(x = batch))
+          }
+        }
+      }
+      # Multiply by the original matrix to return vectors of cells
+      if (display.progress) {
+        cat("\nConverting the vectors of genes to vectors of cells\n")
+        pb <- txtProgressBar(char = '=', style = 3)
+      }
+      batch <- object$batch.scan(
+        chunk.size = chunk.size,
+        MARGIN = 2,
+        index.use = NULL,
+        dataset.use = scale.data,
+        force.reset = TRUE
+      )
+      rot <- matrix(data = numeric(length = 1L), nrow = cells.use, ncol = pcs.compute)
+      for (i in batch) {
+        chunk.indices <- object$batch.next(return.data = FALSE)
+        data <- object[[scale.data]][chunk.indices, genes.use]
+        rot[chunk.indices, ] <- data %*% pca$vectors
         if (display.progress) {
           setTxtProgressBar(pb = pb, value = i / length(x = batch))
         }
       }
-    }
-    # Multiply by the original matrix to return vectors of cells
-    if (display.progress) {
-      cat("\nConverting the vectors of genes to vectors of cells\n")
-      pb <- txtProgressBar(char = '=', style = 3)
-    }
-    batch <- object$batch.scan(
-      chunk.size = chunk.size,
-      MARGIN = 2,
-      index.use = NULL,
-      dataset.use = scale.data,
-      force.reset = TRUE
-    )
-    rot <- matrix(data = numeric(length = 1L), nrow = cells.use, ncol = pcs.compute)
-    for (i in batch) {
-      chunk.indices <- object$batch.next(return.data = FALSE)
-      data <- object[[scale.data]][chunk.indices, genes.use]
-      rot[chunk.indices, ] <- data %*% pca$vectors
-      if (display.progress) {
-        setTxtProgressBar(pb = pb, value = i / length(x = batch))
+      # Add to the loom file
+      colnames(x = rot) <- paste0("PC", 1:pcs.compute)
+      rot <- as.data.frame(x = rot)
+      print(dim(rot))
+      object$add.col.attribute(attribute = rot, overwrite = overwrite)
+    } else {
+      if(is.null(covariance.mat)) {
+        stop("Please provide covariance matrix. See BlockCov.")
       }
+      # run eigenvalue decomp on covariance matrix
+      if (display.progress) {
+        cat("Computing eigen decomposition\n", file = stderr())
+      }
+      pc.eigs <- eigen(cov.mat)
+      if (display.progress) {
+        cat("Writing results\n", file = stderr())
+      }
+      pc.values <- object$layers$scale_data[, which(object$row.attrs$var_genes[])] %*% pc.eigs$vectors
+      colnames(pc.values) <- paste0("PC", 1:ncol(pc.values))
+      rownames(pc.values) <- object$col.attrs$cell_names[]
+      pc.values <- pc.values[, 1:pcs.compute]
+      gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
+      rownames(gene.loadings) <- rownames(cov.mat)
+      colnames(gene.loadings) <- paste0("PC", 1:ncol(gene.loadings))
+      gene.loadings <- as.data.frame(gene.loadings)
+      missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
+      empty.rows <- as.data.frame(matrix(nrow = pfile$shape[2] - nrow(gene.loadings),
+                                         ncol = ncol(gene.loadings)),
+                                  row.names = missing.genes)
+      colnames(empty.rows) <- colnames(gene.loadings)
+      gene.loadings <- rbind(gene.loadings, empty.rows)
+      gene.loadings <- gene.loadings[object[[gene.names]][], ]
+      pc.values <- as.data.frame(x = pc.values)
+      object$add.col.attribute(attribute = pc.values, overwrite = overwrite)
+      object$add.row.attribute(attribute = gene.loadings, overwrite = overwrite)
     }
-    # Add to the loom file
-    colnames(x = rot) <- paste0("PC", 1:pcs.compute)
-    rot <- as.data.frame(x = rot)
-    print(dim(rot))
-    object$add.col.attribute(attribute = rot, overwrite = overwrite)
     object$flush()
     gc(verbose = FALSE)
     invisible(x = object)
