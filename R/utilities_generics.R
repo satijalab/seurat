@@ -16,12 +16,14 @@ NULL
 #'
 #' @return Returns the covariance matrix
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
 #' @rdname BlockCov
 #' @export BlockCov
 #'
 setGeneric(
   name = 'BlockCov',
-  def = function(object, ...) {
+  def = function(object, mat, chunk.size, display.progress, rows.use, row.names) {
     return(standardGeneric(f = 'BlockCov'))
   }
 )

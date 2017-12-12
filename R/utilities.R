@@ -894,6 +894,7 @@ CaseMatch <- function(search, match) {
 }
 
 #' @rdname BlockCov
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @exportMethod BlockCov
 #'
 setMethod(
@@ -922,14 +923,15 @@ setMethod(
     } else {
       rows.use <- which(object[[rows.use]][])
     }
-    
+
     batch1 <- object[[mat]][batch.indices[[1]], rows.use]
     c1 <- cov(batch1)
     m1 <- colMeans(batch1)
     m.mat <- matrix(nrow = ncol(batch1), ncol = ncol(batch1))
     n1 <- nrow(batch1)
-    
-    pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
+    if (display.progress) {
+      pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
+    }
     for(i in 2:length(x = batch)) {
       current.batch <- object[[mat]][batch.indices[[i]], rows.use]
       m2 <- colMeans(current.batch)
@@ -944,9 +946,13 @@ setMethod(
       c1 <- (n1 - 1) / (n2 - 1) * c1 + (nrow(current.batch) - 1)/(n2 - 1) * c2 + (n1 * nrow(current.batch))/(n2 *(n2 -1)) * m.mat
       m1 <- (n1*m1 + nrow(current.batch)*m2)/n2
       n1 <- n2
-      setTxtProgressBar(pb, i)
+      if (display.progress) {
+        setTxtProgressBar(pb, i)
+      }
     }
-    close(pb)
+    if (display.progress) {
+      close(pb)
+    }
     rownames(c1) <- object[[row.names]][rows.use]
     colnames(c1) <- object[[row.names]][rows.use]
     return(c1)

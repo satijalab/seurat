@@ -15,9 +15,9 @@ RunPCA(object, pcs.compute, ...)
   do.print = TRUE, pcs.print = 1:5, genes.print = 30,
   reduction.name = "pca", reduction.key = "PC", assay.type = "RNA", ...)
 
-\S4method{RunPCA}{loom}(object, pcs.compute = 75, cells.initial = 50000,
-  chunk.size = 1000, gene.names = "row_attrs/Gene",
-  gene.means = "row_attrs/gene_means",
+\S4method{RunPCA}{loom}(object, pcs.compute = 75, online.pca = TRUE,
+  covariance.mat = NULL, cells.initial = 50000, chunk.size = 1000,
+  gene.names = "row_attrs/Gene", gene.means = "row_attrs/gene_means",
   gene.variance = "row_attrs/gene_dispersion",
   scale.data = "layers/scale_data", ngene = 1000, overwrite = FALSE,
   display.progress = TRUE, ...)
@@ -51,6 +51,10 @@ the PCs}
 \item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. PC by default}
 
 \item{assay.type}{Data type, RNA by default. Can be changed for multimodal}
+
+\item{online.pca}{Compute PCA using online methods}
+
+\item{covariance.mat}{Covariance matrix to use if calculating a full PCA}
 
 \item{cells.initial}{Number of cells to use for initial PCA calculate}
 
