@@ -10,7 +10,7 @@
 \usage{
 RunPCA(object, pcs.compute, ...)
 
-\S4method{RunPCA}{seurat}(object, pc.genes = NULL, pcs.compute = 20,
+\S4method{RunPCA}{seurat}(object, pcs.compute = 20, pc.genes = NULL,
   use.imputed = FALSE, rev.pca = FALSE, weight.by.var = TRUE,
   do.print = TRUE, pcs.print = 1:5, genes.print = 30,
   reduction.name = "pca", reduction.key = "PC", assay.type = "RNA",

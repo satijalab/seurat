@@ -45,8 +45,8 @@ setMethod(
   signature = c('object' = 'seurat'),
   definition = function(
     object,
-    pc.genes = NULL,
     pcs.compute = 20,
+    pc.genes = NULL,
     use.imputed = FALSE,
     rev.pca = FALSE,
     weight.by.var = TRUE,
