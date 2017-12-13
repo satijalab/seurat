@@ -921,19 +921,23 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 }
 
 #' @rdname DownsampleSeurat
-#' @exportMethod DowsampleSeurat
+#' @exportMethod DownsampleSeurat
 #'
 setMethod(
   f = 'DownsampleSeurat',
   signature = c('object' = 'seurat'),
-  definition = function(object, ...) {invisible(x = NULL)}
+  definition = function(object, ...) {
+    invisible(x = NULL)
+  }
 )
 
 #' @rdname DownsampleSeurat
-#' @exportMethod DowsampleSeurat
+#' @exportMethod DownsampleSeurat
 #'
 setMethod(
   f = 'DownsampleSeurat',
   signature = c('object' = 'loom'),
-  definition = function(object, ...) {invisible(x = NULL)}
+  definition = function(object, ...) {
+    invisible(x = NULL)
+  }
 )
