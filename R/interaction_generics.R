@@ -5,7 +5,15 @@ NULL
 #' Density Dependent Downsampling
 #'
 #' @param object An object to downsample
-#' @param ... Parameters to methods
+#' @param size A non-negative integer giving the number of cells to choose
+#' @param method Sampling strategy, one of 'random', 'max', 'prod', 'mean'
+#' @param eps A small value added to the density estimate
+#' @param bw.adjust Factor applied to default bandwidth
+#' @param return.type Return as either a "seurat" or "loom" object
+#' @param cell.names location in loom object of cell names
+#' @param filename file name/path for new loom object if returning loom
+#' @param overwrite overwrite loom file if it already exists
+#' @param display.progress display progress of the process
 #'
 #' @rdname DownsampleSeurat
 #' @export DownsampleSeurat

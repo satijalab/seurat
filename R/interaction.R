@@ -926,7 +926,31 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 setMethod(
   f = 'DownsampleSeurat',
   signature = c('object' = 'seurat'),
-  definition = function(object, ...) {invisible(x = NULL)}
+  definition = function(object,
+                        size,
+                        method = 'max',
+                        eps = 0.001,
+                        bw.adjust = 2,
+                        return.type = "seurat",
+                        filename,
+                        overwrite = FALSE) {
+    if (! "pca" %in% names(object@dr)) {
+      stop("PCA not found")
+    }
+    input.matrix <- GetCellEmbeddings(object = object, reduction.type = "pca")
+    cells.to.keep <- DownsampleMatrix(mat = input.matrix,
+                                      size = size,
+                                      method = method,
+                                      eps = eps,
+                                      bw.adjust = bw.adjust,
+                                      ...)
+    object <- SubsetData(object = object, cells.use = cells.to.keep, subset.raw = TRUE)
+    if (return.type == "seurat") {
+      return(object)
+    } else {
+      return(Convert(from = object, to = "loom", filename = filename, ...))
+    }
+  }
 )
 
 #' @rdname DownsampleSeurat
@@ -935,5 +959,35 @@ setMethod(
 setMethod(
   f = 'DownsampleSeurat',
   signature = c('object' = 'loom'),
-  definition = function(object, ...) {invisible(x = NULL)}
+  definition = function(object,
+                        size,
+                        method = 'max',
+                        eps = 0.001,
+                        bw.adjust = 2,
+                        return.type = "loom",
+                        cell.names = "col_attrs/cell_names",
+                        filename,
+                        overwrite = FALSE,
+                        display.progress = TRUE,
+                        ...) {
+    pcs.computed <- grep("PC", names(object$col.attrs), value = T)
+    pcs.computed <- names(sort(sapply(X = pcs.computed, FUN = function(x) as.numeric(strsplit(x, "PC")[[1]][2]))))
+    input.matrix <- as.matrix(object$get.attribute.df(attribute.layer = "col", attribute.names = pcs.computed))
+    cells.to.keep <- DownsampleMatrix(mat = input.matrix,
+                                      size = size,
+                                      method = method,
+                                      eps = eps,
+                                      bw.adjust = bw.adjust)
+    cell.idx <- which(object[[cell.names]][] %in% cells.to.keep)
+    new.loom <- subset(object,
+                       n = cell.idx,
+                       filename = filename,
+                       overwrite = overwrite,
+                       display.progress = display.progress)
+    if (return.type == "loom") {
+      return(new.loom)
+    } else {
+      return(Convert(from = new.loom, to = "seurat", ...))
+    }
+  }
 )
