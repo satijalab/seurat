@@ -14,7 +14,7 @@ DimPlot(object, reduction.use = "pca", ...)
   do.bare = FALSE, cols.use = NULL, group.by = "ident", pt.shape = NULL,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
-  dark.theme = FALSE, ...)
+  dark.theme = FALSE, plot.order = NULL, plot.title = NULL, ...)
 
 \S4method{DimPlot}{loom}(object, reduction.use = "pca",
   ident.use = "col_attrs/ident", dim.1 = 1, dim.2 = 2, cells.use = NULL,
@@ -66,7 +66,19 @@ different shapes on cells.}
 
 \item{dark.theme}{Use a dark theme for the plot}
 
+\item{plot.order}{Specify the order of plotting for the idents. This can be
+useful for crowded plots if points of interest are being buried. Provide
+either a full list of valid idents or a subset to be plotted last (on top).}
+
+\item{plot.title}{Title for plot}
+
 \item{ident.use}{Identity to use}
+
+\item{no.legend}{Setting to TRUE will remove the legend}
+
+\item{no.axes}{Setting to TRUE will remove the axes}
+
+\item{dark.theme}{Use a dark theme for the plot}
 }
 \value{
 If do.return==TRUE, returns a ggplot2 object. Otherwise, only

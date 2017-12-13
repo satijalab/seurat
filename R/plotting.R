@@ -105,7 +105,7 @@ DoHeatmap <- function(
     x = cells.ident,
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
-  data.use <- data.use[genes.use, cells.use]
+  data.use <- data.use[genes.use, cells.use, drop = FALSE]
   if ((!use.scaled)) {
     data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
@@ -1232,7 +1232,7 @@ FeatureHeatmap <- function(
     key.title.pos <- "left"
   }
   p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
-    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size, shape = pch.use)
   if (rotate.key) {
     p <- p + scale_colour_gradient(
       low = cols.use[1],
@@ -2239,6 +2239,13 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param no.legend Setting to TRUE will remove the legend
+#' @param no.axes Setting to TRUE will remove the axes
+#' @param dark.theme Use a dark theme for the plot
+#' @param plot.order Specify the order of plotting for the idents. This can be
+#' useful for crowded plots if points of interest are being buried. Provide
+#' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param plot.title Title for plot
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @import SDMTools
@@ -2274,6 +2281,8 @@ setMethod(
     no.legend = FALSE,
     no.axes = FALSE,
     dark.theme = FALSE,
+    plot.order = NULL,
+    plot.title = NULL,
     ...
   ) {
     embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
@@ -2302,8 +2311,14 @@ setMethod(
     data.plot$x <- data.plot[, dim.codes[1]]
     data.plot$y <- data.plot[, dim.codes[2]]
     data.plot$pt.size <- pt.size
-    # p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-    #   geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
+    if (!is.null(x = plot.order)) {
+      if (any(!plot.order %in% data.plot$ident)) {
+        stop("invalid ident in plot.order")
+      }
+      plot.order <- rev(x = c(plot.order, setdiff(x = unique(x = data.plot$ident), y = plot.order)))
+      data.plot$ident <- factor(x = data.plot$ident, levels = plot.order)
+      data.plot <- data.plot[order(data.plot$ident), ]
+    }
     p <- SingleDimPlot(
       data.plot = data.plot,
       labels = dim.codes,
@@ -2326,22 +2341,9 @@ setMethod(
           size = pt.size
         )
     }
-    # if (!is.null(x = cols.use)) {
-    #   p <- p + scale_colour_manual(values = cols.use)
-    # }
-    # p2 <- p +
-    #   xlab(label = dim.codes[[1]]) +
-    #   ylab(label = dim.codes[[2]]) +
-    #   scale_size(range = c(pt.size, pt.size))
-    # p3 <- p2 +
-    #   SetXAxisGG() +
-    #   SetYAxisGG() +
-    #   SetLegendPointsGG(x = 6) +
-    #   SetLegendTextGG(x = 12) +
-    #   no.legend.title +
-    #   theme_bw() +
-    #   NoGrid()
-    # p3 <- p3 + theme(legend.title = element_blank())
+    if (!is.null(x = plot.title)) {
+      p <- p + ggtitle(plot.title) + theme(plot.title = element_text(hjust = 0.5))
+    }
     if (do.label) {
       data.plot %>%
         dplyr::group_by(ident) %>%
@@ -2350,28 +2352,6 @@ setMethod(
         geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
         geom_text(data = centers, mapping = aes(label = ident), size = label.size)
     }
-    # if (dark.theme) {
-    #   p <- p + DarkTheme()
-    #   p3 <- p3 + DarkTheme()
-    # }
-    # if (no.legend) {
-    #   p3 <- p3 + theme(legend.position = "none")
-    # }
-    # if (no.axes) {
-    #   p3 <- p3 + theme(
-    #     axis.line = element_blank(),
-    #     axis.text.x = element_blank(),
-    #     axis.text.y = element_blank(),
-    #     axis.ticks = element_blank(),
-    #     axis.title.x = element_blank(),
-    #     axis.title.y = element_blank(),
-    #     panel.background = element_blank(),
-    #     panel.border = element_blank(),
-    #     panel.grid.major = element_blank(),
-    #     panel.grid.minor = element_blank(),
-    #     plot.background = element_blank()
-    #   )
-    # }
     if (do.identify || do.hover) {
       plot.use <- p
       if (do.hover) {
@@ -2719,7 +2699,7 @@ VariableGenePlot <- function(
   gene.mean <- object@hvg.info[, 1]
   gene.dispersion <- object@hvg.info[, 2]
   gene.dispersion.scaled <- object@hvg.info[, 3]
-  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@hvg.info)
   pass.cutoff <- names(x = gene.mean)[which(
     x = (
       (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)

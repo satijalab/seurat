@@ -13,7 +13,8 @@ RunPCA(object, pcs.compute, ...)
 \S4method{RunPCA}{seurat}(object, pc.genes = NULL, pcs.compute = 20,
   use.imputed = FALSE, rev.pca = FALSE, weight.by.var = TRUE,
   do.print = TRUE, pcs.print = 1:5, genes.print = 30,
-  reduction.name = "pca", reduction.key = "PC", assay.type = "RNA", ...)
+  reduction.name = "pca", reduction.key = "PC", assay.type = "RNA",
+  seed.use = 42, ...)
 
 \S4method{RunPCA}{loom}(object, pcs.compute = 75, online.pca = TRUE,
   covariance.mat = NULL, cells.initial = 50000, chunk.size = 1000,
@@ -52,6 +53,9 @@ the PCs}
 
 \item{assay.type}{Data type, RNA by default. Can be changed for multimodal}
 
+\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
+NULL will not set a seed.}
+
 \item{online.pca}{Compute PCA using online methods}
 
 \item{covariance.mat}{Covariance matrix to use if calculating a full PCA}
@@ -73,6 +77,8 @@ the PCs}
 \item{overwrite}{Overwrite preexisting results}
 
 \item{display.progress}{Show progress bars}
+
+\item{\dots}{Additional arguments to be passed to IRLBA}
 }
 \value{
 Returns Seurat object with the PCA calculation stored in
