@@ -103,7 +103,7 @@ DoHeatmap <- function(
     x = cells.ident,
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
-  data.use <- data.use[genes.use, cells.use]
+  data.use <- data.use[genes.use, cells.use, drop = FALSE]
   if ((!use.scaled)) {
     data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
