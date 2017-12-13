@@ -683,7 +683,7 @@ SingleVlnPlot <- function(
     plot <- plot + scale_fill_manual(values = cols.use)
   }
   if (x.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+    plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
   }
   if (y.lab.rot) {
     plot <- plot + theme(axis.text.x = element_text(angle = 90))

@@ -16,6 +16,11 @@ NULL
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
 #' @param assay.type Data type, RNA by default. Can be changed for multimodal
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#' @param \dots Additional arguments to be passed to IRLBA
+#'
+#'@importFrom irlba irlba
 #'
 #' @return Returns Seurat object with the PCA calculation stored in
 #' object@@dr$pca.
@@ -50,9 +55,13 @@ setMethod(
     genes.print = 30,
     reduction.name = "pca",
     reduction.key = "PC",
-    assay.type="RNA",
+    assay.type = "RNA",
+    seed.use = 42,
     ...
   ) {
+    if (!is.null(x = seed.use)) {
+      set.seed(seed = seed.use)
+    }
     data.use <- PrepDR(
       object = object,
       genes.use = pc.genes,
@@ -979,12 +988,13 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
-      temp.matrix=PrepDR(group.object,genes.use = genes.use)
+      temp.matrix <- PrepDR(group.object, genes.use = genes.use)
       group.object <- RunPCA(
         object = group.object,
         pc.genes = genes.use,
         do.print = FALSE,
-        center=rowMeans(temp.matrix)
+        center = rowMeans(temp.matrix),
+        pcs.compute = max(dims.use)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,
@@ -1037,9 +1047,7 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  object@meta.data$cell.name <- rownames(x = object@meta.data)
-  object@meta.data <- merge(x = object@meta.data, y = var.ratio, by = "cell.name")
-  rownames(x = object@meta.data) <- object@meta.data$cell.name
+  object <- AddMetaData(object, metadata = var.ratio)
   object@meta.data$cell.name <- NULL
   return(object)
 }

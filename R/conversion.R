@@ -99,32 +99,53 @@ setMethod(
         raw.matrix <- Matrix(data = raw.matrix, sparse = TRUE)
         object <- CreateSeuratObject(raw.data = raw.matrix)
         if (!is.null(x = norm.data)) { # Add normalized data
-          norm.matrix <- t(x = from[[norm.data]][, ])
-          rownames(x = norm.matrix) <- rownames(x = raw.matrix)
-          colnames(x = norm.matrix) <- colnames(x = raw.matrix)
-          norm.matrix <- Matrix(data = norm.matrix, sparse = TRUE)
-          object@data <- norm.matrix
-          gc()
+          if (norm.data %in% list.datasets(object = from)) {
+            norm.matrix <- t(x = from[[norm.data]][, ])
+            rownames(x = norm.matrix) <- rownames(x = raw.matrix)
+            colnames(x = norm.matrix) <- colnames(x = raw.matrix)
+            norm.matrix <- Matrix(data = norm.matrix, sparse = TRUE)
+            object@data <- norm.matrix
+            gc()
+          } else {
+            warning(paste0("Cannot find normalized dataset '", norm.data, "'"))
+          }
         }
         if (!is.null(x = scale.data)) { # Add scaled data
-          scale.matrix <- t(x = from[[scale.data]][, ])
-          rownames(x = scale.matrix) <- rownames(x = raw.matrix)
-          colnames(x = scale.matrix) <- colnames(x = scale.matrix)
-          object@scale.data <- scale.matrix
-          gc()
+          if (scale.data %in% list.datasets(object = from)) {
+            scale.matrix <- t(x = from[[scale.data]][, ])
+            rownames(x = scale.matrix) <- rownames(x = raw.matrix)
+            colnames(x = scale.matrix) <- colnames(x = scale.matrix)
+            object@scale.data <- scale.matrix
+            gc()
+          } else {
+            warning(paste0("Cannot find scaled dataset '", scale.data, "'"))
+          }
         }
         # Add variable genes
         if (!is.null(x = gene.means) && !is.null(x = gene.dispersion) && !(is.null(gene.scaled))) {
-          object@hvg.info <- data.frame(
-            gene.mean = from[[gene.means]][],
-            gene.dispersion = from[[gene.dispersion]][],
-            gene.dispersion.scaled = from[[gene.scaled]][],
-            row.names = rownames(x = raw.matrix)
+          var.genes.check <- vapply(
+            X = c(gene.means, gene.dispersion, gene.scaled),
+            FUN = function(x) {return(x %in% list.datasets(object = from))},
+            FUN.VALUE = logical(length = 1L)
           )
-          if (!is.null(x = var.genes)) {
-            object@var.genes <- rownames(x = raw.matrix)[from[[var.genes]][]]
+          if (all(var.genes.check)) {
+            object@hvg.info <- data.frame(
+              gene.mean = from[[gene.means]][],
+              gene.dispersion = from[[gene.dispersion]][],
+              gene.dispersion.scaled = from[[gene.scaled]][],
+              row.names = rownames(x = raw.matrix)
+            )
+            if (!is.null(x = var.genes)) {
+              if (var.genes %in% list.datasets(object = from)) {
+                object@var.genes <- rownames(x = raw.matrix)[from[[var.genes]][]]
+              } else {
+                warning(paste0("Cannot find variable genes list '", var.genes, "'"))
+              }
+            }
+            gc()
+          } else {
+            warning("Cannot find hvg.info data")
           }
-          gc()
         }
         # Add meta data
         meta.data <- names(x = from[['col_attrs']])

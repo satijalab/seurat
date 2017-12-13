@@ -329,6 +329,12 @@ AddSamples <- function(
 #' @param do.scale Rescale the new object@@scale.data. FALSE by default
 #' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
 #' @param random.seed Random seed for downsampling
+#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
+#' other slots. Can be useful if you want to start a fresh analysis on just a
+#' subset of the data. Also clears out stored clustering results in
+#' object@@meta.data (any columns containing "res"). Will by default subset the
+#' raw.data slot.
+#' @param subset.raw Also subset object@@raw.data
 #' @param \dots Additional arguments to be passed to FetchData (for example,
 #' use.imputed=TRUE)
 #'
@@ -354,6 +360,8 @@ SubsetData <- function(
   do.scale = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
+  do.clean = FALSE,
+  subset.raw,
   ...
 ) {
   data.use <- NULL
@@ -435,6 +443,28 @@ SubsetData <- function(
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
   object@meta.data <- data.frame(object@meta.data[cells.use,])
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
+  if (do.clean){
+    calcs.to.keep <- c("CreateSeuratObject", "NormalizeData", "ScaleData")
+    object@calc.params <- object@calc.params[calcs.to.keep]
+    object@var.genes <- vector()
+    object@hvg.info <- data.frame()
+    object@cluster.tree <- list()
+    object@snn <- as(matrix(), 'dgCMatrix')
+    object@scale.data <- matrix()
+    object@misc <- NULL
+    object@kmeans <- NULL
+    object@dr <- list()
+    object@meta.data
+    if(missing(subset.raw)) {
+      subset.raw <- TRUE
+    }
+    object@meta.data[, sapply(colnames(object@meta.data), function(x){grepl("res", x)})] <- NULL
+  }
+  if(!missing(subset.raw)){
+    if(subset.raw){
+      object@raw.data <- object@raw.data[, cells.use]
+    }
+  }
   return(object)
 }
 
@@ -921,7 +951,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 }
 
 #' @rdname DownsampleSeurat
-#' @exportMethod DowsampleSeurat
+#' @exportMethod DownsampleSeurat
 #'
 setMethod(
   f = 'DownsampleSeurat',
@@ -954,7 +984,7 @@ setMethod(
 )
 
 #' @rdname DownsampleSeurat
-#' @exportMethod DowsampleSeurat
+#' @exportMethod DownsampleSeurat
 #'
 setMethod(
   f = 'DownsampleSeurat',
