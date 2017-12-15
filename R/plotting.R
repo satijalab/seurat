@@ -103,7 +103,7 @@ DoHeatmap <- function(
     x = cells.ident,
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
-  data.use <- data.use[genes.use, cells.use]
+  data.use <- data.use[genes.use, cells.use, drop = FALSE]
   if ((!use.scaled)) {
     data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
@@ -1230,7 +1230,7 @@ FeatureHeatmap <- function(
     key.title.pos <- "left"
   }
   p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
-    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size, shape = pch.use)
   if (rotate.key) {
     p <- p + scale_colour_gradient(
       low = cols.use[1],
