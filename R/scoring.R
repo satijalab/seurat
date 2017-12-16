@@ -13,6 +13,7 @@
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
 #' @param use.k Use gene clusters returned from DoKMeans()
 #' @param enrich.name Name for the expression programs
+#' @param random.seed Set a random seed
 #'
 #' @return Returns a Seurat object with module scores added to object@meta.data
 #'
