@@ -963,7 +963,8 @@ setMethod(
                         bw.adjust = 2,
                         return.type = "seurat",
                         filename,
-                        overwrite = FALSE) {
+                        overwrite = FALSE,
+                        ...) {
     if (! "pca" %in% names(object@dr)) {
       stop("PCA not found")
     }
