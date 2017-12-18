@@ -322,7 +322,6 @@ setMethod(
     display.progress = TRUE,
     overwrite = FALSE
   ) {
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     name <- paste('layers', basename(path = name[1]), sep = '/')
     object$apply(
       name = name,
@@ -339,6 +338,10 @@ setMethod(
       overwrite = overwrite,
       display.progress = display.progress
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    SetCalcParams(object = object,
+                  dataset.use = "layers/norm_data",
+                  ... = parameters.to.store)
     gc(verbose = FALSE)
     invisible(x = object)
   }
@@ -587,6 +590,10 @@ setMethod(
       overwrite = overwrite,
       display.progress = display.progress
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    SetCalcParams(object = object,
+                  dataset.use = "layers/scale_data",
+                  ... = parameters.to.store)
     gc(verbose = FALSE)
     invisible(x = object)
   }
