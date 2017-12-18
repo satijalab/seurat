@@ -1,3 +1,8 @@
+#' @include seurat.R
+#' @include utilities_generics.R
+#' @importFrom methods setMethod
+NULL
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
@@ -115,26 +120,62 @@ FisherIntegrate <- function(pvals) {
   return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
 }
 
-# Set CalcParam information
-#
-# @param object      A Seurat object
-# @param calculation The name of the calculation that was done
-# @param time store time of calculation as well
-# @param ...  Parameters for the calculation
-#
-# @return object with the calc.param slot modified to either append this
-# calculation or replace the previous instance of calculation with
-# a new list of parameters
-#
-SetCalcParams <- function(object, calculation, time = TRUE, ...) {
-  object@calc.params[calculation] <- list(...)
-  object@calc.params[[calculation]]$object <- NULL
-  object@calc.params[[calculation]]$object2 <- NULL
-  if(time) {
-    object@calc.params[[calculation]]$time <- Sys.time()
+
+#' @rdname SetCalcParams
+#' @exportMethod SetCalcParams
+#'
+setMethod(
+  f = 'SetCalcParams',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    calculation,
+    time = TRUE,
+    ...
+  ) {
+    object@calc.params[calculation] <- list(...)
+    object@calc.params[[calculation]]$object <- NULL
+    object@calc.params[[calculation]]$object2 <- NULL
+    if(time) {
+      object@calc.params[[calculation]]$time <- Sys.time()
+    }
+    return(object)
   }
-  return(object)
-}
+)
+
+
+#' @rdname SetCalcParams
+#' @exportMethod SetCalcParams
+#'
+setMethod(
+  f = 'SetCalcParams',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    dataset.use,
+    time = TRUE,
+    ...
+  ) {
+    to.store <- list(...)
+    to.store$...$object <- NULL
+    to.store$...$object2 <- NULL
+    names.to.store <- names(to.store$...)
+    to.store <- as.character(unlist(to.store))
+    if(time) {
+      to.store <- c(to.store, as.character(Sys.time()))
+      names.to.store <- c(names.to.store, "time")
+    }
+    aset <- object[[dataset.use]]
+    if (aset$attr_exists(attr_name = "calc_params")) {
+      aset$attr_delete(attr_name = "calc_param_names")
+      aset$attr_delete(attr_name = "calc_params")
+    }
+    h5attr(x = aset, which = 'calc_params') <- to.store
+    h5attr(x = aset, which = 'calc_param_names') <- names.to.store
+    gc(verbose = FALSE)
+    invisible(x = object)
+  }
+)
 
 # Delete CalcParam information
 #
@@ -165,31 +206,69 @@ SetSingleCalcParam <- function(object, calculation, parameter, value) {
   return(object)
 }
 
-# Get CalcParam information
-#
-# @param object      A Seurat object
-# @param calculation The name of the calculation that was done
-# @param parameter  Parameter for the calculation to pull
-#
-# @return parameter value for given calculation
-#
-GetCalcParam <- function(object, calculation, parameter){
-  if(parameter == "time"){
-    return(object@calc.params[[calculation]][parameter][[1]])
-  }
-  return(unname(unlist(object@calc.params[[calculation]][parameter])))
-}
 
-# Get All CalcParam information for given calculation
-#
-# @param object      A Seurat object
-# @param calculation The name of the calculation that was done
-#
-# @return list of parameter values for given calculation
-#
-GetAllCalcParam <- function(object, calculation){
-  return(object@calc.params[[calculation]])
-}
+#' @rdname GetCalcParam
+#' @exportMethod GetCalcParam
+#'
+setMethod(
+  f = 'GetCalcParam',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    calculation,
+    parameter) {
+    if(parameter == "time"){
+      return(object@calc.params[[calculation]][parameter][[1]])
+    }
+    return(unname(unlist(object@calc.params[[calculation]][parameter])))
+  }
+)
+
+
+#' @rdname GetCalcParam
+#' @exportMethod GetCalcParam
+#'
+setMethod(
+  f = 'GetCalcParam',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    dataset.use,
+    parameter) {
+    param.index <- which(h5attr(object[[dataset.use]], which = "calc_param_names") == parameter)
+    return(h5attr(object[[dataset.use]], which = "calc_params")[param.index])
+  }
+)
+
+#' @rdname GetAllCalcParam
+#' @exportMethod GetAllCalcParam
+#'
+setMethod(
+  f = 'GetAllCalcParam',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    calculation) {
+    return(object@calc.params[[calculation]])
+  }
+)
+
+
+#' @rdname GetAllCalcParam
+#' @exportMethod GetAllCalcParam
+#'
+setMethod(
+  f = 'GetAllCalcParam',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    dataset.use) {
+    param.names <- h5attr(object[[dataset.use]], which = "calc_param_names")
+    param.values <- h5attr(object[[dataset.use]], which = "calc_params")
+    names(param.values) <- param.names
+    return(param.values)
+  }
+)
 
 # Has any info been stored for the given calculation?
 #

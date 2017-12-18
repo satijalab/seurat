@@ -141,7 +141,7 @@ CreateSeuratObject <- function(
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
   object <- SetCalcParams(
@@ -251,7 +251,7 @@ setMethod(
     scale.factor = 1e4,
     display.progress = TRUE
   ) {
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     object <- SetCalcParams(
       object = object,
       calculation = "NormalizeData",
@@ -338,6 +338,10 @@ setMethod(
       overwrite = overwrite,
       display.progress = display.progress
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    SetCalcParams(object = object,
+                  dataset.use = "layers/norm_data",
+                  ... = parameters.to.store)
     gc(verbose = FALSE)
     invisible(x = object)
   }
@@ -473,7 +477,7 @@ setMethod(
         scale.max <- 50
       }
     }
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     parameters.to.store$data.use <- NULL
     object <- SetCalcParams(
       object = object,
@@ -586,6 +590,10 @@ setMethod(
       overwrite = overwrite,
       display.progress = display.progress
     )
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    SetCalcParams(object = object,
+                  dataset.use = "layers/scale_data",
+                  ... = parameters.to.store)
     gc(verbose = FALSE)
     invisible(x = object)
   }
@@ -701,7 +709,7 @@ setMethod(
     display.progress = TRUE,
     ...
   ) {
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     parameters.to.store$mean.function <- as.character(substitute(mean.function))
     parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
     object <- SetCalcParams(
@@ -926,7 +934,7 @@ FilterCells <- function(
   high.thresholds,
   cells.use = NULL
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(
     object = object,
     calculation = "FilterCells",
