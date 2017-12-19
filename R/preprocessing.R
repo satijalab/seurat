@@ -854,8 +854,8 @@ setMethod(
       force.reset = TRUE
     )
     # Preallocate memory for the results
-    gene.means <- vector(mode = 'numeric', length = object$shape[2])
-    raw.dispersion <- vector(mode = 'numeric', length = object$shape[2])
+    gene.means <- vector(mode = 'numeric', length = object$shape[1])
+    raw.dispersion <- vector(mode = 'numeric', length = object$shape[1])
     for (i in 1:length(x = batch)) {
       chunk.indices <- object$batch.next(return.data = FALSE)
       chunk.data <- object[[normalized.data]][, chunk.indices]
