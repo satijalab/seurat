@@ -1022,3 +1022,97 @@ setMethod(
     }
   }
 )
+
+#' @rdname ProjectSeurat
+#' @exportMethod ProjectSeurat
+#'
+setMethod(
+  f = 'ProjectSeurat',
+  signature = c('object' = 'seurat'),
+  definition = function(object,
+                        umi.mat,
+                        return.type = "seurat",
+                        filename,
+                        overwrite = FALSE,
+                        display.progress = TRUE,
+                        ...) {
+    # Should we filter the UMI matrix here and potentially remove cells?
+    # for now assume it has already been filtered and use as is
+    if (any(colnames(x = umi.mat) %in% object@cell.names)) {
+      stop("One or more cell names in UMI matrix match existing cells")
+    }
+    # todo (maybe): add raw data of new cells to existing raw data
+    
+    # make a couple of assumptions: 
+    # LogNormalization was used with factor 1e4
+    # genes were centered and scaled
+    # pca was used as dimensionality reduction
+    
+    # get some information from the existing object
+    object.vg <- rownames(object@scale.data)
+    object.gene.mean <- apply(object@data[object.vg, ], 1, mean)
+    object.gene.sd <- apply(object@data[object.vg, ], 1, sd)
+    
+    # log-norm UMI matrix
+    n.gene <- apply(umi.mat > 0, 2, sum)
+    n.umi <- apply(umi.mat, 2, sum)
+    expr <- log1p(sweep(as.matrix(umi.mat[object.vg, ]), 2, n.umi, FUN='/') * 10000)
+    # scale
+    expr <- (expr - object.gene.mean) / object.gene.sd
+    
+    # append to scale.data (maybe we don't want to update this slot and will remove this in the future)
+    object@scale.data <- cbind(object@scale.data, expr)
+    
+    # update meta data
+    md <- data.frame(matrix(NA, ncol(expr), ncol(object@meta.data), dimnames=list(colnames(expr), colnames(object@meta.data))))
+    md$nGene <- n.gene
+    md$nUMI <- n.umi
+    md$projected <- TRUE
+    object@meta.data$projected <- FALSE
+    object@meta.data <- rbind(object@meta.data, md)
+    object@cell.names <- rownames(object@meta.data)
+    
+    # apply PCA transformation (assuming default PCA was performed on original object,
+    # and weight.by.var was set to FALSE)
+    v <- object@dr[['pca']]@gene.loadings
+    d <- object@dr[['pca']]@sdev * sqrt(nrow(object@dr[['pca']]@cell.embeddings) - 1)
+    pca.genes <- rownames(v)
+    object@dr[['pca']]@cell.embeddings <- sweep(t(object@scale.data[pca.genes, ]) %*% v, 2, d, FUN='/')
+    
+    # map all new cells onto tSNE space
+    dims.use <- object@calc.params$RunTSNE$dims.use
+    k <- 6
+    new.cell <- object@meta.data$projected
+    ce <- object@dr[['pca']]@cell.embeddings
+    knn.out <- FNN::get.knnx(data=ce[!new.cell, dims.use], query=ce[new.cell, dims.use], k=k)
+    
+    # use weighted average of k-1 nearest neighbors for tsne mapping 
+    j <- as.numeric(t(knn.out$nn.index))
+    i <- ((1:length(j))-1) %/% k + 1
+    w <- 1 - sweep(knn.out$nn.dist, apply(knn.out$nn.dist, 1, max), MARGIN = 1, FUN = '/')
+    w <- sweep(w, apply(w, 1, sum), MARGIN = 1, FUN = '/')
+    nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
+                                   dims=c(sum(new.cell), sum(!new.cell)), giveCsparse=TRUE, 
+                                   dimnames = list(object@cell.names[new.cell], object@cell.names[!new.cell]))
+    tsne.proj <- nn.mat %*% object@dr[['tsne']]@cell.embeddings
+    object@dr[['tsne']]@cell.embeddings <- rbind(object@dr[['tsne']]@cell.embeddings, as.matrix(tsne.proj))
+    
+    # assign cluster IDs to new cells using knn
+    dims.use <- object@calc.params$FindClusters.res.0.8$dims.use
+    knn.cluster <- class::knn(train = ce[!new.cell, dims.use], 
+                              test = ce[new.cell, dims.use], 
+                              cl = object@meta.data$res.0.8[!new.cell], 
+                              k = 7, l = 0, prob = FALSE, use.all = TRUE)
+    object@meta.data$res.0.8[new.cell] <- as.character(knn.cluster)
+    object@ident <- factor(object@meta.data$res.0.8, ordered=TRUE, 
+                           levels=as.character(sort(as.numeric(unique(object@meta.data$res.0.8)))))
+    names(object@ident) <- object@cell.names
+    
+    if (return.type == "seurat") {
+      return(object)
+    } else {
+      return(Convert(from = object, to = "loom", filename = filename, overwrite = overwrite, 
+                     display.progress = display.progress, ...))
+    }
+  }
+)
