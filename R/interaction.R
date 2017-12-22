@@ -1089,7 +1089,7 @@ setMethod(
     # use weighted average of k nearest neighbors for tsne mapping 
     j <- as.numeric(t(knn.out$nn.index))
     i <- ((1:length(j))-1) %/% k + 1
-    rbf.gamma <- 10
+    rbf.gamma <- 100
     w <- exp(-rbf.gamma * knn.out$nn.dist / knn.out$nn.dist[, k])
     w <- sweep(w, apply(w, 1, sum), MARGIN = 1, FUN = '/')
     nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
@@ -1103,7 +1103,7 @@ setMethod(
     knn.cluster <- class::knn(train = ce[!new.cell, dims.use], 
                               test = ce[new.cell, dims.use], 
                               cl = object@meta.data$res.0.8[!new.cell], 
-                              k = 7, l = 0, prob = FALSE, use.all = TRUE)
+                              k = 1, l = 0, prob = FALSE, use.all = TRUE)
     object@meta.data$res.0.8[new.cell] <- as.character(knn.cluster)
     object@ident <- factor(object@meta.data$res.0.8, ordered=TRUE, 
                            levels=as.character(sort(as.numeric(unique(object@meta.data$res.0.8)))))
