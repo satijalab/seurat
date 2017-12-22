@@ -102,7 +102,7 @@ setMethod(
     )
     #object@dr[reduction.name] <- pca.obj
     eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
-    parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("RunPCA"))]
+    parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
     object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
     if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
       object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
@@ -380,7 +380,7 @@ RunICA <- function(
   )
 
   eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
   if(is.null(object@calc.params$ICA$ic.genes)){
     object@calc.params$ICA$ic.genes <- rownames(data.use)
@@ -506,7 +506,7 @@ RunTSNE <- function(
     slot = "key",
     new.data = reduction.key
   )
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
   if(!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
@@ -858,7 +858,7 @@ RunCCA <- function(
         genes.use = genes.use
       )
     )
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     combined.object <- SetCalcParams(
       object = combined.object,
       calculation = "RunCCA",
@@ -908,7 +908,7 @@ RunCCA <- function(
       )
     )
     object@scale.data[is.na(x = object@scale.data)] <- 0
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
     object <- SetCalcParams(
       object = object,
       calculation = "RunCCA",
@@ -954,7 +954,7 @@ CalcVarExpRatio <- function(
   if (missing(x = dims.use)) {
     dims.use <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CalcVarExpRatio"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object,
                           calculation = "CalcVarExpRatio",
                           ... = parameters.to.store)
@@ -1097,7 +1097,7 @@ AlignSubspace <- function(
   num.genes = 30,
   show.plots = FALSE
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(
     object = object,
     calculation = paste0("AlignSubspace.", reduction.type),
@@ -1340,7 +1340,7 @@ RunDiffusion <- function(
       max = scale.clip
     )
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunDiffusion"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object,
                           calculation = "RunDiffusion",
                           ... = parameters.to.store)

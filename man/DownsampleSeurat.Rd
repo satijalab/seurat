@@ -11,7 +11,7 @@ DownsampleSeurat(object, ...)
 
 \S4method{DownsampleSeurat}{seurat}(object, size, method = "max",
   eps = 0.001, bw.adjust = 2, return.type = "seurat", filename,
-  overwrite = FALSE)
+  overwrite = FALSE, ...)
 
 \S4method{DownsampleSeurat}{loom}(object, size, method = "max", eps = 0.001,
   bw.adjust = 2, return.type = "loom",
