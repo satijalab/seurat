@@ -1081,15 +1081,16 @@ setMethod(
     
     # map all new cells onto tSNE space
     dims.use <- object@calc.params$RunTSNE$dims.use
-    k <- 6
+    k <- 31
     new.cell <- object@meta.data$projected
     ce <- object@dr[['pca']]@cell.embeddings
     knn.out <- FNN::get.knnx(data=ce[!new.cell, dims.use], query=ce[new.cell, dims.use], k=k)
     
-    # use weighted average of k-1 nearest neighbors for tsne mapping 
+    # use weighted average of k nearest neighbors for tsne mapping 
     j <- as.numeric(t(knn.out$nn.index))
     i <- ((1:length(j))-1) %/% k + 1
-    w <- 1 - sweep(knn.out$nn.dist, apply(knn.out$nn.dist, 1, max), MARGIN = 1, FUN = '/')
+    rbf.gamma <- 10
+    w <- exp(-rbf.gamma * knn.out$nn.dist / knn.out$nn.dist[, k])
     w <- sweep(w, apply(w, 1, sum), MARGIN = 1, FUN = '/')
     nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
                                    dims=c(sum(new.cell), sum(!new.cell)), giveCsparse=TRUE, 
