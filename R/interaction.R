@@ -1072,12 +1072,14 @@ setMethod(
     object@meta.data <- rbind(object@meta.data, md)
     object@cell.names <- rownames(object@meta.data)
     
-    # apply PCA transformation (assuming default PCA was performed on original object,
-    # and weight.by.var was set to FALSE)
+    # apply PCA transformation (assuming PCA was performed on original object)
     v <- object@dr[['pca']]@gene.loadings
     d <- object@dr[['pca']]@sdev * sqrt(nrow(object@dr[['pca']]@cell.embeddings) - 1)
     pca.genes <- rownames(v)
-    object@dr[['pca']]@cell.embeddings <- sweep(t(object@scale.data[pca.genes, ]) %*% v, 2, d, FUN='/')
+    object@dr[['pca']]@cell.embeddings <- t(object@scale.data[pca.genes, ]) %*% v
+    if (!object@calc.params$RunPCA$weight.by.var) {
+      object@dr[['pca']]@cell.embeddings <- sweep(object@dr[['pca']]@cell.embeddings, 2, d, FUN='/')
+    }
     
     # map all new cells onto tSNE space
     dims.use <- object@calc.params$RunTSNE$dims.use
@@ -1089,9 +1091,9 @@ setMethod(
     # use weighted average of k nearest neighbors for tsne mapping 
     j <- as.numeric(t(knn.out$nn.index))
     i <- ((1:length(j))-1) %/% k + 1
-    rbf.gamma <- 100
+    rbf.gamma <- 20
     w <- exp(-rbf.gamma * knn.out$nn.dist / knn.out$nn.dist[, k])
-    w <- sweep(w, apply(w, 1, sum), MARGIN = 1, FUN = '/')
+    w <- w / rowSums(w)
     nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
                                    dims=c(sum(new.cell), sum(!new.cell)), giveCsparse=TRUE, 
                                    dimnames = list(object@cell.names[new.cell], object@cell.names[!new.cell]))
