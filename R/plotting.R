@@ -2402,6 +2402,8 @@ setMethod(
     do.return = FALSE,
     do.bare = FALSE,
     cols.use = NULL,
+    do.label = FALSE,
+    label.size = 4,
     no.legend = FALSE,
     no.axes = FALSE,
     dark.theme = FALSE
@@ -2409,7 +2411,7 @@ setMethod(
     key <- switch(
       EXPR = tolower(x = reduction.use),
       'pca' = 'PC',
-      'tsne' = 'tSNE',
+      'tsne' = 'tSNE_',
       'ica' = 'IC',
       stop(paste0("Unrecognized reduction: '", reduction.use, "'"))
     )
@@ -2445,6 +2447,14 @@ setMethod(
       no.axes = no.axes,
       dark.theme = dark.theme
     )
+    if (do.label) {
+      data.plot %>%
+        dplyr::group_by(ident) %>%
+        summarize(x = median(x = x), y = median(x = y)) -> centers
+      p <- p +
+        geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
+        geom_text(data = centers, mapping = aes(label = ident), size = label.size)
+    }
     if (do.return) {
       return(p)
     } else {

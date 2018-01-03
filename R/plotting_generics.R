@@ -18,6 +18,8 @@ NULL
 #' @param do.bare Do only minimal formatting (default : FALSE)
 #' @param cols.use Vector of colors, each color corresponds to an identity
 #' class. By default, ggplot assigns colors.
+#' @param do.label Setting to TRUE will label the clusters
+#' @param label.size Sets size of labels
 #' @param no.legend Setting to TRUE will remove the legend
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
