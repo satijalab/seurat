@@ -958,6 +958,7 @@ setMethod(
   signature = c('object' = 'seurat'),
   definition = function(object,
                         size,
+                        dims.use = 1:10,
                         method = 'max',
                         eps = 0.001,
                         bw.adjust = 2,
@@ -968,7 +969,7 @@ setMethod(
     if (! "pca" %in% names(object@dr)) {
       stop("PCA not found")
     }
-    input.matrix <- GetCellEmbeddings(object = object, reduction.type = "pca")
+    input.matrix <- GetCellEmbeddings(object = object, reduction.type = "pca")[, dims.use]
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       method = method,
@@ -992,6 +993,7 @@ setMethod(
   signature = c('object' = 'loom'),
   definition = function(object,
                         size,
+                        dims.use = 1:10,
                         method = 'max',
                         eps = 0.001,
                         bw.adjust = 2,
@@ -1001,9 +1003,14 @@ setMethod(
                         overwrite = FALSE,
                         display.progress = TRUE,
                         ...) {
-    pcs.computed <- grep("PC", names(object$col.attrs), value = T)
-    pcs.computed <- names(sort(sapply(X = pcs.computed, FUN = function(x) as.numeric(strsplit(x, "PC")[[1]][2]))))
-    input.matrix <- as.matrix(object$get.attribute.df(attribute.layer = "col", attribute.names = pcs.computed))
+    input.pcs <- paste("PC", dims.use, sep="")
+    #pcs.computed <- grep(pattern = "^PC\\d+$", x = names(object$col.attrs), value = TRUE)
+    #pcs.computed <- pcs.computed[order(as.numeric(gsub(pattern = "^PC", replacement = "", x = pcs.computed)))]
+    #input.matrix <- as.matrix(object$get.attribute.df(attribute.layer = "col", attribute.names = input.pcs))
+    input.matrix <- Reduce(cbind, lapply(input.pcs, function(x) object[['col_attrs']][[x]][]))
+    rownames(input.matrix) <- object[[cell.names]][]
+    print(head(input.matrix))
+    print(dim(input.matrix))
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       method = method,

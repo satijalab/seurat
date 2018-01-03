@@ -6,6 +6,7 @@ NULL
 #'
 #' @param object An object to downsample
 #' @param size A non-negative integer giving the number of cells to choose
+#' @param dims.use A vector giving the PCs that are used
 #' @param method Sampling strategy, one of 'random', 'max', 'prod', 'mean'
 #' @param eps A small value added to the density estimate
 #' @param bw.adjust Factor applied to default bandwidth
