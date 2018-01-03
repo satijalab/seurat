@@ -1009,8 +1009,6 @@ setMethod(
     #input.matrix <- as.matrix(object$get.attribute.df(attribute.layer = "col", attribute.names = input.pcs))
     input.matrix <- Reduce(cbind, lapply(input.pcs, function(x) object[['col_attrs']][[x]][]))
     rownames(input.matrix) <- object[[cell.names]][]
-    print(head(input.matrix))
-    print(dim(input.matrix))
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       method = method,
