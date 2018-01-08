@@ -1135,6 +1135,7 @@ setMethod(
                         remove.existing = FALSE,
                         display.progress = TRUE,
                         chunk.size = 1000,
+                        keep.layers = FALSE,
                         ...) {
     if (file.exists(filename)) {
       if (remove.existing) {
@@ -1148,8 +1149,8 @@ setMethod(
     keep.cells <- cells[cells %in% cell.names]
     n.cells <- length(keep.cells)
     n.genes <- length(gene.names)
-    cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes)\n')
-    mat <- matrix(0, n.cells, n.genes, dimnames=list(keep.cells, gene.names))
+    cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes) in memory\n')
+    mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
     
     # get the data in memory
     # then create new loom object
@@ -1185,6 +1186,32 @@ setMethod(
       cell.attrs = meta.data[, setdiff(colnames(meta.data), 'cell_names')],
       gene.attrs = gene.attrs[, setdiff(colnames(gene.attrs), 'gene_names')]
     )
+    
+    if (keep.layers) {
+      for (layer.name in names(object[['layers']])) {
+        layer.path <- paste('layers', layer.name, sep='/')
+        cat('layer', layer.path, '\n')
+        mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
+        batch <- object$batch.scan(
+          chunk.size = chunk.size,
+          MARGIN = 2,
+          dataset.use = layer.path,
+          force.reset = TRUE
+        )
+        for (i in 1:length(x = batch)) {
+          # Get the indices we're iterating over
+          chunk.indices <- object$batch.next(return.data = FALSE)
+          cat('chunk', i, '; range', range(chunk.indices), '\n')
+          chunk.data <- object[[layer.path]][chunk.indices, ]
+          chunk.cell.names <- cell.names[chunk.indices]
+          sel <- chunk.cell.names  %in% cells
+          mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
+        }
+        lst <- list()
+        lst[[layer.name]] <- mat
+        loomfile$add.layer(lst)
+      }
+    }
     return(loomfile)
   }
 )
