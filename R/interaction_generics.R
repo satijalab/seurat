@@ -44,3 +44,18 @@ setGeneric(
     return(standardGeneric(f = 'ProjectSeurat'))
   }
 )
+
+#' Subset a seurat/loom object
+#'
+#' @param object An object to subset
+#' @param cells A character vector of cells to keep
+#'
+#' @rdname SubsetSeurat
+#' @export SubsetSeurat
+#'
+setGeneric(
+  name = 'SubsetSeurat',
+  def = function(object, cells, ...) {
+    return(standardGeneric(f = 'SubsetSeurat'))
+  }
+)

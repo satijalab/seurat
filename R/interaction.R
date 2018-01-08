@@ -1000,7 +1000,7 @@ setMethod(
                         return.type = "loom",
                         cell.names = "col_attrs/cell_names",
                         filename,
-                        overwrite = FALSE,
+                        remove.existing = FALSE,
                         display.progress = TRUE,
                         ...) {
     input.pcs <- paste("PC", dims.use, sep="")
@@ -1014,12 +1014,8 @@ setMethod(
                                       method = method,
                                       eps = eps,
                                       bw.adjust = bw.adjust)
-    cell.idx <- which(object[[cell.names]][] %in% cells.to.keep)
-    new.loom <- subset(object,
-                       n = cell.idx,
-                       filename = filename,
-                       overwrite = overwrite,
-                       display.progress = display.progress)
+    new.loom <- SubsetSeurat(object = object, cells = cells.to.keep, 
+                             filename = filename, remove.existing = remove.existing)
     if (return.type == "loom") {
       return(new.loom)
     } else {
@@ -1038,7 +1034,6 @@ setMethod(
                         umi.mat,
                         return.type = "seurat",
                         filename,
-                        overwrite = FALSE,
                         display.progress = TRUE,
                         ...) {
     # Should we filter the UMI matrix here and potentially remove cells?
@@ -1122,5 +1117,74 @@ setMethod(
       return(Convert(from = object, to = "loom", filename = filename, overwrite = overwrite, 
                      display.progress = display.progress, ...))
     }
+  }
+)
+
+
+#' @rdname SubsetSeurat
+#' @exportMethod SubsetSeurat
+#'
+setMethod(
+  f = 'SubsetSeurat',
+  signature = c('object' = 'loom'),
+  definition = function(object,
+                        cells,
+                        cell.names = "col_attrs/cell_names",
+                        gene.names = "row_attrs/gene_names",
+                        filename,
+                        remove.existing = FALSE,
+                        display.progress = TRUE,
+                        chunk.size = 1000,
+                        ...) {
+    if (file.exists(filename)) {
+      if (remove.existing) {
+        file.remove(filename)
+      } else {
+        stop('file ', filename, ' exists and remove.existing is set to FALSE\n')
+      }
+    }
+    cell.names <- object[[cell.names]][]
+    gene.names <- object[[gene.names]][]
+    keep.cells <- cells[cells %in% cell.names]
+    n.cells <- length(keep.cells)
+    n.genes <- length(gene.names)
+    cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes)\n')
+    mat <- matrix(0, n.cells, n.genes, dimnames=list(keep.cells, gene.names))
+    
+    # get the data in memory
+    # then create new loom object
+    
+    # subset matrix
+    batch <- object$batch.scan(
+      chunk.size = chunk.size,
+      MARGIN = 2,
+      dataset.use = 'matrix',
+      force.reset = TRUE
+    )
+    for (i in 1:length(x = batch)) {
+      # Get the indices we're iterating over
+      chunk.indices <- object$batch.next(return.data = FALSE)
+      cat('chunk', i, '; range', range(chunk.indices), '\n')
+      chunk.data <- object[['matrix']][chunk.indices, ]
+      chunk.cell.names <- cell.names[chunk.indices]
+      sel <- chunk.cell.names  %in% cells
+      mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
+    }
+    # get meta data
+    sel <- match(keep.cells, cell.names)
+    meta.data <- data.frame(lapply(names(object[['col_attrs']]), function(x) object[['col_attrs']][[x]][sel]), stringsAsFactors = FALSE)
+    rownames(meta.data) <- keep.cells
+    colnames(meta.data) <- names(object[['col_attrs']])
+    gene.attrs <- data.frame(lapply(names(object[['row_attrs']]), function(x) object[['row_attrs']][[x]][]), stringsAsFactors = FALSE)
+    rownames(gene.attrs) <- gene.names
+    colnames(gene.attrs) <- names(object[['row_attrs']])
+
+    loomfile <- create(
+      filename = filename,
+      data = mat,
+      cell.attrs = meta.data[, setdiff(colnames(meta.data), 'cell_names')],
+      gene.attrs = gene.attrs[, setdiff(colnames(gene.attrs), 'gene_names')]
+    )
+    return(loomfile)
   }
 )
