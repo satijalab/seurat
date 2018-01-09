@@ -3030,6 +3030,11 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
   )
 }
 
+globalVariables(
+  names = c('cc', 'bicor', "Group"),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Plot CC bicor saturation plot
 #'
 #' The function provides a useful plot for evaluating the number of CCs to

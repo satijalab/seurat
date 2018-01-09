@@ -35,14 +35,18 @@ neighbors in the KNN graph.
 \deqn{1 - \frac{\bar{x} - \frac{k}{N}}{k - \frac{k}{N}}}{1 - (xbar - k/N)/(k - k/N)}
 }
 \examples{
+\dontrun{
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
-pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+pbmc1 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[41:80])
 pbmc1@meta.data$group <- "group1"
 pbmc2@meta.data$group <- "group2"
 pbmc_cca <- RunCCA(pbmc1,pbmc2)
-pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca", grouping.var = "group", dims.align = 1:5)
-CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var =  "group")
+pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca",
+                          grouping.var = "group", dims.align = 1:5)
+CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned",
+                    dims.use = 1:5, grouping.var =  "group")
+}
 
 }

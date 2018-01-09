@@ -1,3 +1,8 @@
+globalVariables(
+  names = c('alignment.index1', 'dups', 'cc_data2'),
+  package = 'Seurat',
+  add = TRUE
+)
 #' Align subspaces using dynamic time warping (DTW)
 #'
 #' Aligns subspaces across a given grouping variable.
@@ -192,7 +197,7 @@ AlignSubspace <- function(
       align.2 <- align.2 + iqrmin
       alignment <- dtw(x = align.1,
                        y = align.2,
-                       keep = TRUE,
+                       keep.internals = TRUE,
                        dist.method = metric.use)
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
@@ -274,15 +279,19 @@ AlignSubspace <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
-#' pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca", grouping.var = "group", dims.align = 1:5)
-#' CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var =  "group")
+#' pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca",
+#'                           grouping.var = "group", dims.align = 1:5)
+#' CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned",
+#'                     dims.use = 1:5, grouping.var =  "group")
+#' }
 #'
 CalcAlignmentMetric <- function(object, reduction.use = "cca.aligned", dims.use,
                                 grouping.var, nn){

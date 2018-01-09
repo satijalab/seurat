@@ -1465,6 +1465,11 @@ PosteriorPlot <- function(object, name) {
   )
 }
 
+globalVariables(
+  names = 'cc',
+  package = 'Seurat',
+  add = TRUE
+)
 # Evaluate CCs
 #
 # Looks at the biweight midcorrelation of the Xth gene across the specified CCs

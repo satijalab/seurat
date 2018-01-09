@@ -1,6 +1,3 @@
-
-
-
 #' Run Principal Component Analysis on gene expression using IRLBA
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
