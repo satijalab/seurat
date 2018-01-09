@@ -19,7 +19,7 @@ Depends:
     ggplot2,
     cowplot,
     Matrix,
-SystemRequirements: Java (>= 1.6)
+SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
