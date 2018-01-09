@@ -9,7 +9,7 @@ DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   cols.use = NULL, group.by = "ident", pt.shape = NULL,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
-  dark.theme = FALSE, ...)
+  dark.theme = FALSE, plot.order = NULL, plot.title = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -53,6 +53,12 @@ different shapes on cells.}
 \item{no.axes}{Setting to TRUE will remove the axes}
 
 \item{dark.theme}{Use a dark theme for the plot}
+
+\item{plot.order}{Specify the order of plotting for the idents. This can be
+useful for crowded plots if points of interest are being buried. Provide
+either a full list of valid idents or a subset to be plotted last (on top).}
+
+\item{plot.title}{Title for plot}
 
 \item{...}{Extra parameters to FeatureLocator for do.identify = TRUE}
 }

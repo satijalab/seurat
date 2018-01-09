@@ -103,7 +103,7 @@ DoHeatmap <- function(
     x = cells.ident,
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
-  data.use <- data.use[genes.use, cells.use]
+  data.use <- data.use[genes.use, cells.use, drop = FALSE]
   if ((!use.scaled)) {
     data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
@@ -119,7 +119,7 @@ DoHeatmap <- function(
   if(!is.null(group.order)) {
     if(length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
       data.use$ident <- factor(data.use$ident, levels = group.order)
-    } 
+    }
     else {
       stop("Invalid group.order")
     }
@@ -1230,7 +1230,7 @@ FeatureHeatmap <- function(
     key.title.pos <- "left"
   }
   p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
-    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size, shape = pch.use)
   if (rotate.key) {
     p <- p + scale_colour_gradient(
       low = cols.use[1],
@@ -2256,6 +2256,10 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param no.legend Setting to TRUE will remove the legend
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
+#' @param plot.order Specify the order of plotting for the idents. This can be
+#' useful for crowded plots if points of interest are being buried. Provide
+#' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param plot.title Title for plot
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -2292,6 +2296,8 @@ DimPlot <- function(
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
+  plot.order = NULL,
+  plot.title = NULL,
   ...
 ) {
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
@@ -2320,6 +2326,14 @@ DimPlot <- function(
   data.plot$x <- data.plot[, dim.codes[1]]
   data.plot$y <- data.plot[, dim.codes[2]]
   data.plot$pt.size <- pt.size
+  if(!is.null(plot.order)){
+    if(any(!plot.order %in% data.plot$ident)){
+      stop("invalid ident in plot.order")
+    }
+    plot.order <- rev(c(plot.order, setdiff(unique(data.plot$ident), plot.order)))
+    data.plot$ident <- factor(data.plot$ident, levels = plot.order)
+    data.plot <- data.plot[order(data.plot$ident), ]
+  }
   p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
     geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
   if (! is.null(x = pt.shape)) {
@@ -2350,6 +2364,9 @@ DimPlot <- function(
     theme_bw() +
     NoGrid()
   p3 <- p3 + theme(legend.title = element_blank())
+  if (!is.null(plot.title)) {
+    p3 <- p3 + ggtitle(plot.title) + theme(plot.title = element_text(hjust = 0.5))
+  }
   if (do.label) {
     data.plot %>%
       dplyr::group_by(ident) %>%
@@ -2667,7 +2684,7 @@ VariableGenePlot <- function(
   gene.mean <- object@hvg.info[, 1]
   gene.dispersion <- object@hvg.info[, 2]
   gene.dispersion.scaled <- object@hvg.info[, 3]
-  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@hvg.info)
   pass.cutoff <- names(x = gene.mean)[which(
     x = (
       (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)

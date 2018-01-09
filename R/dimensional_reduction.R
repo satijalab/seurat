@@ -21,6 +21,8 @@
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
 #' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
 #' @param assay.type Data type, RNA by default. Can be changed for multimodal
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
 #' @param \dots Additional arguments to be passed to IRLBA
 #'
 #'@importFrom irlba irlba
@@ -56,8 +58,12 @@ RunPCA <- function(
   reduction.name = "pca",
   reduction.key = "PC",
   assay.type="RNA",
+  seed.use = 42,
   ...
 ) {
+  if (!is.null(seed.use)) {
+    set.seed(seed = seed.use)
+  }
   data.use <- PrepDR(
     object = object,
     genes.use = pc.genes,
@@ -633,10 +639,12 @@ RunCCA <- function(
     combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
     combined.object@var.genes <- genes.use
     if("add.cell.id1" %in% names(list(...)) && "add.cell.id2" %in% names(list(...))) {
-      rownames(cca.data)[which(rownames(cca.data) == object@cell.names)] <-
-        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[which(rownames(cca.data) == object@cell.names)])
-      rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)] <-
-        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[which(rownames(cca.data) == object2@cell.names)])
+      o1.idx <- 1:length(object@cell.names)
+      o2.idx <- (length(object@cell.names) + 1):(length(object@cell.names) + length(object2@cell.names))
+      rownames(cca.data)[o1.idx] <-
+        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[o1.idx])
+      rownames(cca.data)[o2.idx] <-
+        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[o2.idx])
     }
     combined.object <- SetDimReduction(
       object = combined.object,
@@ -796,12 +804,13 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
-      temp.matrix=PrepDR(group.object,genes.use = genes.use)
+      temp.matrix <- PrepDR(group.object, genes.use = genes.use)
       group.object <- RunPCA(
         object = group.object,
         pc.genes = genes.use,
         do.print = FALSE,
-        center=rowMeans(temp.matrix)
+        center = rowMeans(temp.matrix),
+        pcs.compute = max(dims.use)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,
@@ -854,9 +863,7 @@ CalcVarExpRatio <- function(
     paste0("var.ratio.", reduction.type),
     "cell.name"
   )
-  object@meta.data$cell.name <- rownames(x = object@meta.data)
-  object@meta.data <- merge(x = object@meta.data, y = var.ratio, by = "cell.name")
-  rownames(x = object@meta.data) <- object@meta.data$cell.name
+  object <- AddMetaData(object, metadata = var.ratio)
   object@meta.data$cell.name <- NULL
   return(object)
 }
