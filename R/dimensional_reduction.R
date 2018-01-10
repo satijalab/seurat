@@ -137,36 +137,44 @@ setMethod(
   signature = c('object' = 'loom'),
   definition = function(
     object,
+    genes.use = NULL,
     pcs.compute = 75,
     online.pca = TRUE,
     covariance.mat = NULL,
     cells.initial = 50000,
     chunk.size = 1000,
-    gene.names = 'row_attrs/Gene',
-    gene.means = 'row_attrs/gene_means',
-    gene.variance = 'row_attrs/gene_dispersion',
+    gene.names = 'row_attrs/gene_names',
+    var.genes = 'row_attrs/var_genes',
     scale.data = 'layers/scale_data',
-    ngene = 1000,
+    ngene = NULL,
     overwrite = FALSE,
     display.progress = TRUE,
     ...
   ) {
     if (online.pca) {
-      # Get variable genes
-      ngene <- min(ngene, object$shape[2])
-      if (display.progress) {
-        cat("Finding top", ngene, "variable genes\n", sep = ' ')
+      if (is.null(genes.use)) {
+        if (!is.null(ngene)) {
+          # Get variable genes
+          ngene <- min(ngene, object$shape[2])
+          if (display.progress) {
+            cat("Finding top", ngene, "variable genes\n", sep = ' ')
+          }
+          data.names <- object[[gene.names]][]
+          hvg.info <- data.frame(
+            means = object[[gene.means]][],
+            variance = object[[gene.variance]][],
+            row.names = make.unique(names = data.names)
+          )
+          hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
+          hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
+          hvg.use <- rownames(x = hvg.info)[1:ngene]
+          genes.use <- which(x = data.names %in% hvg.use)
+        } else {
+          genes.use <- which(x = object[[var.genes]][])
+        }
+      } else {
+        genes.use <- which(x = object[[gene.names]][] %in% genes.use)
       }
-      data.names <- object[[gene.names]][]
-      hvg.info <- data.frame(
-        means = object[[gene.means]][],
-        variance = object[[gene.variance]][],
-        row.names = make.unique(names = data.names)
-      )
-      hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
-      hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
-      hvg.use <- rownames(x = hvg.info)[1:ngene]
-      genes.use <- which(x = data.names %in% hvg.use)
       # Initial PCA calculation
       cells.use <- object$shape[1]
       cells.initial <- min(cells.initial, cells.use)
@@ -255,9 +263,9 @@ setMethod(
       if (display.progress) {
         cat("Computing eigen decomposition\n", file = stderr())
       }
-      pc.eigs <- eigen(cov.mat)
+      pc.eigs <- eigen(covariance.mat)
 
-      genes.use <- which(object[[gene.names]][] %in% rownames(cov.mat))
+      genes.use <- which(object[[gene.names]][] %in% rownames(covariance.mat))
       pc.values <- matrix(nrow = object$shape[1], ncol = pcs.compute)
       batch <- object$batch.scan(
         chunk.size = chunk.size,
@@ -280,7 +288,7 @@ setMethod(
       rownames(pc.values) <- object$col.attrs$cell_names[]
       pc.values <- pc.values[, 1:pcs.compute]
       gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
-      rownames(gene.loadings) <- rownames(cov.mat)
+      rownames(gene.loadings) <- rownames(covariance.mat)
       colnames(gene.loadings) <- paste0("PC", 1:ncol(gene.loadings))
       gene.loadings <- as.data.frame(gene.loadings)
       missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
