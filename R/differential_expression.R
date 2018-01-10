@@ -625,6 +625,7 @@ FindAllMarkersNode <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Create a simulated grouping variable
 #' pbmc_small@meta.data$groups <- sample(
@@ -633,6 +634,7 @@ FindAllMarkersNode <- function(
 #'   replace = TRUE
 #' )
 #' FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
+#' }
 #'
 FindConservedMarkers <- function(
   object,
