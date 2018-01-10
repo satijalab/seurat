@@ -2,7 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [In Develop] - 2018-01-09
+## [2.2.0] - 2018-01-10
 ### Added
  - Multiple alignment functionality with RunMultiCCA and AlignSubspace extended to multiple datasets
  - CalcAlignmentScore added to evaluate alignment quality
