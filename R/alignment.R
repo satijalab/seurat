@@ -41,7 +41,8 @@ globalVariables(
 #' @importFrom dtw dtw
 #' @importFrom stats density
 #' @importFrom pbapply pbapply
-#' @importFrom graphics lines plot
+#' @importFrom graphics plot lines
+#' @importFrom stats density quantile
 #'
 #' @export
 #'
