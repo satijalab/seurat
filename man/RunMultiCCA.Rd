@@ -25,3 +25,19 @@ Returns a combined Seurat object with the CCA stored in the @dr$cca slot.
 \description{
 Runs a canonical correlation analysis
 }
+\examples{
+pbmc_small
+# As multi-set CCA requires more than two datasets, we will split our test object into
+# three just for this example
+pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:30])
+pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[31:60])
+pbmc3 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[61:80])
+pbmc1@meta.data$group <- "group1"
+pbmc2@meta.data$group <- "group2"
+pbmc3@meta.data$group <- "group3"
+pbmc.list <- list(pbmc1, pbmc2, pbmc3)
+pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
+# Print results
+PrintDim(pbmc_cca,reduction.type = 'cca')
+
+}
