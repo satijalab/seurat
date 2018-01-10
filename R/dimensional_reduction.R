@@ -894,7 +894,7 @@ RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standar
 #' @return Returns a Seurat object with a diffusion map
 #'
 #' @import diffusionMap
-#' @importFrom stats dist
+#' @importFrom stats dist quantile
 #'
 #' @export
 #'

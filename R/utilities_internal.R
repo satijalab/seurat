@@ -51,6 +51,8 @@ PercentAbove <- function(x, threshold){
 # @param lower  Lower end of reference range
 # @param upper  Upper end of reference range
 #
+#' @importFrom stats quantile
+#
 # @return       Returns a vector that describes the position of each element in
 #               x along the defined reference range
 

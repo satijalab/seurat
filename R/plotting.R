@@ -586,7 +586,7 @@ RidgePlot <- function(
 #'
 #' @return Only graphical output
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'
@@ -1559,6 +1559,7 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #'
 #' @return No return, only graphical output
 #'
+#' @importFrom graphics plot
 #'
 #' @export
 #'
@@ -2074,7 +2075,7 @@ ICHeatmap <- function(
 #'
 #' @return Graphical, no return value
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'

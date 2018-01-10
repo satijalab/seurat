@@ -6,7 +6,7 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
@@ -852,8 +852,8 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
 #
-#' @importFrom graphics axis mtext rect abline text title hist
-#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#' @importFrom graphics axis mtext rect abline text title hist lines
+#' @importFrom stats median order.dendrogram as.dendrogram reorder density
 #
 heatmap2NoKey <- function (
   x,
