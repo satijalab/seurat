@@ -5,7 +5,8 @@
 \title{Calculate module scores for gene expression programs in single cells}
 \usage{
 AddModuleScore(object, genes.list = NULL, genes.pool = NULL, n.bin = 25,
-  seed.use = 1, ctrl.size = 100, use.k = FALSE, enrich.name = "Cluster")
+  seed.use = 1, ctrl.size = 100, use.k = FALSE, enrich.name = "Cluster",
+  random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,6 +24,8 @@ AddModuleScore(object, genes.list = NULL, genes.pool = NULL, n.bin = 25,
 \item{use.k}{Use gene clusters returned from DoKMeans()}
 
 \item{enrich.name}{Name for the expression programs}
+
+\item{random.seed}{Set a random seed}
 }
 \value{
 Returns a Seurat object with module scores added to object@meta.data
