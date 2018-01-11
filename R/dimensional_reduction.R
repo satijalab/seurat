@@ -144,6 +144,8 @@ setMethod(
     cells.initial = 50000,
     chunk.size = 1000,
     gene.names = 'row_attrs/gene_names',
+    gene.means = 'row_attrs/gene_means',
+    gene.variance = 'row_attrs/gene_dispersion',
     var.genes = 'row_attrs/var_genes',
     scale.data = 'layers/scale_data',
     ngene = NULL,
