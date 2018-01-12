@@ -614,6 +614,7 @@ AverageExpression <- function(
     data.return[[i]] <- data.all
     names(x = data.return)[i] <- assays.use[[i]]
   }
+
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       raw.data = data.return[[1]],
@@ -623,6 +624,7 @@ AverageExpression <- function(
       is.expr = 0,
       ...
     )
+
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {

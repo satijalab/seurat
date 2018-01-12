@@ -588,7 +588,7 @@ RidgePlot <- function(
 #'
 #' @return Only graphical output
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'
@@ -1561,6 +1561,7 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #'
 #' @return No return, only graphical output
 #'
+#' @importFrom graphics plot
 #'
 #' @export
 #'
@@ -2076,7 +2077,7 @@ ICHeatmap <- function(
 #'
 #' @return Graphical, no return value
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'
@@ -3053,4 +3054,69 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     remove.key = TRUE,
     ...
   )
+}
+
+globalVariables(
+  names = c('cc', 'bicor', "Group"),
+  package = 'Seurat',
+  add = TRUE
+)
+#' Plot CC bicor saturation plot
+#'
+#' The function provides a useful plot for evaluating the number of CCs to
+#' proceed with in the Seurat alignment workflow. Here we look at the biweight
+#' midcorrelation (bicor) of the Xth gene ranked by minimum bicor across the
+#' specified CCs for each group in the grouping.var. For alignment of more than
+#' two groups, we average the bicor results for the reference group across the
+#' pairwise alignments.
+#'
+#' @param object A Seurat object
+#' @param bicor.data Optionally provide data.frame returned by function to avoid
+#' recalculation
+#' @param grouping.var Grouping variable specified in alignment procedure
+#' @param dims.eval dimensions to evalutate the bicor for
+#' @param gene.num Xth gene to look at bicor for
+#' @param num.possible.genes Number of possible genes to search when choosing
+#' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+#' but may result in metagenes constructed on fewer than num.genes genes.
+#' @param smooth Smooth curves
+#' @param return.mat Return data.matrix instead of ggplot2 object
+#' @param display.progress Show progress bar
+#'
+#' @import ggplot2
+#' @export
+#'
+#' @examples
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' KMeansHeatmap(object = pbmc_small)
+#'
+
+MetageneBicorPlot <- function(object, bicor.data, grouping.var, dims.eval,
+                              gene.num = 30, num.possible.genes = 2000,
+                              return.mat = FALSE, smooth = TRUE,
+                              display.progress = TRUE) {
+  if(missing(bicor.data)){
+    bicor.data <- EvaluateCCs(object = object, grouping.var = grouping.var,
+                              dims.eval = dims.eval, gene.num = gene.num,
+                              num.possible.genes = num.possible.genes,
+                              display.progress = display.progress)
+  }
+  if(length(dims.eval) < 10 | !smooth){
+    if(!missing(smooth) & smooth){
+      warning("Curves not smoothed. Falling back to line plot")
+    }
+    p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
+                geom_line(aes(col = Group)) +
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+  } else {
+    p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
+                geom_smooth(aes(col = Group), se = FALSE) +
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+  }
+  print(p)
+  if(return.mat) {
+    return(bicor.data)
+  } else {
+    return(p)
+  }
 }

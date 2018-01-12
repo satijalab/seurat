@@ -199,9 +199,9 @@ InitialMapping <- function(object, cells.use = NULL) {
 #' @return A Seurat object, where the posterior of each cell being in the 'on'
 #' or 'off' state for each gene is stored in object@@spatial@@mix.probs
 #'
-#' @importFrom graphics hist
-#' @importFrom stats dnorm sd
+#' @importFrom graphics hist lines
 #' @importFrom mixtools normalmixEM
+#' @importFrom stats dnorm sd quantile
 #'
 #' @export
 #'

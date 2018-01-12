@@ -6,7 +6,7 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
@@ -907,8 +907,8 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
 #
-#' @importFrom graphics axis mtext rect abline text title hist
-#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#' @importFrom graphics axis mtext rect abline text title hist lines
+#' @importFrom stats median order.dendrogram as.dendrogram reorder density
 #
 heatmap2NoKey <- function (
   x,
@@ -1518,4 +1518,116 @@ PosteriorPlot <- function(object, name) {
     inc.final = TRUE,
     by.k = TRUE
   )
+}
+
+globalVariables(
+  names = 'cc',
+  package = 'Seurat',
+  add = TRUE
+)
+# Evaluate CCs
+#
+# Looks at the biweight midcorrelation of the Xth gene across the specified CCs
+# for each group in the grouping.var.
+#
+# @param object A Seurat object
+# @param grouping.var Grouping variable specified in alignment procedure
+# @param dims.eval dimensions to evalutate the bicor for
+# @param gene.num Xth gene to look at bicor for
+# @param num.possible.genes Number of possible genes to search when choosing
+# genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+# but may result in metagenes constructed on fewer than num.genes genes.
+# @param display.progress Show progress bar
+
+EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
+                        num.possible.genes, display.progress) {
+  reduction.type <-  "cca"
+  ident.orig <- object@ident
+  object <- SetAllIdent(object = object, id = grouping.var)
+  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  num.groups <- length(levels.split)
+  objects <- list()
+  for (i in 1:num.groups){
+    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
+  }
+  object@ident <- ident.orig
+  cc.loadings <- list()
+  scaled.data <- list()
+  cc.embeds <- list()
+  for (i in 1:num.groups) {
+    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000,
+                              display.progress = display.progress)
+    objects[[i]] <- ProjectDim(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      do.print = FALSE
+    )
+    cc.loadings[[i]] <- GetGeneLoadings(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      use.full = TRUE
+    )
+    cc.embeds[[i]] <- GetCellEmbeddings(
+      object = objects[[i]],
+      reduction.type = reduction.type
+    )
+    scaled.data[[i]] <- objects[[i]]@scale.data
+  }
+  bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
+  if (display.progress) {
+    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
+    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
+    pb.idx <- 0
+  }
+  for (cc.use in dims.eval) {
+    bc.gene.g1 <- c()
+    for (g in 2:num.groups){
+      if (display.progress) {
+        pb.idx <- pb.idx + 1
+        setTxtProgressBar(pb, pb.idx)
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
+        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
+        cc.loadings[[1]][, cc.use],
+        cc.loadings[[g]][, cc.use]
+      )
+      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
+      bicors <- list()
+      for (i in c(1, g)) {
+        cc.vals <- cc.embeds[[i]][, cc.use]
+        bicors[[i]] <- sapply(
+          X = genes.top,
+          FUN = function(x) {
+            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+          }
+        )
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = bicors[[1]])),
+        rank(x = abs(x = bicors[[g]])),
+        bicors[[1]],
+        bicors[[g]]
+      )
+      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
+      # genes must be correlated in same direction in both datasets
+      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      bc.gene[cc.use, g] <- mean(abs(genes.rank[1:gene.num, 4]))
+      bc.gene.g1 <- c(bc.gene.g1, mean(abs(genes.rank[1:gene.num, 3])))
+    }
+    bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
+  }
+  if (display.progress) {
+    close(pb)
+  }
+  colnames(bc.gene) <- levels.split
+  bc.gene <- as.data.frame(bc.gene)
+  bc.gene$cc <- 1:nrow(bc.gene)
+  bc.gene <- gather(bc.gene, key = "Group",  value = "bicor", -cc)
+  return(bc.gene)
 }

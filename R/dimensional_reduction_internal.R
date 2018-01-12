@@ -218,3 +218,92 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
   return(low.dim.data)
 }
 
+# MultiCCA helper function - calculates critical value (when to stop iterating
+# in the while loop)
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return returns updated critical value
+#
+GetCrit <- function(mat.list, ws, num.sets){
+  crit <- 0
+  for(i in 2:num.sets){
+    for(j in 1:(i-1)){
+      crit <- crit + t(ws[[i]])%*%t(mat.list[[i]])%*%mat.list[[j]]%*%ws[[j]]
+    }
+  }
+  return(crit)
+}
+
+# MultiCCA helper function - updates W
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param i index of current matrix
+# @param num.sets number of datasets
+# @param ws initial vector of projection vectors
+# @param ws.final final vector of projection vectors
+#
+# @return returns updated w value
+#
+UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
+  tots <- 0
+  for(j in (1:num.sets)[-i]){
+    diagmat <- (t(ws.final[[i]])%*%t(mat.list[[i]]))%*%(mat.list[[j]]%*%ws.final[[j]])
+    diagmat[row(diagmat)!=col(diagmat)] <- 0
+    tots <- tots + t(mat.list[[i]])%*%(mat.list[[j]]%*%ws[[j]]) - ws.final[[i]]%*%(diagmat%*%(t(ws.final[[j]])%*%ws[[j]]))
+  }
+  w <- tots/l2n(tots)
+  return(w)
+}
+
+# Calculates the l2-norm of a vector
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/PMD.R}
+#
+# @param vec numeric vector
+#
+# @return returns the l2-norm.
+#
+l2n <- function(vec){
+  a <- sqrt(sum(vec^2))
+  if(a==0){
+    a <- .05
+  }
+  return(a)
+}
+
+# MultiCCA helper function - calculates correlation
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices to calculate correlation
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return total correlation
+#
+GetCors <- function(mat.list, ws, num.sets){
+  cors <- 0
+  for(i in 2:num.sets){
+    for(j in 1:(i-1)){
+      thiscor  <-  cor(mat.list[[i]]%*%ws[[i]], mat.list[[j]]%*%ws[[j]])
+      if(is.na(thiscor)) thiscor <- 0
+      cors <- cors + thiscor
+    }
+  }
+  return(cors)
+}
