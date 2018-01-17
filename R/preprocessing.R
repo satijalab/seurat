@@ -25,9 +25,8 @@
 #' cell's column name
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
 #' the rows are cell names, and the columns are additional metadata fields
-#' @param save.raw TRUE by default. If FALSE, do not save the unmodified data in  object@@raw.data
-#' which will save memory downstream for large datasets
 #' @param display.progress display progress bar for normalization and/or scaling procedure.
+#' @param ... Ignored
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
 #' object@@data, object@@meta.data, object@@ident, also initialized.
@@ -60,8 +59,8 @@ CreateSeuratObject <- function(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  save.raw = TRUE,
-  display.progress = TRUE
+  display.progress = TRUE,
+  ...
 ) {
   seurat.version <- packageVersion("Seurat")
   object <- new(
@@ -71,43 +70,36 @@ CreateSeuratObject <- function(
     project.name = project,
     version = seurat.version
   )
-
   # filter cells on number of genes detected
   # modifies the raw.data slot as well now
-
   object.raw.data <- object@raw.data
   if (is.expr > 0) {
     # suppress Matrix package note:
     # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
     # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
     # "Matrix#ldenseMatrix#missing#replValue" would also be valid
-    suppressMessages(object.raw.data[object.raw.data < is.expr] <- 0)
+    suppressMessages(expr = object.raw.data[object.raw.data < is.expr] <- 0)
   }
   num.genes <- colSums(object.raw.data > is.expr)
   num.mol <- colSums(object.raw.data)
-  cells.use <- names(num.genes[which(num.genes > min.genes)])
+  cells.use <- names(x = num.genes[which(x = num.genes > min.genes)])
   object@raw.data <- object@raw.data[, cells.use]
   object@data <- object.raw.data[, cells.use]
-
   # filter genes on the number of cells expressing
   # modifies the raw.data slot as well now
   genes.use <- rownames(object@data)
   if (min.cells > 0) {
     num.cells <- rowSums(object@data > 0)
-    genes.use <- names(num.cells[which(num.cells >= min.cells)])
+    genes.use <- names(x = num.cells[which(x = num.cells >= min.cells)])
     object@raw.data <- object@raw.data[genes.use, ]
     object@data <- object@data[genes.use, ]
   }
-  object@ident <- factor(
-    x = unlist(
-      x = lapply(
-        X = colnames(x = object@data),
-        FUN = ExtractField,
-        field = names.field,
-        delim = names.delim
-      )
-    )
-  )
+  object@ident <- factor(x = unlist(x = lapply(
+    X = colnames(x = object@data),
+    FUN = ExtractField,
+    field = names.field,
+    delim = names.delim
+  )))
   names(x = object@ident) <- colnames(x = object@data)
   object@cell.names <- names(x = object@ident)
   # if there are more than 100 idents, set all idents to project name
@@ -118,39 +110,40 @@ CreateSeuratObject <- function(
   nGene <- num.genes[cells.use]
   nUMI <- num.mol[cells.use]
   object@meta.data <- data.frame(nGene, nUMI)
-  if (! is.null(x = meta.data)) {
+  if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if (!is.null(normalization.method)) {
-    object <- NormalizeData(object = object,
-                            assay.type = "RNA",
-                            normalization.method = normalization.method,
-                            scale.factor = scale.factor,
-                            display.progress = display.progress)
+    object <- NormalizeData(
+      object = object,
+      assay.type = "RNA",
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      display.progress = display.progress
+    )
   }
-  if(do.scale | do.center) {
-    object <- ScaleData(object = object,
-                        do.scale = do.scale,
-                        do.center = do.center,
-                        display.progress = display.progress)
+  if (do.scale | do.center) {
+    object <- ScaleData(
+      object = object,
+      do.scale = do.scale,
+      do.center = do.center,
+      display.progress = display.progress
+    )
   }
   spatial.obj <- new(
     Class = "spatial.info",
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
-  # to save memory downstream, especially for large objects if raw.data no
-  # longer needed
-  if (!(save.raw)) {
-    object@raw.data <- matrix()
-  }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
-  object <- SetCalcParams(object = object,
-                          calculation = "CreateSeuratObject",
-                          ... = parameters.to.store)
+  object <- SetCalcParams(
+    object = object,
+    calculation = "CreateSeuratObject",
+    ... = parameters.to.store
+  )
 
   return(object)
 }
@@ -478,6 +471,7 @@ ScaleData <- function(
       slot = "data"
     )
   )
+
   if (check.for.norm) {
     if (!("NormalizeData" %in% names(object@calc.params))) {
       cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
@@ -512,6 +506,7 @@ ScaleData <- function(
   }
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
   parameters.to.store$data.use <- NULL
+
   object <- SetCalcParams(
     object = object,
     calculation = "ScaleData",

@@ -194,14 +194,16 @@ UpdateSeuratObject <- function(object) {
     )
     new.object@dr$tsne <- tsne.obj
   }
-  if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-    if (class(object@snn.dense) == "data.frame") {
-      object@snn.dense <- as.matrix(x = object@snn.dense)
+  if ((.hasSlot(object, "snn.sparse"))) {
+    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
+      if (class(object@snn.dense) == "data.frame") {
+        object@snn.dense <- as.matrix(x = object@snn.dense)
+      }
+      new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
     }
-    new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
-  }
-  else{
-    new.object@snn <- object@snn.sparse
+    else{
+      new.object@snn <- object@snn.sparse
+    }
   }
   return(new.object)
 }
@@ -507,7 +509,8 @@ AveragePCA <- function(object) {
 #'
 #' Returns gene expression for an 'average' single cell in each identity class
 #'
-#' Output is in log-space, but averaging is done in non-log space.
+#' Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
+#' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
 #' @param genes.use Genes to analyze. Default is all genes.
@@ -588,7 +591,7 @@ AverageExpression <- function(
       }
       if (length(x = temp.cells) >1 ) {
         data.temp <- apply(
-          X = data.use[genes.assay, temp.cells],
+          X = data.use[genes.assay, temp.cells, drop = FALSE],
           MARGIN = 1,
           FUN = fxn.average
         )
@@ -606,6 +609,7 @@ AverageExpression <- function(
     data.return[[i]] <- data.all
     names(x = data.return)[i] <- assays.use[[i]]
   }
+
   if (return.seurat) {
     toRet <- CreateSeuratObject(
       raw.data = data.return[[1]],
@@ -615,6 +619,7 @@ AverageExpression <- function(
       is.expr = 0,
       ...
     )
+
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
@@ -667,7 +672,7 @@ AverageExpression <- function(
 #' pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
 #' PlotClusterTree(object = pbmc_small)
 #'
-MergeNode <- function(object, node.use = NULL, rebuild.tree = FALSE, ...) {
+MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
   object.tree <- object@cluster.tree[[1]]
   node.children <- DFT(
     tree = object.tree,

@@ -13,6 +13,7 @@
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
 #' @param use.k Use gene clusters returned from DoKMeans()
 #' @param enrich.name Name for the expression programs
+#' @param random.seed Set a random seed
 #'
 #' @return Returns a Seurat object with module scores added to object@meta.data
 #'
@@ -56,8 +57,10 @@ AddModuleScore <- function(
   seed.use = 1,
   ctrl.size = 100,
   use.k = FALSE,
-  enrich.name = "Cluster"
+  enrich.name = "Cluster",
+  random.seed = 1
 ) {
+  set.seed(seed = random.seed) 
   genes.old <- genes.list
   if (use.k) {
     genes.list <- list()
@@ -100,7 +103,7 @@ AddModuleScore <- function(
   }
   data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
   data.avg <- data.avg[order(data.avg)]
-  data.cut <- as.numeric(x = cut2(
+  data.cut <- as.numeric(x = Hmisc::cut2(
     x = data.avg,
     m = round(x = length(x = data.avg) / n.bin)
   ))
@@ -131,9 +134,14 @@ AddModuleScore <- function(
   genes.scores <- c()
   for (i in 1:cluster.length) {
     genes.use <- genes.list[[i]]
+    if (length(genes.use) == 1) {
+      data.use <- t(as.matrix(object@data[genes.use, ]))
+    } else {
+      data.use <- object@data[genes.use, ]
+    }
     genes.scores <- rbind(
       genes.scores,
-      apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
+      apply(X = data.use, MARGIN = 2, FUN = mean)
     )
   }
 

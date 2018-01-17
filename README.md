@@ -3,7 +3,7 @@
 [![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat) 
 [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat) 
 
-# Seurat v2.1
+# Seurat v2.2
 
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
@@ -19,6 +19,12 @@ Seurat has been successfully installed on Mac OS X, Linux, and Windows, using th
 Improvements and new features will be added on a regular basis, please contact seuratpackage@gmail.com with any questions or if you would like to contribute
 
 Version History
+
+January 10, 2018
+* Version 2.2
+* Changes:
+   * Support for multiple-dataset alignment with RunMultiCCA and AlignSubspace
+   * New methods for evaluating alignment performance
 
 October 12, 2017
 * Version 2.1

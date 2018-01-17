@@ -7,7 +7,7 @@
 RunPCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
   rev.pca = FALSE, weight.by.var = TRUE, do.print = TRUE,
   pcs.print = 1:5, genes.print = 30, reduction.name = "pca",
-  reduction.key = "PC", assay.type = "RNA", ...)
+  reduction.key = "PC", assay.type = "RNA", seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -36,6 +36,9 @@ the PCs}
 \item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. PC by default}
 
 \item{assay.type}{Data type, RNA by default. Can be changed for multimodal}
+
+\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
+NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
 }

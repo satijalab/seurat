@@ -5,7 +5,8 @@
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
 BuildClusterTree(object, genes.use = NULL, pcs.use = NULL, SNN.use = NULL,
-  do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE)
+  do.plot = TRUE, do.reorder = FALSE, reorder.numeric = FALSE,
+  show.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +27,8 @@ helpful, for example, when drawing violin plots.}
 
 \item{reorder.numeric}{Re-order identity classes according to position on
 the tree, assigning a numeric value ('1' is the leftmost node)}
+
+\item{show.progress}{Show progress updates}
 }
 \value{
 A Seurat object where the cluster tree is stored in

@@ -15,16 +15,16 @@ object <- CreateSeuratObject(raw.data = pbmc.test,
                              normalization.method = "LogNormalize",
                              do.scale = T,
                              meta.data = fake.meta.data,
-                             save.raw = F,
+                             # save.raw = F,
                              display.progress = F)
 test_that("object initialization actually creates seurat object", {
   expect_is(object, "seurat")
 })
 
-test_that("save.raw option handled properly", {
-  expect_equal(dim(object@raw.data), c(1, 1))
-  expect_equal(object@raw.data[1, 1], NA)
-})
+# test_that("save.raw option handled properly", {
+#   expect_equal(dim(object@raw.data), c(1, 1))
+#   expect_equal(object@raw.data[1, 1], NA)
+# })
 
 test_that("meta.data slot generated correctly", {
   expect_equal(dim(object@meta.data), c(80, 4))

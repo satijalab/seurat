@@ -346,6 +346,7 @@ ExactCellCentroid <- function(cell.probs) {
 ###############
 #Internal, not documented for now
 #
+#' @importFrom graphics plot
 #' @importFrom mixtools plot.mixEM
 #
 FitGeneMix <- function(

@@ -7,8 +7,8 @@
 CreateSeuratObject(raw.data, project = "SeuratProject", min.cells = 0,
   min.genes = 0, is.expr = 0, normalization.method = NULL,
   scale.factor = 10000, do.scale = FALSE, do.center = FALSE,
-  names.field = 1, names.delim = "_", meta.data = NULL, save.raw = TRUE,
-  display.progress = TRUE)
+  names.field = 1, names.delim = "_", meta.data = NULL,
+  display.progress = TRUE, ...)
 }
 \arguments{
 \item{raw.data}{Raw input data}
@@ -47,10 +47,9 @@ cell's column name}
 \item{meta.data}{Additional metadata to add to the Seurat object. Should be a data frame where
 the rows are cell names, and the columns are additional metadata fields}
 
-\item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in  object@raw.data
-which will save memory downstream for large datasets}
-
 \item{display.progress}{display progress bar for normalization and/or scaling procedure.}
+
+\item{...}{Ignored}
 }
 \value{
 Returns a Seurat object with the raw data stored in object@raw.data.

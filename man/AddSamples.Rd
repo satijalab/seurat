@@ -7,8 +7,7 @@
 AddSamples(object, new.data, project = NULL, min.cells = 0, min.genes = 0,
   is.expr = 0, do.normalize = TRUE, scale.factor = 10000,
   do.scale = FALSE, do.center = FALSE, names.field = 1,
-  names.delim = "_", meta.data = NULL, save.raw = TRUE,
-  add.cell.id = NULL)
+  names.delim = "_", meta.data = NULL, add.cell.id = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -43,9 +42,6 @@ delimiter from the cell's column name}
 \item{meta.data}{Additional metadata to add to the Seurat object. Should be
 a data frame where the rows are cell names, and the columns are additional
 metadata fields}
-
-\item{save.raw}{TRUE by default. If FALSE, do not save the unmodified data in object@raw.data
-which will save memory downstream for large datasets}
 
 \item{add.cell.id}{String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
 "cell1" becomes "cell1.rep1"}

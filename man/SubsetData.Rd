@@ -7,7 +7,7 @@
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   ident.remove = NULL, accept.low = -Inf, accept.high = Inf,
   do.center = FALSE, do.scale = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1, ...)
+  random.seed = 1, do.clean = FALSE, subset.raw, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -35,6 +35,14 @@ using FetchData}
 \item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
 
 \item{random.seed}{Random seed for downsampling}
+
+\item{do.clean}{Only keep object@raw.data and object@data. Cleans out most
+other slots. Can be useful if you want to start a fresh analysis on just a
+subset of the data. Also clears out stored clustering results in
+object@meta.data (any columns containing "res"). Will by default subset the
+raw.data slot.}
+
+\item{subset.raw}{Also subset object@raw.data}
 
 \item{\dots}{Additional arguments to be passed to FetchData (for example,
 use.imputed=TRUE)}

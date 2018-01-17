@@ -5,26 +5,30 @@
 \title{Finds markers that are conserved between the two groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", ...)
+  assay.type = "RNA", meta.method = "minP", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{ident.1}{Identity class to define markers for}
 
-\item{ident.2}{A second identity class for comparison. If NULL (default) - use all other cells
-for comparison.}
+\item{ident.2}{A second identity class for comparison. If NULL (default) -
+use all other cells for comparison.}
 
 \item{grouping.var}{grouping variable}
 
 \item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
+\item{meta.method}{method for combining p-values. See MetaDE::MetaDE.pvalue
+for details.}
+
 \item{\dots}{parameters to pass to FindMarkers}
 }
 \value{
-Matrix containing a ranked list of putative conserved markers, and associated statistics
-(p-values within each group and a combined p-value (fisher_pval), percentage of cells expressing
-the marker, average differences)
+Matrix containing a ranked list of putative conserved markers, and
+associated statistics (p-values within each group and a combined p-value
+(such as Fishers combined p-value or others from the MetaDE package),
+percentage of cells expressing the marker, average differences)
 }
 \description{
 Finds markers that are conserved between the two groups

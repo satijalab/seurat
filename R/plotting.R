@@ -16,6 +16,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
 #' @param group.by Groups cells by this variable. Default is object@@ident
+#' @param group.order Order of groups from left to right in heatmap.
 #' @param draw.line Draw vertical lines delineating different groups
 #' @param col.low Color for lowest expression value
 #' @param col.mid Color for mid expression value
@@ -52,6 +53,7 @@ DoHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
+  group.order = NULL,
   draw.line = TRUE,
   col.low = "#FF00FF",
   col.mid = "#000000",
@@ -101,7 +103,7 @@ DoHeatmap <- function(
     x = cells.ident,
     labels = intersect(x = levels(x = cells.ident), y = cells.ident)
   )
-  data.use <- data.use[genes.use, cells.use]
+  data.use <- data.use[genes.use, cells.use, drop = FALSE]
   if ((!use.scaled)) {
     data.use = as.matrix(x = data.use)
     if (disp.max==2.5) disp.max = 10;
@@ -114,6 +116,14 @@ DoHeatmap <- function(
   names(x = data.use)[names(x = data.use) == 'variable'] <- 'gene'
   names(x = data.use)[names(x = data.use) == 'value'] <- 'expression'
   data.use$ident <- cells.ident[data.use$cell]
+  if(!is.null(group.order)) {
+    if(length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
+      data.use$ident <- factor(data.use$ident, levels = group.order)
+    }
+    else {
+      stop("Invalid group.order")
+    }
+  }
   breaks <- seq(
     from = min(data.use$expression),
     to = max(data.use$expression),
@@ -397,9 +407,9 @@ VlnPlot <- function(
   }
 }
 
-#' Single cell joy plot
+#' Single cell ridge plot
 #'
-#' Draws a joy plot of single cell data (gene expression, metrics, PC
+#' Draws a ridge plot of single cell data (gene expression, metrics, PC
 #' scores, etc.)
 #'
 #' @param object Seurat object
@@ -427,9 +437,8 @@ VlnPlot <- function(
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @import ggplot2
-#' @importFrom cowplot get_legend
-#' @importFrom ggjoy geom_joy theme_joy
-#' @importFrom cowplot plot_grid
+#' @importFrom cowplot get_legend plot_grid
+#' @importFrom ggridges geom_density_ridges theme_ridges
 #'
 #' @return By default, no return, only graphical output. If do.return=TRUE,
 #' returns a list of ggplot objects.
@@ -437,9 +446,9 @@ VlnPlot <- function(
 #' @export
 #'
 #' @examples
-#' JoyPlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
 #'
-JoyPlot <- function(
+RidgePlot <- function(
   object,
   features.plot,
   ident.include = NULL,
@@ -469,8 +478,14 @@ JoyPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...),
-                         check.names = F)
+  data.use <- data.frame(
+    FetchData(
+      object = object,
+      vars.all = features.plot,
+      ...
+    ),
+    check.names = F
+  )
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {
@@ -495,7 +510,7 @@ JoyPlot <- function(
   plots <- lapply(
     X = features.plot,
     FUN = function(x) {
-      return(SingleJoyPlot(
+      return(SingleRidgePlot(
         feature = x,
         data = data.use[, x, drop = FALSE],
         cell.ident = ident.use,
@@ -571,7 +586,7 @@ JoyPlot <- function(
 #'
 #' @return Only graphical output
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'
@@ -1215,7 +1230,7 @@ FeatureHeatmap <- function(
     key.title.pos <- "left"
   }
   p <- ggplot(data = data.plot, mapping = aes(x = dim1, y = dim2)) +
-    geom_point(mapping = aes(colour = scaled.expression), size = pt.size)
+    geom_point(mapping = aes(colour = scaled.expression), size = pt.size, shape = pch.use)
   if (rotate.key) {
     p <- p + scale_colour_gradient(
       low = cols.use[1],
@@ -1544,6 +1559,7 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #'
 #' @return No return, only graphical output
 #'
+#' @importFrom graphics plot
 #'
 #' @export
 #'
@@ -2059,7 +2075,7 @@ ICHeatmap <- function(
 #'
 #' @return Graphical, no return value
 #'
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot
 #'
 #' @export
 #'
@@ -2241,6 +2257,10 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param no.legend Setting to TRUE will remove the legend
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
+#' @param plot.order Specify the order of plotting for the idents. This can be
+#' useful for crowded plots if points of interest are being buried. Provide
+#' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param plot.title Title for plot
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -2277,6 +2297,8 @@ DimPlot <- function(
   no.legend = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
+  plot.order = NULL,
+  plot.title = NULL,
   ...
 ) {
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
@@ -2305,6 +2327,14 @@ DimPlot <- function(
   data.plot$x <- data.plot[, dim.codes[1]]
   data.plot$y <- data.plot[, dim.codes[2]]
   data.plot$pt.size <- pt.size
+  if(!is.null(plot.order)){
+    if(any(!plot.order %in% data.plot$ident)){
+      stop("invalid ident in plot.order")
+    }
+    plot.order <- rev(c(plot.order, setdiff(unique(data.plot$ident), plot.order)))
+    data.plot$ident <- factor(data.plot$ident, levels = plot.order)
+    data.plot <- data.plot[order(data.plot$ident), ]
+  }
   p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
     geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
   if (! is.null(x = pt.shape)) {
@@ -2335,6 +2365,9 @@ DimPlot <- function(
     theme_bw() +
     NoGrid()
   p3 <- p3 + theme(legend.title = element_blank())
+  if (!is.null(plot.title)) {
+    p3 <- p3 + ggtitle(plot.title) + theme(plot.title = element_text(hjust = 0.5))
+  }
   if (do.label) {
     data.plot %>%
       dplyr::group_by(ident) %>%
@@ -2652,7 +2685,7 @@ VariableGenePlot <- function(
   gene.mean <- object@hvg.info[, 1]
   gene.dispersion <- object@hvg.info[, 2]
   gene.dispersion.scaled <- object@hvg.info[, 3]
-  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@hvg.info)
   pass.cutoff <- names(x = gene.mean)[which(
     x = (
       (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
@@ -2996,4 +3029,69 @@ NodeHeatmap <- function(object, marker.list, node = NULL, max.genes = 10, ...) {
     remove.key = TRUE,
     ...
   )
+}
+
+globalVariables(
+  names = c('cc', 'bicor', "Group"),
+  package = 'Seurat',
+  add = TRUE
+)
+#' Plot CC bicor saturation plot
+#'
+#' The function provides a useful plot for evaluating the number of CCs to
+#' proceed with in the Seurat alignment workflow. Here we look at the biweight
+#' midcorrelation (bicor) of the Xth gene ranked by minimum bicor across the
+#' specified CCs for each group in the grouping.var. For alignment of more than
+#' two groups, we average the bicor results for the reference group across the
+#' pairwise alignments.
+#'
+#' @param object A Seurat object
+#' @param bicor.data Optionally provide data.frame returned by function to avoid
+#' recalculation
+#' @param grouping.var Grouping variable specified in alignment procedure
+#' @param dims.eval dimensions to evalutate the bicor for
+#' @param gene.num Xth gene to look at bicor for
+#' @param num.possible.genes Number of possible genes to search when choosing
+#' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+#' but may result in metagenes constructed on fewer than num.genes genes.
+#' @param smooth Smooth curves
+#' @param return.mat Return data.matrix instead of ggplot2 object
+#' @param display.progress Show progress bar
+#'
+#' @import ggplot2
+#' @export
+#'
+#' @examples
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' KMeansHeatmap(object = pbmc_small)
+#'
+
+MetageneBicorPlot <- function(object, bicor.data, grouping.var, dims.eval,
+                              gene.num = 30, num.possible.genes = 2000,
+                              return.mat = FALSE, smooth = TRUE,
+                              display.progress = TRUE) {
+  if(missing(bicor.data)){
+    bicor.data <- EvaluateCCs(object = object, grouping.var = grouping.var,
+                              dims.eval = dims.eval, gene.num = gene.num,
+                              num.possible.genes = num.possible.genes,
+                              display.progress = display.progress)
+  }
+  if(length(dims.eval) < 10 | !smooth){
+    if(!missing(smooth) & smooth){
+      warning("Curves not smoothed. Falling back to line plot")
+    }
+    p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
+                geom_line(aes(col = Group)) +
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+  } else {
+    p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
+                geom_smooth(aes(col = Group), se = FALSE) +
+                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+  }
+  print(p)
+  if(return.mat) {
+    return(bicor.data)
+  } else {
+    return(p)
+  }
 }
