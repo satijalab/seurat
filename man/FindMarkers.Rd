@@ -37,6 +37,8 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
   distribution. Use only for UMI-based datasets
  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
  binomial distribution. Use only for UMI-based datasets
+ \item{"negbinom.reg"} :  Likelihood ratio test assuming an underlying negative
+ binomial distribution (With regularization). Use only for UMI-based datasets
  \item{"MAST} : GLM-framework that treates cellular detection rate as a
  covariate (Finak et al, Genome Biology, 2015)
  \item{"DESeq2} : DE based on a model using the negative binomial
