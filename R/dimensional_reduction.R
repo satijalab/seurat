@@ -463,6 +463,7 @@ RunTSNE <- function(
   genes.use = NULL,
   seed.use = 1,
   do.fast = TRUE,
+  do.approx = FALSE,
   add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,
@@ -487,16 +488,20 @@ RunTSNE <- function(
   }
   set.seed(seed = seed.use)
   if (do.fast) {
-    if (is.null(x = distance.matrix)) {
-      data.tsne <- Rtsne(X = as.matrix(x = data.use), dims = dim.embed, ...)
+    if (do.approx & is.null(x = distance.matrix)) {
+      data.tsne <- fftRtsne(X = as.matrix(x = data.use), dims = dim.embed, rand_seed = seed.use, ...)
     } else {
-      data.tsne <- Rtsne(
-        X = as.matrix(x = distance.matrix),
-        dims = dim.embed,
-        is_distance=TRUE
-      )
+      if (is.null(x = distance.matrix)) {
+        data.tsne <- Rtsne(X = as.matrix(x = data.use), dims = dim.embed, ...)
+      } else {
+        data.tsne <- Rtsne(
+          X = as.matrix(x = distance.matrix),
+          dims = dim.embed,
+          is_distance=TRUE
+        )
+      }
+      data.tsne <- data.tsne$Y
     }
-    data.tsne <- data.tsne$Y
   } else {
     data.tsne <- tsne(X = data.use, k = dim.embed, ...)
   }
