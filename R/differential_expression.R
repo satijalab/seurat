@@ -27,6 +27,8 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 ##'   distribution. Use only for UMI-based datasets
 ##'  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
 ##'  binomial distribution. Use only for UMI-based datasets
+##'  \item{"negbinom.reg"} :  Likelihood ratio test assuming an underlying negative
+##'  binomial distribution (With regularization). Use only for UMI-based datasets
 ##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a
 ##'  covariate (Finak et al, Genome Biology, 2015)
 ##'  \item{"DESeq2} : DE based on a model using the negative binomial
@@ -225,6 +227,18 @@ FindMarkers <- function(
   }
   if (test.use == "negbinom") {
     to.return <- NegBinomDETest(
+      object = object,
+      assay.type = assay.type,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      latent.vars = latent.vars,
+      print.bar = print.bar,
+      min.cells = min.cells
+    )
+  }
+  if (test.use == "negbinom.reg") {
+    to.return <- NegBinomRegDETest(
       object = object,
       assay.type = assay.type,
       cells.1 = cells.1,
