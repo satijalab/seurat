@@ -650,8 +650,8 @@ SingleVlnPlot <- function(
     xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
-    theme(plot.title = element_text(size = size.title.use, face = "bold"),
-          legend.position = legend.position,
+      theme(plot.title = element_text(size = size.title.use, face = "bold"),
+            legend.position=
           axis.title.x = element_text(
               face = "bold",
               colour = "#990000",
@@ -685,7 +685,7 @@ SingleVlnPlot <- function(
     plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=size.x.use))
   }
   if (y.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90, size=size.y.use))
+    plot <- plot + theme(axis.text.x = element_text(angle = 90))
   }
   if (remove.legend) {
     plot <- plot + theme(legend.position = "none")
