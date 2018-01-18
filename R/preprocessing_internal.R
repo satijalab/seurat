@@ -24,7 +24,7 @@ RegressOutResid <- function(
   use.umi = FALSE,
   display.progress = TRUE
 ) {
-  possible.models <- c("linear", "poisson", "negbinom")
+  possible.models <- c("linear", "poisson", "negbinom", "negbinom.reg")
   if (! model.use %in% possible.models){
     stop(
       paste0(
@@ -34,6 +34,15 @@ RegressOutResid <- function(
         "."
       )
     )
+  }
+  if (model.use == 'negbinom.reg') {
+      return(
+          RegressOutNBreg(
+            object = object,
+            latent.vars = vars.to.regress,
+            genes.regress = genes.regress
+          )
+      )
   }
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
