@@ -53,3 +53,11 @@ FastLogVMR <- function(mat, display_progress) {
     .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
 }
 
+ComputeSNN <- function(nn_large, nn_ranked, prune, display_progress) {
+    .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_large, nn_ranked, prune, display_progress)
+}
+
+WriteEdgeFile <- function(snn, filename, display_progress) {
+    invisible(.Call('_Seurat_WriteEdgeFile', PACKAGE = 'Seurat', snn, filename, display_progress))
+}
+
