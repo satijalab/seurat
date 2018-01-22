@@ -24,13 +24,13 @@
 #' }
 #'
 GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@finalprob))
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@spatial@final.prob))
   #Error checking
-  cell.names <- intersect(x = cells.use, y = colnames(x = object@spatial@finalprob))
+  cell.names <- intersect(x = cells.use, y = colnames(x = object@spatial@final.prob))
   if (length(x = cell.names) != length(x = cells.use)) {
     print(paste(
       "Error",
-      setdiff(x = cells.use, y = colnames(x = object@spatial@finalprob)),
+      setdiff(x = cells.use, y = colnames(x = object@spatial@final.prob)),
       " have not been mapped"
     ))
     return(0)
@@ -39,14 +39,14 @@ GetCentroids <- function(object, cells.use = NULL, get.exact = TRUE) {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(ExactCellCentroid(cell.probs = object@spatial@finalprob[, x]))
+        return(ExactCellCentroid(cell.probs = object@spatial@final.prob[, x]))
       }
     )))
   } else {
     my.centroids <- data.frame(t(x = sapply(
       X = colnames(x = object@data),
       FUN = function(x) {
-        return(CellCentroid(cell.probs = object@spatial@finalprob[, x]))
+        return(CellCentroid(cell.probs = object@spatial@final.prob[, x]))
       }
     )))
   }
@@ -85,7 +85,7 @@ RefinedMapping <- function(object, genes.use) {
   cells.max <- t(x = sapply(
     X = colnames(object@data),
     FUN = function(x) {
-      return(ExactCellCentroid(object@spatial@finalprob[, x]))
+      return(ExactCellCentroid(object@spatial@final.prob[, x]))
     }
   ))
   all.mu <- sapply(
@@ -137,7 +137,7 @@ RefinedMapping <- function(object, genes.use) {
       STATS = apply(X = mv.probs, MARGIN = 2, FUN = LogAdd)
     )
   )
-  object@spatial@finalprob <- data.frame(mv.final)
+  object@spatial@final.prob <- data.frame(mv.final)
   return(object)
 }
 
@@ -174,8 +174,8 @@ InitialMapping <- function(object, cells.use = NULL) {
       ))
     }
   )
-  object@spatial@finalprob <- data.frame(every.prob)
-  rownames(x = object@spatial@finalprob) <- paste0("bin.", rownames(x = object@spatial@finalprob))
+  object@spatial@final.prob <- data.frame(every.prob)
+  rownames(x = object@spatial@final.prob) <- paste0("bin.", rownames(x = object@spatial@final.prob))
   return(object)
 }
 
