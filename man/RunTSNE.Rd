@@ -5,9 +5,9 @@
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
 RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
-  genes.use = NULL, seed.use = 1, do.fast = TRUE, add.iter = 0,
-  dim.embed = 2, distance.matrix = NULL, reduction.name = "tsne",
-  reduction.key = "tSNE_", ...)
+  genes.use = NULL, seed.use = 1, do.fast = TRUE, do.approx = FALSE,
+  add.iter = 0, dim.embed = 2, distance.matrix = NULL,
+  reduction.name = "tsne", reduction.key = "tSNE_", ...)
 }
 \arguments{
 \item{object}{Seurat object}

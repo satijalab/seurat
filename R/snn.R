@@ -28,6 +28,9 @@ NULL
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
 #' @param force.recalc Force recalculation of SNN.
+#' @param filename Write SNN directly to file named here as an edge list compatible with FindClusters
+#' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting to FALSE can be used
+#' together with a provided filename to only write the SNN out as an edge file to disk.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
@@ -56,7 +59,9 @@ BuildSNN <- function(
   prune.SNN = 1/15,
   print.output = TRUE,
   distance.matrix = NULL,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  filename = NULL,
+  save.SNN = TRUE
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
@@ -111,16 +116,18 @@ BuildSNN <- function(
     nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  w <- CalcSNNSparse(
-    cell.names = object@cell.names,
-    k.param = k.param,
-    nn.large = nn.large,
-    nn.ranked = nn.ranked,
-    prune.SNN = prune.SNN,
-    print.output = print.output
-  )
-  object@snn <- w
-  if (plot.SNN) {
+  if (save.SNN | is.null(filename) ) {
+    object@snn <- ComputeSNN(nn_large = nn.large,
+                             nn_ranked = nn.ranked,
+                             prune = prune.SNN,
+                             display_progress = print.output)
+    rownames(object@snn) <- object@cell.names
+    colnames(object@snn) <- object@cell.names
+  } else {
+    DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
+                    display_progress = print.output, filename = filename)
+  }
+  if (plot.SNN & save.SNN) {
     if(!"tsne" %in% names(object@dr)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
@@ -128,7 +135,7 @@ BuildSNN <- function(
         warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
       } else {
         net <- graph.adjacency(
-          adjmatrix = as.matrix(w),
+          adjmatrix = as.matrix(object@snn),
           mode = "undirected",
           weighted = TRUE,
           diag = FALSE

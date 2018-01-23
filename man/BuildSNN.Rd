@@ -7,7 +7,7 @@
 BuildSNN(object, genes.use = NULL, reduction.type = "pca",
   dims.use = NULL, k.param = 10, k.scale = 10, plot.SNN = FALSE,
   prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
-  force.recalc = FALSE)
+  force.recalc = FALSE, filename = NULL, save.SNN = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -39,6 +39,11 @@ prune everything).}
 \item{distance.matrix}{Build SNN from distance matrix (experimental)}
 
 \item{force.recalc}{Force recalculation of SNN.}
+
+\item{filename}{Write SNN directly to file named here as an edge list compatible with FindClusters}
+
+\item{save.SNN}{Default behavior is to store the SNN in object@snn. Setting to FALSE can be used
+together with a provided filename to only write the SNN out as an edge file to disk.}
 }
 \value{
 Returns the object with object@snn filled
