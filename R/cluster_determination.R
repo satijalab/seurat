@@ -42,6 +42,7 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
+#' @param edge.file.location Edge file to use as input for modularity optimizer jar.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
@@ -89,7 +90,8 @@ FindClusters <- function(
   n.start = 100,
   n.iter = 10,
   random.seed = 0,
-  temp.file.location = NULL
+  temp.file.location = NULL,
+  edge.file.name = NULL
 ) {
   snn.built <- FALSE
   if (.hasSlot(object = object, name = "snn")) {
@@ -130,7 +132,9 @@ FindClusters <- function(
       prune.SNN = prune.SNN,
       print.output = print.output,
       distance.matrix = distance.matrix,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      filename = edge.file.name,
+      save.SNN = save.SNN
     )
   }
   for (r in resolution) {
@@ -162,8 +166,8 @@ FindClusters <- function(
       n.iter = n.iter,
       random.seed = random.seed,
       print.output = print.output,
-      temp.file.location = temp.file.location
-
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
     )
     object <- GroupSingletons(object = object, SNN = object@snn)
     name <- paste0("res.", r)

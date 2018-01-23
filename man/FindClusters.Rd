@@ -9,7 +9,8 @@ FindClusters(object, genes.use = NULL, reduction.type = "pca",
   prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
   save.SNN = FALSE, reuse.SNN = FALSE, force.recalc = FALSE,
   modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
-  n.iter = 10, random.seed = 0, temp.file.location = NULL)
+  n.iter = 10, random.seed = 0, temp.file.location = NULL,
+  edge.file.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -65,6 +66,8 @@ algorithm).}
 
 \item{temp.file.location}{Directory where intermediate files will be written.
 Specify the ABSOLUTE path.}
+
+\item{edge.file.location}{Edge file to use as input for modularity optimizer jar.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,
