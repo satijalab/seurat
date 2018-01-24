@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <string>
+#include <iomanip>
 
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
@@ -41,21 +42,38 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
   if (display_progress == true) {
     Rcpp::Rcerr << "Writing SNN as edge file" << std::endl;
   }
-  Progress p(snn.outerSize(), display_progress);
+  // This section just makes sure that SNN is symmetric that way we can just write
+  // out the lower triangle of the matrix. Much more efficient when just looping
+  // over non-zero elements
+  std::vector<T> tripletList;
+  tripletList.reserve(snn.nonZeros());
+  for (int k=0; k < snn.outerSize(); ++k){
+    for (Eigen::SparseMatrix<double>::InnerIterator it(snn, k); it; ++it){
+      if(snn.coeff(it.col(), it.row()) == 0){
+        tripletList.push_back(T(it.col(), it.row(), it.value()));
+      }
+    }
+  }
+  for(int i=0; i < tripletList.size(); ++i){
+    snn.coeffRef(tripletList[i].row(), tripletList[i].col()) = tripletList[i].value();
+  }
+  // Write out lower triangle
   std::ofstream output;
   output.open(filename);
+  Progress p(snn.outerSize(), display_progress);
   for (int k=0; k < snn.outerSize(); ++k){
     p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(snn, k); it; ++it){
       if(it.col() >= it.row()){
         continue;
       }
-      output << it.col() << "\t" << it.row() << "\t" << it.value() << "\n";
+      output << std::setprecision(15) << it.col() << "\t" << it.row() << "\t" << it.value() << "\n";
     }
   }
   output.close();
 }
 
+// Wrapper function so that we don't have to go back into R before writing to file
 //[[Rcpp::export]]
 Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked,
                                          double prune, bool display_progress, String filename) {
