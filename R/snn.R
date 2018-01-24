@@ -104,7 +104,9 @@ BuildSNN <- function(
     nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
     nn.large <- my.knn$nn.index
   } else {
-    cat("Building SNN based on a provided distance matrix\n", file = stderr())
+    if (print.output) {
+      cat("Building SNN based on a provided distance matrix\n", file = stderr())
+    }
     n <- nrow(x = distance.matrix)
     k.for.nn <- k.param * k.scale
     knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
@@ -116,7 +118,9 @@ BuildSNN <- function(
     nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  cat("Computing SNN\n", file = stderr())
+  if (print.output) {
+    cat("Computing SNN\n", file = stderr())
+  }
   if (save.SNN | is.null(filename)) {
     object@snn <- ComputeSNN(nn_large = nn.large,
                              nn_ranked = nn.ranked,
