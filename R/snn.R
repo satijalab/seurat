@@ -116,13 +116,17 @@ BuildSNN <- function(
     nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  if (save.SNN | is.null(filename) ) {
+  cat("Computing SNN\n", file = stderr())
+  if (save.SNN | is.null(filename)) {
     object@snn <- ComputeSNN(nn_large = nn.large,
                              nn_ranked = nn.ranked,
                              prune = prune.SNN,
                              display_progress = print.output)
     rownames(object@snn) <- object@cell.names
     colnames(object@snn) <- object@cell.names
+    if (!is.null(filename)) {
+      WriteEdgeFile(snn = object@snn, filename = filename, display_progress = print.output)
+    }
   } else {
     DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
                     display_progress = print.output, filename = filename)
