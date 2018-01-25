@@ -47,41 +47,14 @@ RunModularityClustering <- function(
   unique_ID <- sample(x = 10000:99999, size = 1)
   temp.file.location <- SetIfNull(x = temp.file.location, default = tempfile())
   if(is.null(edge.file.name)) {
-    diag(x = SNN) <- 0
-    if (is.object(x = SNN)) {
-      SNN <- as(object = SNN, Class = "dgTMatrix")
-      edge <- cbind(i = SNN@j, j = SNN@i, x = SNN@x)
-    } else {
-      swap <- which(x = SNN != 0, arr.ind = TRUE) - 1
-      temp <- swap[, 1]
-      swap[, 1] <- swap[, 2]
-      swap[, 2] <- temp
-      edge <- cbind(swap, SNN[which(x = SNN != 0, arr.ind = TRUE)])
-    }
-    rownames(x = edge) <- NULL
-    colnames(x = edge) <- NULL
-    edge <- t(apply(edge, MARGIN = 1, function(x) {
-      if(x[2] < x[1]){
-        return(c(x[2], x[1], x[3]))
-      } else{
-        return(x)
-      }
-    }))
-    edge <- edge[!duplicated(x = edge[, 1:2]), ]
-    edge <- edge[!edge[,3] == 0, ]
-    edge <- edge[order(edge[, 1]), ]
     edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
     while (file.exists(edge_file)) {
       unique_ID <- sample(x = 10000:99999, size = 1)
       edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
     }
-    write.table(
-      x = edge,
-      file = edge_file,
-      sep = "\t",
-      row.names = FALSE,
-      col.names = FALSE
-    )
+    WriteEdgeFile(snn = object@snn,
+                  filename = edge_file,
+                  display_progress = print.output)
   } else {
     if(!file.exists(edge.file.name)) {
       stop("Edge file provided doesn't exist")
