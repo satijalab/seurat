@@ -1,7 +1,6 @@
 # Runs the modularity optimizer java program (ModularityOptimizer.jar)
 #
 #
-# @param object               Seurat object
 # @param SNN SNN              matrix to use as input for the clustering
 #                             algorithms
 # @param modularity           Modularity function to use in clustering (1 =
@@ -24,7 +23,6 @@
 #' @importFrom utils read.table write.table
 #
 RunModularityClustering <- function(
-  object,
   SNN = matrix(),
   modularity = 1,
   resolution = 0.8,
@@ -52,7 +50,7 @@ RunModularityClustering <- function(
       unique_ID <- sample(x = 10000:99999, size = 1)
       edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
     }
-    WriteEdgeFile(snn = object@snn,
+    WriteEdgeFile(snn = SNN,
                   filename = edge_file,
                   display_progress = print.output)
   } else {
@@ -85,17 +83,11 @@ RunModularityClustering <- function(
   )
   system(command, wait = TRUE)
   ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
-
-  object <- SetIdent(
-    object = object,
-    cells.use = object@cell.names,
-    ident.use = ident.use
-  )
   if(is.null(edge.file.name)){
     file.remove(edge_file)
   }
   file.remove(output_file)
-  return(object)
+  return(ident.use)
 }
 
 # Group single cells that make up their own cluster in with the cluster they are
