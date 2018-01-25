@@ -139,11 +139,11 @@ setMethod(
     edge.file.name = NULL
   ) {
     # Once we have SNNs stored in loom, put back in those options here
-    if(!file.exists(edge.file.name)){
+    if(!file.exists(edge.file.name) | is.null(edge.file.name)) {
       stop("Edge file doesn't exist.")
     }
     for (r in resolution) {
-      object <- RunModularityClustering(
+      ids <- RunModularityClustering(
         modularity = modularity.fxn,
         resolution = r,
         algorithm = algorithm,
@@ -154,11 +154,15 @@ setMethod(
         temp.file.location = temp.file.location,
         edge.file.name = edge.file.name
       )
+      ids <- list(ids)
+      names(ids) <- paste0("res.", resolution)
+      object$add.col.attribute(attribute = ids, overwrite = TRUE)
+      # Still need to be able to merge singletons with closest cluster
       #object <- GroupSingletons(object = object, SNN = object@snn)
-      #name <- paste0("res.", r)
-      #object <- StashIdent(object = object, save.name = name)
     }
-    return(object)
+    object$flush()
+    gc(verbose = FALSE)
+    invisible(x = object)
   }
 )
 
