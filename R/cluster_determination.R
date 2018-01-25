@@ -92,8 +92,7 @@ setMethod(
       object <- SetCalcParams(object = object,
                                    calculation = paste0("FindClusters.res.", r),
                                    ... = parameters.to.store)
-      object <- RunModularityClustering(
-        object = object,
+      ids <- RunModularityClustering(
         SNN = object@snn,
         modularity = modularity.fxn,
         resolution = r,
@@ -104,6 +103,11 @@ setMethod(
         print.output = print.output,
         temp.file.location = temp.file.location,
         edge.file.name = edge.file.name
+      )
+      object <- SetIdent(
+        object = object,
+        cells.use = object@cell.names,
+        ident.use = ids
       )
       object <- GroupSingletons(object = object, SNN = object@snn)
       name <- paste0("res.", r)
@@ -140,7 +144,6 @@ setMethod(
     }
     for (r in resolution) {
       object <- RunModularityClustering(
-        object = object,
         modularity = modularity.fxn,
         resolution = r,
         algorithm = algorithm,
