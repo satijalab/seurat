@@ -1,185 +1,163 @@
 #' @include seurat.R
+#' @include cluster_determination_generics.R
+#' @importFrom methods setMethod
 NULL
-#' Cluster Determination
-#'
-#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
-#' optimization based clustering algorithm. First calculate k-nearest neighbors
-#' and construct the SNN graph. Then optimize the modularity function to
-#' determine clusters. For a full description of the algorithms, see Waltman and
-#' van Eck (2013) \emph{The European Physical Journal B}.
-#'
-#' @param object Seurat object
-#' @param genes.use A vector of gene names to use in construction of SNN graph
-#' if building directly based on expression data rather than a dimensionally
-#' reduced representation (i.e. PCs).
-#' @param reduction.type Name of dimensional reduction technique to use in
-#' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims.use A vector of the dimensions to use in construction of the SNN
-#' graph (e.g. To use the first 10 PCs, pass 1:10)
-#' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale Granularity option for k.param
-#' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
-#' computing the neighborhood overlap for the SNN construction. Any edges with
-#' values less than or equal to this will be set to 0 and removed from the SNN
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
-#' prune everything).
-#' @param print.output Whether or not to print output to the console
-#' @param distance.matrix Build SNN from distance matrix (experimental)
-#' @param save.SNN Saves the SNN matrix associated with the calculation in
-#' object@@snn
-#' @param reuse.SNN Force utilization of stored SNN. If none store, this will
-#' throw an error.
-#' @param force.recalc Force recalculation of SNN.
-#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param resolution Value of the resolution parameter, use a value above
-#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
-#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm).
-#' @param n.start Number of random starts.
-#' @param n.iter Maximal number of iterations per random start.
-#' @param random.seed Seed of the random number generator.
-#' @param temp.file.location Directory where intermediate files will be written.
-#' Specify the ABSOLUTE path.
-#' @param edge.file.location Edge file to use as input for modularity optimizer jar.
-#' @importFrom FNN get.knn
-#' @importFrom igraph plot.igraph graph.adjlist
-#' @importFrom Matrix sparseMatrix
-#' @return Returns a Seurat object and optionally the SNN matrix,
-#'         object@@ident has been updated with new cluster info
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' pmbc_small <- FindClusters(
-#'   object = pbmc_small,
-#'   reduction.type = "pca",
-#'   dims.use = 1:10,
-#'   save.SNN = TRUE
-#' )
-#' # To explore a range of clustering options, pass a vector of values to the resolution parameter
-#' pbmc_small <- FindClusters(
-#'   object = pbmc_small,
-#'   reduction.type = "pca",
-#'   resolution = c(0.4, 0.8, 1.2),
-#'   dims.use = 1:10,
-#'   save.SNN = TRUE
-#' )
-#' }
-#'
-FindClusters <- function(
-  object,
-  genes.use = NULL,
-  reduction.type = "pca",
-  dims.use = NULL,
-  k.param = 30,
-  k.scale = 25,
-  plot.SNN = FALSE,
-  prune.SNN = 1/15,
-  print.output = TRUE,
-  distance.matrix = NULL,
-  save.SNN = FALSE,
-  reuse.SNN = FALSE,
-  force.recalc = FALSE,
-  modularity.fxn = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 100,
-  n.iter = 10,
-  random.seed = 0,
-  temp.file.location = NULL,
-  edge.file.name = NULL
-) {
-  snn.built <- FALSE
-  if (.hasSlot(object = object, name = "snn")) {
-    if (length(x = object@snn) > 1) {
-      snn.built <- TRUE
-      save.SNN <- TRUE
-    }
-  }
-  if ((
-    missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
-    && snn.built) || reuse.SNN) {
-    save.SNN <- TRUE
-    if (reuse.SNN && !snn.built) {
-      stop("No SNN stored to reuse.")
-    }
-    if (reuse.SNN && (
-      ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-      || ! missing(x = k.scale) || ! missing(x = prune.SNN)
-    )) {
-      warning("SNN was not be rebuilt with new parameters. Continued with stored
-               SNN. To suppress this warning, remove all SNN building parameters.")
-    }
-  } else {
-    # if any SNN building parameters are provided or it hasn't been built, build
-    # a new SNN
-    if(!is.null(distance.matrix)) {
-      force.recalc <- TRUE
-    }
-    object <- BuildSNN(
-      object = object,
-      genes.use = genes.use,
-      reduction.type = reduction.type,
-      dims.use = dims.use,
-      k.param = k.param,
-      k.scale = k.scale,
-      plot.SNN = plot.SNN,
-      prune.SNN = prune.SNN,
-      print.output = print.output,
-      distance.matrix = distance.matrix,
-      force.recalc = force.recalc,
-      filename = edge.file.name,
-      save.SNN = save.SNN
-    )
-  }
-  for (r in resolution) {
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindClusters"))]
-    parameters.to.store$resolution <- r
-    if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
-      parameters.to.store$object <- NULL
-      parameters.to.store$print.output <- NULL
-      old.parameters <- GetAllCalcParam(object = object,
-                                        calculation = paste0("FindClusters.res.", r))
-      old.parameters$time <- NULL
-      old.parameters$print.output <- NULL
-      if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
-        warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
-        object <- SetAllIdent(object, paste0("res.", r))
-        next
+
+setMethod(
+  f = 'FindClusters',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    genes.use = NULL,
+    reduction.type = "pca",
+    dims.use = NULL,
+    k.param = 30,
+    k.scale = 25,
+    plot.SNN = FALSE,
+    prune.SNN = 1/15,
+    print.output = TRUE,
+    distance.matrix = NULL,
+    save.SNN = FALSE,
+    reuse.SNN = FALSE,
+    force.recalc = FALSE,
+    modularity.fxn = 1,
+    resolution = 0.8,
+    algorithm = 1,
+    n.start = 100,
+    n.iter = 10,
+    random.seed = 0,
+    temp.file.location = NULL,
+    edge.file.name = NULL
+  ) {
+    snn.built <- FALSE
+    if (.hasSlot(object = object, name = "snn")) {
+      if (length(x = object@snn) > 1) {
+        snn.built <- TRUE
+        save.SNN <- TRUE
       }
     }
-    object <- SetCalcParams(object = object,
-                                 calculation = paste0("FindClusters.res.", r),
-                                 ... = parameters.to.store)
-    object <- RunModularityClustering(
-      object = object,
-      SNN = object@snn,
-      modularity = modularity.fxn,
-      resolution = r,
-      algorithm = algorithm,
-      n.start = n.start,
-      n.iter = n.iter,
-      random.seed = random.seed,
-      print.output = print.output,
-      temp.file.location = temp.file.location,
-      edge.file.name = edge.file.name
-    )
-    object <- GroupSingletons(object = object, SNN = object@snn)
-    name <- paste0("res.", r)
-    object <- StashIdent(object = object, save.name = name)
+    if ((
+      missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
+      missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
+      && snn.built) || reuse.SNN) {
+      save.SNN <- TRUE
+      if (reuse.SNN && !snn.built) {
+        stop("No SNN stored to reuse.")
+      }
+      if (reuse.SNN && (
+        ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
+        || ! missing(x = k.scale) || ! missing(x = prune.SNN)
+      )) {
+        warning("SNN was not be rebuilt with new parameters. Continued with stored
+                 SNN. To suppress this warning, remove all SNN building parameters.")
+      }
+    } else {
+      # if any SNN building parameters are provided or it hasn't been built, build
+      # a new SNN
+      if(!is.null(distance.matrix)) {
+        force.recalc <- TRUE
+      }
+      object <- BuildSNN(
+        object = object,
+        genes.use = genes.use,
+        reduction.type = reduction.type,
+        dims.use = dims.use,
+        k.param = k.param,
+        k.scale = k.scale,
+        plot.SNN = plot.SNN,
+        prune.SNN = prune.SNN,
+        print.output = print.output,
+        distance.matrix = distance.matrix,
+        force.recalc = force.recalc,
+        filename = edge.file.name,
+        save.SNN = save.SNN
+      )
+    }
+    for (r in resolution) {
+      parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+      parameters.to.store$resolution <- r
+      if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
+        parameters.to.store$object <- NULL
+        parameters.to.store$print.output <- NULL
+        old.parameters <- GetAllCalcParam(object = object,
+                                          calculation = paste0("FindClusters.res.", r))
+        old.parameters$time <- NULL
+        old.parameters$print.output <- NULL
+        if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
+          warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+          object <- SetAllIdent(object, paste0("res.", r))
+          next
+        }
+      }
+      object <- SetCalcParams(object = object,
+                                   calculation = paste0("FindClusters.res.", r),
+                                   ... = parameters.to.store)
+      object <- RunModularityClustering(
+        object = object,
+        SNN = object@snn,
+        modularity = modularity.fxn,
+        resolution = r,
+        algorithm = algorithm,
+        n.start = n.start,
+        n.iter = n.iter,
+        random.seed = random.seed,
+        print.output = print.output,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name
+      )
+      object <- GroupSingletons(object = object, SNN = object@snn)
+      name <- paste0("res.", r)
+      object <- StashIdent(object = object, save.name = name)
+    }
+    if (!save.SNN) {
+      object@snn <- sparseMatrix(1, 1, x = 1)
+      object <- RemoveCalcParams(object = object,
+                                 calculation = "BuildSNN")
+    }
+    return(object)
   }
-  if (!save.SNN) {
-    object@snn <- sparseMatrix(1, 1, x = 1)
-    object <- RemoveCalcParams(object = object,
-                               calculation = "BuildSNN")
+)
+
+setMethod(
+  f = 'FindClusters',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    print.output = TRUE,
+    force.recalc = FALSE,
+    modularity.fxn = 1,
+    resolution = 0.8,
+    algorithm = 1,
+    n.start = 100,
+    n.iter = 10,
+    random.seed = 0,
+    temp.file.location = NULL,
+    edge.file.name = NULL
+  ) {
+    # Once we have SNNs stored in loom, put back in those options here
+    if(!file.exists(edge.file.name)){
+      stop("Edge file doesn't exist.")
+    }
+    for (r in resolution) {
+      object <- RunModularityClustering(
+        object = object,
+        modularity = modularity.fxn,
+        resolution = r,
+        algorithm = algorithm,
+        n.start = n.start,
+        n.iter = n.iter,
+        random.seed = random.seed,
+        print.output = print.output,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name
+      )
+      #object <- GroupSingletons(object = object, SNN = object@snn)
+      #name <- paste0("res.", r)
+      #object <- StashIdent(object = object, save.name = name)
+    }
+    return(object)
   }
-  return(object)
-}
+)
 
 #' Get Cluster Assignments
 #'

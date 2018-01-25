@@ -4,6 +4,7 @@
 \name{BuildSNN}
 \alias{BuildSNN}
 \alias{BuildSNN,seurat-method}
+\alias{BuildSNN,loom-method}
 \title{SNN Graph Construction}
 \usage{
 BuildSNN(object, ...)
@@ -13,6 +14,11 @@ BuildSNN(object, ...)
   plot.SNN = FALSE, prune.SNN = 1/15, print.output = TRUE,
   distance.matrix = NULL, force.recalc = FALSE, filename = NULL,
   save.SNN = TRUE)
+
+\S4method{BuildSNN}{loom}(object, normalized.data = "layers/norm_data",
+  genes.use = NULL, gene.names = "gene_names", reduction.type = "pca",
+  dims.use = NULL, k.param = 10, k.scale = 10, prune.SNN = 1/15,
+  print.output = TRUE, distance.matrix = NULL, filename = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

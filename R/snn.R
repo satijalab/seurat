@@ -123,6 +123,81 @@ setMethod(
   }
 )
 
+
+#' @rdname BuildSNN
+#' @exportMethod BuildSNN
+#'
+setMethod(
+  f = 'BuildSNN',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    normalized.data = 'layers/norm_data',
+    genes.use = NULL,
+    gene.names = 'gene_names',
+    reduction.type = "pca",
+    dims.use = NULL,
+    k.param = 10,
+    k.scale = 10,
+    prune.SNN = 1/15,
+    print.output = TRUE,
+    distance.matrix = NULL,
+    filename = NULL
+  ) {
+    if (! is.null(x = distance.matrix)) {
+      data.use <- distance.matrix
+    } else if (is.null(x = dims.use)) {
+      genes.use <- SetIfNull(x = genes.use, default = which(object[['row_attrs/var_genes']][]))
+      data.use <- object[[normalized.data]][, genes.use]
+    } else {
+      if(reduction.type != "pca") {
+        stop("Only PCA supported right now")
+      }
+      data.use <- as.matrix(object$get.attribute.df(attribute.layer = "col",
+                                                    attribute.names = paste0("PC", dims.use)))
+    }
+    # needs code for storing calculation parameters
+    n.cells <- nrow(x = data.use)
+    if (n.cells < k.param) {
+      warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+      k.param <- n.cells - 1
+    }
+    # find the k-nearest neighbors for each single cell
+    if (is.null(x = distance.matrix)) {
+      my.knn <- get.knn(
+        data <- as.matrix(x = data.use),
+        k = min(k.scale * k.param, n.cells - 1)
+      )
+      nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
+      nn.large <- my.knn$nn.index
+    } else {
+      if (print.output) {
+        cat("Building SNN based on a provided distance matrix\n", file = stderr())
+      }
+      n <- nrow(x = distance.matrix)
+      k.for.nn <- k.param * k.scale
+      knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
+      knd.mat <- knn.mat
+      for (i in 1:n){
+        knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
+        knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
+      }
+      nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
+      nn.ranked <- knn.mat[, 1:k.param]
+    }
+    if (print.output) {
+      cat("Computing SNN\n", file = stderr())
+    }
+    # needs option to store SNN matrix in loom object - should be supported in
+    # loom2, for now just write out edge file
+    DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
+                    display_progress = print.output, filename = filename)
+    object$flush()
+    gc(verbose = FALSE)
+    invisible(x = object)
+  }
+)
+
 # This function calculates the pairwise connectivity of clusters.
 
 # @param object  Seurat object containing the snn graph and cluster assignments
