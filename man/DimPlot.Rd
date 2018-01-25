@@ -19,7 +19,8 @@ DimPlot(object, reduction.use = "pca", ...)
 \S4method{DimPlot}{loom}(object, reduction.use = "pca",
   ident.use = "col_attrs/ident", dim.1 = 1, dim.2 = 2, cells.use = NULL,
   pt.size = 1, do.return = FALSE, do.bare = FALSE, cols.use = NULL,
-  no.legend = FALSE, no.axes = FALSE, dark.theme = FALSE)
+  do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
+  dark.theme = FALSE)
 }
 \arguments{
 \item{object}{Object to plot}
@@ -56,7 +57,7 @@ different shapes on cells.}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 
-\item{do.label}{Whether to label the clusters}
+\item{do.label}{Setting to TRUE will label the clusters}
 
 \item{label.size}{Sets size of labels}
 
@@ -73,6 +74,10 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 \item{plot.title}{Title for plot}
 
 \item{ident.use}{Identity to use}
+
+\item{do.label}{Whether to label the clusters}
+
+\item{label.size}{Sets size of labels}
 
 \item{no.legend}{Setting to TRUE will remove the legend}
 

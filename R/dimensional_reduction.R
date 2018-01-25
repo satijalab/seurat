@@ -1,12 +1,8 @@
 #' @include seurat.R
 #' @include dimensional_reduction_generics.R
 #' @importFrom methods setMethod
+NULL
 
-#' Run Principal Component Analysis on gene expression using IRLBA
-#'
-#' Run a PCA dimensionality reduction. For details about stored PCA calculation
-#' parameters, see \code{PrintPCAParams}.
-#'
 #' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
 #' @param pcs.compute Total Number of PCs to compute and store (20 by default)

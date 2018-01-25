@@ -16,12 +16,13 @@ RunPCA(object, pcs.compute, ...)
   reduction.name = "pca", reduction.key = "PC", assay.type = "RNA",
   seed.use = 42, ...)
 
-\S4method{RunPCA}{loom}(object, pcs.compute = 75, online.pca = TRUE,
-  covariance.mat = NULL, cells.initial = 50000, chunk.size = 1000,
-  gene.names = "row_attrs/Gene", gene.means = "row_attrs/gene_means",
+\S4method{RunPCA}{loom}(object, genes.use = NULL, pcs.compute = 75,
+  online.pca = TRUE, covariance.mat = NULL, cells.initial = 50000,
+  chunk.size = 1000, gene.names = "row_attrs/gene_names",
+  gene.means = "row_attrs/gene_means",
   gene.variance = "row_attrs/gene_dispersion",
-  scale.data = "layers/scale_data", ngene = 1000, overwrite = FALSE,
-  display.progress = TRUE, ...)
+  var.genes = "row_attrs/var_genes", scale.data = "layers/scale_data",
+  ngene = NULL, overwrite = FALSE, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object to run PCA on}
@@ -30,7 +31,7 @@ RunPCA(object, pcs.compute, ...)
 
 \item{...}{Additional arguments}
 
-\item{pc.genes}{Genes to use as input for PCA}
+\item{pc.genes}{Genes to use as input for PCA. Default is object@var.genes}
 
 \item{use.imputed}{Run PCA on imputed values (FALSE by default)}
 
@@ -77,6 +78,10 @@ NULL will not set a seed.}
 \item{overwrite}{Overwrite preexisting results}
 
 \item{display.progress}{Show progress bars}
+
+\item{object}{Seurat object}
+
+\item{pcs.compute}{Total Number of PCs to compute and store (20 by default)}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
 }

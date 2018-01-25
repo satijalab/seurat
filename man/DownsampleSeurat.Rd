@@ -9,19 +9,21 @@
 \usage{
 DownsampleSeurat(object, ...)
 
-\S4method{DownsampleSeurat}{seurat}(object, size, method = "max",
-  eps = 0.001, bw.adjust = 2, return.type = "seurat", filename,
-  overwrite = FALSE, ...)
+\S4method{DownsampleSeurat}{seurat}(object, size, dims.use = 1:10,
+  method = "max", eps = 0.001, bw.adjust = 2, return.type = "seurat",
+  filename, overwrite = FALSE, ...)
 
-\S4method{DownsampleSeurat}{loom}(object, size, method = "max", eps = 0.001,
-  bw.adjust = 2, return.type = "loom",
-  cell.names = "col_attrs/cell_names", filename, overwrite = FALSE,
+\S4method{DownsampleSeurat}{loom}(object, size, dims.use = 1:10,
+  method = "max", eps = 0.001, bw.adjust = 2, return.type = "loom",
+  cell.names = "col_attrs/cell_names", filename, remove.existing = FALSE,
   display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object to downsample}
 
 \item{size}{A non-negative integer giving the number of cells to choose}
+
+\item{dims.use}{A vector giving the PCs that are used}
 
 \item{method}{Sampling strategy, one of 'random', 'max', 'prod', 'mean'}
 

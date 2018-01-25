@@ -9,7 +9,7 @@
 ProjectSeurat(object, ...)
 
 \S4method{ProjectSeurat}{seurat}(object, umi.mat, return.type = "seurat",
-  filename, overwrite = FALSE, display.progress = TRUE, ...)
+  filename, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object to downsample}
@@ -20,9 +20,9 @@ ProjectSeurat(object, ...)
 
 \item{filename}{file name/path for new loom object if returning loom}
 
-\item{overwrite}{overwrite loom file if it already exists}
-
 \item{display.progress}{display progress of the process}
+
+\item{overwrite}{overwrite loom file if it already exists}
 }
 \description{
 Add new cells to seurat object by projection
