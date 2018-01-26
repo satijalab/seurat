@@ -5,6 +5,8 @@
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
+#include <fstream>
+#include <string>
 
 using namespace Rcpp;
 
