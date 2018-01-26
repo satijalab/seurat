@@ -354,6 +354,7 @@ SubsetData <- function(
   ident.remove = NULL,
   accept.low = -Inf,
   accept.high = Inf,
+  accept.value = NULL,
   do.center = FALSE,
   do.scale = FALSE,
   max.cells.per.ident = Inf,
@@ -363,31 +364,17 @@ SubsetData <- function(
   ...
 ) {
   data.use <- NULL
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  if (!is.null(x = ident.use)) {
-    ident.use <- setdiff(ident.use, ident.remove)
-    cells.use <- WhichCells(object, ident.use)
-  }
-  if ((is.null(x = ident.use)) && ! is.null(x = ident.remove)) {
-    ident.use <- setdiff(unique(object@ident), ident.remove)
-    cells.use <- WhichCells(object, ident.use)
-  }
-  if (! is.null(x = subset.name)) {
-    data.use <- FetchData(object, subset.name, ...)
-    if (length(x = data.use) == 0) {
-      return(object)
-    }
-    subset.data <- data.use[, subset.name]
-    pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
-    cells.use <- rownames(data.use)[pass.inds]
-  }
-  cells.use <- intersect(x = cells.use, y = object@cell.names)
-  cells.use <-  WhichCells(
-    object = object,
-    cells.use = cells.use,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed
-  )
+  cells.use <- WhichCells(object = object,
+                          ident = ident.use,
+                          ident.remove = ident.remove,
+                          cells.use = cells.use,
+                          subset.name = subset.name,
+                          accept.low = accept.low,
+                          accept.high = accept.high,
+                          accept.value = accept.value,
+                          max.cells.per.ident = max.cells.per.ident,
+                          random.seed = random.seed,
+                          ... = ...)
   object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
   if(! is.null(x = object@scale.data)) {
@@ -704,6 +691,8 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
 #' @param accept.value Returns all cells with the subset name equal to this value
 #' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
 #' @param random.seed Random seed for downsampling
+#' @param \dots Additional arguments to be passed to FetchData (for example,
+#' use.imputed=TRUE)
 #'
 #' @return A vector of cell names
 #'
@@ -722,11 +711,26 @@ WhichCells <- function(
   accept.high = Inf,
   accept.value = NULL,
   max.cells.per.ident = Inf,
-  random.seed = 1
+  random.seed = 1,
+  ...
 ) {
+  # input checking
+  if(length(subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if(length(accept.low) > 1 | length(accept.high) > 1) {
+    stop("Multiple values passed to accept.low or accept.high")
+  }
+  if(accept.low >= accept.high) {
+    stop("accept.low greater than or equal to accept.high")
+  }
   set.seed(seed = random.seed)
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
+  bad.remove.idents <- ident.remove[! (ident.remove %in% unique(x = object@ident))]
+  if(length(bad.remove.idents) > 0) {
+    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  }
   ident <- setdiff(x = ident, y = ident.remove)
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
@@ -748,14 +752,19 @@ WhichCells <- function(
     data.use <- FetchData(
       object = object,
       vars.all = subset.name,
-      cells.use = cells.use
+      cells.use = cells.use,
+      ... = ...
     )
     if (length(x = data.use) == 0) {
       stop(paste("Error : ", id, " not found"))
     }
     subset.data <- data.use[, subset.name, drop = F]
     if(! is.null(x = accept.value)) {
-      pass.inds <- which(x = subset.data == accept.value)
+      if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
+        bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]
+        stop(paste("Identity :", bad.vals, "not found.   "))
+      }
+      pass.inds <- which(apply(subset.data, MARGIN = 1, function(x) x %in% accept.value))
     } else {
       pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
     }
