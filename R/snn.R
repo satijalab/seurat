@@ -5,7 +5,7 @@ NULL
 #' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
 #' first determine the k-nearest neighbors of each cell (defined by k.param *
 #' k.scale). We use this knn graph to construct the SNN graph by calculating the
-#' neighborhood overlap (Jaccard distance) between every cell and its k.param *
+#' neighborhood overlap (Jaccard index) between every cell and its k.param *
 #' k.scale nearest neighbors (defining the neighborhood for each cell as the
 #' k.param nearest neighbors).
 #'
@@ -20,7 +20,7 @@ NULL
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
 #' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---

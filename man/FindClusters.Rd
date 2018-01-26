@@ -31,7 +31,7 @@ graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Sets the cutoff for acceptable Jaccard distances when
+\item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
 graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
