@@ -1824,6 +1824,7 @@ CellPlot <- function(
 #'
 DimHeatmap <- function(
   object,
+  assay.use = "RNA",
   reduction.type = "pca",
   dim.use = 1,
   cells.use = NULL,
@@ -1880,15 +1881,13 @@ DimHeatmap <- function(
       slot = "key"
     )
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
-    #determine assay type
     data.use <- NULL
-    assays.use <- c("RNA", names(x = object@assay))
     if (! use.scale) {
       slot.use="data"
     } else {
       slot.use <- "scale.data"
     }
-    for (assay.check in assays.use) {
+    for (assay.check in assay.use) {
       data.assay <- GetAssayData(
         object = object,
         assay.type = assay.check,
