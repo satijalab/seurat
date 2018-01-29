@@ -997,16 +997,9 @@ setMethod(
                         method = 'max',
                         eps = 0.001,
                         bw.adjust = 2,
-                        return.type = "loom",
                         cell.names = "col_attrs/cell_names",
-                        filename,
-                        remove.existing = FALSE,
-                        display.progress = TRUE,
                         ...) {
     input.pcs <- paste("PC", dims.use, sep="")
-    #pcs.computed <- grep(pattern = "^PC\\d+$", x = names(object$col.attrs), value = TRUE)
-    #pcs.computed <- pcs.computed[order(as.numeric(gsub(pattern = "^PC", replacement = "", x = pcs.computed)))]
-    #input.matrix <- as.matrix(object$get.attribute.df(attribute.layer = "col", attribute.names = input.pcs))
     input.matrix <- Reduce(cbind, lapply(input.pcs, function(x) object[['col_attrs']][[x]][]))
     rownames(input.matrix) <- object[[cell.names]][]
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
@@ -1014,13 +1007,8 @@ setMethod(
                                       method = method,
                                       eps = eps,
                                       bw.adjust = bw.adjust)
-    new.loom <- SubsetSeurat(object = object, cells = cells.to.keep, 
-                             filename = filename, remove.existing = remove.existing)
-    if (return.type == "loom") {
-      return(new.loom)
-    } else {
-      return(Convert(from = new.loom, to = "seurat", ...))
-    }
+    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names=cell.names, ...)
+    return(new.object)
   }
 )
 
@@ -1129,21 +1117,15 @@ setMethod(
   signature = c('object' = 'loom'),
   definition = function(object,
                         cells,
+                        return.type = "seurat",
                         cell.names = "col_attrs/cell_names",
                         gene.names = "row_attrs/gene_names",
-                        filename,
+                        filename = NULL,
                         remove.existing = FALSE,
                         display.progress = TRUE,
                         chunk.size = 1000,
                         keep.layers = FALSE,
                         ...) {
-    if (file.exists(filename)) {
-      if (remove.existing) {
-        file.remove(filename)
-      } else {
-        stop('file ', filename, ' exists and remove.existing is set to FALSE\n')
-      }
-    }
     cell.names <- object[[cell.names]][]
     gene.names <- object[[gene.names]][]
     keep.cells <- cells[cells %in% cell.names]
@@ -1180,38 +1162,54 @@ setMethod(
     rownames(gene.attrs) <- gene.names
     colnames(gene.attrs) <- names(object[['row_attrs']])
 
-    loomfile <- create(
-      filename = filename,
-      data = mat,
-      cell.attrs = meta.data[, setdiff(colnames(meta.data), 'cell_names')],
-      gene.attrs = gene.attrs[, setdiff(colnames(gene.attrs), 'gene_names')]
-    )
-    
-    if (keep.layers) {
-      for (layer.name in names(object[['layers']])) {
-        layer.path <- paste('layers', layer.name, sep='/')
-        cat('layer', layer.path, '\n')
-        mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
-        batch <- object$batch.scan(
-          chunk.size = chunk.size,
-          MARGIN = 2,
-          dataset.use = layer.path,
-          force.reset = TRUE
-        )
-        for (i in 1:length(x = batch)) {
-          # Get the indices we're iterating over
-          chunk.indices <- object$batch.next(return.data = FALSE)
-          cat('chunk', i, '; range', range(chunk.indices), '\n')
-          chunk.data <- object[[layer.path]][chunk.indices, ]
-          chunk.cell.names <- cell.names[chunk.indices]
-          sel <- chunk.cell.names  %in% cells
-          mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
+    if (return.type == "seurat") {
+      cat('Note: SubsetSeurat is converting from loom to seurat; only raw data and cell attributes are kept, no layers\n')
+      new.object <- CreateSeuratObject(raw.data = as(t(mat), "dgCMatrix"))
+      colnames(meta.data)[colnames(meta.data) %in% colnames(new.object@meta.data)] <- paste(colnames(meta.data), 'loom', sep='.')
+      new.object@meta.data <- cbind(new.object@meta.data, meta.data)
+      return(new.object)
+    } else {
+      if (file.exists(filename)) {
+        if (remove.existing) {
+          file.remove(filename)
+        } else {
+          stop('file ', filename, ' exists and remove.existing is set to FALSE\n')
         }
-        lst <- list()
-        lst[[layer.name]] <- mat
-        loomfile$add.layer(lst)
       }
+      loomfile <- create(
+        filename = filename,
+        data = mat,
+        cell.attrs = meta.data[, setdiff(colnames(meta.data), 'cell_names')],
+        gene.attrs = gene.attrs[, setdiff(colnames(gene.attrs), 'gene_names')], ...
+      )
+      
+      if (keep.layers) {
+        for (layer.name in names(object[['layers']])) {
+          layer.path <- paste('layers', layer.name, sep='/')
+          cat('layer', layer.path, '\n')
+          mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
+          batch <- object$batch.scan(
+            chunk.size = chunk.size,
+            MARGIN = 2,
+            dataset.use = layer.path,
+            force.reset = TRUE
+          )
+          for (i in 1:length(x = batch)) {
+            # Get the indices we're iterating over
+            chunk.indices <- object$batch.next(return.data = FALSE)
+            cat('chunk', i, '; range', range(chunk.indices), '\n')
+            chunk.data <- object[[layer.path]][chunk.indices, ]
+            chunk.cell.names <- cell.names[chunk.indices]
+            sel <- chunk.cell.names  %in% cells
+            mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
+          }
+          lst <- list()
+          lst[[layer.name]] <- mat
+          loomfile$add.layer(lst)
+        }
+      }
+      return(loomfile)
     }
-    return(loomfile)
+    
   }
 )
