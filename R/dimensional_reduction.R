@@ -180,7 +180,7 @@ setMethod(
         genes.use <- which(x = object[[gene.names]][] %in% genes.use)
       }
       # Initial PCA calculation
-      cells.use <- object$shape[1]
+      cells.use <- object[[scale.data]]$dims[1]
       cells.initial <- min(cells.initial, cells.use)
       if (display.progress) {
         cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')

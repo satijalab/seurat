@@ -2428,7 +2428,7 @@ setMethod(
       dims.plot <- paste('col_attrs', dims.plot, sep = '/')
     }
     if (is.null(x = cells.use)) {
-      cells.use <- 1:object$shape[1]
+      cells.use <- 1:object[[ident.use]]$dims[1]
     } else if (!is.numeric(x = cells.use)) {
       stop("'cells.use' must be numeric")
     }
