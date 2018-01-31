@@ -40,7 +40,7 @@ setGeneric(
 #'
 setGeneric(
   name = 'ProjectSeurat',
-  def = function(object, ...) {
+  def = function(object, template, ...) {
     return(standardGeneric(f = 'ProjectSeurat'))
   }
 )

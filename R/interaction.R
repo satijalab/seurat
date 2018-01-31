@@ -1017,16 +1017,17 @@ setMethod(
 #'
 setMethod(
   f = 'ProjectSeurat',
-  signature = c('object' = 'seurat'),
+  signature = c('object' = 'dgCMatrix'),
   definition = function(object,
-                        umi.mat,
+                        template,
                         return.type = "seurat",
                         filename,
                         display.progress = TRUE,
                         ...) {
+    umi.mat <- object
     # Should we filter the UMI matrix here and potentially remove cells?
     # for now assume it has already been filtered and use as is
-    if (any(colnames(x = umi.mat) %in% object@cell.names)) {
+    if (any(colnames(x = umi.mat) %in% template@cell.names)) {
       stop("One or more cell names in UMI matrix match existing cells")
     }
     # todo (maybe): add raw data of new cells to existing raw data
@@ -1036,44 +1037,44 @@ setMethod(
     # genes were centered and scaled
     # pca was used as dimensionality reduction
     
-    # get some information from the existing object
-    object.vg <- rownames(object@scale.data)
-    object.gene.mean <- apply(object@data[object.vg, ], 1, mean)
-    object.gene.sd <- apply(object@data[object.vg, ], 1, sd)
+    # get some information from the existing template
+    template.vg <- rownames(template@scale.data)
+    template.gene.mean <- apply(template@data[template.vg, ], 1, mean)
+    template.gene.sd <- apply(template@data[template.vg, ], 1, sd)
     
     # log-norm UMI matrix
     n.gene <- apply(umi.mat > 0, 2, sum)
     n.umi <- apply(umi.mat, 2, sum)
-    expr <- log1p(sweep(as.matrix(umi.mat[object.vg, ]), 2, n.umi, FUN='/') * 10000)
+    expr <- log1p(sweep(as.matrix(umi.mat[template.vg, ]), 2, n.umi, FUN='/') * 10000)
     # scale
-    expr <- (expr - object.gene.mean) / object.gene.sd
+    expr <- (expr - template.gene.mean) / template.gene.sd
     
     # append to scale.data (maybe we don't want to update this slot and will remove this in the future)
-    object@scale.data <- cbind(object@scale.data, expr)
+    template@scale.data <- cbind(template@scale.data, expr)
     
     # update meta data
-    md <- data.frame(matrix(NA, ncol(expr), ncol(object@meta.data), dimnames=list(colnames(expr), colnames(object@meta.data))))
+    md <- data.frame(matrix(NA, ncol(expr), ncol(template@meta.data), dimnames=list(colnames(expr), colnames(template@meta.data))))
     md$nGene <- n.gene
     md$nUMI <- n.umi
     md$projected <- TRUE
-    object@meta.data$projected <- FALSE
-    object@meta.data <- rbind(object@meta.data, md)
-    object@cell.names <- rownames(object@meta.data)
+    template@meta.data$projected <- FALSE
+    template@meta.data <- rbind(template@meta.data, md)
+    template@cell.names <- rownames(template@meta.data)
     
-    # apply PCA transformation (assuming PCA was performed on original object)
-    v <- object@dr[['pca']]@gene.loadings
-    d <- object@dr[['pca']]@sdev * sqrt(nrow(object@dr[['pca']]@cell.embeddings) - 1)
+    # apply PCA transformation (blindly assume PCA was run before on template)
+    v <- template@dr[['pca']]@gene.loadings
+    d <- template@dr[['pca']]@sdev * sqrt(nrow(template@dr[['pca']]@cell.embeddings) - 1)
     pca.genes <- rownames(v)
-    object@dr[['pca']]@cell.embeddings <- t(object@scale.data[pca.genes, ]) %*% v
-    if (!object@calc.params$RunPCA$weight.by.var) {
-      object@dr[['pca']]@cell.embeddings <- sweep(object@dr[['pca']]@cell.embeddings, 2, d, FUN='/')
+    template@dr[['pca']]@cell.embeddings <- t(template@scale.data[pca.genes, ]) %*% v
+    if (!template@calc.params$RunPCA$weight.by.var) {
+      template@dr[['pca']]@cell.embeddings <- sweep(template@dr[['pca']]@cell.embeddings, 2, d, FUN='/')
     }
     
     # map all new cells onto tSNE space
-    dims.use <- object@calc.params$RunTSNE$dims.use
+    dims.use <- template@calc.params$RunTSNE$dims.use
     k <- 31
-    new.cell <- object@meta.data$projected
-    ce <- object@dr[['pca']]@cell.embeddings
+    new.cell <- template@meta.data$projected
+    ce <- template@dr[['pca']]@cell.embeddings
     knn.out <- FNN::get.knnx(data=ce[!new.cell, dims.use], query=ce[new.cell, dims.use], k=k)
     
     # use weighted average of k nearest neighbors for tsne mapping 
@@ -1084,27 +1085,145 @@ setMethod(
     w <- w / rowSums(w)
     nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
                                    dims=c(sum(new.cell), sum(!new.cell)), giveCsparse=TRUE, 
-                                   dimnames = list(object@cell.names[new.cell], object@cell.names[!new.cell]))
-    tsne.proj <- nn.mat %*% object@dr[['tsne']]@cell.embeddings
-    object@dr[['tsne']]@cell.embeddings <- rbind(object@dr[['tsne']]@cell.embeddings, as.matrix(tsne.proj))
+                                   dimnames = list(template@cell.names[new.cell], template@cell.names[!new.cell]))
+    tsne.proj <- nn.mat %*% template@dr[['tsne']]@cell.embeddings
+    template@dr[['tsne']]@cell.embeddings <- rbind(template@dr[['tsne']]@cell.embeddings, as.matrix(tsne.proj))
     
     # assign cluster IDs to new cells using knn
-    dims.use <- object@calc.params$FindClusters.res.0.8$dims.use
+    dims.use <- template@calc.params$FindClusters.res.0.8$dims.use
     knn.cluster <- class::knn(train = ce[!new.cell, dims.use], 
                               test = ce[new.cell, dims.use], 
-                              cl = object@meta.data$res.0.8[!new.cell], 
+                              cl = template@meta.data$res.0.8[!new.cell], 
                               k = 1, l = 0, prob = FALSE, use.all = TRUE)
-    object@meta.data$res.0.8[new.cell] <- as.character(knn.cluster)
-    object@ident <- factor(object@meta.data$res.0.8, ordered=TRUE, 
-                           levels=as.character(sort(as.numeric(unique(object@meta.data$res.0.8)))))
-    names(object@ident) <- object@cell.names
+    template@meta.data$res.0.8[new.cell] <- as.character(knn.cluster)
+    template@ident <- factor(template@meta.data$res.0.8, ordered=TRUE, 
+                           levels=as.character(sort(as.numeric(unique(template@meta.data$res.0.8)))))
+    names(template@ident) <- template@cell.names
     
     if (return.type == "seurat") {
-      return(object)
+      return(template)
     } else {
-      return(Convert(from = object, to = "loom", filename = filename, overwrite = overwrite, 
+      return(Convert(from = template, to = "loom", filename = filename, overwrite = overwrite, 
                      display.progress = display.progress, ...))
     }
+  }
+)
+
+#' @rdname ProjectSeurat
+#' @exportMethod ProjectSeurat
+#'
+setMethod(
+  f = 'ProjectSeurat',
+  signature = c('object' = 'loom', 'template' = 'seurat'),
+  definition = function(object,
+                        template,
+                        gene.names = "row_attrs/gene_names",
+                        cell.names = "col_attrs/cell_names",
+                        norm.data = 'layers/norm_data',
+                        scale.data = 'layers/scale_data',
+                        chunk.size = 1000,
+                        overwrite = FALSE,
+                        tsne.k = 31,
+                        tsne.rbf.gamma = 20,
+                        cluster.k = 1,
+                        cluster.res = 'res.0.8',
+                        ...) {
+    umi.mat <- object[['matrix']]
+    cell.names <- object[[cell.names]][]
+    gene.names <- object[[gene.names]][]
+    message('ProjectSeurat: object containing the raw data is loom; seurat object contains instructions for projection; raw data loom object will be edited in place')
+    message('\tseurat template contains', ncol(template@scale.data), 'cells', sep = ' ')
+    message('\t', umi.mat$dims[1], 'cells to be projected', sep = ' ')
+    common.cells <- intersect(cell.names, colnames(template@scale.data))
+    message('\t', length(common.cells), 'cells are common to both data sets', sep = ' ')
+    
+    # log-norm input data
+    message('Normalize data')
+    object <- NormalizeData(object, scale.factor=template@calc.params$NormalizeData$scale.factor, 
+                            overwrite=overwrite)
+    
+    # scale
+    message('Scale data')
+    # get parameters from the seurat template
+    pars <- template@calc.params$ScaleData
+    #genes.use <- pars$genes.use #rownames(template@scale.data)
+    genes.use <- gene.names
+    if (pars$do.center) {
+      gene.mean <- apply(template@data[genes.use, ], 1, mean)
+    } else {
+      gene.mean <- rep(0, length(genes.use))
+    }
+    if (pars$do.scale) {
+      gene.sd <- apply(template@data[genes.use, ], 1, sd)
+    } else {
+      gene.sd <- rep(1, length(genes.use))
+    }
+    object$apply(
+      name = scale.data,
+      FUN = function(mat) {
+        chunk.scaled <- sweep(sweep(mat, 2, gene.mean, FUN = '-'), 2, gene.sd, FUN = '/')
+        chunk.scaled[chunk.scaled > pars$scale.max] <- pars$scale.max
+        return(chunk.scaled)
+      },
+      MARGIN = 2,
+      chunk.size = chunk.size,
+      dataset.use = norm.data,
+      overwrite = overwrite,
+      display.progress = TRUE
+    )
+    
+    # apply PCA transformation saved in template
+    message('Apply PCA transformation')
+    v <- template@dr[['pca']]@gene.loadings
+    pca.genes <- gene.names %in% rownames(v)
+    cell.embeddings <- object$map(
+      FUN = function(mat) {mat[, pca.genes] %*% v},
+      MARGIN = 2,
+      chunk.size = chunk.size,
+      dataset.use = scale.data,
+      display.progress = TRUE
+    )
+    if (!template@calc.params$RunPCA$weight.by.var) {
+      d <- template@dr[['pca']]@sdev * sqrt(nrow(template@dr[['pca']]@cell.embeddings) - 1)
+      cell.embeddings <- sweep(cell.embeddings, 2, d, FUN='/')
+    }
+    colnames(cell.embeddings) <- paste0("PC", 1:ncol(cell.embeddings))
+    object$add.col.attribute(attribute = as.data.frame(cell.embeddings), overwrite = overwrite)
+    
+    # map all new cells onto tSNE space
+    message('Apply nearest neighbor tSNE mapping; tsne.k is ', tsne.k, '; rsne.rbf.gamma is ', tsne.rbf.gamma)
+    dims.use <- template@calc.params$RunTSNE$dims.use
+    knn.out <- FNN::get.knnx(data=template@dr[['pca']]@cell.embeddings[, dims.use], 
+                             query=cell.embeddings[, dims.use], k=tsne.k)
+    # use weighted average of k nearest neighbors for tsne mapping 
+    j <- as.numeric(t(knn.out$nn.index))
+    i <- ((1:length(j))-1) %/% tsne.k + 1
+    w <- exp(-tsne.rbf.gamma * knn.out$nn.dist / knn.out$nn.dist[, tsne.k])
+    w <- w / rowSums(w)
+    nn.mat <- Matrix::sparseMatrix(i=i, j=j, x=as.numeric(t(w)), 
+                                   dims=c(nrow(cell.embeddings), nrow(template@dr[['pca']]@cell.embeddings)), 
+                                   giveCsparse=TRUE, 
+                                   dimnames = list(cell.names, template@cell.names))
+    tsne.proj <- as.matrix(nn.mat %*% template@dr[['tsne']]@cell.embeddings)
+    colnames(tsne.proj) <- paste0("tSNE_", 1:ncol(tsne.proj))
+    object$add.col.attribute(attribute = as.data.frame(tsne.proj), overwrite = overwrite)
+    rm(knn.out, j, i, w, nn.mat)
+    gc()
+    
+    # assign cluster IDs to new cells using knn
+    message('Apply nearest neighbor cluster classification; cluster.k is ', cluster.k, '; cluster.res is ', cluster.res)
+    dims.use <- template@calc.params[[paste0('FindClusters.', cluster.res)]]$dims.use
+    knn.cluster <- class::knn(train = template@dr[['pca']]@cell.embeddings[, dims.use], 
+                              test = cell.embeddings[, dims.use], 
+                              cl = template@meta.data[[cluster.res]],
+                              k = cluster.k, l = 0, prob = FALSE, use.all = TRUE)
+    knn.cluster <- factor(knn.cluster, ordered=TRUE, 
+                          levels=as.character(sort(as.numeric(levels(knn.cluster)))))
+    clustering <- list(ident = knn.cluster)
+    clustering[[cluster.res]] <- knn.cluster
+    object$add.col.attribute(attribute = clustering, overwrite = overwrite)
+    
+    return(object)
   }
 )
 
