@@ -34,7 +34,9 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{do.hover}{Enable hovering over points to view information}
 
-\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.}
+\item{data.hover}{Data to add to the hover, pass a character vector of
+features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
+information.}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 
@@ -51,7 +53,8 @@ No return, only graphical output
 }
 \description{
 Creates a scatter plot of two features (typically gene expression), across a
-set of single cells. Cells are colored by their identity class.
+set of single cells. Cells are colored by their identity class. Pearson
+correlation between the two features is displayed above the plot.
 }
 \examples{
 GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')

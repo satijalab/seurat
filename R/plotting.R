@@ -1535,7 +1535,8 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Scatter plot of single cell data
 #'
 #' Creates a scatter plot of two features (typically gene expression), across a
-#' set of single cells. Cells are colored by their identity class.
+#' set of single cells. Cells are colored by their identity class. Pearson
+#' correlation between the two features is displayed above the plot.
 #'
 #' @param object Seurat object
 #' @inheritParams FetchData
@@ -1550,7 +1551,9 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' @param use.scaled Use scaled data
 #' @param use.raw Use raw data
 #' @param do.hover Enable hovering over points to view information
-#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.
+#' @param data.hover Data to add to the hover, pass a character vector of
+#' features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
+#' information.
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param dark.theme Use a dark theme for the plot
 #' @param do.spline Add a spline (currently hardwired to df=4, to be improved)
@@ -1704,7 +1707,8 @@ GenePlot <- function(
 globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' Cell-cell scatter plot
 #'
-#' Creates a plot of scatter plot of genes across two single cells
+#' Creates a plot of scatter plot of genes across two single cells. Pearson
+#' correlation between the two cells is displayed above the plot.
 #'
 #' @param object Seurat object
 #' @param cell1 Cell 1 name (can also be a number, representing the position in
