@@ -797,7 +797,7 @@ FindVariableGenes <- function(
     }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
-    data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    data_x_bin <- cut(x = gene.mean, breaks = c(-1,quantile(gene.mean[gene.mean>0],probs=seq(0,1,length.out=num.bin))))
     names(x = data_x_bin) <- names(x = gene.mean)
     mean_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = mean)
     sd_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = sd)
