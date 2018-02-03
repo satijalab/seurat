@@ -311,11 +311,12 @@ AddSamples <- function(
 #' Return a subset of the Seurat object.
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Forms a dataframe by fetching the variables in vars.use, then
-#' subsets it using predicate in base::subset and returns the corresponding subset of the Seurat object. 
+#' original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
+#' subsets it using \code{base::subset} with \code{predicate} as the filter.
+#' Returns the corresponding subset of the Seurat object. 
 #'
 #' @param object Seurat object
-#' @param vars.use Variables to fetch for use in base::subset.
+#' @param vars.use Variables to fetch for use in base::subset. Character vector.
 #' @param predicate String to be parsed into an R expression and evaluated as an input to base::subset.
 #' 
 #' @export

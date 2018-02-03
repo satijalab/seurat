@@ -9,14 +9,15 @@ SubsetSeurat(object, vars.use, predicate)
 \arguments{
 \item{object}{Seurat object}
 
-\item{vars.use}{Variables to fetch for use in base::subset.}
+\item{vars.use}{Variables to fetch for use in base::subset. Character vector.}
 
 \item{predicate}{String to be parsed into an R expression and evaluated as an input to base::subset.}
 }
 \description{
 Creates a Seurat object containing only a subset of the cells in the
-original object. Forms a dataframe by fetching the variables in vars.use, then
-subsets it using predicate in base::subset and returns the corresponding subset of the Seurat object.
+original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
+subsets it using \code{base::subset} with \code{predicate} as the filter.
+Returns the corresponding subset of the Seurat object.
 }
 \examples{
 pbmc1 <- SubsetSeurat(object = pbmc_small, 
