@@ -1353,6 +1353,42 @@ WilcoxDETest <- function(
   return(to.return)
 }
 
+
+LRDETest <- function(
+  object,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  genes.use = NULL,
+  print.bar = TRUE,
+  assay.type = "RNA",
+  ...
+) {
+  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
+  # check that the gene made it through the any filtering that was done
+  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
+  coldata <- object@meta.data[c(cells.1, cells.2), ]
+  coldata[cells.1, "group"] <- "Group1"
+  coldata[cells.2, "group"] <- "Group2"
+  coldata$group <- factor(x = coldata$group)
+  coldata$wellKey <- rownames(x = coldata)
+  countdata.test <- data.test[genes.use, rownames(x = coldata)]
+  mysapply <- if (print.bar) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = countdata.test),
+    FUN = function(x) {
+      model1 <- glm(coldata$group ~ countdata.test[x,],family = "binomial")
+      model2 <- glm(coldata$group ~ 1, family = "binomial")
+      lrtest <- lrtest(model1, model2)
+      return(lrtest$Pr[2])
+    }
+  )
+  genes.return <- rownames(x = countdata.test)
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
+
 #' Differential expression testing using Tobit models
 #'
 #' Identifies differentially expressed genes between two groups of cells using
