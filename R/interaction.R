@@ -912,6 +912,95 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
   return(object)
 }
 
+
+#' Transfer identity class information (or meta data) from one object to another
+#'
+#' Transfers identity class information (or meta data) from one object to another, assuming the same cell barcode names are in each. Can be very useful if you have multiple Seurat objects that share a subset of underlying data.
+#'
+#' @param object.from Seurat object to transfer information from
+#' @param object.to Seurat object to transfer information onto
+#' @param data.to.transfer What data should be transferred over? Default is the identity class ("ident"), but can also include any column in object.from@@meta.data 
+#' @param keep.existing For cells in object.to that are not present in object.from, keep existing data? TRUE by default. If FALSE, set to NA.
+#' @param add.cell.id1 Prefix to add (followed by an underscore) to cells in object.from. NULL by default, in which case no prefix is added.
+#'
+#' @return A Seurat object where object@@ident or object@@meta.data has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' NEED AN EXAMPLE
+#'
+TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", keep.existing = TRUE, add.cell.id1=NULL) {
+  old_data <- as.character(FetchData(object = object.from, vars.all = data.to.transfer)[,1]); names(old_data) = object.from@cell.names
+  if (data.to.transfer %in% c("ident", colnames(object.to@meta.data))) {
+    new_data <- FetchData(object = object.to, vars.all = data.to.transfer)
+    if (!keep.existing) new_data[,1] = "NA"
+    new_data = as.character(new_data[,1])
+  }
+  else {
+    new_data <- rep("NA", length(object.to@cell.names))
+  }
+  names(new_data) = object.to@cell.names
+  if (!is.null(add.cell.id1)) names(old_data) = paste(names(old_data),add.cell.id1,sep="_")
+  new_data[names(old_data)]=old_data
+  if (data.to.transfer == "ident") {
+    object.to <- SetIdent(object.to, cells.use = names(new_data), ident.use = new_data)
+  }
+  else {
+    object.to <- AddMetaData(object = object.to, metadata = new_data,col.name = data.to.transfer)
+  }
+  return(object.to)
+}
+
+#' Splits object into a list of subsetted objects.
+#'
+#' Splits object based on a single attribute into a list of subsetted objects, one for each level of the attribute. For example, useful for taking an object that contains cells from many patients, and subdividing it into patient-specific objects.
+#'
+#' @param object Seurat object
+#' @param attribute.1 Attribute for splitting. Default is "ident". Currently only supported for class-level (i.e. non-quantitative) attributes.
+#' @param \dots Additional parameters to pass to SubsetData 
+#' @return A named list of Seurat objects, each containing a subset of cells from the original object.
+#'
+#' @export
+#'
+#' @examples
+#' NEED AN EXAMPLE
+#'
+SplitObject <- function(object, attribute.1="ident") {
+  old_data <- FetchData(object = object,vars.all = attribute.1)[,1]
+  old_levels <- unique(as.character(old_data))
+  to_return = list()
+  for (i in old_levels) {
+    if (attribute.1=="ident") {
+      to_return[[i]] <- SubsetData(object,ident.use = i)
+    }
+    else {
+      to_return[[i]] <- SubsetData(object,subset.name = attribute.1,accept.value = i)
+    }
+  }
+  return(to_return)
+}
+
+#' Sets identity class information to be a combination of two object attributes
+#'
+#' Combined two attributes to define identity classes. Very useful if, for example, you have multiple cell types and multiple replicates, and you want to group cells based on combinations of both.
+#'
+#' @param object Seurat object
+#' @param attribute.1 First attribute for combination. Default is "ident"
+#' @param attribute.2 Second attribute for combination. Default is "orig.ident"
+#' @return A Seurat object where object@@ident has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' NEED AN EXAMPLE
+#'
+CombineIdent <- function(object, attribute.1="ident", attribute.2="orig.ident") {
+  old_data <- FetchData(object = object,vars.all = c(attribute.1,attribute.2))
+  new_ids <- sapply(X = 1:nrow(old_data), FUN = function(x) paste(as.character(old_data[x,1]),as.character(old_data[x,2]),sep = "_"))
+  object <- SetIdent(object = object,cells.use = object@cell.names,ident.use = new_ids)
+}
+
 #' Add Metadata
 #'
 #' Adds additional data for single cells to the Seurat object. Can be any piece
