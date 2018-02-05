@@ -54,7 +54,8 @@ Imports:
     diffusionMap,
     Hmisc,
     tidyr,
-    ggridges
+    ggridges,
+    metap
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
@@ -95,5 +96,4 @@ Suggests:
     testthat,
     SummarizedExperiment,
     MAST,
-    DESeq2,
-    MetaDE
+    DESeq2
