@@ -78,8 +78,8 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 
 #' Assay Data Mutator Function
 #'
-#' Store information for specified assay, for multimodal analysis. new.data 
-#' needs to have cells as the columns and measurement features (e.g. genes, 
+#' Store information for specified assay, for multimodal analysis. new.data
+#' needs to have cells as the columns and measurement features (e.g. genes,
 #' proteins, etc ...) as rows. Additionally, all the cell names in the new.data
 #' must match the cell names in the object (object@@cell.names).
 #'
@@ -178,94 +178,107 @@ CollapseSpeciesExpressionMatrix <- function(
 #' Assign sample-of-origin for each cell, annotate doublets.
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized in the HTO slot.
-#' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'. 
+#' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'.
 #' @param init_centers Initial number of clusters for kmeans of the HTO oligos. Default is the # of samples + 1 (to account for negatives)
 #' @param cluster_nstarts nstarts value for the initial k-means clustering
+#' @param print.output Prints the output
 #' @return Seurat object. Demultiplexed information is stored in the object meta data.
+#'
+#' @importFrom fitdistrplus fitdist
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' object <- HTODemux(object)
 #' }
-HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL, cluster_nstarts = 100) {  
+HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
+                     cluster_nstarts = 100, print.output = TRUE) {
   #hashing
-  maxN <- function(x, N=2){
-    len <- length(x)
-    if(N>len){
-      warning('N greater than length(x).  Setting N=length(x)')
-      N <- length(x)
-    }
-    sort(x,partial=len-N+1)[len-N+1]
-  }
-  
-  hash_data = GetAssayData(object,"HTO")
-  hash_raw_data = GetAssayData(object,"HTO",slot = "raw.data")[,object@cell.names]
-  ncenters <- SetIfNull(init_centers, nrow(hash_data)+1)
-  hto_init_clusters=kmeans(t(GetAssayData(object,"HTO")),centers = ncenters,nstart = cluster_nstarts)
-  
+  hash_data <- GetAssayData(object = object, assay.type = "HTO")
+  hash_raw_data <- GetAssayData(object = object,
+                                assay.type = "HTO",
+                                slot = "raw.data")[, object@cell.names]
+  ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
+  hto_init_clusters <- kmeans(t(x = GetAssayData(object = object, assay.type = "HTO")),
+                              centers = ncenters,
+                              nstart = cluster_nstarts)
+
   #identify positive and negative signals for all HTO
-  object <- SetIdent(object, names(hto_init_clusters$cluster),hto_init_clusters$cluster)
-  
+  object <- SetIdent(object = object,
+                     cells.use = names(hto_init_clusters$cluster),
+                     ident.use = hto_init_clusters$cluster)
+
   #work around so we don't average all the RNA levels which takes time
   object2 <- object
-  object2@data <- object2@data[1:10,]
-  hto_averages <- AverageExpression(object, return.seurat = T,show.progress = F)
-  average_hto <- GetAssayData(hto_averages, "HTO", "raw.data")
-  
-  hto_discrete <- GetAssayData(object, "HTO")
-  hto_discrete[hto_discrete>0] = 0
-  hash_data = GetAssayData(object,"HTO")
-  hash_raw_data = GetAssayData(object,"HTO",slot = "raw.data")
-  
+  object2@data <- object2@data[1:10, ]
+  hto_averages <- AverageExpression(object = object,
+                                    return.seurat = TRUE,
+                                    show.progress = FALSE)
+  average_hto <- GetAssayData(object = hto_averages,
+                              assay.type = "HTO",
+                              slot = "raw.data")
+
+  hto_discrete <- GetAssayData(object = object, assay.type = "HTO")
+  hto_discrete[hto_discrete > 0] <- 0
+  hash_data <- GetAssayData(object = object, assay.type = "HTO")
+  hash_raw_data <- GetAssayData(object = object,
+                                assay.type = "HTO",
+                                slot = "raw.data")
+
   #for each HTO, we will use the minimum cluster for fitting
   for(hto_iter in rownames(hash_data)) {
-    hto_values <- hash_raw_data[hto_iter,object@cell.names]
+    hto_values <- hash_raw_data[hto_iter, object@cell.names]
     #commented out if we take all but the top cluster as background
     #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
-    hto_values_use=hto_values[WhichCells(object,which.min(average_hto[hto_iter,]))]
-    
+    hto_values_use <- hto_values[WhichCells(object = object,
+                                            ident = which.min(average_hto[hto_iter, ]))]
+
     #throw off the top 0% of values, probably should be excluded for the min
     #hto_values_use <- hto_values_negative[hto_values_negative<quantile(hto_values_negative,1)]
-    
-    library(fitdistrplus)
-    hto_fit = fitdist(hto_values_use, "nbinom")
-    hto_cutoff <- as.numeric(quantile(hto_fit,percent_cutoff)$quantiles[1])
-    hto_discrete[hto_iter, names(which(hto_values>hto_cutoff))] = 1
-    print(paste("Cutoff for " , hto_iter, " : ", hto_cutoff, " reads", sep=""))
+    hto_fit <- fitdist(hto_values_use, "nbinom")
+    hto_cutoff <- as.numeric(quantile(hto_fit, percent_cutoff)$quantiles[1])
+    hto_discrete[hto_iter, names(which(hto_values > hto_cutoff))] <- 1
+    if (print.output) {
+      print(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
+    }
   }
-  
+
   # now assign cells to HTO based on discretized values
   num_hto_positive <- colSums(hto_discrete)
   hto_classification_global <- num_hto_positive
-  hto_classification_global[num_hto_positive==0]="Negative"
-  hto_classification_global[num_hto_positive==1]="Singlet"
-  hto_classification_global[num_hto_positive>1]="Doublet"
-  
+  hto_classification_global[num_hto_positive == 0] <- "Negative"
+  hto_classification_global[num_hto_positive == 1] <- "Singlet"
+  hto_classification_global[num_hto_positive > 1] <- "Doublet"
+
   donor_id = rownames(hash_data)
-  hash_max=apply(hash_data,2,max)
-  hash_maxID=apply(hash_data,2,which.max)
-  hash_second=apply(hash_data,2,maxN,2)
-  hash_maxID=as.character(donor_id[sapply(1:ncol(hash_data),function(x)(which(hash_data[,x]==hash_max[x]))[1])])
-  hash_secondID=as.character(donor_id[sapply(1:ncol(hash_data),function(x)(which(hash_data[,x]==hash_second[x]))[1])])
-  hash_margin=hash_max-hash_second
-  doublet_id = sapply(1:length(hash_maxID), function(x) paste(sort(c(hash_maxID[x], hash_secondID[x])),collapse = "_"));
-  
-  doublet_names = names(table(doublet_id))[-1]
-  
+  hash_max <- apply(X = hash_data, MARGIN = 2, FUN = max)
+  hash_maxID <- apply(X = hash_data, MARGIN = 2, FUN = which.max)
+  hash_second<- apply(X = hash_data, MARGIN = 2, FUN = function(x) MaxN(x, 2))
+  hash_maxID <- as.character(donor_id[sapply(X = 1:ncol(hash_data), function(x) which(hash_data[, x] == hash_max[x])[1])])
+  hash_secondID <- as.character(donor_id[sapply(X = 1:ncol(hash_data), function(x) which(hash_data[, x] == hash_second[x])[1])])
+  hash_margin <- hash_max - hash_second
+  doublet_id <- sapply(1:length(hash_maxID), function(x) paste(sort(c(hash_maxID[x], hash_secondID[x])), collapse = "_"))
+
+  doublet_names <- names(table(doublet_id))[-1]
+
   hto_classification <- hto_classification_global
-  hto_classification[hto_classification_global=="Negative"]="Negative"
-  hto_classification[hto_classification_global=="Singlet"]=hash_maxID[which(hto_classification_global=="Singlet")]
-  hto_classification[hto_classification_global=="Doublet"]=doublet_id[which(hto_classification_global=="Doublet")]
-  
-  classification_metadata = data.frame(hash_max,hash_maxID,hash_second,hash_secondID,hash_margin,hto_classification,hto_classification_global)
-  
-  object <- AddMetaData(object,metadata = classification_metadata)
-  hto_shortID <- paste(object@meta.data$hash_maxID, object@meta.data$hto_classification_global,sep="_")
+  hto_classification[hto_classification_global == "Negative"] <- "Negative"
+  hto_classification[hto_classification_global == "Singlet"] <- hash_maxID[which(hto_classification_global == "Singlet")]
+  hto_classification[hto_classification_global == "Doublet"] <- doublet_id[which(hto_classification_global == "Doublet")]
+
+  classification_metadata <- data.frame(hash_max, hash_maxID, hash_second,
+                                        hash_secondID, hash_margin,
+                                        hto_classification,
+                                        hto_classification_global)
+
+  object <- AddMetaData(object = object, metadata = classification_metadata)
+  hto_shortID <- paste(object@meta.data$hash_maxID, object@meta.data$hto_classification_global, sep = "_")
   names(hto_shortID) <- object@cell.names
-  object <- AddMetaData(object,hto_shortID, "hto_shortID")
-  object <- SetAllIdent(object, id = "hto_shortID")
-  print(table(object@meta.data$hto_classification_global))
+  object <- AddMetaData(object = object, metadata = hto_shortID, col.name = "hto_shortID")
+  object <- SetAllIdent(object = object, id = "hto_shortID")
+  if(print.output) {
+    print(table(object@meta.data$hto_classification_global))
+  }
   return(object)
 }
 
