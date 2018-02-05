@@ -270,6 +270,17 @@ FindMarkers <- function(
       ...
     )
   }
+  if (test.use == "LR") {
+    to.return <- LRDETest(
+      object = object,
+      assay.type = assay.type,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      print.bar = print.bar,
+      ...
+    )
+  }
     if (test.use == "DESeq2") {
       to.return <- DESeq2DETest(
         object = object,
