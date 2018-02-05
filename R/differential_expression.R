@@ -60,6 +60,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' should be interpreted cautiously, as the genes used for clustering are the
 #' same genes tested for differential expression.
 #' @import pbapply
+#' @importFrom lmtest lrtest
 #'
 #' @export
 #'
@@ -1374,7 +1375,7 @@ LRDETest <- function(
   assay.type = "RNA",
   ...
 ) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
+  data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
