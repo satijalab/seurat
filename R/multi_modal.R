@@ -192,14 +192,14 @@ CollapseSpeciesExpressionMatrix <- function(
 #' object <- HTODemux(object)
 #' }
 HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
-                     cluster_nstarts = 100, print.output = TRUE) {
+                     cluster_nstarts = 100, print.output = TRUE, assay.type = "HTO") {
   #hashing
-  hash_data <- GetAssayData(object = object, assay.type = "HTO")
+  hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(object = object,
-                                assay.type = "HTO",
+                                assay.type = assay.type,
                                 slot = "raw.data")[, object@cell.names]
   ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
-  hto_init_clusters <- kmeans(t(x = GetAssayData(object = object, assay.type = "HTO")),
+  hto_init_clusters <- kmeans(t(x = GetAssayData(object = object, assay.type = assay.type)),
                               centers = ncenters,
                               nstart = cluster_nstarts)
 
@@ -215,14 +215,14 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
                                     return.seurat = TRUE,
                                     show.progress = FALSE)
   average_hto <- GetAssayData(object = hto_averages,
-                              assay.type = "HTO",
+                              assay.type = assay.type,
                               slot = "raw.data")
 
-  hto_discrete <- GetAssayData(object = object, assay.type = "HTO")
+  hto_discrete <- GetAssayData(object = object, assay.type = assay.type)
   hto_discrete[hto_discrete > 0] <- 0
-  hash_data <- GetAssayData(object = object, assay.type = "HTO")
+  hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(object = object,
-                                assay.type = "HTO",
+                                assay.type = assay.type,
                                 slot = "raw.data")
 
   #for each HTO, we will use the minimum cluster for fitting
