@@ -159,7 +159,7 @@ setMethod(
       if (is.null(genes.use)) {
         if (!is.null(ngene)) {
           # Get variable genes
-          ngene <- min(ngene, object$shape[2])
+          ngene <- min(ngene, object$shape[1])
           if (display.progress) {
             cat("Finding top", ngene, "variable genes\n", sep = ' ')
           }
@@ -260,7 +260,7 @@ setMethod(
       print(dim(rot))
       object$add.col.attribute(attribute = rot, overwrite = overwrite)
     } else {
-      if(is.null(covariance.mat)) {
+      if (is.null(x = covariance.mat)) {
         stop("Please provide covariance matrix. See BlockCov.")
       }
       # run eigenvalue decomp on covariance matrix
@@ -270,7 +270,7 @@ setMethod(
       pc.eigs <- eigen(covariance.mat)
 
       genes.use <- which(object[[gene.names]][] %in% rownames(covariance.mat))
-      pc.values <- matrix(nrow = object$shape[1], ncol = pcs.compute)
+      pc.values <- matrix(nrow = object$shape[2], ncol = pcs.compute)
       batch <- object$batch.scan(
         chunk.size = chunk.size,
         MARGIN = 2,
@@ -288,23 +288,34 @@ setMethod(
           setTxtProgressBar(pb = pb, value = i / length(x = batch))
         }
       }
-      colnames(pc.values) <- paste0("PC", 1:ncol(pc.values))
-      rownames(pc.values) <- object$col.attrs$cell_names[]
+      colnames(x = pc.values) <- paste0("PC", 1:ncol(x = pc.values))
+      # rownames(pc.values) <- object$col.attrs$cell_names[]
+      rownames(pc.values) <- object[['col_attrs/cell_names']][]
       pc.values <- pc.values[, 1:pcs.compute]
       gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
       rownames(gene.loadings) <- rownames(covariance.mat)
-      colnames(gene.loadings) <- paste0("PC", 1:ncol(gene.loadings))
-      gene.loadings <- as.data.frame(gene.loadings)
+      colnames(gene.loadings) <- paste0("PC", 1:ncol(x = gene.loadings))
+      gene.loadings <- as.data.frame(x = gene.loadings)
       missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
-      empty.rows <- as.data.frame(matrix(nrow = object$shape[2] - nrow(gene.loadings),
-                                         ncol = ncol(gene.loadings)),
-                                  row.names = missing.genes)
+      empty.rows <- as.data.frame(
+        x = matrix(
+          nrow = object$shape[1] - nrow(x = gene.loadings),
+          ncol = ncol(x = gene.loadings)
+        ),
+        row.names = missing.genes
+      )
       colnames(empty.rows) <- colnames(gene.loadings)
       gene.loadings <- rbind(gene.loadings, empty.rows)
       gene.loadings <- gene.loadings[object[[gene.names]][], ]
-      pc.values <- as.data.frame(x = pc.values)
-      object$add.col.attribute(attribute = pc.values, overwrite = overwrite)
-      object$add.row.attribute(attribute = gene.loadings, overwrite = overwrite)
+      pc.values <- as.matrix(x = pc.values)
+      object$add.col.attribute(
+        attribute = list('pc.values' = pc.values),
+        overwrite = overwrite
+      )
+      object$add.row.attribute(
+        attribute = list('gene.loadings' = gene.loadings),
+        overwrite = overwrite
+      )
     }
     object$flush()
     gc(verbose = FALSE)
