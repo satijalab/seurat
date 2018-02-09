@@ -181,10 +181,14 @@ CollapseSpeciesExpressionMatrix <- function(
 #' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'.
 #' @param init_centers Initial number of clusters for kmeans of the HTO oligos. Default is the # of samples + 1 (to account for negatives)
 #' @param cluster_nstarts nstarts value for the initial k-means clustering
+#' @param k_function Clustering function for initial HTO grouping. Default is "kmeans", also support "clara" for fast k-medoids clustering on large applications 
+#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
 #' @param print.output Prints the output
+#' @param assay.type Naming of HTO assay
 #' @return Seurat object. Demultiplexed information is stored in the object meta data.
 #'
 #' @importFrom fitdistrplus fitdist
+#' @importFrom cluster clara
 #' @export
 #'
 #' @examples
@@ -192,26 +196,38 @@ CollapseSpeciesExpressionMatrix <- function(
 #' object <- HTODemux(object)
 #' }
 HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
-                     cluster_nstarts = 100, print.output = TRUE, assay.type = "HTO") {
+                     cluster_nstarts = 100, k_function = "kmeans", nsamples = 100, 
+                     print.output = TRUE, assay.type = "HTO") {
   #hashing
   hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(object = object,
                                 assay.type = assay.type,
                                 slot = "raw.data")[, object@cell.names]
   ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
-  hto_init_clusters <- kmeans(t(x = GetAssayData(object = object, assay.type = assay.type)),
-                              centers = ncenters,
-                              nstart = cluster_nstarts)
-
-  #identify positive and negative signals for all HTO
-  object <- SetIdent(object = object,
-                     cells.use = names(hto_init_clusters$cluster),
-                     ident.use = hto_init_clusters$cluster)
-
+  
+  if (k_function == "kmeans"){
+    hto_init_clusters <- kmeans(t(x = GetAssayData(object = object, assay.type = assay.type)),
+                                centers = ncenters,
+                                nstart = cluster_nstarts)
+    #identify positive and negative signals for all HTO
+    object <- SetIdent(object = object,
+                       cells.use = names(hto_init_clusters$cluster),
+                       ident.use = hto_init_clusters$cluster)
+  }
+  else{
+    #use fast k-medoid clustering
+    hto_init_clusters <- clara(x = t(x = GetAssayData(object = object, assay.type = assay.type)),
+                               k = ncenters, samples = nsamples)
+    #identify positive and negative signals for all HTO
+    object <- SetIdent(object = object,
+                       cells.use = names(hto_init_clusters$clustering),
+                       ident.use = hto_init_clusters$clustering)
+  }
+  
   #work around so we don't average all the RNA levels which takes time
   object2 <- object
   object2@data <- object2@data[1:10, ]
-  hto_averages <- AverageExpression(object = object,
+  hto_averages <- AverageExpression(object = object2,
                                     return.seurat = TRUE,
                                     show.progress = FALSE)
   average_hto <- GetAssayData(object = hto_averages,
