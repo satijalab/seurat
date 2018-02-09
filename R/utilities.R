@@ -154,6 +154,7 @@ UpdateSeuratObject <- function(object) {
   }
   # Conversion from development versions prior to 2.0.0
   if ((.hasSlot(object, "dr"))) {
+    if (length(object@dr) > 0) {
     for (i in 1:length(object@dr)) {
       new.object@dr[[i]]@cell.embeddings <- object@dr[[i]]@rotation
       new.object@dr[[i]]@gene.loadings <- object@dr[[i]]@x
@@ -161,6 +162,7 @@ UpdateSeuratObject <- function(object) {
       new.object@dr[[i]]@sdev <- object@dr[[i]]@sdev
       new.object@dr[[i]]@key <- object@dr[[i]]@key
       new.object@dr[[i]]@misc <- object@dr[[i]]@misc
+    }
     }
   }
   # Conversion from release versions prior to 2.0.0
