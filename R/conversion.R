@@ -36,7 +36,7 @@ setMethod(
         gene.order <- rownames(x = from@raw.data)
         loomfile <- create(
           filename = filename,
-          data = t(x = as.matrix(x = from@raw.data[, cell.order])),
+          data = t(x = from@raw.data[, cell.order]),
           cell.attrs = from@meta.data[cell.order, ],
           layers = list('norm_data' = t(x = from@data[, cell.order])),
           chunk.dims = chunk.dims
