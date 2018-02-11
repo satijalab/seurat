@@ -862,8 +862,8 @@ SplitDotPlotGG <- function(
     levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  palette.1 <- CustomPalette(low = "grey", high = "blue", k = 20)
-  palette.2 <- CustomPalette(low = "grey", high = "red", k = 20)
+  palette.1 <- CustomPalette(low = "grey", high = cols.use[1], k = 20)
+  palette.2 <- CustomPalette(low = "grey", high = cols.use[2], k = 20)
   data.to.plot$ptcolor <- "grey"
   data.to.plot[vals.1, "ptcolor"] <- palette.1[as.matrix(
     x = data.to.plot[vals.1, "avg.exp.scale"]
@@ -895,11 +895,22 @@ SplitDotPlotGG <- function(
         strip.placement = "outside"
       )
   }
-  if (! plot.legend) {
-    p <- p + theme(legend.position = "none")
-  }
   if (x.lab.rot) {
     p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  }
+  if (! plot.legend) {
+    p <- p + theme(legend.position = "none")
+  } else if (plot.legend) {
+  # Get legend from plot
+  plot.legend <- cowplot::get_legend(plot = p)
+  # Get gradient legends from both palettes
+  gradient.legends <- mapply(FUN = GetGradientLegend, palette = list(palette.1, palette.2), g = list(1,2), SIMPLIFY = F, USE.NAMES = F)
+  # Remove legend from p
+  p <- p + theme(legend.position = "none")
+  # Arrange legends using plot_grid
+  legends <- cowplot::plot_grid(gradient.legends[[1]], gradient.legends[[2]], plot.legend, ncol = 1, nrow = 3, rel_heights = c(0.5, 0.5, 1), scale = c(0.5, 0.5, 0.5), align = "hv")
+  # Arrange plot and legends using plot_grid
+  p <- cowplot::plot_grid(p, legends, ncol = 2, rel_widths = c(1, 0.3), scale = c(1, 0.8))
   }
   suppressWarnings(print(p))
   if (do.return) {
