@@ -904,7 +904,7 @@ SplitDotPlotGG <- function(
   # Get legend from plot
   plot.legend <- cowplot::get_legend(plot = p)
   # Get gradient legends from both palettes
-  gradient.legends <- mapply(FUN = GetGradientLegend, palette = list(palette.1, palette.2), g = list(1,2), SIMPLIFY = F, USE.NAMES = F)
+  gradient.legends <- mapply(FUN = GetGradientLegend, palette = list(palette.1, palette.2), g = list(unique(grouping.data)), SIMPLIFY = F, USE.NAMES = F)
   # Remove legend from p
   p <- p + theme(legend.position = "none")
   # Arrange legends using plot_grid
