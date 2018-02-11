@@ -852,16 +852,16 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 # Get a gradient legend for palette of colours
 #
 # @param palette A palette of colours in hexadecimal form
-# @param g An index matching the palette
+# @param group An index matching the palette
 # This allows to give a name for the palette 
 #
 # @return A grob object for the gradient legend
 #
-GetGradientLegend <- function(palette, g) {
+GetGradientLegend <- function(palette, group) {
   # Plot for each palette a gradient legend
   p <- ggplot(data = as.data.frame(palette), mapping = aes(x = NA, y = NA)) +
     geom_point(mapping = aes(colour = 1:20)) +
-    scale_colour_gradientn(colours = palette, breaks = c(1, 20), label = c("Min", "Max"), name = g,
+    scale_colour_gradientn(colours = palette, breaks = c(1, 20), label = c("Min", "Max"), name = group,
                            guide = guide_colourbar(title.position = "top", title.hjust = 0.5, title.vjust = 0.5)) +
     theme(legend.direction = "horizontal")
   # Get legend from plot
