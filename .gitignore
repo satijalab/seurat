@@ -7,3 +7,5 @@ src/*.so
 .DS_Store
 *.pdf
 *.Rproj
+*.Rda
+*.loom
