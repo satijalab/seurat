@@ -8,9 +8,9 @@
 \usage{
 SubsetSeurat(object, cells, ...)
 
-\S4method{SubsetSeurat}{loom}(object, cells,
+\S4method{SubsetSeurat}{loom}(object, cells, return.type = "seurat",
   cell.names = "col_attrs/cell_names", gene.names = "row_attrs/gene_names",
-  filename, remove.existing = FALSE, display.progress = TRUE,
+  filename = NULL, remove.existing = FALSE, display.progress = TRUE,
   chunk.size = 1000, keep.layers = FALSE, ...)
 }
 \arguments{

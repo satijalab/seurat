@@ -3,18 +3,23 @@
 \docType{methods}
 \name{ProjectSeurat}
 \alias{ProjectSeurat}
-\alias{ProjectSeurat,seurat-method}
+\alias{ProjectSeurat,dgCMatrix,ANY-method}
+\alias{ProjectSeurat,loom,seurat-method}
 \title{Add new cells to seurat object by projection}
 \usage{
-ProjectSeurat(object, ...)
+ProjectSeurat(object, template, ...)
 
-\S4method{ProjectSeurat}{seurat}(object, umi.mat, return.type = "seurat",
-  filename, display.progress = TRUE, ...)
+\S4method{ProjectSeurat}{dgCMatrix,ANY}(object, template,
+  return.type = "seurat", filename, display.progress = TRUE, ...)
+
+\S4method{ProjectSeurat}{loom,seurat}(object, template,
+  gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
+  norm.data = "layers/norm_data", scale.data = "layers/scale_data",
+  chunk.size = 1000, overwrite = FALSE, tsne.k = 31,
+  tsne.rbf.gamma = 20, cluster.k = 1, cluster.res = "res.0.8", ...)
 }
 \arguments{
 \item{object}{An object to downsample}
-
-\item{umi.mat}{A matrix of UMI counts with rows as genes and columns as cells}
 
 \item{return.type}{Return as either a "seurat" or "loom" object}
 
@@ -23,6 +28,8 @@ ProjectSeurat(object, ...)
 \item{display.progress}{display progress of the process}
 
 \item{overwrite}{overwrite loom file if it already exists}
+
+\item{umi.mat}{A matrix of UMI counts with rows as genes and columns as cells}
 }
 \description{
 Add new cells to seurat object by projection

@@ -14,9 +14,8 @@ DownsampleSeurat(object, ...)
   filename, overwrite = FALSE, ...)
 
 \S4method{DownsampleSeurat}{loom}(object, size, dims.use = 1:10,
-  method = "max", eps = 0.001, bw.adjust = 2, return.type = "loom",
-  cell.names = "col_attrs/cell_names", filename, remove.existing = FALSE,
-  display.progress = TRUE, ...)
+  method = "max", eps = 0.001, bw.adjust = 2,
+  cell.names = "col_attrs/cell_names", ...)
 }
 \arguments{
 \item{object}{An object to downsample}
