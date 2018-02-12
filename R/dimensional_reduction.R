@@ -139,8 +139,8 @@ setMethod(
   signature = c('object' = 'loom'),
   definition = function(
     object,
-    genes.use = NULL,
     pcs.compute = 75,
+    genes.use = NULL,
     online.pca = TRUE,
     covariance.mat = NULL,
     cells.initial = 50000,
