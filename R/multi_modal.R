@@ -178,13 +178,14 @@ CollapseSpeciesExpressionMatrix <- function(
 #' Assign sample-of-origin for each cell, annotate doublets.
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized in the HTO slot.
-#' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'.
+#' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'. Default is 0.999
 #' @param init_centers Initial number of clusters for kmeans of the HTO oligos. Default is the # of samples + 1 (to account for negatives)
 #' @param cluster_nstarts nstarts value for the initial k-means clustering
 #' @param k_function Clustering function for initial HTO grouping. Default is "kmeans", also support "clara" for fast k-medoids clustering on large applications 
 #' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
 #' @param print.output Prints the output
 #' @param assay.type Naming of HTO assay
+#' @param confidence_threshold The quantile of the inferred 'positive' distribution for each HTO. Cells that have lower counts than this threshold are labeled as uncertain in the confidence field. Default is 0.05
 #' @return Seurat object. Demultiplexed information is stored in the object meta data.
 #'
 #' @importFrom fitdistrplus fitdist
@@ -195,9 +196,9 @@ CollapseSpeciesExpressionMatrix <- function(
 #' \dontrun{
 #' object <- HTODemux(object)
 #' }
-HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
+HTODemux <- function(object, percent_cutoff = 0.999, init_centers = NULL,
                      cluster_nstarts = 100, k_function = "kmeans", nsamples = 100, 
-                     print.output = TRUE, assay.type = "HTO") {
+                     print.output = TRUE, assay.type = "HTO", confidence_threshold = 0.05) {
   #hashing
   hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(object = object,
@@ -236,6 +237,10 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
 
   hto_discrete <- GetAssayData(object = object, assay.type = assay.type)
   hto_discrete[hto_discrete > 0] <- 0
+  
+  hto_prob_pos <- hto_discrete; rownames(hto_prob_pos) <- paste(rownames(hto_prob_pos),"pos",sep="_")
+  hto_prob_neg <- hto_discrete; rownames(hto_prob_neg) <- paste(rownames(hto_prob_neg),"neg",sep="_")
+  
   hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(object = object,
                                 assay.type = assay.type,
@@ -267,8 +272,10 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
     hto_values_neg <- hto_values[hto_values <= hto_cutoff]
     hto_dist_neg[[hto_iter]] <- fitdist(hto_values_neg, "nbinom")
     hto_dist_pos[[hto_iter]] <- fitdist(hto_values_pos, "nbinom")
+    hto_prob_pos[paste(hto_iter,"pos",sep="_"),]=sapply(hto_values,function(x) pnbinom(x,size = hto_dist_pos[[hto_iter]]$estimate["size"],mu = hto_dist_pos[[hto_iter]]$estimate["mu"],log.p = T))
+    hto_prob_neg[paste(hto_iter,"neg",sep="_"),]=-1*sapply(hto_values,function(x) pnbinom(x,size = hto_dist_neg[[hto_iter]]$estimate["size"],mu = hto_dist_neg[[hto_iter]]$estimate["mu"],log.p = T,lower.tail = F))
+    #hto_prob_neg=sapply(hto_values,function(x) pnbinom(x,size = hto_dist_neg[[hto_iter]]$estimate["size"],mu = hto_dist_neg[[hto_iter]]$estimate["mu"]))
   }
-  browser()
   # now assign cells to HTO based on discretized values
   num_hto_positive <- colSums(hto_discrete)
   hto_classification_global <- num_hto_positive
@@ -302,8 +309,24 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
   names(hto_shortID) <- object@cell.names
   object <- AddMetaData(object = object, metadata = hto_shortID, col.name = "hto_shortID")
   object <- SetAllIdent(object = object, id = "hto_shortID")
+  
+  object_pn <- data.frame(t(rbind(hto_prob_neg,hto_prob_pos)))
+  object <- AddMetaData(object,object_pn)
+  
+  confidence_threshold = log(confidence_threshold)
+  object@meta.data$confidence = "Confident"
+  singlet_data <-  subset(object@meta.data, hto_classification_global=="Singlet")
+  singlet_pos=sapply(1:nrow(singlet_data),function(x) singlet_data[x,paste(as.character(singlet_data[x,"hash_maxID"]),"pos",sep="_")]); names(singlet_pos) <- rownames(singlet_data)
+  object@meta.data[names(which(singlet_pos<confidence_threshold)),"confidence"]="Uncertain"
+  
+  doublet_data <-  subset(object@meta.data, hto_classification_global=="Doublet")
+  doublet_pos=sapply(1:nrow(doublet_data),function(x) doublet_data[x,paste(as.character(doublet_data[x,"hash_maxID"]),"pos",sep="_")]); names(doublet_pos) <- rownames(doublet_data)
+  object@meta.data[names(which(doublet_pos<confidence_threshold)),"confidence"]="Uncertain"
+  doublet_pos=sapply(1:nrow(doublet_data),function(x) doublet_data[x,paste(as.character(doublet_data[x,"hash_secondID"]),"pos",sep="_")]); names(doublet_pos) <- rownames(doublet_data)
+  object@meta.data[names(which(doublet_pos<confidence_threshold)),"confidence"]="Uncertain"
+  
   if(print.output) {
-    print(table(object@meta.data$hto_classification_global))
+    print(table(object@meta.data$hto_classification_global,object@meta.data$confidence))
   }
   return(object)
 }
