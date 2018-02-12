@@ -241,7 +241,12 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
                                 assay.type = assay.type,
                                 slot = "raw.data")
 
-  #for each HTO, we will use the minimum cluster for fitting
+  # for each HTO, we will use the minimum cluster for fitting
+  # we will also store positive and negative distributions for all cells after determining the cutoff
+  
+  hto_dist_pos = list()
+  hto_dist_neg = list()
+  
   for(hto_iter in rownames(hash_data)) {
     hto_values <- hash_raw_data[hto_iter, object@cell.names]
     #commented out if we take all but the top cluster as background
@@ -257,8 +262,13 @@ HTODemux <- function(object, percent_cutoff = 0.995, init_centers = NULL,
     if (print.output) {
       print(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
     }
+    
+    hto_values_pos <- hto_values[hto_values > hto_cutoff]
+    hto_values_neg <- hto_values[hto_values <= hto_cutoff]
+    hto_dist_neg[[hto_iter]] <- fitdist(hto_values_neg, "nbinom")
+    hto_dist_pos[[hto_iter]] <- fitdist(hto_values_pos, "nbinom")
   }
-
+  browser()
   # now assign cells to HTO based on discretized values
   num_hto_positive <- colSums(hto_discrete)
   hto_classification_global <- num_hto_positive
