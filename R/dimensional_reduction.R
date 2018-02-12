@@ -309,11 +309,11 @@ setMethod(
       gene.loadings <- gene.loadings[object[[gene.names]][], ]
       pc.values <- as.matrix(x = pc.values)
       object$add.col.attribute(
-        attribute = list('pc.values' = pc.values),
+        attribute = list('pca_cell_embeddings' = pc.values),
         overwrite = overwrite
       )
       object$add.row.attribute(
-        attribute = list('gene.loadings' = gene.loadings),
+        attribute = list('pca_gene_loadings' = gene.loadings),
         overwrite = overwrite
       )
     }
