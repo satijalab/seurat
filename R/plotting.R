@@ -948,6 +948,7 @@ SplitDotPlotGG <- function(
 #' @param no.legend Remove legend from the graph. Default is TRUE.
 #' @param dark.theme Plot in a dark theme
 #' @param do.return return the ggplot2 object
+#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
 #'
 #' @importFrom RColorBrewer brewer.pal.info
 #'
@@ -2277,10 +2278,9 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param plot.order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param cells.highlight A character or numeric vector of cells to highlight. If set, colors selected cells red and other cells black (white if dark.theme = TRUE)
 #' @param plot.title Title for plot
-#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG,
-#' while axes/labels retain full vector resolution. Useful for producing AI-friendly
-#' plots with large numbers of cells.
+#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
 #' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
 #' @param png.arguments Used only if vector.friendly is TRUE. Vector of three elements
 #' (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)
@@ -2322,30 +2322,46 @@ DimPlot <- function(
   no.axes = FALSE,
   dark.theme = FALSE,
   plot.order = NULL,
+  cells.highlight = NULL,
   plot.title = NULL,
-  vector.friendly=FALSE,
-  png.file=NULL,
+  vector.friendly = FALSE,
+  png.file = NULL,
   png.arguments = c(10,10, 100),
   ...
 ) {
-
   #first, consider vector friendly case
   if (vector.friendly) {
-
     previous_call <- blank_call <- png_call <-  match.call()
-    blank_call$pt.size <- -1; blank_call$do.return=T; blank_call$vector.friendly=F;
-    png_call$no.axes=T; png_call$no.legend=T; png_call$do.return=T; png_call$vector.friendly=F;
+    blank_call$pt.size <- -1
+    blank_call$do.return <- TRUE
+    blank_call$vector.friendly <- FALSE
+    png_call$no.axes <- TRUE
+    png_call$no.legend <- TRUE
+    png_call$do.return <- TRUE
+    png_call$vector.friendly <- FALSE
     blank_plot <- eval(blank_call, sys.frame(sys.parent()))
     png_plot <- eval(png_call, sys.frame(sys.parent()))
     png.file <- SetIfNull(png.file,"temp_png.png")
    # browser()
-    ggsave(filename = png.file, plot = png_plot,width=png.arguments[1], height=png.arguments[2], dpi=png.arguments[3])
-    to_return=AugmentPlot(blank_plot,png.file)
-    if (!do.return) to_return
-    if (do.return) return(to_return)
+    ggsave(
+      filename = png.file,
+      plot = png_plot,
+      width = png.arguments[1],
+      height = png.arguments[2],
+      dpi = png.arguments[3]
+    )
+    to_return <- AugmentPlot(plot1 = blank_plot, imgFile = png.file)
+    if (do.return) {
+      return(to_return)
+    } else {
+      print(to_return)
+    }
   }
-
-  embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
+  embeddings.use <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = "cell.embeddings"
+  )
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
   }
@@ -2371,17 +2387,47 @@ DimPlot <- function(
   data.plot$x <- data.plot[, dim.codes[1]]
   data.plot$y <- data.plot[, dim.codes[2]]
   data.plot$pt.size <- pt.size
-  if(!is.null(plot.order)){
-    if(any(!plot.order %in% data.plot$ident)){
+  if (!is.null(x = cells.highlight)) {
+    # Ensure that cells.highlight are in our data.frame
+    if (is.character(x = cells.highlight)) {
+      cells.highlight <- cells.highlight[cells.highlight %in% rownames(x = data.plot)]
+    } else {
+      cells.highlight <- as.numeric(x = cells.highlight)
+      cells.highlight <- cells.highlight[cells.highlight <= nrow(x = data.plot)]
+      cells.highlight <- rownames(x = data.plot)[cells.highlight]
+    }
+    if (length(x = cells.highlight) > 0) {
+      highlight <- vapply(
+        X = rownames(x = data.plot),
+        FUN = function(x) {
+          return(ifelse(test = x %in% cells.highlight, yes = 'highlight', no = 'nope'))
+        },
+        FUN.VALUE = character(length = 1L)
+      )
+      highlight <- as.factor(x = highlight)
+      data.plot$ident <- highlight
+      plot.order <- 'highlight'
+      cols.use <- c('black', 'red')
+      if (dark.theme) {
+        cols.use[1] <- 'white'
+      }
+      no.legend <- TRUE
+    }
+  }
+  if (!is.null(x = plot.order)) {
+    if (any(!plot.order %in% data.plot$ident)) {
       stop("invalid ident in plot.order")
     }
-    plot.order <- rev(c(plot.order, setdiff(unique(data.plot$ident), plot.order)))
-    data.plot$ident <- factor(data.plot$ident, levels = plot.order)
+    plot.order <- rev(x = c(
+      plot.order,
+      setdiff(x = unique(x = data.plot$ident), y = plot.order)
+    ))
+    data.plot$ident <- factor(x = data.plot$ident, levels = plot.order)
     data.plot <- data.plot[order(data.plot$ident), ]
   }
   p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
     geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
-  if (! is.null(x = pt.shape)) {
+  if (!is.null(x = pt.shape)) {
     shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
     if (is.numeric(shape.val)) {
       shape.val <- cut(x = shape.val, breaks = 5)
@@ -2393,7 +2439,7 @@ DimPlot <- function(
         size = pt.size
       )
   }
-  if (! is.null(x = cols.use)) {
+  if (!is.null(x = cols.use)) {
     p <- p + scale_colour_manual(values = cols.use)
   }
   p2 <- p +
