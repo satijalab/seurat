@@ -2325,7 +2325,7 @@ DimPlot <- function(
     png_plot <- eval(png_call, sys.frame(sys.parent()))
     png.file <- SetIfNull(png.file,"temp_png.png")
    # browser()
-    ggsave(filename = png.file, plot = png_plot,width=10, height=10, dpi=100)
+    ggsave(filename = png.file, plot = png_plot,width=png.arguments[1], height=png.arguments[2], dpi=png.arguments[3])
     to_return=AugmentPlot(blank_plot,png.file)
     if (!do.return) to_return
     if (do.return) return(to_return)
