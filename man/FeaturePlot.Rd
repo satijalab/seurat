@@ -57,6 +57,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{dark.theme}{Plot in a dark theme}
 
 \item{do.return}{return the ggplot2 object}
+
+\item{vector.friendly}{FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.}
 }
 \value{
 No return value, only a graphical output
