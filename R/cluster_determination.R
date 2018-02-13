@@ -42,7 +42,7 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
-#' @param edge.file.location Edge file to use as input for modularity optimizer jar.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix

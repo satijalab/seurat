@@ -1799,6 +1799,7 @@ CellPlot <- function(
 #' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
 #'
 #' @param object Seurat object.
+#' @param assay.use Assay to pull from - default is RNA
 #' @param reduction.type Which dimmensional reduction t use
 #' @param dim.use Dimensions to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.

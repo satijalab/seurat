@@ -13,6 +13,8 @@ DimHeatmap(object, assay.use = "RNA", reduction.type = "pca", dim.use = 1,
 \arguments{
 \item{object}{Seurat object.}
 
+\item{assay.use}{Assay to pull from - default is RNA}
+
 \item{reduction.type}{Which dimmensional reduction t use}
 
 \item{dim.use}{Dimensions to plot}
