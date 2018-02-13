@@ -279,6 +279,10 @@ PurpleAndYellow <- function(...) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
 }
 
+BlueAndRed <- function(...) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", ...))
+}
+
 # NEED TO TREAT PNG PACKAGE PROPERLY
 #' Augments ggplot2 scatterplot with a PNG image. 
 #' 
@@ -298,3 +302,6 @@ AugmentPlot=function(plot1,imgFile) {
   p1mod=plot1 + annotation_raster(img, xmin=range.values[1], xmax=range.values[2], ymin=range.values[3], ymax=range.values[4])
   return(p1mod)
 }
+
+
+>>>>>>> 10e421f1a3cc1e804c2bb56189415aa5332890e2
