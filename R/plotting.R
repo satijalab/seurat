@@ -2397,6 +2397,10 @@ DimPlot <- function(
     no.legend.title +
     theme_bw() +
     NoGrid()
+  if (dark.theme) {
+    p <- p + DarkTheme()
+    p3 <- p3 + DarkTheme()
+  }
   p3 <- p3 + theme(legend.title = element_blank())
   if (!is.null(plot.title)) {
     p3 <- p3 + ggtitle(plot.title) + theme(plot.title = element_text(hjust = 0.5))
@@ -2408,10 +2412,6 @@ DimPlot <- function(
     p3 <- p3 +
       geom_point(data = centers, mapping = aes(x = x, y = y), size = 0, alpha = 0) +
       geom_text(data = centers, mapping = aes(label = ident), size = label.size)
-  }
-  if (dark.theme) {
-    p <- p + DarkTheme()
-    p3 <- p3 + DarkTheme()
   }
   if (no.legend) {
     p3 <- p3 + theme(legend.position = "none")
