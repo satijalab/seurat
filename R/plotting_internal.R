@@ -664,32 +664,31 @@ SingleVlnPlot <- function(
       x = factor(x = ident),
       y = feature
     )
-  ) +
+  ) + 
     geom_violin(
       scale = "width",
       adjust = adjust.use,
       trim = TRUE,
       mapping = aes(fill = factor(x = ident))
     ) +
-    theme(
-      legend.position = legend.position,
-      axis.title.x = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.x.use
-      ),
-      axis.title.y = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.y.use
-      )
-    ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
     xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
-    theme(plot.title = element_text(size = size.title.use, face = "bold"))
+    theme(plot.title = element_text(size = size.title.use, face = "bold"),
+          legend.position = legend.position,
+          axis.title.x = element_text(
+              face = "bold",
+              colour = "#990000",
+              size = size.x.use
+          ),
+          axis.title.y = element_text(
+              face = "bold",
+              colour = "#990000",
+              size = size.y.use
+          )
+   )
   plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
@@ -709,10 +708,10 @@ SingleVlnPlot <- function(
     plot <- plot + scale_fill_manual(values = cols.use)
   }
   if (x.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=size.x.use))
   }
   if (y.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90))
+    plot <- plot + theme(axis.text.x = element_text(angle = 90, size=size.y.use))
   }
   if (remove.legend) {
     plot <- plot + theme(legend.position = "none")
