@@ -157,9 +157,31 @@ SingleFeaturePlot <- function(
   min.cutoff,
   max.cutoff,
   no.axes,
+  no.title=FALSE,
   no.legend,
-  dark.theme
+  dark.theme,
+  vector.friendly=FALSE,
+  png.file=NULL,
+  png.arguments=c(10,10,100)
 ) {
+  
+  #first, consider vector friendly case
+  if (vector.friendly) {
+    #browser()
+    previous_call <- blank_call <- png_call <-  match.call()
+    blank_call$pt.size <- -1;  blank_call$vector.friendly=F;
+    png_call$no.axes=T; png_call$no.legend=T;  png_call$vector.friendly=F; png_call$no.title=TRUE;
+    blank_plot <- eval(blank_call, sys.frame(sys.parent()))
+    png_plot <- eval(png_call, sys.frame(sys.parent()))
+    png.file <- SetIfNull(png.file,"temp_png.png")
+    # browser()
+    ggsave(filename = png.file, plot = png_plot,width=png.arguments[1], height=png.arguments[2], dpi=png.arguments[3])
+    to_return=AugmentPlot(blank_plot,png.file)
+    return(to_return)
+  }
+  
+  
+  
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
@@ -225,8 +247,11 @@ SingleFeaturePlot <- function(
       )
     }
   }
+  if (dark.theme) {
+    p <- p + DarkTheme()
+  }
   if (no.axes) {
-    p <- p + labs(title = feature, x ="", y="") + theme(
+    p <- p + theme(
       axis.line = element_blank(),
       axis.text.x = element_blank(),
       axis.text.y = element_blank(),
@@ -234,15 +259,16 @@ SingleFeaturePlot <- function(
       axis.title.x = element_blank(),
       axis.title.y = element_blank()
     )
+    if (!no.title) p <- p + labs(title = feature, x ="", y="")
+    if (no.title) p <- p + labs(x ="", y="")
   } else {
-    p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
+    if (no.title) p <- p + labs(x = dim.codes[1], y = dim.codes[2])
+    if (!(no.title)) p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
   }
   if (no.legend) {
     p <- p + theme(legend.position = 'none')
   }
-  if (dark.theme) {
-    p <- p + DarkTheme()
-  }
+
   return(p)
 }
 

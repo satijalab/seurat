@@ -341,8 +341,6 @@ AddSamples <- function(
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
-#' @importFrom stats complete.cases
-#'
 #' @export
 #'
 #' @examples
@@ -383,10 +381,7 @@ SubsetData <- function(
   if(! is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
       object@scale.data[, cells.use]
-      object@scale.data <- object@scale.data[
-        complete.cases(object@scale.data), # Row
-        cells.use # Columns
-        ]
+      object@scale.data <- object@scale.data[, cells.use]
     }
   }
   if (do.scale) {
@@ -395,10 +390,6 @@ SubsetData <- function(
       do.scale = do.scale,
       do.center = do.center
     )
-    object@scale.data <- object@scale.data[
-      complete.cases(object@scale.data), # Row
-      cells.use # Column
-      ]
   }
   object@ident <- drop.levels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
