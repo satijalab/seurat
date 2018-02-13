@@ -968,7 +968,8 @@ FeaturePlot <- function(
   no.axes = FALSE,
   no.legend = TRUE,
   dark.theme = FALSE,
-  do.return = FALSE
+  do.return = FALSE,
+  vector.friendly=FALSE
 ) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = nCol)) {
@@ -1078,7 +1079,8 @@ FeaturePlot <- function(
         dim.codes = dim.codes,
         no.axes = no.axes,
         no.legend = no.legend,
-        dark.theme = dark.theme
+        dark.theme = dark.theme,
+        vector.friendly = vector.friendly
       ),
       SIMPLIFY = FALSE # Get list, not matrix
     )
