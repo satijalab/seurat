@@ -2276,11 +2276,11 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
 #' @param plot.title Title for plot
-#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, 
+#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG,
 #' while axes/labels retain full vector resolution. Useful for producing AI-friendly
 #' plots with large numbers of cells.
 #' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
-#' @param png.arguments Used only if vector.friendly is TRUE. Vector of three elements 
+#' @param png.arguments Used only if vector.friendly is TRUE. Vector of three elements
 #' (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
@@ -2326,12 +2326,12 @@ DimPlot <- function(
   png.arguments = c(10,10, 100),
   ...
 ) {
-  
+
   #first, consider vector friendly case
   if (vector.friendly) {
 
     previous_call <- blank_call <- png_call <-  match.call()
-    blank_call$pt.size <- -1; blank_call$do.return=T; blank_call$vector.friendly=F; 
+    blank_call$pt.size <- -1; blank_call$do.return=T; blank_call$vector.friendly=F;
     png_call$no.axes=T; png_call$no.legend=T; png_call$do.return=T; png_call$vector.friendly=F;
     blank_plot <- eval(blank_call, sys.frame(sys.parent()))
     png_plot <- eval(png_call, sys.frame(sys.parent()))
@@ -2342,7 +2342,7 @@ DimPlot <- function(
     if (!do.return) to_return
     if (do.return) return(to_return)
   }
-  
+
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
@@ -3108,30 +3108,41 @@ globalVariables(
 #' KMeansHeatmap(object = pbmc_small)
 #'
 
-MetageneBicorPlot <- function(object, bicor.data, grouping.var, dims.eval,
-                              gene.num = 30, num.possible.genes = 2000,
-                              return.mat = FALSE, smooth = TRUE,
-                              display.progress = TRUE) {
-  if(missing(bicor.data)){
-    bicor.data <- EvaluateCCs(object = object, grouping.var = grouping.var,
-                              dims.eval = dims.eval, gene.num = gene.num,
-                              num.possible.genes = num.possible.genes,
-                              display.progress = display.progress)
+MetageneBicorPlot <- function(
+  object,
+  bicor.data,
+  grouping.var,
+  dims.eval,
+  gene.num = 30,
+  num.possible.genes = 2000,
+  return.mat = FALSE,
+  smooth = TRUE,
+  display.progress = TRUE
+) {
+  if (missing(x = bicor.data)) {
+    bicor.data <- EvaluateCCs(
+      object = object,
+      grouping.var = grouping.var,
+      dims.eval = dims.eval,
+      gene.num = gene.num,
+      num.possible.genes = num.possible.genes,
+      display.progress = display.progress
+    )
   }
-  if(length(dims.eval) < 10 | !smooth){
-    if(!missing(smooth) & smooth){
+  if (length(x = dims.eval) < 10 | !smooth) {
+    if (!missing(x = smooth) & smooth) {
       warning("Curves not smoothed. Falling back to line plot")
     }
     p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
-                geom_line(aes(col = Group)) +
-                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+      geom_line(aes(col = Group)) +
+      ylab(paste0("Shared Correlation Strength")) + xlab("CC")
   } else {
     p <- ggplot(bicor.data, aes(x = cc, y = abs(bicor))) +
-                geom_smooth(aes(col = Group), se = FALSE) +
-                ylab(paste0("Shared Correlation Strength")) + xlab("CC")
+      geom_smooth(aes(col = Group), se = FALSE) +
+      ylab(paste0("Shared Correlation Strength")) + xlab("CC")
   }
   print(p)
-  if(return.mat) {
+  if (return.mat) {
     return(bicor.data)
   } else {
     return(p)

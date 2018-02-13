@@ -18,5 +18,11 @@ ggplot2 scatterplot that includes the original axes but also the PNG file
 Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
 }
 \examples{
-TO ADD
+\dontrun{
+data("pbmc_small")
+p <- PCAPlot(pbmc_small, do.return = TRUE)
+ggsave(filename = 'pcaplot.png', plot = p, device = png)
+pmod <- AugmentPlot(plot1 = p, imgFile = 'pcaplot.png')
+pmod
+}
 }

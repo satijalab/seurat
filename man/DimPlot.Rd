@@ -62,13 +62,13 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 
 \item{plot.title}{Title for plot}
 
-\item{vector.friendly}{FALSE by default. If TRUE, points are flattened into a PNG, 
+\item{vector.friendly}{FALSE by default. If TRUE, points are flattened into a PNG,
 while axes/labels retain full vector resolution. Useful for producing AI-friendly
 plots with large numbers of cells.}
 
 \item{png.file}{Used only if vector.friendly is TRUE. Location for temporary PNG file.}
 
-\item{png.arguments}{Used only if vector.friendly is TRUE. Vector of three elements 
+\item{png.arguments}{Used only if vector.friendly is TRUE. Vector of three elements
 (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)}
 
 \item{...}{Extra parameters to FeatureLocator for do.identify = TRUE}
