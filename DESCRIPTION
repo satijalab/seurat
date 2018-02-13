@@ -55,7 +55,10 @@ Imports:
     Hmisc,
     tidyr,
     ggridges,
-    metap
+    metap,
+    png,
+    lmtest,
+    fitdistrplus
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
