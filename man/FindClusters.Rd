@@ -67,7 +67,7 @@ algorithm).}
 \item{temp.file.location}{Directory where intermediate files will be written.
 Specify the ABSOLUTE path.}
 
-\item{edge.file.location}{Edge file to use as input for modularity optimizer jar.}
+\item{edge.file.name}{Edge file to use as input for modularity optimizer jar.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

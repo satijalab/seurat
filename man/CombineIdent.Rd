@@ -17,9 +17,17 @@ CombineIdent(object, attribute.1 = "ident", attribute.2 = "orig.ident")
 A Seurat object where object@ident has been appropriately modified
 }
 \description{
-Combined two attributes to define identity classes. Very useful if, for example, you have multiple cell types and multiple replicates, and you want to group cells based on combinations of both.
+Combined two attributes to define identity classes. Very useful if, for
+example, you have multiple cell types and multiple replicates, and you want
+to group cells based on combinations of both.
 }
 \examples{
-NEED AN EXAMPLE
+groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
+celltype <- sample(c("celltype1", "celltype2", "celltype3"), size = 80, replace = TRUE)
+new.metadata <- data.frame(groups = groups, celltype = celltype)
+rownames(new.metadata) <- pbmc_small@cell.names
+pbmc_small <- AddMetaData(object = pbmc_small, metadata = new.metadata)
+pbmc_small <- CombineIdent(object = pbmc_small, attribute.1 = "celltype", attribute.2 = "groups")
+pbmc_small@ident
 
 }

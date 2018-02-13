@@ -56,9 +56,10 @@ Imports:
     tidyr,
     ggridges,
     metap,
-    png,
     lmtest,
-    fitdistrplus
+    cluster,
+    fitdistrplus,
+    png
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true

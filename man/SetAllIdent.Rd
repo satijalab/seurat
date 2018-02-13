@@ -9,8 +9,9 @@ SetAllIdent(object, id = NULL)
 \arguments{
 \item{object}{Seurat object}
 
-\item{id}{Variable to switch identity class to (for example, 'DBclust.ident', the output
-of density clustering) Default is orig.ident - the original annotation pulled from the cell name.}
+\item{id}{Variable to switch identity class to (for example, 'DBclust.ident',
+the output of density clustering) Default is orig.ident - the original
+annotation pulled from the cell name.}
 }
 \value{
 A Seurat object where object@ident has been appropriately modified

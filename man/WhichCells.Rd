@@ -27,7 +27,8 @@ using FetchData}
 
 \item{accept.value}{Returns all cells with the subset name equal to this value}
 
-\item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+\item{max.cells.per.ident}{Can be used to downsample the data to a certain
+max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
 
