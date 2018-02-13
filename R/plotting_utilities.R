@@ -282,3 +282,25 @@ PurpleAndYellow <- function(...) {
 BlueAndRed <- function(...) {
   return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", ...))
 }
+
+# NEED TO TREAT PNG PACKAGE PROPERLY
+#' Augments ggplot2 scatterplot with a PNG image. 
+#' 
+#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
+#' 
+#' @param plot1 ggplot2 scatterplot. Typically will have only labeled axes and no points
+#' @param imgFile location of a PNG file that contains the points to overlay onto the scatterplot.
+#' 
+#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
+#' 
+#' @export
+#' 
+#' @examples TO ADD
+AugmentPlot=function(plot1,imgFile) {
+  range.values=c(ggplot_build(plot1)$layout$panel_ranges[[1]]$x.range,ggplot_build(plot1)$layout$panel_ranges[[1]]$y.range)
+  img=readPNG(source=imgFile)
+  p1mod=plot1 + annotation_raster(img, xmin=range.values[1], xmax=range.values[2], ymin=range.values[3], ymax=range.values[4])
+  return(p1mod)
+}
+
+

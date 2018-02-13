@@ -2265,6 +2265,12 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
 #' @param plot.title Title for plot
+#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, 
+#' while axes/labels retain full vector resolution. Useful for producing AI-friendly
+#' plots with large numbers of cells.
+#' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
+#' @param png.arguments Used only if vector.friendly is TRUE. Vector of three elements 
+#' (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -2275,6 +2281,7 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @import SDMTools
 #' @importFrom stats median
 #' @importFrom dplyr summarize group_by
+#' @importFrom png readPNG
 #'
 #' @export
 #'
@@ -2303,8 +2310,28 @@ DimPlot <- function(
   dark.theme = FALSE,
   plot.order = NULL,
   plot.title = NULL,
+  vector.friendly=FALSE,
+  png.file=NULL,
+  png.arguments = c(10,10, 100),
   ...
 ) {
+  
+  #first, consider vector friendly case
+  if (vector.friendly) {
+
+    previous_call <- blank_call <- png_call <-  match.call()
+    blank_call$pt.size <- -1; blank_call$do.return=T; blank_call$vector.friendly=F; 
+    png_call$no.axes=T; png_call$no.legend=T; png_call$do.return=T; png_call$vector.friendly=F;
+    blank_plot <- eval(blank_call, sys.frame(sys.parent()))
+    png_plot <- eval(png_call, sys.frame(sys.parent()))
+    png.file <- SetIfNull(png.file,"temp_png.png")
+   # browser()
+    ggsave(filename = png.file, plot = png_plot,width=png.arguments[1], height=png.arguments[2], dpi=png.arguments[3])
+    to_return=AugmentPlot(blank_plot,png.file)
+    if (!do.return) to_return
+    if (do.return) return(to_return)
+  }
+  
   embeddings.use = GetDimReduction(object = object, reduction.type = reduction.use, slot = "cell.embeddings")
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
