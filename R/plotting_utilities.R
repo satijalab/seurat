@@ -278,3 +278,7 @@ BlackAndWhite <- function(...) {
 PurpleAndYellow <- function(...) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
 }
+
+BlueAndRed <- function(...) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", ...))
+}

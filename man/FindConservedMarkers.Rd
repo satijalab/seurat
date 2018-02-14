@@ -5,7 +5,7 @@
 \title{Finds markers that are conserved between the two groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", meta.method = "minP", ...)
+  assay.type = "RNA", meta.method = minimump, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,8 +19,8 @@ use all other cells for comparison.}
 
 \item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
-\item{meta.method}{method for combining p-values. See MetaDE::MetaDE.pvalue
-for details.}
+\item{meta.method}{method for combining p-values. Should be a function from
+the metap package (NOTE: pass the function, not a string)}
 
 \item{\dots}{parameters to pass to FindMarkers}
 }
@@ -42,7 +42,7 @@ pbmc_small@meta.data$groups <- sample(
   size = length(x = pbmc_small@cell.names),
   replace = TRUE
 )
-FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
+FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
 }
 
 }
