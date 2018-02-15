@@ -322,12 +322,12 @@ AddSamples <- function(
 #' @export
 #'
 #' @examples
-#' pbmc1 <- SubsetSeurat(object = pbmc_small, 
+#' pbmc1 <- SubsetByPredicate(object = pbmc_small, 
 #'                       vars.use = c("nUMI", "res.1"), 
 #'                       predicate = "nUMI < 200 & res.1=='3'")
 #' pbmc1
 #'
-SubsetSeurat = function( 
+SubsetByPredicate = function( 
   object,
   vars.use,
   predicate

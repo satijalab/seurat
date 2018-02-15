@@ -193,13 +193,13 @@ test_that("SubsetData works properly", {
 })
 
 
-test_that("SubsetSeurat subsets properly", {
-  expect_equal(SubsetSeurat(nbt.test, vars.use = "nGene", predicate = "2500 < nGene & nGene < 3000")@cell.names, "Hi_GW16_23")
-  expect_equal(SubsetSeurat(nbt.test, vars.use = "PC1",   predicate = "-1.5 < PC1 & PC1 < -1.4"    )@cell.names, "Hi_GW21.2_3")
+test_that("SubsetByPredicate subsets properly", {
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "nGene", predicate = "2500 < nGene & nGene < 3000")@cell.names, "Hi_GW16_23")
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "PC1",   predicate = "-1.5 < PC1 & PC1 < -1.4"    )@cell.names, "Hi_GW21.2_3")
   
   nbt.test@dr <- list()
   count <- length(WhichCells(nbt.test, 1))
-  nbt.test.subset <- SubsetSeurat(nbt.test, "ident", "ident == '1'")
+  nbt.test.subset <- SubsetByPredicate(nbt.test, "ident", "ident == '1'")
   expect_equal(length(nbt.test.subset@ident), count)
   
 })
