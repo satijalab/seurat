@@ -10,7 +10,8 @@ FastWhichCells(object, group.by, subset.value, invert = FALSE)
 \arguments{
 \item{object}{Seurat object}
 
-\item{group.by}{Group cells in different ways (for example, orig.ident). Should be a column name in object@meta.data}
+\item{group.by}{Group cells in different ways (for example, orig.ident).
+Should be a column name in object@meta.data}
 
 \item{subset.value}{Return cells matching this value}
 

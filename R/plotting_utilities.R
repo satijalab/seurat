@@ -278,3 +278,46 @@ BlackAndWhite <- function(...) {
 PurpleAndYellow <- function(...) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
 }
+
+BlueAndRed <- function(...) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", ...))
+}
+
+# NEED TO TREAT PNG PACKAGE PROPERLY
+#' Augments ggplot2 scatterplot with a PNG image.
+#'
+#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
+#'
+#' @param plot1 ggplot2 scatterplot. Typically will have only labeled axes and no points
+#' @param imgFile location of a PNG file that contains the points to overlay onto the scatterplot.
+#'
+#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
+#'
+#' @importFrom png readPNG
+#' @importFrom ggplot2 annotation_raster
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data("pbmc_small")
+#' p <- PCAPlot(pbmc_small, do.return = TRUE)
+#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
+#' pmod <- AugmentPlot(plot1 = p, imgFile = 'pcaplot.png')
+#' pmod
+#' }
+AugmentPlot <- function(plot1, imgFile) {
+  range.values <- c(
+    ggplot_build(plot = plot1)$layout$panel_ranges[[1]]$x.range,
+    ggplot_build(plot = plot1)$layout$panel_ranges[[1]]$y.range
+  )
+  img <- readPNG(source = imgFile)
+  p1mod <- plot1 + annotation_raster(
+    img,
+    xmin = range.values[1],
+    xmax = range.values[2],
+    ymin = range.values[3],
+    ymax = range.values[4]
+  )
+  return(p1mod)
+}

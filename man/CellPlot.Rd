@@ -38,7 +38,8 @@ points to reveal gene names (hit ESC to stop)}
 No return value (plots a scatter plot)
 }
 \description{
-Creates a plot of scatter plot of genes across two single cells
+Creates a plot of scatter plot of genes across two single cells. Pearson
+correlation between the two cells is displayed above the plot.
 }
 \examples{
 CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')

@@ -60,6 +60,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' should be interpreted cautiously, as the genes used for clustering are the
 #' same genes tested for differential expression.
 #' @import pbapply
+#' @importFrom lmtest lrtest
 #'
 #' @export
 #'
@@ -261,6 +262,17 @@ FindMarkers <- function(
 
   if (test.use == "wilcox") {
     to.return <- WilcoxDETest(
+      object = object,
+      assay.type = assay.type,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      print.bar = print.bar,
+      ...
+    )
+  }
+  if (test.use == "LR") {
+    to.return <- LRDETest(
       object = object,
       assay.type = assay.type,
       cells.1 = cells.1,
@@ -613,8 +625,8 @@ FindAllMarkersNode <- function(
 #' use all other cells for comparison.
 #' @param grouping.var grouping variable
 #' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param meta.method method for combining p-values. See MetaDE::MetaDE.pvalue
-#' for details.
+#' @param meta.method method for combining p-values. Should be a function from
+#' the metap package (NOTE: pass the function, not a string).
 #' @param \dots parameters to pass to FindMarkers
 #'
 #' @return Matrix containing a ranked list of putative conserved markers, and
@@ -622,6 +634,7 @@ FindAllMarkersNode <- function(
 #' (such as Fishers combined p-value or others from the MetaDE package),
 #' percentage of cells expressing the marker, average differences)
 #'
+#' @import metap
 #' @export
 #'
 #' @examples
@@ -632,7 +645,7 @@ FindAllMarkersNode <- function(
 #'   size = length(x = pbmc_small@cell.names),
 #'   replace = TRUE
 #' )
-#' FindConservedMarkers(pbmc_small, ident.1 = 1, ident.2 = 2, grouping.var = "groups")
+#' FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
 #'
 FindConservedMarkers <- function(
   object,
@@ -640,11 +653,11 @@ FindConservedMarkers <- function(
   ident.2 = NULL,
   grouping.var,
   assay.type = "RNA",
-  meta.method = "minP",
+  meta.method = minimump,
   ...
 ) {
-  if (!'MetaDE' %in% rownames(x = installed.packages())) {
-    stop("Please install MetaDE (note Bioconductor dependencies) - learn more at https://cran.r-project.org/web/packages/MetaDE/index.html")
+  if(class(meta.method) != "function") {
+    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
   }
   object.var <- FetchData(object = object, vars.all = grouping.var)
   object <- SetIdent(
@@ -716,12 +729,10 @@ FindConservedMarkers <- function(
     MARGIN = 1,
     FUN = max
   )
-  combined.pval <- MetaDE::MetaDE.pvalue(x = list(p = markers.combined[, pval.codes]),
-                                 meta.method = meta.method)$meta.analysis
-  combined.pval <- cbind(combined.pval$pval, combined.pval$FDR)
-  colnames(combined.pval) <- paste0(colnames(combined.pval), c(rep("_p_val", length(meta.method)), rep("_FDR", length(meta.method))))
-  markers.combined$combined_pval <- combined.pval
-  markers.combined <- markers.combined[order(markers.combined$combined_pval[,1]), ]
+  combined.pval <- data.frame(cp = apply(X = markers.combined[, pval.codes], MARGIN = 1, FUN = function(x) meta.method(x)$p))
+  colnames(combined.pval) <- paste0(as.character(formals()$meta.method), "_p_val")
+  markers.combined <- cbind(markers.combined, combined.pval)
+  markers.combined <- markers.combined[order(markers.combined[,paste0(as.character(formals()$meta.method), "_p_val")]), ]
   return(markers.combined)
 }
 
@@ -1346,6 +1357,42 @@ WilcoxDETest <- function(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
       return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
+    }
+  )
+  genes.return <- rownames(x = countdata.test)
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
+
+
+LRDETest <- function(
+  object,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  genes.use = NULL,
+  print.bar = TRUE,
+  assay.type = "RNA",
+  ...
+) {
+  data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
+  # check that the gene made it through the any filtering that was done
+  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
+  coldata <- object@meta.data[c(cells.1, cells.2), ]
+  coldata[cells.1, "group"] <- "Group1"
+  coldata[cells.2, "group"] <- "Group2"
+  coldata$group <- factor(x = coldata$group)
+  coldata$wellKey <- rownames(x = coldata)
+  countdata.test <- data.test[genes.use, rownames(x = coldata)]
+  mysapply <- if (print.bar) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = countdata.test),
+    FUN = function(x) {
+      model1 <- glm(coldata$group ~ countdata.test[x,],family = "binomial")
+      model2 <- glm(coldata$group ~ 1, family = "binomial")
+      lrtest <- lrtest(model1, model2)
+      return(lrtest$Pr[2])
     }
   )
   genes.return <- rownames(x = countdata.test)

@@ -28,12 +28,13 @@ Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd
       double e = double(s) / u;
       if(e > prune){
         tripletList.push_back(T(i, nn_large(i, j) - 1, e));
+        tripletList.push_back(T(nn_large(i, j) - 1, i, e));
       }
     }
     tripletList.push_back(T(i, i, 1));
   }
   Eigen::SparseMatrix<double> SNN(nn_large.rows(), nn_large.rows());
-  SNN.setFromTriplets(tripletList.begin(), tripletList.end());
+  SNN.setFromTriplets(tripletList.begin(), tripletList.end(), [] (const double&, const double &b) { return b; });
   return SNN;
 }
 
@@ -41,21 +42,6 @@ Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd
 void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress){
   if (display_progress == true) {
     Rcpp::Rcerr << "Writing SNN as edge file" << std::endl;
-  }
-  // This section just makes sure that SNN is symmetric that way we can just write
-  // out the lower triangle of the matrix. Much more efficient when just looping
-  // over non-zero elements
-  std::vector<T> tripletList;
-  tripletList.reserve(snn.nonZeros());
-  for (int k=0; k < snn.outerSize(); ++k){
-    for (Eigen::SparseMatrix<double>::InnerIterator it(snn, k); it; ++it){
-      if(snn.coeff(it.col(), it.row()) == 0){
-        tripletList.push_back(T(it.col(), it.row(), it.value()));
-      }
-    }
-  }
-  for(int i=0; i < tripletList.size(); ++i){
-    snn.coeffRef(tripletList[i].row(), tripletList[i].col()) = tripletList[i].value();
   }
   // Write out lower triangle
   std::ofstream output;

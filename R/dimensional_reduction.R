@@ -431,6 +431,8 @@ RunICA <- function(
 #' @param seed.use Random seed for the t-SNE
 #' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
 #' faster, but is less flexible. TRUE by default.
+#' @param do.approx Run FIt-SNE implementation, based on Kluger Lab code on
+#' https://github.com/ChristophH/FIt-SNE
 #' @param add.iter If an existing tSNE has already been computed, uses the
 #' current tSNE to seed the algorithm and then adds additional iterations on top
 #' of this

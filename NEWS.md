@@ -2,6 +2,17 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+
+## Develop
+### Added
+- Support for HTO demultiplexing
+- Utility functions: TransferIdent, CombineIdent, SplitObject
+- C++ implementation for parts of BuildSNN
+
+### Changed
+- MetaDE replaced with metap for combining p-values (MetaDE was removed from CRAN)
+- NMF heatmaps replaced (NMF to be archived by CRAN)
+
 ## [2.2.0] - 2018-01-10
 ### Added
  - Multiple alignment functionality with RunMultiCCA and AlignSubspace extended to multiple datasets
