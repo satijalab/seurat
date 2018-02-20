@@ -178,16 +178,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // ComputeSNN
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked, double prune, bool display_progress);
-RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_largeSEXP, SEXP nn_rankedSEXP, SEXP pruneSEXP, SEXP display_progressSEXP) {
+Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
+RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_large(nn_largeSEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type nn_ranked(nn_rankedSEXP);
     Rcpp::traits::input_parameter< double >::type prune(pruneSEXP);
-    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
-    rcpp_result_gen = Rcpp::wrap(ComputeSNN(nn_large, nn_ranked, prune, display_progress));
+    rcpp_result_gen = Rcpp::wrap(ComputeSNN(nn_ranked, prune));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -233,7 +231,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
-    {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 4},
+    {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 5},
     {NULL, NULL, 0}

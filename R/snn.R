@@ -122,10 +122,8 @@ BuildSNN <- function(
     cat("Computing SNN\n", file = stderr())
   }
   if (save.SNN | is.null(filename)) {
-    object@snn <- ComputeSNN(nn_large = nn.large,
-                             nn_ranked = nn.ranked,
-                             prune = prune.SNN,
-                             display_progress = print.output)
+    object@snn <- ComputeSNN(nn_ranked = nn.ranked,
+                             prune = prune.SNN)
     rownames(object@snn) <- object@cell.names
     colnames(object@snn) <- object@cell.names
     if (!is.null(filename)) {
