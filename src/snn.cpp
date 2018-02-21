@@ -48,7 +48,7 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
   for (int k=0; k < snn.outerSize(); ++k){
     p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(snn, k); it; ++it){
-      if(it.col() >= it.row()){
+      if(it.col() >= it.row() || it.value() == 0){
         continue;
       }
       output << std::setprecision(15) << it.col() << "\t" << it.row() << "\t" << it.value() << "\n";
