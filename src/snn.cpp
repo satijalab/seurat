@@ -13,8 +13,7 @@ using namespace Rcpp;
 
 typedef Eigen::Triplet<double> T;
 //[[Rcpp::export]]
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune,
-                                       bool display_progress) {
+Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune) {
   std::vector<T> tripletList;
   int k = nn_ranked.cols();
   tripletList.reserve(nn_ranked.rows() * nn_ranked.cols());
@@ -26,9 +25,7 @@ Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune,
   Eigen::SparseMatrix<double> SNN(nn_ranked.rows(), nn_ranked.rows());
   SNN.setFromTriplets(tripletList.begin(), tripletList.end());
   SNN = SNN * (SNN.transpose());
-  Progress p(SNN.outerSize(), display_progress);
   for (int i=0; i < SNN.outerSize(); ++i){
-    p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(SNN, i); it; ++it){
       it.valueRef() = it.value()/(k + (k - it.value()));
       if(it.value() < prune){
@@ -64,7 +61,7 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
 //[[Rcpp::export]]
 Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked,
                                          double prune, bool display_progress, String filename) {
-  Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_ranked, prune, display_progress);
+  Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_ranked, prune);
   WriteEdgeFile(SNN, filename, display_progress);
   return SNN;
 }
