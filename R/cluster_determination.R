@@ -42,7 +42,7 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
-#' @param edge.file.location Edge file to use as input for modularity optimizer jar.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
@@ -607,16 +607,18 @@ BuildClusterTree <- function(
   }
   if (! is.null(x = SNN.use)) {
     num.clusters <- length(x = ident.names)
-    data.dist = matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    data.dist <- matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    rownames(data.dist) <- ident.names
+    colnames(data.dist) <- ident.names
     for (i in 1:(num.clusters - 1)) {
       for (j in (i + 1):num.clusters) {
         subSNN <- SNN.use[
           match(
-            x = WhichCells(object = object, ident = i),
+            x = WhichCells(object = object, ident = ident.names[i]),
             table = colnames(x = SNN.use)
           ), # Row
           match(
-            x = WhichCells(object = object, ident = j),
+            x = WhichCells(object = object, ident = ident.names[j]),
             table = rownames(x = SNN.use)
           ) # Column
           ]
@@ -624,7 +626,7 @@ BuildClusterTree <- function(
         if (is.na(x = d)) {
           data.dist[i, j] <- 0
         } else {
-          data.dist[i, j] = d
+          data.dist[i, j] <- d
         }
       }
     }

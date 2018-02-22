@@ -43,8 +43,8 @@ delimiter from the cell's column name}
 a data frame where the rows are cell names, and the columns are additional
 metadata fields}
 
-\item{add.cell.id}{String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
-"cell1" becomes "cell1.rep1"}
+\item{add.cell.id}{String to be appended to the names of all cells in
+new.data. E.g. if add.cell.id = "rep1", "cell1" becomes "cell1.rep1"}
 }
 \description{
 Add samples into existing Seurat object.

@@ -17,7 +17,8 @@ RenameIdent(object, old.ident.name = NULL, new.ident.name = NULL)
 A Seurat object where object@ident has been appropriately modified
 }
 \description{
-Can also be used to join identity classes together (for example, to merge clusters).
+Can also be used to join identity classes together (for example, to merge
+clusters).
 }
 \examples{
 head(x = pbmc_small@ident)

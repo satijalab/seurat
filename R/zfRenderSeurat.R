@@ -539,6 +539,7 @@ zf.insitu.ventral <- function(seuratObject, gene, label=TRUE, ...) {
 }
 
 #' @export
+#' @importFrom gdata interleave
 zf.insitu.side <- function(expressionMatrix, nonmirror = TRUE, mirror = TRUE) {
   # Determine geometry
   tierBins <- 30 # 1 bin per cell tier.
