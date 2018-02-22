@@ -306,6 +306,44 @@ AddSamples <- function(
   return(new.object)
 }
 
+
+
+#' Return a subset of the Seurat object.
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
+#' subsets it using \code{base::subset} with \code{predicate} as the filter.
+#' Returns the corresponding subset of the Seurat object. 
+#'
+#' @param object Seurat object
+#' @param vars.use Variables to fetch for use in base::subset. Character vector.
+#' @param predicate String to be parsed into an R expression and evaluated as an input to base::subset.
+#' 
+#' @export
+#'
+#' @examples
+#' pbmc1 <- SubsetByPredicate(object = pbmc_small, 
+#'                       vars.use = c("nUMI", "res.1"), 
+#'                       predicate = "nUMI < 200 & res.1=='3'")
+#' pbmc1
+#'
+SubsetByPredicate = function( 
+  object,
+  vars.use,
+  predicate
+){
+  if( typeof(vars.use) != "character"){
+    stop("predicate should be a character vector. It will be parsed in `subset` as an R expression.")
+  }
+  if( typeof(predicate) != "character"){
+    stop("vars.use should be a character vector. These variables will be passed to FetchData.")
+  }
+  df <- FetchData(object, vars.use) %>% as.data.frame
+  cu <- df %>% subset(eval(parse(text=predicate))) %>% rownames
+  object <- SubsetData(object, cells.use = cu)
+  return( object )
+}
+
 #' Return a subset of the Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
