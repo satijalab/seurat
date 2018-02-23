@@ -1276,11 +1276,14 @@ setMethod(
     umi.mat <- object[['matrix']]
     cell.names <- object[[cell.names]][]
     gene.names <- object[[gene.names]][]
-    message('ProjectSeurat: object containing the raw data is loom; seurat object contains instructions for projection; raw data loom object will be edited in place')
-    message('\tseurat template contains', ncol(template@scale.data), 'cells', sep = ' ')
-    message('\t', umi.mat$dims[1], 'cells to be projected', sep = ' ')
+    message('ProjectSeurat: object containing the raw data is loom; seurat object contains instructions for projection')
+    message('               raw data loom object will be edited in place')
+    message("=============================================")
+    message('seurat template contains          ', ncol(template@scale.data), ' cells')
+    message('cells to be projected             ', umi.mat$dims[1], " cells")
     common.cells <- intersect(cell.names, colnames(template@scale.data))
-    message('\t', length(common.cells), 'cells are common to both data sets', sep = ' ')
+    message('cells common to both data sets    ', length(common.cells), " cells")
+    message("=============================================")
 
     # log-norm input data
     message('Normalize data')
