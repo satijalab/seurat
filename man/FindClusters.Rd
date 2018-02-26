@@ -5,12 +5,11 @@
 \title{Cluster Determination}
 \usage{
 FindClusters(object, genes.use = NULL, reduction.type = "pca",
-  dims.use = NULL, k.param = 30, k.scale = 25, plot.SNN = FALSE,
-  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
-  save.SNN = FALSE, reuse.SNN = FALSE, force.recalc = FALSE,
-  modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
-  n.iter = 10, random.seed = 0, temp.file.location = NULL,
-  edge.file.name = NULL)
+  dims.use = NULL, k.param = 30, plot.SNN = FALSE, prune.SNN = 1/15,
+  print.output = TRUE, distance.matrix = NULL, save.SNN = FALSE,
+  reuse.SNN = FALSE, force.recalc = FALSE, modularity.fxn = 1,
+  resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
+  random.seed = 0, temp.file.location = NULL, edge.file.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,8 +25,6 @@ construction of SNN graph. (e.g. "pca", "ica")}
 graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
-
-\item{k.scale}{Granularity option for k.param}
 
 \item{plot.SNN}{Plot the SNN graph}
 

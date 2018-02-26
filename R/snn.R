@@ -3,11 +3,9 @@ NULL
 #' SNN Graph Construction
 #'
 #' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-#' first determine the k-nearest neighbors of each cell (defined by k.param *
-#' k.scale). We use this knn graph to construct the SNN graph by calculating the
-#' neighborhood overlap (Jaccard index) between every cell and its k.param *
-#' k.scale nearest neighbors (defining the neighborhood for each cell as the
-#' k.param nearest neighbors).
+#' first determine the k-nearest neighbors of each cell. We use this knn graph
+#' to construct the SNN graph by calculating the neighborhood overlap
+#' (Jaccard index) between every cell and its k.param nearest neighbors.
 #'
 #' @param object Seurat object
 #' @param genes.use A vector of gene names to use in construction of SNN graph
@@ -18,7 +16,6 @@ NULL
 #' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
@@ -28,9 +25,12 @@ NULL
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
 #' @param force.recalc Force recalculation of SNN.
-#' @param filename Write SNN directly to file named here as an edge list compatible with FindClusters
-#' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting to FALSE can be used
-#' together with a provided filename to only write the SNN out as an edge file to disk.
+#' @param filename Write SNN directly to file named here as an edge list
+#' compatible with FindClusters
+#' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting
+#' to FALSE can be used together with a provided filename to only write the SNN
+#' out as an edge file to disk.
+#'
 #' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
@@ -54,7 +54,6 @@ BuildSNN <- function(
   reduction.type = "pca",
   dims.use = NULL,
   k.param = 10,
-  k.scale = 10,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
   print.output = TRUE,
@@ -98,24 +97,22 @@ BuildSNN <- function(
   # find the k-nearest neighbors for each single cell
   if (is.null(x = distance.matrix)) {
     my.knn <- get.knn(
-      data <- as.matrix(x = data.use),
-      k = min(k.scale * k.param, n.cells - 1)
+      data = as.matrix(x = data.use),
+      k = min(k.param, n.cells - 1)
     )
     nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
-    nn.large <- my.knn$nn.index
   } else {
     if (print.output) {
       cat("Building SNN based on a provided distance matrix\n", file = stderr())
     }
     n <- nrow(x = distance.matrix)
-    k.for.nn <- k.param * k.scale
+    k.for.nn <- k.param
     knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
     knd.mat <- knn.mat
     for (i in 1:n){
       knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
       knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
     }
-    nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
     nn.ranked <- knn.mat[, 1:k.param]
   }
   if (print.output) {

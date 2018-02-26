@@ -17,7 +17,6 @@ NULL
 #' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
@@ -76,7 +75,6 @@ FindClusters <- function(
   reduction.type = "pca",
   dims.use = NULL,
   k.param = 30,
-  k.scale = 25,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
   print.output = TRUE,
@@ -102,7 +100,7 @@ FindClusters <- function(
   }
   if ((
     missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
+    missing(x = prune.SNN)  && missing(x = distance.matrix)
     && snn.built) || reuse.SNN) {
     save.SNN <- TRUE
     if (reuse.SNN && !snn.built) {
@@ -110,7 +108,7 @@ FindClusters <- function(
     }
     if (reuse.SNN && (
       ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-      || ! missing(x = k.scale) || ! missing(x = prune.SNN)
+      || ! missing(x = prune.SNN)
     )) {
       warning("SNN was not be rebuilt with new parameters. Continued with stored
                SNN. To suppress this warning, remove all SNN building parameters.")
@@ -127,7 +125,6 @@ FindClusters <- function(
       reduction.type = reduction.type,
       dims.use = dims.use,
       k.param = k.param,
-      k.scale = k.scale,
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
       print.output = print.output,
