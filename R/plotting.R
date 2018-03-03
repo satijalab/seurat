@@ -2515,7 +2515,8 @@ setMethod(
   }
 )
 
-#' @param ident.use Identity to use
+#' @param dataset.use Dataset to use, will try to find one in 'col_attrs' by default
+#' @param ident.use Identity to use, can be null
 #'
 #' @rdname DimPlot
 #' @importFrom hdf5r list.datasets
@@ -2527,6 +2528,7 @@ setMethod(
   definition = function(
     object,
     reduction.use = 'pca',
+    dataset.use = NULL,
     ident.use = 'col_attrs/ident',
     dim.1 = 1,
     dim.2 = 2,
@@ -2549,25 +2551,55 @@ setMethod(
       stop(paste0("Unrecognized reduction: '", reduction.use, "'"))
     )
     dims.plot <- paste0(key, c(dim.1, dim.2))
-    if (!all(dims.plot %in% list.datasets(object = object, path = 'col_attrs'))) {
-      stop(paste(
-        "Cannot find dimensions",
-        paste(c(dim.1, dim.2), collapse = ' and '),
-        "for reduction:",
-        reduction.use
-      ))
-    } else {
-      dims.plot <- paste('col_attrs', dims.plot, sep = '/')
+    if (is.null(x = dataset.use)) {
+      dataset.use <- grep(
+        pattern = reduction.use,
+        x = list.datasets(object = object[['col_attrs']], full.names = TRUE),
+        value = TRUE,
+        ignore.case = TRUE
+      )
+    } else if (!dataset.use %in% list.datasets(object = object, full.names = TRUE, recursive = TRUE)) {
+      stop(paste("Cannot find dataset", dataset.use, "in the loom file"))
     }
+    if (length(x = dataset.use) > 1) {
+      stop("Cannot determine which dataset to use")
+    } else if (length(x = dataset.use) == 0) {
+      stop(paste("Cannot find a dataset for", reduction.use))
+    }
+    if (length(x = object[[dataset.use]]$dims) != 2) {
+      stop("Improperly formed dimensional reduction dataset: not enough dimensions")
+    }
+    if (any(c(dim.1, dim.2) > object[[dataset.use]]$dims[1])) {
+      stop("Dimensions requested are out of range")
+    }
+    # if (!all(dims.plot %in% list.datasets(object = object, path = 'col_attrs'))) {
+    #   stop(paste(
+    #     "Cannot find dimensions",
+    #     paste(c(dim.1, dim.2), collapse = ' and '),
+    #     "for reduction:",
+    #     reduction.use
+    #   ))
+    # } else {
+    #   dims.plot <- paste('col_attrs', dims.plot, sep = '/')
+    # }
     if (is.null(x = cells.use)) {
-      cells.use <- 1:object[[ident.use]]$dims[1]
+      if (is.null(x = ident.use)) {
+        cells.use <- 1:object[['matrix']]$dims[1]
+      } else {
+        cells.use <- 1:object[[ident.use]]$dims[length(x = object[[ident.use]]$dims)]
+      }
     } else if (!is.numeric(x = cells.use)) {
       stop("'cells.use' must be numeric")
     }
+    ident.use <- if (is.null(x = ident.use)) {
+      rep_len(x = 1, length.out = length(x = cells.use))
+    } else {
+      object[[ident.use]][cells.use]
+    }
     data.plot <- data.frame(
-      ident = as.factor(x = object[[ident.use]][cells.use]),
-      x = object[[dims.plot[1]]][cells.use],
-      y = object[[dims.plot[2]]][cells.use],
+      ident = as.factor(x = ident.use),
+      x = object[[dataset.use]][dim.1, ],
+      y = object[[dataset.use]][dim.2, ],
       pt.size = pt.size
     )
     p <- SingleDimPlot(

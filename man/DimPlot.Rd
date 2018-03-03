@@ -18,7 +18,7 @@ DimPlot(object, reduction.use = "pca", ...)
   plot.title = NULL, vector.friendly = FALSE, png.file = NULL,
   png.arguments = c(10, 10, 100), ...)
 
-\S4method{DimPlot}{loom}(object, reduction.use = "pca",
+\S4method{DimPlot}{loom}(object, reduction.use = "pca", dataset.use = NULL,
   ident.use = "col_attrs/ident", dim.1 = 1, dim.2 = 2, cells.use = NULL,
   pt.size = 1, do.return = FALSE, do.bare = FALSE, cols.use = NULL,
   do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
@@ -84,7 +84,9 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 \item{png.arguments}{Used only if vector.friendly is TRUE. Vector of three elements
 (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)}
 
-\item{ident.use}{Identity to use}
+\item{dataset.use}{Dataset to use, will try to find one in 'col_attrs' by default}
+
+\item{ident.use}{Identity to use, can be null}
 
 \item{do.label}{Whether to label the clusters}
 
