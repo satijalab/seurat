@@ -106,7 +106,7 @@ MakeSparse <- function(object) {
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    if(packageVersion("Seurat") >= package_version("2.0.0")){
+    if(packageVersion("Seurat") >= package_version("2.2.2")){
       cat("Object representation is consistent with the most current Seurat version.\n")
       return(object)
     }
@@ -125,86 +125,88 @@ UpdateSeuratObject <- function(object) {
       new.object = new.object
     )
   }
-  # Copy over old slots if they have info stored
-  if(length(object@kmeans.obj) > 0){
-    new.object@kmeans@gene.kmeans.obj <- object@kmeans.obj
-  }
-  if(length(object@kmeans.col) >0 ){
-    new.object@kmeans@cell.kmeans.obj <- object@kmeans.col
-  }
-  if(length(object@data.info) > 0){
-    new.object@meta.data <- object@data.info
-  }
-  if(length(object@mean.var) > 0){
-    new.object@hvg.info <- object@mean.var
-    colnames(new.object@hvg.info) <- c("gene.mean", "gene.dispersion", "gene.dispersion.scaled")
-    new.object@hvg.info <- new.object@hvg.info[order(
-      new.object@hvg.info$gene.dispersion,
-      decreasing = TRUE), ]
-  }
-  if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
-     length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
-    new.object@spatial <- new(
-      "spatial.info",
-      mix.probs = object@mix.probs,
-      mix.param = object@mix.param,
-      final.prob = object@final.prob,
-      insitu.matrix = object@insitu.matrix
-    )
-  }
-  # Conversion from development versions prior to 2.0.0
-  if ((.hasSlot(object, "dr"))) {
-    if (length(object@dr) > 0) {
-    for (i in 1:length(object@dr)) {
-      new.object@dr[[i]]@cell.embeddings <- object@dr[[i]]@rotation
-      new.object@dr[[i]]@gene.loadings <- object@dr[[i]]@x
-      new.object@dr[[i]]@gene.loadings.full <- object@dr[[i]]@x.full
-      new.object@dr[[i]]@sdev <- object@dr[[i]]@sdev
-      new.object@dr[[i]]@key <- object@dr[[i]]@key
-      new.object@dr[[i]]@misc <- object@dr[[i]]@misc
+  if(object@version < package_version("2.0.0")) {
+    # Copy over old slots if they have info stored
+    if(length(object@kmeans.obj) > 0){
+      new.object@kmeans@gene.kmeans.obj <- object@kmeans.obj
     }
+    if(length(object@kmeans.col) >0 ){
+      new.object@kmeans@cell.kmeans.obj <- object@kmeans.col
     }
-  }
-  # Conversion from release versions prior to 2.0.0
-  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
-  #                   tsne.rot
-  else{
-    pca.sdev <- object@pca.obj[[1]]$sdev
-    if (is.null(x = pca.sdev)) {
-      pca.sdev <- object@pca.obj[[1]]$d
+    if(length(object@data.info) > 0){
+      new.object@meta.data <- object@data.info
     }
-    pca.obj <- new(
-      Class = "dim.reduction",
-      gene.loadings = as.matrix(object@pca.x),
-      gene.loadings.full = as.matrix(object@pca.x.full),
-      cell.embeddings = as.matrix(object@pca.rot),
-      sdev = pca.sdev,
-      key = "PC"
-    )
-    new.object@dr$pca <- pca.obj
-    ica.obj <- new(
-      Class = "dim.reduction",
-      gene.loadings = as.matrix(object@ica.x),
-      cell.embeddings = as.matrix(object@ica.rot),
-      key = "IC"
-    )
-    new.object@dr$ica <- ica.obj
-    tsne.obj <- new(
-      Class = "dim.reduction",
-      cell.embeddings = as.matrix(object@tsne.rot),
-      key = "tSNE_"
-    )
-    new.object@dr$tsne <- tsne.obj
-  }
-  if ((.hasSlot(object, "snn.sparse"))) {
-    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-      if (class(object@snn.dense) == "data.frame") {
-        object@snn.dense <- as.matrix(x = object@snn.dense)
+    if(length(object@mean.var) > 0){
+      new.object@hvg.info <- object@mean.var
+      colnames(new.object@hvg.info) <- c("gene.mean", "gene.dispersion", "gene.dispersion.scaled")
+      new.object@hvg.info <- new.object@hvg.info[order(
+        new.object@hvg.info$gene.dispersion,
+        decreasing = TRUE), ]
+    }
+    if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
+       length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
+      new.object@spatial <- new(
+        "spatial.info",
+        mix.probs = object@mix.probs,
+        mix.param = object@mix.param,
+        final.prob = object@final.prob,
+        insitu.matrix = object@insitu.matrix
+      )
+    }
+    # Conversion from development versions prior to 2.0.0
+    if ((.hasSlot(object, "dr"))) {
+      if (length(object@dr) > 0) {
+        for (i in 1:length(object@dr)) {
+          new.object@dr[[i]]@cell.embeddings <- object@dr[[i]]@rotation
+          new.object@dr[[i]]@gene.loadings <- object@dr[[i]]@x
+          new.object@dr[[i]]@gene.loadings.full <- object@dr[[i]]@x.full
+          new.object@dr[[i]]@sdev <- object@dr[[i]]@sdev
+          new.object@dr[[i]]@key <- object@dr[[i]]@key
+          new.object@dr[[i]]@misc <- object@dr[[i]]@misc
+        }
       }
-      new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
     }
+    # Conversion from release versions prior to 2.0.0
+    # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
+    #                   tsne.rot
     else{
-      new.object@snn <- object@snn.sparse
+      pca.sdev <- object@pca.obj[[1]]$sdev
+      if (is.null(x = pca.sdev)) {
+        pca.sdev <- object@pca.obj[[1]]$d
+      }
+      pca.obj <- new(
+        Class = "dim.reduction",
+        gene.loadings = as.matrix(object@pca.x),
+        gene.loadings.full = as.matrix(object@pca.x.full),
+        cell.embeddings = as.matrix(object@pca.rot),
+        sdev = pca.sdev,
+        key = "PC"
+      )
+      new.object@dr$pca <- pca.obj
+      ica.obj <- new(
+        Class = "dim.reduction",
+        gene.loadings = as.matrix(object@ica.x),
+        cell.embeddings = as.matrix(object@ica.rot),
+        key = "IC"
+      )
+      new.object@dr$ica <- ica.obj
+      tsne.obj <- new(
+        Class = "dim.reduction",
+        cell.embeddings = as.matrix(object@tsne.rot),
+        key = "tSNE_"
+      )
+      new.object@dr$tsne <- tsne.obj
+    }
+    if ((.hasSlot(object, "snn.sparse"))) {
+      if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
+        if (class(object@snn.dense) == "data.frame") {
+          object@snn.dense <- as.matrix(x = object@snn.dense)
+        }
+        new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
+      }
+      else{
+        new.object@snn <- object@snn.sparse
+      }
     }
   }
   return(new.object)

@@ -24,6 +24,8 @@ are listed below.
 
 \item{\code{scale.data}}{scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization}
 
+\item{\code{tcc}}{Stores transcript compatibility counts and associated mappings}
+
 \item{\code{var.genes}}{Vector of genes exhibiting high variance across single cells}
 
 \item{\code{is.expr}}{Expression threshold to determine if a gene is expressed (0 by default)}

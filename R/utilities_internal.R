@@ -597,3 +597,44 @@ MaxN <- function(x, N = 2){
   }
   sort(x, partial = len - N + 1)[len - N + 1]
 }
+
+# Initialize a hash table, implemented as an environment
+#
+# @return returns an empty environment to use as hash table
+HashTable <- function() new.env()
+
+# Insert an element into a given hash table
+#
+# @param key    Key of value to insert
+# @param value  Value to insert
+# @param ht     Hash table to insert into
+#
+# @return returns hash table with key-value pair added in
+#
+HashTableInsert <- function(key, value, ht)  ht[[key]] <- value
+
+# Add an element into a given hash table. Will check if key already exists. If
+# exists, append value onto existing values
+#
+# @param key    Key of value to insert
+# @param value  Value to insert
+# @param ht     Hash table to insert into
+#
+# @return returns hash table with key-value pair added in
+#
+HashTableAdd <- function(key, value, ht) {
+  if(is.null(HashTableLookup(key, ht))) {
+    ht[[key]] <- value
+  } else {
+    ht[[key]] <- c(ht[[key]], value)
+  }
+}
+
+# Look up value from hash table
+#
+# @param key   Key to return value for
+# @param ht    Hash table to look up in
+#
+# @return returns the value for given key
+#
+HashTableLookup <- function(key, ht) ht[[key]]

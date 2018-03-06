@@ -18,6 +18,7 @@ NULL
 #' @slot raw.data The raw project data
 #' @slot data The normalized expression matrix (log-scale)
 #' @slot scale.data scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization
+#' @slot tcc Stores transcript compatibility counts and associated mappings
 #' @slot var.genes Vector of genes exhibiting high variance across single cells
 #' @slot is.expr Expression threshold to determine if a gene is expressed (0 by default)
 #' @slot ident THe 'identity class' for each cell
@@ -50,6 +51,7 @@ seurat <- methods::setClass(
     raw.data = "ANY",
     data = "ANY",
     scale.data = "ANY",
+    tcc = "ANY",
     var.genes = "vector",
     is.expr = "numeric",
     ident = "factor",
