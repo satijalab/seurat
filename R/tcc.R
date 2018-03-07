@@ -5,12 +5,15 @@
 #' @param ec.map  Path to file mapping between equivalence classes and
 #' transcript IDs
 #' @param gene.map Path to file mapping transcript IDs to gene IDs
+#' @param min.ec.filter Only keep ECs with more than this many counts across all
+#' cells
 #' @param display.progress prints output/progress bars
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom Matrix rowSums
 #' @export
 #'
-AddTCC <- function(object, raw.counts, ec.map, gene.map,
+AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
                    display.progress = TRUE){
   if (display.progress) {
     cat("Reading files\n", file = stderr())
@@ -25,14 +28,17 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map,
     cat("Building EC/transcript/gene maps. Note: this will take a few minutes\n", file = stderr())
     pb <- txtProgressBar(min = 0, max = nrow(ec.map), style = 3)
   }
+  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) > min.ec.filter)
+  tcc.mat <- tcc.mat[ecs.to.keep, ]
+  ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
 
   ht <- HashTable()
   ht2 <- HashTable()
   for(i in 1:nrow(ec.map)){
     new.tids <- as.numeric(unlist(strsplit(x = ec.map[i, ], split = ",")))
-    HashTableInsert(key = as.character(i-1), value = new.tids, ht = ht)
+    HashTableInsert(key = rownames(ec.map)[i], value = new.tids, ht = ht)
     for(j in new.tids){
-      HashTableAdd(key = as.character(j), value = i - 1, ht = ht2)
+      HashTableAdd(key = as.character(j), value = as.numeric(rownames(ec.map)[i]) - 1, ht = ht2)
     }
     if(i %% 10000 == 0){
       if (display.progress) {
