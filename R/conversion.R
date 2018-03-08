@@ -147,12 +147,28 @@ setMethod(
             warning("Cannot find hvg.info data")
           }
         }
+        # Add DRs
+        drs <- c("pca_cell_embeddings")
+        if("pca_cell_embeddings" %in% names(x = from[['col_attrs']])) {
+          pca.cell.embeddings <- t(from[['col_attrs/pca_cell_embeddings']][,])
+          rownames(pca.cell.embeddings) <- from[[cell.names]][]
+          colnames(pca.cell.embeddings) <- paste0("PC", 1:ncol(pca.cell.embeddings))
+          pca.gene.loadings <- t(from[['row_attrs/pca_gene_loadings']][,])
+          rownames(pca.gene.loadings) <- from[[gene.names]][]
+          colnames(pca.gene.loadings) <- paste0("PC", 1:ncol(pca.gene.loadings))
+
+          pca.dr <- new(Class = "dim.reduction",
+                        cell.embeddings = pca.cell.embeddings,
+                        gene.loadings = pca.gene.loadings,
+                        key = "PC")
+          object@dr$pca <- pca.dr
+        }
         # Add meta data
         meta.data <- names(x = from[['col_attrs']])
-        meta.data <- meta.data[!(meta.data %in% basename(path = cell.names))]
+        meta.data <- meta.data[!(meta.data %in% c(drs, basename(path = cell.names)))]
         if (length(x = meta.data) > 0) {
           row.attrs <- from[['col_attrs']]
-          meta.df <- data.frame('NA' = rep.int(x = NA, times = from$shape[1]))
+          meta.df <- data.frame('NA' = rep.int(x = NA, times = from$shape[2]))
           rownames(x = meta.df) <- colnames(x = raw.matrix)
           for (i in meta.data) {
             meta.df[, i] <- row.attrs[[i]][]
