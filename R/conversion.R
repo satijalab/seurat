@@ -114,7 +114,7 @@ setMethod(
           if (scale.data %in% list.datasets(object = from)) {
             scale.matrix <- t(x = from[[scale.data]][, ])
             rownames(x = scale.matrix) <- rownames(x = raw.matrix)
-            colnames(x = scale.matrix) <- colnames(x = scale.matrix)
+            colnames(x = scale.matrix) <- colnames(x = raw.matrix)
             object@scale.data <- scale.matrix
             gc()
           } else {
