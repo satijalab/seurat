@@ -1104,9 +1104,6 @@ setMethod(
   definition = function(object,
                         size,
                         dims.use = 1:10,
-                        method = 'max',
-                        eps = 0.001,
-                        bw.adjust = 2,
                         return.type = "seurat",
                         filename,
                         overwrite = FALSE,
@@ -1117,9 +1114,6 @@ setMethod(
     input.matrix <- GetCellEmbeddings(object = object, reduction.type = "pca")[, dims.use]
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
-                                      method = method,
-                                      eps = eps,
-                                      bw.adjust = bw.adjust,
                                       ...)
     object <- SubsetData(object = object, cells.use = cells.to.keep, subset.raw = TRUE)
     if (return.type == "seurat") {
@@ -1139,9 +1133,6 @@ setMethod(
   definition = function(object,
                         size,
                         dims.use = 1:10,
-                        method = 'max',
-                        eps = 0.001,
-                        bw.adjust = 2,
                         cell.names = "col_attrs/cell_names",
                         ...) {
     input.matrix <- t(object[['col_attrs/pca_cell_embeddings']][dims.use,])
@@ -1149,9 +1140,7 @@ setMethod(
     rownames(input.matrix) <- object[[cell.names]][]
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
-                                      method = method,
-                                      eps = eps,
-                                      bw.adjust = bw.adjust)
+                                      ...)
     new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, ...)
     return(new.object)
   }
@@ -1414,7 +1403,7 @@ setMethod(
     for (i in 1:length(x = batch)) {
       # Get the indices we're iterating over
       chunk.indices <- object$batch.next(return.data = FALSE)
-      cat('chunk', i, '; range', range(chunk.indices), '\n')
+      #cat('chunk', i, '; range', range(chunk.indices), '\n')
       chunk.data <- object[['matrix']][chunk.indices, ]
       chunk.cell.names <- cell.names[chunk.indices]
       sel <- chunk.cell.names  %in% cells
@@ -1435,7 +1424,8 @@ setMethod(
     if (return.type == "seurat") {
       cat('Note: SubsetSeurat is converting from loom to seurat; only raw data and cell attributes are kept, no layers\n')
       new.object <- CreateSeuratObject(raw.data = as(t(mat), "dgCMatrix"))
-      colnames(meta.data)[colnames(meta.data) %in% colnames(new.object@meta.data)] <- paste(colnames(meta.data)[colnames(meta.data) %in% colnames(new.object@meta.data)], 'loom', sep='.')
+      duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)
+      colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
       new.object <- AddMetaData(object = new.object, metadata = meta.data)
       return(new.object)
     } else {
