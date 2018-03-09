@@ -57,7 +57,7 @@ DownsampleMatrix <- function(
   #  FUN = '/'
   # )
   #norm.factor <- apply(dens, 2, sum)
-  norm.factor <- apply(weights, 2, quantile, 0.99)
+  norm.factor <- apply(weights, 2, quantile, q)
   weights <- sweep(
     x = weights,
     MARGIN = 2,
