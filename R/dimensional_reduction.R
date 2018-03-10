@@ -506,7 +506,8 @@ RunTSNE <- function(
         data.tsne <- Rtsne(
           X = as.matrix(x = distance.matrix),
           dims = dim.embed,
-          is_distance=TRUE
+          is_distance=TRUE,
+          ...
         )
       }
       data.tsne <- data.tsne$Y
