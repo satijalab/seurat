@@ -763,7 +763,9 @@ WhichCells <- function(
   if(accept.low >= accept.high) {
     stop("accept.low greater than or equal to accept.high")
   }
-  set.seed(seed = random.seed)
+  if (!is.na(x = random.seed)) {
+    set.seed(seed = random.seed)
+  }
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
   bad.remove.idents <- ident.remove[! (ident.remove %in% unique(x = object@ident))]
