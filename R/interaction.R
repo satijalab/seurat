@@ -1155,7 +1155,7 @@ setMethod(
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       ...)
-    object <- SubsetData(object = object, cells.use = cells.to.keep, subset.raw = TRUE)
+    object <- SubsetData(object = object, cells.use = cells.to.keep, subset.raw = TRUE, random.seed = NA)
     if (return.type == "seurat") {
       return(object)
     } else {
