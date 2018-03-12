@@ -13,8 +13,10 @@
 # @return Returns the residuals from the regression model
 #
 #' @import Matrix
+#' @import doSNOW
 #' @importFrom stats as.formula lm residuals glm
 #' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom foreach foreach %dopar%
 #
 RegressOutResid <- function(
   object,
@@ -22,7 +24,8 @@ RegressOutResid <- function(
   genes.regress = NULL,
   model.use = 'linear',
   use.umi = FALSE,
-  display.progress = TRUE
+  display.progress = TRUE,
+  do.par = FALSE
 ) {
   possible.models <- c("linear", "poisson", "negbinom")
   if (! model.use %in% possible.models){
@@ -56,7 +59,25 @@ RegressOutResid <- function(
   if (use.umi) {
     data.use <- object@raw.data[genes.regress, object@cell.names, drop = FALSE]
   }
-  for (i in 1:max.bin) {
+  
+  # use do.par is set to true, use half the cores on machine
+  numCores <- ifelse(do.par, detectCores() / 2, 1)
+  cl<- parallel::makeCluster(numCores)
+  
+  # using doSNOW library because it supports progress bar update
+  registerDoSNOW(cl)
+  
+  opts <- list()
+  if(display.progress)
+  {  
+    # define progress bar function
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress=progress)
+  }
+  
+  time_elapsed <- Sys.time()
+  
+  data.resid <- foreach(i=1:max.bin, .combine = "rbind", .options.snow=opts) %dopar% {
     genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
     gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
     new.data <- do.call(
@@ -96,19 +117,18 @@ RegressOutResid <- function(
         }
       )
     )
-    if (i == 1) {
-      data.resid=new.data
-    }
-    if (i > 1) {
-      data.resid=rbind(data.resid,new.data)
-    }
-    if(display.progress) {
-      setTxtProgressBar(pb, i)
-    }
+    
+    new.data
   }
+  
+  cat(paste("\nTime Elapsed: ",Sys.time() - time_elapsed, "Secs"))
+  
+  stopCluster(cl)
+  
   if (display.progress) {
     close(pb)
   }
+  
   rownames(x = data.resid) <- genes.regress
   if (use.umi) {
     data.resid <- log1p(
