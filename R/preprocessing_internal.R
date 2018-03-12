@@ -121,7 +121,8 @@ RegressOutResid <- function(
     new.data
   }
   
-  cat(paste("\nTime Elapsed: ",Sys.time() - time_elapsed, "Secs"))
+  time_elapsed <- Sys.time() - time_elapsed
+  cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed)))
   
   stopCluster(cl)
   
