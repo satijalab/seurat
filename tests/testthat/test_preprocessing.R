@@ -179,6 +179,24 @@ test_that("Poisson regression works as expected", {
   expect_equal(object@scale.data[10, 59], -0.4533085, tolerance = 1e-6)
 })
 
+if (detectCores() > 1) {
+  object <- ScaleData(object,
+  vars.to.regress = "nUMI",
+  genes.use = rownames(object@data)[1:10],
+  display.progress = F,
+  model.use = "linear",
+  do.par = TRUE,
+  num.cores = 2)
+
+  test_that("Parallelization works", {
+    expect_equal(dim(object@scale.data), c(10, 59))
+    expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
+    expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
+    expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
+  })
+}
+
+
 # Tests for SampleUMI
 # --------------------------------------------------------------------------------
 context("SampleUMI")
