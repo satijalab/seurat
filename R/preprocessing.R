@@ -431,7 +431,7 @@ ScaleDataR <- function(
 #' differences in numerical precision which could affect downstream calculations.
 #' @param check.for.norm Check to see if data has been normalized, if not,
 #' output a warning (TRUE by default)
-#' #' @param do.par use parallel processing for regressing out variables faster.
+#' @param do.par use parallel processing for regressing out variables faster.
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #'
