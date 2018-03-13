@@ -23,7 +23,7 @@ NULL
 #'
 setGeneric(
   name = 'BlockCov',
-  def = function(object, mat, chunk.size, display.progress, rows.use, row.names) {
+  def = function(object, ...) {
     return(standardGeneric(f = 'BlockCov'))
   }
 )

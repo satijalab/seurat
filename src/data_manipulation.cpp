@@ -328,3 +328,23 @@ std::vector<int> ToVector(Eigen::VectorXd v1){
   std::vector<int> v2(v1.data(), v1.data() + v1.size());
   return(v2);
 }
+
+//[[Rcpp::export]]
+List UpdateCov(Eigen::MatrixXd batch_mat, Eigen::MatrixXd cov_mat, Eigen::MatrixXd c1, int n1, Eigen::VectorXd m1) {
+  Eigen::VectorXd m2 = batch_mat.colwise().mean();
+  for(int i=0; i<batch_mat.cols(); ++i) {
+    for(int j=0; j<batch_mat.cols(); ++j) {
+      cov_mat(i, j) = (m2[i] - m1[i]) * (m2[j] - m1[j]);
+      cov_mat(j, i) = cov_mat(i, j);
+    }
+  }
+  double n2 = n1 + batch_mat.rows();
+  Eigen::MatrixXd c2 = FastCov(batch_mat);
+  c1 = (n1 - 1) / (n2 - 1) * c1 + (batch_mat.rows() - 1)/(n2 - 1) * c2 + (n1 * batch_mat.rows())/(n2 * (n2 - 1)) * cov_mat;
+  m1 = (n1 * m1 + batch_mat.rows() * m2)/n2;
+  return(List::create(Named("cov_mat", cov_mat),
+                      Named("c1", c1),
+                      Named("n1", n2),
+                      Named("m1", m1)));
+}
+

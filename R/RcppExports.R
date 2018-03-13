@@ -53,6 +53,10 @@ FastLogVMR <- function(mat, display_progress) {
     .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
 }
 
+UpdateCov <- function(batch_mat, cov_mat, c1, n1, m1) {
+    .Call('_Seurat_UpdateCov', PACKAGE = 'Seurat', batch_mat, cov_mat, c1, n1, m1)
+}
+
 ComputeSNN <- function(nn_large, nn_ranked, prune, display_progress) {
     .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_large, nn_ranked, prune, display_progress)
 }

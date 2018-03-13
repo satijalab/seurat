@@ -177,6 +177,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// UpdateCov
+List UpdateCov(Eigen::MatrixXd batch_mat, Eigen::MatrixXd cov_mat, Eigen::MatrixXd c1, int n1, Eigen::VectorXd m1);
+RcppExport SEXP _Seurat_UpdateCov(SEXP batch_matSEXP, SEXP cov_matSEXP, SEXP c1SEXP, SEXP n1SEXP, SEXP m1SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type batch_mat(batch_matSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type cov_mat(cov_matSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type c1(c1SEXP);
+    Rcpp::traits::input_parameter< int >::type n1(n1SEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type m1(m1SEXP);
+    rcpp_result_gen = Rcpp::wrap(UpdateCov(batch_mat, cov_mat, c1, n1, m1));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked, double prune, bool display_progress);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_largeSEXP, SEXP nn_rankedSEXP, SEXP pruneSEXP, SEXP display_progressSEXP) {
@@ -233,6 +248,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
+    {"_Seurat_UpdateCov", (DL_FUNC) &_Seurat_UpdateCov, 5},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 4},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 5},

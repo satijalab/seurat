@@ -927,29 +927,22 @@ setMethod(
     } else {
       rows.use <- which(object[[rows.use]][])
     }
-
     batch1 <- object[[mat]][batch.indices[[1]], rows.use]
     c1 <- cov(batch1)
     m1 <- colMeans(batch1)
     m.mat <- matrix(nrow = ncol(batch1), ncol = ncol(batch1))
     n1 <- nrow(batch1)
+    update.cov <- list(cov_mat = m.mat, c1 = c1, n1 = n1, m1 = m1)
     if (display.progress) {
       pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
     }
     for(i in 2:length(x = batch)) {
       current.batch <- object[[mat]][batch.indices[[i]], rows.use]
-      m2 <- colMeans(current.batch)
-      for (j in 1:ncol(current.batch)) {
-        for (k in 1:ncol(current.batch)) {
-          m.mat[j, k] <- (m2[j] - m1[j]) * (m2[k] - m1[k])
-          m.mat[k, j] <- m.mat[j, k]
-        }
-      }
-      n2 <- n1 + nrow(current.batch)
-      c2 <- cov(current.batch)
-      c1 <- (n1 - 1) / (n2 - 1) * c1 + (nrow(current.batch) - 1)/(n2 - 1) * c2 + (n1 * nrow(current.batch))/(n2 *(n2 -1)) * m.mat
-      m1 <- (n1*m1 + nrow(current.batch)*m2)/n2
-      n1 <- n2
+      update.cov <- UpdateCov(batch_mat = current.batch,
+                              cov_mat = update.cov[["cov_mat"]],
+                              c1 = update.cov[["c1"]],
+                              n1 = update.cov[["n1"]],
+                              m1 = update.cov[["m1"]])
       if (display.progress) {
         setTxtProgressBar(pb, i)
       }
@@ -957,9 +950,10 @@ setMethod(
     if (display.progress) {
       close(pb)
     }
-    rownames(c1) <- object[[row.names]][rows.use]
-    colnames(c1) <- object[[row.names]][rows.use]
-    return(c1)
+    final.cov <- update.cov[["c1"]]
+    rownames(final.cov) <- object[[row.names]][rows.use]
+    colnames(final.cov) <- object[[row.names]][rows.use]
+    return(final.cov)
   }
 )
 

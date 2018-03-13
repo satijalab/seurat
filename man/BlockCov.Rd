@@ -6,11 +6,11 @@
 \alias{BlockCov,loom-method}
 \title{Calculate covariance matrix}
 \usage{
-BlockCov(object, mat, chunk.size, display.progress, rows.use, row.names)
+BlockCov(object, ...)
 
 \S4method{BlockCov}{loom}(object, mat = NULL, chunk.size = 100,
   display.progress = TRUE, rows.use = NULL,
-  row.names = "row_attrs/gene_names")
+  row.names = "row_attrs/gene_names", do.cpp = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
