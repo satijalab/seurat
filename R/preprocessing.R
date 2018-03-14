@@ -413,191 +413,261 @@ ScaleDataR <- function(
   return(object)
 }
 
-#' @rdname ScaleData
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#' @exportMethod ScaleData
+#' @param genes.use Vector of gene names to scale/center. Default is all genes in object@@data.
+#' @param data.use Can optionally pass a matrix of data to scale, default is
+#' object@data[genes.use, ]
+#' @param vars.to.regress Variables to regress out (previously latent.vars in RegressOut). For example, nUMI, or percent.mito.
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param do.scale Whether to scale the data.
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of genes that are only expressed in
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
+#' @param block.size Default size for number of genes to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param display.progress Displays a progress bar for scaling procedure
+#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
+#' multimodal analyses.
+#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
+#' We've maintained support for our previous implementation in R for
+#' reproducibility (set this to FALSE) as results can change slightly due to
+#' differences in numerical precision which could affect downstream calculations.
+#' @param check.for.norm Check to see if data has been normalized, if not,
+#' output a warning (TRUE by default)
 #'
-setMethod(
-  f = 'ScaleData',
-  signature = c('object' = 'seurat'),
-  definition = function(
-    object,
-    genes.use = NULL,
-    data.use = NULL,
-    vars.to.regress,
-    model.use = 'linear',
-    use.umi = FALSE,
-    do.scale = TRUE,
-    do.center = TRUE,
-    scale.max = 10,
-    block.size = 1000,
-    min.cells.to.block = 3000,
-    display.progress = TRUE,
-    assay.type = "RNA",
-    do.cpp = TRUE,
-    check.for.norm = TRUE
-  ) {
-    data.use <- SetIfNull(
-      x = data.use,
-      default = GetAssayData(
-        object = object,
-        assay.type = assay.type,
-        slot = "data"
-      )
-    )
-    if (check.for.norm) {
-      if (!("NormalizeData" %in% names(object@calc.params))) {
-        cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
-      }
-      if (is.null(object@calc.params$NormalizeData$normalization.method)) {
-        cat("ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
-      }
-    }
-    genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
-    genes.use <- as.vector(
-      x = intersect(
-        x = genes.use,
-        y = rownames(x = data.use)
-      )
-    )
-    data.use <- data.use[genes.use, ]
-    if (! missing(vars.to.regress)) {
-      data.use <- RegressOutResid(
-        object = object,
-        vars.to.regress = vars.to.regress,
-        genes.regress = genes.use,
-        use.umi = use.umi,
-        model.use = model.use,
-        display.progress = display.progress
-      )
-      if (model.use != "linear") {
-        use.umi <- TRUE
-      }
-      if(use.umi && missing(scale.max)){
-        scale.max <- 50
-      }
-    }
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
-    parameters.to.store$data.use <- NULL
-    object <- SetCalcParams(
-      object = object,
-      calculation = "ScaleData",
-      ... = parameters.to.store
-    )
-    if(!do.cpp){
-      return(ScaleDataR(
-        object = object,
-        data.use = data.use,
-        do.scale = do.scale,
-        do.center = do.center,
-        scale.max = scale.max,
-        genes.use = genes.use
-      ))
-    }
-    scaled.data <- matrix(
-      data = NA,
-      nrow = length(x = genes.use),
-      ncol = ncol(x = object@data
-      )
-    )
-    rownames(scaled.data) <- genes.use
-    if(length(object@cell.names) <= min.cells.to.block) {
-      block.size <- length(genes.use)
-    }
-    gc()
-    colnames(scaled.data) <- colnames(object@data)
-    max.block <- ceiling(x = length(x = genes.use) / block.size)
-    gc()
-    if (display.progress) {
-      print("Scaling data matrix")
-      pb <- txtProgressBar(min = 0, max = max.block, style = 3)
-    }
-    for (i in 1:max.block) {
-      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-      my.inds <- my.inds[my.inds <= length(x = genes.use)]
-      if (class(x = data.use) == "dgCMatrix" | class(x = data.use) == "dgTMatrix") {
-        data.scale <- FastSparseRowScale(
-          mat = data.use[genes.use[my.inds], , drop = F],
-          scale = do.scale,
-          center = do.center,
-          scale_max = scale.max,
-          display_progress = FALSE
-        )
-      } else {
-        data.scale <- FastRowScale(
-          mat = as.matrix(x = data.use[genes.use[my.inds], , drop = F]),
-          scale = do.scale,
-          center = do.center,
-          scale_max = scale.max,
-          display_progress = FALSE
-        )
-      }
-      dimnames(x = data.scale) <- dimnames(x = data.use[genes.use[my.inds], ])
-      scaled.data[genes.use[my.inds], ] <- data.scale
-      rm(data.scale)
-      gc()
-      if (display.progress) {
-        setTxtProgressBar(pb, i)
-      }
-    }
-    if (display.progress) {
-      close(pb)
-    }
-    object <- SetAssayData(
+#' @return Returns a seurat object with object@@scale.data updated with scaled
+#' and/or centered data.
+#'
+#' @describeIn ScaleData Scale Seurat objects
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @export ScaleData.seurat
+#' @method ScaleData seurat
+#'
+ScaleData.seurat <- function(
+  object,
+  genes.use = NULL,
+  data.use = NULL,
+  vars.to.regress,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  display.progress = TRUE,
+  assay.type = "RNA",
+  do.cpp = TRUE,
+  check.for.norm = TRUE
+) {
+  data.use <- SetIfNull(
+    x = data.use,
+    default = GetAssayData(
       object = object,
       assay.type = assay.type,
-      slot = 'scale.data',
-      new.data = scaled.data
+      slot = "data"
     )
-    gc()
-    object@scale.data[is.na(object@scale.data)] <- 0
-    return(object)
+  )
+  if (check.for.norm) {
+    if (!("NormalizeData" %in% names(object@calc.params))) {
+      cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
+    if (is.null(object@calc.params$NormalizeData$normalization.method)) {
+      cat("ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
+    }
   }
-)
-
-#' @rdname ScaleData
-#' @exportMethod ScaleData
-#'
-setMethod(
-  f = 'ScaleData',
-  signature = c('object' = 'loom'),
-  definition = function(
-    object,
-    name = 'scale_data',
-    do.scale = TRUE,
-    do.center = TRUE,
-    scale.max = 10,
-    chunk.size = 1000,
-    normalized.data = 'layers/norm_data',
-    overwrite = FALSE,
-    display.progress = TRUE,
-    ...
-  ) {
-    object$apply(
-      name = paste('layers', name, sep = '/'),
-      FUN = function(mat) {
-        return(t(x = FastRowScale(
-          mat = t(x = mat),
-          scale = do.scale,
-          center = do.center,
-          scale_max = scale.max,
-          display_progress = FALSE
-        )))
-      },
-      MARGIN = 1,
-      chunk.size = chunk.size,
-      dataset.use = normalized.data,
-      overwrite = overwrite,
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
+  genes.use <- as.vector(
+    x = intersect(
+      x = genes.use,
+      y = rownames(x = data.use)
+    )
+  )
+  data.use <- data.use[genes.use, ]
+  if (!missing(x = vars.to.regress)) {
+    data.use <- RegressOutResid(
+      object = object,
+      vars.to.regress = vars.to.regress,
+      genes.regress = genes.use,
+      use.umi = use.umi,
+      model.use = model.use,
       display.progress = display.progress
     )
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
-    SetCalcParams(object = object,
-                  dataset.use = "layers/scale_data",
-                  ... = parameters.to.store)
-    gc(verbose = FALSE)
-    invisible(x = object)
+    if (model.use != "linear") {
+      use.umi <- TRUE
+    }
+    if (use.umi && missing(x = scale.max)) {
+      scale.max <- 50
+    }
   }
-)
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store$data.use <- NULL
+  object <- SetCalcParams(
+    object = object,
+    calculation = "ScaleData",
+    ... = parameters.to.store
+  )
+  if (!do.cpp) {
+    return(ScaleDataR(
+      object = object,
+      data.use = data.use,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max,
+      genes.use = genes.use
+    ))
+  }
+  scaled.data <- matrix(
+    data = NA,
+    nrow = length(x = genes.use),
+    ncol = ncol(x = object@data
+    )
+  )
+  rownames(scaled.data) <- genes.use
+  if (length(x = object@cell.names) <= min.cells.to.block) {
+    block.size <- length(genes.use)
+  }
+  gc()
+  colnames(scaled.data) <- colnames(object@data)
+  max.block <- ceiling(x = length(x = genes.use) / block.size)
+  gc()
+  if (display.progress) {
+    print("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+  }
+  for (i in 1:max.block) {
+    my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+    my.inds <- my.inds[my.inds <= length(x = genes.use)]
+    if (class(x = data.use) == "dgCMatrix" | class(x = data.use) == "dgTMatrix") {
+      data.scale <- FastSparseRowScale(
+        mat = data.use[genes.use[my.inds], , drop = F],
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )
+    } else {
+      data.scale <- FastRowScale(
+        mat = as.matrix(x = data.use[genes.use[my.inds], , drop = F]),
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )
+    }
+    dimnames(x = data.scale) <- dimnames(x = data.use[genes.use[my.inds], ])
+    scaled.data[genes.use[my.inds], ] <- data.scale
+    rm(data.scale)
+    gc()
+    if (display.progress) {
+      setTxtProgressBar(pb, i)
+    }
+  }
+  if (display.progress) {
+    close(pb)
+  }
+  object <- SetAssayData(
+    object = object,
+    assay.type = assay.type,
+    slot = 'scale.data',
+    new.data = scaled.data
+  )
+  gc()
+  object@scale.data[is.na(object@scale.data)] <- 0
+  return(object)
+}
+
+#' @param genes.use (For loom method) Path to a boolean dataset in loom object for genes to use, or a numeric vector for gene indices to use, defaults to 'row_attrs/var_genes'
+#' @param name to store dataset as, defaults to 'scale_data'
+#' @param chunk.size Chunk size to iterate over, defaults to 1000
+#' @param normalized.data Full path to normalized data in loom file, defaults to 'layers/norm_data'
+#' @param overwrite Overwrite existing dataset with name 'layers/\code{name}'
+#'
+#' @return Nothing, modifies loom file directly
+#'
+#' @describeIn ScaleData Scaling loom objects
+#' @export ScaleData.loom
+#' @method ScaleData loom
+#'
+ScaleData.loom <- function(
+  object,
+  genes.use = 'row_attrs/var_genes',
+  name = 'scale_data',
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  chunk.size = 1000,
+  normalized.data = 'layers/norm_data',
+  overwrite = FALSE,
+  display.progress = TRUE,
+  ...
+) {
+  # Set index.use
+  if (is.null(x = genes.use)) {
+    # If no genes.use specified, just pass it to apply
+    index.use <- genes.use
+  } else {
+    # If genes.use is a one-length character vector, assume it's a dataset within the loom object
+    if (is.character(x = genes.use) && length(x = genes.use) == 1) {
+      # If no dirname was provided, assume dataset is in 'row_attrs'
+      if (dirname(path = genes.use) == '.') {
+        genes.use <- file.path('row_attrs', genes.use)
+      }
+      tryCatch(
+        # Will error out if dataset doesn't exist or isn't one-dimensional
+        expr = genes.logical <- object[[genes.use]][],
+        error = function(e) {
+          stop(paste("Cannot find the one-dimensional dataset", genes.use, "in the loom object"))
+        }
+      )
+      # Ensure it's a logical dataset
+      if (!is.logical(x = genes.logical)) {
+        stop(paste(genes.use, "must point to a dataset of logical values"))
+      }
+      # Get the TRUEs from the dataset
+      index.use <- which(x = genes.logical)
+    } else if (is.numeric(x = genes.use)) {
+      # If genes.use is a numeric vector, assume it's the indexes to use
+      index.use <- genes.use
+    } else {
+      # Nope, error out
+      stop("'genes.use' must be either a numeric vector or a name to a one-dimensional dataset of booleans (H5T_ENUM) within the loom object")
+    }
+  }
+  object$apply(
+    name = paste('layers', name, sep = '/'),
+    FUN = function(mat) {
+      return(t(x = FastRowScale(
+        mat = t(x = mat),
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )))
+    },
+    MARGIN = 1,
+    index.use = index.use,
+    chunk.size = chunk.size,
+    dataset.use = normalized.data,
+    overwrite = overwrite,
+    display.progress = display.progress
+  )
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(x = formals())]
+  SetCalcParams(
+    object = object,
+    dataset.use = "layers/scale_data",
+    ... = parameters.to.store
+  )
+  gc(verbose = FALSE)
+  invisible(x = object)
+}
 
 #' Normalize raw data
 #'

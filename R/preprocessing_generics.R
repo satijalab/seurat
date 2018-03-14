@@ -116,45 +116,7 @@ setGeneric(
 #' levels by their standard deviations if center is TRUE and by their root mean
 #' square otherwise.
 #'
-#'
-#' @param object Seurat object
-#' @param genes.use Vector of gene names to scale/center. Default is all genes
-#' in object@@data.
-#' @param data.use Can optionally pass a matrix of data to scale, default is
-#' object@data[genes.use, ]
-#' @param vars.to.regress Variables to regress out (previously latent.vars in
-#' RegressOut). For example, nUMI, or percent.mito.
-#' @param model.use Use a linear model or generalized linear model
-#' (poisson, negative binomial) for the regression. Options are 'linear'
-#' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear
-#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#' @param do.scale Whether to scale the data.
-#' @param do.center Whether to center the data.
-#' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of genes that are only expressed in
-#' a very small number of cells. If regressing out latent variables and using a
-#' non-linear model, the default is 50.
-#' @param block.size Default size for number of genes to scale at in a single
-#' computation. Increasing block.size may speed up calculations but at an
-#' additional memory cost.
-#' @param min.cells.to.block If object contains fewer than this number of cells,
-#' don't block for scaling calculations.
-#' @param display.progress Displays a progress bar for scaling procedure
-#' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
-#' multimodal analyses.
-#' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
-#' We've maintained support for our previous implementation in R for
-#' reproducibility (set this to FALSE) as results can change slightly due to
-#' differences in numerical precision which could affect downstream calculations.
-#' @param check.for.norm Check to see if data has been normalized, if not,
-#' output a warning (TRUE by default)
-#' @param chunk.size Chunk size to iterate over
-#' @param normalized.data Full path to normalized data in loom file
-#' @param Overwrite Overwrite existing dataset with name 'layers/\code{name}'
-#'
-#' @return Returns a seurat object with object@@scale.data updated with scaled
-#' and/or centered data.
+#' @param object Object to scale
 #'
 #' @rdname ScaleData
 #' @export ScaleData
@@ -166,9 +128,12 @@ setGeneric(
 #' pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
 #' }
 #'
-setGeneric(
-  name = 'ScaleData',
-  def = function(object, ...) {
-    return(standardGeneric(f = 'ScaleData'))
-  }
-)
+# setGeneric(
+#   name = 'ScaleData',
+#   def = function(object, ...) {
+#     return(standardGeneric(f = 'ScaleData'))
+#   }
+# )
+ScaleData <- function(object, ...) {
+  UseMethod(generic = 'ScaleData', object = object)
+}
