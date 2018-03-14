@@ -429,7 +429,7 @@ fftRtsne <- function(
     stop('tsne call failed');
   }
   f <- file(description = result_path, open = "rb")
-  # initialError <- readBin(f, integer(), n = 1, size = 8) # Not used
+  initialError <- readBin(f, integer(), n = 1, size = 8)
   n <- readBin(con = f, what = integer(), n = 1, size = 4)
   d <- readBin(con = f, what = integer(), n = 1, size = 4)
   Y <- readBin(con = f, what = numeric(), n = n * d)

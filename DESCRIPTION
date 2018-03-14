@@ -59,7 +59,9 @@ Imports:
     lmtest,
     cluster,
     fitdistrplus,
-    png
+    png,
+    doSNOW,
+    foreach
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
