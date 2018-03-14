@@ -30,8 +30,10 @@ NULL
 #' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting
 #' to FALSE can be used together with a provided filename to only write the SNN
 #' out as an edge file to disk.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #'
-#' @importFrom FNN get.knn
+#' @importFrom RANN nn2
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
 #' @return Returns the object with object@@snn filled
@@ -60,7 +62,8 @@ BuildSNN <- function(
   distance.matrix = NULL,
   force.recalc = FALSE,
   filename = NULL,
-  save.SNN = TRUE
+  save.SNN = TRUE,
+  nn.eps = 0
 ) {
   if (! is.null(x = distance.matrix)) {
     data.use <- distance.matrix
@@ -96,11 +99,12 @@ BuildSNN <- function(
   }
   # find the k-nearest neighbors for each single cell
   if (is.null(x = distance.matrix)) {
-    my.knn <- get.knn(
-      data = as.matrix(x = data.use),
-      k = min(k.param, n.cells - 1)
-    )
-    nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
+    my.knn <- nn2(
+        data = data.use, 
+        k = k.param, 
+        searchtype = 'standard', 
+        eps = nn.eps)
+    nn.ranked <- my.knn$nn.idx
   } else {
     if (print.output) {
       cat("Building SNN based on a provided distance matrix\n", file = stderr())
