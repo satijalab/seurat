@@ -24,13 +24,14 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
                                  sep = "\t", row.names = 1))
   gene.map <- read.table(file = gene.map, stringsAsFactors = FALSE)
+  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) > min.ec.filter)
+  tcc.mat <- tcc.mat[ecs.to.keep, ]
+  ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
+
   if (display.progress) {
     cat("Building EC/transcript/gene maps. Note: this will take a few minutes\n", file = stderr())
     pb <- txtProgressBar(min = 0, max = nrow(ec.map), style = 3)
   }
-  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) > min.ec.filter)
-  tcc.mat <- tcc.mat[ecs.to.keep, ]
-  ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
 
   ht <- HashTable()
   ht2 <- HashTable()
