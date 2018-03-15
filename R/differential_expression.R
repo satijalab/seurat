@@ -1371,20 +1371,40 @@ LRDETest <- function(
   cells.2,
   min.cells = 3,
   genes.use = NULL,
+  use.tcc = FALSE,
+  tccs.use = NULL,
   print.bar = TRUE,
   assay.type = "RNA",
   ...
 ) {
-  data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
-  coldata <- object@meta.data[c(cells.1, cells.2), ]
+  combine.ps <- FALSE
+  if (use.tcc) {
+    if(!is.null(genes.use)) {
+      tccs.use <- unique(unname(unlist(sapply(X = genes.use, FUN = function(x) {TCCMap(object = object,
+                                                              from = x,
+                                                              from.type = "GENE",
+                                                              to = "EC")}))))
+      data.test <- object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), ]
+      combine.ps <- TRUE
+    } else if (!is.null(tccs.use)) {
+      data.test <-  object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), ]
+    } else {
+      stop("If specifying use.tcc, also provide either tccs.use or genes.use.")
+    }
+    coldata <- data.frame(row.names = colnames(data.test))
+  } else {
+    data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
+    genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
+    # check that the gene made it through the any filtering that was done
+    genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
+    coldata <- object@meta.data[c(cells.1, cells.2), ]
+    data.test <- data.test[genes.use, ]
+  }
   coldata[cells.1, "group"] <- "Group1"
   coldata[cells.2, "group"] <- "Group2"
   coldata$group <- factor(x = coldata$group)
   coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- data.test[genes.use, rownames(x = coldata)]
+  countdata.test <- data.test[ , rownames(x = coldata)]
   mysapply <- if (print.bar) {pbsapply} else {sapply}
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
@@ -1395,8 +1415,21 @@ LRDETest <- function(
       return(lrtest$Pr[2])
     }
   )
+
   genes.return <- rownames(x = countdata.test)
   to.return <- data.frame(p_val, row.names = genes.return)
+
+  if(combine.ps) {
+    combined.pvals <- sapply(X = genes.use, FUN = function(x) {
+      pvals <- to.return[TCCMap(object, from = x, from.type = "GENE", to = "EC"), ]
+      if(length(pvals) > 1){
+        return(sumlog(pvals)$p)
+      } else {
+        return(pvals)
+      }
+    })
+    to.return <- as.data.frame(combined.pvals, row.names = names(combined.pvals))
+  }
   return(to.return)
 }
 

@@ -42,7 +42,7 @@ TCCMap <- function(object, from, from.type, to) {
     if(to == "EC"){
       ec <- as.vector(sapply(X = transcript.ids, FUN = function(x) HashTableLookup(x, object@tcc@tid.to.ec.map)))
     }
-    transcript.names <- object@tcc@gene.map[as.numeric(transcript.ids) + 1, 1]
+    transcript.names <- object@tcc@gene.map[transcript.ids, 1]
     if (to == "TID") {
       return(transcript.names)
     }
@@ -52,7 +52,7 @@ TCCMap <- function(object, from, from.type, to) {
   if(from.type == "TID") {
     transcript.names <- from
     if (! exists("transcript.ids")){
-      transcript.ids <- which(object@tcc@gene.map[, 1] %in% transcript.names) - 1
+      transcript.ids <- rownames(object@tcc@gene.map[which(object@tcc@gene.map[, 1] %in% transcript.names), ])
     }
     if(to == "TIDX") {
       return(transcript.ids)
@@ -65,14 +65,14 @@ TCCMap <- function(object, from, from.type, to) {
         return(ec)
       }
     }
-    gene.names <- object@tcc@gene.map[as.numeric(transcript.ids) + 1, 2]
+    gene.names <- object@tcc@gene.map[transcript.ids, 2]
     if(to == "GENE") {
       return(gene.names)
     }
   }
   if(from.type == "GENE") {
     gene.names <- from
-    transcript.ids <- which(object@tcc@gene.map[, 2] %in% gene.names)
+    transcript.ids <- rownames(object@tcc@gene.map[which(object@tcc@gene.map[, 2] %in% gene.names),])
     transcript.names <- object@tcc@gene.map[transcript.ids, 1]
     if(to == "TID") {
       return(transcript.names)
@@ -80,10 +80,15 @@ TCCMap <- function(object, from, from.type, to) {
     if(to == "TIDX") {
       return(transcript.ids)
     }
-    ec <- as.vector(sapply(X = transcript.ids, FUN = function(x) HashTableLookup(x, object@tcc@tid.to.ec.map)))
+    ec <- sapply(X = as.character(transcript.ids), FUN = function(x) HashTableLookup(x, object@tcc@tid.to.ec.map))
     if(to == "EC") {
-      return(ec)
+      return(as.character(unique(unlist(unname(ec)))))
     }
+    gene.names <- rep(gene.names, time = length(unname(unlist(ec))))
+    reps <- unname(unlist(lapply(ec, length)))
+    transcript.ids <- rep(transcript.ids, times = reps)
+    transcript.names <- rep(transcript.names, times = reps)
+    ec <- unname(unlist(ec))
   }
   map.mat <- data.frame(EC = ec,
                         TIDX = transcript.ids,
