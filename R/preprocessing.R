@@ -445,8 +445,9 @@ ScaleDataR <- function(
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
 #'
-#' @describeIn ScaleData Scale Seurat objects
 #' @importFrom utils txtProgressBar setTxtProgressBar
+#'
+#' @describeIn ScaleData Scale Seurat objects
 #' @export ScaleData.seurat
 #' @method ScaleData seurat
 #'
