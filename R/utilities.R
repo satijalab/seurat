@@ -897,63 +897,72 @@ CaseMatch <- function(search, match) {
   return(unlist(x = search.match))
 }
 
-#' @rdname BlockCov
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#' @exportMethod BlockCov
+#' @param mat Path to matrix in loom file
+#' @param chunk.size Size of chunk, defaults to 100
+#' @param display.progress Display progress bar
+#' @param rows.use Rows to include in covariance calculation,
+#' should be the path to a one-dimensional boolean (logical) dataset
+#' (eg. 'row_attrs/var_genes')
+#' @param row.names Location of associated rownames for labeling of final matrix
 #'
-setMethod(
-  f = 'BlockCov',
-  signature = c('object' = 'loom'),
-  definition = function(
-    object,
-    mat = NULL,
-    chunk.size = 100,
-    display.progress = TRUE,
-    rows.use = NULL,
-    row.names = 'row_attrs/gene_names'
-  ) {
-    batch <- object$batch.scan(
-      chunk.size = chunk.size,
-      MARGIN = 2,
-      dataset.use = mat,
-      force.reset = TRUE
-    )
-    batch.indices <- list()
-    for (i in 1:length(x = batch)) {
-      batch.indices[[i]] <- object$batch.next(return.data = FALSE)
-    }
-    if(is.null(rows.use)) {
-      rows.use <- 1:object[[mat]]$dims[2]
-    } else {
-      rows.use <- which(object[[rows.use]][])
-    }
-    batch1 <- object[[mat]][batch.indices[[1]], rows.use]
-    c1 <- cov(batch1)
-    m1 <- colMeans(batch1)
-    m.mat <- matrix(nrow = ncol(batch1), ncol = ncol(batch1))
-    n1 <- nrow(batch1)
-    update.cov <- list(cov_mat = m.mat, c1 = c1, n1 = n1, m1 = m1)
-    if (display.progress) {
-      pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
-    }
-    for(i in 2:length(x = batch)) {
-      current.batch <- object[[mat]][batch.indices[[i]], rows.use]
-      update.cov <- UpdateCov(batch_mat = current.batch,
-                              cov_mat = update.cov[["cov_mat"]],
-                              c1 = update.cov[["c1"]],
-                              n1 = update.cov[["n1"]],
-                              m1 = update.cov[["m1"]])
-      if (display.progress) {
-        setTxtProgressBar(pb, i)
-      }
-    }
-    if (display.progress) {
-      close(pb)
-    }
-    final.cov <- update.cov[["c1"]]
-    rownames(final.cov) <- object[[row.names]][rows.use]
-    colnames(final.cov) <- object[[row.names]][rows.use]
-    return(final.cov)
+#' @return Returns the covariance matrix
+#'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
+#' @describeIn BlockCov Calculate blocked covariates in loom files
+#' @export BlockCov.loom
+#' @method BlockCov loom
+#'
+BlockCov.loom <- function(
+  object,
+  mat,
+  chunk.size = 100,
+  display.progress = TRUE,
+  rows.use = NULL,
+  row.names = 'row_attrs/gene_names'
+) {
+  batch <- object$batch.scan(
+    chunk.size = chunk.size,
+    MARGIN = 2,
+    dataset.use = mat,
+    force.reset = TRUE
+  )
+  batch.indices <- vector(mode = 'list', length = length(x = batch))
+  for (i in 1:length(x = batch)) {
+    batch.indices[[i]] <- object$batch.next(return.data = FALSE)
   }
-)
-
+  if (is.null(x = rows.use)) {
+    rows.use <- 1:object[[mat]]$dims[2]
+  } else {
+    rows.use <- which(x = object[[rows.use]][])
+  }
+  batch1 <- object[[mat]][batch.indices[[1]], rows.use]
+  c1 <- cov(x = batch1)
+  m1 <- colMeans(x = batch1)
+  m.mat <- matrix(nrow = ncol(x = batch1), ncol = ncol(x = batch1))
+  n1 <- nrow(x = batch1)
+  update.cov <- list(cov_mat = m.mat, c1 = c1, n1 = n1, m1 = m1)
+  if (display.progress) {
+    pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
+  }
+  for (i in 2:length(x = batch)) {
+    current.batch <- object[[mat]][batch.indices[[i]], rows.use]
+    update.cov <- UpdateCov(
+      batch_mat = current.batch,
+      cov_mat = update.cov[["cov_mat"]],
+      c1 = update.cov[["c1"]],
+      n1 = update.cov[["n1"]],
+      m1 = update.cov[["m1"]]
+    )
+    if (display.progress) {
+      setTxtProgressBar(pb = pb, value = i)
+    }
+  }
+  if (display.progress) {
+    close(con = pb)
+  }
+  final.cov <- update.cov[["c1"]]
+  rownames(x = final.cov) <- object[[row.names]][rows.use]
+  colnames(x = final.cov) <- object[[row.names]][rows.use]
+  return(final.cov)
+}

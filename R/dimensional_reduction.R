@@ -285,7 +285,13 @@ RunPCA.loom <- function(
     )
   } else {
     if (is.null(x = covariance.mat)) {
-      stop("Please provide covariance matrix. See BlockCov.")
+      covariance.mat <- BlockCov(
+        object = object,
+        mat = scale.data,
+        display.progress = display.progress,
+        rows.use = var.genes,
+        row.names = gene.names
+      )
     }
     # run eigenvalue decomp on covariance matrix
     if (display.progress) {
