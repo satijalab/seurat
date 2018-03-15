@@ -1,9 +1,7 @@
 #' @include seurat.R
 #' @include dimensional_reduction_generics.R
-#' @importFrom methods setMethod
 NULL
 
-#' @param object Seurat object
 #' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
 #' @param pcs.compute Total Number of PCs to compute and store (20 by default)
 #' @param use.imputed Run PCA on imputed values (FALSE by default)
@@ -22,14 +20,15 @@ NULL
 #' NULL will not set a seed.
 #' @param \dots Additional arguments to be passed to IRLBA
 #'
-#'@importFrom irlba irlba
-#'
-#' @return Returns Seurat object with the PCA calculation stored in
+#' @return (Seurat) Returns Seurat object with the PCA calculation stored in
 #' object@@dr$pca.
 #'
-#' @rdname RunPCA
 #' @importFrom irlba irlba
-#' @exportMethod RunPCA
+#'
+#' @describeIn RunPCA Run PCA on Seurat objects
+#' @importFrom irlba irlba
+#' @export RunPCA.seurat
+#' @method RunPCA seurat
 #'
 #' @examples
 #' pbmc_small
@@ -42,79 +41,75 @@ NULL
 #' # Plot results
 #' PCAPlot(pbmc_small)
 #'
-setMethod(
-  f = 'RunPCA',
-  signature = c('object' = 'seurat'),
-  definition = function(
-    object,
-    pcs.compute = 20,
-    pc.genes = NULL,
-    use.imputed = FALSE,
-    rev.pca = FALSE,
-    weight.by.var = TRUE,
-    do.print = TRUE,
-    pcs.print = 1:5,
-    genes.print = 30,
-    reduction.name = "pca",
-    reduction.key = "PC",
-    assay.type = "RNA",
-    seed.use = 42,
-    ...
-  ) {
-    if (!is.null(x = seed.use)) {
-      set.seed(seed = seed.use)
-    }
-    data.use <- PrepDR(
-      object = object,
-      genes.use = pc.genes,
-      use.imputed = use.imputed,
-      assay.type = assay.type)
-    if (rev.pca) {
-      pcs.compute <- min(pcs.compute, ncol(x = data.use) - 1)
-      pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
-      sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
-      if (weight.by.var) {
-        gene.loadings <- pca.results$u %*% diag(pca.results$d)
-      } else{
-        gene.loadings <- pca.results$u
-      }
-      cell.embeddings <- pca.results$v
-    }
-    else {
-      pcs.compute <- min(pcs.compute, nrow(x = data.use) - 1)
-      pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
-      gene.loadings <- pca.results$v
-      sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
-      if (weight.by.var) {
-        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-      } else {
-        cell.embeddings <- pca.results$u
-      }
-    }
-    rownames(x = gene.loadings) <- rownames(x = data.use)
-    colnames(x = gene.loadings) <- paste0(reduction.key, 1:pcs.compute)
-    rownames(x = cell.embeddings) <- colnames(x = data.use)
-    colnames(x = cell.embeddings) <- colnames(x = gene.loadings)
-    pca.obj <- new(
-      Class = "dim.reduction",
-      gene.loadings = gene.loadings,
-      cell.embeddings = cell.embeddings,
-      sdev = sdev,
-      key = reduction.key
-    )
-    #object@dr[reduction.name] <- pca.obj
-    eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
-    parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
-    object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
-    if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
-      object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
-    }
-    if (do.print) {
-      PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
-    }
-    return(object)
+RunPCA.seurat <- function(
+  object,
+  pcs.compute = 20,
+  pc.genes = NULL,
+  use.imputed = FALSE,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  do.print = TRUE,
+  pcs.print = 1:5,
+  genes.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC",
+  assay.type = "RNA",
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
   }
-)
+  data.use <- PrepDR(
+    object = object,
+    genes.use = pc.genes,
+    use.imputed = use.imputed,
+    assay.type = assay.type)
+  if (rev.pca) {
+    pcs.compute <- min(pcs.compute, ncol(x = data.use) - 1)
+    pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
+    sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
+    if (weight.by.var) {
+      gene.loadings <- pca.results$u %*% diag(pca.results$d)
+    } else{
+      gene.loadings <- pca.results$u
+    }
+    cell.embeddings <- pca.results$v
+  }
+  else {
+    pcs.compute <- min(pcs.compute, nrow(x = data.use) - 1)
+    pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
+    gene.loadings <- pca.results$v
+    sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
+    if (weight.by.var) {
+      cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+    } else {
+      cell.embeddings <- pca.results$u
+    }
+  }
+  rownames(x = gene.loadings) <- rownames(x = data.use)
+  colnames(x = gene.loadings) <- paste0(reduction.key, 1:pcs.compute)
+  rownames(x = cell.embeddings) <- colnames(x = data.use)
+  colnames(x = cell.embeddings) <- colnames(x = gene.loadings)
+  pca.obj <- new(
+    Class = "dim.reduction",
+    gene.loadings = gene.loadings,
+    cell.embeddings = cell.embeddings,
+    sdev = sdev,
+    key = reduction.key
+  )
+  #object@dr[reduction.name] <- pca.obj
+  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
+  if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
+    object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
+  }
+  if (do.print) {
+    PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
+  }
+  return(object)
+}
 
 #' @param online.pca Compute PCA using online methods
 #' @param covariance.mat Covariance matrix to use if calculating a full PCA
@@ -128,60 +123,73 @@ setMethod(
 #' @param overwrite Overwrite preexisting results
 #' @param display.progress Show progress bars
 #'
-#' @rdname RunPCA
-#' @importFrom irlba prcomp_irlba
+#' @return (loom) Nothing, modifies loom object directly
+#'
+#' @importFrom irlba prcomp_irlba irlba
 #' @importFrom onlinePCA updateMean incRpca
 #' @importFrom utils txtProgressBar setTxtProgressBar
-#' @exportMethod RunPCA
 #'
-setMethod(
-  f = 'RunPCA',
-  signature = c('object' = 'loom'),
-  definition = function(
-    object,
-    pcs.compute = 75,
-    genes.use = NULL,
-    online.pca = TRUE,
-    covariance.mat = NULL,
-    cells.initial = 50000,
-    chunk.size = 1000,
-    gene.names = 'row_attrs/gene_names',
-    gene.means = 'row_attrs/gene_means',
-    gene.variance = 'row_attrs/gene_dispersion',
-    var.genes = 'row_attrs/var_genes',
-    scale.data = 'layers/scale_data',
-    ngene = NULL,
-    overwrite = FALSE,
-    display.progress = TRUE,
-    ...
-  ) {
-    if (online.pca) {
-      if (is.null(genes.use)) {
-        if (!is.null(ngene)) {
-          # Get variable genes
-          ngene <- min(ngene, object$shape[1])
-          if (display.progress) {
-            cat("Finding top", ngene, "variable genes\n", sep = ' ')
-          }
-          data.names <- object[[gene.names]][]
-          hvg.info <- data.frame(
-            means = object[[gene.means]][],
-            variance = object[[gene.variance]][],
-            row.names = make.unique(names = data.names)
-          )
-          hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
-          hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
-          hvg.use <- rownames(x = hvg.info)[1:ngene]
-          genes.use <- which(x = data.names %in% hvg.use)
-        } else {
-          genes.use <- which(x = object[[var.genes]][])
+#' @describeIn RunPCA Run PCA on loom objects
+#' @export RunPCA.loom
+#' @method RunPCA loom
+#'
+RunPCA.loom <- function(
+  object,
+  pcs.compute = 75,
+  genes.use = NULL,
+  online.pca = TRUE,
+  covariance.mat = NULL,
+  cells.initial = 50000,
+  chunk.size = 1000,
+  gene.names = 'row_attrs/gene_names',
+  gene.means = 'row_attrs/gene_means',
+  gene.variance = 'row_attrs/gene_dispersion',
+  var.genes = 'row_attrs/var_genes',
+  scale.data = 'layers/scale_data',
+  ngene = NULL,
+  overwrite = FALSE,
+  display.progress = TRUE,
+  ...
+) {
+  if (online.pca) {
+    if (is.null(genes.use)) {
+      if (!is.null(ngene)) {
+        # Get variable genes
+        ngene <- min(ngene, object$shape[1])
+        if (display.progress) {
+          cat("Finding top", ngene, "variable genes\n", sep = ' ')
         }
+        data.names <- object[[gene.names]][]
+        hvg.info <- data.frame(
+          means = object[[gene.means]][],
+          variance = object[[gene.variance]][],
+          row.names = make.unique(names = data.names)
+        )
+        hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
+        hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
+        hvg.use <- rownames(x = hvg.info)[1:ngene]
+        genes.use <- which(x = data.names %in% hvg.use)
       } else {
-        genes.use <- which(x = object[[gene.names]][] %in% genes.use)
+        genes.use <- which(x = object[[var.genes]][])
       }
+    } else {
+      genes.use <- which(x = object[[gene.names]][] %in% genes.use)
+    }
+    # Prepare PCA data
+    cells.use <- object[[scale.data]]$dims[1]
+    cells.initial <- min(cells.initial, cells.use)
+    data <- object[[scale.data]][1:cells.initial, genes.use]
+    if (cells.use <= cells.initial) {
+      # Small number of cells, just use irlba
+      if (display.progress) {
+        cat("Smaller number of cells than required for online PCA\n")
+        cat("Running standard PCA instead\n")
+      }
+      pca.results <- irlba(A = t(x = data), nv = pcs.compute, ...)
+      gene.loadings <- pca.results$u
+      cell.embeddings <- pca.results$v
+    } else {
       # Initial PCA calculation
-      cells.use <- object[[scale.data]]$dims[1]
-      cells.initial <- min(cells.initial, cells.use)
       if (display.progress) {
         cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')
       }
@@ -235,7 +243,7 @@ setMethod(
       }
       # Multiply by the original matrix to return vectors of cells
       if (display.progress) {
-        cat("\nConverting the vectors of genes to vectors of cells\n")
+        cat("\nCalculating cell embeddings\n")
         pb <- txtProgressBar(char = '=', style = 3)
       }
       batch <- object$batch.scan(
@@ -245,83 +253,96 @@ setMethod(
         dataset.use = scale.data,
         force.reset = TRUE
       )
-      rot <- matrix(data = numeric(length = 1L), nrow = cells.use, ncol = pcs.compute)
+      cell.embeddings <- matrix(
+        data = numeric(length = 1L),
+        nrow = cells.use,
+        ncol = pcs.compute
+      )
       for (i in batch) {
         chunk.indices <- object$batch.next(return.data = FALSE)
         data <- object[[scale.data]][chunk.indices, genes.use]
-        rot[chunk.indices, ] <- data %*% pca$vectors
+        cell.embeddings[chunk.indices, ] <- data %*% pca$vectors
         if (display.progress) {
           setTxtProgressBar(pb = pb, value = i / length(x = batch))
         }
       }
-      # Add to the loom file
-      colnames(x = rot) <- paste0("PC", 1:pcs.compute)
-      rot <- as.data.frame(x = rot)
-      print(dim(rot))
-      object$add.col.attribute(attribute = rot, overwrite = overwrite)
-    } else {
-      if (is.null(x = covariance.mat)) {
-        stop("Please provide covariance matrix. See BlockCov.")
-      }
-      # run eigenvalue decomp on covariance matrix
-      if (display.progress) {
-        cat("Computing eigen decomposition\n", file = stderr())
-      }
-      pc.eigs <- eigen(covariance.mat)
-
-      genes.use <- which(object[[gene.names]][] %in% rownames(covariance.mat))
-      pc.values <- matrix(nrow = object$shape[2], ncol = pcs.compute)
-      batch <- object$batch.scan(
-        chunk.size = chunk.size,
-        MARGIN = 2,
-        dataset.use = "scale_data",
-        force.reset = TRUE
-      )
-      if (display.progress) {
-        cat("Computing PC Scores\n", file = stderr())
-        pb <- txtProgressBar(char = '=', style = 3)
-      }
-      for (i in 1:length(x = batch)) {
-        current.batch <- object$batch.next(return.data = FALSE)
-        pc.values[current.batch, ] <- object$layers$scale_data[current.batch, genes.use] %*% pc.eigs$vectors[, 1:pcs.compute]
-        if (display.progress) {
-          setTxtProgressBar(pb = pb, value = i / length(x = batch))
-        }
-      }
-      colnames(x = pc.values) <- paste0("PC", 1:ncol(x = pc.values))
-      # rownames(pc.values) <- object$col.attrs$cell_names[]
-      rownames(pc.values) <- object[['col_attrs/cell_names']][]
-      pc.values <- pc.values[, 1:pcs.compute]
-      gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
-      rownames(gene.loadings) <- rownames(covariance.mat)
-      colnames(gene.loadings) <- paste0("PC", 1:ncol(x = gene.loadings))
-      gene.loadings <- as.data.frame(x = gene.loadings)
-      missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
-      empty.rows <- as.data.frame(
-        x = matrix(
-          nrow = object$shape[1] - nrow(x = gene.loadings),
-          ncol = ncol(x = gene.loadings)
-        ),
-        row.names = missing.genes
-      )
-      colnames(empty.rows) <- colnames(gene.loadings)
-      gene.loadings <- rbind(gene.loadings, empty.rows)
-      gene.loadings <- gene.loadings[object[[gene.names]][], ]
-      pc.values <- as.matrix(x = pc.values)
-      object$add.col.attribute(
-        attribute = list('pca_cell_embeddings' = pc.values),
-        overwrite = overwrite
-      )
-      object$add.row.attribute(
-        attribute = list('pca_gene_loadings' = gene.loadings),
-        overwrite = overwrite
-      )
+      gene.loadings <- pca$vectors
     }
-    object$flush()
-    gc(verbose = FALSE)
-    invisible(x = object)
+    # Add to the loom file
+    colnames(x = cell.embeddings) <- paste0("PC", 1:pcs.compute)
+    cell.embeddings <- as.data.frame(x = cell.embeddings)
+    gene.loadings <- rbind(
+      gene.loadings,
+      matrix(nrow = object$shape[1] - nrow(x = gene.loadings), ncol = ncol(x = gene.loadings))
+    )
+    object$add.col.attribute(
+      attribute = list('pca_cell_embeddings' = cell.embeddings),
+      overwrite = overwrite
+    )
+    object$add.row.attribute(
+      attribute = list('pca_gene_loadings' = gene.loadings),
+      overwrite = overwrite
+    )
+  } else {
+    if (is.null(x = covariance.mat)) {
+      stop("Please provide covariance matrix. See BlockCov.")
+    }
+    # run eigenvalue decomp on covariance matrix
+    if (display.progress) {
+      cat("Computing eigen decomposition\n", file = stderr())
+    }
+    pc.eigs <- eigen(covariance.mat)
+    genes.use <- which(x = object[[gene.names]][] %in% rownames(x = covariance.mat))
+    pc.values <- matrix(nrow = object$shape[2], ncol = pcs.compute)
+    batch <- object$batch.scan(
+      chunk.size = chunk.size,
+      MARGIN = 2,
+      dataset.use = "scale_data",
+      force.reset = TRUE
+    )
+    if (display.progress) {
+      cat("Computing PC Scores\n", file = stderr())
+      pb <- txtProgressBar(char = '=', style = 3)
+    }
+    for (i in 1:length(x = batch)) {
+      current.batch <- object$batch.next(return.data = FALSE)
+      pc.values[current.batch, ] <- object[['layers/scale_data']][current.batch, genes.use] %*% pc.eigs$vectors[, 1:pcs.compute]
+      if (display.progress) {
+        setTxtProgressBar(pb = pb, value = i / length(x = batch))
+      }
+    }
+    colnames(x = pc.values) <- paste0("PC", 1:ncol(x = pc.values))
+    rownames(pc.values) <- object[['col_attrs/cell_names']][]
+    pc.values <- pc.values[, 1:pcs.compute]
+    gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
+    rownames(gene.loadings) <- rownames(covariance.mat)
+    colnames(gene.loadings) <- paste0("PC", 1:ncol(x = gene.loadings))
+    gene.loadings <- as.data.frame(x = gene.loadings)
+    missing.genes <- setdiff(object[[gene.names]][], rownames(gene.loadings))
+    empty.rows <- as.data.frame(
+      x = matrix(
+        nrow = object$shape[1] - nrow(x = gene.loadings),
+        ncol = ncol(x = gene.loadings)
+      ),
+      row.names = missing.genes
+    )
+    colnames(empty.rows) <- colnames(gene.loadings)
+    gene.loadings <- rbind(gene.loadings, empty.rows)
+    gene.loadings <- gene.loadings[object[[gene.names]][], ]
+    pc.values <- as.matrix(x = pc.values)
+    object$add.col.attribute(
+      attribute = list('pca_cell_embeddings' = pc.values),
+      overwrite = overwrite
+    )
+    object$add.row.attribute(
+      attribute = list('pca_gene_loadings' = gene.loadings),
+      overwrite = overwrite
+    )
   }
-)
+  object$flush()
+  gc(verbose = FALSE)
+  invisible(x = object)
+}
 
 #' Run Independent Component Analysis on gene expression
 #'
