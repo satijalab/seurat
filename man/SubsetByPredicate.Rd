@@ -20,8 +20,8 @@ subsets it using \code{base::subset} with \code{predicate} as the filter.
 Returns the corresponding subset of the Seurat object.
 }
 \examples{
-pbmc1 <- SubsetByPredicate(object = pbmc_small, 
-                      vars.use = c("nUMI", "res.1"), 
+pbmc1 <- SubsetByPredicate(object = pbmc_small,
+                      vars.use = c("nUMI", "res.1"),
                       predicate = "nUMI < 200 & res.1=='3'")
 pbmc1
 
