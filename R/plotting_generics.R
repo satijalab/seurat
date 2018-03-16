@@ -33,13 +33,6 @@ NULL
 #' @rdname DimPlot
 #' @export DimPlot
 #'
-setGeneric(
-  name = 'DimPlot',
-  def = function(
-    object,
-    reduction.use = 'pca',
-    ...
-  ) {
-    return(standardGeneric(f = 'DimPlot'))
-  }
-)
+DimPlot <- function(object, ...) {
+  UseMethod(generic = 'DimPlot', object = object)
+}
