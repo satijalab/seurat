@@ -28,22 +28,17 @@ setGeneric(
 
 #' Add new cells to seurat object by projection
 #'
-#' @param object An object to downsample
-#' @param umi.mat A matrix of UMI counts with rows as genes and columns as cells
-#' @param return.type Return as either a "seurat" or "loom" object
-#' @param filename file name/path for new loom object if returning loom
-#' @param overwrite overwrite loom file if it already exists
+#' @param object An object to project back to
+#' @param template ...
 #' @param display.progress display progress of the process
+#' @param ... ...
 #'
 #' @rdname ProjectSeurat
 #' @export ProjectSeurat
 #'
-setGeneric(
-  name = 'ProjectSeurat',
-  def = function(object, template, ...) {
-    return(standardGeneric(f = 'ProjectSeurat'))
-  }
-)
+ProjectSeurat <- function(object, ...) {
+  UseMethod(generic = 'ProjectSeurat', object = object)
+}
 
 #' Subset a seurat/loom object
 #'
