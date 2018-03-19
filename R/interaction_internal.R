@@ -103,13 +103,19 @@ DownsampleMatrix <- function(
     }
     return(rownames(mat)[idx.union])
   }
+  if (method == 'nnd') {
+    k <- floor(nrow(mat) * 0.01)
+    nn.res <- RANN::nn2(mat, k = k + 1, searchtype = 'standard', eps = 1/2)
+    nnd <- nn.res$nn.dists[, k + 1]
+    return(sample(x = rownames(mat), size = size, prob = nnd^prob.exp))
+  }
   if (method == 'indep') {
     # determine how to distribute the cells
     #size.factor <- 1 / apply(dens, 2, sd)
     #size.factor <- sqrt(apply(dens, 2, sum))
     size.factor <- rep(1, ncol(dens))
     size.pc <- ceiling((size.factor * size) / sum(size.factor))
-    print(size.pc)
+    #print(size.pc)
     sampled <- rep(FALSE, nrow(dens))
     for (i in 1:ncol(dens)) {
       p <- 1 / dens[, i]
