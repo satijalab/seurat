@@ -1,41 +1,89 @@
 ######################## Accessor/Mutator Functions ############################
 
-#' Dimensional Reduction Accessor Function
+#' @describeIn GetDimReduction Get dimensional reduction information for Seurat objects
+#' @export GetDimReduction.seurat
+#' @method GetDimReduction seurat
 #'
-#' General accessor function for dimensional reduction objects. Pulls slot
-#' contents for specified stored dimensional reduction analysis.
-#'
-#' @param object Seurat object
-#' @param reduction.type Type of dimensional reduction to fetch (default is PCA)
-#' @param slot Specific information to pull (must be one of the following:
-#'  "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key", "misc")
-#'
-#' @return Returns specified slot results from given reduction technique
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' # Get the PCA cell embeddings and print the top left corner
-#' GetDimReduction(object = pbmc_small, reduction.type = "pca",
-#'                 slot = "cell.embeddings")[1:5, 1:5]
-#' # Get the standard deviation of each PC
-#' GetDimReduction(object = pbmc_small, reduction.type = "pca", slot = "sdev")
-#'
-GetDimReduction <- function(
+GetDimReduction.seurat <- function(
   object,
   reduction.type = "pca",
   slot = "gene.loadings"
 ) {
-  if (! (reduction.type %in% names(object@dr))) {
+  if (!(reduction.type %in% names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))
   }
   reduction <- paste0("object@dr$", reduction.type)
   reduction.slots <- slotNames(x = eval(expr = parse(text = reduction)))
-  if (! (slot %in% reduction.slots)) {
+  if (!(slot %in% reduction.slots)) {
     stop(paste0(slot, " slot doesn't exist"))
   }
   return(eval(expr = parse(text = paste0(reduction, "@", slot))))
+}
+
+#' @param dataset.use Use this specific dataset rather than try to find the correct one automatically
+#' @param gene.names Dataset with gene names, can pass \code{NULL}
+#' @param cell.names Dataset will cell names, can pass \code{NULL}
+#'
+#' @importFrom hdf5r list.datasets
+#'
+#' @describeIn GetDimReduction Get dimensional reduction information for loom objects
+#' @export GetDimReduction.loom
+#' @method GetDimReduction loom
+#'
+GetDimReduction.loom <- function(
+  object,
+  reduction.type = 'pca',
+  slot = 'gene_loadings',
+  dataset.use = NULL,
+  gene.names = 'row_attrs/gene_names',
+  cell.names = 'col_attrs/cell_names'
+) {
+  reduction.type <- tolower(x = reduction.type)
+  # Swap this out when support for custom keys is added
+  key <- switch(
+    EXPR = reduction.type,
+    'pca' = 'PC',
+    'ica' = 'IC',
+    'tsne' = 'tSNE',
+    'cca' = 'CCA',
+    stop(paste("Unknown reduction:", reduction.type))
+  )
+  if (tolower(x = slot) == 'key') {
+    return(key)
+  }
+  # If no dataset was specified, try to guess which one to use
+  object.datasets <- list.datasets(object = object, full.names = TRUE, recursive = TRUE)
+  if (is.null(x = dataset.use)) {
+    dataset.use <- grep(
+      pattern = reduction.type,
+      x = object.datasets,
+      value = TRUE,
+      ignore.case = TRUE
+    )
+    dataset.use <- grep(
+      pattern = slot,
+      x = dataset.use,
+      value = TRUE,
+      ignore.case = TRUE
+    )
+    if (length(x = dataset.use) != 1) {
+      stop(paste("Cannot find", slot, "datset for", reduction.type))
+    }
+  } else if (!grepl(pattern = dataset.use, x = object.datasets)) {
+    stop(paste("Cannot find dataset", dataset.use, "in the object"))
+  }
+  # Figure out which names we're working with
+  names.use <- ifelse(
+    test = grepl(pattern = 'row', x = dataset.use),
+    yes = gene.names,
+    no = cell.names
+  )
+  reduction.data <- as.data.frame(x = t(x = object[[dataset.use]][,]))
+  if (!is.null(x = names.use)) {
+    rownames(x = reduction.data) <- object[[names.use]][]
+  }
+  colnames(x = reduction.data) <- paste0(key, 1:ncol(x = reduction.data))
+  return(na.omit(object = reduction.data))
 }
 
 #' Dimensional Reduction Cell Embeddings Accessor Function
@@ -420,11 +468,11 @@ ICALoad <- function(
 #'
 #' Return a list of genes with the strongest contribution to a set of components
 #'
-#' @param object Seurat object
+#' @param object An object
 #' @param dim.use Dimension to use
 #' @param reduction.type Dimensional reduction to find the highest score for
 #' @param num.genes Number of genes to return
-#' @param use.full Use the full PCA (projected PCA). Default i s FALSE
+#' @param use.full Use the full PCA (projected PCA). Default is FALSE
 #' @param do.balanced Return an equal number of genes with both + and - scores.
 #'
 #' @return Returns a vector of genes
@@ -445,21 +493,20 @@ DimTopGenes <- function(
   use.full = FALSE,
   do.balanced = FALSE
 ) {
-  #note that we use GetTopGenes, but it still works
-  #error checking
-  if (! reduction.type %in% names(x = object@dr)) {
-    stop(paste(reduction.type, "dimensional reduction has not been computed"))
+  if (inherits(x = object, what = 'loom')) {
+    use.full <- FALSE
   }
-  dim.scores <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "gene.loadings"
-  )
-  if (use.full) {
+  dim.scores <- if (use.full) {
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
       slot = "gene.loadings.full"
+    )
+  } else {
+    dim.scores <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.type,
+      slot = switch(EXPR = class(x = object)[1], 'loom' = 'gene_loadings', 'gene.loadings')
     )
   }
   if ((is.null(x = dim.scores)) || (ncol(x = dim.scores) < 2)) {
@@ -473,11 +520,11 @@ DimTopGenes <- function(
   }
   i <- dim.use
   num.genes <- min(num.genes, length(x = rownames(x = dim.scores)))
-  key <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "key"
-  )
+  # key <- GetDimReduction(
+  #   object = object,
+  #   reduction.type = reduction.type,
+  #   slot = "key"
+  # )
   dim.top.genes <- unique(x = unlist(x = lapply(
     X = i,
     FUN = GetTopGenes,
@@ -692,18 +739,16 @@ ICTopCells <- function(
 }
 
 ##################### Printing results #########################################
-
 #' Print the results of a dimensional reduction analysis
 #'
 #' Prints a set of genes that most strongly define a set of components
 #'
-#' @param object Seurat object
+#' @param object An object
 #' @param reduction.type Reduction technique to print results for
 #' @param dims.print Number of dimensions to display
 #' @param genes.print Number of genes to display
-#' @param use.full Use full PCA (i.e. the projected PCA, by default FALSE)
 #'
-#' @return Set of genes defining the components
+#' @return Nothing, prints the set of genes defining the components
 #'
 #' @export
 #'
@@ -722,11 +767,14 @@ PrintDim <- function(
   genes.print = 30,
   use.full = FALSE
 ) {
-  if (use.full) {
-    slot.use <- "gene.loadings.full"
-  } else {
-    slot.use <- "gene.loadings"
+  if (inherits(x = object, what = 'loom')) {
+    use.full <- FALSE
   }
+  slot.use <- ifelse(
+    test = use.full,
+    yes = 'gene.loadings.full',
+    no = 'gene.loadings'
+  )
   dim.scores <- GetDimReduction(
     object = object,
     reduction.type = reduction.type,
@@ -764,10 +812,10 @@ PrintDim <- function(
     )
     print(code)
     print((sx[1:genes.print]))
-    print ("")
+    print("")
     print(rev(x = (sx[(length(x = sx) - genes.print + 1):length(x = sx)])))
-    print ("")
-    print ("")
+    print("")
+    print("")
   }
 }
 

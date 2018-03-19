@@ -8,18 +8,16 @@ PrintDim(object, reduction.type = "pca", dims.print = 1:5,
   genes.print = 30, use.full = FALSE)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{reduction.type}{Reduction technique to print results for}
 
 \item{dims.print}{Number of dimensions to display}
 
 \item{genes.print}{Number of genes to display}
-
-\item{use.full}{Use full PCA (i.e. the projected PCA, by default FALSE)}
 }
 \value{
-Set of genes defining the components
+Nothing, prints the set of genes defining the components
 }
 \description{
 Prints a set of genes that most strongly define a set of components
