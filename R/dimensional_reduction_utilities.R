@@ -617,7 +617,7 @@ ICTopGenes <- function(
 #'
 #' Return a list of genes with the strongest contribution to a set of components
 #'
-#' @param object Seurat object
+#' @param object An object
 #' @param reduction.type Dimensional reduction to find the highest score for
 #' @param dim.use Components to use
 #' @param num.cells Number of cells to return
@@ -642,19 +642,17 @@ DimTopCells <- function(
 ) {
   #note that we use GetTopGenes, but it still works
   #error checking
-  if (! reduction.type %in% names(x = object@dr)) {
-    stop(paste(reduction.type, "dimensional reduction has not been computed"))
+  if (is.null(x = num.cells)) {
+    num.cells <- if (inherits(x = object, what = 'loom')) {
+      object[['matrix']]$dims[1]
+    } else {
+      object@cell.names
+    }
   }
-  num.cells <- SetIfNull(x = num.cells, default = length(x = object@cell.names))
   dim.scores <- GetDimReduction(
     object = object,
     reduction.type = reduction.type,
-    slot = "cell.embeddings"
-  )
-  key <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "key"
+    slot = switch(EXPR = class(x = object)[1], 'loom' = 'cell_embeddings', 'cell.embeddings')
   )
   i <- dim.use
   dim.top.cells <- unique(x = unlist(x = lapply(

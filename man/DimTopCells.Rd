@@ -8,7 +8,7 @@ DimTopCells(object, dim.use = 1, reduction.type = "pca", num.cells = NULL,
   do.balanced = FALSE)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{dim.use}{Components to use}
 
