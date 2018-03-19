@@ -13,8 +13,8 @@
 #' @param do.print Print the number of replicates that have been processed.
 #' @param do.par use parallel processing for regressing out variables faster.
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
-#' @param num.cores If do.par = TRUE, specify the number of cores to use. Note that
-#' for higher number of cores, larger free memory is needed.
+#' @param num.cores If do.par = TRUE, specify the number of cores to use.
+#' Note that for higher number of cores, larger free memory is needed.
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value represents
 #' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
