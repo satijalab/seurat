@@ -8,7 +8,7 @@ DimTopGenes(object, dim.use = 1, reduction.type = "pca", num.genes = 30,
   use.full = FALSE, do.balanced = FALSE)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{dim.use}{Dimension to use}
 
@@ -16,7 +16,7 @@ DimTopGenes(object, dim.use = 1, reduction.type = "pca", num.genes = 30,
 
 \item{num.genes}{Number of genes to return}
 
-\item{use.full}{Use the full PCA (projected PCA). Default i s FALSE}
+\item{use.full}{Use the full PCA (projected PCA). Default is FALSE}
 
 \item{do.balanced}{Return an equal number of genes with both + and - scores.}
 }
