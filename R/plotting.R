@@ -2346,7 +2346,7 @@ DimPlot.seurat <- function(
   if (length(x = embeddings.use) == 0) {
     stop(paste(reduction.use, "has not been run for this object yet."))
   }
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   dim.code <- GetDimReduction(
     object = object,
     reduction.type = reduction.use,
