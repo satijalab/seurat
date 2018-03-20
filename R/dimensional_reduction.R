@@ -99,7 +99,8 @@ RunPCA.seurat <- function(
     key = reduction.key
   )
   #object@dr[reduction.name] <- pca.obj
-  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
+  # eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
+  object@dr[[reduction.name]] <- pca.obj
   parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
@@ -125,6 +126,7 @@ RunPCA.seurat <- function(
 #'
 #' @return (loom) Nothing, modifies loom object directly
 #'
+#' @importFrom hdf5r h5attr
 #' @importFrom irlba prcomp_irlba irlba
 #' @importFrom onlinePCA updateMean incRpca
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -188,6 +190,7 @@ RunPCA.loom <- function(
       pca.results <- irlba(A = t(x = data), nv = pcs.compute, ...)
       gene.loadings <- pca.results$u
       cell.embeddings <- pca.results$v
+      sdev <- pca.results$d / sqrt(x = max(1, ncol(x = data) - 1))
     } else {
       # Initial PCA calculation
       if (display.progress) {
@@ -196,6 +199,7 @@ RunPCA.loom <- function(
       data <- object[[scale.data]][1:cells.initial, genes.use]
       pca <- prcomp_irlba(x = data, n = pcs.compute)
       xbar <- pca$center
+      sdev <- pca$sdev
       pca <- list(
         values = pca$sdev[1:pcs.compute] ^ 2,
         vectors = pca$rotation[, 1:pcs.compute]
@@ -241,9 +245,12 @@ RunPCA.loom <- function(
           }
         }
       }
+      if (display.progress) {
+        close(con = pb)
+      }
       # Multiply by the original matrix to return vectors of cells
       if (display.progress) {
-        cat("\nCalculating cell embeddings\n")
+        cat("Calculating cell embeddings\n")
         pb <- txtProgressBar(char = '=', style = 3)
       }
       batch <- object$batch.scan(
@@ -266,6 +273,9 @@ RunPCA.loom <- function(
           setTxtProgressBar(pb = pb, value = i / length(x = batch))
         }
       }
+      if (display.progress) {
+        close(con = pb)
+      }
       gene.loadings <- pca$vectors
     }
     # Add to the loom file
@@ -283,6 +293,7 @@ RunPCA.loom <- function(
       attribute = list('pca_gene_loadings' = gene.loadings),
       overwrite = overwrite
     )
+    h5attr(x = object[['col_attrs/pca_cell_embeddings']], which = 'sdev') <- sdev
   } else {
     if (is.null(x = covariance.mat)) {
       covariance.mat <- BlockCov(
