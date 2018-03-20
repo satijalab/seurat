@@ -311,6 +311,7 @@ RunPCA.loom <- function(
     pc.eigs <- eigen(covariance.mat)
     genes.use <- which(x = object[[gene.names]][] %in% rownames(x = covariance.mat))
     pc.values <- matrix(nrow = object$shape[2], ncol = pcs.compute)
+    sdev <- sqrt(pc.eigs$values[1:pcs.compute])
     batch <- object$batch.scan(
       chunk.size = chunk.size,
       MARGIN = 2,
@@ -355,6 +356,7 @@ RunPCA.loom <- function(
       attribute = list('pca_gene_loadings' = gene.loadings),
       overwrite = overwrite
     )
+    h5attr(x = object[['col_attrs/pca_cell_embeddings']], which = 'sdev') <- sdev
   }
   object$flush()
   gc(verbose = FALSE)
