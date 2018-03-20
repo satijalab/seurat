@@ -1200,51 +1200,66 @@ setMethod(
 ProjectSeurat.Matrix <- function(
   object,
   template,
+  is.scaled.data = FALSE,
+  cluster.label = 'res.0.8',
+  tsne.proj.k = 11,
+  class.k = 11,
   return.type = "seurat",
   filename,
   display.progress = TRUE,
   ...
 ) {
-  umi.mat <- object
-  # Should we filter the UMI matrix here and potentially remove cells?
-  # for now assume it has already been filtered and use as is
-  if (any(colnames(x = umi.mat) %in% template@cell.names)) {
+  if (any(colnames(x = object) %in% template@cell.names)) {
     stop("One or more cell names in UMI matrix match existing cells")
   }
-  # todo (maybe): add raw data of new cells to existing raw data
-  # make a couple of assumptions:
-  # LogNormalization was used with factor 1e4
-  # genes were centered and scaled
-  # pca was used as dimensionality reduction
-  # get some information from the existing template
-  template.vg <- rownames(template@scale.data)
-  template.gene.mean <- apply(template@data[template.vg, ], 1, mean)
-  template.gene.sd <- apply(template@data[template.vg, ], 1, sd)
-  # log-norm UMI matrix
-  n.gene <- apply(umi.mat > 0, 2, sum)
-  n.umi <- apply(umi.mat, 2, sum)
-  expr <- log1p(x = sweep(
-    x = as.matrix(x = umi.mat[template.vg, ]),
-    MARGIN = 2,
-    STATS = n.umi,
-    FUN = '/'
-  ) * 10000)
-  # scale
-  expr <- (expr - template.gene.mean) / template.gene.sd
+  if (!is.scaled.data) {
+    umi.mat <- object
+    # Should we filter the UMI matrix here and potentially remove cells?
+    # for now assume it has already been filtered and use as is
+    
+    # todo (maybe): add raw data of new cells to existing raw data
+    
+    # make a couple of assumptions:
+    # LogNormalization was used with factor 1e4
+    # genes were centered and scaled
+    # pca was used as dimensionality reduction
+    # get some information from the existing template
+    template.vg <- rownames(template@scale.data)
+    template.gene.mean <- apply(template@data[template.vg, ], 1, mean)
+    template.gene.sd <- apply(template@data[template.vg, ], 1, sd)
+    # log-norm UMI matrix
+    n.gene <- apply(umi.mat > 0, 2, sum)
+    n.umi <- apply(umi.mat, 2, sum)
+    expr <- log1p(x = sweep(
+      x = as.matrix(x = umi.mat[template.vg, ]),
+      MARGIN = 2,
+      STATS = n.umi,
+      FUN = '/'
+    ) * 10000)
+    # scale
+    expr <- (expr - template.gene.mean) / template.gene.sd
+    # append to scale.data (maybe we don't want to update this slot and will remove this in the future)
+    template@scale.data <- cbind(template@scale.data, expr)
+    # update meta data
+    md <- data.frame(
+      matrix(
+        data = NA,
+        nrow = ncol(x = expr),
+        ncol = ncol(template@meta.data),
+        dimnames = list(colnames(x = expr), colnames(x = template@meta.data))
+      )
+    )
+    md$nGene <- n.gene
+    md$nUMI <- n.umi
+    md$projected <- TRUE
+  } else {
+    expr <- as.matrix(object)
+    # update meta data
+    md <- data.frame(matrix(NA, ncol(expr), ncol(template@meta.data), dimnames=list(colnames(expr), colnames(template@meta.data))))
+    md$projected <- TRUE
+  }
   # append to scale.data (maybe we don't want to update this slot and will remove this in the future)
   template@scale.data <- cbind(template@scale.data, expr)
-  # update meta data
-  md <- data.frame(
-    matrix(
-      data = NA,
-      nrow = ncol(x = expr),
-      ncol = ncol(template@meta.data),
-      dimnames = list(colnames(x = expr), colnames(x = template@meta.data))
-    )
-  )
-  md$nGene <- n.gene
-  md$nUMI <- n.umi
-  md$projected <- TRUE
   template@meta.data$projected <- FALSE
   template@meta.data <- rbind(template@meta.data, md)
   template@cell.names <- rownames(x = template@meta.data)
@@ -1263,7 +1278,7 @@ ProjectSeurat.Matrix <- function(
   }
   # map all new cells onto tSNE space
   dims.use <- template@calc.params$RunTSNE$dims.use
-  k <- 31
+  k <- tsne.proj.k
   new.cell <- template@meta.data$projected
   ce <- template@dr[['pca']]@cell.embeddings
   knn.out <- get.knnx(
@@ -1291,23 +1306,22 @@ ProjectSeurat.Matrix <- function(
     as.matrix(x = tsne.proj)
   )
   # assign cluster IDs to new cells using knn
-  dims.use <- template@calc.params$FindClusters.res.0.8$dims.use
+  dims.use <- template@calc.params[[sprintf('FindClusters.%s', cluster.label)]]$dims.use
   knn.cluster <- knn(
     train = ce[!new.cell, dims.use],
     test = ce[new.cell, dims.use],
-    cl = template@meta.data$res.0.8[!new.cell],
-    k = 1,
+    cl = template@meta.data[[cluster.label]][!new.cell],
+    k = class.k,
     l = 0,
-    prob = FALSE,
+    prob = TRUE,
     use.all = TRUE
   )
-  template@meta.data$res.0.8[new.cell] <- as.character(x = knn.cluster)
-  template@ident <- factor(
-    x = template@meta.data$res.0.8,
-    ordered = TRUE,
-    levels = as.character(x = sort(x = as.numeric(x = unique(x = template@meta.data$res.0.8))))
-  )
-  names(x = template@ident) <- template@cell.names
+  template@meta.data[[cluster.label]][new.cell] <- as.character(knn.cluster)
+  template@meta.data[[sprintf('%s.proj.prob', cluster.label)]] <- NA
+  template@meta.data[[sprintf('%s.proj.prob', cluster.label)]][new.cell] <- attr(x = knn.cluster, which = 'prob')
+  template@ident <- factor(template@meta.data[[cluster.label]], ordered=TRUE,
+                           levels=as.character(sort(as.numeric(unique(template@meta.data[[cluster.label]])))))
+  names(template@ident) <- template@cell.names
   if (return.type == "seurat") {
     return(template)
   } else {
