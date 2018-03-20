@@ -431,6 +431,9 @@ ScaleDataR <- function(
 #' differences in numerical precision which could affect downstream calculations.
 #' @param check.for.norm Check to see if data has been normalized, if not,
 #' output a warning (TRUE by default)
+#' @param do.par use parallel processing for regressing out variables faster.
+#' If set to TRUE, will use half of the machines available cores (FALSE by default)
+#' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
@@ -461,7 +464,9 @@ ScaleData <- function(
   display.progress = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE,
-  check.for.norm = TRUE
+  check.for.norm = TRUE,
+  do.par = FALSE,
+  num.cores = 1
 ) {
   data.use <- SetIfNull(
     x = data.use,
@@ -495,7 +500,9 @@ ScaleData <- function(
       genes.regress = genes.use,
       use.umi = use.umi,
       model.use = model.use,
-      display.progress = display.progress
+      display.progress = display.progress,
+      do.par = do.par,
+      num.cores = num.cores
     )
     if (model.use != "linear") {
       use.umi <- TRUE
