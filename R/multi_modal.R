@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @include multi_modal_generics.R
 NULL
 
 # Set up assay class to hold multimodal data sets
@@ -11,38 +12,18 @@ assay <- setClass(
     scale.data = "ANY",
     key = "character",
     misc = "ANY",
-    var.genes="vector",
-    mean.var="data.frame"
+    var.genes = "vector",
+    mean.var = "data.frame"
   )
 )
 
-#' Accessor function for multimodal data
-#'
-#' Pull information for specified stored dimensional reduction analysis
-#'
-#' @param object Seurat object
 #' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
 #'
-#' @return Returns assay data
+#' @describeIn GetAssayData Get assay data from a Seurat object
+#' @export GetAssayData.seurat
+#' @method GetAssayData seurat
 #'
-#' @export
-#'
-#' @examples
-#' # Simulate CITE-Seq results
-#' df <- t(x = data.frame(
-#'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
-#' ))
-#' pbmc_small <- SetAssayData(
-#'   object = pbmc_small,
-#'   assay.type = 'CITE',
-#'   new.data = df,
-#'   slot = 'raw.data'
-#' )
-#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'raw.data')
-#'
-GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
+GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data") {
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
       to.return <- object@raw.data
@@ -54,7 +35,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
       }
       to.return <- object@scale.data
     }
-    if(is.null(to.return)) {
+    if (is.null(x = to.return)) {
       return(to.return)
     }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided
@@ -63,10 +44,10 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     }
     return(to.return[, object@cell.names])
   }
-  if (! (assay.type %in% names(object@assay))) {
+  if (!(assay.type %in% names(x = object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
-  if (! (slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
+  if (!(slot %in% slotNames(x = eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
   to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
@@ -74,6 +55,79 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     return(to.return)
   }
   return(to.return[, object@cell.names])
+}
+
+#' @param cells.use Return these cells, set to \code{NULL} for all cells
+#' @param genes.use Return these genes, set to \code{NULL} for all genes
+#' @param cell.names Path to cell names, set to \code{NULL} to skip
+#' @param gene.names Path to gene names, set to \code{NULL} to skip
+#' @param chunk.size What size to chunk the cells on?
+#' @param display.progress Show progress bar?
+#'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
+#' @describeIn GetAssayData Get assay data from a Seurat object
+#' @export GetAssayData.loom
+#' @method GetAssayData loom
+#'
+GetAssayData.loom <- function(
+  object,
+  slot = 'data',
+  cells.use = NULL,
+  genes.use = NULL,
+  cell.names = 'col_attrs/cell_names',
+  gene.names = 'row_attrs/gene_names',
+  chunk.size = 1000,
+  display.progress = TRUE,
+  ...
+) {
+  dataset.use <- switch(
+    EXPR = tolower(x = slot),
+    'raw.data' = 'matrix',
+    'data' = 'layers/norm_data',
+    'scale.data' = 'layers/scale_data',
+    stop(paste("Unknown dataset:", slot))
+  )
+  batch <- object$batch.scan(chunk.size = chunk.size, dataset.use = dataset.use)
+  cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
+  genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
+  data.return <- matrix(
+    nrow = length(x = genes.use),
+    ncol = length(x = cells.use)
+  )
+  previous <- 1
+  if (display.progress) {
+    pb <- txtProgressBar(char = '=', style = 3)
+  }
+  for (i in 1:length(x = batch)) {
+    chunk.indices <- object$batch.next(return.data = FALSE)
+    indices.use <- chunk.indices[chunk.indices %in% cells.use]
+    indices.use <- indices.use - min(indices.use) + 1
+    new.max <- previous + length(x = indices.use) - 1
+    chunk.data <- object[[dataset.use]][chunk.indices, ]
+    chunk.data <- chunk.data[indices.use, genes.use]
+    chunk.data <- t(x = chunk.data)
+    data.return[, previous:new.max] <- chunk.data
+    previous <- new.max + 1
+    if (display.progress) {
+      setTxtProgressBar(pb = pb, value = i / length(x = batch))
+    }
+  }
+  if (display.progress) {
+    close(con = pb)
+  }
+  data.return <- as.data.frame(x = data.return)
+  if (!is.null(x = cell.names)) {
+    cell.names <- object[[cell.names]][]
+    cell.names <- cell.names[cells.use]
+    colnames(x = data.return) <- cell.names
+  }
+  if (!is.null(x = gene.names)) {
+    gene.names <- object[[gene.names]][]
+    gene.names <- gene.names[genes.use]
+    rownames(x = data.return) <- gene.names
+  }
+  return(data.return)
 }
 
 #' Assay Data Mutator Function

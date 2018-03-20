@@ -86,6 +86,7 @@ Collate:
     'interaction_internal.R'
     'jackstraw.R'
     'jackstraw_internal.R'
+    'multi_modal_generics.R'
     'multi_modal.R'
     'plotting_generics.R'
     'plotting.R'
