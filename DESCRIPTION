@@ -35,6 +35,7 @@ Imports:
     pbapply,
     igraph,
     FNN,
+    RANN,
     caret,
     dplyr,
     RColorBrewer,
