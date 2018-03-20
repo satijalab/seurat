@@ -24,7 +24,7 @@ GetDimReduction.seurat <- function(
 #' @param gene.names Dataset with gene names, can pass \code{NULL}
 #' @param cell.names Dataset will cell names, can pass \code{NULL}
 #'
-#' @importFrom hdf5r list.datasets
+#' @importFrom hdf5r list.datasets h5attr
 #'
 #' @describeIn GetDimReduction Get dimensional reduction information for loom objects
 #' @export GetDimReduction.loom
@@ -39,6 +39,7 @@ GetDimReduction.loom <- function(
   cell.names = 'col_attrs/cell_names'
 ) {
   reduction.type <- tolower(x = reduction.type)
+  slot <- tolower(x = slot)
   # Swap this out when support for custom keys is added
   key <- switch(
     EXPR = reduction.type,
@@ -48,7 +49,7 @@ GetDimReduction.loom <- function(
     'cca' = 'CCA',
     stop(paste("Unknown reduction:", reduction.type))
   )
-  if (tolower(x = slot) == 'key') {
+  if (slot == 'key') {
     return(key)
   }
   # If no dataset was specified, try to guess which one to use
@@ -60,6 +61,13 @@ GetDimReduction.loom <- function(
       value = TRUE,
       ignore.case = TRUE
     )
+    if (slot == 'sdev') {
+      for (dset in dataset.use) {
+        if (object[[dset]]$attr_exists(attr_name = 'sdev')) {
+          return(h5attr(x = object[[dset]], which = 'sdev'))
+        }
+      }
+    }
     dataset.use <- grep(
       pattern = slot,
       x = dataset.use,
