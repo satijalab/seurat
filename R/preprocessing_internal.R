@@ -41,14 +41,14 @@ RegressOutResid <- function(
                         latent.vars = vars.to.regress,
                         genes.regress = genes.regress
                     )@scale.data
-        # data.resid <- log1p(
-        #     x = sweep(
-        #         x = data.resid,
-        #         MARGIN = 1,
-        #         STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
-        #         FUN = "-"
-        #     )
-        # )
+        data.resid <- log1p(
+            x = sweep(
+                x = data.resid,
+                MARGIN = 1,
+                STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
+                FUN = "-"
+            )
+        )
       return(data.resid)
   }
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
