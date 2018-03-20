@@ -8,8 +8,9 @@
 \usage{
 ProjectSeurat(object, ...)
 
-\method{ProjectSeurat}{Matrix}(object, template, return.type = "seurat",
-  filename, display.progress = TRUE, ...)
+\method{ProjectSeurat}{Matrix}(object, template, is.scaled.data = FALSE,
+  cluster.label = "res.0.8", tsne.proj.k = 11, class.k = 11,
+  return.type = "seurat", filename, display.progress = TRUE, ...)
 
 \method{ProjectSeurat}{loom}(object, template,
   gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
