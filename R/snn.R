@@ -99,6 +99,9 @@ BuildSNN <- function(
   }
   # find the k-nearest neighbors for each single cell
   if (is.null(x = distance.matrix)) {
+    if (print.output) {
+      cat("Computing nearest neighbor graph\n", file = stderr())
+    }
     my.knn <- nn2(
         data = data.use, 
         k = k.param, 

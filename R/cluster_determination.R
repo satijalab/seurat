@@ -30,6 +30,8 @@ NULL
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
 #' @param force.recalc Force recalculation of SNN.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
@@ -81,6 +83,7 @@ FindClusters <- function(
   save.SNN = FALSE,
   reuse.SNN = FALSE,
   force.recalc = FALSE,
+  nn.eps = 0,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
@@ -130,7 +133,8 @@ FindClusters <- function(
       distance.matrix = distance.matrix,
       force.recalc = force.recalc,
       filename = edge.file.name,
-      save.SNN = save.SNN
+      save.SNN = save.SNN,
+      nn.eps = nn.eps
     )
   }
   for (r in resolution) {
