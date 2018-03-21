@@ -7,9 +7,10 @@
 FindClusters(object, genes.use = NULL, reduction.type = "pca",
   dims.use = NULL, k.param = 30, plot.SNN = FALSE, prune.SNN = 1/15,
   print.output = TRUE, distance.matrix = NULL, save.SNN = FALSE,
-  reuse.SNN = FALSE, force.recalc = FALSE, modularity.fxn = 1,
-  resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
-  random.seed = 0, temp.file.location = NULL, edge.file.name = NULL)
+  reuse.SNN = FALSE, force.recalc = FALSE, nn.eps = 0,
+  modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
+  n.iter = 10, random.seed = 0, temp.file.location = NULL,
+  edge.file.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -45,6 +46,9 @@ object@snn}
 throw an error.}
 
 \item{force.recalc}{Force recalculation of SNN.}
+
+\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+default of 0.0 implies exact nearest neighbor search}
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 

@@ -7,7 +7,7 @@
 BuildSNN(object, genes.use = NULL, reduction.type = "pca",
   dims.use = NULL, k.param = 10, plot.SNN = FALSE, prune.SNN = 1/15,
   print.output = TRUE, distance.matrix = NULL, force.recalc = FALSE,
-  filename = NULL, save.SNN = TRUE)
+  filename = NULL, save.SNN = TRUE, nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -44,6 +44,9 @@ compatible with FindClusters}
 \item{save.SNN}{Default behavior is to store the SNN in object@snn. Setting
 to FALSE can be used together with a provided filename to only write the SNN
 out as an edge file to disk.}
+
+\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+default of 0.0 implies exact nearest neighbor search}
 }
 \value{
 Returns the object with object@snn filled
