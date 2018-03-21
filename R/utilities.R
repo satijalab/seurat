@@ -902,7 +902,7 @@ CaseMatch <- function(search, match) {
 #' @param display.progress Display progress bar
 #' @param rows.use Rows to include in covariance calculation,
 #' should be the path to a one-dimensional boolean (logical) dataset
-#' (eg. 'row_attrs/var_genes')
+#' (eg. 'row_attrs/var_genes') OR a character vector of rownames to use.
 #' @param row.names Location of associated rownames for labeling of final matrix
 #'
 #' @return Returns the covariance matrix
@@ -931,11 +931,19 @@ BlockCov.loom <- function(
   for (i in 1:length(x = batch)) {
     batch.indices[[i]] <- object$batch.next(return.data = FALSE)
   }
+
   if (is.null(x = rows.use)) {
     rows.use <- 1:object[[mat]]$dims[2]
-  } else {
-    rows.use <- which(x = object[[rows.use]][])
   }
+  else if(length(rows.use) == 1) {
+    rows.use <- which(x = object[[rows.use]][])
+  } else {
+    if(!all(rows.use %in% lfile[[row.names]][])) {
+      stop(paste0("Rows: ", paste0(rows.use[which(!rows.use %in% lfile[[row.names]][])], collapse = ", "), " not found."))
+    }
+    rows.use <- match(rows.use, lfile[[row.names]][])
+  }
+
   batch1 <- object[[mat]][batch.indices[[1]], rows.use]
   c1 <- cov(x = batch1)
   m1 <- colMeans(x = batch1)
