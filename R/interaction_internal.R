@@ -106,8 +106,8 @@ DownsampleMatrix <- function(
   if (method == 'nnd') {
     k <- floor(nrow(mat) * 0.01)
     nn.res <- RANN::nn2(mat, k = k + 1, searchtype = 'standard', eps = 1/2)
-    nnd <- nn.res$nn.dists[, k + 1]
-    return(sample(x = rownames(mat), size = size, prob = nnd^prob.exp))
+    sampling.prob <- nn.res$nn.dists[, k + 1]
+    cells <- sample(x = rownames(mat), size = size, prob = sampling.prob^prob.exp)
   }
   if (method == 'indep') {
     # determine how to distribute the cells
@@ -123,7 +123,8 @@ DownsampleMatrix <- function(
       sampled[sample(1:nrow(dens), size = size.pc[i], prob = p^prob.exp)] <- TRUE
     }
     cells <- rownames(x = mat)[sampled]
-  } else {
+  }
+  if (method %in% c('max', 'mean', 'gm.mean', 'prod', 'min')) {
     # combine the weights across dimensions using the function specified in method
     sampling.prob <- apply(X = weights, MARGIN = 1, FUN = method)
     cells <- sample(x = rownames(x = mat), size = size, prob = sampling.prob^prob.exp)
