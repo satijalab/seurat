@@ -81,14 +81,19 @@ GetAssayData.loom <- function(
   display.progress = TRUE,
   ...
 ) {
-  slot <- gsub(pattern = '_', replacement = '.', x = slot, fixed = TRUE)
-  dataset.use <- switch(
-    EXPR = tolower(x = slot),
-    'raw.data' = 'matrix',
-    'data' = 'layers/norm_data',
-    'scale.data' = 'layers/scale_data',
-    stop(paste("Unknown dataset:", slot))
-  )
+  if (object$exists(name = slot)) {
+    cat('slot', slot, 'exists in loom object, will use it directly\n')
+    dataset.use <- slot
+  } else {
+    slot <- gsub(pattern = '_', replacement = '.', x = slot, fixed = TRUE)
+    dataset.use <- switch(
+      EXPR = tolower(x = slot),
+      'raw.data' = 'matrix',
+      'data' = 'layers/norm_data',
+      'scale.data' = 'layers/scale_data',
+      stop(paste("Unknown dataset:", slot))
+    )
+  }
   batch <- object$batch.scan(
     chunk.size = chunk.size,
     dataset.use = dataset.use,
