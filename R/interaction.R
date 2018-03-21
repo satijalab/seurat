@@ -1174,6 +1174,7 @@ setMethod(
                         size,
                         dims.use = 1:10,
                         cell.names = "col_attrs/cell_names",
+                        keep.layers = FALSE,
                         ...) {
     input.matrix <- t(object[['col_attrs/pca_cell_embeddings']][dims.use,])
     colnames(input.matrix) <- paste0("PC", dims.use)
@@ -1181,7 +1182,7 @@ setMethod(
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       ...)
-    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, ...)
+    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, keep.layers = keep.layers)
     return(new.object)
   }
 )
@@ -1522,52 +1523,35 @@ setMethod(
                         display.progress = TRUE,
                         chunk.size = 1000,
                         keep.layers = FALSE,
+                        norm.data = 'layers/norm_data',
+                        scale.data = 'layers/scale_data',
                         ...) {
     cell.names <- object[[cell.names]][]
     gene.names <- object[[gene.names]][]
-    keep.cells <- cells[cells %in% cell.names]
-    n.cells <- length(keep.cells)
+    #keep.cells <- cells[cells %in% cell.names]
+    cells.use <- which(cells %in% cell.names)
+    n.cells <- length(cells.use)
     n.genes <- length(gene.names)
     cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes) in memory\n')
-    mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
-
-    # get the data in memory
-    # then create new loom object
-
-    # subset matrix
-    batch <- object$batch.scan(
-      chunk.size = chunk.size,
-      MARGIN = 2,
-      dataset.use = 'matrix',
-      force.reset = TRUE
-    )
-    for (i in 1:length(x = batch)) {
-      # Get the indices we're iterating over
-      chunk.indices <- object$batch.next(return.data = FALSE)
-      #cat('chunk', i, '; range', range(chunk.indices), '\n')
-      chunk.data <- object[['matrix']][chunk.indices, ]
-      chunk.cell.names <- cell.names[chunk.indices]
-      sel <- chunk.cell.names  %in% cells
-      mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
-    }
+    #mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
+    mat <- GetAssayData.loom(object=object, slot='raw.data', cells.use=cells.use, chunk.size=chunk.size)
+    
     # get meta data
-    sel <- match(keep.cells, cell.names)
-    meta.cols <- names(which(sapply(names(object[['col_attrs']]), function(x) length(object[['col_attrs']][[x]]$dims) == 1)))
-    gene.attrs.names <- names(which(sapply(names(object[['row_attrs']]), function(x) length(object[['row_attrs']][[x]]$dims) == 1)))
-
-    meta.data <- data.frame(lapply(meta.cols, function(x) object[['col_attrs']][[x]][sel]), stringsAsFactors = FALSE)
-    rownames(meta.data) <- keep.cells
-    colnames(meta.data) <- meta.cols
-    gene.attrs <- data.frame(lapply(gene.attrs.names, function(x) object[['row_attrs']][[x]][]), stringsAsFactors = FALSE)
-    rownames(gene.attrs) <- gene.names
-    colnames(gene.attrs) <- gene.attrs.names
-
+    meta.data <- object$get.attribute.df(attribute.layer = 'col')[cells.use, ]
+    gene.attrs <- object$get.attribute.df(attribute.layer = 'row')
+    
     if (return.type == "seurat") {
-      cat('Note: SubsetSeurat is converting from loom to seurat; only raw data and cell attributes are kept, no layers\n')
       new.object <- CreateSeuratObject(raw.data = as(t(mat), "dgCMatrix"))
       duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)
       colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
       new.object <- AddMetaData(object = new.object, metadata = meta.data)
+      if (!keep.layers) {
+        cat('Note: SubsetSeurat is converting from loom to seurat; keep.layers=FALSE, so only raw data and cell attributes are kept, no layers\n')
+      } else {
+        cat('Also subsetting normalized data and scaled data\n')
+        new.object@data <- GetAssayData.loom(object=object, slot='data', cells.use=cells.use, chunk.size=chunk.size)
+        new.object@scale.data <- GetAssayData.loom(object=object, slot='scale.data', cells.use=cells.use, chunk.size=chunk.size)
+      }
       return(new.object)
     } else {
       if (file.exists(filename)) {
@@ -1583,27 +1567,11 @@ setMethod(
         cell.attrs = meta.data[, setdiff(colnames(meta.data), 'cell_names')],
         gene.attrs = gene.attrs[, setdiff(colnames(gene.attrs), 'gene_names')], ...
       )
-
       if (keep.layers) {
         for (layer.name in names(object[['layers']])) {
           layer.path <- paste('layers', layer.name, sep='/')
           cat('layer', layer.path, '\n')
-          mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
-          batch <- object$batch.scan(
-            chunk.size = chunk.size,
-            MARGIN = 2,
-            dataset.use = layer.path,
-            force.reset = TRUE
-          )
-          for (i in 1:length(x = batch)) {
-            # Get the indices we're iterating over
-            chunk.indices <- object$batch.next(return.data = FALSE)
-            cat('chunk', i, '; range', range(chunk.indices), '\n')
-            chunk.data <- object[[layer.path]][chunk.indices, ]
-            chunk.cell.names <- cell.names[chunk.indices]
-            sel <- chunk.cell.names  %in% cells
-            mat[chunk.cell.names[sel], ] <- chunk.data[sel, ]
-          }
+          mat <- GetAssayData.loom(object=object, slot=layer.path, cells.use=cells.use, chunk.size=chunk.size)
           lst <- list()
           lst[[layer.name]] <- mat
           loomfile$add.layer(lst)
