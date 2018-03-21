@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @importFrom methods setMethod setGeneric
 NULL
 # Set up dim.reduction class
 
@@ -10,7 +11,7 @@ dim.reduction <- setClass(
     gene.loadings.full = "matrix",
     sdev = "numeric",
     key = "character",
-    jackstraw="ANY",
+    jackstraw = "ANY",
     misc = "ANY"
   )
 )
@@ -23,34 +24,72 @@ dim.reduction <- setClass(
 # @param object        Seurat object
 # @param genes.use     Genes to use as input for the dimensional reduction technique.
 #                      Default is object@@var.genes
-# @param dims.compute  Number of dimensions to compute
+#
+# PrepDR <- function(object, ...) {
+#   UseMethod(generic = 'PrepDR', object = object)
+# }
+setGeneric(
+  name = 'PrepDR',
+  def = function(object, ...) {
+    return(standardGeneric(f = 'PrepDR'))
+  }
+)
+
 # @param use.imputed   Whether to run the dimensional reduction on imputed values
 # @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
-
-PrepDR <- function(
-  object,
-  genes.use = NULL,
-  use.imputed = FALSE,
-  assay.type="RNA"
-) {
-
-  if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
-    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector
+#
+#
+setMethod(
+  f = 'PrepDR',
+  signature = c('object' = 'seurat'),
+  definition = function(
+    object,
+    genes.use = NULL,
+    use.imputed = FALSE,
+    assay.type="RNA",
+    ...
+  ) {
+    {
+      if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
+        stop("Variable genes haven't been set. Run FindVariableGenes or provide a vector
           of genes names in genes.use and retry.")
+      }
+      if (use.imputed) {
+        data.use <- t(x = scale(x = t(x = object@imputed)))
+      } else {
+        data.use <- GetAssayData(object, assay.type = assay.type,slot = "scale.data")
+      }
+      genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+      genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
+      genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
+      genes.use <- genes.use[genes.var > 0]
+      genes.use <- genes.use[!is.na(x = genes.use)]
+      data.use <- data.use[genes.use, ]
+      return(data.use)
+    }
   }
-  if (use.imputed) {
-    data.use <- t(x = scale(x = t(x = object@imputed)))
-  } else {
-    data.use <- GetAssayData(object, assay.type = assay.type,slot = "scale.data")
+)
+
+# @param var.genes Path to variable genes dataset
+#
+setMethod(
+  f = 'PrepDR',
+  signature = c('object' = 'loom'),
+  definition = function(
+    object,
+    genes.use = NULL,
+    var.genes = '/row_attrs/var_genes',
+    ...
+  ) {
+    if (is.null(x = genes.use)) {
+      genes.use <- which(x = object[[var.genes]][])
+    }
+    data.use <- GetAssayData(object = object, slot = 'scale.data', genes.use = genes.use)
+    genes.var <- apply(X = data.use, MARGIN = 1, FUN = var)
+    data.use <- data.use[genes.var > 0]
+    return(data.use)
   }
-  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
-  genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
-  genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
-  genes.use <- genes.use[genes.var > 0]
-  genes.use <- genes.use[! is.na(x = genes.use)]
-  data.use <- data.use[genes.use, ]
-  return(data.use)
-}
+)
 
 # Get the top genes associated with given dimensional reduction scores
 #

@@ -81,6 +81,7 @@ GetAssayData.loom <- function(
   display.progress = TRUE,
   ...
 ) {
+  slot <- gsub(pattern = '_', replacement = '.', x = slot, fixed = TRUE)
   dataset.use <- switch(
     EXPR = tolower(x = slot),
     'raw.data' = 'matrix',
@@ -88,7 +89,11 @@ GetAssayData.loom <- function(
     'scale.data' = 'layers/scale_data',
     stop(paste("Unknown dataset:", slot))
   )
-  batch <- object$batch.scan(chunk.size = chunk.size, dataset.use = dataset.use)
+  batch <- object$batch.scan(
+    chunk.size = chunk.size,
+    dataset.use = dataset.use,
+    force.reset = TRUE
+  )
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
   data.return <- matrix(
@@ -102,6 +107,12 @@ GetAssayData.loom <- function(
   for (i in 1:length(x = batch)) {
     chunk.indices <- object$batch.next(return.data = FALSE)
     indices.use <- chunk.indices[chunk.indices %in% cells.use]
+    if (length(x = indices.use) < 1) {
+      if (display.progress) {
+        setTxtProgressBar(pb = pb, value = i / length(x = batch))
+      }
+      next
+    }
     indices.use <- indices.use - min(indices.use) + 1
     new.max <- previous + length(x = indices.use) - 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]

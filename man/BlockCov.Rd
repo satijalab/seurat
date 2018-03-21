@@ -22,7 +22,7 @@ BlockCov(object, ...)
 
 \item{rows.use}{Rows to include in covariance calculation,
 should be the path to a one-dimensional boolean (logical) dataset
-(eg. 'row_attrs/var_genes')}
+(eg. 'row_attrs/var_genes') OR a character vector of rownames to use.}
 
 \item{row.names}{Location of associated rownames for labeling of final matrix}
 }

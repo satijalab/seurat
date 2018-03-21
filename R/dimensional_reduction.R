@@ -300,7 +300,7 @@ RunPCA.loom <- function(
         object = object,
         mat = scale.data,
         display.progress = display.progress,
-        rows.use = var.genes,
+        rows.use = genes.use,
         row.names = gene.names
       )
     }
