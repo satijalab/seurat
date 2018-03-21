@@ -127,7 +127,6 @@ GetAssayData.loom <- function(
   if (display.progress) {
     close(con = pb)
   }
-  data.return <- as.data.frame(x = data.return)
   if (!is.null(x = cell.names)) {
     cell.names <- object[[cell.names]][]
     cell.names <- cell.names[cells.use]
