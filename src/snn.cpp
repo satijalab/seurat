@@ -60,8 +60,9 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
 
 // Wrapper function so that we don't have to go back into R before writing to file
 //[[Rcpp::export]]
-Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked,
-                                         double prune, bool display_progress, String filename) {
+Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked,
+                                            double prune, bool display_progress,
+                                            String filename) {
   Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_ranked, prune);
   WriteEdgeFile(SNN, filename, display_progress);
   return SNN;

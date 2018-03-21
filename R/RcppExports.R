@@ -61,7 +61,7 @@ WriteEdgeFile <- function(snn, filename, display_progress) {
     invisible(.Call('_Seurat_WriteEdgeFile', PACKAGE = 'Seurat', snn, filename, display_progress))
 }
 
-DirectSNNToFile <- function(nn_large, nn_ranked, prune, display_progress, filename) {
-    .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_large, nn_ranked, prune, display_progress, filename)
+DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
+    .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
 }
 

@@ -103,9 +103,9 @@ BuildSNN <- function(
       cat("Computing nearest neighbor graph\n", file = stderr())
     }
     my.knn <- nn2(
-        data = data.use, 
-        k = k.param, 
-        searchtype = 'standard', 
+        data = data.use,
+        k = k.param,
+        searchtype = 'standard',
         eps = nn.eps)
     nn.ranked <- my.knn$nn.idx
   } else {
@@ -134,7 +134,7 @@ BuildSNN <- function(
       WriteEdgeFile(snn = object@snn, filename = filename, display_progress = print.output)
     }
   } else {
-    DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
+    DirectSNNToFile(nn_ranked = nn.ranked, prune = prune.SNN,
                     display_progress = print.output, filename = filename)
   }
   if (plot.SNN & save.SNN) {
