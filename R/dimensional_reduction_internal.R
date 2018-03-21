@@ -1,8 +1,8 @@
 #' @include seurat.R
 #' @importFrom methods setMethod setGeneric
 NULL
-# Set up dim.reduction class
 
+# Set up dim.reduction class
 dim.reduction <- setClass(
   Class = "dim.reduction",
   slots = list(
@@ -15,6 +15,10 @@ dim.reduction <- setClass(
     misc = "ANY"
   )
 )
+
+################################################################################
+################################### Generics ###################################
+################################################################################
 
 # Prep data for dimensional reduction
 #
@@ -34,6 +38,10 @@ setGeneric(
     return(standardGeneric(f = 'PrepDR'))
   }
 )
+
+################################################################################
+############################ Functions and Methods #############################
+################################################################################
 
 # @param use.imputed   Whether to run the dimensional reduction on imputed values
 # @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
