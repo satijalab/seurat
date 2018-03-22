@@ -1549,8 +1549,8 @@ setMethod(
         cat('Note: SubsetSeurat is converting from loom to seurat; keep.layers=FALSE, so only raw data and cell attributes are kept, no layers\n')
       } else {
         cat('Also subsetting normalized data and scaled data\n')
-        new.object@data <- GetAssayData.loom(object=object, slot='data', cells.use=cells.use, chunk.size=chunk.size)
-        new.object@scale.data <- GetAssayData.loom(object=object, slot='scale.data', cells.use=cells.use, chunk.size=chunk.size)
+        new.object@data <- GetAssayData.loom(object=object, slot=norm.data, cells.use=cells.use, chunk.size=chunk.size)
+        new.object@scale.data <- GetAssayData.loom(object=object, slot=scale.data, cells.use=cells.use, chunk.size=chunk.size)
       }
       return(new.object)
     } else {
