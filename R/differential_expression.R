@@ -423,7 +423,7 @@ FindAllMarkers <- function(
       }
     }
   }
-  if (only.pos) {
+  if ((only.pos) && nrow(gde.all) > 0) {
     return(subset(x = gde.all, subset = avg_logFC > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
