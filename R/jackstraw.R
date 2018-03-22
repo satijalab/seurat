@@ -30,8 +30,10 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 #' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+#' }
 #'
 JackStraw <- function(
   object,

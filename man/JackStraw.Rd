@@ -39,8 +39,10 @@ with the observed PCA scores to determine statistical signifance. End result
 is a p-value for each gene's association with each principal component.
 }
 \examples{
+\dontrun{
 pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+}
 
 }
 \references{
