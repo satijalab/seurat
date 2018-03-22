@@ -101,11 +101,13 @@ GetAssayData.loom <- function(
   )
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
+  if (is.unsorted(genes.use)) {
+    stop('genes.use indices need to be sorted')
+  }
   data.return <- matrix(
     nrow = length(x = genes.use),
     ncol = length(x = cells.use)
   )
-  previous <- 1
   if (display.progress) {
     pb <- txtProgressBar(char = '=', style = 3)
   }
@@ -118,13 +120,12 @@ GetAssayData.loom <- function(
       }
       next
     }
-    indices.use <- indices.use - min(indices.use) + 1
-    new.max <- previous + length(x = indices.use) - 1
+    indices.return <- match(indices.use, cells.use)
+    indices.use <- indices.use - chunk.indices[1] + 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]
     chunk.data <- chunk.data[indices.use, genes.use]
     chunk.data <- t(x = chunk.data)
-    data.return[, previous:new.max] <- chunk.data
-    previous <- new.max + 1
+    data.return[, indices.return] <- chunk.data
     if (display.progress) {
       setTxtProgressBar(pb = pb, value = i / length(x = batch))
     }
