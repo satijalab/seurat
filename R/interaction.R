@@ -1541,7 +1541,7 @@ setMethod(
     gene.attrs <- object$get.attribute.df(attribute.layer = 'row')
     
     if (return.type == "seurat") {
-      new.object <- CreateSeuratObject(raw.data = as(t(mat), "dgCMatrix"))
+      new.object <- CreateSeuratObject(raw.data = as(mat, "dgCMatrix"))
       duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)
       colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
       new.object <- AddMetaData(object = new.object, metadata = meta.data)
