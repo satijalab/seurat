@@ -1176,9 +1176,7 @@ setMethod(
                         cell.names = "col_attrs/cell_names",
                         keep.layers = FALSE,
                         ...) {
-    input.matrix <- t(object[['col_attrs/pca_cell_embeddings']][dims.use,])
-    colnames(input.matrix) <- paste0("PC", dims.use)
-    rownames(input.matrix) <- object[[cell.names]][]
+    input.matrix <- GetDimReduction(object = object, reduction.type = 'pca', slot = "cell_embeddings")[, dims.use]
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       ...)
@@ -1528,12 +1526,11 @@ setMethod(
                         ...) {
     cell.names <- object[[cell.names]][]
     gene.names <- object[[gene.names]][]
-    #keep.cells <- cells[cells %in% cell.names]
-    cells.use <- which(cells %in% cell.names)
+    cells.use <- which(cell.names %in% cells)
     n.cells <- length(cells.use)
     n.genes <- length(gene.names)
     cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes) in memory\n')
-    #mat <- matrix(0, n.cells, n.genes, dimnames = list(keep.cells, gene.names))
+    cat('Note that original ordering of cells will be preserved regardless of order of cell names in second parameter\n')
     mat <- GetAssayData.loom(object=object, slot='raw.data', cells.use=cells.use, chunk.size=chunk.size)
     
     # get meta data
