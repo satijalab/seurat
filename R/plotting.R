@@ -2538,8 +2538,9 @@ DimPlot.loom <- function(
   no.axes = FALSE,
   dark.theme = FALSE
 ) {
+  reduction.type <- strsplit(x = reduction.use, split = '_')[[1]][1]
   key <- switch(
-    EXPR = tolower(x = reduction.use),
+    EXPR = tolower(x = reduction.type),
     'pca' = 'PC',
     'tsne' = 'tSNE_',
     'ica' = 'IC',
