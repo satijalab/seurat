@@ -48,7 +48,6 @@ Imports:
     Rcpp,
     tclust,
     ranger,
-    NMF,
     dtw,
     SDMTools,
     plotly,
@@ -66,7 +65,7 @@ Imports:
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate: 
+Collate:
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
@@ -97,7 +96,6 @@ Collate:
     'tSNE_project.R'
     'utilities.R'
     'utilities_internal.R'
-    'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
     testthat,

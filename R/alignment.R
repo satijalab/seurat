@@ -39,6 +39,7 @@ globalVariables(
 #'  object@@dr$reduction.type.aligned
 #'
 #' @importFrom dtw dtw
+#' @importFrom stats density
 #' @importFrom pbapply pbapply
 #' @importFrom graphics plot lines
 #' @importFrom stats density quantile

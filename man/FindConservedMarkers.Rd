@@ -34,6 +34,7 @@ percentage of cells expressing the marker, average differences)
 Finds markers that are conserved between the two groups
 }
 \examples{
+\dontrun{
 pbmc_small
 # Create a simulated grouping variable
 pbmc_small@meta.data$groups <- sample(
@@ -42,5 +43,6 @@ pbmc_small@meta.data$groups <- sample(
   replace = TRUE
 )
 FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
+}
 
 }

@@ -6,7 +6,7 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
-#' @importFrom graphics axis plot
+#' @importFrom graphics axis plot smoothScatter
 #
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
@@ -536,6 +536,8 @@ BlendColors <- function(..., as.rgb = FALSE) {
 #
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
+#
+#' @importFrom stats quantile
 #
 # @return The numerical representation of the quantile
 #

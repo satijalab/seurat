@@ -629,7 +629,7 @@ FindAllMarkersNode <- function(
 #' @param grouping.var grouping variable
 #' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param meta.method method for combining p-values. Should be a function from
-#' the metap package (NOTE: pass the function, not a string).
+#' the metap package (NOTE: pass the function, not a string)
 #' @param \dots parameters to pass to FindMarkers
 #'
 #' @return Matrix containing a ranked list of putative conserved markers, and
@@ -641,6 +641,7 @@ FindAllMarkersNode <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Create a simulated grouping variable
 #' pbmc_small@meta.data$groups <- sample(
@@ -649,6 +650,7 @@ FindAllMarkersNode <- function(
 #'   replace = TRUE
 #' )
 #' FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
+#' }
 #'
 FindConservedMarkers <- function(
   object,
