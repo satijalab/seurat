@@ -20,6 +20,12 @@ Improvements and new features will be added on a regular basis, please contact s
 
 Version History
 
+March 22, 2018
+* Version 2.3
+* Changes:
+  * New utility functions
+  * Speed and efficiency improvments
+
 January 10, 2018
 * Version 2.2
 * Changes:
