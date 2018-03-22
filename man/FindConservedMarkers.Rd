@@ -20,7 +20,7 @@ use all other cells for comparison.}
 \item{assay.type}{Type of assay to fetch data for (default is RNA)}
 
 \item{meta.method}{method for combining p-values. Should be a function from
-the metap package (NOTE: pass the function, not a string).}
+the metap package (NOTE: pass the function, not a string)}
 
 \item{\dots}{parameters to pass to FindMarkers}
 }
