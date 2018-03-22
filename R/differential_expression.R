@@ -521,7 +521,9 @@ globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print Print status updates
-#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param min.cells.gene Minimum number of cells expressing the gene in at least one
+#' of the two groups, currently only used for poisson and negative binomial tests
+#' @param min.cells.group Minimum number of cells in one of the groups
 #' @param assay.type Type of assay to fetch data for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #'
@@ -550,7 +552,8 @@ FindAllMarkersNode <- function(
   return.thresh = 1e-2,
   do.print = FALSE,
   random.seed = 1,
-  min.cells = 3,
+  min.cells.gene = 3,
+  min.cells.group = 3,
   assay.type = "RNA",
   ...
 ) {
@@ -588,7 +591,8 @@ FindAllMarkersNode <- function(
       only.pos = only.pos,
       max.cells.per.ident = max.cells.per.ident,
       random.seed = random.seed,
-      min.cells = min.cells
+      min.cells.gene = min.cells.gene,
+      min.cells.group = min.cells.group
     )
     if (do.print) {
       print(paste("Calculating node", i))
