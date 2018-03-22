@@ -8,7 +8,8 @@ FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
   test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
   print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   return.thresh = 0.01, do.print = FALSE, random.seed = 1,
-  min.cells = 3, latent.vars = "nUMI", assay.type = "RNA", ...)
+  min.cells.gene = 3, min.cells.group = 3, latent.vars = "nUMI",
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -57,7 +58,10 @@ fraction of detection between the two groups. Set to -Inf by default}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
+\item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
+\item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{latent.vars}{remove the effects of these variables}
 

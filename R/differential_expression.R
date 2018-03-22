@@ -329,7 +329,9 @@ globalVariables(
 #' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #' @param do.print FALSE by default. If TRUE, outputs updates on progress.
-#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
+#' @param min.cells.gene Minimum number of cells expressing the gene in at least one
+#' of the two groups, currently only used for poisson and negative binomial tests
+#' @param min.cells.group Minimum number of cells in one of the groups
 #' @param latent.vars remove the effects of these variables
 #' @param assay.type Type of assay to perform DE for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
@@ -355,7 +357,8 @@ FindAllMarkers <- function(
   return.thresh = 1e-2,
   do.print = FALSE,
   random.seed = 1,
-  min.cells = 3,
+  min.cells.gene = 3,
+  min.cells.group = 3,
   latent.vars = "nUMI",
   assay.type = "RNA",
   ...
@@ -388,7 +391,8 @@ FindAllMarkers <- function(
           min.pct = min.pct,
           min.diff.pct = min.diff.pct,
           print.bar = print.bar,
-          min.cells = min.cells,
+          min.cells.gene = min.cells.gene,
+          min.cells.group = min.cells.group,
           latent.vars = latent.vars,
           max.cells.per.ident = max.cells.per.ident,
           ...
