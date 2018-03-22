@@ -127,7 +127,7 @@ FindMarkers <- function(
     return(NULL)
   }
   if (length(cells.1) < min.cells.group) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells), "cells in identity class", ident.1))
+    stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells in identity class", ident.1))
   }
   if (length(cells.2) < min.cells.group) {
     stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells in identity class", ident.2))
