@@ -10,17 +10,20 @@
 #' @param num.replicate Number of replicate samplings to perform
 #' @param prop.freq Proportion of the data to randomly permute for each
 #' replicate
-#' @param do.print Print the number of replicates that have been processed.
+#' @param display.progress Print progress bar showing the number of replicates
+#' that have been processed.
 #' @param do.par use parallel processing for regressing out variables faster.
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #' Note that for higher number of cores, larger free memory is needed.
 #'
-#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value represents
-#' p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
-#' run, object@dr$pca@jackstraw@emperical.p.value.full then represents p-values for all genes.
+#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
+#' represents p-values for each gene in the PCA analysis. If ProjectPCA is
+#' subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+#' represents p-values for all genes.
 #'
-#' @importFrom pbapply pbsapply
+#' @import doSNOW
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #'
@@ -29,13 +32,13 @@
 #' @examples
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 #' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
-#' 
+#'
 JackStraw <- function(
   object,
   num.pc = 20,
   num.replicate = 100,
   prop.freq = 0.01,
-  do.print = FALSE,
+  display.progress = TRUE,
   do.par = FALSE,
   num.cores = 1
 ) {
@@ -65,11 +68,7 @@ JackStraw <- function(
   }
   md.x <- as.matrix(x = GetDimReduction(object,"pca","gene.loadings"))
   md.rot <- as.matrix(x = GetDimReduction(object,"pca","cell.embeddings"))
-  if (do.print) {
-    applyFunction <- pbsapply
-  } else {
-    applyFunction <- sapply
-  }
+
   rev.pca <- GetCalcParam(
     object = object,
     calculation = "RunPCA",
@@ -85,7 +84,7 @@ JackStraw <- function(
     assay.type = "RNA",
     slot = "scale.data"
   )[pc.genes,]
-  
+
   # input checking for parallel options
   if(do.par){
     if(num.cores == 1){
@@ -102,18 +101,25 @@ JackStraw <- function(
       warning("For parallel processing, please set do.par to TRUE.")
     }
   }
-  
+
   cl<- parallel::makeCluster(num.cores)
-  
+
   registerDoSNOW(cl)
-  
-  if(do.print)
-  {
+
+  if(display.progress) {
     time_elapsed <- Sys.time()
   }
-  
-  fake.pcVals.raw <- foreach(x = 1:num.replicate) %dopar% {
-    
+
+  opts <- list()
+  if(display.progress) {
+    # define progress bar function
+    pb <- txtProgressBar(min = 0, max = num.replicate, style = 3)
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+    time_elapsed <- Sys.time()
+  }
+
+  fake.pcVals.raw <- foreach(x = 1:num.replicate, .options.snow = opts) %dopar% {
     JackRandom(
       scaled.data = data.use.scaled,
       prop.use = prop.freq,
@@ -124,15 +130,15 @@ JackStraw <- function(
       weight.by.var = weight.by.var
     )
   }
-  
-  if(do.print)
-  {
+
+  if(display.progress){
     time_elapsed <- Sys.time() - time_elapsed
     cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed), "\n"))
+    close(pb)
   }
-  
+
   stopCluster(cl)
-  
+
   fake.pcVals <- sapply(
     X = 1:num.pc,
     FUN = function(x) {
