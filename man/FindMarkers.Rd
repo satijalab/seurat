@@ -8,7 +8,8 @@ FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI",
-  min.cells = 3, pseudocount.use = 1, assay.type = "RNA", ...)
+  min.cells.gene = 3, min.cells.group = 3, pseudocount.use = 1,
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -62,8 +63,10 @@ Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{latent.vars}{Variables to test}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one
-of the two groups}
+\item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
+\item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
@@ -94,4 +97,6 @@ head(markers)
 }
 \seealso{
 \code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
+
+\code{\link{NegBinomDETest}}
 }
