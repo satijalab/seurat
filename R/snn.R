@@ -35,7 +35,7 @@ setMethod(
                                   reduction.type = reduction.type,
                                   dims.use = dims.use)
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   parameters.to.store$object <- NULL
   parameters.to.store$distance.matrix <- NULL
   parameters.to.store$print.output <- NULL

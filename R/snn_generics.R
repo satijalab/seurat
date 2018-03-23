@@ -33,7 +33,7 @@ NULL
 #' @param filename Write SNN directly to file named here as an edge list compatible with FindClusters
 #' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting to FALSE can be used
 #' together with a provided filename to only write the SNN out as an edge file to disk.
-#' @importFrom FNN get.knn
+#' @importFrom RANN nn2
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
 #' @return Returns the object with object@@snn filled

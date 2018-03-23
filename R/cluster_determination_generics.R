@@ -45,7 +45,7 @@ NULL
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
 #' @param edge.file.location Edge file to use as input for modularity optimizer jar.
-#' @importFrom FNN get.knn
+#' @importFrom RANN nn2
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix,
