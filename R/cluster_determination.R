@@ -12,7 +12,6 @@ setMethod(
     reduction.type = "pca",
     dims.use = NULL,
     k.param = 30,
-    k.scale = 25,
     plot.SNN = FALSE,
     prune.SNN = 1/15,
     print.output = TRUE,
@@ -20,6 +19,7 @@ setMethod(
     save.SNN = FALSE,
     reuse.SNN = FALSE,
     force.recalc = FALSE,
+    nn.eps = 0,
     modularity.fxn = 1,
     resolution = 0.8,
     algorithm = 1,
@@ -29,27 +29,27 @@ setMethod(
     temp.file.location = NULL,
     edge.file.name = NULL
   ) {
-    snn.built <- FALSE
-    if (.hasSlot(object = object, name = "snn")) {
-      if (length(x = object@snn) > 1) {
-        snn.built <- TRUE
-        save.SNN <- TRUE
-      }
-    }
-    if ((
-      missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-      missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
-      && snn.built) || reuse.SNN) {
+  snn.built <- FALSE
+  if (.hasSlot(object = object, name = "snn")) {
+    if (length(x = object@snn) > 1) {
+      snn.built <- TRUE
       save.SNN <- TRUE
-      if (reuse.SNN && !snn.built) {
-        stop("No SNN stored to reuse.")
-      }
-      if (reuse.SNN && (
-        ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-        || ! missing(x = k.scale) || ! missing(x = prune.SNN)
-      )) {
-        warning("SNN was not be rebuilt with new parameters. Continued with stored
-                 SNN. To suppress this warning, remove all SNN building parameters.")
+    }
+  }
+  if ((
+    missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
+    missing(x = prune.SNN)  && missing(x = distance.matrix)
+    && snn.built) || reuse.SNN) {
+    save.SNN <- TRUE
+    if (reuse.SNN && !snn.built) {
+      stop("No SNN stored to reuse.")
+    }
+    if (reuse.SNN && (
+      ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
+      || ! missing(x = prune.SNN)
+    )) {
+      warning("SNN was not be rebuilt with new parameters. Continued with stored
+               SNN. To suppress this warning, remove all SNN building parameters.")
       }
     } else {
       # if any SNN building parameters are provided or it hasn't been built, build
@@ -63,14 +63,14 @@ setMethod(
         reduction.type = reduction.type,
         dims.use = dims.use,
         k.param = k.param,
-        k.scale = k.scale,
         plot.SNN = plot.SNN,
         prune.SNN = prune.SNN,
         print.output = print.output,
         distance.matrix = distance.matrix,
         force.recalc = force.recalc,
         filename = edge.file.name,
-        save.SNN = save.SNN
+        save.SNN = save.SNN,
+        nn.eps = nn.eps
       )
     }
     for (r in resolution) {

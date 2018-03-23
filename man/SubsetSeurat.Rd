@@ -11,7 +11,8 @@ SubsetSeurat(object, cells, ...)
 \S4method{SubsetSeurat}{loom}(object, cells, return.type = "seurat",
   cell.names = "col_attrs/cell_names", gene.names = "row_attrs/gene_names",
   filename = NULL, remove.existing = FALSE, display.progress = TRUE,
-  chunk.size = 1000, keep.layers = FALSE, ...)
+  chunk.size = 1000, keep.layers = FALSE, norm.data = "layers/norm_data",
+  scale.data = "layers/scale_data", ...)
 }
 \arguments{
 \item{object}{An object to subset}

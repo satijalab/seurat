@@ -13,7 +13,7 @@ DownsampleSeurat(object, ...)
   return.type = "seurat", filename, overwrite = FALSE, ...)
 
 \S4method{DownsampleSeurat}{loom}(object, size, dims.use = 1:10,
-  cell.names = "col_attrs/cell_names", ...)
+  cell.names = "col_attrs/cell_names", keep.layers = FALSE, ...)
 }
 \arguments{
 \item{object}{An object to downsample}

@@ -15,112 +15,112 @@ setMethod(
     reduction.type = "pca",
     dims.use = NULL,
     k.param = 10,
-    k.scale = 10,
     plot.SNN = FALSE,
     prune.SNN = 1/15,
     print.output = TRUE,
     distance.matrix = NULL,
     force.recalc = FALSE,
     filename = NULL,
-    save.SNN = TRUE
+    save.SNN = TRUE,
+    nn.eps = 0
   ) {
-    if (! is.null(x = distance.matrix)) {
-      data.use <- distance.matrix
-      force.recalc <- TRUE
-    } else if (is.null(x = dims.use)) {
-      genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
-      data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
-    } else {
-      data.use <- GetCellEmbeddings(object = object,
-                                    reduction.type = reduction.type,
-                                    dims.use = dims.use)
+  if (! is.null(x = distance.matrix)) {
+    data.use <- distance.matrix
+    force.recalc <- TRUE
+  } else if (is.null(x = dims.use)) {
+    genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+    data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
+  } else {
+    data.use <- GetCellEmbeddings(object = object,
+                                  reduction.type = reduction.type,
+                                  dims.use = dims.use)
+  }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
+  parameters.to.store$object <- NULL
+  parameters.to.store$distance.matrix <- NULL
+  parameters.to.store$print.output <- NULL
+  if (CalcInfoExists(object, "BuildSNN") && ! force.recalc){
+    old.parameters <- GetAllCalcParam(object, "BuildSNN")
+    old.parameters$time <- NULL
+    old.parameters$print.output <- NULL
+    if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
+      warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
+      return(object)
     }
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
-    parameters.to.store$object <- NULL
-    parameters.to.store$distance.matrix <- NULL
-    parameters.to.store$print.output <- NULL
-    if (CalcInfoExists(object, "BuildSNN") && ! force.recalc){
-      old.parameters <- GetAllCalcParam(object, "BuildSNN")
-      old.parameters$time <- NULL
-      old.parameters$print.output <- NULL
-      if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
-        warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
-        return(object)
-      }
-    }
-    object <- SetCalcParams(object = object,
-                            calculation = "BuildSNN",
-                            ... = parameters.to.store)
-    n.cells <- nrow(x = data.use)
-    if (n.cells < k.param) {
-      warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
-      k.param <- n.cells - 1
-    }
-    # find the k-nearest neighbors for each single cell
-    if (is.null(x = distance.matrix)) {
-      my.knn <- get.knn(
-        data <- as.matrix(x = data.use),
-        k = min(k.scale * k.param, n.cells - 1)
-      )
-      nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
-      nn.large <- my.knn$nn.index
-    } else {
-      if (print.output) {
-        cat("Building SNN based on a provided distance matrix\n", file = stderr())
-      }
-      n <- nrow(x = distance.matrix)
-      k.for.nn <- k.param * k.scale
-      knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
-      knd.mat <- knn.mat
-      for (i in 1:n){
-        knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
-        knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
-      }
-      nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
-      nn.ranked <- knn.mat[, 1:k.param]
-    }
+  }
+  object <- SetCalcParams(object = object,
+                          calculation = "BuildSNN",
+                          ... = parameters.to.store)
+  n.cells <- nrow(x = data.use)
+  if (n.cells < k.param) {
+    warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+    k.param <- n.cells - 1
+  }
+  # find the k-nearest neighbors for each single cell
+  if (is.null(x = distance.matrix)) {
     if (print.output) {
-      cat("Computing SNN\n", file = stderr())
+      cat("Computing nearest neighbor graph\n", file = stderr())
     }
-    if (save.SNN | is.null(filename)) {
-      object@snn <- ComputeSNN(nn_large = nn.large,
-                               nn_ranked = nn.ranked,
-                               prune = prune.SNN,
-                               display_progress = print.output)
-      rownames(object@snn) <- object@cell.names
-      colnames(object@snn) <- object@cell.names
-      if (!is.null(filename)) {
-        WriteEdgeFile(snn = object@snn, filename = filename, display_progress = print.output)
-      }
+    my.knn <- nn2(
+        data = data.use,
+        k = k.param,
+        searchtype = 'standard',
+        eps = nn.eps)
+    nn.ranked <- my.knn$nn.idx
+  } else {
+    if (print.output) {
+      cat("Building SNN based on a provided distance matrix\n", file = stderr())
+    }
+    n <- nrow(x = distance.matrix)
+    k.for.nn <- k.param
+    knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
+    knd.mat <- knn.mat
+    for (i in 1:n){
+      knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
+      knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
+    }
+    nn.ranked <- knn.mat[, 1:k.param]
+  }
+  if (print.output) {
+    cat("Computing SNN\n", file = stderr())
+  }
+  if (save.SNN | is.null(filename)) {
+    object@snn <- ComputeSNN(nn_ranked = nn.ranked,
+                             prune = prune.SNN)
+    rownames(object@snn) <- object@cell.names
+    colnames(object@snn) <- object@cell.names
+    if (!is.null(filename)) {
+      WriteEdgeFile(snn = object@snn, filename = filename, display_progress = print.output)
+    }
+  } else {
+    DirectSNNToFile(nn_ranked = nn.ranked, prune = prune.SNN,
+                    display_progress = print.output, filename = filename)
+  }
+  if (plot.SNN & save.SNN) {
+    if(!"tsne" %in% names(object@dr)) {
+      warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
-      DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
-                      display_progress = print.output, filename = filename)
-    }
-    if (plot.SNN & save.SNN) {
-      if(!"tsne" %in% names(object@dr)) {
+      if (nrow(object@dr$tsne@cell.embeddings) != length(x = object@cell.names)) {
         warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
       } else {
-        if (nrow(object@dr$tsne@cell.embeddings) != length(x = object@cell.names)) {
-          warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
-        } else {
-          net <- graph.adjacency(
-            adjmatrix = as.matrix(object@snn),
-            mode = "undirected",
-            weighted = TRUE,
-            diag = FALSE
-          )
-          plot.igraph(
-            x = net,
-            layout = as.matrix(x = object@dr$tsne@cell.embeddings),
-            edge.width = E(graph = net)$weight,
-            vertex.label = NA,
-            vertex.size = 0
-          )
-        }
+        net <- graph.adjacency(
+          adjmatrix = as.matrix(object@snn),
+          mode = "undirected",
+          weighted = TRUE,
+          diag = FALSE
+        )
+        plot.igraph(
+          x = net,
+          layout = as.matrix(x = object@dr$tsne@cell.embeddings),
+          edge.width = E(graph = net)$weight,
+          vertex.label = NA,
+          vertex.size = 0
+        )
       }
     }
-    return(object)
   }
+  return(object)
+}
 )
 
 
@@ -135,7 +135,7 @@ setMethod(
     normalized.data = 'layers/norm_data',
     genes.use = NULL,
     gene.names = 'gene_names',
-    reduction.type = "pca",
+    reduction.data = "row_attrs/pca_cell_embeddings",
     dims.use = NULL,
     k.param = 10,
     k.scale = 10,
@@ -150,11 +150,7 @@ setMethod(
       genes.use <- SetIfNull(x = genes.use, default = which(object[['row_attrs/var_genes']][]))
       data.use <- object[[normalized.data]][, genes.use]
     } else {
-      if(reduction.type != "pca") {
-        stop("Only PCA supported right now")
-      }
-      data.use <- as.matrix(object$get.attribute.df(attribute.layer = "col",
-                                                    attribute.names = paste0("PC", dims.use)))
+      data.use <- as.matrix(object[[reductiond.data]])
     }
     # needs code for storing calculation parameters
     n.cells <- nrow(x = data.use)
@@ -164,25 +160,27 @@ setMethod(
     }
     # find the k-nearest neighbors for each single cell
     if (is.null(x = distance.matrix)) {
-      my.knn <- get.knn(
-        data <- as.matrix(x = data.use),
-        k = min(k.scale * k.param, n.cells - 1)
-      )
-      nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param-1)])
-      nn.large <- my.knn$nn.index
+      if (print.output) {
+        cat("Computing nearest neighbor graph\n", file = stderr())
+      }
+      my.knn <- nn2(
+          data = data.use,
+          k = k.param,
+          searchtype = 'standard',
+          eps = nn.eps)
+      nn.ranked <- my.knn$nn.idx
     } else {
       if (print.output) {
         cat("Building SNN based on a provided distance matrix\n", file = stderr())
       }
       n <- nrow(x = distance.matrix)
-      k.for.nn <- k.param * k.scale
+      k.for.nn <- k.param
       knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
       knd.mat <- knn.mat
       for (i in 1:n){
         knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
         knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
       }
-      nn.large <- knn.mat[, 2:(min(n, k.for.nn))]
       nn.ranked <- knn.mat[, 1:k.param]
     }
     if (print.output) {
@@ -190,7 +188,7 @@ setMethod(
     }
     # needs option to store SNN matrix in loom object - should be supported in
     # loom2, for now just write out edge file
-    DirectSNNToFile(nn_large = nn.large, nn_ranked = nn.ranked, prune = prune.SNN,
+    DirectSNNToFile(nn_ranked = nn.ranked, prune = prune.SNN,
                     display_progress = print.output, filename = filename)
     object$flush()
     gc(verbose = FALSE)

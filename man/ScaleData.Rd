@@ -12,7 +12,7 @@ ScaleData(object, ...)
   vars.to.regress, model.use = "linear", use.umi = FALSE, do.scale = TRUE,
   do.center = TRUE, scale.max = 10, block.size = 1000,
   min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
-  do.cpp = TRUE, check.for.norm = TRUE)
+  do.cpp = TRUE, check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
 
 \method{ScaleData}{loom}(object, genes.use = "row_attrs/var_genes",
   name = "scale_data", do.scale = TRUE, do.center = TRUE,
@@ -63,6 +63,11 @@ differences in numerical precision which could affect downstream calculations.}
 
 \item{check.for.norm}{Check to see if data has been normalized, if not,
 output a warning (TRUE by default)}
+
+\item{do.par}{use parallel processing for regressing out variables faster.
+If set to TRUE, will use half of the machines available cores (FALSE by default)}
+
+\item{num.cores}{If do.par = TRUE, specify the number of cores to use.}
 
 \item{name}{to store dataset as, defaults to 'scale_data'}
 

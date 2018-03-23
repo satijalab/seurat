@@ -13,28 +13,27 @@ using namespace Rcpp;
 
 typedef Eigen::Triplet<double> T;
 //[[Rcpp::export]]
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked,
-                                       double prune, bool display_progress) {
-  Progress p(nn_large.rows(), display_progress);
+Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune) {
   std::vector<T> tripletList;
-  tripletList.reserve(nn_large.rows() * nn_large.cols()/2);
-  for(int i=0; i<nn_large.rows(); ++i){
-    p.increment();
-    for(int j=0; j<nn_large.cols(); ++j){
-      std::vector<int> cell1 = ToVector(nn_ranked.row(i));
-      std::vector<int> cell2 = ToVector(nn_ranked.row(nn_large(i, j) - 1));
-      int s = IntersectLength(cell1, cell2);
-      int u = UnionLength(cell1, cell2, s);
-      double e = double(s) / u;
-      if(e > prune){
-        tripletList.push_back(T(i, nn_large(i, j) - 1, e));
-        tripletList.push_back(T(nn_large(i, j) - 1, i, e));
+  int k = nn_ranked.cols();
+  tripletList.reserve(nn_ranked.rows() * nn_ranked.cols());
+  for(int j=0; j<nn_ranked.cols(); ++j){
+    for(int i=0; i<nn_ranked.rows(); ++i) {
+      tripletList.push_back(T(i, nn_ranked(i, j) - 1, 1));
+    }
+  }
+  Eigen::SparseMatrix<double> SNN(nn_ranked.rows(), nn_ranked.rows());
+  SNN.setFromTriplets(tripletList.begin(), tripletList.end());
+  SNN = SNN * (SNN.transpose());
+  for (int i=0; i < SNN.outerSize(); ++i){
+    for (Eigen::SparseMatrix<double>::InnerIterator it(SNN, i); it; ++it){
+      it.valueRef() = it.value()/(k + (k - it.value()));
+      if(it.value() < prune){
+        it.valueRef() = 0;
       }
     }
-    tripletList.push_back(T(i, i, 1));
   }
-  Eigen::SparseMatrix<double> SNN(nn_large.rows(), nn_large.rows());
-  SNN.setFromTriplets(tripletList.begin(), tripletList.end(), [] (const double&, const double &b) { return b; });
+  SNN.prune(0.0); // actually remove pruned values
   return SNN;
 }
 
@@ -61,9 +60,10 @@ void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool displa
 
 // Wrapper function so that we don't have to go back into R before writing to file
 //[[Rcpp::export]]
-Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked,
-                                         double prune, bool display_progress, String filename) {
-  Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_large, nn_ranked, prune, display_progress);
+Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked,
+                                            double prune, bool display_progress,
+                                            String filename) {
+  Eigen::SparseMatrix<double> SNN = ComputeSNN(nn_ranked, prune);
   WriteEdgeFile(SNN, filename, display_progress);
   return SNN;
 }

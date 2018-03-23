@@ -635,13 +635,10 @@ PrintSNNParams <- function(object, raw = FALSE){
                                      calculation = "BuildSNN",
                                      parameter = "genes.use"))
     }
-    cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
+    cat(paste0("Reduction used          k.param          prune.SNN\n"))
     k.param <- GetCalcParam(object = object,
                             calculation = "BuildSNN",
                             parameter = "k.param")
-    k.scale <- GetCalcParam(object = object,
-                            calculation = "BuildSNN",
-                            parameter = "k.scale")
     prune.SNN <- GetCalcParam(object = object,
                               calculation = "BuildSNN",
                               parameter = "prune.SNN")
@@ -650,8 +647,6 @@ PrintSNNParams <- function(object, raw = FALSE){
                FillWhiteSpace(n = 20 - nchar(reduction)),
                k.param,
                FillWhiteSpace(n = 18 - nchar(k.param)),
-               k.scale,
-               FillWhiteSpace(n = 16 - nchar(k.scale)),
                round(prune.SNN, 4),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
@@ -762,13 +757,10 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
                                      calculation = "BuildSNN",
                                      parameter = "genes.use"))
       }
-      cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
+      cat(paste0("Reduction used          k.param          prune.SNN\n"))
       k.param <- GetCalcParam(object = object,
                               calculation = "BuildSNN",
                               parameter = "k.param")
-      k.scale <- GetCalcParam(object = object,
-                              calculation = "BuildSNN",
-                              parameter = "k.scale")
       prune.SNN <- GetCalcParam(object = object,
                                 calculation = "BuildSNN",
                                 parameter = "prune.SNN")
@@ -777,8 +769,6 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
                  FillWhiteSpace(n = 20 - nchar(reduction)),
                  k.param,
                  FillWhiteSpace(n = 18 - nchar(k.param)),
-                 k.scale,
-                 FillWhiteSpace(n = 16 - nchar(k.scale)),
                  round(prune.SNN, 4),
                  "\n"))
       cat("-----------------------------------------------------------------------------\n")

@@ -12,11 +12,11 @@ ProjectSeurat(object, ...)
   cluster.label = "res.0.8", tsne.proj.k = 11, class.k = 11,
   return.type = "seurat", filename, display.progress = TRUE, ...)
 
-\method{ProjectSeurat}{loom}(object, template,
+\method{ProjectSeurat}{loom}(object, template, do.norm.and.scale = TRUE,
   gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
   norm.data = "layers/norm_data", scale.data = "layers/scale_data",
   chunk.size = 1000, overwrite = FALSE, tsne.k = 31,
-  tsne.rbf.gamma = 20, cluster.k = 1, cluster.res = "res.0.8",
+  tsne.rbf.gamma = 100, cluster.k = 11, cluster.res = "res.0.8",
   display.progress = TRUE, ...)
 }
 \arguments{

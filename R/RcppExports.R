@@ -57,15 +57,15 @@ UpdateCov <- function(batch_mat, cov_mat, c1, n1, m1) {
     .Call('_Seurat_UpdateCov', PACKAGE = 'Seurat', batch_mat, cov_mat, c1, n1, m1)
 }
 
-ComputeSNN <- function(nn_large, nn_ranked, prune, display_progress) {
-    .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_large, nn_ranked, prune, display_progress)
+ComputeSNN <- function(nn_ranked, prune) {
+    .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
 }
 
 WriteEdgeFile <- function(snn, filename, display_progress) {
     invisible(.Call('_Seurat_WriteEdgeFile', PACKAGE = 'Seurat', snn, filename, display_progress))
 }
 
-DirectSNNToFile <- function(nn_large, nn_ranked, prune, display_progress, filename) {
-    .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_large, nn_ranked, prune, display_progress, filename)
+DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
+    .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
 }
 

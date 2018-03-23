@@ -150,7 +150,7 @@ context("Clustering Functions")
 test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn) == 0)
 
-  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, save.SNN = T)
   expect_true(length(nbt.test@snn) > 1)
   expect_equal(nbt.test@snn[2,9], 1/3)
 

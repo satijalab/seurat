@@ -10,15 +10,16 @@
 BuildSNN(object, ...)
 
 \S4method{BuildSNN}{seurat}(object, genes.use = NULL,
-  reduction.type = "pca", dims.use = NULL, k.param = 10, k.scale = 10,
+  reduction.type = "pca", dims.use = NULL, k.param = 10,
   plot.SNN = FALSE, prune.SNN = 1/15, print.output = TRUE,
   distance.matrix = NULL, force.recalc = FALSE, filename = NULL,
-  save.SNN = TRUE)
+  save.SNN = TRUE, nn.eps = 0)
 
 \S4method{BuildSNN}{loom}(object, normalized.data = "layers/norm_data",
-  genes.use = NULL, gene.names = "gene_names", reduction.type = "pca",
-  dims.use = NULL, k.param = 10, k.scale = 10, prune.SNN = 1/15,
-  print.output = TRUE, distance.matrix = NULL, filename = NULL)
+  genes.use = NULL, gene.names = "gene_names",
+  reduction.data = "row_attrs/pca_cell_embeddings", dims.use = NULL,
+  k.param = 10, k.scale = 10, prune.SNN = 1/15, print.output = TRUE,
+  distance.matrix = NULL, filename = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -34,8 +35,6 @@ construction of SNN graph. (e.g. "pca", "ica")}
 graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
-
-\item{k.scale}{Granularity option for k.param}
 
 \item{plot.SNN}{Plot the SNN graph}
 
@@ -55,6 +54,8 @@ prune everything).}
 
 \item{save.SNN}{Default behavior is to store the SNN in object@snn. Setting to FALSE can be used
 together with a provided filename to only write the SNN out as an edge file to disk.}
+
+\item{k.scale}{Granularity option for k.param}
 }
 \value{
 Returns the object with object@snn filled
