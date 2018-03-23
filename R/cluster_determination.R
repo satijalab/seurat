@@ -73,98 +73,284 @@ setMethod(
         nn.eps = nn.eps
       )
     }
-    for (r in resolution) {
-      parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
-      parameters.to.store$resolution <- r
-      if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
-        parameters.to.store$object <- NULL
-        parameters.to.store$print.output <- NULL
-        old.parameters <- GetAllCalcParam(object = object,
-                                          calculation = paste0("FindClusters.res.", r))
-        old.parameters$time <- NULL
-        old.parameters$print.output <- NULL
-        if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
-          warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
-          object <- SetAllIdent(object, paste0("res.", r))
-          next
-        }
-      }
-      object <- SetCalcParams(object = object,
-                                   calculation = paste0("FindClusters.res.", r),
-                                   ... = parameters.to.store)
-      ids <- RunModularityClustering(
-        SNN = object@snn,
-        modularity = modularity.fxn,
-        resolution = r,
-        algorithm = algorithm,
-        n.start = n.start,
-        n.iter = n.iter,
-        random.seed = random.seed,
-        print.output = print.output,
-        temp.file.location = temp.file.location,
-        edge.file.name = edge.file.name
-      )
-      object <- SetIdent(
+  } else {
+    # if any SNN building parameters are provided or it hasn't been built, build
+    # a new SNN
+    if (!is.null(distance.matrix)) {
+      force.recalc <- TRUE
+    }
+    object <- BuildSNN(
+      object = object,
+      genes.use = genes.use,
+      reduction.type = reduction.type,
+      dims.use = dims.use,
+      k.param = k.param,
+      k.scale = k.scale,
+      plot.SNN = plot.SNN,
+      prune.SNN = prune.SNN,
+      print.output = print.output,
+      distance.matrix = distance.matrix,
+      force.recalc = force.recalc,
+      filename = edge.file.name,
+      save.SNN = save.SNN
+    )
+  }
+  for (r in resolution) {
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    parameters.to.store$resolution <- r
+    if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE) {
+      parameters.to.store$object <- NULL
+      parameters.to.store$print.output <- NULL
+      old.parameters <- GetAllCalcParam(
         object = object,
-        cells.use = object@cell.names,
-        ident.use = ids
+        calculation = paste0("FindClusters.res.", r)
       )
-      object <- GroupSingletons(object = object, SNN = object@snn)
-      name <- paste0("res.", r)
-      object <- StashIdent(object = object, save.name = name)
+      old.parameters$time <- NULL
+      old.parameters$print.output <- NULL
+      if (all(all.equal(old.parameters, parameters.to.store) == TRUE)) {
+        warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+        object <- SetAllIdent(object, paste0("res.", r))
+        next
+      }
     }
-    if (!save.SNN) {
-      object@snn <- sparseMatrix(1, 1, x = 1)
-      object <- RemoveCalcParams(object = object,
-                                 calculation = "BuildSNN")
-    }
-    return(object)
+    object <- SetCalcParams(
+      object = object,
+      calculation = paste0("FindClusters.res.", r),
+      ... = parameters.to.store
+    )
+    ids <- RunModularityClustering(
+      SNN = object@snn,
+      modularity = modularity.fxn,
+      resolution = r,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = print.output,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
+    )
+    object <- SetIdent(
+      object = object,
+      cells.use = object@cell.names,
+      ident.use = ids
+    )
+    object <- GroupSingletons(object = object, SNN = object@snn)
+    name <- paste0("res.", r)
+    object <- StashIdent(object = object, save.name = name)
   }
-)
+  if (!save.SNN) {
+    object@snn <- sparseMatrix(1, 1, x = 1)
+    object <- RemoveCalcParams(
+      object = object,
+      calculation = "BuildSNN"
+    )
+  }
+  return(object)
+}
 
-setMethod(
-  f = 'FindClusters',
-  signature = c('object' = 'loom'),
-  definition = function(
-    object,
-    print.output = TRUE,
-    force.recalc = FALSE,
-    modularity.fxn = 1,
-    resolution = 0.8,
-    algorithm = 1,
-    n.start = 100,
-    n.iter = 10,
-    random.seed = 0,
-    temp.file.location = NULL,
-    edge.file.name = NULL
-  ) {
-    # Once we have SNNs stored in loom, put back in those options here
-    if(!file.exists(edge.file.name) | is.null(edge.file.name)) {
-      stop("Edge file doesn't exist.")
-    }
-    for (r in resolution) {
-      ids <- RunModularityClustering(
-        modularity = modularity.fxn,
-        resolution = r,
-        algorithm = algorithm,
-        n.start = n.start,
-        n.iter = n.iter,
-        random.seed = random.seed,
-        print.output = print.output,
-        temp.file.location = temp.file.location,
-        edge.file.name = edge.file.name
-      )
-      ids <- list(ids)
-      names(ids) <- paste0("res.", resolution)
-      object$add.col.attribute(attribute = ids, overwrite = TRUE)
-      # Still need to be able to merge singletons with closest cluster
-      #object <- GroupSingletons(object = object, SNN = object@snn)
-    }
-    object$flush()
-    gc(verbose = FALSE)
-    invisible(x = object)
+# setMethod(
+#   f = 'FindClusters',
+#   signature = c('object' = 'seurat'),
+#   definition = function(
+#     object,
+#     genes.use = NULL,
+#     reduction.type = "pca",
+#     dims.use = NULL,
+#     k.param = 30,
+#     k.scale = 25,
+#     plot.SNN = FALSE,
+#     prune.SNN = 1/15,
+#     print.output = TRUE,
+#     distance.matrix = NULL,
+#     save.SNN = FALSE,
+#     reuse.SNN = FALSE,
+#     force.recalc = FALSE,
+#     modularity.fxn = 1,
+#     resolution = 0.8,
+#     algorithm = 1,
+#     n.start = 100,
+#     n.iter = 10,
+#     random.seed = 0,
+#     temp.file.location = NULL,
+#     edge.file.name = NULL
+#   ) {
+#     snn.built <- FALSE
+#     if (.hasSlot(object = object, name = "snn")) {
+#       if (length(x = object@snn) > 1) {
+#         snn.built <- TRUE
+#         save.SNN <- TRUE
+#       }
+#     }
+#     if ((
+#       missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
+#       missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
+#       && snn.built) || reuse.SNN) {
+#       save.SNN <- TRUE
+#       if (reuse.SNN && !snn.built) {
+#         stop("No SNN stored to reuse.")
+#       }
+#       if (reuse.SNN && (
+#         ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
+#         || ! missing(x = k.scale) || ! missing(x = prune.SNN)
+#       )) {
+#         warning("SNN was not be rebuilt with new parameters. Continued with stored
+#                  SNN. To suppress this warning, remove all SNN building parameters.")
+#       }
+#     } else {
+#       # if any SNN building parameters are provided or it hasn't been built, build
+#       # a new SNN
+#       if(!is.null(distance.matrix)) {
+#         force.recalc <- TRUE
+#       }
+#       object <- BuildSNN(
+#         object = object,
+#         genes.use = genes.use,
+#         reduction.type = reduction.type,
+#         dims.use = dims.use,
+#         k.param = k.param,
+#         k.scale = k.scale,
+#         plot.SNN = plot.SNN,
+#         prune.SNN = prune.SNN,
+#         print.output = print.output,
+#         distance.matrix = distance.matrix,
+#         force.recalc = force.recalc,
+#         filename = edge.file.name,
+#         save.SNN = save.SNN
+#       )
+#     }
+#     for (r in resolution) {
+#       parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+#       parameters.to.store$resolution <- r
+#       if (CalcInfoExists(object, paste0("FindClusters.res.", r)) & force.recalc != TRUE){
+#         parameters.to.store$object <- NULL
+#         parameters.to.store$print.output <- NULL
+#         old.parameters <- GetAllCalcParam(object = object,
+#                                           calculation = paste0("FindClusters.res.", r))
+#         old.parameters$time <- NULL
+#         old.parameters$print.output <- NULL
+#         if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
+#           warning(paste0("Clustering parameters for resolution ", r, " exactly match those of already computed. \n  To force recalculation, set force.recalc to TRUE."))
+#           object <- SetAllIdent(object, paste0("res.", r))
+#           next
+#         }
+#       }
+#       object <- SetCalcParams(object = object,
+#                                    calculation = paste0("FindClusters.res.", r),
+#                                    ... = parameters.to.store)
+#       ids <- RunModularityClustering(
+#         SNN = object@snn,
+#         modularity = modularity.fxn,
+#         resolution = r,
+#         algorithm = algorithm,
+#         n.start = n.start,
+#         n.iter = n.iter,
+#         random.seed = random.seed,
+#         print.output = print.output,
+#         temp.file.location = temp.file.location,
+#         edge.file.name = edge.file.name
+#       )
+#       object <- SetIdent(
+#         object = object,
+#         cells.use = object@cell.names,
+#         ident.use = ids
+#       )
+#       object <- GroupSingletons(object = object, SNN = object@snn)
+#       name <- paste0("res.", r)
+#       object <- StashIdent(object = object, save.name = name)
+#     }
+#     if (!save.SNN) {
+#       object@snn <- sparseMatrix(1, 1, x = 1)
+#       object <- RemoveCalcParams(object = object,
+#                                  calculation = "BuildSNN")
+#     }
+#     return(object)
+#   }
+# )
+
+FindClusters.loom <- function(
+  object,
+  print.output = TRUE,
+  force.recalc = FALSE,
+  modularity.fxn = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 100,
+  n.iter = 10,
+  random.seed = 0,
+  temp.file.location = NULL,
+  edge.file.name = NULL
+) {
+  # Once we have SNNs stored in loom, put back in those options here
+  if (!file.exists(edge.file.name) | is.null(edge.file.name)) {
+    stop("Edge file doesn't exist.")
   }
-)
+  for (r in resolution) {
+    ids <- RunModularityClustering(
+      modularity = modularity.fxn,
+      resolution = r,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = print.output,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
+    )
+    ids <- list(ids)
+    names(ids) <- paste0("res.", resolution)
+    object$add.col.attribute(attribute = ids, overwrite = TRUE)
+    # Still need to be able to merge singletons with closest cluster
+    #object <- GroupSingletons(object = object, SNN = object@snn)
+  }
+  object$flush()
+  gc(verbose = FALSE)
+  invisible(x = object)
+}
+
+# setMethod(
+#   f = 'FindClusters',
+#   signature = c('object' = 'loom'),
+#   definition = function(
+#     object,
+#     print.output = TRUE,
+#     force.recalc = FALSE,
+#     modularity.fxn = 1,
+#     resolution = 0.8,
+#     algorithm = 1,
+#     n.start = 100,
+#     n.iter = 10,
+#     random.seed = 0,
+#     temp.file.location = NULL,
+#     edge.file.name = NULL
+#   ) {
+#     # Once we have SNNs stored in loom, put back in those options here
+#     if (!file.exists(edge.file.name) | is.null(edge.file.name)) {
+#       stop("Edge file doesn't exist.")
+#     }
+#     for (r in resolution) {
+#       ids <- RunModularityClustering(
+#         modularity = modularity.fxn,
+#         resolution = r,
+#         algorithm = algorithm,
+#         n.start = n.start,
+#         n.iter = n.iter,
+#         random.seed = random.seed,
+#         print.output = print.output,
+#         temp.file.location = temp.file.location,
+#         edge.file.name = edge.file.name
+#       )
+#       ids <- list(ids)
+#       names(ids) <- paste0("res.", resolution)
+#       object$add.col.attribute(attribute = ids, overwrite = TRUE)
+#       # Still need to be able to merge singletons with closest cluster
+#       #object <- GroupSingletons(object = object, SNN = object@snn)
+#     }
+#     object$flush()
+#     gc(verbose = FALSE)
+#     invisible(x = object)
+#   }
+# )
 
 #' Get Cluster Assignments
 #'

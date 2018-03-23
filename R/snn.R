@@ -1,10 +1,10 @@
 #' @include seurat.R
 #' @include snn_generics.R
-#' @importFrom methods setMethod
 NULL
 
-#' @rdname BuildSNN
-#' @exportMethod BuildSNN
+#' @describeIn BuildSNN ...
+#' @export BuildSNN.seurat
+#' @method BuildSNN seurat
 #'
 setMethod(
   f = 'BuildSNN',
@@ -124,8 +124,9 @@ setMethod(
 )
 
 
-#' @rdname BuildSNN
-#' @exportMethod BuildSNN
+#' @describeIn BuildSNN ...
+#' @export BuildSNN.loom
+#' @method BuildSNN loom
 #'
 setMethod(
   f = 'BuildSNN',
@@ -183,8 +184,28 @@ setMethod(
       }
       nn.ranked <- knn.mat[, 1:k.param]
     }
+    data.use <- as.matrix(x = object$get.attribute.df(
+      attribute.layer = "col",
+      attribute.names = paste0("PC", dims.use)
+    ))
+  }
+  # needs code for storing calculation parameters
+  n.cells <- nrow(x = data.use)
+  if (n.cells < k.param) {
+    warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+    k.param <- n.cells - 1
+  }
+  # find the k-nearest neighbors for each single cell
+  if (is.null(x = distance.matrix)) {
+    my.knn <- get.knn(
+      data = as.matrix(x = data.use),
+      k = min(k.scale * k.param, n.cells - 1)
+    )
+    nn.ranked <- cbind(1:n.cells, my.knn$nn.index[, 1:(k.param - 1)])
+    nn.large <- my.knn$nn.index
+  } else {
     if (print.output) {
-      cat("Computing SNN\n", file = stderr())
+      cat("Building SNN based on a provided distance matrix\n", file = stderr())
     }
     # needs option to store SNN matrix in loom object - should be supported in
     # loom2, for now just write out edge file
@@ -194,7 +215,19 @@ setMethod(
     gc(verbose = FALSE)
     invisible(x = object)
   }
-)
+  # needs option to store SNN matrix in loom object - should be supported in
+  # loom2, for now just write out edge file
+  DirectSNNToFile(
+    nn_large = nn.large,
+    nn_ranked = nn.ranked,
+    prune = prune.SNN,
+    display_progress = print.output,
+    filename = filename
+  )
+  object$flush()
+  gc(verbose = FALSE)
+  invisible(x = object)
+}
 
 # This function calculates the pairwise connectivity of clusters.
 

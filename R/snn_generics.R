@@ -1,5 +1,4 @@
 #' @include seurat.R
-#' @importFrom methods setGeneric
 NULL
 
 #' SNN Graph Construction
@@ -36,8 +35,11 @@ NULL
 #' @importFrom RANN nn2
 #' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
 #' @importFrom Matrix sparseMatrix
+#'
 #' @return Returns the object with object@@snn filled
-#' @export
+#'
+#' @rdname BuildSNN
+#' @export BuildSNN
 #'
 #' @examples
 #'
@@ -50,9 +52,6 @@ NULL
 #'
 #' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
 #'
-setGeneric(
-  name = 'BuildSNN',
-  def = function(object, ...) {
-    return(standardGeneric(f = 'BuildSNN'))
-  }
-)
+BuildSNN <- function(object, ...) {
+  UseMethod(generic = 'BuildSNN', object = object)
+}
