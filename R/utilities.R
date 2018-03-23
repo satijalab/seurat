@@ -935,15 +935,16 @@ BlockCov.loom <- function(
   if (is.null(x = rows.use)) {
     rows.use <- 1:object[[mat]]$dims[2]
   }
-  else if(length(rows.use) == 1) {
-    rows.use <- which(x = object[[rows.use]][])
-  } else {
-    if(!all(rows.use %in% object[[row.names]][])) {
-      stop(paste0("Rows: ", paste0(rows.use[which(!rows.use %in% lfile[[row.names]][])], collapse = ", "), " not found."))
+  if(class(rows.use) == "character") {
+    if(length(rows.use) == 1) {
+      rows.use <- which(x = object[[rows.use]][])
+    } else {
+      if(!all(rows.use %in% object[[row.names]][])) {
+        stop(paste0("Rows: ", paste0(rows.use[which(!rows.use %in% object[[row.names]][])], collapse = ", "), " not found."))
+      }
+      rows.use <- match(rows.use, object[[row.names]][])
     }
-    rows.use <- match(rows.use, object[[row.names]][])
   }
-
   batch1 <- object[[mat]][batch.indices[[1]], rows.use]
   c1 <- cov(x = batch1)
   m1 <- colMeans(x = batch1)

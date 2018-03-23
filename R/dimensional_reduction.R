@@ -153,30 +153,30 @@ RunPCA.loom <- function(
   display.progress = TRUE,
   ...
 ) {
-  if (online.pca) {
-    if (is.null(genes.use)) {
-      if (!is.null(ngene)) {
-        # Get variable genes
-        ngene <- min(ngene, object$shape[1])
-        if (display.progress) {
-          cat("Finding top", ngene, "variable genes\n", sep = ' ')
-        }
-        data.names <- object[[gene.names]][]
-        hvg.info <- data.frame(
-          means = object[[gene.means]][],
-          variance = object[[gene.variance]][],
-          row.names = make.unique(names = data.names)
-        )
-        hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
-        hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
-        hvg.use <- rownames(x = hvg.info)[1:ngene]
-        genes.use <- which(x = data.names %in% hvg.use)
-      } else {
-        genes.use <- which(x = object[[var.genes]][])
+  if (is.null(genes.use)) {
+    if (!is.null(ngene)) {
+      # Get variable genes
+      ngene <- min(ngene, object$shape[1])
+      if (display.progress) {
+        cat("Finding top", ngene, "variable genes\n", sep = ' ')
       }
+      data.names <- object[[gene.names]][]
+      hvg.info <- data.frame(
+        means = object[[gene.means]][],
+        variance = object[[gene.variance]][],
+        row.names = make.unique(names = data.names)
+      )
+      hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
+      hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
+      hvg.use <- rownames(x = hvg.info)[1:ngene]
+      genes.use <- which(x = data.names %in% hvg.use)
     } else {
-      genes.use <- which(x = object[[gene.names]][] %in% genes.use)
+      genes.use <- which(x = object[[var.genes]][])
     }
+  } else {
+    genes.use <- which(x = object[[gene.names]][] %in% genes.use)
+  }
+  if (online.pca) {
     # Prepare PCA data
     cells.use <- object[[scale.data]]$dims[1]
     cells.initial <- min(cells.initial, cells.use)
