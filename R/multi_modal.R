@@ -101,9 +101,6 @@ GetAssayData.loom <- function(
   )
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
-  if (is.unsorted(genes.use)) {
-    stop('genes.use indices need to be sorted')
-  }
   data.return <- matrix(
     nrow = length(x = genes.use),
     ncol = length(x = cells.use)
