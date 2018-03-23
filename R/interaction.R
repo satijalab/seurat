@@ -1357,6 +1357,7 @@ ProjectSeurat.Matrix <- function(
 ProjectSeurat.loom <- function(
   object,
   template,
+  do.norm.and.scale = TRUE,
   gene.names = "row_attrs/gene_names",
   cell.names = "col_attrs/cell_names",
   norm.data = 'layers/norm_data',
@@ -1364,8 +1365,8 @@ ProjectSeurat.loom <- function(
   chunk.size = 1000,
   overwrite = FALSE,
   tsne.k = 31,
-  tsne.rbf.gamma = 20,
-  cluster.k = 1,
+  tsne.rbf.gamma = 100,
+  cluster.k = 11,
   cluster.res = 'res.0.8',
   display.progress = TRUE,
   ...
@@ -1383,52 +1384,54 @@ ProjectSeurat.loom <- function(
     message('cells common to both data sets    ', length(x = common.cells), " cells")
     message("=============================================")
   }
-  # log-norm input data
-  if (display.progress) {
-    message('Normalize data')
+  if (do.norm.and.scale) {
+    # log-norm input data
+    if (display.progress) {
+      message('Normalize data')
+    }
+    object <- NormalizeData(
+      object,
+      scale.factor = template@calc.params$NormalizeData$scale.factor,
+      overwrite = overwrite
+    )
+    # scale
+    if (display.progress) {
+      message('Scale data')
+    }
+    # get parameters from the seurat template
+    pars <- template@calc.params$ScaleData
+    #genes.use <- pars$genes.use #rownames(template@scale.data)
+    genes.use <- gene.names
+    if (pars$do.center) {
+      gene.mean <- apply(template@data[genes.use, ], 1, mean)
+    } else {
+      gene.mean <- rep(0, length(genes.use))
+    }
+    if (pars$do.scale) {
+      gene.sd <- apply(template@data[genes.use, ], 1, sd)
+    } else {
+      gene.sd <- rep(1, length(genes.use))
+    }
+    object$apply(
+      name = scale.data,
+      FUN = function(mat) {
+        chunk.scaled <- sweep(sweep(mat, 2, gene.mean, FUN = '-'), 2, gene.sd, FUN = '/')
+        chunk.scaled[chunk.scaled > pars$scale.max] <- pars$scale.max
+        return(chunk.scaled)
+      },
+      MARGIN = 2,
+      chunk.size = chunk.size,
+      dataset.use = norm.data,
+      overwrite = overwrite,
+      display.progress = display.progress
+    )
   }
-  object <- NormalizeData(
-    object,
-    scale.factor = template@calc.params$NormalizeData$scale.factor,
-    overwrite = overwrite
-  )
-  # scale
-  if (display.progress) {
-    message('Scale data')
-  }
-  # get parameters from the seurat template
-  pars <- template@calc.params$ScaleData
-  #genes.use <- pars$genes.use #rownames(template@scale.data)
-  genes.use <- gene.names
-  if (pars$do.center) {
-    gene.mean <- apply(template@data[genes.use, ], 1, mean)
-  } else {
-    gene.mean <- rep(0, length(genes.use))
-  }
-  if (pars$do.scale) {
-    gene.sd <- apply(template@data[genes.use, ], 1, sd)
-  } else {
-    gene.sd <- rep(1, length(genes.use))
-  }
-  object$apply(
-    name = scale.data,
-    FUN = function(mat) {
-      chunk.scaled <- sweep(sweep(mat, 2, gene.mean, FUN = '-'), 2, gene.sd, FUN = '/')
-      chunk.scaled[chunk.scaled > pars$scale.max] <- pars$scale.max
-      return(chunk.scaled)
-    },
-    MARGIN = 2,
-    chunk.size = chunk.size,
-    dataset.use = norm.data,
-    overwrite = overwrite,
-    display.progress = display.progress
-  )
   # apply PCA transformation saved in template
   if (display.progress) {
     message('Apply PCA transformation')
   }
   v <- template@dr[['pca']]@gene.loadings
-  pca.genes <- gene.names %in% rownames(x = v)
+  pca.genes <- gene.names %in% rownames(x = v)  # this looks wrong; todo: check this
   cell.embeddings <- object$map(
     FUN = function(mat) {
       return(mat[, pca.genes] %*% v)
@@ -1450,7 +1453,7 @@ ProjectSeurat.loom <- function(
   )
   # map all new cells onto tSNE space
   if (display.progress) {
-    message('Apply nearest neighbor tSNE mapping; tsne.k is ', tsne.k, '; rsne.rbf.gamma is ', tsne.rbf.gamma)
+    message('Apply nearest neighbor tSNE mapping; tsne.k is ', tsne.k, '; tsne.rbf.gamma is ', tsne.rbf.gamma)
   }
   dims.use <- template@calc.params$RunTSNE$dims.use
   knn.out <- get.knnx(
@@ -1475,7 +1478,7 @@ ProjectSeurat.loom <- function(
   colnames(x = tsne.proj) <- paste0("tSNE_", 1:ncol(tsne.proj))
   tsne.proj <- as.data.frame(x = tsne.proj)
   object$add.col.attribute(
-    attribute = list('tnse_projection' = tsne.proj),
+    attribute = list('tsne_projection' = tsne.proj),
     overwrite = overwrite
   )
   rm(knn.out, j, i, w, nn.mat)
@@ -1491,9 +1494,10 @@ ProjectSeurat.loom <- function(
     cl = template@meta.data[[cluster.res]],
     k = cluster.k,
     l = 0,
-    prob = FALSE,
+    prob = TRUE,
     use.all = TRUE
   )
+  knn.cluster.prob <- attr(x = knn.cluster, which = 'prob')
   knn.cluster <- factor(
     x = knn.cluster,
     ordered = TRUE,
@@ -1501,6 +1505,8 @@ ProjectSeurat.loom <- function(
   )
   clustering <- list(ident = knn.cluster)
   clustering[[cluster.res]] <- knn.cluster
+  clustering[[sprintf('%s.proj.prob', cluster.res)]] <- knn.cluster.prob
+  clustering[['in.proj.template']] <- cell.names %in% template@cell.names
   object$add.col.attribute(attribute = clustering, overwrite = overwrite)
   invisible(x = object)
 }
