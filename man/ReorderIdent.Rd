@@ -14,18 +14,23 @@ ReorderIdent(object, feature = "PC1", rev = FALSE, aggregate.fxn = mean,
 
 \item{rev}{Reverse ordering (default is FALSE)}
 
-\item{aggregate.fxn}{Function to evaluate each identity class based on (default is mean)}
+\item{aggregate.fxn}{Function to evaluate each identity class based on
+(default is mean)}
 
-\item{reorder.numeric}{Rename all identity classes to be increasing numbers starting from 1 (default is FALSE)}
+\item{reorder.numeric}{Rename all identity classes to be increasing numbers
+starting from 1 (default is FALSE)}
 
 \item{\dots}{additional arguemnts (i.e. use.imputed=TRUE)}
 }
 \value{
-A seurat object where the identity have been re-oredered based on the average.
+A seurat object where the identity have been re-oredered based on the
+average.
 }
 \description{
-Re-assigns the identity classes according to the average expression of a particular feature (i.e, gene expression, or PC score)
-Very useful after clustering, to re-order cells, for example, based on PC scores
+Re-assigns the identity classes according to the average expression of a
+particular feature (i.e, gene expression, or PC score)
+Very useful after clustering, to re-order cells, for example, based on PC
+scores
 }
 \examples{
 head(x = pbmc_small@ident)

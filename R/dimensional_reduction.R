@@ -219,8 +219,14 @@ RunICA <- function(
 #' @param genes.use If set, run the tSNE on this subset of genes
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param seed.use Random seed for the t-SNE
-#' @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
-#' faster, but is less flexible. TRUE by default.
+#' @param tsne.method Select the method to use to compute the tSNE. Available
+#' methods are:
+#' \itemize{
+#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
+#' \item{tsne: }{standard tsne - not recommended for large datasets}
+#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
+#' Kluger Lab code found here: https://github.com/ChristophH/FIt-SNE}
+#' }
 #' @param add.iter If an existing tSNE has already been computed, uses the
 #' current tSNE to seed the algorithm and then adds additional iterations on top
 #' of this
@@ -259,7 +265,7 @@ RunTSNE <- function(
   dims.use = 1:5,
   genes.use = NULL,
   seed.use = 1,
-  do.fast = TRUE,
+  tsne.method = "Rtsne",
   add.iter = 0,
   dim.embed = 2,
   distance.matrix = NULL,
@@ -283,20 +289,29 @@ RunTSNE <- function(
       genes.use = genes.use))
   }
   set.seed(seed = seed.use)
-  if (do.fast) {
+
+  if(tsne.method == "Rtsne"){
     if (is.null(x = distance.matrix)) {
-      data.tsne <- Rtsne(X = as.matrix(x = data.use), dims = dim.embed, ...)
+      data.tsne <- Rtsne(X = as.matrix(x = data.use),
+                         dims = dim.embed,
+                         pca = FALSE, ...)
     } else {
       data.tsne <- Rtsne(
         X = as.matrix(x = distance.matrix),
         dims = dim.embed,
-        is_distance=TRUE
+        is_distance = TRUE,
+        ...
       )
     }
     data.tsne <- data.tsne$Y
-  } else {
+  } else if (tsne.method == "FIt-SNE" & is.null(x = distance.matrix)) {
+    data.tsne <- fftRtsne(X = as.matrix(x = data.use), dims = dim.embed, rand_seed = seed.use, ...)
+  } else if (tsne.method == "tsne") {
     data.tsne <- tsne(X = data.use, k = dim.embed, ...)
+  } else {
+    stop ("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
   }
+
   if (add.iter > 0) {
     data.tsne <- tsne(
       X = data.use,

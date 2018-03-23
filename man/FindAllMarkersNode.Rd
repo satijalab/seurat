@@ -8,7 +8,8 @@ FindAllMarkersNode(object, node = NULL, genes.use = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = 0.05, print.bar = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, return.thresh = 0.01, do.print = FALSE,
-  random.seed = 1, min.cells = 3, assay.type = "RNA", ...)
+  random.seed = 1, min.cells.gene = 3, min.cells.group = 3,
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object. Must have object@cluster.tree slot filled. Use BuildClusterTree() if not.}
@@ -45,7 +46,10 @@ in either of the two populations. Meant to speed up the function by not testing 
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{min.cells}{Minimum number of cells expressing the gene in at least one of the two groups}
+\item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
+\item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{assay.type}{Type of assay to fetch data for (default is RNA)}
 

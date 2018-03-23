@@ -1,7 +1,6 @@
 # Runs the modularity optimizer java program (ModularityOptimizer.jar)
 #
 #
-# @param object               Seurat object
 # @param SNN SNN              matrix to use as input for the clustering
 #                             algorithms
 # @param modularity           Modularity function to use in clustering (1 =
@@ -17,13 +16,13 @@
 # @param random.seed          Seed of the random number generator
 # @param print.output         Whether or not to print output to the console
 # @param temp.file.location   Directory where intermediate files will be written.
+# @param edge.file.name       Path to edge file to use
 # @return                     Seurat object with identities set to the results
 #                             of the clustering procedure.
 #
 #' @importFrom utils read.table write.table
 #
 RunModularityClustering <- function(
-  object,
   SNN = matrix(),
   modularity = 1,
   resolution = 0.8,
@@ -32,7 +31,8 @@ RunModularityClustering <- function(
   n.iter = 10,
   random.seed = 0,
   print.output = TRUE,
-  temp.file.location = NULL
+  temp.file.location = NULL,
+  edge.file.name = NULL
 ) {
   seurat.dir <- system.file(package = "Seurat")
   ModularityJarFile <- paste0(seurat.dir, "/java/ModularityOptimizer.jar")
@@ -42,41 +42,29 @@ RunModularityClustering <- function(
     collapse = "/"
   )
   seurat.dir <- paste0(seurat.dir, "/")
-  diag(x = SNN) <- 0
-  if (is.object(x = SNN)) {
-    SNN <- as(object = SNN, Class = "dgTMatrix")
-    edge <- cbind(i = SNN@j, j = SNN@i, x = SNN@x)
-  } else {
-    swap <- which(x = SNN != 0, arr.ind = TRUE) - 1
-    temp <- swap[, 1]
-    swap[, 1] <- swap[, 2]
-    swap[, 2] <- temp
-    edge <- cbind(swap, SNN[which(x = SNN != 0, arr.ind = TRUE)])
-  }
-  rownames(x = edge) <- NULL
-  colnames(x = edge) <- NULL
-  edge <- edge[!duplicated(x = edge[, 1:2]), ]
-  temp.file.location <- SetIfNull(x = temp.file.location, default = tempfile())
   unique_ID <- sample(x = 10000:99999, size = 1)
-  edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
-  output_file <- paste0(temp.file.location, "_output_", unique_ID, ".txt")
-  while (file.exists(edge_file)) {
-    unique_ID <- sample(x = 10000:99999, size = 1)
+  temp.file.location <- SetIfNull(x = temp.file.location, default = tempfile())
+  if(is.null(edge.file.name)) {
     edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
-    output_file <- paste0(temp.file.location, "_output", unique_ID, ".txt")
+    while (file.exists(edge_file)) {
+      unique_ID <- sample(x = 10000:99999, size = 1)
+      edge_file <- paste0(temp.file.location, "_edge_", unique_ID, ".txt")
+    }
+    WriteEdgeFile(snn = SNN,
+                  filename = edge_file,
+                  display_progress = print.output)
+  } else {
+    if(!file.exists(edge.file.name)) {
+      stop("Edge file provided doesn't exist")
+    }
+    edge_file <- edge.file.name
   }
+  output_file <- paste0(temp.file.location, "_output_", unique_ID, ".txt")
   if (print.output) {
     print.output <- 1
   } else {
     print.output <- 0
   }
-  write.table(
-    x = edge,
-    file = edge_file,
-    sep = "\t",
-    row.names = FALSE,
-    col.names = FALSE
-  )
   if (modularity == 2 && resolution > 1) {
     stop("error: resolution<1 for alternative modularity")
   }
@@ -95,15 +83,11 @@ RunModularityClustering <- function(
   )
   system(command, wait = TRUE)
   ident.use <- read.table(file = output_file, header = FALSE, sep = "\t")[, 1]
-
-  object <- SetIdent(
-    object = object,
-    cells.use = object@cell.names,
-    ident.use = ident.use
-  )
-  file.remove(edge_file)
+  if(is.null(edge.file.name)){
+    file.remove(edge_file)
+  }
   file.remove(output_file)
-  return(object)
+  return(ident.use)
 }
 
 # Group single cells that make up their own cluster in with the cluster they are

@@ -6,8 +6,9 @@
 \usage{
 SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
   ident.remove = NULL, accept.low = -Inf, accept.high = Inf,
-  do.center = FALSE, do.scale = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1, do.clean = FALSE, subset.raw, ...)
+  accept.value = NULL, do.center = FALSE, do.scale = FALSE,
+  max.cells.per.ident = Inf, random.seed = 1, do.clean = FALSE,
+  subset.raw, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -22,17 +23,21 @@ using FetchData}
 
 \item{ident.use}{Create a cell subset based on the provided identity classes}
 
-\item{ident.remove}{Subtract out cells from these identity classes (used for filtration)}
+\item{ident.remove}{Subtract out cells from these identity classes (used for
+filtration)}
 
 \item{accept.low}{Low cutoff for the parameter (default is -Inf)}
 
 \item{accept.high}{High cutoff for the parameter (default is Inf)}
 
+\item{accept.value}{Returns cells with the subset name equal to this value}
+
 \item{do.center}{Recenter the new object@scale.data}
 
 \item{do.scale}{Rescale the new object@scale.data. FALSE by default}
 
-\item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+\item{max.cells.per.ident}{Can be used to downsample the data to a certain
+max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
 

@@ -2,6 +2,8 @@
 #include <progress.hpp>
 #include <cmath>
 #include <unordered_map>
+#include <fstream>
+#include <string>
 
 using namespace Rcpp;
 // [[Rcpp::depends(RcppEigen)]]
@@ -311,5 +313,18 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
   return(rowdisp);
 }
 
+int IntersectLength(std::vector<int> a, std::vector<int> b){
+  std::unordered_set<int> s(a.begin(), a.end());
+  int intersect = count_if(b.begin(), b.end(), [&](int k) {return s.find(k) != s.end();});
+  return(intersect);
+}
 
+// IMPORTANT: assumes that a and b are vectors with non-duplicated elements
+int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length) {
+  return(a.size() + b.size() - intersect_length);
+}
 
+std::vector<int> ToVector(Eigen::VectorXd v1){
+  std::vector<int> v2(v1.data(), v1.data() + v1.size());
+  return(v2);
+}

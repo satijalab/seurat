@@ -7,8 +7,9 @@
 FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
-  y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,
-  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
+  y.high.cutoff = Inf, num.bin = 20, binning.method = "equal_width",
+  do.recalc = TRUE, sort.results = TRUE, do.cpp = TRUE,
+  display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -34,6 +35,14 @@ take the standard deviation of all values/}
 
 \item{num.bin}{Total number of bins to use in the scaled analysis (default
 is 20)}
+
+\item{binning.method}{Specifies how the bins should be computed. Available methods are:
+\itemize{
+\item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+\item{equal_frequency:}{ each bin contains an equal number of genes (can increase
+statistical power to detect overdispersed genes at high expression values, at
+the cost of reduced resolution along the x-axis)}
+}}
 
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
 

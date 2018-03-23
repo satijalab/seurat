@@ -150,7 +150,7 @@ context("Clustering Functions")
 test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn) == 0)
 
-  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, save.SNN = T)
   expect_true(length(nbt.test@snn) > 1)
   expect_equal(nbt.test@snn[2,9], 1/3)
 
@@ -190,6 +190,18 @@ test_that("SubsetData works properly", {
   count <- length(WhichCells(nbt.test, 1))
   nbt.test.subset <- SubsetData(nbt.test, ident.use = 1)
   expect_equal(length(nbt.test.subset@ident), count)
+})
+
+
+test_that("SubsetByPredicate subsets properly", {
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "nGene", predicate = "2500 < nGene & nGene < 3000")@cell.names, "Hi_GW16_23")
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "PC1",   predicate = "-1.5 < PC1 & PC1 < -1.4"    )@cell.names, "Hi_GW21.2_3")
+  
+  nbt.test@dr <- list()
+  count <- length(WhichCells(nbt.test, 1))
+  nbt.test.subset <- SubsetByPredicate(nbt.test, "ident", "ident == '1'")
+  expect_equal(length(nbt.test.subset@ident), count)
+  
 })
 
 # Test CCA procedure
