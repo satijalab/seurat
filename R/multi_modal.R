@@ -86,6 +86,7 @@ GetAssayData.loom <- function(
     dataset.use <- slot
   } else {
     slot <- gsub(pattern = '_', replacement = '.', x = slot, fixed = TRUE)
+    slot <- ifelse(test = slot == 'norm.data', yes = 'data', no = slot)
     dataset.use <- switch(
       EXPR = tolower(x = slot),
       'raw.data' = 'matrix',

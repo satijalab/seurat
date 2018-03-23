@@ -40,6 +40,7 @@ GetDimReduction.loom <- function(
 ) {
   reduction.type <- tolower(x = reduction.type)
   slot <- tolower(x = slot)
+  slot <- gsub(pattern = '.', replacement = '_', x = slot, fixed = TRUE)
   # Swap this out when support for custom keys is added
   key <- switch(
     EXPR = reduction.type,
@@ -128,9 +129,9 @@ GetCellEmbeddings <- function(
     stop(paste0("Cell embeddings slot for ", reduction.type, " is empty."))
   }
   cells.use <- SetIfNull(x = cells.use, default = rownames(x = object.embed))
-  if (any(! cells.use %in% rownames(x = object.embed))) {
+  if (any(!cells.use %in% rownames(x = object.embed))) {
     missing.cells <- paste0(
-      cells.use[which(x = ! cells.use %in% rownames(x = object.embed))],
+      cells.use[which(x = !cells.use %in% rownames(x = object.embed))],
       collapse = ", "
     )
     warning(paste0("Could not find the following cell names: ", missing.cells))
@@ -139,7 +140,7 @@ GetCellEmbeddings <- function(
   dims.use <- SetIfNull(x = dims.use, default = 1:ncol(x = object.embed))
   if (any(!dims.use %in% 1:ncol(x = object.embed))) {
     missing.dims <- paste0(
-      dims.use[which(x = ! dims.use %in% 1:ncol(x = object.embed))],
+      dims.use[which(x = !dims.use %in% 1:ncol(x = object.embed))],
       collapse = ", "
     )
     stop(paste0("Could not find the following dimensions: ", missing.dims))
