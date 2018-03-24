@@ -1366,8 +1366,8 @@ ProjectSeurat.loom <- function(
   scale.data = 'layers/scale_data',
   chunk.size = 1000,
   overwrite = FALSE,
-  tsne.k = 31,
-  tsne.rbf.gamma = 100,
+  tsne.k = 11,
+  tsne.rbf.gamma = 50,
   cluster.k = 11,
   cluster.res = 'res.0.8',
   display.progress = TRUE,
@@ -1433,7 +1433,7 @@ ProjectSeurat.loom <- function(
     message('Apply PCA transformation')
   }
   v <- template@dr[['pca']]@gene.loadings
-  pca.genes <- gene.names %in% rownames(x = v)  # this looks wrong; todo: check this
+  pca.genes <- match(x = rownames(x = v), table = gene.names)
   cell.embeddings <- object$map(
     FUN = function(mat) {
       return(mat[, pca.genes] %*% v)
