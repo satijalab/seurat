@@ -71,10 +71,13 @@ NULL
 #'   save.SNN = TRUE
 #' )
 #' }
-setGeneric(
-  name = 'FindClusters',
-  def = function(object, ...) {
-    return(standardGeneric(f = 'FindClusters'))
-  }
-)
-
+#'
+FindClusters <- function(object, ...) {
+  UseMethod(generic = 'FindClusters', object = object)
+}
+# setGeneric(
+#   name = 'FindClusters',
+#   def = function(object, ...) {
+#     return(standardGeneric(f = 'FindClusters'))
+#   }
+# )

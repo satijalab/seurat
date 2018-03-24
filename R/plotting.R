@@ -1865,9 +1865,8 @@ DimHeatmap <- function(
   par(mfrow = c(num.row, min(length(x = dim.use), 3)))
   cells <- cells.use
   plots <- c()
-
   if (is.null(x = label.columns)) {
-    label.columns <- ! (length(x = dim.use) > 1)
+    label.columns <- !(length(x = dim.use) > 1)
   }
   for (ndim in dim.use) {
     if (is.numeric(x = (cells))) {
@@ -1901,7 +1900,7 @@ DimHeatmap <- function(
     )
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
     data.use <- NULL
-    if (! use.scale) {
+    if (!use.scale) {
       slot.use="data"
     } else {
       slot.use <- "scale.data"
@@ -1919,7 +1918,7 @@ DimHeatmap <- function(
       }
       data.use <- rbind(data.use, new.data)
     }
-    if(check.plot & any(dim(data.use) > 700) & (remove.key == FALSE & length(dim.use) == 1)) {
+    if (check.plot & any(dim(data.use) > 700) & (remove.key == FALSE & length(dim.use) == 1)) {
       choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
       if(choice == 1){
         check.plot = FALSE
@@ -1937,7 +1936,7 @@ DimHeatmap <- function(
     } else {
       hmFunction <- "heatmap.2(data.use,Rowv=NA,Colv=NA,trace = \"none\",col=col.use, dimTitle = hmTitle, "
     }
-    if (! label.columns) {
+    if (!label.columns) {
       hmFunction <- paste0(hmFunction, "labCol='', ")
     }
     hmFunction <- paste0(hmFunction, "...)")

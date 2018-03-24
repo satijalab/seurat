@@ -29,49 +29,49 @@ setMethod(
     temp.file.location = NULL,
     edge.file.name = NULL
   ) {
-  snn.built <- FALSE
-  if (.hasSlot(object = object, name = "snn")) {
-    if (length(x = object@snn) > 1) {
-      snn.built <- TRUE
+    snn.built <- FALSE
+    if (.hasSlot(object = object, name = "snn")) {
+      if (length(x = object@snn) > 1) {
+        snn.built <- TRUE
+        save.SNN <- TRUE
+      }
+    }
+    if ((
+      missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
+      missing(x = prune.SNN)  && missing(x = distance.matrix)
+      && snn.built) || reuse.SNN) {
       save.SNN <- TRUE
-    }
-  }
-  if ((
-    missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = prune.SNN)  && missing(x = distance.matrix)
-    && snn.built) || reuse.SNN) {
-    save.SNN <- TRUE
-    if (reuse.SNN && !snn.built) {
-      stop("No SNN stored to reuse.")
-    }
-    if (reuse.SNN && (
-      ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-      || ! missing(x = prune.SNN)
-    )) {
-      warning("SNN was not be rebuilt with new parameters. Continued with stored
-               SNN. To suppress this warning, remove all SNN building parameters.")
+      if (reuse.SNN && !snn.built) {
+        stop("No SNN stored to reuse.")
       }
-    } else {
-      # if any SNN building parameters are provided or it hasn't been built, build
-      # a new SNN
-      if(!is.null(distance.matrix)) {
-        force.recalc <- TRUE
+      if (reuse.SNN && (
+        ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
+        || ! missing(x = prune.SNN)
+      )) {
+        warning("SNN was not be rebuilt with new parameters. Continued with stored
+                SNN. To suppress this warning, remove all SNN building parameters.")
       }
-      object <- BuildSNN(
-        object = object,
-        genes.use = genes.use,
-        reduction.type = reduction.type,
-        dims.use = dims.use,
-        k.param = k.param,
-        plot.SNN = plot.SNN,
-        prune.SNN = prune.SNN,
-        print.output = print.output,
-        distance.matrix = distance.matrix,
-        force.recalc = force.recalc,
-        filename = edge.file.name,
-        save.SNN = save.SNN,
-        nn.eps = nn.eps
-      )
+      } else {
+        # if any SNN building parameters are provided or it hasn't been built, build
+        # a new SNN
+        if(!is.null(distance.matrix)) {
+          force.recalc <- TRUE
+        }
+        object <- BuildSNN(
+          object = object,
+          genes.use = genes.use,
+          reduction.type = reduction.type,
+          dims.use = dims.use,
+          k.param = k.param,
+          plot.SNN = plot.SNN,
+          prune.SNN = prune.SNN,
+          print.output = print.output,
+          distance.matrix = distance.matrix,
+          force.recalc = force.recalc,
+          filename = edge.file.name,
+          save.SNN = save.SNN,
+          nn.eps = nn.eps
+        )
     }
     for (r in resolution) {
       parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
@@ -90,8 +90,8 @@ setMethod(
         }
       }
       object <- SetCalcParams(object = object,
-                                   calculation = paste0("FindClusters.res.", r),
-                                   ... = parameters.to.store)
+                              calculation = paste0("FindClusters.res.", r),
+                              ... = parameters.to.store)
       ids <- RunModularityClustering(
         SNN = object@snn,
         modularity = modularity.fxn,
@@ -270,7 +270,7 @@ NumberClusters <- function(object) {
   clusters <- unique(x = object@ident)
   if(any(sapply(X = clusters,
                 FUN = function(x) { !grepl("\\D", x) }))
-     ) {
+  ) {
     n <- as.numeric(x = max(clusters)) + 1
     for (i in clusters) {
       object <- SetIdent(
