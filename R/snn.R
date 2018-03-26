@@ -155,7 +155,7 @@ BuildSNN.loom <- function(
     data.use <- distance.matrix
   } else if (is.null(x = dims.use)) {
     genes.use <- SetIfNull(x = genes.use, default = which(object[['row_attrs/var_genes']][]))
-    data.use <- GetAssayData.loom(object = object, genes.use = genes.use)
+    data.use <- t(GetAssayData.loom(object = object, genes.use = genes.use))
   } else {
     # data.use <- as.matrix(object[[reduction.data]])
     data.use <- GetDimReduction(
