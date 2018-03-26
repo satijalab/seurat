@@ -28,12 +28,9 @@ NULL
 #' pbmc_small
 #' pmbc_small <- NormalizeData(object = pbmc_small)
 #'
-setGeneric(
-  name = 'NormalizeData',
-  def = function(object, ...) {
-    return(standardGeneric(f = 'NormalizeData'))
-  }
-)
+NormalizeData <- function(object, ...) {
+  UseMethod(generic = 'NormalizeData', object = object)
+}
 
 #' Identify variable genes
 #'
@@ -92,12 +89,9 @@ setGeneric(
 #' pbmc_small <- FindVariableGenes(object = pbmc_small, do.plot = FALSE)
 #' pbmc_small@var.genes
 #'
-setGeneric(
-  name = 'FindVariableGenes',
-  def = function(object, ...) {
-    return(standardGeneric(f = 'FindVariableGenes'))
-  }
-)
+FindVariableGenes <- function(object, ...) {
+  UseMethod(generic = 'FindVariableGenes', object = object)
+}
 
 #' Scale and center the data.
 #'
