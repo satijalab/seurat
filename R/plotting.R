@@ -2351,7 +2351,6 @@ DimPlot <- function(
       dpi = png.arguments[3]
     )
     to_return <- AugmentPlot(plot1 = blank_plot, imgFile = png.file)
-    browser()
     file.remove(png.file)
     if (do.return) {
       return(to_return)
