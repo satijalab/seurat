@@ -1,3 +1,5 @@
+
+globalVariables(names = 'i', package = 'Seurat', add = TRUE)
 # Regress out technical effects and cell cycle
 #
 # Remove unwanted effects from scale.data

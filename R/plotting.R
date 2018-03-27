@@ -2339,10 +2339,10 @@ DimPlot <- function(
     png_call$no.legend <- TRUE
     png_call$do.return <- TRUE
     png_call$vector.friendly <- FALSE
+    png_call$plot.title <- NULL
     blank_plot <- eval(blank_call, sys.frame(sys.parent()))
     png_plot <- eval(png_call, sys.frame(sys.parent()))
-    png.file <- SetIfNull(png.file,"temp_png.png")
-   # browser()
+    png.file <- SetIfNull(x = png.file, default = paste0(tempfile(), ".png"))
     ggsave(
       filename = png.file,
       plot = png_plot,
@@ -2351,6 +2351,7 @@ DimPlot <- function(
       dpi = png.arguments[3]
     )
     to_return <- AugmentPlot(plot1 = blank_plot, imgFile = png.file)
+    file.remove(png.file)
     if (do.return) {
       return(to_return)
     } else {

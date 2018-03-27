@@ -17,7 +17,6 @@ NULL
 #' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
@@ -31,6 +30,8 @@ NULL
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
 #' @param force.recalc Force recalculation of SNN.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
@@ -43,7 +44,6 @@ NULL
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
 #' @param edge.file.name Edge file to use as input for modularity optimizer jar.
-#' @importFrom FNN get.knn
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix,
@@ -76,7 +76,6 @@ FindClusters <- function(
   reduction.type = "pca",
   dims.use = NULL,
   k.param = 30,
-  k.scale = 25,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
   print.output = TRUE,
@@ -84,6 +83,7 @@ FindClusters <- function(
   save.SNN = FALSE,
   reuse.SNN = FALSE,
   force.recalc = FALSE,
+  nn.eps = 0,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
@@ -102,7 +102,7 @@ FindClusters <- function(
   }
   if ((
     missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix)
+    missing(x = prune.SNN)  && missing(x = distance.matrix)
     && snn.built) || reuse.SNN) {
     save.SNN <- TRUE
     if (reuse.SNN && !snn.built) {
@@ -110,7 +110,7 @@ FindClusters <- function(
     }
     if (reuse.SNN && (
       ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-      || ! missing(x = k.scale) || ! missing(x = prune.SNN)
+      || ! missing(x = prune.SNN)
     )) {
       warning("SNN was not be rebuilt with new parameters. Continued with stored
                SNN. To suppress this warning, remove all SNN building parameters.")
@@ -127,14 +127,14 @@ FindClusters <- function(
       reduction.type = reduction.type,
       dims.use = dims.use,
       k.param = k.param,
-      k.scale = k.scale,
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
       print.output = print.output,
       distance.matrix = distance.matrix,
       force.recalc = force.recalc,
       filename = edge.file.name,
-      save.SNN = save.SNN
+      save.SNN = save.SNN,
+      nn.eps = nn.eps
     )
   }
   for (r in resolution) {

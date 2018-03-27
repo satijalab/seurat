@@ -13,9 +13,9 @@
 using namespace Rcpp;
 
 //----------------------------------------------------
-Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked, double prune, bool display_progress);
+Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked);
 void WriteEdgeFile(Eigen::SparseMatrix<double> snn, String filename, bool display_progress);
-Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_large, Eigen::MatrixXd nn_ranked, double prune, bool display_progress, String filename);
+Eigen::SparseMatrix<double> DirectSNNToFile(Eigen::MatrixXd nn_ranked, double prune, bool display_progress, String filename);
 //----------------------------------------------------
 
 #endif//SNN

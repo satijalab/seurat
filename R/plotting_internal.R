@@ -6,7 +6,7 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
-#' @importFrom graphics axis plot
+#' @importFrom graphics axis plot smoothScatter
 #
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
@@ -164,24 +164,28 @@ SingleFeaturePlot <- function(
   png.file=NULL,
   png.arguments=c(10,10,100)
 ) {
-  
+
   #first, consider vector friendly case
   if (vector.friendly) {
-    #browser()
-    previous_call <- blank_call <- png_call <-  match.call()
-    blank_call$pt.size <- -1;  blank_call$vector.friendly=F;
-    png_call$no.axes=T; png_call$no.legend=T;  png_call$vector.friendly=F; png_call$no.title=TRUE;
+    previous_call <- blank_call <- png_call <- match.call()
+    blank_call$pt.size <- -1
+    blank_call$vector.friendly <- FALSE
+    png_call$no.axes <- TRUE
+    png_call$no.legend <- TRUE
+    png_call$vector.friendly <- FALSE
+    png_call$no.title <- TRUE
     blank_plot <- eval(blank_call, sys.frame(sys.parent()))
     png_plot <- eval(png_call, sys.frame(sys.parent()))
-    png.file <- SetIfNull(png.file,"temp_png.png")
-    # browser()
-    ggsave(filename = png.file, plot = png_plot,width=png.arguments[1], height=png.arguments[2], dpi=png.arguments[3])
-    to_return=AugmentPlot(blank_plot,png.file)
+    png.file <- SetIfNull(x = png.file, default = paste0(tempfile(), ".png"))
+    ggsave(filename = png.file, plot = png_plot,
+           width = png.arguments[1],
+           height = png.arguments[2],
+           dpi = png.arguments[3])
+    to_return <- AugmentPlot(blank_plot, png.file)
+    file.remove(png.file)
     return(to_return)
   }
-  
-  
-  
+
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
@@ -537,6 +541,8 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
 #
+#' @importFrom stats quantile
+#
 # @return The numerical representation of the quantile
 #
 SetQuantile <- function(cutoff, data) {
@@ -664,7 +670,7 @@ SingleVlnPlot <- function(
       x = factor(x = ident),
       y = feature
     )
-  ) + 
+  ) +
     geom_violin(
       scale = "width",
       adjust = adjust.use,
@@ -878,7 +884,7 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
 #
 # @param palette A palette of colours in hexadecimal form
 # @param group An index matching the palette
-# This allows to give a name for the palette 
+# This allows to give a name for the palette
 #
 # @return A grob object for the gradient legend
 #

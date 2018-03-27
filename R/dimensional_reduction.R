@@ -289,15 +289,17 @@ RunTSNE <- function(
       genes.use = genes.use))
   }
   set.seed(seed = seed.use)
-  
+
   if(tsne.method == "Rtsne"){
     if (is.null(x = distance.matrix)) {
-      data.tsne <- Rtsne(X = as.matrix(x = data.use), dims = dim.embed, ...)
+      data.tsne <- Rtsne(X = as.matrix(x = data.use),
+                         dims = dim.embed,
+                         pca = FALSE, ...)
     } else {
       data.tsne <- Rtsne(
         X = as.matrix(x = distance.matrix),
         dims = dim.embed,
-        is_distance=TRUE,
+        is_distance = TRUE,
         ...
       )
     }
@@ -309,7 +311,7 @@ RunTSNE <- function(
   } else {
     stop ("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
   }
-  
+
   if (add.iter > 0) {
     data.tsne <- tsne(
       X = data.use,
