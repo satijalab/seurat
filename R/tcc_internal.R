@@ -6,6 +6,7 @@ tcc <- setClass(
   slots = list(
     tcc.raw = "dgCMatrix",
     tcc.norm = "dgCMatrix",
+    tx.raw = "dgCMatrix",
     ec.to.tid.map = "environment",
     tid.to.ec.map = "environment",
     gene.map = "matrix"
@@ -73,7 +74,7 @@ TCCMap <- function(object, from, from.type, to) {
   if(from.type == "GENE") {
     gene.names <- from
     transcript.ids <- as.character(which(object@tcc@gene.map[, 2] %in% gene.names) - 1)
-    transcript.names <- object@tcc@gene.map[transcript.ids, 1]
+    transcript.names <- object@tcc@gene.map[as.numeric(transcript.ids) + 1, 1]
     if(to == "TID") {
       return(unname(transcript.names))
     }
@@ -117,3 +118,25 @@ GeneToECMap <- function(object, gene, ambig = TRUE) {
   })
   return(names(which(num.mapped.genes == 1)))
 }
+
+# Mapping function from gene to transcript names.Option to only return
+# unambiguously mapping transcripts or not
+#
+# @param object      Seurat object
+# @param gene        Gene name
+# @param ambig       whether to return ambiguously mapping transcripts.
+#                    Default is TRUE
+#
+# @return returns a list of ECs that map to the gene
+#
+GeneToTIDMap <- function(object, gene, ambig = TRUE) {
+  tids <- TCCMap(object = object, from = gene, from.type = "GENE", to = "TID")
+  if(ambig) {
+    return(tids)
+  }
+  num.mapped.genes <- sapply(tids, FUN = function(x){
+    length(TCCMap(object = object, from = x, from.type = "TID", to = "GENE"))
+  })
+  return(names(which(num.mapped.genes == 1)))
+}
+

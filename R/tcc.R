@@ -1,7 +1,8 @@
 #' Add in raw TCC data to Seurat object
 #'
 #' @param object Seurat object
-#' @param raw.counts Path to TCC matrix
+#' @param tcc.counts Path to TCC matrix
+#' @param tx.counts Path to transcript counts file
 #' @param ec.map  Path to file mapping between equivalence classes and
 #' transcript IDs
 #' @param gene.map Path to file mapping transcript IDs to gene IDs
@@ -13,14 +14,16 @@
 #' @importFrom Matrix rowSums
 #' @export
 #'
-AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
-                   display.progress = TRUE){
+AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
+                   min.ec.filter = 0, display.progress = TRUE){
   if (display.progress) {
     cat("Reading files\n", file = stderr())
   }
-  tcc.mat <- read.table(file = raw.counts, sep = "\t", header = TRUE,
+  tcc.mat <- read.table(file = tcc.counts, sep = "\t", header = TRUE,
                         row.names = 1)
   tcc.mat <- as(as.matrix(tcc.mat), "dgCMatrix")
+  tx.mat <- readRDS(file = tx.counts)
+  tx.mat <- as(as.matrix(tx.mat$counts), "dgCMatrix")
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
                                  sep = "\t", row.names = 1))
   gene.map <- read.table(file = gene.map, stringsAsFactors = FALSE)
@@ -53,9 +56,11 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
   }
   tids.to.keep <- sort(as.numeric(ls(ht2)))
   gene.map <- as.matrix(gene.map[tids.to.keep, ])
+
   tcc <- new(
     Class = "tcc",
     tcc.raw = tcc.mat,
+    tx.raw = tx.mat,
     ec.to.tid.map = ht,
     tid.to.ec.map = ht2,
     gene.map = gene.map

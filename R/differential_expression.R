@@ -1380,65 +1380,59 @@ LRDETest <- function(
   min.cells = 3,
   genes.use = NULL,
   use.tcc = FALSE,
+  use.tids = FALSE,
+  transcript.threshold = 0.9,
   tccs.use = NULL,
   print.bar = TRUE,
   assay.type = "RNA",
+  ambig = FALSE,
   ...
 ) {
-  combine.ps <- FALSE
-  if (use.tcc) {
-    if(!is.null(genes.use)) {
-      tccs.use <- unique(unname(unlist(sapply(X = genes.use, FUN = function(x) {TCCMap(object = object,
-                                                              from = x,
-                                                              from.type = "GENE",
-                                                              to = "EC")}))))
-      data.test <- object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), ]
-      combine.ps <- TRUE
-    } else if (!is.null(tccs.use)) {
-      data.test <-  object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), ]
-    } else {
-      stop("If specifying use.tcc, also provide either tccs.use or genes.use.")
-    }
-    coldata <- data.frame(row.names = colnames(data.test))
-  } else {
-    data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
-    genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-    # check that the gene made it through the any filtering that was done
-    genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
-    coldata <- object@meta.data[c(cells.1, cells.2), ]
-    data.test <- data.test[genes.use, ]
-  }
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
-  coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- data.test[ , rownames(x = coldata)]
+
+  cells.use <- c(cells.1, cells.2)
   mysapply <- if (print.bar) {pbsapply} else {sapply}
-  p_val <- mysapply(
-    X = 1:nrow(x = countdata.test),
-    FUN = function(x) {
-      model1 <- glm(coldata$group ~ countdata.test[x,],family = "binomial")
-      model2 <- glm(coldata$group ~ 1, family = "binomial")
-      lrtest <- lrtest(model1, model2)
-      return(lrtest$Pr[2])
+  data.groups <- data.frame(group = c(rep("group1", length(cells.1)), rep("group2", length(cells.2))),
+                            row.names = cells.use)
+
+  if(use.tcc){
+    if(!is.null(genes.use)) {
+      p_val <- mysapply(
+        X = genes.use,
+        FUN = function(gene) {
+          tccs.use <- GeneToECMap(object = object, gene = gene, ambig = ambig)
+          data.test <- as.matrix(t(object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), cells.use]))
+          model1 <- glm(data.groups$group ~ data.test, family = "binomial")
+          model2 <- glm(data.groups$group ~ 1, family = "binomial")
+          lrtest <- lrtest(model1, model2)
+          return(lrtest$Pr[2])
+        }
+      )
     }
-  )
-
-  genes.return <- rownames(x = countdata.test)
-  to.return <- data.frame(p_val, row.names = genes.return)
-
-  if(combine.ps) {
-    combined.pvals <- sapply(X = genes.use, FUN = function(x) {
-      pvals <- to.return[TCCMap(object, from = x, from.type = "GENE", to = "EC"), ]
-      if(length(pvals) > 1){
-        return(sumlog(pvals)$p)
-      } else {
-        return(pvals)
-      }
-    })
-    to.return <- as.data.frame(combined.pvals, row.names = names(combined.pvals))
   }
-  return(to.return)
+
+  if(use.tids){
+    if(!is.null(genes.use)) {
+      p_val <- mysapply(
+        X = genes.use,
+        FUN = function(gene) {
+          tids.use <- GeneToTIDMap(object = object, gene = gene, ambig = ambig)
+          # assumes cells are in same order in tx.counts as in tcc.counts
+          cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
+          data.test <- as.matrix(t(object@tcc@tx.raw[match(tids.use, rownames(object@tcc@tx.raw)), cells.use]))
+          tids.keep <- names(which(apply(data.test, 2, function(x) sum(x == 0) <= transcript.threshold * length(cells.use))))
+          if(length(tids.keep) == 0) {
+            return(1)
+          }
+          data.test <- data.test[, tids.keep]
+          model1 <- glm(data.groups$group ~ data.test, family = "binomial")
+          model2 <- glm(data.groups$group ~ 1, family = "binomial")
+          lrtest <- lrtest(model1, model2)
+          return(lrtest$Pr[2])
+        }
+      )
+    }
+  }
+  return(p_val)
 }
 
 #' Differential expression testing using Tobit models

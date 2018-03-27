@@ -4,20 +4,22 @@
 \alias{AddTCC}
 \title{Add in raw TCC data to Seurat object}
 \usage{
-AddTCC(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
+AddTCC(object, tcc.counts, tx.counts, ec.map, gene.map, min.ec.filter = 0,
   display.progress = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{raw.counts}{Path to TCC matrix}
+\item{tcc.counts}{Path to TCC matrix}
+
+\item{tx.counts}{Path to transcript counts file}
 
 \item{ec.map}{Path to file mapping between equivalence classes and
 transcript IDs}
 
 \item{gene.map}{Path to file mapping transcript IDs to gene IDs}
 
-\item{min.ec.filter}{Only keep ECs with more than this many counts across all
+\item{min.ec.filter}{Only keep ECs with at least this many counts across all
 cells}
 
 \item{display.progress}{prints output/progress bars}
