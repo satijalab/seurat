@@ -42,9 +42,9 @@ TCCMap <- function(object, from, from.type, to) {
     if(to == "EC"){
       ec <- as.vector(sapply(X = transcript.ids, FUN = function(x) HashTableLookup(x, object@tcc@tid.to.ec.map)))
     }
-    transcript.names <- object@tcc@gene.map[transcript.ids, 1]
+    transcript.names <- object@tcc@gene.map[as.numeric(transcript.ids) + 1, 1]
     if (to == "TID") {
-      return(transcript.names)
+      return(unname(transcript.names))
     }
     from <- transcript.names
     from.type <- "TID"
@@ -52,7 +52,7 @@ TCCMap <- function(object, from, from.type, to) {
   if(from.type == "TID") {
     transcript.names <- from
     if (! exists("transcript.ids")){
-      transcript.ids <- rownames(object@tcc@gene.map[which(object@tcc@gene.map[, 1] %in% transcript.names), ])
+      transcript.ids <- as.character(which(object@tcc@gene.map[, 1] %in% transcript.names) - 1)
     }
     if(to == "TIDX") {
       return(transcript.ids)
@@ -65,17 +65,17 @@ TCCMap <- function(object, from, from.type, to) {
         return(ec)
       }
     }
-    gene.names <- object@tcc@gene.map[transcript.ids, 2]
+    gene.names <- object@tcc@gene.map[as.numeric(transcript.ids) + 1, 2]
     if(to == "GENE") {
-      return(gene.names)
+      return(unique(unname(gene.names)))
     }
   }
   if(from.type == "GENE") {
     gene.names <- from
-    transcript.ids <- rownames(object@tcc@gene.map[which(object@tcc@gene.map[, 2] %in% gene.names),])
+    transcript.ids <- as.character(which(object@tcc@gene.map[, 2] %in% gene.names) - 1)
     transcript.names <- object@tcc@gene.map[transcript.ids, 1]
     if(to == "TID") {
-      return(transcript.names)
+      return(unname(transcript.names))
     }
     if(to == "TIDX") {
       return(transcript.ids)
