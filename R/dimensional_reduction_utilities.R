@@ -230,42 +230,16 @@ GetGeneLoadings <- function(
   return(gene.loadings)
 }
 
-#' Dimensional Reduction Mutator Function
+#' @describeIn SetDimReduction Set a dimmensional reduction for a Seurat object
+#' @export SetDimReduction.seurat
+#' @method SetDimReduction seurat
 #'
-#' Set information for specified stored dimensional reduction analysis
-#'
-#' @param object Seurat object
-#' @param reduction.type Type of dimensional reduction to set
-#' @param slot Specific information to set (must be one of the following:
-#' "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key",
-#' "misc")
-#' @param new.data New data to set
-#' @return Seurat object with updated slot
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' # Simulate adding a new dimensional reduction
-#' new.cell.embeddings <- GetCellEmbeddings(object = pbmc_small, reduction.type = "pca")
-#' new.gene.loadings <- GetGeneLoadings(object = pbmc_small, reduction.type = "pca")
-#' SetDimReduction(
-#'   object = pbmc_small,
-#'   reduction.type = "new.pca",
-#'   slot = "cell.embeddings",
-#'   new.data = new.cell.embeddings
-#' )
-#' SetDimReduction(
-#'   object = pbmc_small,
-#'   reduction.type = "new.pca",
-#'   slot = "gene.loadings",
-#'   new.data = new.gene.loadings
-#' )
-#'
-SetDimReduction <- function(
+SetDimReduction.seurat <- function(
   object,
   reduction.type,
   slot,
-  new.data
+  new.data,
+  ...
 ) {
   if (reduction.type %in% names(x = object@dr)) {
     eval(expr = parse(text = paste0(
@@ -305,6 +279,61 @@ SetDimReduction <- function(
     eval(expr = parse(text = paste0("object@dr$", reduction.type, "<- new.dr")))
   }
   return(object)
+}
+
+#' @param overwrite Overwrite existing data?
+#'
+#' @importFrom hdf5r list.datasets h5attr
+#'
+#' @describeIn SetDimReduction Set a dimmensional reduction for a loom object
+#' @export SetDimReduction.loom
+#' @method SetDimReduction loom
+#'
+SetDimReduction.loom <- function(
+  object,
+  reduction.type,
+  slot,
+  new.data,
+  overwrite = FALSE,
+  ...
+) {
+  reduction.type <- tolower(x = reduction.type)
+  slot <- tolower(x = slot)
+  slot <- gsub(pattern = '.', replacement = '_', x = slot, fixed = TRUE)
+  if (slot == 'key') {
+    warning("Custom keys are not yet implemented for loom objects")
+  } else if (slot == 'sdev') {
+    dataset.use <- grep(
+      pattern = reduction.type,
+      x = list.datasets(object = object, full.names = TRUE, recursive = TRUE),
+      value = TRUE
+    )
+    if (grepl(pattern = 'cell', x = dataset.use)) {
+      dataset.use <- grep(pattern = 'cell', x = dataset.use, value = TRUE)[1]
+    } else if (grepl(pattern = 'gene', x = dataset.use)) {
+      dataset.use <- grep(pattern = 'gene', x = dataset.use, value = TRUE)[1]
+    } else {
+      stop(paste("Cannot find any dataset for reduction type", reduction.type))
+    }
+    cat("Adding standard deviation information to", dataset.use, '\n', file = stderr())
+    h5attr(x = object[[dataset.use]], which = 'sdev') <- new.data
+  } else {
+    new.data <- list(new.data)
+    names(x = new.data) <- paste(reduction.type, slot, sep = '_')
+    if (grepl(pattern = 'cell', x = slot)) {
+      object$add.col.attribute(attribute = new.data, overwrite = overwrite)
+    } else if (grepl(pattern = 'gene', x = slot)) {
+      names(x = new.data) <- gsub(
+        pattern = '_full',
+        replacement = '',
+        x = names(x = new.data)
+      )
+      object$add.row.attribute(attribute = new.data, overwrite = overwrite)
+    } else {
+      stop(paste("Unknown slot:", slot))
+    }
+  }
+  invisible(x = object)
 }
 
 ################### Convienence functions for easy interaction #################

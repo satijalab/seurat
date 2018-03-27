@@ -99,6 +99,87 @@ setMethod(
   }
 )
 
+DoTSNE <- function(
+  object,
+  reduction.use = "pca",
+  cells.use = NULL,
+  dims.use = 1:5,
+  genes.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  overwrite = FALSE,
+  ...
+) {
+  if (!is.null(x = distance.matrix)) {
+    genes.use <- rownames(x = object@data)
+  }
+  if (is.null(x = genes.use)) {
+    data.use <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = "cell.embeddings"
+    )[, dims.use]
+  } else {
+    data.use <- t(x = PrepDR(
+      object = object,
+      genes.use = genes.use))
+  }
+  set.seed(seed = seed.use)
+  if (tsne.method == "Rtsne") {
+    if (is.null(x = distance.matrix)) {
+      data.tsne <- Rtsne(
+        X = as.matrix(x = data.use),
+        dims = dim.embed,
+        pca = FALSE, ...
+      )
+    } else {
+      data.tsne <- Rtsne(
+        X = as.matrix(x = distance.matrix),
+        dims = dim.embed,
+        is_distance = TRUE,
+        ...
+      )
+    }
+    data.tsne <- data.tsne$Y
+  } else if (tsne.method == "FIt-SNE" & is.null(x = distance.matrix)) {
+    data.tsne <- fftRtsne(X = as.matrix(x = data.use), dims = dim.embed, rand_seed = seed.use, ...)
+  } else if (tsne.method == "tsne") {
+    data.tsne <- tsne(X = data.use, k = dim.embed, ...)
+  } else {
+    stop("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
+  }
+  if (add.iter > 0) {
+    data.tsne <- tsne(
+      X = data.use,
+      initial_config = as.matrix(x = data.tsne),
+      max_iter = add.iter,
+      ...
+    )
+  }
+  colnames(x = data.tsne) <- paste0(reduction.key, 1:ncol(x = data.tsne))
+  rownames(x = data.tsne) <- rownames(x = data.use)
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "cell.embeddings",
+    new.data = data.tsne,
+    overwrite = overwrite
+  )
+  suppressWarnings(expr = object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "key",
+    new.data = reduction.key,
+    overwrite = overwrite
+  ))
+  invisible(x = object)
+}
+
 # Get the top genes associated with given dimensional reduction scores
 #
 # @param i            Dimension for which to pull genes

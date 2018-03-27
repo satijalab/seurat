@@ -457,61 +457,11 @@ RunICA <- function(
   return(object)
 }
 
-#' Run t-distributed Stochastic Neighbor Embedding
+#' @describeIn RunTSNE Run TSNE on a Seurat object
+#' @export RunTSNE.seurat
+#' @method RunTSNE seurat
 #'
-#' Run t-SNE dimensionality reduction on selected features. Has the option of
-#' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
-#' or running based on a set of genes. For details about stored TSNE calculation
-#' parameters, see \code{PrintTSNEParams}.
-#'
-#' @param object Seurat object
-#' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
-#' the tSNE. Default is PCA
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features
-#' @param genes.use If set, run the tSNE on this subset of genes
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
-#' @param seed.use Random seed for the t-SNE
-#' @param tsne.method Select the method to use to compute the tSNE. Available
-#' methods are:
-#' \itemize{
-#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
-#' \item{tsne: }{standard tsne - not recommended for large datasets}
-#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-#' Kluger Lab code found here: https://github.com/ChristophH/FIt-SNE}
-#' }
-#' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top
-#' of this
-#' @param dim.embed The dimensional space of the resulting tSNE embedding
-#' (default is 2). For example, set to 3 for a 3d tSNE
-#' @param \dots Additional arguments to the tSNE call. Most commonly used is
-#' perplexity (expected number of neighbors default is 30)
-#' @param distance.matrix If set, runs tSNE on the given distance matrix
-#' instead of data matrix (experimental)
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
-#'
-#' @return Returns a Seurat object with a tSNE embedding in
-#' object@@dr$tsne@cell.embeddings
-#'
-#' @importFrom Rtsne Rtsne
-#' @importFrom tsne tsne
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' # Run tSNE on first five PCs, note that for test dataset (only 80 cells)
-#' # we can't use default perplexity of 30
-#' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "pca", dims.use = 1:5, perplexity=10)
-#' # Run tSNE on first five independent components from ICA
-#' pbmc_small <- RunICA(pbmc_small,ics.compute=5)
-#' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "ica", dims.use = 1:5, perplexity=10)
-#' # Plot results
-#' TSNEPlot(pbmc_small)
-#'
-RunTSNE <- function(
+RunTSNE.seurat <- function(
   object,
   reduction.use = "pca",
   cells.use = NULL,
@@ -526,74 +476,69 @@ RunTSNE <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  if (! is.null(x = distance.matrix)) {
-    genes.use <- rownames(x = object@data)
-  }
-  if (is.null(x = genes.use)) {
-    data.use <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.use,
-      slot = "cell.embeddings"
-    )[, dims.use]
-  }
-  if (! is.null(x = genes.use)) {
-    data.use <- t(PrepDR(
-      object = object,
-      genes.use = genes.use))
-  }
-  set.seed(seed = seed.use)
-
-  if(tsne.method == "Rtsne"){
-    if (is.null(x = distance.matrix)) {
-      data.tsne <- Rtsne(X = as.matrix(x = data.use),
-                         dims = dim.embed,
-                         pca = FALSE, ...)
-    } else {
-      data.tsne <- Rtsne(
-        X = as.matrix(x = distance.matrix),
-        dims = dim.embed,
-        is_distance = TRUE,
-        ...
-      )
-    }
-    data.tsne <- data.tsne$Y
-  } else if (tsne.method == "FIt-SNE" & is.null(x = distance.matrix)) {
-    data.tsne <- fftRtsne(X = as.matrix(x = data.use), dims = dim.embed, rand_seed = seed.use, ...)
-  } else if (tsne.method == "tsne") {
-    data.tsne <- tsne(X = data.use, k = dim.embed, ...)
-  } else {
-    stop ("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
-  }
-
-  if (add.iter > 0) {
-    data.tsne <- tsne(
-      X = data.use,
-      initial_config = as.matrix(x = data.tsne),
-      max_iter = add.iter,
-      ...
-    )
-  }
-  colnames(x = data.tsne) <- paste0(reduction.key, 1:ncol(x = data.tsne))
-  rownames(x = data.tsne) <- rownames(x = data.use)
-  object <- SetDimReduction(
+  object <- DoTSNE(
     object = object,
-    reduction.type = reduction.name,
-    slot = "cell.embeddings",
-    new.data = data.tsne
+    reduction.use = reduction.use,
+    cells.use = cells.use,
+    dims.use = dims.use,
+    genes.use = genes.use,
+    seed.use = seed.use,
+    tsne.method = tsne.method,
+    add.iter = add.iter,
+    dim.embed = dim.embed,
+    distance.matrix = distance.matrix,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    ...
   )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "key",
-    new.data = reduction.key
-  )
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
-  if(!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
+  if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
     object@calc.params$RunTSNE$cells.use <- rownames(data.use)
   }
   return(object)
+}
+
+#' @param overwrite Overwrite existing data? Used only for loom objects
+#'
+#' @describeIn RunTSNE Run TSNE on a loom file
+#' @export RunTSNE.loom
+#' @method RunTSNE loom
+#'
+RunTSNE.loom <- function(
+  object,
+  reduction.use = "pca",
+  cells.use = NULL,
+  dims.use = 1:5,
+  genes.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  overwrite = FALSE,
+  ...
+) {
+  DoTSNE(
+    object = object,
+    reduction.use = reduction.use,
+    cells.use = cells.use,
+    dims.use = dims.use,
+    genes.use = genes.use,
+    seed.use = seed.use,
+    tsne.method = tsne.method,
+    add.iter = add.iter,
+    dim.embed = dim.embed,
+    distance.matrix = distance.matrix,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    overwrite = overwrite,
+    ...
+  )
+  invisible(x = object)
 }
 
 #' Project Dimensional reduction onto full dataset
