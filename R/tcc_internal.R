@@ -97,3 +97,23 @@ TCCMap <- function(object, from, from.type, to) {
                         stringsAsFactors = FALSE)
   return(map.mat)
 }
+
+# Mapping function from gene to EC. Option to only return unambiguously mapping
+# ECs or not
+#
+# @param object      Seurat object
+# @param gene        Gene name
+# @param ambig       whether to return ambiguously mapping ECs. Default is TRUE
+#
+# @return returns a list of ECs that map to the gene
+#
+GeneToECMap <- function(object, gene, ambig = TRUE) {
+  ecs <- TCCMap(object = object, from = gene, from.type = "GENE", to = "EC")
+  if(ambig) {
+    return(ecs)
+  }
+  num.mapped.genes <- sapply(ecs, FUN = function(x){
+    length(TCCMap(object = object, from = x, from.type = "EC", to = "GENE"))
+  })
+  return(names(which(num.mapped.genes == 1)))
+}

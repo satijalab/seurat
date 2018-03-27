@@ -63,5 +63,3 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
   object@tcc <- tcc
   return(object)
 }
-
-
