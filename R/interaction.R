@@ -561,33 +561,18 @@ ReorderIdent <- function(
   return(object)
 }
 
-#' Access cellular data
+#' @describeIn FetchData Fetch data from a Seurat object
+#' @export FetchData.seurat
+#' @method FetchData seurat
 #'
-#' Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
-#' of cells in a Seurat object
-#'
-#' @param object Seurat object
-#' @param vars.all List of all variables to fetch
-#' @param cells.use Cells to collect data for (default is all cells)
-#' @param use.imputed For gene expression, use imputed values. Default is FALSE
-#' @param use.scaled For gene expression, use scaled values. Default is FALSE
-#' @param use.raw For gene expression, use raw values. Default is FALSE
-#'
-#' @return A data frame with cells as rows and cellular data as columns
-#'
-#' @export
-#'
-#' @examples
-#' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
-#' head(x = pc1)
-#'
-FetchData <- function(
+FetchData.seurat <- function(
   object,
   vars.all = NULL,
   cells.use = NULL,
   use.imputed = FALSE,
   use.scaled = FALSE,
-  use.raw = FALSE
+  use.raw = FALSE,
+  ...
 ) {
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   data.return <- data.frame(row.names = cells.use)
@@ -609,7 +594,7 @@ FetchData <- function(
     if (use.imputed) {
       gene.check <- vars.all %in% rownames(object@imputed)
       if (length(object@imputed) == 0) {
-        stop ("Imputed expression values not calculated yet.")
+        stop("Imputed expression values not calculated yet.")
       }
       data.expression <- t(object@imputed[vars.all[gene.check], cells.use, drop = FALSE])
     } else {
@@ -651,11 +636,11 @@ FetchData <- function(
   }
   object@meta.data[,"ident"] <- object@ident[rownames(x = object@meta.data)]
   for (my.var in vars.all) {
-    data.use=data.frame()
+    data.use <- data.frame()
     if (my.var %in% colnames(data.expression)) {
       data.use <- data.expression
     } else {
-      for(i in var.options) {
+      for (i in var.options) {
         if (all(unlist(x = strsplit(x = my.var, split = "[0-9]+")) == i)) {
           eval(
             expr = parse(
@@ -678,7 +663,7 @@ FetchData <- function(
       stop(paste("Error:", my.var, "not found"))
     }
     cells.use <- intersect(x = cells.use, y = rownames(x = data.use))
-    if (! my.var %in% colnames(x = data.use)) {
+    if (!my.var %in% colnames(x = data.use)) {
       stop(paste("Error:", my.var, "not found"))
     }
     data.add <- data.use[cells.use, my.var]
@@ -689,6 +674,125 @@ FetchData <- function(
   }
   colnames(x = data.return) <- vars.all
   rownames(x = data.return) <- cells.use
+  return(data.return)
+}
+
+#' @param cell.names.dset Path to cell names dataset
+#' @param gene.names.dset Path to gene names dataset
+#'
+#' @importFrom hdf5r list.datasets
+#'
+#' @describeIn FetchData Fetch data from a loom file
+#' @export FetchData.loom
+#' @method FetchData loom
+#'
+FetchData.loom <- function(
+  object,
+  vars.all = NULL,
+  cells.use = NULL,
+  use.imputed = FALSE,
+  use.scaled = FALSE,
+  use.raw = FALSE,
+  cell.names.dset = 'col_attrs/cell_names',
+  gene.names.dset = 'row_attrs/gene_names',
+  ...
+) {
+  cell.names <- object[[cell.names.dset]][]
+  gene.names <- object[[gene.names.dset]][]
+  cells.use <- if (is.null(x = cells.use)) {
+    1:length(x = cell.names)
+  } else if (is.character(x = cells.use)) {
+    which(x = cells.use %in% cell.names)
+  } else {
+    cells.use
+  }
+  gene.check <- vars.all %in% gene.names
+  # data.expression <- as.matrix(x = data.frame(row.names = cells.use))
+  data.return <- data.frame(row.names = cell.names[cells.use])
+  slot.use <- if (use.scaled) {
+    'scale_data'
+  } else if (use.imputed) {
+    stop("loom objects do not currently support imputed datasets")
+  } else if (use.raw) {
+    'matrix'
+  } else {
+    'norm_data'
+  }
+  if (any(gene.check)) {
+    data.expression <- GetAssayData(
+      object = object,
+      slot = slot.use,
+      cells.use = cells.use,
+      genes.use = which(x = gene.check)
+    )
+    data.expression <- t(x = data.expression)
+  } else {
+    data.expression <- as.matrix(x = data.frame(row.names = cell.names[cells.use]))
+  }
+  data.return <- cbind(data.return, data.expression)
+  vars.left <- vars.all[!gene.check]
+  continue <- length(x = vars.left) > 0
+  if (continue && grepl(pattern = 'pc', x = vars.left, ignore.case = TRUE)) {
+    vars.pc <- grep(pattern = 'pc', x = vars.left, ignore.case = TRUE)
+    pcs.use <- vars.left[vars.pc]
+    vars.left <- vars.left[-vars.pc]
+    pcs.use <- sapply(
+      X = pcs.use,
+      FUN = function(x) {
+        x <- grep(
+          pattern = '[[:digit:]]',
+          x = unlist(x = strsplit(x = x, split = '')),
+          value = TRUE
+        )
+        x <- paste0(x, collapse = '')
+        x <- as.integer(x = x)
+        return(x)
+      }
+    )
+    cell.embeddings <- GetDimReduction.loom(
+      object = object,
+      reduction.type = 'pca',
+      slot = 'cell.embeddings',
+      gene.names = gene.names.dset,
+      cell.names = cell.names.dset
+    )
+    cell.embeddings <- cell.embeddings[cells.use, pcs.use, drop = FALSE]
+    data.return <- cbind(data.return, cell.embeddings)
+    continue <- length(x = vars.left) > 0
+  }
+  if (continue && grepl(pattern = 'tsne', x = vars.left, ignore.case = TRUE)) {
+    vars.tsne <- grep(pattern = 'tsne', x = vars.left, ignore.case = TRUE)
+    tsne.use <- vars.left[vars.tsne]
+    vars.left <- vars.left[-vars.tsne]
+    tsne.use <- sapply(
+      X = tsne.use,
+      FUN = function(x) {
+        x <- grep(
+          pattern = '[[:digit:]]',
+          x = unlist(x = strsplit(x = x, split = '')),
+          value = TRUE
+        )
+        x <- paste0(x, collapse = '')
+        x <- as.integer(x = x)
+        return(x)
+      }
+    )
+    cell.embeddings <- GetDimReduction.loom(
+      object = object,
+      reduction.type = 'tsne',
+      slot = 'cell.embeddings',
+      gene.names = gene.names.dset,
+      cell.names = cell.names.dset
+    )
+    cell.embeddings <- cell.embeddings[cells.use, tsne.use, drop = FALSE]
+    data.return <- cbind(data.return, cell.embeddings)
+  }
+  if (length(x = vars.left) > 0) {
+    warning(paste(
+      "Unknown vars to get:",
+      paste(vars.left, collapse = ', ')
+    ))
+  }
   return(data.return)
 }
 
@@ -1217,9 +1321,9 @@ ProjectSeurat.Matrix <- function(
     umi.mat <- object
     # Should we filter the UMI matrix here and potentially remove cells?
     # for now assume it has already been filtered and use as is
-    
+
     # todo (maybe): add raw data of new cells to existing raw data
-    
+
     # make a couple of assumptions:
     # LogNormalization was used with factor 1e4
     # genes were centered and scaled
@@ -1540,11 +1644,11 @@ setMethod(
     cat('Subsetting loom object; will create matrix of size', n.cells, 'x', n.genes, '(cells x genes) in memory\n')
     cat('Note that original ordering of cells will be preserved regardless of order of cell names in second parameter\n')
     mat <- GetAssayData.loom(object=object, slot='raw.data', cells.use=cells.use, chunk.size=chunk.size)
-    
+
     # get meta data
     meta.data <- object$get.attribute.df(attribute.layer = 'col')[cells.use, ]
     gene.attrs <- object$get.attribute.df(attribute.layer = 'row')
-    
+
     if (return.type == "seurat") {
       new.object <- CreateSeuratObject(raw.data = as(mat, "dgCMatrix"))
       duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)

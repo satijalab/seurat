@@ -54,3 +54,28 @@ setGeneric(
     return(standardGeneric(f = 'SubsetSeurat'))
   }
 )
+
+#' Access cellular data
+#'
+#' Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
+#' of cells in a Seurat object
+#'
+#' @param object Seurat object
+#' @param vars.all List of all variables to fetch
+#' @param cells.use Cells to collect data for (default is all cells)
+#' @param use.imputed For gene expression, use imputed values. Default is FALSE
+#' @param use.scaled For gene expression, use scaled values. Default is FALSE
+#' @param use.raw For gene expression, use raw values. Default is FALSE
+#'
+#' @return A data frame with cells as rows and cellular data as columns
+#'
+#' @rdname FetchData
+#' @export FetchData
+#'
+#' @examples
+#' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+#' head(x = pc1)
+#'
+FetchData <- function(object, ...) {
+  UseMethod(generic = 'FetchData', object = object)
+}
