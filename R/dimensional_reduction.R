@@ -280,11 +280,14 @@ RunPCA.loom <- function(
     }
     # Add to the loom file
     colnames(x = cell.embeddings) <- paste0("PC", 1:pcs.compute)
-    cell.embeddings <- as.data.frame(x = cell.embeddings)
-    gene.loadings <- rbind(
-      gene.loadings,
-      matrix(nrow = object$shape[1] - nrow(x = gene.loadings), ncol = ncol(x = gene.loadings))
-    )
+    cell.embeddings <- cell.embeddings
+    gene.loadings <- if (nrow(x = gene.loadings) < object[['matrix']]$dims[2]) {
+      gene.loadings.full <- matrix(nrow = object$shape[1], ncol = pcs.compute)
+      gene.loadings.full[genes.use, ] <- gene.loadings
+      gene.loadings.full
+    } else {
+      gene.loadings
+    }
     object$add.col.attribute(
       attribute = list('pca_cell_embeddings' = cell.embeddings),
       overwrite = overwrite
