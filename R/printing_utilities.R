@@ -199,7 +199,6 @@ PrintTSNEParams <- function(object, raw = FALSE){
                             parameter = "time"),
                "\n"))
     cat("=============================================================================\n")
-    
     if(is.null(GetCalcParam(object = object,
                             calculation = "RunTSNE",
                             parameter = "genes.use"))) {
