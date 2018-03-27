@@ -515,7 +515,7 @@ DimTopGenes <- function(
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,
-      slot = switch(EXPR = class(x = object)[1], 'loom' = 'gene_loadings', 'gene.loadings')
+      slot = 'gene.loadings'
     )
   }
   if ((is.null(x = dim.scores)) || (ncol(x = dim.scores) < 2)) {
@@ -661,7 +661,7 @@ DimTopCells <- function(
   dim.scores <- GetDimReduction(
     object = object,
     reduction.type = reduction.type,
-    slot = switch(EXPR = class(x = object)[1], 'loom' = 'cell_embeddings', 'cell.embeddings')
+    slot = 'cell.embeddings'
   )
   i <- dim.use
   dim.top.cells <- unique(x = unlist(x = lapply(

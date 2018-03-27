@@ -1,7 +1,37 @@
 #' @include seurat.R
 #' @include utilities_generics.R
-#' @importFrom methods setMethod
+#' @importFrom methods setMethod setGeneric
 NULL
+
+# Get cell names from an object
+#
+# @param object An object
+# @param cell.names Path to cell names in loom file
+#
+# @return A vector of cell names
+#
+setGeneric(
+  name = 'GetCells',
+  def = function(object, ...) {
+    standardGeneric(f = 'GetCells')
+  }
+)
+
+setMethod(
+  f = 'GetCells',
+  signature = c('object' = 'seurat'),
+  definition = function(object, ...) {
+    return(object@cell.names)
+  }
+)
+
+setMethod(
+  f = 'GetCells',
+  signature = c('object' = 'loom'),
+  definition = function(object, cell.names = 'col_attrs/cell_names') {
+    return(object[[cell.names]][])
+  }
+)
 
 # Internal function for merging two matrices by rowname
 #
