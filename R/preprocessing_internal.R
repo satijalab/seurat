@@ -282,8 +282,8 @@ RegressOutNBreg <- function(
         FUN = function(j) {
           as.numeric(
             x = MASS::theta.ml(
-              cm[j, ],
-              glm(cm[j, ] ~ ., data = latent.data, family=poisson)$fitted
+              as.numeric(x = unlist(x = cm[j, ])),
+              glm(as.numeric(x = unlist(x = cm[j, ])) ~ ., data = latent.data, family=poisson)$fitted
             )
           )
         }
@@ -317,33 +317,37 @@ RegressOutNBreg <- function(
   pr <- c()
   for(i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
+    names(genes.bin.regress) <- genes.bin.regress
     bin.pr.lst <- parallel::mclapply(
       X = genes.bin.regress,
       FUN = function(j) {
         fit <- 0
         try(
           fit <- glm(
-            cm[j, ] ~ .,
+            as.numeric(x = unlist(x = cm[j, ])) ~ .,
             data = latent.data,
             family=MASS::negative.binomial(theta = theta.fit[j])
           ),
           silent=TRUE
         )
         if (class(fit)[1] == 'numeric') {
-          message(
+          message <- 
             sprintf(
               'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
               theta.fit[j],
               j
             )
-          )
-          res <- scale(x = log10(cm[j, ] + 1))[, 1]
+          res <- scale(x = log10(as.numeric(x = unlist(x = cm[j, ])) + 1))[, 1]
         } else {
+          message <- NULL
           res <- residuals(object = fit, type='pearson')
         }
-        return(res)
+        return(list(res = res, message = message))
       }
     )
+    # Print message to keep track of the genes for which glm failed to converge
+    message(paste(unlist(x = lapply(X = bin.pr.lst, FUN = function(l) { return(l$message) }), use.names = FALSE), collapse = "\n"))
+    bin.pr.lst <- lapply(X = bin.pr.lst, FUN = function(l) { return(l$res) })
     pr <- rbind(pr, do.call(rbind, bin.pr.lst))
     setTxtProgressBar(pb, i)
   }
