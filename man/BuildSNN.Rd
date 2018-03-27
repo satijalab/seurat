@@ -16,7 +16,7 @@ BuildSNN(object, ...)
 \method{BuildSNN}{loom}(object, genes.use = NULL, reduction.type = "pca",
   dims.use = NULL, k.param = 10, k.scale = 10, prune.SNN = 1/15,
   print.output = TRUE, distance.matrix = NULL, filename = NULL,
-  save.SNN = TRUE, nn.eps = 0)
+  save.SNN = TRUE, nn.eps = 0, overwrite = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -53,6 +53,8 @@ prune everything).}
 together with a provided filename to only write the SNN out as an edge file to disk.}
 
 \item{k.scale}{Granularity option for k.param}
+
+\item{overwrite}{Overwrite existing SNN graph?}
 }
 \value{
 Returns the object with object@snn filled

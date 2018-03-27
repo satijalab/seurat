@@ -118,7 +118,7 @@ GetAssayData.loom <- function(
       }
       next
     }
-    indices.return <- match(indices.use, cells.use)
+    indices.return <- match(x = indices.use, table = cells.use)
     indices.use <- indices.use - chunk.indices[1] + 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]
     chunk.data <- chunk.data[indices.use, genes.use]

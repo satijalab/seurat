@@ -133,6 +133,8 @@ BuildSNN.seurat <- function(
   return(object)
 }
 
+#' @param overwrite Overwrite existing SNN graph?
+#'
 #' @describeIn BuildSNN ...
 #' @export BuildSNN.loom
 #' @method BuildSNN loom
@@ -149,7 +151,8 @@ BuildSNN.loom <- function(
   distance.matrix = NULL,
   filename = NULL,
   save.SNN = TRUE,
-  nn.eps = 0
+  nn.eps = 0,
+  overwrite = FALSE
 ) {
   if (!is.null(x = distance.matrix)) {
     data.use <- distance.matrix
@@ -203,6 +206,13 @@ BuildSNN.loom <- function(
   # needs option to store SNN matrix in loom object - should be supported in
   # loom2, for now just write out edge file
   if (save.SNN | is.null(filename)) {
+    if ('SNN' %in% names(x = object[['col_graphs']])) {
+      if (overwrite) {
+        object[['col_graphs']]$link_delete(name = 'SNN')
+      } else {
+        stop("SNN already exists!")
+      }
+    }
     snn <- ComputeSNN(
       nn_ranked = nn.ranked,
       prune = prune.SNN
