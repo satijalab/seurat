@@ -346,7 +346,8 @@ RegressOutNBreg <- function(
       }
     )
     # Print message to keep track of the genes for which glm failed to converge
-    message(paste(unlist(x = lapply(X = bin.pr.lst, FUN = function(l) { return(l$message) }), use.names = FALSE), collapse = "\n"))
+    message <- unlist(x = lapply(X = bin.pr.lst, FUN = function(l) { return(l$message) }), use.names = FALSE)
+    if(!is.null(x = message)) { message(paste(message, collapse = "\n")) }
     bin.pr.lst <- lapply(X = bin.pr.lst, FUN = function(l) { return(l$res) })
     pr <- rbind(pr, do.call(rbind, bin.pr.lst))
     setTxtProgressBar(pb, i)
