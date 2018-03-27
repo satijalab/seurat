@@ -61,8 +61,7 @@ instead of data matrix (experimental)}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default}
 
-\item{overwrite}{Overwrite existing data? Used only for loom objects
-#'}
+\item{overwrite}{Overwrite existing data? Used only for loom objects}
 }
 \value{
 Returns a Seurat object with a tSNE embedding in
