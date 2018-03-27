@@ -5,7 +5,7 @@
 #' @param ec.map  Path to file mapping between equivalence classes and
 #' transcript IDs
 #' @param gene.map Path to file mapping transcript IDs to gene IDs
-#' @param min.ec.filter Only keep ECs with more than this many counts across all
+#' @param min.ec.filter Only keep ECs with at least this many counts across all
 #' cells
 #' @param display.progress prints output/progress bars
 #'
@@ -24,7 +24,7 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
                                  sep = "\t", row.names = 1))
   gene.map <- read.table(file = gene.map, stringsAsFactors = FALSE)
-  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) > min.ec.filter)
+  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) >= min.ec.filter)
   tcc.mat <- tcc.mat[ecs.to.keep, ]
   ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
 
@@ -52,7 +52,7 @@ AddTCC <- function(object, raw.counts, ec.map, gene.map, min.ec.filter = 0,
     close(pb)
   }
   tids.to.keep <- sort(as.numeric(ls(ht2)))
-  gene.map <- gene.map[tids.to.keep, ]
+  gene.map <- as.matrix(gene.map[tids.to.keep, ])
   tcc <- new(
     Class = "tcc",
     tcc.raw = tcc.mat,

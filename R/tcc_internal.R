@@ -8,7 +8,7 @@ tcc <- setClass(
     tcc.norm = "dgCMatrix",
     ec.to.tid.map = "environment",
     tid.to.ec.map = "environment",
-    gene.map = "data.frame"
+    gene.map = "matrix"
   )
 )
 
