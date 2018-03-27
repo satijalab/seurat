@@ -1878,7 +1878,7 @@ DimHeatmap <- function(
         do.balanced = do.balanced
       )
     } else {
-      cells.use <- SetIfNull(x = cells, default = object@cell.names)
+      cells.use <- SetIfNull(x = cells, default = GetCells(object = object))
     }
     genes.use <- rev(x = DimTopGenes(
       object = object,
@@ -1900,11 +1900,7 @@ DimHeatmap <- function(
     )
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
     data.use <- NULL
-    if (!use.scale) {
-      slot.use="data"
-    } else {
-      slot.use <- "scale.data"
-    }
+    slot.use <- ifelse(test = use.scale, yes = 'scale.data', no = 'data')
     for (assay.check in assay.use) {
       data.assay <- GetAssayData(
         object = object,
@@ -1913,14 +1909,14 @@ DimHeatmap <- function(
       )
       genes.intersect <- intersect(x = genes.use, y = rownames(x = data.assay))
       new.data <- data.assay[genes.intersect, cells.ordered]
-      if (! is.matrix(x = new.data)) {
+      if (!is.matrix(x = new.data)) {
         new.data <- as.matrix(x = new.data)
       }
       data.use <- rbind(data.use, new.data)
     }
     if (check.plot & any(dim(data.use) > 700) & (remove.key == FALSE & length(dim.use) == 1)) {
       choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
-      if(choice == 1){
+      if (choice == 1) {
         check.plot = FALSE
       } else {
         return()
