@@ -1382,7 +1382,7 @@ WilcoxDETest <- function(
 #' @param cells.1 Group 1 cells
 #' @param cells.2 Group 2 cells
 #' @param genes.to.test Vector of gene to test
-#' @param tccs.to.test Vector of tccs to test
+#' @param ecs.to.test Vector of equivalence classes to test
 #' @param txs.to.test Vector of transcripts to test
 #' @param use.tcc When testing genes, build LR model using TCCs mapping to gene
 #' as predictors
@@ -1404,7 +1404,7 @@ LRDETest <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   genes.to.test = NULL,
-  tccs.to.test = NULL,
+  ecs.to.test = NULL,
   txs.to.test = NULL,
   use.tcc = FALSE,
   use.tx = FALSE,
@@ -1422,11 +1422,11 @@ LRDETest <- function(
     stop("Please provide vector of cell names for cells.2")
   }
   # if no genes/tccs/txs given to test, test all genes in object
-  if (is.null(genes.to.test) & is.null(tccs.to.test) & is.null(txs.to.test)) {
+  if (is.null(genes.to.test) & is.null(ecs.to.test) & is.null(txs.to.test)) {
     genes.to.test <- rownames(object@data)
   }
-  if (length(which(c(!is.null(genes.to.test), !is.null(tccs.to.test), !is.null(txs.to.test)))) > 1) {
-    stop("Specify only one of the following: genes.to.test, tccs.to.test, txs.to.test")
+  if (length(which(c(!is.null(genes.to.test), !is.null(ecs.to.test), !is.null(txs.to.test)))) > 1) {
+    stop("Specify only one of the following: genes.to.test, ecs.to.test, txs.to.test")
   }
 
   cells.use <- c(cells.1, cells.2)
@@ -1435,13 +1435,13 @@ LRDETest <- function(
                             row.names = cells.use)
 
   if(! is.null(genes.to.test)) {
-    results <- data.frame(row.names = genes.to.test)
-  } else if (! is.null(tccs.to.test)) {
+    results <- data.frame(GENE = genes.to.test)
+  } else if (! is.null(ecs.to.test)) {
     use.tcc <- TRUE
-    results <- data.frame(row.names = tccs.to.test)
+    results <- data.frame(EC = ecs.to.test)
   } else if (! is.null(txs.to.test)) {
     use.tx <- TRUE
-    results <- data.frame(row.names = txs.to.test)
+    results <- data.frame(TX = txs.to.test)
   }
 
   if(use.tcc){
@@ -1459,9 +1459,9 @@ LRDETest <- function(
       )
     } else {
       results$tcc_p_val <- mysapply(
-        X = tccs.to.test,
-        FUN = function(tcc) {
-          data.test <- as.matrix(object@tcc@tcc.raw[match(tcc, rownames(object@tcc@tcc.raw)), cells.use])
+        X = ecs.to.test,
+        FUN = function(ec) {
+          data.test <- as.matrix(object@tcc@tcc.raw[match(ec, rownames(object@tcc@tcc.raw)), cells.use])
           return(LRLRTest(data.groups, data.test))
         }
       )
@@ -1499,6 +1499,19 @@ LRDETest <- function(
         }
       )
     }
+  }
+  if(!use.tx & !use.tcc) {
+    if(display.progress) {
+      message("Running LR using genes")
+    }
+    results$gene_p_val <- mysapply(
+      X = genes.to.test,
+      FUN = function(gene) {
+        data.test <- GetAssayData(object, assay.type = assay.type, slot = "data")
+        data.test <- as.matrix(t(data.test[gene, cells.use, drop = F]))
+        return(LRLRTest(data.groups, data.test))
+      }
+    )
   }
   return(results)
 }

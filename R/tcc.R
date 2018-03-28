@@ -27,22 +27,26 @@ AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
                                  sep = "\t", row.names = 1))
   gene.map <- read.table(file = gene.map, stringsAsFactors = FALSE)
+  gene.map <- as.matrix(gene.map)
+  rownames(gene.map) <- gene.map[, 1]
   ecs.to.keep <- which(Matrix::rowSums(tcc.mat) >= min.ec.filter)
   tcc.mat <- tcc.mat[ecs.to.keep, ]
   ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
 
   if (display.progress) {
-    cat("Building EC/transcript/gene maps. Note: this may take a few minutes\n", file = stderr())
+    cat("Building EC/transcript maps. Note: this may take a few minutes\n", file = stderr())
     pb <- txtProgressBar(min = 0, max = nrow(ec.map), style = 3)
   }
 
-  ht <- HashTable()
-  ht2 <- HashTable()
+  ec.to.tx.ht <- HashTable()
+  tx.to.ec.ht <- HashTable()
+
   for(i in 1:nrow(ec.map)){
     new.tids <- as.numeric(unlist(strsplit(x = ec.map[i, ], split = ",")))
-    HashTableInsert(key = rownames(ec.map)[i], value = new.tids, ht = ht)
-    for(j in new.tids){
-      HashTableAdd(key = as.character(j), value = as.numeric(rownames(ec.map)[i]), ht = ht2)
+    new.tx <- unname(gene.map[new.tids + 1, 1])
+    HashTableInsert(key = rownames(ec.map)[i], value = new.tx, ht = ec.to.tx.ht)
+    for(j in new.tx){
+      HashTableAdd(key = j, value = rownames(ec.map)[i], ht = tx.to.ec.ht)
     }
     if(i %% 10000 == 0){
       if (display.progress) {
@@ -54,16 +58,37 @@ AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
     setTxtProgressBar(pb, nrow(ec.map))
     close(pb)
   }
-  tids.to.keep <- sort(as.numeric(ls(ht2)))
-  gene.map <- as.matrix(gene.map[tids.to.keep, ])
+  tx.to.keep <- ls(tx.to.ec.ht)
+  gene.map <- gene.map[tx.to.keep, ]
+
+  if (display.progress) {
+    cat("Building gene/transcript maps. Note: this may take a few minutes\n", file = stderr())
+    pb <- txtProgressBar(min = 0, max = nrow(gene.map), style = 3)
+  }
+
+  tx.to.gene.ht <- HashTable()
+  gene.to.tx.ht <- HashTable()
+  for(i in 1:nrow(gene.map)) {
+    HashTableInsert(key = gene.map[i, 1], value = gene.map[i, 2], ht = tx.to.gene.ht)
+    HashTableAdd(key = gene.map[i, 2], value = gene.map[i, 1], ht = gene.to.tx.ht)
+    if(i %% 1000 == 0){
+      if (display.progress) {
+        setTxtProgressBar(pb, i)
+      }
+    }
+  }
+  if (display.progress) {
+    close(pb)
+  }
 
   tcc <- new(
     Class = "tcc",
     tcc.raw = tcc.mat,
     tx.raw = tx.mat,
-    ec.to.tid.map = ht,
-    tid.to.ec.map = ht2,
-    gene.map = gene.map
+    ec.to.tx.map = ec.to.tx.ht,
+    tx.to.ec.map = tx.to.ec.ht,
+    tx.to.gene.map = tx.to.gene.ht,
+    gene.to.tx.map = gene.to.tx.ht
   )
   object@tcc <- tcc
   return(object)
