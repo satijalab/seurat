@@ -32,7 +32,7 @@ TCCMap <- function(object, from, from.type, to) {
   if (!from.type %in% c("EC", "TX", "GENE")) {
     stop("Invalid from.type argument")
   }
-  if (!to %in% c("EC", "TX", "GENE")) {
+  if (!to %in% c("EC", "TX", "GENE", "MAT")) {
     stop("Invalid to argument")
   }
 
