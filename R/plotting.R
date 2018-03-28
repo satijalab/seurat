@@ -983,9 +983,9 @@ FeaturePlot <- function(
   no.legend = TRUE,
   dark.theme = FALSE,
   do.return = FALSE,
-  vector.friendly=FALSE
+  vector.friendly = FALSE
 ) {
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  cells.use <- SetIfNull(x = cells.use, default = GetCells(object = object))
   if (is.null(x = nCol)) {
     nCol <- 2
     if (length(x = features.plot) == 1) {
@@ -1131,7 +1131,7 @@ FeaturePlot <- function(
     print(x = cowplot::plot_grid(plotlist = pList, ncol = nCol))
   }
   ResetPar()
-  if (do.return){
+  if (do.return) {
     return(pList)
   }
 }
