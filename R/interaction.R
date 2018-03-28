@@ -702,7 +702,7 @@ FetchData.loom <- function(
   cells.use <- if (is.null(x = cells.use)) {
     1:length(x = cell.names)
   } else if (is.character(x = cells.use)) {
-    which(x = cells.use %in% cell.names)
+    match(x = cells.use, table = cell.names)
   } else {
     cells.use
   }
@@ -723,7 +723,7 @@ FetchData.loom <- function(
       object = object,
       slot = slot.use,
       cells.use = cells.use,
-      genes.use = which(x = gene.check)
+      genes.use = match(x = vars.all, table = gene.names)
     )
     data.expression <- t(x = data.expression)
   } else {
