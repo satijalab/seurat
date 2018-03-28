@@ -1373,66 +1373,134 @@ WilcoxDETest <- function(
 }
 
 
+#' Differential expression testing using logistic regression
+#'
+#' Identifies differentially expressed genes between two groups of cells using a
+#' logistic regression framework.
+#'
+#' @param object Seurat object
+#' @param cells.1 Group 1 cells
+#' @param cells.2 Group 2 cells
+#' @param genes.to.test Vector of gene to test
+#' @param tccs.to.test Vector of tccs to test
+#' @param txs.to.test Vector of transcripts to test
+#' @param use.tcc When testing genes, build LR model using TCCs mapping to gene
+#' as predictors
+#' @param use.tx When testing genes, build LR model using TXs mapping to gene as
+#' predictors
+#' @param transcript.threshold When testing genes using transcripts, filter any
+#' trascript not expressed in at least this fraction of cells.
+#' @param display.progress Print messages and progress bar
+#' @param assay.type Type of assay to perform DE for (default is RNA)
+#' @param ambig Allow ambiguously mapping TCCs/Txs?  (default is FALSE)
+#'
+#' @return Returns a matrix with the p-value results
+#'
+#' @export
+#'
+
 LRDETest <- function(
   object,
-  cells.1,
-  cells.2,
-  min.cells = 3,
-  genes.use = NULL,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  genes.to.test = NULL,
+  tccs.to.test = NULL,
+  txs.to.test = NULL,
   use.tcc = FALSE,
-  use.tids = FALSE,
+  use.tx = FALSE,
   transcript.threshold = 0.9,
-  tccs.use = NULL,
-  print.bar = TRUE,
+  display.progress = TRUE,
   assay.type = "RNA",
-  ambig = FALSE,
-  ...
+  ambig = FALSE
 ) {
 
+  # input checking
+  if (is.null(cells.1)) {
+    stop("Please provide vector of cell names for cells.1")
+  }
+  if (is.null(cells.2)) {
+    stop("Please provide vector of cell names for cells.2")
+  }
+  # if no genes/tccs/txs given to test, test all genes in object
+  if (is.null(genes.to.test) & is.null(tccs.to.test) & is.null(txs.to.test)) {
+    genes.to.test <- rownames(object@data)
+  }
+  if (length(which(c(!is.null(genes.to.test), !is.null(tccs.to.test), !is.null(txs.to.test)))) > 1) {
+    stop("Specify only one of the following: genes.to.test, tccs.to.test, txs.to.test")
+  }
+
   cells.use <- c(cells.1, cells.2)
-  mysapply <- if (print.bar) {pbsapply} else {sapply}
+  mysapply <- if (display.progress) {pbsapply} else {sapply}
   data.groups <- data.frame(group = c(rep("group1", length(cells.1)), rep("group2", length(cells.2))),
                             row.names = cells.use)
 
+  if(! is.null(genes.to.test)) {
+    results <- data.frame(row.names = genes.to.test)
+  } else if (! is.null(tccs.to.test)) {
+    use.tcc <- TRUE
+    results <- data.frame(row.names = tccs.to.test)
+  } else if (! is.null(txs.to.test)) {
+    use.tx <- TRUE
+    results <- data.frame(row.names = txs.to.test)
+  }
+
   if(use.tcc){
-    if(!is.null(genes.use)) {
-      p_val <- mysapply(
-        X = genes.use,
+    if(display.progress) {
+      message("Running LR on TCCs")
+    }
+    if(!is.null(genes.to.test)) {
+      results$tcc_p_val <- mysapply(
+        X = genes.to.test,
         FUN = function(gene) {
           tccs.use <- GeneToECMap(object = object, gene = gene, ambig = ambig)
-          data.test <- as.matrix(t(object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), cells.use]))
-          model1 <- glm(data.groups$group ~ data.test, family = "binomial")
-          model2 <- glm(data.groups$group ~ 1, family = "binomial")
-          lrtest <- lrtest(model1, model2)
-          return(lrtest$Pr[2])
+          data.test <- as.matrix(t(object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), cells.use, drop = FALSE]))
+          return(LRLRTest(data.groups, data.test))
+        }
+      )
+    } else {
+      results$tcc_p_val <- mysapply(
+        X = tccs.to.test,
+        FUN = function(tcc) {
+          data.test <- as.matrix(object@tcc@tcc.raw[match(tcc, rownames(object@tcc@tcc.raw)), cells.use])
+          return(LRLRTest(data.groups, data.test))
         }
       )
     }
   }
 
-  if(use.tids){
-    if(!is.null(genes.use)) {
-      p_val <- mysapply(
-        X = genes.use,
+  if(use.tx){
+    if(display.progress) {
+      message("Running LR using TXs")
+    }
+    if(!is.null(genes.to.test)) {
+      results$tx_p_val <- mysapply(
+        X = genes.to.test,
         FUN = function(gene) {
-          tids.use <- GeneToTIDMap(object = object, gene = gene, ambig = ambig)
+          tx.use <- GeneToTIDMap(object = object, gene = gene, ambig = ambig)
           # assumes cells are in same order in tx.counts as in tcc.counts
           cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
-          data.test <- as.matrix(t(object@tcc@tx.raw[match(tids.use, rownames(object@tcc@tx.raw)), cells.use]))
-          tids.keep <- names(which(apply(data.test, 2, function(x) sum(x == 0) <= transcript.threshold * length(cells.use))))
-          if(length(tids.keep) == 0) {
+          data.test <- as.matrix(t(object@tcc@tx.raw[match(tx.use, rownames(object@tcc@tx.raw)), cells.use, drop = FALSE]))
+          tx.keep <- names(which(apply(data.test, 2, function(x) sum(x == 0) <= transcript.threshold * length(cells.use))))
+          if(length(tx.keep) == 0) {
             return(1)
           }
-          data.test <- data.test[, tids.keep]
-          model1 <- glm(data.groups$group ~ data.test, family = "binomial")
-          model2 <- glm(data.groups$group ~ 1, family = "binomial")
-          lrtest <- lrtest(model1, model2)
-          return(lrtest$Pr[2])
+          data.test <- data.test[, tx.keep]
+          return(LRLRTest(data.groups, data.test))
+        }
+      )
+    } else {
+      results$tx_p_val <- mysapply(
+        X = txs.to.test,
+        FUN = function(tx) {
+          # assumes cells are in same order in tx.counts as in tcc.counts
+          cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
+          data.test <- as.matrix(object@tcc@tx.raw[match(tx, rownames(object@tcc@tx.raw)), cells.use])
+          return(LRLRTest(data.groups, data.test))
         }
       )
     }
   }
-  return(p_val)
+  return(results)
 }
 
 #' Differential expression testing using Tobit models

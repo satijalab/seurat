@@ -280,3 +280,18 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   )
   return(ret)
 }
+
+# Likelihood ratio test for logistic regression models
+#
+# @param data.groups        data.frame specifying the identity classes to test
+# @param data.test          matrix with the predictors
+#
+# @return                   Returns the p-value from the likelihood ratio test
+
+LRLRTest <- function(data.groups, data.test){
+  model1 <- glm(data.groups$group ~ data.test, family = "binomial")
+  model2 <- glm(data.groups$group ~ 1, family = "binomial")
+  lr <- lrtest(model1, model2)
+  return(lr$Pr[2])
+}
+
