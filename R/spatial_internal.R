@@ -55,7 +55,6 @@ slimdmvnorm <- function (x, mean = rep(0, p), sigma = diag(p), log = FALSE) {
 ###############
 #Internal, not documented for now
 #
-#' @importFrom NMF aheatmap
 #' @importFrom utils write.table
 #
 CalcInsitu <- function(
@@ -129,13 +128,12 @@ CalcInsitu <- function(
     )
   }
   if (do.plot) {
-    aheatmap(
-      x = insilico.stain,
-      Rowv = NA,
-      Colv = NA,
-      color = col.use,
-      main = title.use
-    )
+    heatmap2NoKey(x = insilico.stain,
+                  Rowv = NA,
+                  Colv = NA,
+                  trace = "none",
+                  col = col.use,
+                  dimTitle = title.use)
   }
   if (do.return) {
     return(as.vector(x = insilico.stain))
@@ -171,8 +169,6 @@ map.cell.score <- function(gene, gene.value, insitu.bin, mu, sigma, alpha) {
 }
 
 #Internal, not documented for now
-#
-#' @importFrom NMF aheatmap
 #
 MapCell <- function(
   object,
@@ -246,14 +242,19 @@ MapCell <- function(
         )
       ), ]
     }
-    aheatmap(
-      x = matrix(data = total.prob, nrow=8, ncol=8),
-      Rowv = NA,
-      Colv = NA,
-      txt = txt.matrix,
-      color = BlackAndWhite()
+    heatmap2NoKey(x = matrix(data = total.prob, nrow=8, ncol=8),
+                  Rowv = NA,
+                  Colv = NA,
+                  col = BlackAndWhite(),
+                  trace = "none"
     )
-    aheatmap(x = scale.probs, Rowv = NA, Colv = NA)
+    heatmap2NoKey(x = scale.probs,
+                  Rowv = NA,
+                  Colv = NA,
+                  col = BlueAndRed(),
+                  trace = "none",
+                  symbreaks = FALSE
+    )
     ResetPar()
   }
   return(total.prob)

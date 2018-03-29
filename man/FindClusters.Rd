@@ -5,11 +5,12 @@
 \title{Cluster Determination}
 \usage{
 FindClusters(object, genes.use = NULL, reduction.type = "pca",
-  dims.use = NULL, k.param = 30, k.scale = 25, plot.SNN = FALSE,
-  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
-  save.SNN = FALSE, reuse.SNN = FALSE, force.recalc = FALSE,
+  dims.use = NULL, k.param = 30, plot.SNN = FALSE, prune.SNN = 1/15,
+  print.output = TRUE, distance.matrix = NULL, save.SNN = FALSE,
+  reuse.SNN = FALSE, force.recalc = FALSE, nn.eps = 0,
   modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
-  n.iter = 10, random.seed = 0, temp.file.location = NULL)
+  n.iter = 10, random.seed = 0, temp.file.location = NULL,
+  edge.file.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,11 +27,9 @@ graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{k.scale}{Granularity option for k.param}
-
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Sets the cutoff for acceptable Jaccard distances when
+\item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
 graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
@@ -47,6 +46,9 @@ object@snn}
 throw an error.}
 
 \item{force.recalc}{Force recalculation of SNN.}
+
+\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+default of 0.0 implies exact nearest neighbor search}
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
@@ -65,6 +67,8 @@ algorithm).}
 
 \item{temp.file.location}{Directory where intermediate files will be written.
 Specify the ABSOLUTE path.}
+
+\item{edge.file.name}{Edge file to use as input for modularity optimizer jar.}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

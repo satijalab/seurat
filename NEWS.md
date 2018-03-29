@@ -2,12 +2,30 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+
+## [2.3.0] - 2018-03-22
+### Added
+- Support for HTO demultiplexing
+- Utility functions: TransferIdent, CombineIdent, SplitObject, vector.friendly
+- C++ implementation for parts of BuildSNN
+- Preliminary parallelization support (regression and JackStraw)
+- Support for FItSNE
+
+### Changed
+- MetaDE replaced with metap for combining p-values (MetaDE was removed from CRAN)
+- NMF heatmaps replaced (NMF to be archived by CRAN)
+
+## [2.2.1] - 2018-02-14
+### Changed
+ - MetaDE replaced with metap for combining p-values (MetaDE was removed from CRAN)
+ - NMF heatmaps replaced (NMF to be archived by CRAN)
+
 ## [2.2.0] - 2018-01-10
 ### Added
  - Multiple alignment functionality with RunMultiCCA and AlignSubspace extended to multiple datasets
  - CalcAlignmentScore added to evaluate alignment quality
  - MetageneBicorPlot added to guide CC selection
- - Change cluster order in DoHeatmap with group.order parameter 
+ - Change cluster order in DoHeatmap with group.order parameter
  - Ability to change plotting order and add a title to DimPlot
  - do.clean and subset.raw options for SubsetData
 
@@ -35,6 +53,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## [2.0.0] - 2017-07-26
 ### Added
 - New method for aligning scRNA-seq datasets
-- Significant code restructuring 
+- Significant code restructuring
 - New methods for scoring gene expression and cell-cycle phases
 - New visualization features (do.hover, do.identify)

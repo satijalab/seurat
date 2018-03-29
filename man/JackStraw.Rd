@@ -5,7 +5,7 @@
 \title{Determine statistical significance of PCA scores.}
 \usage{
 JackStraw(object, num.pc = 20, num.replicate = 100, prop.freq = 0.01,
-  do.print = FALSE)
+  display.progress = TRUE, do.par = FALSE, num.cores = 1)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,12 +17,20 @@ JackStraw(object, num.pc = 20, num.replicate = 100, prop.freq = 0.01,
 \item{prop.freq}{Proportion of the data to randomly permute for each
 replicate}
 
-\item{do.print}{Print the number of replicates that have been processed.}
+\item{display.progress}{Print progress bar showing the number of replicates
+that have been processed.}
+
+\item{do.par}{use parallel processing for regressing out variables faster.
+If set to TRUE, will use half of the machines available cores (FALSE by default)}
+
+\item{num.cores}{If do.par = TRUE, specify the number of cores to use.
+Note that for higher number of cores, larger free memory is needed.}
 }
 \value{
-Returns a Seurat object where object@dr$pca@jackstraw@emperical.p.value represents
-p-values for each gene in the PCA analysis. If ProjectPCA is subsequently
-run, object@dr$pca@jackstraw@emperical.p.value.full then represents p-values for all genes.
+Returns a Seurat object where object@dr$pca@jackstraw@emperical.p.value
+represents p-values for each gene in the PCA analysis. If ProjectPCA is
+subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+represents p-values for all genes.
 }
 \description{
 Randomly permutes a subset of data, and calculates projected PCA scores for
@@ -31,8 +39,10 @@ with the observed PCA scores to determine statistical signifance. End result
 is a p-value for each gene's association with each principal component.
 }
 \examples{
+\dontrun{
 pbmc_small = suppressWarnings(JackStraw(pbmc_small))
 head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+}
 
 }
 \references{

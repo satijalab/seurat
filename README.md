@@ -1,9 +1,9 @@
 [![Build Status](https://travis-ci.org/satijalab/seurat.svg?branch=develop)](https://travis-ci.org/satijalab/seurat)
 [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/satijalab/seurat?branch=develop&svg=true)](https://ci.appveyor.com/project/satijalab/seurat/branch/develop)
-[![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat) 
-[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat) 
+[![CRAN Version](https://www.r-pkg.org/badges/version/Seurat)](https://cran.r-project.org/package=Seurat)
+[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/Seurat)](https://cran.r-project.org/package=Seurat)
 
-# Seurat v2.2
+# Seurat v2.3
 
 
 Seurat is an R toolkit for single cell genomics, developed and maintained by the Satija Lab at NYGC.
@@ -20,6 +20,12 @@ Improvements and new features will be added on a regular basis, please contact s
 
 Version History
 
+March 22, 2018
+* Version 2.3
+* Changes:
+  * New utility functions
+  * Speed and efficiency improvments
+
 January 10, 2018
 * Version 2.2
 * Changes:
@@ -35,7 +41,7 @@ October 12, 2017
 July 26, 2017
 * Version 2.0
 * Changes:
-   * Preprint released for integrated analysis of scRNA-seq across conditions, technologies and species 
+   * Preprint released for integrated analysis of scRNA-seq across conditions, technologies and species
    * Significant restructuring of code to support clarity and dataset exploration
    * Methods for scoring gene expression and cell-cycle phase
 

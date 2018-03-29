@@ -431,6 +431,9 @@ ScaleDataR <- function(
 #' differences in numerical precision which could affect downstream calculations.
 #' @param check.for.norm Check to see if data has been normalized, if not,
 #' output a warning (TRUE by default)
+#' @param do.par use parallel processing for regressing out variables faster.
+#' If set to TRUE, will use half of the machines available cores (FALSE by default)
+#' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #'
 #' @return Returns a seurat object with object@@scale.data updated with scaled
 #' and/or centered data.
@@ -461,7 +464,9 @@ ScaleData <- function(
   display.progress = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE,
-  check.for.norm = TRUE
+  check.for.norm = TRUE,
+  do.par = FALSE,
+  num.cores = 1
 ) {
   data.use <- SetIfNull(
     x = data.use,
@@ -495,7 +500,9 @@ ScaleData <- function(
       genes.regress = genes.use,
       use.umi = use.umi,
       model.use = model.use,
-      display.progress = display.progress
+      display.progress = display.progress,
+      do.par = do.par,
+      num.cores = num.cores
     )
     if (model.use != "linear") {
       use.umi <- TRUE
@@ -700,6 +707,13 @@ SampleUMI <- function(
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
+#' @param binning.method Specifies how the bins should be computed. Available methods are:
+#' \itemize{
+#' \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+#' \item{equal_frequency:}{ each bin contains an equal number of genes (can increase
+#' statistical power to detect overdispersed genes at high expression values, at
+#' the cost of reduced resolution along the x-axis)}
+#' }
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param do.cpp Run c++ version of mean.function and dispersion.function if they
@@ -733,6 +747,7 @@ FindVariableGenes <- function(
   y.cutoff = 1,
   y.high.cutoff = Inf,
   num.bin = 20,
+  binning.method = "equal_width",
   do.recalc = TRUE,
   sort.results = TRUE,
   do.cpp = TRUE,
@@ -797,7 +812,15 @@ FindVariableGenes <- function(
     }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
-    data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    if (binning.method=="equal_width") {
+         data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    }
+    else if (binning.method=="equal_frequency") {
+        data_x_bin <- cut(x = gene.mean, breaks = c(-1,quantile(gene.mean[gene.mean>0],probs=seq(0,1,length.out=num.bin))))
+    }
+    else {
+        stop(paste0("Invalid selection: '",binning.method,"' for 'binning.method'."))
+    }
     names(x = data_x_bin) <- names(x = gene.mean)
     mean_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = mean)
     sd_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = sd)

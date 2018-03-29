@@ -4,8 +4,8 @@
 \alias{DESeq2DETest}
 \title{Differential expression using DESeq2}
 \usage{
-DESeq2DETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  assay.type = "RNA", ...)
+DESeq2DETest(object, cells.1, cells.2, genes.use = NULL, assay.type = "RNA",
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -13,9 +13,6 @@ DESeq2DETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
 \item{cells.1}{Group 1 cells}
 
 \item{cells.2}{Group 2 cells}
-
-\item{min.cells}{Minimum number of cells expressing the gene in at least one
-of the two groups}
 
 \item{genes.use}{Genes to use for test}
 

@@ -187,8 +187,8 @@ MergeSeurat <- function(
 #' @param meta.data Additional metadata to add to the Seurat object. Should be
 #' a data frame where the rows are cell names, and the columns are additional
 #' metadata fields
-#' @param add.cell.id String to be appended to the names of all cells in new.data. E.g. if add.cell.id = "rep1",
-#' "cell1" becomes "cell1.rep1"
+#' @param add.cell.id String to be appended to the names of all cells in
+#' new.data. E.g. if add.cell.id = "rep1", "cell1" becomes "cell1.rep1"
 #'
 #' @import Matrix
 #' @importFrom dplyr full_join
@@ -306,6 +306,44 @@ AddSamples <- function(
   return(new.object)
 }
 
+
+
+#' Return a subset of the Seurat object.
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
+#' subsets it using \code{base::subset} with \code{predicate} as the filter.
+#' Returns the corresponding subset of the Seurat object. 
+#'
+#' @param object Seurat object
+#' @param vars.use Variables to fetch for use in base::subset. Character vector.
+#' @param predicate String to be parsed into an R expression and evaluated as an input to base::subset.
+#' 
+#' @export
+#'
+#' @examples
+#' pbmc1 <- SubsetByPredicate(object = pbmc_small, 
+#'                       vars.use = c("nUMI", "res.1"), 
+#'                       predicate = "nUMI < 200 & res.1=='3'")
+#' pbmc1
+#'
+SubsetByPredicate = function( 
+  object,
+  vars.use,
+  predicate
+){
+  if( typeof(vars.use) != "character"){
+    stop("predicate should be a character vector. It will be parsed in `subset` as an R expression.")
+  }
+  if( typeof(predicate) != "character"){
+    stop("vars.use should be a character vector. These variables will be passed to FetchData.")
+  }
+  df <- FetchData(object, vars.use) %>% as.data.frame
+  cu <- df %>% subset(eval(parse(text=predicate))) %>% rownames
+  object <- SubsetData(object, cells.use = cu)
+  return( object )
+}
+
 #' Return a subset of the Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
@@ -320,12 +358,15 @@ AddSamples <- function(
 #' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
 #' @param ident.use Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for filtration)
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns cells with the subset name equal to this value
 #' @param do.center Recenter the new object@@scale.data
 #' @param do.scale Rescale the new object@@scale.data. FALSE by default
-#' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#'  max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
 #' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
 #' other slots. Can be useful if you want to start a fresh analysis on just a
@@ -337,8 +378,6 @@ AddSamples <- function(
 #' use.imputed=TRUE)
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @importFrom stats complete.cases
 #'
 #' @export
 #'
@@ -354,6 +393,7 @@ SubsetData <- function(
   ident.remove = NULL,
   accept.low = -Inf,
   accept.high = Inf,
+  accept.value = NULL,
   do.center = FALSE,
   do.scale = FALSE,
   max.cells.per.ident = Inf,
@@ -363,40 +403,23 @@ SubsetData <- function(
   ...
 ) {
   data.use <- NULL
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  if (!is.null(x = ident.use)) {
-    ident.use <- setdiff(ident.use, ident.remove)
-    cells.use <- WhichCells(object, ident.use)
-  }
-  if ((is.null(x = ident.use)) && ! is.null(x = ident.remove)) {
-    ident.use <- setdiff(unique(object@ident), ident.remove)
-    cells.use <- WhichCells(object, ident.use)
-  }
-  if (! is.null(x = subset.name)) {
-    data.use <- FetchData(object, subset.name, ...)
-    if (length(x = data.use) == 0) {
-      return(object)
-    }
-    subset.data <- data.use[, subset.name]
-    pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
-    cells.use <- rownames(data.use)[pass.inds]
-  }
-  cells.use <- intersect(x = cells.use, y = object@cell.names)
-  cells.use <-  WhichCells(
-    object = object,
-    cells.use = cells.use,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed
-  )
+  cells.use <- WhichCells(object = object,
+                          ident = ident.use,
+                          ident.remove = ident.remove,
+                          cells.use = cells.use,
+                          subset.name = subset.name,
+                          accept.low = accept.low,
+                          accept.high = accept.high,
+                          accept.value = accept.value,
+                          max.cells.per.ident = max.cells.per.ident,
+                          random.seed = random.seed,
+                          ... = ...)
   object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
   if(! is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
       object@scale.data[, cells.use]
-      object@scale.data <- object@scale.data[
-        complete.cases(object@scale.data), # Row
-        cells.use # Columns
-        ]
+      object@scale.data <- object@scale.data[, cells.use]
     }
   }
   if (do.scale) {
@@ -405,10 +428,6 @@ SubsetData <- function(
       do.scale = do.scale,
       do.center = do.center
     )
-    object@scale.data <- object@scale.data[
-      complete.cases(object@scale.data), # Row
-      cells.use # Column
-      ]
   }
   object@ident <- drop.levels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
@@ -468,17 +487,22 @@ SubsetData <- function(
 
 #' Reorder identity classes
 #'
-#' Re-assigns the identity classes according to the average expression of a particular feature (i.e, gene expression, or PC score)
-#' Very useful after clustering, to re-order cells, for example, based on PC scores
+#' Re-assigns the identity classes according to the average expression of a
+#' particular feature (i.e, gene expression, or PC score)
+#' Very useful after clustering, to re-order cells, for example, based on PC
+#' scores
 #'
 #' @param object Seurat object
 #' @param feature Feature to reorder on. Default is PC1
 #' @param rev Reverse ordering (default is FALSE)
-#' @param aggregate.fxn Function to evaluate each identity class based on (default is mean)
-#' @param reorder.numeric Rename all identity classes to be increasing numbers starting from 1 (default is FALSE)
+#' @param aggregate.fxn Function to evaluate each identity class based on
+#' (default is mean)
+#' @param reorder.numeric Rename all identity classes to be increasing numbers
+#' starting from 1 (default is FALSE)
 #' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
 #'
-#' @return A seurat object where the identity have been re-oredered based on the average.
+#' @return A seurat object where the identity have been re-oredered based on the
+#' average.
 #'
 #' @export
 #'
@@ -669,7 +693,8 @@ FetchData <- function(
 #' FastWhichCells
 #' Identify cells matching certain criteria (limited to character values)
 #' @param object Seurat object
-#' @param group.by Group cells in different ways (for example, orig.ident). Should be a column name in object@meta.data
+#' @param group.by Group cells in different ways (for example, orig.ident).
+#' Should be a column name in object@meta.data
 #' @param subset.value  Return cells matching this value
 #' @param invert invert cells to return.FALSE by default
 #'
@@ -702,8 +727,11 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
 #' @param accept.value Returns all cells with the subset name equal to this value
-#' @param max.cells.per.ident Can be used to downsample the data to a certain max per cell ident. Default is inf.
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
+#' @param \dots Additional arguments to be passed to FetchData (for example,
+#' use.imputed=TRUE)
 #'
 #' @return A vector of cell names
 #'
@@ -722,11 +750,28 @@ WhichCells <- function(
   accept.high = Inf,
   accept.value = NULL,
   max.cells.per.ident = Inf,
-  random.seed = 1
+  random.seed = 1,
+  ...
 ) {
-  set.seed(seed = random.seed)
+  # input checking
+  if(length(subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if(length(accept.low) > 1 | length(accept.high) > 1) {
+    stop("Multiple values passed to accept.low or accept.high")
+  }
+  if(accept.low >= accept.high) {
+    stop("accept.low greater than or equal to accept.high")
+  }
+  if (!is.na(x = random.seed)) {
+    set.seed(seed = random.seed)
+  }
   cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
   ident <- SetIfNull(x = ident, default = unique(x = object@ident))
+  bad.remove.idents <- ident.remove[! (ident.remove %in% unique(x = object@ident))]
+  if(length(bad.remove.idents) > 0) {
+    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  }
   ident <- setdiff(x = ident, y = ident.remove)
   if (! all(ident %in% unique(x = object@ident))) {
     bad.idents <- ident[! (ident %in% unique(x = object@ident))]
@@ -748,14 +793,19 @@ WhichCells <- function(
     data.use <- FetchData(
       object = object,
       vars.all = subset.name,
-      cells.use = cells.use
+      cells.use = cells.use,
+      ... = ...
     )
     if (length(x = data.use) == 0) {
       stop(paste("Error : ", id, " not found"))
     }
     subset.data <- data.use[, subset.name, drop = F]
     if(! is.null(x = accept.value)) {
-      pass.inds <- which(x = subset.data == accept.value)
+      if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
+        bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]
+        stop(paste("Identity :", bad.vals, "not found.   "))
+      }
+      pass.inds <- which(apply(subset.data, MARGIN = 1, function(x) x %in% accept.value))
     } else {
       pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
     }
@@ -767,8 +817,9 @@ WhichCells <- function(
 #' Switch identity class definition to another variable
 #'
 #' @param object Seurat object
-#' @param id Variable to switch identity class to (for example, 'DBclust.ident', the output
-#' of density clustering) Default is orig.ident - the original annotation pulled from the cell name.
+#' @param id Variable to switch identity class to (for example, 'DBclust.ident',
+#' the output of density clustering) Default is orig.ident - the original
+#' annotation pulled from the cell name.
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
@@ -795,7 +846,8 @@ SetAllIdent <- function(object, id = NULL) {
 
 #' Rename one identity class to another
 #'
-#' Can also be used to join identity classes together (for example, to merge clusters).
+#' Can also be used to join identity classes together (for example, to merge
+#' clusters).
 #'
 #' @param object Seurat object
 #' @param old.ident.name The old identity class (to be renamed)
@@ -835,10 +887,12 @@ RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
 
 #' Set identity class information
 #'
-#' Stashes the identity in data.info to be retrieved later. Useful if, for example, testing multiple clustering parameters
+#' Stashes the identity in data.info to be retrieved later. Useful if, for
+#' example, testing multiple clustering parameters
 #'
 #' @param object Seurat object
-#' @param save.name Store current object@@ident under this column name in object@@meta.data. Can be easily retrived with SetAllIdent
+#' @param save.name Store current object@@ident under this column name in
+#' object@@meta.data. Can be easily retrived with SetAllIdent
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
@@ -903,6 +957,137 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
   return(object)
 }
 
+
+#' Transfer identity class information (or meta data) from one object to another
+#'
+#' Transfers identity class information (or meta data) from one object to
+#' another, assuming the same cell barcode names are in each. Can be very useful
+#' if you have multiple Seurat objects that share a subset of underlying data.
+#'
+#' @param object.from Seurat object to transfer information from
+#' @param object.to Seurat object to transfer information onto
+#' @param data.to.transfer What data should be transferred over? Default is the
+#' identity class ("ident"), but can also include any column in
+#' object.from@@meta.data
+#' @param keep.existing For cells in object.to that are not present in
+#' object.from, keep existing data? TRUE by default. If FALSE, set to NA.
+#' @param add.cell.id1 Prefix to add (followed by an underscore) to cells in
+#'  object.from. NULL by default, in which case no prefix is added.
+#'
+#' @return A Seurat object where object@@ident or object@@meta.data has been
+#' appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' # Duplicate the test object and assign random new idents to transfer
+#' pbmc_small@@ident
+#' pbmc_small2 <- SetIdent(object = pbmc_small, cells.use = pbmc_small@@cell.names,
+#'  ident.use = sample(pbmc_small@@ident))
+#' pbmc_small2@@ident
+#' pbmc_small <- TransferIdent(object.from = pbmc_small2, object.to = pbmc_small)
+#' pbmc_small@@ident
+#'
+TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", keep.existing = TRUE, add.cell.id1 = NULL) {
+  old_data <- as.character(FetchData(object = object.from, vars.all = data.to.transfer)[, 1])
+  names(old_data) <- object.from@cell.names
+  if (data.to.transfer %in% c("ident", colnames(object.to@meta.data))) {
+    new_data <- FetchData(object = object.to, vars.all = data.to.transfer)
+    if (!keep.existing) {
+      new_data[, 1] <- "NA"
+    }
+    new_data <- as.character(new_data[, 1])
+  }
+  else {
+    new_data <- rep("NA", length(object.to@cell.names))
+  }
+  names(new_data) <- object.to@cell.names
+  if (!is.null(add.cell.id1)) {
+    names(old_data) <- paste(names(old_data), add.cell.id1, sep = "_")
+  }
+  new_data[names(old_data)] <- old_data
+  if (data.to.transfer == "ident") {
+    object.to <- SetIdent(object.to, cells.use = names(new_data), ident.use = new_data)
+  }
+  else {
+    object.to <- AddMetaData(object = object.to, metadata = new_data,col.name = data.to.transfer)
+  }
+  return(object.to)
+}
+
+#' Splits object into a list of subsetted objects.
+#'
+#' Splits object based on a single attribute into a list of subsetted objects,
+#' one for each level of the attribute. For example, useful for taking an object
+#' that contains cells from many patients, and subdividing it into
+#' patient-specific objects.
+#'
+#' @param object Seurat object
+#' @param attribute.1 Attribute for splitting. Default is "ident". Currently
+#' only supported for class-level (i.e. non-quantitative) attributes.
+#' @param \dots Additional parameters to pass to SubsetData
+#' @return A named list of Seurat objects, each containing a subset of cells
+#' from the original object.
+#'
+#' @export
+#'
+#' @examples
+#' # Assign the test object a three level attribute
+#' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
+#' names(groups) <- pbmc_small@@cell.names
+#' pbmc_small <- AddMetaData(object = pbmc_small, metadata = groups, col.name = "group")
+#' obj.list <- SplitObject(pbmc_small, attribute.1 = "group")
+#'
+SplitObject <- function(object,
+                        attribute.1 = "ident",
+                        ...) {
+  old_data <- FetchData(object = object, vars.all = attribute.1)[, 1]
+  old_levels <- unique(as.character(old_data))
+  to_return <- list()
+  for (i in old_levels) {
+    if (attribute.1=="ident") {
+      to_return[[i]] <- SubsetData(object = object, ident.use = i, ...)
+    }
+    else {
+      to_return[[i]] <- SubsetData(object = object,
+                                   subset.name = attribute.1,
+                                   accept.value = i, ...)
+    }
+  }
+  return(to_return)
+}
+
+#' Sets identity class information to be a combination of two object attributes
+#'
+#' Combined two attributes to define identity classes. Very useful if, for
+#' example, you have multiple cell types and multiple replicates, and you want
+#' to group cells based on combinations of both.
+#'
+#' @param object Seurat object
+#' @param attribute.1 First attribute for combination. Default is "ident"
+#' @param attribute.2 Second attribute for combination. Default is "orig.ident"
+#' @return A Seurat object where object@@ident has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
+#' celltype <- sample(c("celltype1", "celltype2", "celltype3"), size = 80, replace = TRUE)
+#' new.metadata <- data.frame(groups = groups, celltype = celltype)
+#' rownames(new.metadata) <- pbmc_small@@cell.names
+#' pbmc_small <- AddMetaData(object = pbmc_small, metadata = new.metadata)
+#' pbmc_small <- CombineIdent(object = pbmc_small, attribute.1 = "celltype", attribute.2 = "groups")
+#' pbmc_small@@ident
+#'
+CombineIdent <- function(object, attribute.1 = "ident",
+                         attribute.2 = "orig.ident") {
+  old_data <- FetchData(object = object,vars.all = c(attribute.1, attribute.2))
+  new_ids <- sapply(X = 1:nrow(old_data), FUN = function(x){
+    paste(as.character(old_data[x, 1]), as.character(old_data[x, 2]), sep = "_")
+    })
+  object <- SetIdent(object = object,cells.use = object@cell.names, ident.use = new_ids)
+}
+
 #' Add Metadata
 #'
 #' Adds additional data for single cells to the Seurat object. Can be any piece
@@ -940,7 +1125,9 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-  meta.add <- metadata[rownames(x = object@meta.data), cols.add]
+  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
+  meta.order <- match(rownames(object@meta.data), rownames(metadata))
+  meta.add <- metadata[meta.order, ]
   if (all(is.null(x = meta.add))) {
     stop("Metadata provided doesn't match the cells in this object")
   }
