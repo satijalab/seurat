@@ -184,6 +184,7 @@ PrintICAParams <- function(object, raw = FALSE){
 #' @export
 #'
 #' @examples
+#' pbmc_small <- RunTSNE(pbmc_small, perplexity = 10)
 #' PrintTSNEParams(object = pbmc_small)
 #'
 PrintTSNEParams <- function(object, raw = FALSE){
