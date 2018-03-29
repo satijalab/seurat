@@ -711,18 +711,18 @@ DotPlot <- function(
     value = expression,
     -c(cell, id)
   ) -> data.to.plot
-  mean_nonzero <- function(data) {
-    data_use <- data[data>0]
-    if (length(data_use) == 0) {
-        return(0)
-    } else {
-        return(mean(data_use))
-    }
-  }
+  # mean_nonzero <- function(data) {
+  #   data_use <- data[data>0]
+  #   if (length(data_use) == 0) {
+  #       return(0)
+  #   } else {
+  #       return(mean(data_use))
+  #   }
+  # }
   data.to.plot %>%
     group_by(id, genes.plot) %>%
     summarize(
-      avg.exp = mean_nonzero(expm1(x = expression)),
+      avg.exp = mean(expm1(x = expression)),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
   data.to.plot %>%
