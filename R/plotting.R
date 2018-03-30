@@ -1533,6 +1533,11 @@ JackStrawPlot <- function(
     x = pAll.l$PC.Score,
     levels = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score))
   )
+
+  score.df$PC <- PCs
+  score.df <- as.matrix(score.df)
+  object@dr$pca@jackstraw@overall.p.values <- score.df
+
   gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
     stat_qq(distribution = qunif) +
     facet_wrap("PC.Score", ncol = nCol) +

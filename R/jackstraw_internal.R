@@ -4,7 +4,8 @@ jackstraw.data <- setClass(
   slots = list(
     emperical.p.value = "matrix",
     fake.pc.scores = "matrix",
-    emperical.p.value.full = "matrix"
+    emperical.p.value.full = "matrix",
+    overall.p.values = "matrix"
   )
 )
 
