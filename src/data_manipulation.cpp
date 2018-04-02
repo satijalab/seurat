@@ -348,3 +348,17 @@ List UpdateCov(Eigen::MatrixXd batch_mat, Eigen::MatrixXd cov_mat, Eigen::Matrix
                       Named("m1", m1)));
 }
 
+//[[Rcpp::export]]
+Eigen::SparseMatrix<double> FillSparseMat(Eigen::SparseMatrix<double> sub_mat, Eigen::SparseMatrix<double> full_mat, double idx) {
+  std::vector<T> tripletList;
+  tripletList.reserve(sub_mat.cols() * 1000);
+  for (int k=0; k<sub_mat.outerSize(); ++k){
+    for (Eigen::SparseMatrix<double>::InnerIterator it(sub_mat,k); it; ++it){
+      tripletList.push_back(T(it.row(), it.col() + idx, it.value()));
+    }
+  }
+  Eigen::SparseMatrix<double> mat(full_mat.rows(), full_mat.cols());
+  mat.setFromTriplets(tripletList.begin(), tripletList.end());
+  full_mat = full_mat + mat;
+  return(full_mat);
+}
