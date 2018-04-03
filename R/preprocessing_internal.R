@@ -161,6 +161,110 @@ RegressOutResid <- function(
   return(data.resid)
 }
 
+# Regress out techincal effects and cell cycle from a matrix
+#
+# Remove unwanted effects from scale.data
+#
+# @parm data.expr An expression matrix to regress the effects of latent.data out of
+# should be the complete expression matrix in genes x cells
+# @param latent.data A matrix or data.frame of latent variables, should be cells x latent variables,
+# the colnames should be the variables to regress
+# @param genes.regress An integer vector representing the indices of the genes to run regression on
+# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
+# @param use.umi Regress on UMI count data
+# @param display.progress Display a progress bar
+#
+#' @importFrom stats as.formula
+#
+RegressOutMatrix <- function(
+  data.expr,
+  latent.data = NULL,
+  genes.regress = NULL,
+  model.use = NULL,
+  use.umi = FALSE,
+  display.progress = TRUE,
+  ...
+) {
+  # Do we bypass regression and simply return data.expr?
+  bypass <- vapply(
+    X = list(latent.data, model.use),
+    FUN = is.null,
+    FUN.VALUE = logical(length = 1L)
+  )
+  if (any(bypass)) {
+    return(data.expr)
+  }
+  # Check model.use
+  possible.models <- c("linear", "poisson", "negbinom")
+  if (!model.use %in% possible.models) {
+    stop(paste(
+        model.use,
+        "is not a valid model. Please use one the following:",
+        paste0(possible.models, collapse = ", ")
+    ))
+  }
+  # Check genes.regress
+  if (is.null(x = genes.regress)) {
+    genes.regress <- 1:nrow(x = data.expr)
+  }
+  if (max(genes.regress) > nrow(x = data.expr)) {
+    stop("Cannot use genes that are beyond the scope of data.expr")
+  }
+  # Check dataset dimensions
+  if (nrow(x = latent.data) != ncol(x = data.expr)) {
+    stop("Uneven number of cells between latent data and expression data")
+  }
+  use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
+  # Create formula for regression
+  vars.to.regress <- colnames(x = latent.data)
+  fmla <- paste('GENE ~', paste(vars.to.regress, collapse = '+'))
+  fmla <- as.formula(object = fmla)
+  # Make results matrix
+  data.resid <- matrix(
+    nrow = nrow(x = data.expr),
+    ncol = ncol(x = data.expr)
+  )
+  if (display.progress) {
+    pb <- txtProgressBar(char = '=', style = 3)
+  }
+  for (i in 1:length(x = genes.regress)) {
+    x <- genes.regress[i]
+    regression.mat <- cbind(latent.data, data.expr[x, ])
+    colnames(x = regression.mat) <- c(vars.to.regress, 'GENE')
+    regression.mat <- switch(
+      EXPR = model.use,
+      'linear' = lm(formula = fmla, data = regression.mat)$residuals,
+      'poisson' = residuals(object = glm(
+        formula = fmla,
+        family = 'poisson',
+        data = regression.mat,
+        type = 'pearson'
+      )),
+      'negbinom' = NBResiduals(
+        fmla = fmla,
+        regression.mat = regression.mat,
+        gene = x
+      )
+    )
+    data.resid[i, ] <- regression.mat
+    if (display.progress) {
+      setTxtProgressBar(pb = pb, value = i / length(x = genes.regress))
+    }
+  }
+  if (display.progress) {
+    close(con = pb)
+  }
+  if (use.umi) {
+    data.resid <- log1p(x = sweep(
+      x = data.resid,
+      MARGIN = 1,
+      STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
+      FUN = '-'
+    ))
+  }
+  return(data.resid)
+}
+
 # Regress out technical effects and cell cycle using regularized Negative Binomial regression
 #
 # Remove unwanted effects from umi data and set scale.data to Pearson residuals

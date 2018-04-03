@@ -15,8 +15,9 @@ ScaleData(object, ...)
   do.cpp = TRUE, check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
 
 \method{ScaleData}{loom}(object, genes.use = "row_attrs/var_genes",
-  name = "scale_data", do.scale = TRUE, do.center = TRUE,
-  scale.max = 10, chunk.size = 1000, normalized.data = "layers/norm_data",
+  name = "scale_data", vars.to.regress = NULL, model.use = "linear",
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE, scale.max = 10,
+  chunk.size = 1000, normalized.data = "layers/norm_data",
   overwrite = FALSE, display.progress = TRUE, ...)
 }
 \arguments{
