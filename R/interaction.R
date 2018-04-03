@@ -1529,7 +1529,7 @@ ProjectSeurat.loom <- function(
     #genes.use <- pars$genes.use #rownames(template@scale.data)
     genes.use <- gene.names
     if (pars$do.center) {
-      gene.mean <- colMeans(template@data)
+      gene.mean <- rowMeans(template@data)
     } else {
       gene.mean <- rep(0, length(genes.use))
     }
