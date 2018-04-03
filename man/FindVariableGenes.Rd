@@ -28,7 +28,7 @@ FindVariableGenes(object, ...)
 is to take the mean of the detected (i.e. non-zero) values}
 
 \item{dispersion.function}{Function to compute y-axis value (dispersion). Default is to
-take the standard deviation of all values/}
+take the standard deviation of all values}
 
 \item{do.plot}{Plot the average/dispersion relationship}
 
