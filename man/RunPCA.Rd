@@ -17,8 +17,8 @@ RunPCA(object, ...)
 
 \method{RunPCA}{loom}(object, pcs.compute = 75, genes.use = NULL,
   online.pca = TRUE, covariance.mat = NULL, cells.initial = 50000,
-  chunk.size = 1000, gene.names = "row_attrs/gene_names",
-  gene.means = "row_attrs/gene_means",
+  chunk.size = 1000, do.print = TRUE, pcs.print = 1:5, genes.print = 30,
+  gene.names = "row_attrs/gene_names", gene.means = "row_attrs/gene_means",
   gene.variance = "row_attrs/gene_dispersion",
   var.genes = "row_attrs/var_genes", scale.data = "layers/scale_data",
   ngene = NULL, overwrite = FALSE, display.progress = TRUE, ...)

@@ -107,7 +107,12 @@ RunPCA.seurat <- function(
     object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
   }
   if (do.print) {
-    PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
+    PrintDim(
+      object = object,
+      dims.print = pcs.print,
+      genes.print = genes.print,
+      reduction.type = reduction.name
+    )
   }
   return(object)
 }
@@ -143,6 +148,9 @@ RunPCA.loom <- function(
   covariance.mat = NULL,
   cells.initial = 50000,
   chunk.size = 1000,
+  do.print = TRUE,
+  pcs.print = 1:5,
+  genes.print = 30,
   gene.names = 'row_attrs/gene_names',
   gene.means = 'row_attrs/gene_means',
   gene.variance = 'row_attrs/gene_dispersion',
@@ -173,8 +181,12 @@ RunPCA.loom <- function(
     } else {
       genes.use <- which(x = object[[var.genes]][])
     }
+  } else if (is.character(x = genes.use)) {
+    genes.use <- sort(x = which(x = object[[gene.names]][] %in% genes.use))
+  } else if (is.numeric(x = genes.use)) {
+    genes.use <- sort(x = genes.use)
   } else {
-    genes.use <- which(x = object[[gene.names]][] %in% genes.use)
+    stop("'genes.use' must be a numeric vector, a character vector, or NULL")
   }
   if (online.pca) {
     # Prepare PCA data
@@ -363,6 +375,14 @@ RunPCA.loom <- function(
   }
   object$flush()
   gc(verbose = FALSE)
+  if (do.print) {
+    PrintDim(
+      object = object,
+      reduction.type = 'pca',
+      dims.print = pcs.print,
+      genes.print = genes.print
+    )
+  }
   invisible(x = object)
 }
 
