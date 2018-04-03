@@ -33,6 +33,41 @@ setMethod(
   }
 )
 
+# Get gene names from an object
+#
+# @param object An object
+# @param use.scaled Use scaled dataset of Seurat object, defaults to object@data
+# @param gene.names Path to gene names in loom file
+#
+# @return A vector of gene names
+#
+setGeneric(
+  name = 'GetGenes',
+  def = function(object, ...) {
+    standardGeneric(f = 'GetGenes')
+  }
+)
+
+setMethod(
+  f = 'GetGenes',
+  signature = c('object' = 'seurat'),
+  definition = function(object, use.scaled = FALSE, ...) {
+    to.return <- if (use.scaled) {
+      rownames(x = object@scale.data)
+    } else {
+      rownames(x = object@data)
+    }
+    return(to.return)
+  }
+)
+
+setMethod(
+  f = 'GetGenes',
+  definition = function(object, gene.names, ...) {
+    return(object[[gene.names]][])
+  }
+)
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
@@ -151,7 +186,6 @@ FillSlot <- function(slot.name, old.object, new.object){
 FisherIntegrate <- function(pvals) {
   return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
 }
-
 
 #' @rdname SetCalcParams
 #' @exportMethod SetCalcParams
