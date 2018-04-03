@@ -1529,12 +1529,12 @@ ProjectSeurat.loom <- function(
     #genes.use <- pars$genes.use #rownames(template@scale.data)
     genes.use <- gene.names
     if (pars$do.center) {
-      gene.mean <- apply(template@data[genes.use, ], 1, mean)
+      gene.mean <- rowMeans(template@data)
     } else {
       gene.mean <- rep(0, length(genes.use))
     }
     if (pars$do.scale) {
-      gene.sd <- apply(template@data[genes.use, ], 1, sd)
+      gene.sd <- SparseRowSd(template@data[genes.use, ])
     } else {
       gene.sd <- rep(1, length(genes.use))
     }

@@ -362,3 +362,24 @@ Eigen::SparseMatrix<double> FillSparseMat(Eigen::SparseMatrix<double> sub_mat, E
   full_mat = full_mat + mat;
   return(full_mat);
 }
+
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
+  mat = mat.transpose();
+  Eigen::VectorXd allSds(mat.cols());
+  for (int k=0; k<mat.outerSize(); ++k){
+    double colMean = 0;
+    double colSdev = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+    {
+      colMean += it.value();
+    }
+    colMean = colMean / mat.rows();
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      colSdev += pow(it.value() - colMean, 2);
+    }
+    colSdev = sqrt(colSdev / (mat.rows() - 1));
+    allSds(k) = colSdev;
+    }
+  return(allSds);
+}
