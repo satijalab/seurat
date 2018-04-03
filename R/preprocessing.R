@@ -153,6 +153,60 @@ CreateSeuratObject <- function(
   return(object)
 }
 
+#' @param chunk.size Number of cells to chunk over
+#' @param display.progres Display a progress bar?
+#' @param overwrite Overwrite existing datasets?
+#'
+#' @return Stores nUMI in \code{col_attrs/nUMI}; stores nGene in \code{col_attrs/nGene}
+#'
+#' @importFrom Matrix rowSums
+#'
+#' @describeIn CalcUMI Calculate nUMI and nGene in loom objects
+#' @export CalcUMI.loom
+#' @method CalcUMI loom
+#'
+CalcUMI.loom <- function(
+  object,
+  cells.use = NULL,
+  is.expr = 0,
+  chunk.size = 1000,
+  display.progress = TRUE,
+  overwrite = FALSE
+) {
+  if (display.progress) {
+    cat("Calculating nUMI\n", file = stderr())
+  }
+  numi <- object$map(
+    FUN = rowSums,
+    MARGIN = 2,
+    chunk.size = chunk.size,
+    dataset.use = 'matrix',
+    display.progress = display.progress,
+    expected = 'vector'
+  )
+  if (display.progress) {
+    cat("Calculating nGene\n", file = stderr())
+  }
+  ngene <- object$map(
+    FUN = function(mat, is.expr) {
+      return(rowSums(x = mat > is.expr))
+    },
+    MARGIN = 2,
+    chunk.size = chunk.size,
+    dataset.use = 'matrix',
+    display.progress = display.progress,
+    expected = 'vector',
+    is.expr = is.expr
+  )
+  if (!is.null(x = cells.use)) {
+    numi[-cells.use] <- NA
+    ngene[-cells.use] <- NA
+  }
+  attrs.add <- list('nUMI' = numi, 'nGene' = ngene)
+  object$add.col.attribute(attribute = attrs.add, overwrite = overwrite)
+  invisible(x = object)
+}
+
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
@@ -605,6 +659,9 @@ ScaleData.loom <- function(
   object,
   genes.use = 'row_attrs/var_genes',
   name = 'scale_data',
+  vars.to.regress = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
   do.scale = TRUE,
   do.center = TRUE,
   scale.max = 10,
@@ -646,11 +703,29 @@ ScaleData.loom <- function(
       stop("'genes.use' must be either a numeric vector or a name to a one-dimensional dataset of booleans (H5T_ENUM) within the loom object")
     }
   }
+  # Set latent.data
+  if (is.null(x = vars.to.regress)) {
+    # Passing NULL as latent.data will force RegressOutMatrix to not
+    latent.data <- NULL
+  } else {
+    latent.data <- FetchData(object = object, vars.all = vars.to.regress)
+  }
+  # If we're using UMI counts, then we regress 'matrix', otherwise regress the normalized data
+  dataset.use <- ifelse(test = use.umi, yes = 'matrix', no = normalized.data)
   object$apply(
     name = paste('layers', name, sep = '/'),
     FUN = function(mat) {
       return(t(x = FastRowScale(
-        mat = t(x = mat),
+        mat = RegressOutMatrix(
+          # Don't need a genes.regress because
+          # that gets set with genes.use and index.use
+          # so mat only has the genes of interest
+          data.expr = t(x = mat),
+          latent.data = latent.data,
+          model.use = model.use,
+          use.umi = use.umi,
+          display.progress = FALSE
+        ),
         scale = do.scale,
         center = do.center,
         scale_max = scale.max,
@@ -660,16 +735,18 @@ ScaleData.loom <- function(
     MARGIN = 1,
     index.use = index.use,
     chunk.size = chunk.size,
-    dataset.use = normalized.data,
+    dataset.use = dataset.use,
     overwrite = overwrite,
     display.progress = display.progress
   )
+  # Store parameters
   parameters.to.store <- as.list(x = environment(), all = TRUE)[names(x = formals())]
   SetCalcParams(
     object = object,
     dataset.use = "layers/scale_data",
     ... = parameters.to.store
   )
+  # Clean up
   gc(verbose = FALSE)
   invisible(x = object)
 }
@@ -971,6 +1048,27 @@ FindVariableGenes.loom <- function(
   invisible(x = object)
 }
 
+#' @describeIn GetVariableGenes Get variable genes dataframe from a loom file
+#' @export GetVariableGenes.loom
+#' @method GetVariableGenes loom
+#'
+GetVariableGenes.loom <- function(object) {
+  hvg.info <- object$get.attribute.df(
+    attribute.layer = 'row',
+    attribute.names = c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled'),
+    row.names = 'gene_names'
+  )
+  hvg.info$index <- 1:nrow(x = hvg.info)
+  colnames(x = hvg.info) <- gsub(
+    pattern = '_',
+    replacement = '.',
+    x = colnames(x = hvg.info),
+    fixed = TRUE
+  )
+  hvg.info <- hvg.info[order(hvg.info$gene.dispersion, decreasing = TRUE), ]
+  return(hvg.info)
+}
+
 #' Return a subset of the Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
@@ -1037,4 +1135,46 @@ FilterCells <- function(
   }
   object <- SubsetData(object, cells.use = cells.use)
   return(object)
+}
+
+#' @param gene.names Path to gene names
+#' @describeIn PercentMito Calculate the percentage of mitochondrial genes in a loom file
+#' @export PercentMito.loom
+#' @method PercentMito loom
+#'
+PercentMito.loom <- function(
+  object,
+  pattern = '^MT-',
+  case = 'both',
+  save.mito = TRUE,
+  gene.names = 'row_attrs/gene_names',
+  ...
+) {
+  if (dirname(path = gene.names) == '.') {
+    gene.names <- paste('row_attrs', basename(path = gene.names), sep = '/')
+  }
+  ignore.case <- case == 'both'
+  pattern <- switch(
+    EXPR = case,
+    'upper' = toupper(x = pattern),
+    'lower' = tolower(x = pattern),
+    'both' = pattern,
+    'asis' = pattern,
+    stop(paste("Unknown case argument:", case))
+  )
+  mito.genes <- grep(
+    pattern = pattern,
+    x = object[[gene.names]][],
+    ignore.case = ignore.case,
+    value = FALSE
+  )
+  percent.mito <- object$map(
+    index.use = mito.genes,
+    FUN = function(mat) {
+      mat
+    },
+    dataset.use = 'matrix',
+    MARGIN = 1,
+    expected = 'vector'
+  )
 }

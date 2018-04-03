@@ -786,8 +786,23 @@ FetchData.loom <- function(
     )
     cell.embeddings <- cell.embeddings[cells.use, tsne.use, drop = FALSE]
     data.return <- cbind(data.return, cell.embeddings)
+    continue <- length(x = vars.left) > 0
   }
-  if (length(x = vars.left) > 0) {
+  if (continue && any(vars.left %in% list.datasets(object = object[['col_attrs']]))) {
+    vars.dsets <- which(x = vars.left %in% list.datasets(object = object[['col_attrs']]))
+    dsets.use <- vars.left[vars.dsets]
+    vars.left <- vars.left[-vars.dsets]
+    data.return <- cbind(
+      data.return,
+      object$get.attribute.df(
+        attribute.layer = 'col',
+        attribute.names = dsets.use,
+        col.names = basename(path = cell.names.dset)
+      )
+    )
+    continue <- length(x = vars.left) > 0
+  }
+  if (continue) {
     warning(paste(
       "Unknown vars to get:",
       paste(vars.left, collapse = ', ')
