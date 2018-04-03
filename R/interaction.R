@@ -1441,6 +1441,8 @@ ProjectSeurat.Matrix <- function(
   }
 }
 
+#' @param do.norm Renormalize the data (default is TRUE)
+#' @param do.scale Project the scaled data using the template (default is TRUE)
 #' @param gene.names Path to gene names dataset in loom file
 #' @param cell.names Path to cell names dataset in loom file
 #' @param norm.data Path to normalized dataset in loom file
@@ -1463,7 +1465,8 @@ ProjectSeurat.Matrix <- function(
 ProjectSeurat.loom <- function(
   object,
   template,
-  do.norm.and.scale = TRUE,
+  do.norm = TRUE,
+  do.scale = TRUE,
   gene.names = "row_attrs/gene_names",
   cell.names = "col_attrs/cell_names",
   norm.data = 'layers/norm_data',
@@ -1490,7 +1493,7 @@ ProjectSeurat.loom <- function(
     message('cells common to both data sets    ', length(x = common.cells), " cells")
     message("=============================================")
   }
-  if (do.norm.and.scale) {
+  if (do.norm) {
     # log-norm input data
     if (display.progress) {
       message('Normalize data')
@@ -1500,6 +1503,8 @@ ProjectSeurat.loom <- function(
       scale.factor = template@calc.params$NormalizeData$scale.factor,
       overwrite = overwrite
     )
+  }
+  if (do.scale) {
     # scale
     if (display.progress) {
       message('Scale data')
