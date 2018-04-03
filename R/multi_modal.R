@@ -63,6 +63,7 @@ GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data") {
 #' @param gene.names Path to gene names, set to \code{NULL} to skip
 #' @param chunk.size What size to chunk the cells on?
 #' @param display.progress Show progress bar?
+#' @param do.sparse Return matrix as a sparse matrix (default is TRUE).
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
@@ -79,6 +80,7 @@ GetAssayData.loom <- function(
   gene.names = 'row_attrs/gene_names',
   chunk.size = 1000,
   display.progress = TRUE,
+  do.sparse = TRUE,
   ...
 ) {
   if (object$exists(name = slot)) {
@@ -102,10 +104,19 @@ GetAssayData.loom <- function(
   )
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
-  data.return <- matrix(
-    nrow = length(x = genes.use),
-    ncol = length(x = cells.use)
-  )
+  if (do.sparse) {
+    data.return <- Matrix(
+      0,
+      nrow = length(x = genes.use),
+      ncol = length(x = cells.use),
+      sparse = TRUE
+    )
+  } else {
+    data.return <- matrix(
+      nrow = length(x = genes.use),
+      ncol = length(x = cells.use)
+    )
+  }
   if (display.progress) {
     pb <- txtProgressBar(char = '=', style = 3)
   }
@@ -122,8 +133,13 @@ GetAssayData.loom <- function(
     indices.use <- indices.use - chunk.indices[1] + 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]
     chunk.data <- chunk.data[indices.use, genes.use]
-    chunk.data <- t(x = chunk.data)
-    data.return[, indices.return] <- chunk.data
+    if (do.sparse) {
+      chunk.data <- as(t(x = chunk.data), "dgCMatrix")
+      data.return <- FillSparseMat(sub_mat = chunk.data, full_mat = data.return, idx = indices.return[1] - 1)
+    } else {
+      chunk.data <- t(x = chunk.data)
+      data.return[, indices.return] <- chunk.data
+    }
     if (display.progress) {
       setTxtProgressBar(pb = pb, value = i / length(x = batch))
     }

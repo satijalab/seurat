@@ -13,7 +13,7 @@ GetAssayData(object, ...)
 \method{GetAssayData}{loom}(object, slot = "data", cells.use = NULL,
   genes.use = NULL, cell.names = "col_attrs/cell_names",
   gene.names = "row_attrs/gene_names", chunk.size = 1000,
-  display.progress = TRUE, ...)
+  display.progress = TRUE, do.sparse = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +33,8 @@ GetAssayData(object, ...)
 \item{chunk.size}{What size to chunk the cells on?}
 
 \item{display.progress}{Show progress bar?}
+
+\item{do.sparse}{Return matrix as a sparse matrix (default is TRUE).}
 }
 \value{
 Returns assay data

@@ -12,12 +12,12 @@ ProjectSeurat(object, ...)
   cluster.label = "res.0.8", tsne.proj.k = 11, class.k = 11,
   return.type = "seurat", filename, display.progress = TRUE, ...)
 
-\method{ProjectSeurat}{loom}(object, template, do.norm.and.scale = TRUE,
-  gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
-  norm.data = "layers/norm_data", scale.data = "layers/scale_data",
-  chunk.size = 1000, overwrite = FALSE, tsne.k = 11,
-  tsne.rbf.gamma = 50, cluster.k = 11, cluster.res = "res.0.8",
-  display.progress = TRUE, ...)
+\method{ProjectSeurat}{loom}(object, template, do.norm = TRUE,
+  do.scale = TRUE, gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names", norm.data = "layers/norm_data",
+  scale.data = "layers/scale_data", chunk.size = 1000, overwrite = FALSE,
+  tsne.k = 11, tsne.rbf.gamma = 50, cluster.k = 11,
+  cluster.res = "res.0.8", display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object to project back to}
@@ -31,6 +31,10 @@ ProjectSeurat(object, ...)
 \item{filename}{file name/path for new loom object if returning loom}
 
 \item{display.progress}{display progress of the process}
+
+\item{do.norm}{Renormalize the data (default is TRUE)}
+
+\item{do.scale}{Project the scaled data using the template (default is TRUE)}
 
 \item{gene.names}{Path to gene names dataset in loom file}
 
