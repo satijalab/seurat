@@ -53,7 +53,7 @@ NormalizeData <- function(object, ...) {
 #' @param mean.function Function to compute x-axis value (average expression). Default
 #' is to take the mean of the detected (i.e. non-zero) values
 #' @param dispersion.function Function to compute y-axis value (dispersion). Default is to
-#' take the standard deviation of all values/
+#' take the standard deviation of all values
 #' @param do.plot Plot the average/dispersion relationship
 #' @param set.var.genes Set object@@var.genes to the identified variable genes
 #' (default is TRUE)
@@ -130,4 +130,36 @@ FindVariableGenes <- function(object, ...) {
 # )
 ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
+}
+
+#' Calculate nUMI and nGene
+#'
+#' @param object An object
+#' @param cells.use Optional numeric vector of cells to include
+#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
+#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
+#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
+#' values less than this will be set to 0 (though maintained in object@raw.data).
+#'
+#' @rdname CalcUMI
+#' @export CalcUMI
+#'
+CalcUMI <- function(object, ...) {
+  UseMethod(generic = 'CalcUMI', object = object)
+}
+
+#' Get the variable genes dataframe
+#'
+#' @param object An object
+#' @return A dataframe with four columns
+#' \item{gene.means}{Gene means}
+#' \item{gene.dispersion}{Gene dispersion}
+#' \item{gene.dispersion.scaled}{Gene dispersion scaled}
+#' \item{index}{Index for given gene in the dataset}
+#'
+#' @rdname GetVariableGenes
+#' @export GetVariableGenes
+#'
+GetVariableGenes <- function(object, ...) {
+  UseMethod(generic = 'GetVariableGenes', object = object)
 }
