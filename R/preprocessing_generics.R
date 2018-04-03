@@ -151,6 +151,7 @@ CalcUMI <- function(object, ...) {
 #' Get the variable genes dataframe
 #'
 #' @param object An object
+#'
 #' @return A dataframe with four columns
 #' \item{gene.means}{Gene means}
 #' \item{gene.dispersion}{Gene dispersion}
