@@ -61,6 +61,10 @@ FillSparseMat <- function(sub_mat, full_mat, idx) {
     .Call('_Seurat_FillSparseMat', PACKAGE = 'Seurat', sub_mat, full_mat, idx)
 }
 
+SparseRowSd <- function(mat) {
+    .Call('_Seurat_SparseRowSd', PACKAGE = 'Seurat', mat)
+}
+
 ComputeSNN <- function(nn_ranked, prune) {
     .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
 }

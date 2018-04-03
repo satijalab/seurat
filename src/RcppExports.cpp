@@ -205,6 +205,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// SparseRowSd
+Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat);
+RcppExport SEXP _Seurat_SparseRowSd(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowSd(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
@@ -260,6 +271,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_UpdateCov", (DL_FUNC) &_Seurat_UpdateCov, 5},
     {"_Seurat_FillSparseMat", (DL_FUNC) &_Seurat_FillSparseMat, 3},
+    {"_Seurat_SparseRowSd", (DL_FUNC) &_Seurat_SparseRowSd, 1},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
