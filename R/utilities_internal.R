@@ -63,7 +63,7 @@ setMethod(
 
 setMethod(
   f = 'GetGenes',
-  definition = function(object, gene.names, ...) {
+  definition = function(object, gene.names = 'row_attrs/gene_names', ...) {
     return(object[[gene.names]][])
   }
 )
