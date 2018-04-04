@@ -1846,7 +1846,7 @@ DimHeatmap <- function(
   assay.use = "RNA",
   reduction.type = "pca",
   dim.use = 1,
-  cells.use = NULL,
+  cells.use = 500,
   num.genes = 30,
   use.full = FALSE,
   disp.min = -2.5,
@@ -1864,10 +1864,25 @@ DimHeatmap <- function(
   orig_par <- par()$mfrow
   par(mfrow = c(num.row, min(length(x = dim.use), 3)))
   cells <- cells.use
+  if (is.numeric(x = cells)) {
+    cells <- min(cells, length(x = GetCells(object = object)))
+  }
   plots <- c()
   if (is.null(x = label.columns)) {
     label.columns <- !(length(x = dim.use) > 1)
   }
+  # Set some constants for every dim
+  dim.scores <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "cell.embeddings"
+  )
+  dim.key <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.type,
+    slot = "key"
+  )
+  slot.use <- ifelse(test = use.scale, yes = 'scale.data', no = 'data')
   for (ndim in dim.use) {
     if (is.numeric(x = (cells))) {
       cells.use <- DimTopCells(
@@ -1888,24 +1903,16 @@ DimHeatmap <- function(
       use.full = use.full,
       do.balanced = do.balanced
     ))
-    dim.scores <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.type,
-      slot = "cell.embeddings"
-    )
-    dim.key <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.type,
-      slot = "key"
-    )
     cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
     data.use <- NULL
-    slot.use <- ifelse(test = use.scale, yes = 'scale.data', no = 'data')
     for (assay.check in assay.use) {
       data.assay <- GetAssayData(
         object = object,
+        cells.use = cells.use,
+        genes.use = genes.use,
         assay.type = assay.check,
-        slot = slot.use
+        slot = slot.use,
+        do.sparse = !use.scale
       )
       genes.intersect <- intersect(x = genes.use, y = rownames(x = data.assay))
       new.data <- data.assay[genes.intersect, cells.ordered]
