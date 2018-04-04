@@ -8,7 +8,8 @@
 \usage{
 GetAssayData(object, ...)
 
-\method{GetAssayData}{seurat}(object, assay.type = "RNA", slot = "data")
+\method{GetAssayData}{seurat}(object, assay.type = "RNA", slot = "data",
+  ...)
 
 \method{GetAssayData}{loom}(object, slot = "data", cells.use = NULL,
   genes.use = NULL, cell.names = "col_attrs/cell_names",

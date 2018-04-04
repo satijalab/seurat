@@ -23,7 +23,7 @@ assay <- setClass(
 #' @export GetAssayData.seurat
 #' @method GetAssayData seurat
 #'
-GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data") {
+GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data", ...) {
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
       to.return <- object@raw.data
@@ -65,6 +65,7 @@ GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data") {
 #' @param display.progress Show progress bar?
 #' @param do.sparse Return matrix as a sparse matrix (default is TRUE).
 #'
+#' @importFrom Matrix Matrix
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @describeIn GetAssayData Get assay data from a Seurat object
@@ -97,26 +98,33 @@ GetAssayData.loom <- function(
       stop(paste("Unknown dataset:", slot))
     )
   }
+  if (is.character(x = cells.use)) {
+    if (is.null(x = cell.names)) {
+      stop("Cannot find cells to use without a cell names dataset specified")
+    }
+    cells.use <- match(x = cells.use, table = object[[cell.names]][])
+  }
+  cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
+  cells.use <- sort(x = cells.use)
+  if (is.character(x = genes.use)) {
+    if (is.null(x = genes.use)) {
+      stop("Cannot find genes to use without a gene names dataset specified")
+    }
+    genes.use <- match(x = genes.use, table = object[[gene.names]][])
+  }
+  genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
+  genes.use <- sort(x = genes.use)
   batch <- object$batch.scan(
     chunk.size = chunk.size,
     dataset.use = dataset.use,
     force.reset = TRUE
   )
-  cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
-  genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
-  if (do.sparse) {
-    data.return <- Matrix(
-      0,
-      nrow = length(x = genes.use),
-      ncol = length(x = cells.use),
-      sparse = TRUE
-    )
-  } else {
-    data.return <- matrix(
-      nrow = length(x = genes.use),
-      ncol = length(x = cells.use)
-    )
-  }
+  data.return <- Matrix(
+    data = 0,
+    nrow = length(x = genes.use),
+    ncol = length(x = cells.use),
+    sparse = do.sparse
+  )
   if (display.progress) {
     pb <- txtProgressBar(char = '=', style = 3)
   }
@@ -133,11 +141,11 @@ GetAssayData.loom <- function(
     indices.use <- indices.use - chunk.indices[1] + 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]
     chunk.data <- chunk.data[indices.use, genes.use]
+    chunk.data <- t(x = chunk.data)
     if (do.sparse) {
-      chunk.data <- as(t(x = chunk.data), "dgCMatrix")
+      chunk.data <- as(object = chunk.data, "dgCMatrix")
       data.return <- FillSparseMat(sub_mat = chunk.data, full_mat = data.return, idx = indices.return[1] - 1)
     } else {
-      chunk.data <- t(x = chunk.data)
       data.return[, indices.return] <- chunk.data
     }
     if (display.progress) {
