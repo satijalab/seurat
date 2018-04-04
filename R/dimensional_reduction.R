@@ -143,7 +143,7 @@ RunPCA.seurat <- function(
 RunPCA.loom <- function(
   object,
   pcs.compute = 75,
-  genes.use = NULL,
+  pc.genes = NULL,
   online.pca = TRUE,
   covariance.mat = NULL,
   cells.initial = 50000,
@@ -161,7 +161,7 @@ RunPCA.loom <- function(
   display.progress = TRUE,
   ...
 ) {
-  if (is.null(genes.use)) {
+  if (is.null(pc.genes)) {
     if (!is.null(ngene)) {
       # Get variable genes
       ngene <- min(ngene, object$shape[1])
@@ -177,22 +177,22 @@ RunPCA.loom <- function(
       hvg.info$ratio <- exp(x = hvg.info$variance) / exp(x = hvg.info$means)
       hvg.info <- hvg.info[order(hvg.info$ratio, decreasing = TRUE), ]
       hvg.use <- rownames(x = hvg.info)[1:ngene]
-      genes.use <- which(x = data.names %in% hvg.use)
+      pc.genes <- which(x = data.names %in% hvg.use)
     } else {
-      genes.use <- which(x = object[[var.genes]][])
+      pc.genes <- which(x = object[[var.genes]][])
     }
-  } else if (is.character(x = genes.use)) {
-    genes.use <- sort(x = which(x = object[[gene.names]][] %in% genes.use))
-  } else if (is.numeric(x = genes.use)) {
-    genes.use <- sort(x = genes.use)
+  } else if (is.character(x = pc.genes)) {
+    pc.genes <- sort(x = which(x = object[[gene.names]][] %in% pc.genes))
+  } else if (is.numeric(x = pc.genes)) {
+    pc.genes <- sort(x = pc.genes)
   } else {
-    stop("'genes.use' must be a numeric vector, a character vector, or NULL")
+    stop("'pc.genes' must be a numeric vector, a character vector, or NULL")
   }
   if (online.pca) {
     # Prepare PCA data
     cells.use <- object[[scale.data]]$dims[1]
     cells.initial <- min(cells.initial, cells.use)
-    data <- object[[scale.data]][1:cells.initial, genes.use]
+    data <- object[[scale.data]][1:cells.initial, pc.genes]
     if (cells.use <= cells.initial) {
       # Small number of cells, just use irlba
       if (display.progress) {
@@ -208,7 +208,7 @@ RunPCA.loom <- function(
       if (display.progress) {
         cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')
       }
-      data <- object[[scale.data]][1:cells.initial, genes.use]
+      data <- object[[scale.data]][1:cells.initial, pc.genes]
       pca <- prcomp_irlba(x = data, n = pcs.compute)
       xbar <- pca$center
       sdev <- pca$sdev
@@ -236,7 +236,7 @@ RunPCA.loom <- function(
       }
       for (i in batch) {
         data <- object$batch.next()
-        data <- data[, genes.use]
+        data <- data[, pc.genes]
         for (j in 1:nrow(x = data)) {
           n <- iter.initial + j + (nrow(x = data) * (i - 1)) - 2
           xbar <- updateMean(
@@ -279,7 +279,7 @@ RunPCA.loom <- function(
       )
       for (i in batch) {
         chunk.indices <- object$batch.next(return.data = FALSE)
-        data <- object[[scale.data]][chunk.indices, genes.use]
+        data <- object[[scale.data]][chunk.indices, pc.genes]
         cell.embeddings[chunk.indices, ] <- data %*% pca$vectors
         if (display.progress) {
           setTxtProgressBar(pb = pb, value = i / length(x = batch))
@@ -295,7 +295,7 @@ RunPCA.loom <- function(
     cell.embeddings <- cell.embeddings
     gene.loadings <- if (nrow(x = gene.loadings) < object[['matrix']]$dims[2]) {
       gene.loadings.full <- matrix(nrow = object$shape[1], ncol = pcs.compute)
-      gene.loadings.full[genes.use, ] <- gene.loadings
+      gene.loadings.full[pc.genes, ] <- gene.loadings
       gene.loadings.full
     } else {
       gene.loadings
@@ -315,7 +315,7 @@ RunPCA.loom <- function(
         object = object,
         mat = scale.data,
         display.progress = display.progress,
-        rows.use = genes.use,
+        rows.use = pc.genes,
         row.names = gene.names
       )
     }
@@ -324,7 +324,7 @@ RunPCA.loom <- function(
       cat("Computing eigen decomposition\n", file = stderr())
     }
     pc.eigs <- eigen(covariance.mat)
-    genes.use <- which(x = object[[gene.names]][] %in% rownames(x = covariance.mat))
+    pc.genes <- which(x = object[[gene.names]][] %in% rownames(x = covariance.mat))
     pc.values <- matrix(nrow = object$shape[2], ncol = pcs.compute)
     sdev <- sqrt(pc.eigs$values[1:pcs.compute])
     batch <- object$batch.scan(
@@ -339,7 +339,7 @@ RunPCA.loom <- function(
     }
     for (i in 1:length(x = batch)) {
       current.batch <- object$batch.next(return.data = FALSE)
-      pc.values[current.batch, ] <- object[['layers/scale_data']][current.batch, genes.use] %*% pc.eigs$vectors[, 1:pcs.compute]
+      pc.values[current.batch, ] <- object[['layers/scale_data']][current.batch, pc.genes] %*% pc.eigs$vectors[, 1:pcs.compute]
       if (display.progress) {
         setTxtProgressBar(pb = pb, value = i / length(x = batch))
       }

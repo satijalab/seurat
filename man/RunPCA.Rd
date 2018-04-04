@@ -15,7 +15,7 @@ RunPCA(object, ...)
   reduction.name = "pca", reduction.key = "PC", assay.type = "RNA",
   seed.use = 42, ...)
 
-\method{RunPCA}{loom}(object, pcs.compute = 75, genes.use = NULL,
+\method{RunPCA}{loom}(object, pcs.compute = 75, pc.genes = NULL,
   online.pca = TRUE, covariance.mat = NULL, cells.initial = 50000,
   chunk.size = 1000, do.print = TRUE, pcs.print = 1:5, genes.print = 30,
   gene.names = "row_attrs/gene_names", gene.means = "row_attrs/gene_means",
