@@ -181,8 +181,7 @@ CalcUMI.loom <- function(
     MARGIN = 2,
     chunk.size = chunk.size,
     dataset.use = 'matrix',
-    display.progress = display.progress,
-    expected = 'vector'
+    display.progress = display.progress
   )
   if (display.progress) {
     cat("Calculating nGene\n", file = stderr())
@@ -195,7 +194,6 @@ CalcUMI.loom <- function(
     chunk.size = chunk.size,
     dataset.use = 'matrix',
     display.progress = display.progress,
-    expected = 'vector',
     is.expr = is.expr
   )
   if (!is.null(x = cells.use)) {
