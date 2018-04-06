@@ -128,6 +128,8 @@ GetAssayData.loom <- function(
   if (display.progress) {
     pb <- txtProgressBar(char = '=', style = 3)
   }
+  chunk.list <- list()
+  idx <- c()
   for (i in 1:length(x = batch)) {
     chunk.indices <- object$batch.next(return.data = FALSE)
     indices.use <- chunk.indices[chunk.indices %in% cells.use]
@@ -144,13 +146,17 @@ GetAssayData.loom <- function(
     chunk.data <- t(x = chunk.data)
     if (do.sparse) {
       chunk.data <- as(object = chunk.data, "dgCMatrix")
-      data.return <- FillSparseMat(sub_mat = chunk.data, full_mat = data.return, idx = indices.return[1] - 1)
+      chunk.list[[i]] <- chunk.data;
+      idx <- c(idx, indices.return[1] - 1)
     } else {
       data.return[, indices.return] <- chunk.data
     }
     if (display.progress) {
       setTxtProgressBar(pb = pb, value = i / length(x = batch))
     }
+  }
+  if (do.sparse) {
+    data.return <- FillSparseMat(chunk.list, idx)
   }
   if (display.progress) {
     close(con = pb)

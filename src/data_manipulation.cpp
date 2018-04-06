@@ -349,17 +349,23 @@ List UpdateCov(Eigen::MatrixXd batch_mat, Eigen::MatrixXd cov_mat, Eigen::Matrix
 }
 
 //[[Rcpp::export]]
-Eigen::SparseMatrix<double> FillSparseMat(Eigen::SparseMatrix<double> sub_mat, Eigen::SparseMatrix<double> full_mat, double idx) {
+Eigen::SparseMatrix<double> FillSparseMat(List matlist, std::vector<int> indices) {
+  int n = matlist.size();
   std::vector<T> tripletList;
-  tripletList.reserve(sub_mat.cols() * 1000);
-  for (int k=0; k<sub_mat.outerSize(); ++k){
-    for (Eigen::SparseMatrix<double>::InnerIterator it(sub_mat,k); it; ++it){
-      tripletList.push_back(T(it.row(), it.col() + idx, it.value()));
+  tripletList.reserve(n * indices.size() * 1000);
+  Eigen::SparseMatrix<double> sub_mat;
+  int num_cols = 0;
+  for(int i=0; i<n; ++i){
+    sub_mat = matlist[i];
+    num_cols += sub_mat.outerSize();
+    for (int k=0; k<sub_mat.outerSize(); ++k){
+      for (Eigen::SparseMatrix<double>::InnerIterator it(sub_mat,k); it; ++it) {
+        tripletList.push_back(T(it.row(), it.col() + indices[i], it.value()));
+      }
     }
   }
-  Eigen::SparseMatrix<double> mat(full_mat.rows(), full_mat.cols());
-  mat.setFromTriplets(tripletList.begin(), tripletList.end());
-  full_mat = full_mat + mat;
+  Eigen::SparseMatrix<double> full_mat(sub_mat.rows(), num_cols);
+  full_mat.setFromTriplets(tripletList.begin(), tripletList.end());
   return(full_mat);
 }
 

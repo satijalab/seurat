@@ -57,8 +57,8 @@ UpdateCov <- function(batch_mat, cov_mat, c1, n1, m1) {
     .Call('_Seurat_UpdateCov', PACKAGE = 'Seurat', batch_mat, cov_mat, c1, n1, m1)
 }
 
-FillSparseMat <- function(sub_mat, full_mat, idx) {
-    .Call('_Seurat_FillSparseMat', PACKAGE = 'Seurat', sub_mat, full_mat, idx)
+FillSparseMat <- function(matlist, indices) {
+    .Call('_Seurat_FillSparseMat', PACKAGE = 'Seurat', matlist, indices)
 }
 
 SparseRowSd <- function(mat) {
