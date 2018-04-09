@@ -16,6 +16,7 @@
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #' Note that for higher number of cores, larger free memory is needed.
+#' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
 #' represents p-values for each gene in the PCA analysis. If ProjectPCA is
@@ -42,7 +43,8 @@ JackStraw <- function(
   prop.freq = 0.01,
   display.progress = TRUE,
   do.par = FALSE,
-  num.cores = 1
+  num.cores = 1,
+  maxit = 500
 ) {
   if (is.null(object@dr$pca)) {
     stop("PCA has not been computed yet. Please run RunPCA().")
@@ -129,7 +131,8 @@ JackStraw <- function(
       r2.use = num.pc,
       seed.use = x,
       rev.pca = rev.pca,
-      weight.by.var = weight.by.var
+      weight.by.var = weight.by.var,
+      maxit = maxit
     )
   }
 
