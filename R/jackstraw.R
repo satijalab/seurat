@@ -44,7 +44,7 @@ JackStraw <- function(
   display.progress = TRUE,
   do.par = FALSE,
   num.cores = 1,
-  maxit = 500
+  maxit = 1000
 ) {
   if (is.null(object@dr$pca)) {
     stop("PCA has not been computed yet. Please run RunPCA().")
