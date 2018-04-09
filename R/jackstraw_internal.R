@@ -65,7 +65,7 @@ JackRandom <- function(
   seed.use = 1,
   rev.pca = FALSE,
   weight.by.var = weight.by.var,
-  maxit = 500
+  maxit = 1000
 ) {
   set.seed(seed = seed.use)
   rand.genes <- sample(
