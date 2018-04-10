@@ -104,16 +104,26 @@ GetAssayData.loom <- function(
     }
     cells.use <- match(x = cells.use, table = object[[cell.names]][])
   }
+  if (is.logical(x = cells.use)) {
+    cells.use <- which(x = cells.use)
+  }
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
-  cells.use <- sort(x = cells.use)
+  if (is.unsorted(cells.use)) {
+    stop("Cells to use must be in the same order as in object")
+  }
   if (is.character(x = genes.use)) {
     if (is.null(x = genes.use)) {
       stop("Cannot find genes to use without a gene names dataset specified")
     }
     genes.use <- match(x = genes.use, table = object[[gene.names]][])
   }
+  if (is.logical(x = genes.use)) {
+    genes.use <- which(x = genes.use)
+  }
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
-  genes.use <- sort(x = genes.use)
+  if (is.unsorted(genes.use)) {
+    stop("Genes to use must be in the same order as in object")
+  }
   batch <- object$batch.scan(
     chunk.size = chunk.size,
     dataset.use = dataset.use,
@@ -129,17 +139,19 @@ GetAssayData.loom <- function(
     pb <- txtProgressBar(char = '=', style = 3)
   }
   chunk.list <- list()
-  idx <- c()
+  idx <- c(1)
   for (i in 1:length(x = batch)) {
     chunk.indices <- object$batch.next(return.data = FALSE)
     indices.use <- chunk.indices[chunk.indices %in% cells.use]
-    if (length(x = indices.use) < 1) {
+    selected.cells <- length(x = indices.use)
+    if (selected.cells < 1) {
       if (display.progress) {
         setTxtProgressBar(pb = pb, value = i / length(x = batch))
       }
       next
     }
-    indices.return <- match(x = indices.use, table = cells.use)
+    #indices.return <- match(x = indices.use, table = cells.use)  # useful when cells.use is not ordered
+    indices.return <- idx[length(x = idx)]:(idx[length(x = idx)] + selected.cells - 1)
     indices.use <- indices.use - chunk.indices[1] + 1
     chunk.data <- object[[dataset.use]][chunk.indices, ]
     chunk.data <- chunk.data[indices.use, genes.use]
@@ -147,7 +159,7 @@ GetAssayData.loom <- function(
     if (do.sparse) {
       chunk.data <- as(object = chunk.data, "dgCMatrix")
       chunk.list[[i]] <- chunk.data;
-      idx <- c(idx, indices.return[1] - 1)
+      idx <- c(idx, indices.return[selected.cells] + 1)
     } else {
       data.return[, indices.return] <- chunk.data
     }
@@ -156,7 +168,7 @@ GetAssayData.loom <- function(
     }
   }
   if (do.sparse) {
-    data.return <- FillSparseMat(chunk.list, idx)
+    data.return <- FillSparseMat(chunk.list, idx - 1)
   }
   if (display.progress) {
     close(con = pb)
