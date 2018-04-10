@@ -78,7 +78,7 @@ GetDimReduction.loom <- function(
     if (length(x = dataset.use) != 1) {
       stop(paste("Cannot find", slot, "datset for", reduction.type))
     }
-  } else if (!grepl(pattern = dataset.use, x = object.datasets)) {
+  } else if (!object$exists(name = dataset.use)) {
     stop(paste("Cannot find dataset", dataset.use, "in the object"))
   }
   # Figure out which names we're working with
