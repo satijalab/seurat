@@ -153,8 +153,8 @@ GetAssayData.loom <- function(
     #indices.return <- match(x = indices.use, table = cells.use)  # useful when cells.use is not ordered
     indices.return <- idx[length(x = idx)]:(idx[length(x = idx)] + selected.cells - 1)
     indices.use <- indices.use - chunk.indices[1] + 1
-    chunk.data <- object[[dataset.use]][chunk.indices, ]
-    chunk.data <- chunk.data[indices.use, genes.use]
+    chunk.data <- object[[dataset.use]][chunk.indices, , drop = FALSE]
+    chunk.data <- chunk.data[indices.use, genes.use, drop = FALSE]
     chunk.data <- t(x = chunk.data)
     if (do.sparse) {
       chunk.data <- as(object = chunk.data, "dgCMatrix")
