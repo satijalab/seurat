@@ -1025,7 +1025,7 @@ NegBinomRegDETest <- function(
   rownames(res) <- genes.use
   res <- as.data.frame(x = res)
   res$adj.pval <- p.adjust(p = res$pval, method='fdr')
-  res <- res[order(res$pval, -abs(x = res$log.fc)), ]
+  res <- res[order(res$pval, -abs(x = res$log2.fc)), ]
   return(res)
 }
 
