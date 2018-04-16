@@ -126,6 +126,14 @@ GetAssayData.loom <- function(
     sparse = do.sparse
   )
   if (display.progress) {
+    cat(
+        "Pulling",
+        length(x = cells.use),
+        "cells and",
+        length(x = genes.use),
+        "genes from",
+        dataset.use
+    )
     pb <- txtProgressBar(char = '=', style = 3)
   }
   chunk.list <- list()
