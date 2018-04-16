@@ -116,7 +116,8 @@ DoTSNE <- function(
   ...
 ) {
   if (!is.null(x = distance.matrix)) {
-    genes.use <- rownames(x = object@data)
+    # genes.use <- rownames(x = object@data)
+    genes.use <- GetGenes(object = object, use.scaled = FALSE)
   }
   if (is.null(x = genes.use)) {
     data.use <- GetDimReduction(
