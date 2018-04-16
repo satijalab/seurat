@@ -5,7 +5,7 @@
 \title{Determine statistical significance of PCA scores.}
 \usage{
 JackStraw(object, num.pc = 20, num.replicate = 100, prop.freq = 0.01,
-  display.progress = TRUE, do.par = FALSE, num.cores = 1)
+  display.progress = TRUE, do.par = FALSE, num.cores = 1, maxit = 1000)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -25,6 +25,8 @@ If set to TRUE, will use half of the machines available cores (FALSE by default)
 
 \item{num.cores}{If do.par = TRUE, specify the number of cores to use.
 Note that for higher number of cores, larger free memory is needed.}
+
+\item{maxit}{maximum number of iterations to be performed by the irlba function of RunPCA}
 }
 \value{
 Returns a Seurat object where object@dr$pca@jackstraw@emperical.p.value
