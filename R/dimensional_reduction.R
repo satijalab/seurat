@@ -192,7 +192,16 @@ RunPCA.loom <- function(
     # Prepare PCA data
     cells.use <- object[[scale.data]]$dims[1]
     cells.initial <- min(cells.initial, cells.use)
-    data <- object[[scale.data]][1:cells.initial, pc.genes]
+    # data <- object[[scale.data]][1:cells.initial, pc.genes]
+    data <- GetAssayData(
+      object = object,
+      slot = 'scale.data',
+      cells.use = 1:cells.initial,
+      genes.use = pc.genes,
+      chunk.size = cells.initial,
+      do.sparse = FALSE,
+      display.progress = display.progress
+    )
     if (cells.use <= cells.initial) {
       # Small number of cells, just use irlba
       if (display.progress) {
@@ -208,7 +217,7 @@ RunPCA.loom <- function(
       if (display.progress) {
         cat("Running intial PCA using", cells.initial, "cells\n", sep = ' ')
       }
-      data <- object[[scale.data]][1:cells.initial, pc.genes]
+      # data <- object[[scale.data]][1:cells.initial, pc.genes]
       pca <- prcomp_irlba(x = data, n = pcs.compute)
       xbar <- pca$center
       sdev <- pca$sdev
@@ -279,6 +288,15 @@ RunPCA.loom <- function(
       )
       for (i in batch) {
         chunk.indices <- object$batch.next(return.data = FALSE)
+        data <- GetAssayData(
+          object = object,
+          slot = 'scale.data',
+          cells.use = chunk.indices,
+          genes.use = pc.genes,
+          chunk.size = chunk.size,
+          do.sparse = FALSE,
+          display.progress = display.progress
+        )
         data <- object[[scale.data]][chunk.indices, pc.genes]
         cell.embeddings[chunk.indices, ] <- data %*% pca$vectors
         if (display.progress) {
