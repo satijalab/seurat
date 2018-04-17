@@ -723,12 +723,18 @@ FetchData.loom <- function(
       object = object,
       slot = slot.use,
       cells.use = cells.use,
-      genes.use = match(x = vars.all, table = gene.names)
+      genes.use = match(x = vars.all, table = gene.names),
+      cell.names = cell.names.dset,
+      gene.names = gene.names.dset,
+      chunk.size = 100,
+      MARGIN = 1,
+      do.sparse = FALSE
     )
-    data.expression <- t(x = data.expression)
+    data.expression <- t(x = as.matrix(x = data.expression))
   } else {
     data.expression <- as.matrix(x = data.frame(row.names = cell.names[cells.use]))
   }
+  data.expression <- data.expression[rownames(x = data.return), , drop = FALSE]
   data.return <- cbind(data.return, data.expression)
   vars.left <- vars.all[!gene.check]
   continue <- length(x = vars.left) > 0
@@ -756,7 +762,7 @@ FetchData.loom <- function(
       gene.names = gene.names.dset,
       cell.names = cell.names.dset
     )
-    cell.embeddings <- cell.embeddings[cells.use, pcs.use, drop = FALSE]
+    cell.embeddings <- cell.embeddings[rownames(x = data.return), pcs.use, drop = FALSE]
     data.return <- cbind(data.return, cell.embeddings)
     continue <- length(x = vars.left) > 0
   }
@@ -784,7 +790,7 @@ FetchData.loom <- function(
       gene.names = gene.names.dset,
       cell.names = cell.names.dset
     )
-    cell.embeddings <- cell.embeddings[cells.use, tsne.use, drop = FALSE]
+    cell.embeddings <- cell.embeddings[rownames(x = data.return), tsne.use, drop = FALSE]
     data.return <- cbind(data.return, cell.embeddings)
     continue <- length(x = vars.left) > 0
   }
@@ -792,13 +798,15 @@ FetchData.loom <- function(
     vars.dsets <- which(x = vars.left %in% list.datasets(object = object[['col_attrs']]))
     dsets.use <- vars.left[vars.dsets]
     vars.left <- vars.left[-vars.dsets]
+    attr.df <- object$get.attribute.df(
+      attribute.layer = 'col',
+      attribute.names = dsets.use,
+      col.names = basename(path = cell.names.dset)
+    )
+    attr.df <- attr.df[rownames(x = data.return), , drop = FALSE]
     data.return <- cbind(
       data.return,
-      object$get.attribute.df(
-        attribute.layer = 'col',
-        attribute.names = dsets.use,
-        col.names = basename(path = cell.names.dset)
-      )
+      attr.df
     )
     continue <- length(x = vars.left) > 0
   }
