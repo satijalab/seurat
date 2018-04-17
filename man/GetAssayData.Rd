@@ -13,7 +13,7 @@ GetAssayData(object, ...)
 
 \method{GetAssayData}{loom}(object, slot = "data", cells.use = NULL,
   genes.use = NULL, cell.names = "col_attrs/cell_names",
-  gene.names = "row_attrs/gene_names", chunk.size = 1000,
+  gene.names = "row_attrs/gene_names", chunk.size = 1000, MARGIN = 2,
   display.progress = TRUE, do.sparse = TRUE, ...)
 }
 \arguments{
@@ -32,6 +32,8 @@ GetAssayData(object, ...)
 \item{gene.names}{Path to gene names, set to \code{NULL} to skip}
 
 \item{chunk.size}{What size to chunk the cells on?}
+
+\item{MARGIN}{Chunk over cells (2) or genes (1), defaults to 2}
 
 \item{display.progress}{Show progress bar?}
 

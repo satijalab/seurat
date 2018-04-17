@@ -62,6 +62,7 @@ GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data", ...) 
 #' @param cell.names Path to cell names, set to \code{NULL} to skip
 #' @param gene.names Path to gene names, set to \code{NULL} to skip
 #' @param chunk.size What size to chunk the cells on?
+#' @param MARGIN Chunk over cells (2) or genes (1), defaults to 2
 #' @param display.progress Show progress bar?
 #' @param do.sparse Return matrix as a sparse matrix (default is TRUE).
 #'
@@ -80,6 +81,7 @@ GetAssayData.loom <- function(
   cell.names = 'col_attrs/cell_names',
   gene.names = 'row_attrs/gene_names',
   chunk.size = 1000,
+  MARGIN = 2,
   display.progress = TRUE,
   do.sparse = TRUE,
   ...
@@ -97,6 +99,9 @@ GetAssayData.loom <- function(
       'scale.data' = 'layers/scale_data',
       stop(paste("Unknown dataset:", slot))
     )
+  }
+  if (!MARGIN %in% c(1, 2)) {
+    stop("'MARGIN' must be either '1' (genes) or '2' (cells)")
   }
   if (is.character(x = cells.use)) {
     if (is.null(x = cell.names)) {
@@ -126,6 +131,7 @@ GetAssayData.loom <- function(
   }
   batch <- object$batch.scan(
     chunk.size = chunk.size,
+    MARGIN = MARGIN,
     dataset.use = dataset.use,
     force.reset = TRUE
   )
@@ -150,7 +156,11 @@ GetAssayData.loom <- function(
   idx <- c(1)
   for (i in 1:length(x = batch)) {
     chunk.indices <- object$batch.next(return.data = FALSE)
-    indices.use <- chunk.indices[chunk.indices %in% cells.use]
+    indices.use <- switch(
+      EXPR = MARGIN,
+      '1' = chunk.indices[chunk.indices %in% genes.use],
+      '2' = chunk.indices[chunk.indices %in% cells.use]
+    )
     selected.cells <- length(x = indices.use)
     if (selected.cells < 1) {
       if (display.progress) {
@@ -158,25 +168,44 @@ GetAssayData.loom <- function(
       }
       next
     }
-    #indices.return <- match(x = indices.use, table = cells.use)  # useful when cells.use is not ordered
     indices.return <- idx[length(x = idx)]:(idx[length(x = idx)] + selected.cells - 1)
     indices.use <- indices.use - chunk.indices[1] + 1
-    chunk.data <- object[[dataset.use]][chunk.indices, , drop = FALSE]
-    chunk.data <- chunk.data[indices.use, genes.use, drop = FALSE]
+    chunk.data <- switch(
+      EXPR = MARGIN,
+      '1' = {
+        x <- object[[dataset.use]][, chunk.indices, drop = FALSE]
+        x[cells.use, indices.use, drop = FALSE]
+      },
+      '2' = {
+        x <- object[[dataset.use]][chunk.indices, , drop = FALSE]
+        x[indices.use, genes.use, drop = FALSE]
+      }
+    )
     chunk.data <- t(x = chunk.data)
     if (do.sparse) {
-      chunk.data <- as(object = chunk.data, "dgCMatrix")
-      chunk.list[[i]] <- chunk.data;
-      idx <- c(idx, indices.return[selected.cells] + 1)
+      chunk.data <- as(object = chunk.data, Class = "dgCMatrix")
+      chunk.list[[i]] <- switch(
+        EXPR = MARGIN,
+        '1' = t(x = chunk.data),
+        '2' = chunk.data
+      )
+    } else if (MARGIN == 1) {
+      data.return[indices.return, ] <- chunk.data
     } else {
       data.return[, indices.return] <- chunk.data
     }
     if (display.progress) {
       setTxtProgressBar(pb = pb, value = i / length(x = batch))
     }
+    gc(verbose = FALSE)
+    idx <- c(idx, indices.return[selected.cells] + 1)
   }
   if (do.sparse) {
+    chunk.list <- Filter(f = Negate(f = is.null), x = chunk.list)
     data.return <- FillSparseMat(chunk.list, idx - 1)
+    if (MARGIN == 1) {
+      data.return <- t(x = data.return)
+    }
   }
   if (display.progress) {
     close(con = pb)
