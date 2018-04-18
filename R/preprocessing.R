@@ -1052,7 +1052,7 @@ FindVariableGenes.loom <- function(
 #'
 GetVariableGenes.loom <- function(object) {
   hvg.info <- object$get.attribute.df(
-    attribute.layer = 'row',
+    MARGIN = 1,
     attribute.names = c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled'),
     row.names = 'gene_names'
   )

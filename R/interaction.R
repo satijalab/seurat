@@ -799,7 +799,8 @@ FetchData.loom <- function(
     dsets.use <- vars.left[vars.dsets]
     vars.left <- vars.left[-vars.dsets]
     attr.df <- object$get.attribute.df(
-      attribute.layer = 'col',
+      # attribute.layer = 'col',
+      MARGIN = 1,
       attribute.names = dsets.use,
       col.names = basename(path = cell.names.dset)
     )
@@ -1674,8 +1675,8 @@ setMethod(
     mat <- GetAssayData.loom(object=object, slot='raw.data', cells.use=cells.use, chunk.size=chunk.size)
 
     # get meta data
-    meta.data <- object$get.attribute.df(attribute.layer = 'col')[cells.use, ]
-    gene.attrs <- object$get.attribute.df(attribute.layer = 'row')
+    meta.data <- object$get.attribute.df(MARGIN = 2)[cells.use, ]
+    gene.attrs <- object$get.attribute.df(MARGIN = 1)
 
     if (return.type == "seurat") {
       new.object <- CreateSeuratObject(raw.data = as(mat, "dgCMatrix"))
