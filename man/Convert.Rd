@@ -9,7 +9,7 @@
 Convert(from, ...)
 
 \method{Convert}{seurat}(from, to, filename, chunk.dims = "auto",
-  chunk.size = 1000, overwrite = FALSE)
+  chunk.size = 1000, overwrite = FALSE, display.progress = TRUE)
 
 \method{Convert}{loom}(from, to, raw.data = "matrix",
   gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
@@ -31,6 +31,8 @@ Convert(from, ...)
 \item{chunk.size}{Number of cells to stream to loom file at a time}
 
 \item{overwrite}{Overwrite existing file at \code{filename}?}
+
+\item{display.progress}{Display a progress bar}
 
 \item{raw.data}{Path to raw data matrix (required)}
 

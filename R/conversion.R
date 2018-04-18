@@ -21,6 +21,7 @@ Convert <- function(from, ...) {
 #' @param chunk.dims Internal HDF5 chunk size
 #' @param chunk.size Number of cells to stream to loom file at a time
 #' @param overwrite Overwrite existing file at \code{filename}?
+#' @param display.progress Display a progress bar
 #'
 #' @describeIn Convert Convert a Seurat object
 #' @export Convert.seurat
@@ -32,7 +33,8 @@ Convert.seurat <- function(
   filename,
   chunk.dims = 'auto',
   chunk.size = 1000,
-  overwrite = FALSE
+  overwrite = FALSE,
+  display.progress = TRUE
 ) {
   object.to <- switch(
     EXPR = to,
@@ -46,7 +48,8 @@ Convert.seurat <- function(
         layers = list('norm_data' = t(x = from@data[, cell.order])),
         chunk.dims = chunk.dims,
         chunk.size = chunk.size,
-        overwrite = overwrite
+        overwrite = overwrite,
+        display.progress = display.progress
       )
       if (nrow(x = from@hvg.info) > 0) {
         hvg.info <- from@hvg.info
