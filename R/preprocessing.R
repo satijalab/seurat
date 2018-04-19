@@ -666,14 +666,14 @@ SampleUMI <- function(
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
   }
-  return(
-    RunUMISamplingPerCell(
-      data = data,
-      sample_val = max.umi,
-      upsample = upsample,
-      display_progress = progress.bar
-    )
+  new_data = RunUMISamplingPerCell(
+    data = data,
+    sample_val = max.umi,
+    upsample = upsample,
+    display_progress = progress.bar
   )
+  dimnames(new_data) = dimnames(data)
+  return( new_data ) 
 }
 
 #' Identify variable genes
