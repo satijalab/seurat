@@ -672,8 +672,8 @@ SampleUMI <- function(
     upsample = upsample,
     display_progress = progress.bar
   )
-  dimnames(new_data) = dimnames(data)
-  return( new_data ) 
+  dimnames(new_data) <- dimnames(data)
+  return(new_data) 
 }
 
 #' Identify variable genes
