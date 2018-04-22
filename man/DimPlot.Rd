@@ -21,7 +21,8 @@ DimPlot(object, ...)
   ident.use = NULL, dim.1 = 1, dim.2 = 2, cells.use = NULL,
   pt.size = 1, do.return = FALSE, do.bare = FALSE, cols.use = NULL,
   do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
-  dark.theme = FALSE)
+  dark.theme = FALSE, vector.friendly = FALSE, png.file = NULL,
+  png.arguments = c(10, 10, 100), ...)
 }
 \arguments{
 \item{object}{Object to plot}

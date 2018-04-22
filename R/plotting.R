@@ -2538,8 +2538,40 @@ DimPlot.loom <- function(
   label.size = 4,
   no.legend = FALSE,
   no.axes = FALSE,
-  dark.theme = FALSE
+  dark.theme = FALSE,
+  vector.friendly = FALSE,
+  png.file = NULL,
+  png.arguments = c(10,10, 100),
+  ...
 ) {
+  #first, consider vector friendly case
+  if (vector.friendly) {
+    previous_call <- blank_call <- png_call <-  match.call()
+    blank_call$pt.size <- -1
+    blank_call$do.return <- TRUE
+    blank_call$vector.friendly <- FALSE
+    png_call$no.axes <- TRUE
+    png_call$no.legend <- TRUE
+    png_call$do.return <- TRUE
+    png_call$vector.friendly <- FALSE
+    blank_plot <- eval(blank_call, sys.frame(sys.parent()))
+    png_plot <- eval(png_call, sys.frame(sys.parent()))
+    png.file <- SetIfNull(png.file,"temp_png.png")
+    # browser()
+    ggsave(
+      filename = png.file,
+      plot = png_plot,
+      width = png.arguments[1],
+      height = png.arguments[2],
+      dpi = png.arguments[3]
+    )
+    to_return <- AugmentPlot(plot1 = blank_plot, imgFile = png.file)
+    if (do.return) {
+      return(to_return)
+    } else {
+      print(to_return)
+    }
+  }
   reduction.type <- strsplit(x = reduction.use, split = '_')[[1]][1]
   key <- switch(
     EXPR = tolower(x = reduction.type),
