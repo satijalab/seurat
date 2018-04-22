@@ -132,22 +132,6 @@ ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
 }
 
-#' Calculate nUMI and nGene
-#'
-#' @param object An object
-#' @param cells.use Optional numeric vector of cells to include
-#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
-#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
-#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
-#' values less than this will be set to 0 (though maintained in object@raw.data).
-#'
-#' @rdname CalcUMI
-#' @export CalcUMI
-#'
-CalcUMI <- function(object, ...) {
-  UseMethod(generic = 'CalcUMI', object = object)
-}
-
 #' Get the variable genes dataframe
 #'
 #' @param object An object

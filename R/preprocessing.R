@@ -153,58 +153,6 @@ CreateSeuratObject <- function(
   return(object)
 }
 
-#' @param chunk.size Number of cells to chunk over
-#' @param display.progres Display a progress bar?
-#' @param overwrite Overwrite existing datasets?
-#'
-#' @return Stores nUMI in \code{col_attrs/nUMI}; stores nGene in \code{col_attrs/nGene}
-#'
-#' @importFrom Matrix rowSums
-#'
-#' @describeIn CalcUMI Calculate nUMI and nGene in loom objects
-#' @export CalcUMI.loom
-#' @method CalcUMI loom
-#'
-CalcUMI.loom <- function(
-  object,
-  cells.use = NULL,
-  is.expr = 0,
-  chunk.size = 1000,
-  display.progress = TRUE,
-  overwrite = FALSE
-) {
-  if (display.progress) {
-    cat("Calculating nUMI\n", file = stderr())
-  }
-  numi <- object$map(
-    FUN = rowSums,
-    MARGIN = 2,
-    chunk.size = chunk.size,
-    dataset.use = 'matrix',
-    display.progress = display.progress
-  )
-  if (display.progress) {
-    cat("Calculating nGene\n", file = stderr())
-  }
-  ngene <- object$map(
-    FUN = function(mat, is.expr) {
-      return(rowSums(x = mat > is.expr))
-    },
-    MARGIN = 2,
-    chunk.size = chunk.size,
-    dataset.use = 'matrix',
-    display.progress = display.progress,
-    is.expr = is.expr
-  )
-  if (!is.null(x = cells.use)) {
-    numi[-cells.use] <- NA
-    ngene[-cells.use] <- NA
-  }
-  attrs.add <- list('nUMI' = numi, 'nGene' = ngene)
-  object$add.col.attribute(attribute = attrs.add, overwrite = overwrite)
-  invisible(x = object)
-}
-
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
