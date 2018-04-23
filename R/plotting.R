@@ -2284,6 +2284,7 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
 #' @param cells.highlight A character or numeric vector of cells to highlight. If set, colors selected cells red and other cells black (white if dark.theme = TRUE)
+#' @param size.highlight Size of highlighted cells
 #' @param plot.title Title for plot
 #' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
 #' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
@@ -2328,6 +2329,7 @@ DimPlot <- function(
   dark.theme = FALSE,
   plot.order = NULL,
   cells.highlight = NULL,
+  size.highlight = 1,
   plot.title = NULL,
   vector.friendly = FALSE,
   png.file = NULL,
@@ -2412,6 +2414,7 @@ DimPlot <- function(
       )
       highlight <- as.factor(x = highlight)
       data.plot$ident <- highlight
+      data.plot[cells.highlight, 'pt.size'] <- size.highlight
       plot.order <- 'highlight'
       cols.use <- c('black', 'red')
       if (dark.theme) {
@@ -2432,7 +2435,7 @@ DimPlot <- function(
     data.plot <- data.plot[order(data.plot$ident), ]
   }
   p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-    geom_point(mapping = aes(colour = factor(x = ident)), size = pt.size)
+    geom_point(mapping = aes(colour = factor(x = ident)), size = data.plot$pt.size)
   if (!is.null(x = pt.shape)) {
     shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
     if (is.numeric(shape.val)) {

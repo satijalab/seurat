@@ -10,8 +10,8 @@ DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   do.label = FALSE, label.size = 4, no.legend = FALSE, no.axes = FALSE,
   dark.theme = FALSE, plot.order = NULL, cells.highlight = NULL,
-  plot.title = NULL, vector.friendly = FALSE, png.file = NULL,
-  png.arguments = c(10, 10, 100), ...)
+  size.highlight = 1, plot.title = NULL, vector.friendly = FALSE,
+  png.file = NULL, png.arguments = c(10, 10, 100), ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -61,6 +61,8 @@ useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top).}
 
 \item{cells.highlight}{A character or numeric vector of cells to highlight. If set, colors selected cells red and other cells black (white if dark.theme = TRUE)}
+
+\item{size.highlight}{Size of highlighted cells}
 
 \item{plot.title}{Title for plot}
 
