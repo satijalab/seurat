@@ -2283,8 +2283,11 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param plot.order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
-#' @param cells.highlight A character or numeric vector of cells to highlight. If set, colors selected cells red and other cells black (white if dark.theme = TRUE)
-#' @param size.highlight Size of highlighted cells
+#' @param cells.highlight A list of character or numeric vectors of cells to highlight. If only one group of cells desired, can simply
+#' pass a vector instead of a list. If set, colors selected cells to the color(s) in \code{cols.highlight} and other cells black
+#' (white if dark.theme = TRUE); will also resize to the size(s) passed to \code{sizes.highlight}
+#' @param cols.highlight A vector of colors to highlight the cells as; will repeat to the length groups in cells.highlight
+#' @param sizes.highlight Size of highlighted cells; will repeat to the length groups in cells.highlight
 #' @param plot.title Title for plot
 #' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
 #' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
@@ -2329,7 +2332,8 @@ DimPlot <- function(
   dark.theme = FALSE,
   plot.order = NULL,
   cells.highlight = NULL,
-  size.highlight = 1,
+  cols.highlight = 'red',
+  sizes.highlight = 1,
   plot.title = NULL,
   vector.friendly = FALSE,
   png.file = NULL,
@@ -2397,30 +2401,59 @@ DimPlot <- function(
   data.plot$pt.size <- pt.size
   if (!is.null(x = cells.highlight)) {
     # Ensure that cells.highlight are in our data.frame
-    if (is.character(x = cells.highlight)) {
-      cells.highlight <- cells.highlight[cells.highlight %in% rownames(x = data.plot)]
-    } else {
-      cells.highlight <- as.numeric(x = cells.highlight)
-      cells.highlight <- cells.highlight[cells.highlight <= nrow(x = data.plot)]
-      cells.highlight <- rownames(x = data.plot)[cells.highlight]
+    if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
+      cells.highlight <- as.list(x = cells.highlight)
     }
+    cells.highlight <- lapply(
+      X = cells.highlight,
+      FUN = function(cells) {
+        cells.return <- if (is.character(x = cells)) {
+          cells[cells %in% rownames(x = data.plot)]
+        } else {
+          cells <- as.numeric(x = cells)
+          cells <- cells[cells <= nrow(x = data.plot)]
+          rownames(x = data.plot)[cells]
+        }
+        return(cells.return)
+      }
+    )
+    # Remove groups that had no cells in our dataframe
+    cells.highlight <- Filter(f = length, x = cells.highlight)
     if (length(x = cells.highlight) > 0) {
-      highlight <- vapply(
-        X = rownames(x = data.plot),
-        FUN = function(x) {
-          return(ifelse(test = x %in% cells.highlight, yes = 'highlight', no = 'nope'))
-        },
-        FUN.VALUE = character(length = 1L)
+      if (!no.legend) {
+        no.legend <- is.null(x = names(x = cells.highlight))
+      }
+      names.highlight <- if (is.null(x = names(x = cells.highlight))) {
+        paste0('Group_', 1L:length(x = cells.highlight))
+      } else {
+        names(x = cells.highlight)
+      }
+      sizes.highlight <- rep_len(
+        x = sizes.highlight,
+        length.out = length(x = cells.highlight)
       )
+      cols.highlight <- rep_len(
+        x = cols.highlight,
+        length.out = length(x = cells.highlight)
+      )
+      highlight <- rep_len(x = NA_character_, length.out = nrow(x = data.plot))
+      cols.use <- c('black', cols.highlight)
+      size <- rep_len(x = pt.size, length.out = nrow(x = data.plot))
+      for (i in 1:length(x = cells.highlight)) {
+        cells.check <- cells.highlight[[i]]
+        index.check <- match(x = cells.check, rownames(x = data.plot))
+        highlight[index.check] <- names.highlight[i]
+        size[index.check] <- sizes.highlight[i]
+      }
+      plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
+      plot.order[is.na(x = plot.order)] <- 'Unselected'
+      highlight[is.na(x = highlight)] <- 'Unselected'
       highlight <- as.factor(x = highlight)
       data.plot$ident <- highlight
-      data.plot[cells.highlight, 'pt.size'] <- size.highlight
-      plot.order <- 'highlight'
-      cols.use <- c('black', 'red')
+      data.plot$pt.size <- size
       if (dark.theme) {
         cols.use[1] <- 'white'
       }
-      no.legend <- TRUE
     }
   }
   if (!is.null(x = plot.order)) {
@@ -2435,7 +2468,7 @@ DimPlot <- function(
     data.plot <- data.plot[order(data.plot$ident), ]
   }
   p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-    geom_point(mapping = aes(colour = factor(x = ident)), size = data.plot$pt.size)
+    geom_point(mapping = aes(colour = factor(x = ident), size = pt.size))
   if (!is.null(x = pt.shape)) {
     shape.val <- FetchData(object = object, vars.all = pt.shape)[cells.use, 1]
     if (is.numeric(shape.val)) {
@@ -2443,18 +2476,20 @@ DimPlot <- function(
     }
     data.plot[, "pt.shape"] <- shape.val
     p <- ggplot(data = data.plot, mapping = aes(x = x, y = y)) +
-      geom_point(
-        mapping = aes(colour = factor(x = ident), shape = factor(x = pt.shape)),
+      geom_point(mapping = aes(
+        colour = factor(x = ident),
+        shape = factor(x = pt.shape),
         size = pt.size
-      )
+      ))
   }
   if (!is.null(x = cols.use)) {
     p <- p + scale_colour_manual(values = cols.use)
   }
+  p <- p + guides(size = FALSE)
   p2 <- p +
     xlab(label = dim.codes[[1]]) +
     ylab(label = dim.codes[[2]]) +
-    scale_size(range = c(pt.size, pt.size))
+    scale_size(range = c(min(data.plot$pt.size), max(data.plot$pt.size)))
   p3 <- p2 +
     SetXAxisGG() +
     SetYAxisGG() +
