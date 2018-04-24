@@ -2,6 +2,10 @@
 
 language: R
 sudo: required
+r: bioc-devel
+bioc_required: true
+bioc_use_devel: true
+
 r_binary_packages:
   - lars
   - mixtools
