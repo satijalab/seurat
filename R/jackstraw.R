@@ -90,32 +90,32 @@ JackStraw <- function(
   )[pc.genes,]
 
   # input checking for parallel options
-  if(do.par){
-    if(num.cores == 1){
+  if (do.par) {
+    if (num.cores == 1) {
       num.cores <- detectCores() / 2
     } else {
-      if(num.cores > detectCores()){
+      if (num.cores > detectCores()) {
         num.cores <- detectCores() - 1
         warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
       }
     }
   } else {
-    if(num.cores != 1){
+    if (num.cores != 1) {
       num.cores <- 1
       warning("For parallel processing, please set do.par to TRUE.")
     }
   }
 
-  cl<- parallel::makeCluster(num.cores)
+  cl <- parallel::makeCluster(num.cores)
 
   registerDoSNOW(cl)
 
-  if(display.progress) {
+  if (display.progress) {
     time_elapsed <- Sys.time()
   }
 
   opts <- list()
-  if(display.progress) {
+  if (display.progress) {
     # define progress bar function
     pb <- txtProgressBar(min = 0, max = num.replicate, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
@@ -123,7 +123,11 @@ JackStraw <- function(
     time_elapsed <- Sys.time()
   }
 
-  fake.pcVals.raw <- foreach(x = 1:num.replicate, .options.snow = opts) %dopar% {
+  fake.pcVals.raw <- foreach(
+    x = 1:num.replicate,
+    .options.snow = opts,
+    .export = c('JackRandom')
+  ) %dopar% {
     JackRandom(
       scaled.data = data.use.scaled,
       prop.use = prop.freq,
@@ -136,7 +140,7 @@ JackStraw <- function(
     )
   }
 
-  if(display.progress){
+  if (display.progress) {
     time_elapsed <- Sys.time() - time_elapsed
     cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed), "\n"))
     close(pb)
