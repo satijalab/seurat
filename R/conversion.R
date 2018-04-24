@@ -141,8 +141,18 @@ Convert.seurat <- function(
           stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
         }
       )
-      sce <- SingleCellExperiment(assays = list(counts = as.matrix(from@raw.data[, from@cell.names])))
-      assay(sce, "logcounts") <- from@data
+      if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
+        sce <- SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
+      } else {
+        sce <- SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
+      }
+
+      if (class(from@data) %in% c("matrix", "dgTMatrix")) {
+        assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
+      } else {
+        assay(sce, "logcounts") <- from@data
+      }
+
       colData(sce) <- DataFrame(from@meta.data)
       for (dr in names(from@dr)){
         reducedDim(sce, dr) <-
