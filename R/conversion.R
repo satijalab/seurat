@@ -152,13 +152,13 @@ Convert.seurat <- function(
       } else {
         assay(sce, "logcounts") <- from@data
       }
-
-      colData(sce) <- DataFrame(from@meta.data)
+      meta.data <- from@meta.data
+      meta.data$ident <- from@ident
+      colData(sce) <- DataFrame(meta.data)
       for (dr in names(from@dr)){
         reducedDim(sce, dr) <-
           slot(slot(from, "dr")[[dr]], "cell.embeddings")
       }
-      assay(sce, "scale.data") <- from@scale.data
       if (!all(dim(from@hvg.info) != c(0, 0))) {
         gene_data <- from@hvg.info
         rowData(sce) <- gene_data
@@ -170,6 +170,7 @@ Convert.seurat <- function(
   return(object.to)
 }
 
+#' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
 #' @describeIn Convert Convert from SingleCellExperiment to a Seurat object
@@ -179,27 +180,27 @@ Convert.seurat <- function(
 Convert.SingleCellExperiment <- function(
   from,
   to,
+  raw.data.slot = "counts",
   data.slot = "logcounts"
 ) {
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      raw.data <- counts(from)
-      assay.options <- c("counts", "normcounts", "logcounts", "cpm", "tpm")
-      if (! data.slot %in% assay.options) {
-        stop(paste0(data.slot, " not a valid SingleCellExperiment assay. Please choose one of: ", paste(assay.options, collapse = ", ")))
-      }
+      raw.data <- tryCatch(
+        expr = SummarizedExperiment::assay(from, raw.data.slot),
+        error = function(e) {
+          stop(paste0("No data in provided assay - ", raw.data.slot))
+        }
+      )
       data <- tryCatch(
-        expr = eval(parse(text = paste0(data.slot, "(from)"))),
+        expr = SummarizedExperiment::assay(from, data.slot),
         error = function(e) {
           stop(paste0("No data in provided assay - ", data.slot))
         }
       )
       meta.data <- as.data.frame(colData(from))
-      seurat.object <- new("seurat",
-                           raw.data = raw.data,
-                           data = data,
-                           meta.data = meta.data)
+      seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
+      seurat.object@data <- data
       if(length(reducedDimNames(from)) > 0) {
         for(dr in reducedDimNames(from)) {
           seurat.object <- SetDimReduction(object = seurat.object,

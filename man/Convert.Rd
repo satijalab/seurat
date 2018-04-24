@@ -3,12 +3,16 @@
 \name{Convert}
 \alias{Convert}
 \alias{Convert.seurat}
+\alias{Convert.SingleCellExperiment}
 \title{Convert Seurat objects to loom and vice versa}
 \usage{
 Convert(from, ...)
 
 \method{Convert}{seurat}(from, to, filename, chunk.dims = "auto",
   chunk.size = 1000, overwrite = FALSE, display.progress = TRUE)
+
+\method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
+  data.slot = "logcounts")
 }
 \arguments{
 \item{from}{Object to convert from}
@@ -24,6 +28,10 @@ Convert(from, ...)
 \item{overwrite}{Overwrite existing file at \code{filename}?}
 
 \item{display.progress}{Display a progress bar}
+
+\item{raw.data.slot}{name of the SingleCellExperiment assay to slot into @raw.data}
+
+\item{data.slot}{name of the SingleCellExperiment assay to slot into @data}
 }
 \value{
 An object of class \code{to}
@@ -34,5 +42,7 @@ Convert Seurat objects to loom and vice versa
 \section{Methods (by class)}{
 \itemize{
 \item \code{seurat}: Convert a Seurat object
+
+\item \code{SingleCellExperiment}: Convert from SingleCellExperiment to a Seurat object
 }}
 
