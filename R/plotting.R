@@ -2437,7 +2437,7 @@ DimPlot <- function(
         length.out = length(x = cells.highlight)
       )
       highlight <- rep_len(x = NA_character_, length.out = nrow(x = data.plot))
-      cols.use <- c('black', cols.highlight)
+      cols.use <- c(cols.use[1], cols.highlight)
       size <- rep_len(x = pt.size, length.out = nrow(x = data.plot))
       for (i in 1:length(x = cells.highlight)) {
         cells.check <- cells.highlight[[i]]
