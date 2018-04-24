@@ -159,3 +159,48 @@ Convert.seurat <- function(
   )
   return(object.to)
 }
+
+#' @param data.slot name of the SingleCellExperiment assay to slot into @@data
+#'
+#' @describeIn Convert Convert from SingleCellExperiment to a Seurat object
+#' @export Convert.SingleCellExperiment
+#' @method Convert SingleCellExperiment
+#'
+Convert.SingleCellExperiment <- function(
+  from,
+  to,
+  data.slot = "logcounts"
+) {
+  object.to <- switch(
+    EXPR = to,
+    'seurat' = {
+      raw.data <- counts(from)
+      assay.options <- c("counts", "normcounts", "logcounts", "cpm", "tpm")
+      if (! data.slot %in% assay.options) {
+        stop(paste0(data.slot, " not a valid SingleCellExperiment assay. Please choose one of: ", paste(assay.options, collapse = ", ")))
+      }
+      data <- tryCatch(
+        expr = eval(parse(text = paste0(data.slot, "(from)"))),
+        error = function(e) {
+          stop(paste0("No data in provided assay - ", data.slot))
+        }
+      )
+      meta.data <- as.data.frame(colData(from))
+      seurat.object <- new("seurat",
+                           raw.data = raw.data,
+                           data = data,
+                           meta.data = meta.data)
+      if(length(reducedDimNames(from)) > 0) {
+        for(dr in reducedDimNames(from)) {
+          seurat.object <- SetDimReduction(object = seurat.object,
+                                           reduction.type = dr,
+                                           slot = "cell.embeddings",
+                                           new.data = reducedDim(x = from, type = dr))
+        }
+      }
+      seurat.object
+    },
+    stop(paste0("Cannot convert SingleCellExperiment objects to class '", to, "'"))
+  )
+  return(object.to)
+}
