@@ -134,6 +134,27 @@ Convert.seurat <- function(
       }
       loomfile
     },
+    'sce' = {
+      tryCatch(
+        expr = library(SingleCellExperiment),
+        error = function(e) {
+          stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+        }
+      )
+      sce <- SingleCellExperiment(assays = list(counts = as.matrix(from@raw.data[, from@cell.names])))
+      assay(sce, "logcounts") <- from@data
+      colData(sce) <- DataFrame(from@meta.data)
+      for (dr in names(from@dr)){
+        reducedDim(sce, dr) <-
+          slot(slot(from, "dr")[[dr]], "cell.embeddings")
+      }
+      assay(sce, "scale.data") <- from@scale.data
+      if (!all(dim(from@hvg.info) != c(0, 0))) {
+        gene_data <- from@hvg.info
+        rowData(sce) <- gene_data
+      }
+      sce
+    },
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
   )
   return(object.to)
