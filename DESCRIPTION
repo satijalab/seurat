@@ -72,6 +72,7 @@ Collate:
     'cluster_determination.R'
     'cluster_determination_internal.R'
     'cluster_validation.R'
+    'conversion.R'
     'data.R'
     'deprecated_functions.R'
     'differential_expression.R'
