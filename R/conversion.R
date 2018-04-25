@@ -146,7 +146,6 @@ Convert.seurat <- function(
       } else {
         sce <- SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
       }
-
       if (class(from@data) %in% c("matrix", "dgTMatrix")) {
         assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
       } else {
@@ -155,8 +154,9 @@ Convert.seurat <- function(
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
       colData(sce) <- DataFrame(meta.data)
+      rowData(sce) <- DataFrame(from@hvg.info)
       for (dr in names(from@dr)){
-        reducedDim(sce, dr) <-
+        reducedDim(sce, toupper(dr)) <-
           slot(slot(from, "dr")[[dr]], "cell.embeddings")
       }
       if (!all(dim(from@hvg.info) != c(0, 0))) {
@@ -207,6 +207,10 @@ Convert.SingleCellExperiment <- function(
                                            reduction.type = dr,
                                            slot = "cell.embeddings",
                                            new.data = reducedDim(x = from, type = dr))
+          seurat.object <- SetDimReduction(object = seurat.object,
+                                           reduction.type = dr,
+                                           slot = "key",
+                                           new.data = dr)
         }
       }
       seurat.object
