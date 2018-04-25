@@ -1007,3 +1007,89 @@ RunDiffusion <- function(
   )
   return(object)
 }
+
+
+#' Run UMAP
+#'
+#' @param object Seurat object
+#' @param dims.use Which dimensions to use as input features
+#' @param genes.use If set, run UMAP on this subset of
+#' genes (instead of running on a set of reduced dimensions). Not set (NULL) by
+#' default
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
+#' UMAP input. Default is PCA
+#' @param max.dim Max dimension to keep from UMAP procedure. default is 2.
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. umap by default
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. UMAP by default
+#' @param n_neighbors This determines the number of neighboring points used in local approximations of manifold structure. Larger values will result in more global structure being preserved at the loss of detailed local structure. In general this parameter should often be in the range 5 to 50. Default is 10.
+#' @param min_dist min_dist: This controls how tightly the embedding is allowed compress points together. Larger values ensure embedded points are more evenly distributed, while smaller values allow the algorithm to optimise more accurately with regard to local structure. Sensible values are in the range 0.001 to 0.5. Default is 0.1
+#' @param metric metric: This determines the choice of metric used to measure distance in the input space. A wide variety of metrics are already coded, and a user defined function can be passed as long as it has been JITd by numba.
+#' @param ... Additional arguments to the umap 
+#'
+#' @return Returns a Seurat object containing a UMAP representation
+#'
+#' @import import
+#' @importFrom reticulate
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Run UMAP map on first 5 PCs
+#' pbmc_small <- RunUMAP(pbmc_small,dims.use=1:5)
+#' # Plot results
+#' DimPlot(pbmc_small,reduction.use="umap")
+#'
+RunUMAP <- function(
+  object,
+  cells.use = NULL,
+  dims.use = 1:5,
+  genes.use = NULL,
+  reduction.use = 'pca',
+  max.dim = 2,
+  reduction.name = "umap",
+  reduction.key = "UMAP",
+  n_neighbors = 30,
+  min_dist = 0.3,
+  metric = "correlation",
+  ...
+) {
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  if (is.null(x = genes.use)) {
+    dim.code <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = 'key'
+    )
+    dim.codes <- paste0(dim.code, dims.use)
+    data.use <- FetchData(object = object, vars.all = dim.codes)
+  }
+  if (! is.null(x = genes.use)) {
+    genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
+  }
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunUMAP"))]
+  object <- SetCalcParams(object = object,
+                          calculation = "RunUMAP",
+                          ... = parameters.to.store)
+  umap_import <- reticulate::import("umap")
+  #umap <- umap_import$UMAP(n_neighbors = n_neighbors, n_components = max.dim, metric = metric, min_dist = min_dist)
+  umap <- umap_import$UMAP(n_neighbors = as.integer(n_neighbors), n_components = as.integer(max.dim), metric = metric,min_dist = min_dist)
+
+  umap_output <- umap$fit_transform(as.matrix(data.use))
+  colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
+  rownames(x = umap_output) <- cells.use
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "cell.embeddings",
+    new.data = as.matrix(x = umap_output)
+  )
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "key",
+    new.data = reduction.key
+  )
+  return(object)
+}
+
