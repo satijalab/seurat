@@ -154,7 +154,9 @@ Convert.seurat <- function(
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
       colData(sce) <- DataFrame(meta.data)
-      rowData(sce) <- DataFrame(from@hvg.info)
+      row.data <- from@hvg.info[rownames(from@data), ]
+      row.data <- cbind(gene = rownames(from@data), row.data)
+      rowData(sce) <- DataFrame(row.data)
       for (dr in names(from@dr)){
         reducedDim(sce, toupper(dr)) <-
           slot(slot(from, "dr")[[dr]], "cell.embeddings")
@@ -165,6 +167,7 @@ Convert.seurat <- function(
       }
       sce
     },
+
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
   )
   return(object.to)
