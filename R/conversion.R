@@ -218,6 +218,8 @@ Convert.seurat <- function(
   return(object.to)
 }
 
+setAs("seurat", "SingleCellExperiment", function(from) Convert(from, "sce"))
+
 #' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
@@ -267,3 +269,5 @@ Convert.SingleCellExperiment <- function(
   )
   return(object.to)
 }
+
+setAs("SingleCellExperiment", "seurat", function(from) Convert(from, "seurat"))
