@@ -16,11 +16,13 @@ Convert <- function(from, ...) {
   UseMethod(generic = 'Convert', object = from)
 }
 
-#' @param filename Filename for writing loom files
+#' @param filename Filename for writing files
 #' @param chunk.dims Internal HDF5 chunk size
 #' @param chunk.size Number of cells to stream to loom file at a time
 #' @param overwrite Overwrite existing file at \code{filename}?
 #' @param display.progress Display a progress bar
+#' @param anndata.matrix Name of matrix (raw.data, data, scale.data) to write to
+#' anndata file.
 #'
 #' @describeIn Convert Convert a Seurat object
 #' @export Convert.seurat
@@ -33,7 +35,8 @@ Convert.seurat <- function(
   chunk.dims = 'auto',
   chunk.size = 1000,
   overwrite = FALSE,
-  display.progress = TRUE
+  display.progress = TRUE,
+  anndata.matrix = "data"
 ) {
   object.to <- switch(
     EXPR = to,
@@ -167,7 +170,27 @@ Convert.seurat <- function(
       }
       sce
     },
-
+    'anndata' = {
+      if (! py_module_available("anndata")) {
+        stop("Please install the anndata python module")
+      }
+      ad <- import("anndata")
+      X <- switch(
+        EXPR = anndata.matrix,
+        "raw.data" = from@raw.data,
+        "data" = from@data,
+        "scale.data" = from@scale.data,
+        stop("Invalid Seurat data slot. Please choose one of: raw.data, data, scale.data")
+      )
+      X <- np_array(t(X))
+      anndata.object <- ad$AnnData(X = X,
+                                   obs = from@meta.data,
+                                   var = from@hvg.info)
+      if (! missing(filename)) {
+        anndata.object$write(filename)
+      }
+      anndata.object
+    },
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
   )
   return(object.to)
