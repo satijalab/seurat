@@ -21,8 +21,8 @@ Convert <- function(from, ...) {
 #' @param chunk.size Number of cells to stream to loom file at a time
 #' @param overwrite Overwrite existing file at \code{filename}?
 #' @param display.progress Display a progress bar
-#' @param anndata.matrix Name of matrix (raw.data, data, scale.data) to write to
-#' anndata file.
+#' @param anndata.raw Name of matrix (raw.data, data) to put in the anndata raw slot
+#' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
 #' @describeIn Convert Convert a Seurat object
 #' @export Convert.seurat
@@ -36,7 +36,8 @@ Convert.seurat <- function(
   chunk.size = 1000,
   overwrite = FALSE,
   display.progress = TRUE,
-  anndata.matrix = "data"
+  anndata.raw = "raw.data",
+  anndata.X = "data"
 ) {
   object.to <- switch(
     EXPR = to,
@@ -171,20 +172,39 @@ Convert.seurat <- function(
         stop("Please install the anndata python module")
       }
       ad <- import("anndata")
-      X <- switch(
-        EXPR = anndata.matrix,
+
+      raw <- switch(
+        EXPR = anndata.raw,
         "raw.data" = from@raw.data,
         "data" = from@data,
-        "scale.data" = from@scale.data,
-        stop("Invalid Seurat data slot. Please choose one of: raw.data, data, scale.data")
+        stop("Invalid Seurat data slot. Please choose one of: raw.data, data")
       )
+
+      X <- switch(
+        EXPR = anndata.X,
+        "data" = from@data,
+        "scale.data" = from@scale.data,
+        stop("Invalid Seurat data slot. Please choose one of: data, scale.data")
+      )
+
+      if (class(raw) %in% c("matrix", "dgTMatrix")) {
+        raw <- as(raw, "dgCMatrix")
+      } else {
+        raw <- as(as.matrix(raw), "dgCMatrix")
+      }
+      scipy <- import('scipy.sparse')
+      sp_sparse_csc <- scipy$csc_matrix
+      raw.rownames <- rownames(raw)
+      raw <- sp_sparse_csc(tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)), shape = tuple(raw@Dim[1], raw@Dim[2]))
+      raw <- dict(X = raw, var = dict(var_names = raw.rownames))
       X <- np_array(t(X))
       obsm <- list()
       for (dr in names(from@dr)){
         obsm[[dr]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
       }
       obsm <- dict(obsm)
-      anndata.object <- ad$AnnData(X = X,
+      anndata.object <- ad$AnnData(raw = raw,
+                                   X = X,
                                    obs = from@meta.data,
                                    var = from@hvg.info,
                                    obsm = obsm)
