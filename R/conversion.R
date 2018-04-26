@@ -164,10 +164,6 @@ Convert.seurat <- function(
         reducedDim(sce, toupper(dr)) <-
           slot(slot(from, "dr")[[dr]], "cell.embeddings")
       }
-      if (!all(dim(from@hvg.info) != c(0, 0))) {
-        gene_data <- from@hvg.info
-        rowData(sce) <- gene_data
-      }
       sce
     },
     'anndata' = {
@@ -183,9 +179,15 @@ Convert.seurat <- function(
         stop("Invalid Seurat data slot. Please choose one of: raw.data, data, scale.data")
       )
       X <- np_array(t(X))
+      obsm <- list()
+      for (dr in names(from@dr)){
+        obsm[[dr]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
+      }
+      obsm <- dict(obsm)
       anndata.object <- ad$AnnData(X = X,
                                    obs = from@meta.data,
-                                   var = from@hvg.info)
+                                   var = from@hvg.info,
+                                   obsm = obsm)
       if (! missing(filename)) {
         anndata.object$write(filename)
       }
