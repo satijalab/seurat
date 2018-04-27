@@ -179,7 +179,7 @@ Convert.seurat <- function(
         "data" = from@data,
         stop("Invalid Seurat data slot. Please choose one of: raw.data, data")
       )
-
+      raw <- raw[,from@cell.names]
       X <- switch(
         EXPR = anndata.X,
         "data" = from@data,
@@ -187,6 +187,9 @@ Convert.seurat <- function(
         stop("Invalid Seurat data slot. Please choose one of: data, scale.data")
       )
 
+      cell_names <- colnames(X)
+      gene_names <- rownames(X)
+      
       if (class(raw) %in% c("matrix", "dgTMatrix")) {
         raw <- as(raw, "dgCMatrix")
       } else {
@@ -196,18 +199,28 @@ Convert.seurat <- function(
       sp_sparse_csc <- scipy$csc_matrix
       raw.rownames <- rownames(raw)
       raw <- sp_sparse_csc(tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)), shape = tuple(raw@Dim[1], raw@Dim[2]))
+      raw <-  raw$T
       raw <- dict(X = raw, var = dict(var_names = raw.rownames))
       X <- np_array(t(X))
       obsm <- list()
       for (dr in names(from@dr)){
-        obsm[[dr]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
+        obsm[[paste0("X_",dr)]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
       }
       obsm <- dict(obsm)
+      
+      meta_data <- from@meta.data
+      colnames(meta_data) <- gsub("nUMI","n_counts",colnames(meta_data))
+      colnames(meta_data) <- gsub("\\.","_",colnames(meta_data))
+      colnames(meta_data) <- gsub("nGene","n_genes",colnames(meta_data))
+      
       anndata.object <- ad$AnnData(raw = raw,
                                    X = X,
-                                   obs = from@meta.data,
+                                   obs = meta_data,
                                    var = from@hvg.info,
                                    obsm = obsm)
+      
+      anndata.object$var_names <- gene_names
+      anndata.object$obs_names <- cell_names
       if (! missing(filename)) {
         anndata.object$write(filename)
       }
