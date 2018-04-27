@@ -93,6 +93,7 @@ JackStraw <- function(
   if (do.par) {
     if (num.cores == 1) {
       num.cores <- detectCores() / 2
+      warning(paste0("do.par set to TRUE but num.cores set to 1. Setting num.cores to ", num.cores, "."))
     } else {
       if (num.cores > detectCores()) {
         num.cores <- detectCores() - 1
