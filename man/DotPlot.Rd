@@ -13,7 +13,8 @@ DotPlot(object, genes.plot, cols.use = c("lightgrey", "blue"),
 
 \item{genes.plot}{Input vector of genes}
 
-\item{cols.use}{colors to plot}
+\item{cols.use}{Colors to plot, can pass a single character giving the name of
+a palette from \code{RColorBrewer::brewer.pal.info}}
 
 \item{col.min}{Minimum scaled average expression threshold (everything smaller
 will be set to this)}
@@ -48,4 +49,7 @@ cells within a class, while the color encodes the AverageExpression level of
 cd_genes <- c("CD247", "CD3E", "CD9")
 DotPlot(object = pbmc_small, genes.plot = cd_genes)
 
+}
+\seealso{
+\code{\link{RColorBrewer::brewer.pal.info}}
 }

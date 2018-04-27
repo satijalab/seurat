@@ -662,7 +662,8 @@ globalVariables(
 #'
 #' @param object Seurat object
 #' @param genes.plot Input vector of genes
-#' @param cols.use colors to plot
+#' @param cols.use Colors to plot, can pass a single character giving the name of
+#' a palette from \code{RColorBrewer::brewer.pal.info}
 #' @param col.min Minimum scaled average expression threshold (everything smaller
 #'  will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
@@ -682,6 +683,7 @@ globalVariables(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #'
 #' @export
+#' @seealso \code{\link{RColorBrewer::brewer.pal.info}}
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
@@ -700,7 +702,7 @@ DotPlot <- function(
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
-  if (! missing(x = group.by)) {
+  if (!missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
@@ -734,9 +736,13 @@ DotPlot <- function(
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
     scale_radius(range = c(0, dot.scale)) +
-    scale_color_gradient(low = cols.use[1], high = cols.use[2]) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank())
-  if (! plot.legend) {
+  if (length(x = cols.use) == 1) {
+    p <- p + scale_color_distiller(palette = cols.use)
+  } else {
+    p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
+  }
+  if (!plot.legend) {
     p <- p + theme(legend.position = "none")
   }
   if (x.lab.rot) {
