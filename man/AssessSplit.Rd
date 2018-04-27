@@ -4,7 +4,8 @@
 \alias{AssessSplit}
 \title{Assess Cluster Split}
 \usage{
-AssessSplit(object, node, cluster1, cluster2, print.output = TRUE, ...)
+AssessSplit(object, node, cluster1, cluster2, genes.training = NULL,
+  print.output = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,6 +15,9 @@ AssessSplit(object, node, cluster1, cluster2, print.output = TRUE, ...)
 \item{cluster1}{First cluster to compare}
 
 \item{cluster2}{Second cluster to compare}
+
+\item{genes.training}{A vector of genes to use to train the classifier,
+defaults to \code{rownames(x = object@data)}}
 
 \item{print.output}{Print the OOB error for the classifier}
 
