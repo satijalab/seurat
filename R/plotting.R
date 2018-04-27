@@ -669,9 +669,12 @@ globalVariables(
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
-#' (default is 0.05). All cell groups with less than this expressing the given
+#' (default is 0). All cell groups with less than this expressing the given
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
+#' @param scale.by Scale the size of the points by 'size' or by 'radius'
+#' @param scale.min Set lower limit for scaling, use NA for default
+#' @param scale.max Set upper limit for scaling, use NA for default
 #' @param group.by Factor to group the cells by
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
@@ -697,11 +700,20 @@ DotPlot <- function(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  scale.by = 'radius',
+  scale.min = NA,
+  scale.max = NA,
   group.by,
   plot.legend = FALSE,
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
+  scale.func <- switch(
+    EXPR = scale.by,
+    'size' = scale_size,
+    'radius' = scale_radius,
+    stop("'scale.by' must be either 'size' or 'radius'")
+  )
   if (!missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
@@ -735,7 +747,7 @@ DotPlot <- function(
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
-    scale_radius(range = c(0, dot.scale)) +
+    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank())
   if (length(x = cols.use) == 1) {
     p <- p + scale_color_distiller(palette = cols.use)
