@@ -61,7 +61,8 @@ Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{latent.vars}{Variables to test}
+\item{latent.vars}{Variables to test, used only when \code{test.use} is one of
+'negbinom', 'poisson', or 'MAST'}
 
 \item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
 of the two groups, currently only used for poisson and negative binomial tests}

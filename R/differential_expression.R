@@ -43,7 +43,8 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param max.cells.per.ident Down sample each identity class to a max number.
 #' Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
-#' @param latent.vars Variables to test
+#' @param latent.vars Variables to test, used only when \code{test.use} is one of
+#' 'negbinom', 'poisson', or 'MAST'
 #' @param min.cells.gene Minimum number of cells expressing the gene in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
@@ -171,7 +172,6 @@ FindMarkers <- function(
   if (length(x = genes.use) == 0) {
     stop("No genes pass min.diff.pct threshold")
   }
-
   #gene selection (based on average difference)
   data.1 <- apply(X = data.use[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   data.2 <- apply(X = data.use[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
@@ -188,6 +188,9 @@ FindMarkers <- function(
     if (length(cells.2) > max.cells.per.ident) cells.2 = sample(x = cells.2, size = max.cells.per.ident)
   }
   #perform DR
+  if (!(test.use %in% c('negbinom', 'poisson', 'MAST')) && !is.null(x = latent.vars)) {
+    cat("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests\n", file = stderr())
+  }
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
       object = object,
@@ -263,7 +266,6 @@ FindMarkers <- function(
       ...
     )
   }
-
   if (test.use == "wilcox") {
     to.return <- WilcoxDETest(
       object = object,
@@ -286,7 +288,7 @@ FindMarkers <- function(
       ...
     )
   }
-    if (test.use == "DESeq2") {
+  if (test.use == "DESeq2") {
       to.return <- DESeq2DETest(
         object = object,
         assay.type = assay.type,
@@ -299,10 +301,14 @@ FindMarkers <- function(
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
-  to.return$p_val_adj = p.adjust(p = to.return$p_val,method = "bonferroni",
-                                 n =   nrow(GetAssayData(object = object,
-                                                         assay.type = assay.type,
-                                                         slot = "data")))
+  to.return$p_val_adj = p.adjust(
+    p = to.return$p_val,method = "bonferroni",
+    n = nrow(x = GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data"
+    ))
+  )
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
   } else {
@@ -332,7 +338,8 @@ globalVariables(
 #' @param min.cells.gene Minimum number of cells expressing the gene in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
-#' @param latent.vars remove the effects of these variables
+#' @param latent.vars Remove the effects of these variables, used only when \code{test.use} is one of
+#' 'negbinom', 'poisson', or 'MAST'
 #' @param assay.type Type of assay to perform DE for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #'
@@ -435,7 +442,7 @@ FindAllMarkers <- function(
     return(subset(x = gde.all, subset = avg_logFC > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
-  if(nrow(gde.all) == 0) {
+  if (nrow(gde.all) == 0) {
     warning("No DE genes identified.")
   }
   return(gde.all)
