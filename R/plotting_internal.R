@@ -157,14 +157,13 @@ SingleFeaturePlot <- function(
   min.cutoff,
   max.cutoff,
   no.axes,
-  no.title=FALSE,
+  no.title = FALSE,
   no.legend,
   dark.theme,
-  vector.friendly=FALSE,
-  png.file=NULL,
+  vector.friendly = FALSE,
+  png.file = NULL,
   png.arguments=c(10,10,100)
 ) {
-
   #first, consider vector friendly case
   if (vector.friendly) {
     previous_call <- blank_call <- png_call <- match.call()
@@ -185,7 +184,6 @@ SingleFeaturePlot <- function(
     file.remove(png.file)
     return(to_return)
   }
-
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
