@@ -189,7 +189,7 @@ Convert.seurat <- function(
 
       cell_names <- colnames(X)
       gene_names <- rownames(X)
-      
+
       if (class(raw) %in% c("matrix", "dgTMatrix")) {
         raw <- as(raw, "dgCMatrix")
       } else {
@@ -207,18 +207,18 @@ Convert.seurat <- function(
         obsm[[paste0("X_",dr)]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
       }
       obsm <- dict(obsm)
-      
+
       meta_data <- from@meta.data
       colnames(meta_data) <- gsub("nUMI","n_counts",colnames(meta_data))
       colnames(meta_data) <- gsub("\\.","_",colnames(meta_data))
       colnames(meta_data) <- gsub("nGene","n_genes",colnames(meta_data))
-      
+
       anndata.object <- ad$AnnData(raw = raw,
                                    X = X,
                                    obs = meta_data,
                                    var = from@hvg.info,
                                    obsm = obsm)
-      
+
       anndata.object$var_names <- gene_names
       anndata.object$obs_names <- cell_names
       if (! missing(filename)) {
@@ -230,6 +230,14 @@ Convert.seurat <- function(
   )
   return(object.to)
 }
+
+setAs(
+  from = "seurat",
+  to = "SingleCellExperiment",
+  def = function(from) {
+    return(Convert(from = from, to = "sce"))
+  }
+)
 
 #' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
@@ -281,7 +289,13 @@ Convert.SingleCellExperiment <- function(
   return(object.to)
 }
 
-
+setAs(
+  from = "SingleCellExperiment",
+  to = "seurat",
+  def = function(from) {
+    return(Convert(from = from, to = "seurat"))
+  }
+)
 
 #' @param filename.from filename holding the AnnData object, should end in h5ad
 #' @param X.slot Which Seurat slot should AnnData.X be transferred into? Default is data
@@ -301,26 +315,26 @@ Convert.AnnData <- function(
       #to do - make sure we load in hdf5r functions
       h5 <- h5file(filename)
       raw_data <- h5[["raw.X"]]
-      
+
       #to do, make sure we properly import Matrix and sparseMatrix
       raw_data_matrix <- Matrix(sparseMatrix(i=raw_data[["indices"]][],p=raw_data[["indptr"]][],x=raw_data[["data"]][],index1 = F),sparse=T)
       rownames(raw_data_matrix) <- h5[["raw.var"]][][,1]
       colnames(raw_data_matrix) <- h5[["obs"]][][,1]
-      
+
       data_matrix <- h5[["X"]][,]
       rownames(data_matrix) <- h5[["var"]][][,1]
       colnames(data_matrix) <- h5[["obs"]][][,1]
-            
+
       meta_data <- h5[["obs"]][]
       rownames(meta_data) <- meta_data$index
       meta_data <- meta_data[,-1]
       colnames(meta_data) <- gsub("n_counts", "nUMI",colnames(meta_data))
       colnames(meta_data) <- gsub("n_gene","nGene",colnames(meta_data))
       object.to <- CreateSeuratObject(raw.data = raw_data_matrix, meta.data = meta_data)
-      
+
       #todo, check for sparse matrix possibilities
       object.to <- SetAssayData(object, "RNA", X.slot, data_matrix)
-      
+
       #todo, deal with obsm fields that are not dimensional reductions, or have different name structures
       drs <- names(h5[["obsm"]][])
       dr_names <- sapply(drs,function(x)ExtractField(x,2))
@@ -340,4 +354,3 @@ Convert.AnnData <- function(
   )
   return(object.to)
 }
-
