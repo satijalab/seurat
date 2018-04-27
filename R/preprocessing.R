@@ -493,7 +493,7 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if (!missing(x = vars.to.regress) || !is.null(x = vars.to.regress)) {
+  if (!missing(x = vars.to.regress) && !is.null(x = vars.to.regress)) {
     data.use <- RegressOutResid(
       object = object,
       vars.to.regress = vars.to.regress,
