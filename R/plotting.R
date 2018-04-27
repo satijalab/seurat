@@ -1182,6 +1182,7 @@ globalVariables(
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
+#' @param data.use Dataset to use for plotting, choose from 'data', 'scale.data', or 'imputed'
 #' @param sep.scale Scale each group separately. Default is FALSE.
 #' @param max.exp Max cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
 #' @param min.exp Min cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
@@ -1214,6 +1215,7 @@ FeatureHeatmap <- function(
   pch.use = 16,
   reduction.use = "tsne",
   group.by = NULL,
+  data.use = 'data',
   sep.scale = FALSE,
   do.return = FALSE,
   min.exp = -Inf,
@@ -1222,7 +1224,23 @@ FeatureHeatmap <- function(
   plot.horiz = FALSE,
   key.position = "right"
 ) {
-  if (! is.null(x = group.by)) {
+  switch(
+    EXPR = data.use,
+    'data' = {
+      use.imputed <- FALSE
+      use.scaled <- FALSE
+    },
+    'scale.data' = {
+      use.imputed <- FALSE
+      use.scaled <- TRUE
+    },
+    'imputed' = {
+      use.imputed <- TRUE
+      use.scaled <- FALSE
+    },
+    stop("Invalid dataset to use")
+  )
+  if (!is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
   idents.use <- SetIfNull(x = idents.use, default = sort(x = unique(x = object@ident)))
@@ -1235,7 +1253,9 @@ FeatureHeatmap <- function(
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- data.frame(FetchData(
     object = object,
-    vars.all = c(dim.codes, features.plot)
+    vars.all = c(dim.codes, features.plot),
+    use.imputed = use.imputed,
+    use.scaled = use.scaled
   ))
   colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
   data.plot$ident <- as.character(x = object@ident)

@@ -7,8 +7,9 @@
 FeatureHeatmap(object, features.plot, dim.1 = 1, dim.2 = 2,
   idents.use = NULL, pt.size = 2, cols.use = c("grey", "red"),
   pch.use = 16, reduction.use = "tsne", group.by = NULL,
-  sep.scale = FALSE, do.return = FALSE, min.exp = -Inf, max.exp = Inf,
-  rotate.key = FALSE, plot.horiz = FALSE, key.position = "right")
+  data.use = "data", sep.scale = FALSE, do.return = FALSE,
+  min.exp = -Inf, max.exp = Inf, rotate.key = FALSE, plot.horiz = FALSE,
+  key.position = "right")
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +34,8 @@ heat.colors(10).}
 "tsne", can also be "pca", or "ica", assuming these are precomputed.}
 
 \item{group.by}{Group cells in different ways (for example, orig.ident)}
+
+\item{data.use}{Dataset to use for plotting, choose from 'data', 'scale.data', or 'imputed'}
 
 \item{sep.scale}{Scale each group separately. Default is FALSE.}
 
