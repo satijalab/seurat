@@ -640,7 +640,7 @@ FetchData <- function(
       genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
       data.expression <- cbind(
         data.expression,
-        t(x = all_data[genes.include, , drop = FALSE])
+        t(x = all_data[genes.include, cells.use, drop = FALSE])
       )
     }
   }
@@ -680,7 +680,7 @@ FetchData <- function(
       }
     }
     if (my.var %in% colnames(object@meta.data)) {
-      data.use <- object@meta.data[, my.var, drop = FALSE]
+      data.use <- object@meta.data[cells.use, my.var, drop = FALSE]
     }
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
