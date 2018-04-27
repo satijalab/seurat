@@ -94,17 +94,13 @@ JackStraw <- function(
     if (num.cores == 1) {
       num.cores <- detectCores() / 2
       warning(paste0("do.par set to TRUE but num.cores set to 1. Setting num.cores to ", num.cores, "."))
-    } else {
-      if (num.cores > detectCores()) {
-        num.cores <- detectCores() - 1
-        warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
-      }
+    } else if (num.cores > detectCores()) {
+      num.cores <- detectCores() - 1
+      warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
     }
-  } else {
-    if (num.cores != 1) {
+  } else if (num.cores != 1) {
       num.cores <- 1
       warning("For parallel processing, please set do.par to TRUE.")
-    }
   }
 
   cl <- parallel::makeCluster(num.cores)
