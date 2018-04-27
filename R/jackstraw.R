@@ -16,6 +16,8 @@
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #' Note that for higher number of cores, larger free memory is needed.
+#' If \code{num.cores = 1} and \code{do.par = TRUE}, \code{num.cores} will be set to half
+#' of all available cores on the machine.
 #' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
