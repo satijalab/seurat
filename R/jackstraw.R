@@ -16,6 +16,8 @@
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #' Note that for higher number of cores, larger free memory is needed.
+#' If \code{num.cores = 1} and \code{do.par = TRUE}, \code{num.cores} will be set to half
+#' of all available cores on the machine.
 #' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
@@ -93,17 +95,14 @@ JackStraw <- function(
   if (do.par) {
     if (num.cores == 1) {
       num.cores <- detectCores() / 2
-    } else {
-      if (num.cores > detectCores()) {
-        num.cores <- detectCores() - 1
-        warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
-      }
+      warning(paste0("do.par set to TRUE but num.cores set to 1. Setting num.cores to ", num.cores, "."))
+    } else if (num.cores > detectCores()) {
+      num.cores <- detectCores() - 1
+      warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
     }
-  } else {
-    if (num.cores != 1) {
+  } else if (num.cores != 1) {
       num.cores <- 1
       warning("For parallel processing, please set do.par to TRUE.")
-    }
   }
 
   cl <- parallel::makeCluster(num.cores)
