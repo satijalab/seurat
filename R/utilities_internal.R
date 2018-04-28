@@ -1,3 +1,20 @@
+# Generate a random name
+#
+# Make a name from randomly sampled lowercase letters,
+# pasted together with no spaces or other characters
+#
+# @param length How long should the name be
+# @param ... Extra parameters passed to sample
+#
+# @return A character with nchar == length of randomly sampled letters
+#
+# @seealso \code{\link{sample}}
+#
+RandomName <- function(length = 5L, ...) {
+  return(paste(sample(x = letters, size = length, ...), collapse = ''))
+}
+
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix

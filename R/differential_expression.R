@@ -189,7 +189,7 @@ FindMarkers <- function(
   }
   #perform DR
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST')) && !is.null(x = latent.vars)) {
-    cat("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests\n", file = stderr())
+    warning("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests")
   }
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
@@ -1362,23 +1362,23 @@ WilcoxDETest <- function(
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
   coldata <- object@meta.data[c(cells.1, cells.2), ]
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
+  group <- RandomName(length = 23)
+  coldata[cells.1, group] <- "Group1"
+  coldata[cells.2, group] <- "Group2"
+  coldata[, group] <- factor(x = coldata[, group])
   coldata$wellKey <- rownames(x = coldata)
   countdata.test <- data.test[genes.use, rownames(x = coldata)]
   mysapply <- if (print.bar) {pbsapply} else {sapply}
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
+      return(wilcox.test(countdata.test[x, ] ~ coldata[, group], ...)$p.value)
     }
   )
   genes.return <- rownames(x = countdata.test)
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
-
 
 LRDETest <- function(
   object,
