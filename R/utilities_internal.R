@@ -14,7 +14,6 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
-
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
@@ -487,19 +486,29 @@ Same <- function(x) {
 #
 #' @importFrom stats residuals
 #
-NBResiduals <- function(fmla, regression.mat, gene) {
+NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
   fit <- 0
   try(
-    fit <- glm.nb(fmla,
-    data = regression.mat),
-    silent=TRUE)
+    fit <- glm.nb(
+      formula = fmla,
+      data = regression.mat
+    ),
+    silent = TRUE)
   if (class(fit)[1] == 'numeric') {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
-    return(scale(log(regression.mat[, 'GENE']+1))[, 1])
+    resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
+    mode <- 'scale'
+  } else {
+    resid <- residuals(fit, type = 'pearson')
+    mode = 'nbreg'
   }
-  return(residuals(fit, type='pearson'))
+  do.return <- list(resid = resid, mode = mode)
+  if (return.mode) {
+    return(do.return)
+  } else {
+    return(do.return$resid)
+  }
 }
-
 
 # Documentation
 ###############

@@ -1,4 +1,3 @@
-
 globalVariables(names = 'i', package = 'Seurat', add = TRUE)
 # Regress out technical effects and cell cycle
 #
@@ -34,7 +33,7 @@ RegressOutResid <- function(
   num.cores = 1
 ) {
   possible.models <- c("linear", "poisson", "negbinom")
-  if (! model.use %in% possible.models){
+  if (!model.use %in% possible.models) {
     stop(
       paste0(
         model.use,
@@ -47,13 +46,10 @@ RegressOutResid <- function(
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   latent.data <- FetchData(object = object, vars.all = vars.to.regress)
-  bin.size <- 100
-  if (model.use == 'negbinom') {
-    bin.size <- 5
-  }
+  bin.size <- ifelse(test = model.use == 'negbinom', yes = 5, no = 100)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  if(display.progress){
+  if (display.progress) {
     print(paste("Regressing out", vars.to.regress))
     pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
   }
@@ -65,89 +61,101 @@ RegressOutResid <- function(
   if (use.umi) {
     data.use <- object@raw.data[genes.regress, object@cell.names, drop = FALSE]
   }
-
   # input checking for parallel options
-  if(do.par){
-    if(num.cores == 1){
+  if (do.par) {
+    if (num.cores == 1) {
       num.cores <- detectCores() / 2
-    } else {
-      if(num.cores > detectCores()){
-        num.cores <- detectCores() - 1
-        warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
-      }
+    } else if (num.cores > detectCores()) {
+      num.cores <- detectCores() - 1
+      warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
     }
-  } else {
-    if(num.cores != 1){
-      num.cores <- 1
-      warning("For parallel processing, please set do.par to TRUE.")
-    }
+  } else if (num.cores != 1) {
+    num.cores <- 1
+    warning("For parallel processing, please set do.par to TRUE.")
   }
-  cl<- parallel::makeCluster(num.cores)
-
+  cl <- parallel::makeCluster(num.cores)#, outfile = "")
   # using doSNOW library because it supports progress bar update
   registerDoSNOW(cl)
-
-  opts <- list()
-  if(display.progress)
-  {
+  opts <- list(verbose = FALSE)
+  if (display.progress) {
     # define progress bar function
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
     time_elapsed <- Sys.time()
   }
-
-  data.resid <- foreach(i = 1:max.bin, .combine = "rbind", .options.snow = opts) %dopar% {
+  data.resid <- foreach(i = 1:max.bin, .combine = "c", .options.snow = opts) %dopar% {
     genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
     gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
-    new.data <- do.call(
-      rbind,
-      lapply(
-        X = genes.bin.regress,
-        FUN = function(x) {
-          regression.mat <- cbind(latent.data, gene.expr[x,])
-          colnames(x = regression.mat) <- c(colnames(x = latent.data), "GENE")
-          fmla <- as.formula(
-            object = paste0(
-              "GENE ",
-              " ~ ",
-              paste(vars.to.regress, collapse = "+")
-            )
+    new.data <- sapply(
+      X = genes.bin.regress,
+      FUN = function(x) {
+        regression.mat <- cbind(latent.data, gene.expr[x,])
+        colnames(x = regression.mat) <- c(colnames(x = latent.data), "GENE")
+        fmla <- as.formula(
+          object = paste0(
+            "GENE ",
+            " ~ ",
+            paste(vars.to.regress, collapse = "+")
           )
-          if (model.use == 'linear') {
-            return(lm(formula = fmla, data = regression.mat)$residuals)
-          }
-          if (model.use == 'poisson') {
-            return(residuals(
-              object = glm(
-                formula = fmla,
-                data = regression.mat,
-                family = "poisson"
-              ),
-              type='pearson'
-            ))
-          }
-          if (model.use == 'negbinom') {
-            return(NBResiduals(
-              fmla = fmla,
-              regression.mat = regression.mat,
-              gene = x
-            ))
-          }
+        )
+        resid <- switch(
+          EXPR = model.use,
+          'linear' = lm(formula = fmla, data = regression.mat)$residuals,
+          'poisson' = residuals(
+            object = glm(
+              formula = fmla,
+              data = regression.mat,
+              family = "poisson"
+            ),
+            type = 'pearson'
+          ),
+          'negbinom' = NBResiduals(
+            fmla = fmla,
+            regression.mat = regression.mat,
+            gene = x,
+            return.mode = TRUE
+          )
+        )
+        if (!is.list(x = resid)) {
+          resid <- list('resid' = resid, 'mode' = character(length = length(x = resid)))
         }
-      )
+        return(resid)
+      }
     )
-    new.data
+    new.data.resid <- new.data[seq.int(from = 1, to = length(x = new.data), by = 2)]
+    new.data.resid <- as.data.frame(x = new.data.resid)
+    colnames(x = new.data.resid) <- genes.bin.regress
+    new.data.resid <- as.matrix(x = new.data.resid)
+    new.data.mode <- unlist(x = new.data[seq.int(from = 2, to = length(x = new.data), by = 2)])
+    names(x = new.data.mode) <- genes.bin.regress
+    new.data <- list('resid' = new.data.resid, 'mode' = new.data.mode)
+    return(new.data)
   }
-
   if (display.progress) {
     time_elapsed <- Sys.time() - time_elapsed
     cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed)))
     close(pb)
   }
-
   stopCluster(cl)
-
+  modes <- unlist(x = data.resid[seq.int(from = 2, to = length(x = data.resid), by = 2)])
+  modes <- modes[modes == 'scale']
+  names(x = modes) <- gsub(
+    pattern = 'mode.',
+    replacement = '',
+    x = names(x = modes),
+    fixed = TRUE
+  )
+  data.resid <- data.resid[seq.int(from = 1, to = length(x = data.resid), by = 2)]
+  data.resid <- as.matrix(x = as.data.frame(x = data.resid))
+  data.resid <- t(x = data.resid)
+  if (length(x = modes)) {
+    message(
+      "The following genes failed with glm.nb, and fell back to scale(log(y+1))\n\t",
+      paste(names(x = modes), collapse = ', ')
+    )
+  }
   rownames(x = data.resid) <- genes.regress
+  suppressWarnings(expr = gc(verbose = FALSE))
   if (use.umi) {
     data.resid <- log1p(
       x = sweep(
@@ -331,7 +339,7 @@ RegressOutNBreg <- function(
           silent=TRUE
         )
         if (class(fit)[1] == 'numeric') {
-          message <- 
+          message <-
             sprintf(
               'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
               theta.fit[j],
