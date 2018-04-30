@@ -844,7 +844,7 @@ SplitDotPlotGG <- function(
     ordered = TRUE
   )
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
-  genes.plot <- gsub(pattern = ':', replacement = '.', x = genes.plot)
+  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>%
