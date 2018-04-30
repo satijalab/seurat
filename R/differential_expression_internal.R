@@ -260,7 +260,7 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   }
   pval <- anova(fit2, fit4, test = 'Chisq')$'Pr(>Chi)'[2]
   foi <- 2 + length(x = com.fac)
-  log2.fc <- log2(x = exp(x = coef(object = fit4)[foi])) #log2.fc <- log2(1/exp(coef(fit4)[foi]))
+  log2.fc <- log2(x = 1 / exp(x = coef(object = fit4)[foi]))
   ret <- c(
     fit2$deviance,
     fit4$deviance,
