@@ -358,7 +358,7 @@ ScaleDataR <- function(
   if (do.scale | do.center) {
     bin.size <- 1000
     max.bin <- floor(length(genes.use)/bin.size) + 1
-    cat("Scaling data matrix", file = stderr())
+    message("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
     for (i in 1:max.bin) {
       my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
@@ -544,7 +544,7 @@ ScaleData <- function(
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
   if (display.progress) {
-    cat("Scaling data matrix", file = stderr())
+    message("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   for (i in 1:max.block) {
@@ -792,7 +792,7 @@ FindVariableGenes <- function(
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
       if(display.progress){
-        cat("Calculating gene dispersion", file = stderr())
+        message("Calculating gene dispersion")
         pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
       for (i in 1:max.bin) {

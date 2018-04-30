@@ -79,7 +79,7 @@ ValidateClusters <- function(
           )
           if (verbose) {
             progress <- length(x = connectivity[connectivity > min.connectivity])
-            cat(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- merge clusters ",
               c1,
@@ -87,16 +87,16 @@ ValidateClusters <- function(
               c2,
               ", classification accuracy of ",
               sprintf("%1.4f", acc)
-            ), file = stderr())
+            ))
           }
           merge.done <- TRUE
         } else {
           if (verbose & status == 5) {
-            cat(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- Last 5 cluster comparisons failed to merge, ",
               "still checking possible merges ..."
-            ), file = stderr())
+            ))
             status <- 0
           }
           status <- status + 1
@@ -110,13 +110,13 @@ ValidateClusters <- function(
     }
   }
   if (verbose) {
-    cat(paste0(
+    message(paste0(
       "100% complete --- started with ",
       num.clusters.orig,
       " clusters, ",
       length(x = unique(x = object@ident)),
       " clusters remaining"
-    ), file = stderr())
+    ))
   }
   return(object)
 }
@@ -162,21 +162,21 @@ ValidateSpecificClusters <- function(
     pcs = pc.use,
     num.genes = top.genes
   )
-  cat(paste0(
+  message(paste0(
     "Comparing cluster ",
     cluster1,
     " and ",
     cluster2,
     ": Acc = ",
     acc
-  ), file = stderr())
+  ))
   if (acc < acc.cutoff) {
     object <- SetIdent(
       object = object,
       cells.use = WhichCells(object = object, ident = cluster1),
       ident.use = cluster2
     )
-    cat(paste("merge cluster", cluster1, "and", cluster2), file = stderr())
+    message(paste("merge cluster", cluster1, "and", cluster2))
     merge.done <- TRUE
   }
   return(object)
@@ -375,7 +375,7 @@ AssessSplit <- function(
   )
   oobe <- rfc$prediction.error
   if (print.output) {
-    cat(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"), file = stderr())
+    message(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"))
   }
   return(oobe)
 }

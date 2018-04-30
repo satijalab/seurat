@@ -137,12 +137,12 @@ GroupSingletons <- function(object, SNN) {
     )
   }
   if (length(x = singletons) > 0) {
-    cat(paste(
+    message(paste(
       length(x = singletons),
       "singletons identified.",
       length(x = unique(object@ident)),
       "final clusters."
-    ), file = stderr())
+    ))
   }
   return(object)
 }
@@ -160,4 +160,3 @@ kmeans.info <- setClass(
     cell.kmeans.obj = "ANY"
   )
 )
-

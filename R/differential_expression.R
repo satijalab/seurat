@@ -120,11 +120,11 @@ FindMarkers <- function(
   cells.2 <- setdiff(x = cells.2, y = cells.1)
   # error checking
   if (length(x = cells.1) == 0) {
-    cat(paste("Cell group 1 is empty - no cells with identity class", ident.1), file = stderr())
+    message(paste("Cell group 1 is empty - no cells with identity class", ident.1))
     return(NULL)
   }
   if (length(x = cells.2) == 0) {
-    cat(paste("Cell group 2 is empty - no cells with identity class", ident.2), file = stderr())
+    message(paste("Cell group 2 is empty - no cells with identity class", ident.2))
     return(NULL)
   }
   if (length(cells.1) < min.cells.group) {
@@ -410,7 +410,7 @@ FindAllMarkers <- function(
       }
     )
     if (do.print) {
-      cat(paste("Calculating cluster", idents.all[i]), file = stderr())
+      message(paste("Calculating cluster", idents.all[i]))
     }
   }
   gde.all <- data.frame()
@@ -602,7 +602,7 @@ FindAllMarkersNode <- function(
       min.cells.group = min.cells.group
     )
     if (do.print) {
-      cat(paste("Calculating node", i), file = stderr())
+      message(paste("Calculating node", i))
     }
   }
   gde.all <- data.frame()
@@ -959,20 +959,19 @@ NegBinomRegDETest <- function(
   assay.type = "RNA"
 ) {
   if (!is.null(genes.use)) {
-    message('Make sure that genes.use contains mostly genes that are not expected to be 
+    message('Make sure that genes.use contains mostly genes that are not expected to be
              differentially expressed to allow unbiased theta estimation')
   }
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  cat(
+  message(
     sprintf(
       'NegBinomRegDETest for %d genes and %d and %d cells',
       length(x = genes.use),
       length(x = cells.1),
       length(x = cells.2)
-    ),
-    file = stderr()
+    )
   )
   grp.fac <- factor(
     x = c(
@@ -981,17 +980,16 @@ NegBinomRegDETest <- function(
     )
   )
   to.test.data <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, c(cells.1, cells.2), drop = FALSE]
-  cat('Calculating mean per gene per group', file = stderr())
+  message('Calculating mean per gene per group')
   above.threshold <- pmax(
     apply(X = to.test.data[, cells.1] > 0, MARGIN = 1, FUN = mean),
     apply(X = to.test.data[, cells.2] > 0, MARGIN = 1, FUN = mean)
   ) >= 0.02
-  cat(
+  message(
     sprintf(
       '%d genes are detected in at least 2%% of the cells in at least one of the groups and will be tested',
       sum(above.threshold)
-    ),
-    file = stderr()
+    )
   )
   genes.use <- genes.use[above.threshold]
   to.test.data <- to.test.data[genes.use, , drop = FALSE]
@@ -1002,7 +1000,7 @@ NegBinomRegDETest <- function(
     use.raw = TRUE
   )
   to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  cat(paste('Latent variables are', latent.vars), file = stderr())
+  message(paste('Latent variables are', latent.vars))
   # get regularized theta (ignoring group factor)
   theta.fit <- RegularizedTheta(
     cm = to.test.data,
@@ -1010,7 +1008,7 @@ NegBinomRegDETest <- function(
     min.theta = 0.01,
     bin.size = 128
   )
-  cat('Running NB regression model comparison', file = stderr())
+  message('Running NB regression model comparison')
   to.test$NegBinomRegDETest.group <- grp.fac
   bin.size <- 128
   bin.ind <- ceiling(1:length(x = genes.use) / bin.size)
@@ -1120,7 +1118,7 @@ PoissonDETest <- function(
         }
         # check that variance between groups is not 0
         if (var(to.test$GENE) == 0) {
-          cat("what", file = stderr()) # what?
+          message("what") # what?
           warning(paste0(
             "Skipping gene -- ",
             x,

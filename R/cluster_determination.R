@@ -374,7 +374,7 @@ ClassifyCells <- function(
   new.data <- rbind(new.data, data.to.add)
   new.data <- new.data[features, ]
   new.data <- as.matrix(x = t(x = new.data))
-  cat("Running Classifier ...", file = stderr())
+  message("Running Classifier ...")
   prediction <- predict(classifier, new.data)
   new.classes <- prediction$predictions
   return(new.classes)
@@ -425,7 +425,7 @@ BuildRFClassifier <- function(
   )
   training.data$class <- factor(x = training.classes)
   if (verbose) {
-    cat("Training Classifier ...", file = stderr())
+    message("Training Classifier ...")
   }
   classifier <- ranger(
     data = training.data,
