@@ -15,16 +15,16 @@ object <- CreateSeuratObject(raw.data = pbmc.test,
                              normalization.method = "LogNormalize",
                              do.scale = T,
                              meta.data = fake.meta.data,
-                             save.raw = F,
+                             # save.raw = F,
                              display.progress = F)
 test_that("object initialization actually creates seurat object", {
   expect_is(object, "seurat")
 })
 
-test_that("save.raw option handled properly", {
-  expect_equal(dim(object@raw.data), c(1, 1))
-  expect_equal(object@raw.data[1, 1], NA)
-})
+# test_that("save.raw option handled properly", {
+#   expect_equal(dim(object@raw.data), c(1, 1))
+#   expect_equal(object@raw.data[1, 1], NA)
+# })
 
 test_that("meta.data slot generated correctly", {
   expect_equal(dim(object@meta.data), c(80, 4))
@@ -178,6 +178,24 @@ test_that("Poisson regression works as expected", {
   expect_equal(object@scale.data[5, 25], -0.5971585, tolerance = 1e-6)
   expect_equal(object@scale.data[10, 59], -0.4533085, tolerance = 1e-6)
 })
+
+if (detectCores() > 1) {
+  object <- ScaleData(object,
+  vars.to.regress = "nUMI",
+  genes.use = rownames(object@data)[1:10],
+  display.progress = F,
+  model.use = "linear",
+  do.par = TRUE,
+  num.cores = 2)
+
+  test_that("Parallelization works", {
+    expect_equal(dim(object@scale.data), c(10, 59))
+    expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
+    expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
+    expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
+  })
+}
+
 
 # Tests for SampleUMI
 # --------------------------------------------------------------------------------

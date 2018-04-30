@@ -6,7 +6,7 @@
 \usage{
 WhichCells(object, ident = NULL, ident.remove = NULL, cells.use = NULL,
   subset.name = NULL, accept.low = -Inf, accept.high = Inf,
-  accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1)
+  accept.value = NULL, max.cells.per.ident = Inf, random.seed = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -27,9 +27,13 @@ using FetchData}
 
 \item{accept.value}{Returns all cells with the subset name equal to this value}
 
-\item{max.cells.per.ident}{Can be used to downsample the data to a certain max per cell ident. Default is inf.}
+\item{max.cells.per.ident}{Can be used to downsample the data to a certain
+max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
+
+\item{\dots}{Additional arguments to be passed to FetchData (for example,
+use.imputed=TRUE)}
 }
 \value{
 A vector of cell names

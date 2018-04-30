@@ -5,7 +5,8 @@
 \title{Dot plot visualization}
 \usage{
 DotPlot(object, genes.plot, cols.use = c("lightgrey", "blue"),
-  col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6, group.by,
+  col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
+  scale.by = "radius", scale.min = NA, scale.max = NA, group.by,
   plot.legend = FALSE, do.return = FALSE, x.lab.rot = FALSE)
 }
 \arguments{
@@ -13,7 +14,8 @@ DotPlot(object, genes.plot, cols.use = c("lightgrey", "blue"),
 
 \item{genes.plot}{Input vector of genes}
 
-\item{cols.use}{colors to plot}
+\item{cols.use}{Colors to plot, can pass a single character giving the name of
+a palette from \code{RColorBrewer::brewer.pal.info}}
 
 \item{col.min}{Minimum scaled average expression threshold (everything smaller
 will be set to this)}
@@ -22,10 +24,16 @@ will be set to this)}
 will be set to this)}
 
 \item{dot.min}{The fraction of cells at which to draw the smallest dot
-(default is 0.05). All cell groups with less than this expressing the given
+(default is 0). All cell groups with less than this expressing the given
 gene will have no dot drawn.}
 
 \item{dot.scale}{Scale the size of the points, similar to cex}
+
+\item{scale.by}{Scale the size of the points by 'size' or by 'radius'}
+
+\item{scale.min}{Set lower limit for scaling, use NA for default}
+
+\item{scale.max}{Set upper limit for scaling, use NA for default}
 
 \item{group.by}{Factor to group the cells by}
 
@@ -48,4 +56,7 @@ cells within a class, while the color encodes the AverageExpression level of
 cd_genes <- c("CD247", "CD3E", "CD9")
 DotPlot(object = pbmc_small, genes.plot = cd_genes)
 
+}
+\seealso{
+\code{\link{RColorBrewer::brewer.pal.info}}
 }

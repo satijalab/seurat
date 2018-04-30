@@ -29,7 +29,7 @@ that are also present in both objects.}
 
 \item{rescale.groups}{Rescale each set of cells independently}
 
-\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects 
+\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
 passed, passed onto ScaleData in case with single object and rescale.groups
 set to TRUE)}
 }

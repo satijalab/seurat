@@ -150,7 +150,7 @@ context("Clustering Functions")
 test_that("SNN calculations are correct and handled properly", {
   expect_true(length(nbt.test@snn) == 0)
 
-  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, k.scale = 1, save.SNN = T)
+  nbt.test <- FindClusters(nbt.test, dims.use = 1:2, print.output = 0, k.param = 4, save.SNN = T)
   expect_true(length(nbt.test@snn) > 1)
   expect_equal(nbt.test@snn[2,9], 1/3)
 
@@ -172,14 +172,13 @@ test_that("Clustering over multiple resolution values handled correctly", {
 # Test subsetting functionality
 # --------------------------------------------------------------------------------
 context("Cell Subsetting")
-
 test_that("WhichCells subsets properly", {
   expect_equal(length(WhichCells(nbt.test, 1)), 3)
   expect_equal(length(WhichCells(nbt.test, c(1,2))), 6)
   expect_error(WhichCells(nbt.test, 10))
   expect_equal(WhichCells(nbt.test)[1], "Hi_GW21.2_3")
   expect_equal(WhichCells(nbt.test, subset.name = "nGene", accept.high = 3000, accept.low = 2500), "Hi_GW16_23")
-  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = 1.5, accept.low = 1.4), "Hi_GW21.2_3")
+  expect_equal(WhichCells(nbt.test, subset.name = "PC1", accept.high = -1.4, accept.low = -1.5), "Hi_GW21.2_3")
 
   expect_equal(length(WhichCells(nbt.test, max.cells.per.ident = 1)), length(unique(nbt.test@ident)))
   expect_equal(length(WhichCells(nbt.test, c(1,2), max.cells.per.ident = 1)), 2)
@@ -191,6 +190,18 @@ test_that("SubsetData works properly", {
   count <- length(WhichCells(nbt.test, 1))
   nbt.test.subset <- SubsetData(nbt.test, ident.use = 1)
   expect_equal(length(nbt.test.subset@ident), count)
+})
+
+
+test_that("SubsetByPredicate subsets properly", {
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "nGene", predicate = "2500 < nGene & nGene < 3000")@cell.names, "Hi_GW16_23")
+  expect_equal(SubsetByPredicate(nbt.test, vars.use = "PC1",   predicate = "-1.5 < PC1 & PC1 < -1.4"    )@cell.names, "Hi_GW21.2_3")
+  
+  nbt.test@dr <- list()
+  count <- length(WhichCells(nbt.test, 1))
+  nbt.test.subset <- SubsetByPredicate(nbt.test, "ident", "ident == '1'")
+  expect_equal(length(nbt.test.subset@ident), count)
+  
 })
 
 # Test CCA procedure

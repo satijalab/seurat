@@ -1,3 +1,19 @@
+# Generate a random name
+#
+# Make a name from randomly sampled lowercase letters,
+# pasted together with no spaces or other characters
+#
+# @param length How long should the name be
+# @param ... Extra parameters passed to sample
+#
+# @return A character with nchar == length of randomly sampled letters
+#
+# @seealso \code{\link{sample}}
+#
+RandomName <- function(length = 5L, ...) {
+  return(paste(sample(x = letters, size = length, ...), collapse = ''))
+}
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
@@ -50,6 +66,8 @@ PercentAbove <- function(x, threshold){
 # @param x      Vector of numeric type
 # @param lower  Lower end of reference range
 # @param upper  Upper end of reference range
+#
+#' @importFrom stats quantile
 #
 # @return       Returns a vector that describes the position of each element in
 #               x along the defined reference range
@@ -468,19 +486,29 @@ Same <- function(x) {
 #
 #' @importFrom stats residuals
 #
-NBResiduals <- function(fmla, regression.mat, gene) {
+NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
   fit <- 0
   try(
-    fit <- glm.nb(fmla,
-    data = regression.mat),
-    silent=TRUE)
+    fit <- glm.nb(
+      formula = fmla,
+      data = regression.mat
+    ),
+    silent = TRUE)
   if (class(fit)[1] == 'numeric') {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
-    return(scale(log(regression.mat[, 'GENE']+1))[, 1])
+    resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
+    mode <- 'scale'
+  } else {
+    resid <- residuals(fit, type = 'pearson')
+    mode = 'nbreg'
   }
-  return(residuals(fit, type='pearson'))
+  do.return <- list(resid = resid, mode = mode)
+  if (return.mode) {
+    return(do.return)
+  } else {
+    return(do.return$resid)
+  }
 }
-
 
 # Documentation
 ###############
@@ -577,4 +605,21 @@ LengthCheck <- function(values, cutoff = 0) {
     },
     FUN.VALUE = logical(1)
   ))
+}
+
+# Reverse the vector x and return the value at the Nth index. If N is larger
+# than the length of the vector, return the last value in the reversed vector.
+#
+# @param x vector of interest
+# @param N index in reversed vector
+#
+# @return returns element at given index
+#
+MaxN <- function(x, N = 2){
+  len <- length(x)
+  if(N > len) {
+    warning('N greater than length(x).  Setting N=length(x)')
+    N <- length(x)
+  }
+  sort(x, partial = len - N + 1)[len - N + 1]
 }

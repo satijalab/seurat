@@ -184,6 +184,7 @@ PrintICAParams <- function(object, raw = FALSE){
 #' @export
 #'
 #' @examples
+#' pbmc_small <- RunTSNE(pbmc_small, perplexity = 10)
 #' PrintTSNEParams(object = pbmc_small)
 #'
 PrintTSNEParams <- function(object, raw = FALSE){
@@ -192,15 +193,13 @@ PrintTSNEParams <- function(object, raw = FALSE){
   }
   if (raw){
     print(object@calc.params$RunTSNE)
-  }
-  else{
+  } else{
     cat(paste0("Parameters used in latest TSNE calculation run on: ",
                GetCalcParam(object = object,
                             calculation = "RunTSNE",
                             parameter = "time"),
                "\n"))
     cat("=============================================================================\n")
-
     if(is.null(GetCalcParam(object = object,
                             calculation = "RunTSNE",
                             parameter = "genes.use"))) {
@@ -223,18 +222,18 @@ PrintTSNEParams <- function(object, raw = FALSE){
                                    calculation = "RunTSNE",
                                    parameter = "genes.use"))
     }
-    do.fast <- GetCalcParam(object = object,
+    tsne.method <- GetCalcParam(object = object,
                             calculation = "RunTSNE",
-                            parameter = "do.fast")
+                            parameter = "tsne.method")
     dim.embed <- GetCalcParam(object = object,
                               calculation = "RunTSNE",
                               parameter = "dim.embed")
-    cat(paste0("Reduction use          do.fast          dim.embed\n"))
+    cat(paste0("Reduction use          tsne.method          dim.embed\n"))
     cat(paste0("     ",
                reduction,
-               FillWhiteSpace(n = 19 - nchar(reduction)),
-               do.fast,
-               FillWhiteSpace(n = 20 - nchar(do.fast)),
+               FillWhiteSpace(n = 21 - nchar(reduction)),
+               tsne.method,
+               FillWhiteSpace(n = 22 - nchar(tsne.method)),
                dim.embed,
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
@@ -635,13 +634,10 @@ PrintSNNParams <- function(object, raw = FALSE){
                                      calculation = "BuildSNN",
                                      parameter = "genes.use"))
     }
-    cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
+    cat(paste0("Reduction used          k.param          prune.SNN\n"))
     k.param <- GetCalcParam(object = object,
                             calculation = "BuildSNN",
                             parameter = "k.param")
-    k.scale <- GetCalcParam(object = object,
-                            calculation = "BuildSNN",
-                            parameter = "k.scale")
     prune.SNN <- GetCalcParam(object = object,
                               calculation = "BuildSNN",
                               parameter = "prune.SNN")
@@ -650,8 +646,6 @@ PrintSNNParams <- function(object, raw = FALSE){
                FillWhiteSpace(n = 20 - nchar(reduction)),
                k.param,
                FillWhiteSpace(n = 18 - nchar(k.param)),
-               k.scale,
-               FillWhiteSpace(n = 16 - nchar(k.scale)),
                round(prune.SNN, 4),
                "\n"))
     cat("-----------------------------------------------------------------------------\n")
@@ -762,13 +756,10 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
                                      calculation = "BuildSNN",
                                      parameter = "genes.use"))
       }
-      cat(paste0("Reduction used          k.param          k.scale          prune.SNN\n"))
+      cat(paste0("Reduction used          k.param          prune.SNN\n"))
       k.param <- GetCalcParam(object = object,
                               calculation = "BuildSNN",
                               parameter = "k.param")
-      k.scale <- GetCalcParam(object = object,
-                              calculation = "BuildSNN",
-                              parameter = "k.scale")
       prune.SNN <- GetCalcParam(object = object,
                                 calculation = "BuildSNN",
                                 parameter = "prune.SNN")
@@ -777,8 +768,6 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
                  FillWhiteSpace(n = 20 - nchar(reduction)),
                  k.param,
                  FillWhiteSpace(n = 18 - nchar(k.param)),
-                 k.scale,
-                 FillWhiteSpace(n = 16 - nchar(k.scale)),
                  round(prune.SNN, 4),
                  "\n"))
       cat("-----------------------------------------------------------------------------\n")

@@ -13,10 +13,12 @@
 #' @param ctrl.size Number of control genes selected from the same bin per analyzed gene
 #' @param use.k Use gene clusters returned from DoKMeans()
 #' @param enrich.name Name for the expression programs
+#' @param random.seed Set a random seed
 #'
 #' @return Returns a Seurat object with module scores added to object@meta.data
 #'
 #' @importFrom Hmisc cut2
+#' @importFrom Matrix rowMeans colMeans
 #'
 #' @references Tirosh et al, Science (2016)
 #'
@@ -56,8 +58,10 @@ AddModuleScore <- function(
   seed.use = 1,
   ctrl.size = 100,
   use.k = FALSE,
-  enrich.name = "Cluster"
+  enrich.name = "Cluster",
+  random.seed = 1
 ) {
+  set.seed(seed = random.seed)
   genes.old <- genes.list
   if (use.k) {
     genes.list <- list()
@@ -77,7 +81,7 @@ AddModuleScore <- function(
     )
     cluster.length <- length(x = genes.list)
   }
-  if (! all(LengthCheck(values = genes.list))) {
+  if (!all(LengthCheck(values = genes.list))) {
     warning(paste(
       'Could not find enough genes in the object from the following gene lists:',
       paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
@@ -88,7 +92,7 @@ AddModuleScore <- function(
       FUN = CaseMatch, match = rownames(x = object@data)
     )
   }
-  if (! all(LengthCheck(values = genes.list))) {
+  if (!all(LengthCheck(values = genes.list))) {
     stop(paste(
       'The following gene lists do not have enough genes present in the object:',
       paste(names(x = which(x = ! LengthCheck(values = genes.list)))),
@@ -98,14 +102,14 @@ AddModuleScore <- function(
   if (is.null(x = genes.pool)) {
     genes.pool = rownames(x = object@data)
   }
-  data.avg <- apply(X = object@data[genes.pool,], MARGIN = 1, FUN = mean)
+  data.avg <- Matrix::rowMeans(x = object@data[genes.pool, ])
   data.avg <- data.avg[order(data.avg)]
-  data.cut <- as.numeric(x = cut2(
+  data.cut <- as.numeric(x = Hmisc::cut2(
     x = data.avg,
     m = round(x = length(x = data.avg) / n.bin)
   ))
   names(x = data.cut) <- names(x = data.avg)
-  ctrl.use <- vector("list", cluster.length)
+  ctrl.use <- vector(mode = "list", length = cluster.length)
   for (i in 1:cluster.length) {
     genes.use <- genes.list[[i]]
     for (j in 1:length(x = genes.use)) {
@@ -120,32 +124,36 @@ AddModuleScore <- function(
     }
   }
   ctrl.use <- lapply(X = ctrl.use, FUN = unique)
-  ctrl.scores <- c()
+  ctrl.scores <- matrix(
+    data = numeric(length = 1L),
+    nrow = length(x = ctrl.use),
+    ncol = ncol(x = object@data)
+  )
   for (i in 1:length(ctrl.use)) {
     genes.use <- ctrl.use[[i]]
-    ctrl.scores <- rbind(
-      ctrl.scores,
-      apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
-    )
+    ctrl.scores[i, ] <- Matrix::colMeans(x = object@data[genes.use, ])
   }
-  genes.scores <- c()
+  genes.scores <- matrix(
+    data = numeric(length = 1L),
+    nrow = cluster.length,
+    ncol = ncol(x = object@data)
+  )
   for (i in 1:cluster.length) {
     genes.use <- genes.list[[i]]
-    genes.scores <- rbind(
-      genes.scores,
-      apply(X = object@data[genes.use, ], MARGIN = 2, FUN = mean)
-    )
+    data.use <- object@data[genes.use, , drop = FALSE]
+    genes.scores[i, ] <- Matrix::colMeans(x = data.use)
   }
-
   genes.scores.use <- genes.scores - ctrl.scores
   rownames(x = genes.scores.use) <- paste0(enrich.name, 1:cluster.length)
-  genes.scores.use <- t(x = as.data.frame(x = genes.scores.use))
+  genes.scores.use <- as.data.frame(x = t(x = genes.scores.use))
+  rownames(x = genes.scores.use) <- colnames(x = object@data)
   object <- AddMetaData(
     object = object,
     metadata = genes.scores.use,
     col.name = colnames(x = genes.scores.use)
   )
-  return (object)
+  gc(verbose = FALSE)
+  return(object)
 }
 
 #' Score cell cycle phases
@@ -191,6 +199,8 @@ CellCycleScoring <- function(
   )
   cc.columns <- grep(pattern = enrich.name, x = colnames(x = object.cc@meta.data))
   cc.scores <- object.cc@meta.data[, cc.columns]
+  rm(object.cc)
+  gc(verbose = FALSE)
   assignments <- apply(
     X = cc.scores,
     MARGIN = 1,

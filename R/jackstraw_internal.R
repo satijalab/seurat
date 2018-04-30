@@ -4,7 +4,8 @@ jackstraw.data <- setClass(
   slots = list(
     emperical.p.value = "matrix",
     fake.pc.scores = "matrix",
-    emperical.p.value.full = "matrix"
+    emperical.p.value.full = "matrix",
+    overall.p.values = "matrix"
   )
 )
 
@@ -63,7 +64,8 @@ JackRandom <- function(
   r2.use = 5,
   seed.use = 1,
   rev.pca = FALSE,
-  weight.by.var = weight.by.var
+  weight.by.var = weight.by.var,
+  maxit = 1000
 ) {
   set.seed(seed = seed.use)
   rand.genes <- sample(
@@ -85,7 +87,8 @@ JackRandom <- function(
     pc.genes = rownames(x = data.mod),
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
-    do.print = FALSE
+    do.print = FALSE,
+    maxit = maxit
   )
   fake.x <- PCALoad(object = temp.object)
   fake.rot <- PCAEmbed(object = temp.object)

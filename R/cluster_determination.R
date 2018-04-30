@@ -17,9 +17,8 @@ NULL
 #' @param dims.use A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param k.scale Granularity option for k.param
 #' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard distances when
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
 #' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
@@ -31,6 +30,8 @@ NULL
 #' @param reuse.SNN Force utilization of stored SNN. If none store, this will
 #' throw an error.
 #' @param force.recalc Force recalculation of SNN.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
@@ -42,7 +43,7 @@ NULL
 #' @param random.seed Seed of the random number generator.
 #' @param temp.file.location Directory where intermediate files will be written.
 #' Specify the ABSOLUTE path.
-#' @importFrom FNN get.knn
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
 #' @importFrom igraph plot.igraph graph.adjlist
 #' @importFrom Matrix sparseMatrix
 #' @return Returns a Seurat object and optionally the SNN matrix,
@@ -75,7 +76,6 @@ FindClusters <- function(
   reduction.type = "pca",
   dims.use = NULL,
   k.param = 30,
-  k.scale = 25,
   plot.SNN = FALSE,
   prune.SNN = 1/15,
   print.output = TRUE,
@@ -83,13 +83,15 @@ FindClusters <- function(
   save.SNN = FALSE,
   reuse.SNN = FALSE,
   force.recalc = FALSE,
+  nn.eps = 0,
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
   n.start = 100,
   n.iter = 10,
   random.seed = 0,
-  temp.file.location = NULL
+  temp.file.location = NULL,
+  edge.file.name = NULL
 ) {
   snn.built <- FALSE
   if (.hasSlot(object = object, name = "snn")) {
@@ -100,7 +102,7 @@ FindClusters <- function(
   }
   if ((
     missing(x = genes.use) && missing(x = dims.use) && missing(x = k.param) &&
-    missing(x = k.scale) && missing(x = prune.SNN)  && missing(x = distance.matrix) 
+    missing(x = prune.SNN)  && missing(x = distance.matrix)
     && snn.built) || reuse.SNN) {
     save.SNN <- TRUE
     if (reuse.SNN && !snn.built) {
@@ -108,7 +110,7 @@ FindClusters <- function(
     }
     if (reuse.SNN && (
       ! missing(x = genes.use) || ! missing(x = dims.use) || ! missing(x = k.param)
-      || ! missing(x = k.scale) || ! missing(x = prune.SNN)
+      || ! missing(x = prune.SNN)
     )) {
       warning("SNN was not be rebuilt with new parameters. Continued with stored
                SNN. To suppress this warning, remove all SNN building parameters.")
@@ -125,12 +127,14 @@ FindClusters <- function(
       reduction.type = reduction.type,
       dims.use = dims.use,
       k.param = k.param,
-      k.scale = k.scale,
       plot.SNN = plot.SNN,
       prune.SNN = prune.SNN,
       print.output = print.output,
       distance.matrix = distance.matrix,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      filename = edge.file.name,
+      save.SNN = save.SNN,
+      nn.eps = nn.eps
     )
   }
   for (r in resolution) {
@@ -152,8 +156,7 @@ FindClusters <- function(
     object <- SetCalcParams(object = object,
                                  calculation = paste0("FindClusters.res.", r),
                                  ... = parameters.to.store)
-    object <- RunModularityClustering(
-      object = object,
+    ids <- RunModularityClustering(
       SNN = object@snn,
       modularity = modularity.fxn,
       resolution = r,
@@ -162,8 +165,13 @@ FindClusters <- function(
       n.iter = n.iter,
       random.seed = random.seed,
       print.output = print.output,
-      temp.file.location = temp.file.location
-
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name
+    )
+    object <- SetIdent(
+      object = object,
+      cells.use = object@cell.names,
+      ident.use = ids
     )
     object <- GroupSingletons(object = object, SNN = object@snn)
     name <- paste0("res.", r)
@@ -550,8 +558,7 @@ globalVariables(
 #' @param genes.use Genes to use for the analysis. Default is the set of
 #' variable genes (object@@var.genes). Assumes pcs.use=NULL (tree calculated in
 #' gene expression space)
-#' @param pcs.use If set, tree is calculated in PCA space, using the
-#' eigenvalue-WeightedEucleideanDist distance across these PC scores.
+#' @param pcs.use If set, tree is calculated in PCA space.
 #' @param SNN.use If SNN is passed, build tree based on SNN graph connectivity between clusters
 #' @param do.plot Plot the resulting phylogenetic tree
 #' @param do.reorder Re-order identity classes (factor ordering), according to
@@ -559,6 +566,7 @@ globalVariables(
 #' helpful, for example, when drawing violin plots.
 #' @param reorder.numeric Re-order identity classes according to position on
 #' the tree, assigning a numeric value ('1' is the leftmost node)
+#' @param show.progress Show progress updates
 #'
 #' @return A Seurat object where the cluster tree is stored in
 #' object@@cluster.tree[[1]]
@@ -579,43 +587,38 @@ BuildClusterTree <- function(
   SNN.use = NULL,
   do.plot = TRUE,
   do.reorder = FALSE,
-  reorder.numeric = FALSE
+  reorder.numeric = FALSE,
+  show.progress = TRUE
 ) {
   genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
   ident.names <- as.character(x = unique(x = object@ident))
   if (! is.null(x = genes.use)) {
     genes.use <- intersect(x = genes.use, y = rownames(x = object@data))
-    data.avg <- AverageExpression(object = object, genes.use = genes.use)
+    data.avg <- AverageExpression(
+      object = object,
+      genes.use = genes.use,
+      show.progress = show.progress
+    )
     data.dist <- dist(t(x = data.avg[genes.use, ]))
   }
   if (! is.null(x = pcs.use)) {
     data.pca <- AveragePCA(object = object)
-    data.use <- data.pca[pcs.use,]
-    if (is.null(x = object@pca.obj[[1]]$sdev)) {
-      data.eigenval <- (object@pca.obj[[1]]$d) ^ 2
-    } else {
-      data.eigenval <- (object@pca.obj[[1]]$sdev) ^ 2
-    }
-    data.weights <- (data.eigenval / sum(data.eigenval))[pcs.use]
-    data.weights <- data.weights / sum(data.weights)
-    data.dist <- CustomDistance(
-      my.mat = data.pca[pcs.use, ],
-      my.function = WeightedEuclideanDist,
-      w = data.weights
-    )
+    data.dist <- dist(t(x = data.pca[pcs.use,]))
   }
   if (! is.null(x = SNN.use)) {
     num.clusters <- length(x = ident.names)
-    data.dist = matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    data.dist <- matrix(data = 0, nrow = num.clusters, ncol = num.clusters)
+    rownames(data.dist) <- ident.names
+    colnames(data.dist) <- ident.names
     for (i in 1:(num.clusters - 1)) {
       for (j in (i + 1):num.clusters) {
         subSNN <- SNN.use[
           match(
-            x = WhichCells(object = object, ident = i),
+            x = WhichCells(object = object, ident = ident.names[i]),
             table = colnames(x = SNN.use)
           ), # Row
           match(
-            x = WhichCells(object = object, ident = j),
+            x = WhichCells(object = object, ident = ident.names[j]),
             table = rownames(x = SNN.use)
           ) # Column
           ]
@@ -623,7 +626,7 @@ BuildClusterTree <- function(
         if (is.na(x = d)) {
           data.dist[i, j] <- 0
         } else {
-          data.dist[i, j] = d
+          data.dist[i, j] <- d
         }
       }
     }
@@ -651,7 +654,8 @@ BuildClusterTree <- function(
       genes.use = genes.use,
       pcs.use = pcs.use,
       do.plot = FALSE,
-      do.reorder = FALSE
+      do.reorder = FALSE,
+      show.progress = show.progress
     )
   }
   if (do.plot) {
@@ -764,4 +768,3 @@ KClustDimension <- function(
   }
   return(object)
 }
-

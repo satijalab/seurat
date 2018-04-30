@@ -32,7 +32,8 @@ Returns a matrix with genes as rows, identity classes as columns.
 Returns gene expression for an 'average' single cell in each identity class
 }
 \details{
-Output is in log-space, but averaging is done in non-log space.
+Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
+Averaging is done in non-log space.
 }
 \examples{
 head(AverageExpression(object = pbmc_small))

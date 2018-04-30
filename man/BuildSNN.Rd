@@ -5,9 +5,9 @@
 \title{SNN Graph Construction}
 \usage{
 BuildSNN(object, genes.use = NULL, reduction.type = "pca",
-  dims.use = NULL, k.param = 10, k.scale = 10, plot.SNN = FALSE,
-  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
-  force.recalc = FALSE)
+  dims.use = NULL, k.param = 10, plot.SNN = FALSE, prune.SNN = 1/15,
+  print.output = TRUE, distance.matrix = NULL, force.recalc = FALSE,
+  filename = NULL, save.SNN = TRUE, nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -24,11 +24,9 @@ graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
-\item{k.scale}{Granularity option for k.param}
-
 \item{plot.SNN}{Plot the SNN graph}
 
-\item{prune.SNN}{Sets the cutoff for acceptable Jaccard distances when
+\item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with
 values less than or equal to this will be set to 0 and removed from the SNN
 graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
@@ -39,17 +37,25 @@ prune everything).}
 \item{distance.matrix}{Build SNN from distance matrix (experimental)}
 
 \item{force.recalc}{Force recalculation of SNN.}
+
+\item{filename}{Write SNN directly to file named here as an edge list
+compatible with FindClusters}
+
+\item{save.SNN}{Default behavior is to store the SNN in object@snn. Setting
+to FALSE can be used together with a provided filename to only write the SNN
+out as an edge file to disk.}
+
+\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+default of 0.0 implies exact nearest neighbor search}
 }
 \value{
 Returns the object with object@snn filled
 }
 \description{
 Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-first determine the k-nearest neighbors of each cell (defined by k.param *
-k.scale). We use this knn graph to construct the SNN graph by calculating the
-neighborhood overlap (Jaccard distance) between every cell and its k.param *
-k.scale nearest neighbors (defining the neighborhood for each cell as the
-k.param nearest neighbors).
+first determine the k-nearest neighbors of each cell. We use this knn graph
+to construct the SNN graph by calculating the neighborhood overlap
+(Jaccard index) between every cell and its k.param nearest neighbors.
 }
 \examples{
 

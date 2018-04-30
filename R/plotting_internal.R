@@ -6,7 +6,7 @@
 # @param smooth Use a smooth scatterplot instead of a standard scatterplot
 # @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
 #
-#' @importFrom graphics axis
+#' @importFrom graphics axis plot smoothScatter
 #
 PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
@@ -157,9 +157,33 @@ SingleFeaturePlot <- function(
   min.cutoff,
   max.cutoff,
   no.axes,
+  no.title = FALSE,
   no.legend,
-  dark.theme
+  dark.theme,
+  vector.friendly = FALSE,
+  png.file = NULL,
+  png.arguments=c(10,10,100)
 ) {
+  #first, consider vector friendly case
+  if (vector.friendly) {
+    previous_call <- blank_call <- png_call <- match.call()
+    blank_call$pt.size <- -1
+    blank_call$vector.friendly <- FALSE
+    png_call$no.axes <- TRUE
+    png_call$no.legend <- TRUE
+    png_call$vector.friendly <- FALSE
+    png_call$no.title <- TRUE
+    blank_plot <- eval(blank_call, sys.frame(sys.parent()))
+    png_plot <- eval(png_call, sys.frame(sys.parent()))
+    png.file <- SetIfNull(x = png.file, default = paste0(tempfile(), ".png"))
+    ggsave(filename = png.file, plot = png_plot,
+           width = png.arguments[1],
+           height = png.arguments[2],
+           dpi = png.arguments[3])
+    to_return <- AugmentPlot(blank_plot, png.file)
+    file.remove(png.file)
+    return(to_return)
+  }
   data.gene <- na.omit(object = data.frame(data.use[feature, ]))
   #   Check for quantiles
   min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
@@ -225,8 +249,11 @@ SingleFeaturePlot <- function(
       )
     }
   }
+  if (dark.theme) {
+    p <- p + DarkTheme()
+  }
   if (no.axes) {
-    p <- p + labs(title = feature, x ="", y="") + theme(
+    p <- p + theme(
       axis.line = element_blank(),
       axis.text.x = element_blank(),
       axis.text.y = element_blank(),
@@ -234,15 +261,16 @@ SingleFeaturePlot <- function(
       axis.title.x = element_blank(),
       axis.title.y = element_blank()
     )
+    if (!no.title) p <- p + labs(title = feature, x ="", y="")
+    if (no.title) p <- p + labs(x ="", y="")
   } else {
-    p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
+    if (no.title) p <- p + labs(x = dim.codes[1], y = dim.codes[2])
+    if (!(no.title)) p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
   }
   if (no.legend) {
     p <- p + theme(legend.position = 'none')
   }
-  if (dark.theme) {
-    p <- p + DarkTheme()
-  }
+
   return(p)
 }
 
@@ -511,6 +539,8 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
 #
+#' @importFrom stats quantile
+#
 # @return The numerical representation of the quantile
 #
 SetQuantile <- function(cutoff, data) {
@@ -625,7 +655,7 @@ SingleVlnPlot <- function(
   } else {
     noise <- rnorm(n = length(x = data[, feature])) / 100000
   }
-  
+
   if (all(data[, feature] == data[, feature][1])) {
     warning(paste0("All cells have the same value of ", feature, "."))
   } else{
@@ -645,25 +675,24 @@ SingleVlnPlot <- function(
       trim = TRUE,
       mapping = aes(fill = factor(x = ident))
     ) +
-    theme(
-      legend.position = legend.position,
-      axis.title.x = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.x.use
-      ),
-      axis.title.y = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.y.use
-      )
-    ) +
     guides(fill = guide_legend(title = NULL)) +
     geom_jitter(height = 0, size = point.size.use) +
     xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
-    theme(plot.title = element_text(size = size.title.use, face = "bold"))
+    theme(plot.title = element_text(size = size.title.use, face = "bold"),
+          legend.position = legend.position,
+          axis.title.x = element_text(
+              face = "bold",
+              colour = "#990000",
+              size = size.x.use
+          ),
+          axis.title.y = element_text(
+              face = "bold",
+              colour = "#990000",
+              size = size.y.use
+          )
+   )
   plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
@@ -683,10 +712,10 @@ SingleVlnPlot <- function(
     plot <- plot + scale_fill_manual(values = cols.use)
   }
   if (x.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+    plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=size.x.use))
   }
   if (y.lab.rot) {
-    plot <- plot + theme(axis.text.x = element_text(angle = 90))
+    plot <- plot + theme(axis.text.x = element_text(angle = 90, size=size.y.use))
   }
   if (remove.legend) {
     plot <- plot + theme(legend.position = "none")
@@ -694,7 +723,7 @@ SingleVlnPlot <- function(
   return(plot)
 }
 
-# Plot a single feature on a joy plot
+# Plot a single feature on a ridge plot
 #
 # @param feature Feature to plot
 # @param data Data to plot
@@ -717,10 +746,10 @@ SingleVlnPlot <- function(
 #
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
-#' @importFrom ggjoy geom_joy theme_joy
+#' @importFrom ggridges geom_density_ridges theme_ridges
 #
 globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
-SingleJoyPlot <- function(
+SingleRidgePlot <- function(
   feature,
   data,
   cell.ident,
@@ -767,10 +796,11 @@ SingleJoyPlot <- function(
         y = factor(ident)
     )
   ) +
-    geom_joy(scale = 4, mapping = aes(fill = factor(x = ident))) + theme_joy() +
-  scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
-  scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-  plot <- plot+theme(
+    geom_density_ridges(scale = 4, mapping = aes(fill = factor(x = ident))) +
+    theme_ridges() +
+    scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+    scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+  plot <- plot + theme(
       legend.position = legend.position,
       axis.title.x = element_text(
         face = "bold",
@@ -804,7 +834,7 @@ SingleJoyPlot <- function(
   } else {
     plot <- plot + xlab(label = "")
   }
-  if (! is.null(x = cols.use)) {
+  if (!is.null(x = cols.use)) {
     plot <- plot + scale_fill_manual(values = cols.use)
   }
   if (x.lab.rot) {
@@ -818,7 +848,6 @@ SingleJoyPlot <- function(
   }
   return(plot)
 }
-
 
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
@@ -849,11 +878,32 @@ SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
   ))
 }
 
+# Get a gradient legend for palette of colours
+#
+# @param palette A palette of colours in hexadecimal form
+# @param group An index matching the palette
+# This allows to give a name for the palette
+#
+# @return A grob object for the gradient legend
+#
+GetGradientLegend <- function(palette, group) {
+  # Plot for each palette a gradient legend
+  p <- ggplot(data = as.data.frame(palette), mapping = aes(x = NA, y = NA)) +
+    geom_point(mapping = aes(colour = 1:20)) +
+    scale_colour_gradientn(colours = palette, breaks = c(1, 20), label = c("Min", "Max"), name = group,
+                           guide = guide_colourbar(title.position = "top", title.hjust = 0.5, title.vjust = 0.5)) +
+    theme(legend.direction = "horizontal")
+  # Get legend from plot
+  l <- cowplot::get_legend(plot = p)
+  # Return legend grob
+  return(l)
+}
+
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
 #
-#' @importFrom graphics axis mtext rect abline text title hist
-#' @importFrom stats median order.dendrogram as.dendrogram reorder
+#' @importFrom graphics axis mtext rect abline text title hist lines
+#' @importFrom stats median order.dendrogram as.dendrogram reorder density
 #
 heatmap2NoKey <- function (
   x,
@@ -1463,4 +1513,116 @@ PosteriorPlot <- function(object, name) {
     inc.final = TRUE,
     by.k = TRUE
   )
+}
+
+globalVariables(
+  names = 'cc',
+  package = 'Seurat',
+  add = TRUE
+)
+# Evaluate CCs
+#
+# Looks at the biweight midcorrelation of the Xth gene across the specified CCs
+# for each group in the grouping.var.
+#
+# @param object A Seurat object
+# @param grouping.var Grouping variable specified in alignment procedure
+# @param dims.eval dimensions to evalutate the bicor for
+# @param gene.num Xth gene to look at bicor for
+# @param num.possible.genes Number of possible genes to search when choosing
+# genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+# but may result in metagenes constructed on fewer than num.genes genes.
+# @param display.progress Show progress bar
+
+EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
+                        num.possible.genes, display.progress) {
+  reduction.type <-  "cca"
+  ident.orig <- object@ident
+  object <- SetAllIdent(object = object, id = grouping.var)
+  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  num.groups <- length(levels.split)
+  objects <- list()
+  for (i in 1:num.groups){
+    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
+  }
+  object@ident <- ident.orig
+  cc.loadings <- list()
+  scaled.data <- list()
+  cc.embeds <- list()
+  for (i in 1:num.groups) {
+    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000,
+                              display.progress = display.progress)
+    objects[[i]] <- ProjectDim(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      do.print = FALSE
+    )
+    cc.loadings[[i]] <- GetGeneLoadings(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      use.full = TRUE
+    )
+    cc.embeds[[i]] <- GetCellEmbeddings(
+      object = objects[[i]],
+      reduction.type = reduction.type
+    )
+    scaled.data[[i]] <- objects[[i]]@scale.data
+  }
+  bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
+  if (display.progress) {
+    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
+    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
+    pb.idx <- 0
+  }
+  for (cc.use in dims.eval) {
+    bc.gene.g1 <- c()
+    for (g in 2:num.groups){
+      if (display.progress) {
+        pb.idx <- pb.idx + 1
+        setTxtProgressBar(pb, pb.idx)
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
+        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
+        cc.loadings[[1]][, cc.use],
+        cc.loadings[[g]][, cc.use]
+      )
+      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
+      bicors <- list()
+      for (i in c(1, g)) {
+        cc.vals <- cc.embeds[[i]][, cc.use]
+        bicors[[i]] <- sapply(
+          X = genes.top,
+          FUN = function(x) {
+            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+          }
+        )
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = bicors[[1]])),
+        rank(x = abs(x = bicors[[g]])),
+        bicors[[1]],
+        bicors[[g]]
+      )
+      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
+      # genes must be correlated in same direction in both datasets
+      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      bc.gene[cc.use, g] <- mean(abs(genes.rank[1:gene.num, 4]))
+      bc.gene.g1 <- c(bc.gene.g1, mean(abs(genes.rank[1:gene.num, 3])))
+    }
+    bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
+  }
+  if (display.progress) {
+    close(pb)
+  }
+  colnames(bc.gene) <- levels.split
+  bc.gene <- as.data.frame(bc.gene)
+  bc.gene$cc <- 1:nrow(bc.gene)
+  bc.gene <- gather(bc.gene, key = "Group",  value = "bicor", -cc)
+  return(bc.gene)
 }
