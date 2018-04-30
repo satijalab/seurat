@@ -718,6 +718,7 @@ DotPlot <- function(
     object <- SetAllIdent(object = object, id = group.by)
   }
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
+  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>% gather(
