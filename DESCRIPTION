@@ -18,7 +18,7 @@ Depends:
     R (>= 3.2.0),
     ggplot2,
     cowplot,
-    Matrix,
+    Matrix (>= 1.2.14),
 SystemRequirements: Java (>= 6)
 Imports:
     methods,
