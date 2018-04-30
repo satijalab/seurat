@@ -958,6 +958,10 @@ NegBinomRegDETest <- function(
   min.cells = 3,
   assay.type = "RNA"
 ) {
+  if (!is.null(genes.use)) {
+    message('Make sure that genes.use contains mostly genes that are not expected to be 
+             differentially expressed to allow unbiased theta estimation')
+  }
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]

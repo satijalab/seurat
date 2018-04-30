@@ -250,11 +250,18 @@ RegressOutNB <- function(
 #
 # Remove unwanted effects from umi data and set scale.data to Pearson residuals
 # Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
+# If n.genes.step1 is set, only a (somewhat-random) subset of genes is used for estimating theta.
 #
 # @param object Seurat object
-# @param latent.vars effects to regress out
-# @param genes.regress gene to run regression for (default is all genes)
-# @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
+# @param latent.vars effects to regress out (character vector)
+# @param n.genes.step1 number of genes to use when estimating theta (default uses all genes)
+# @param genes.regress gene to run regression for (default uses all genes)
+# @param res.clip.range numeric of length two specifying the min and max values the results will be clipped to
+# @param min.theta minimum theta to use in NB regression
+# @param residual.type string specifying the type of residual used (default is pearson)
+# @param bin.size number of genes to put in each bin (to show progress)
+# @param use.stored.theta skip the first step and use the fitted thetas from a previous run 
+# @param min.cells only use genes that have been observed in at least this many cells
 #
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
 #
@@ -267,66 +274,102 @@ RegressOutNB <- function(
 RegressOutNBreg <- function(
   object,
   latent.vars,
+  n.genes.step1 = NULL,
   genes.regress = NULL,
-  pr.clip.range = c(-30, 30),
-  min.theta = 0.01
+  res.clip.range = c(-30, 30),
+  min.theta = 0.01,
+  residual.type = 'pearson',
+  bin.size = 128,
+  use.stored.theta = FALSE,
+  min.cells = 3
 ) {
-  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  cm <- object@raw.data[genes.regress, colnames(x = object@data), drop=FALSE]
+  # in the first step we use all genes, except if n.genes.step1 has been set
+  cm <- Matrix(object@raw.data[, colnames(x = object@data), drop=FALSE])
+  gene.observed <- rowSums(cm > 0)
+  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = cm))
+  genes.regress <- intersect(x = genes.regress, y = rownames(x = cm)[gene.observed >= min.cells])
+  genes.step1 <- rownames(cm)[gene.observed >= min.cells]
+  if (!is.null(n.genes.step1)) {
+    # density-sample genes to speed up the first step
+    raw.mean <- log10(rowMeans(cm[genes.step1, ]))
+    raw.det.rate <- rowMeans(cm[genes.step1, ] > 0)
+    dens <- apply(
+      X = cbind(raw.mean, raw.det.rate),
+      MARGIN = 2,
+      FUN = function(y) {
+        y.dens <- density(x = y, bw = 'nrd', adjust = 1)
+        ret <- approx(x = y.dens$x, y = y.dens$y, xout = y)$y
+        return(ret / sum(ret))
+      }
+    )
+    sampling.prob <- 1 / apply(X = dens, MARGIN = 1, FUN = min)
+    genes.step1 <- sample(x = genes.step1, size = n.genes.step1, prob = sampling.prob)
+  }
   latent.data <- FetchData(object = object, vars.all = latent.vars)
-  bin.size <- 128
+  bin.ind <- ceiling(x = 1:length(x = genes.step1) / bin.size)
+  max.bin <- max(bin.ind)
+  message(paste("Regressing out", paste(latent.vars, collapse = ' ')))
+  if (use.stored.theta) {
+    message('Using previously fitted theta values for NB regression')
+    theta.fit <- object@misc[['NBreg.theta.fit']]
+  } else {
+    message('First step: Poisson regression (to get initial mean), and estimate theta per gene')
+    message('Using ', length(x = genes.step1), ' genes')
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    theta.estimate <- c()
+    for (i in 1:max.bin) {
+      genes.bin.regress <- genes.step1[bin.ind == i]
+      bin.theta.estimate <- unlist(
+        parallel::mclapply(
+          X = genes.bin.regress,
+          FUN = function(j) {
+            as.numeric(
+              x = MASS::theta.ml(
+                as.numeric(x = unlist(x = cm[j, ])),
+                glm(as.numeric(x = unlist(x = cm[j, ])) ~ ., data = latent.data, family=poisson)$fitted
+              )
+            )
+          }
+        ),
+        use.names = FALSE
+      )
+      theta.estimate <- c(theta.estimate, bin.theta.estimate)
+      setTxtProgressBar(pb, i)
+    }
+    close(pb)
+    names(theta.estimate) <- genes.step1
+    UMI.mean <- rowMeans(x = cm[genes.step1, ])
+    var.estimate <- UMI.mean + (UMI.mean ^ 2) / theta.estimate
+    fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span = 0.33)
+    genes.regress.mean <- rowMeans(x = cm[genes.regress, ])
+    var.fit.log10 <- predict(fit, log10(genes.regress.mean))
+    theta.fit <- (genes.regress.mean ^ 2) / (10 ^ var.fit.log10 - genes.regress.mean)
+    to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
+    if (any(to.fix)) {
+      message(
+        'Fitted theta below ',
+        min.theta,
+        ' for ',
+        sum(to.fix),
+        ' genes, setting them to ',
+        min.theta
+      )
+      theta.fit[to.fix] <- min.theta
+    }
+    # save theta estimate and fitted theta in object
+    object@misc <- as.list(object@misc)
+    object@misc[['NBreg.theta.estimate']] <- theta.estimate
+    object@misc[['NBreg.theta.fit']] <- theta.fit
+  }
+  message('Second step: NB regression with fixed theta for ', length(x = genes.regress), ' genes')
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print(paste("Regressing out", latent.vars))
-  print('First run Poisson regression (to get initial mean), and estimate theta per gene')
   pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-  theta.estimate <- c()
-  for (i in 1:max.bin) {
-    genes.bin.regress <- genes.regress[bin.ind == i]
-    bin.theta.estimate <- unlist(
-      parallel::mclapply(
-        X = genes.bin.regress,
-        FUN = function(j) {
-          as.numeric(
-            x = MASS::theta.ml(
-              as.numeric(x = unlist(x = cm[j, ])),
-              glm(as.numeric(x = unlist(x = cm[j, ])) ~ ., data = latent.data, family=poisson)$fitted
-            )
-          )
-        }
-      ),
-      use.names = FALSE
-    )
-    theta.estimate <- c(theta.estimate, bin.theta.estimate)
-    setTxtProgressBar(pb, i)
-  }
-  close(pb)
-  UMI.mean <- apply(X = cm, MARGIN = 1, FUN = mean)
-  var.estimate <- UMI.mean + (UMI.mean ^ 2) / theta.estimate
-  fit <- loess(log10(var.estimate) ~ log10(UMI.mean), span = 0.33)
-  theta.fit <- (UMI.mean ^ 2) / (10 ^ fit$fitted - UMI.mean)
-  names(x = theta.fit) <- genes.regress
-  to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
-  if (any(to.fix)) {
-    cat(
-      'Fitted theta below',
-      min.theta,
-      'for',
-      sum(to.fix),
-      'genes, setting them to',
-      min.theta,
-      '\n'
-    )
-    theta.fit[to.fix] <- min.theta
-  }
-  print('Second run NB regression with fixed theta')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
-  pr <- c()
+  res <- c()
   for(i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
     names(genes.bin.regress) <- genes.bin.regress
-    bin.pr.lst <- parallel::mclapply(
+    bin.res.lst <- parallel::mclapply(
       X = genes.bin.regress,
       FUN = function(j) {
         fit <- 0
@@ -348,23 +391,23 @@ RegressOutNBreg <- function(
           res <- scale(x = log10(as.numeric(x = unlist(x = cm[j, ])) + 1))[, 1]
         } else {
           message <- NULL
-          res <- residuals(object = fit, type='pearson')
+          res <- residuals(object = fit, type=residual.type)
         }
         return(list(res = res, message = message))
       }
     )
     # Print message to keep track of the genes for which glm failed to converge
-    message <- unlist(x = lapply(X = bin.pr.lst, FUN = function(l) { return(l$message) }), use.names = FALSE)
+    message <- unlist(x = lapply(X = bin.res.lst, FUN = function(l) { return(l$message) }), use.names = FALSE)
     if(!is.null(x = message)) { message(paste(message, collapse = "\n")) }
-    bin.pr.lst <- lapply(X = bin.pr.lst, FUN = function(l) { return(l$res) })
-    pr <- rbind(pr, do.call(rbind, bin.pr.lst))
+    bin.res.lst <- lapply(X = bin.res.lst, FUN = function(l) { return(l$res) })
+    res <- rbind(res, do.call(rbind, bin.res.lst))
     setTxtProgressBar(pb, i)
   }
   close(pb)
-  dimnames(x = pr) <- dimnames(x = cm)
-  pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
-  pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- pr
+  dimnames(x = res) <- list(genes.regress, colnames(x = cm))
+  res[res < res.clip.range[1]] <- res.clip.range[1]
+  res[res > res.clip.range[2]] <- res.clip.range[2]
+  object@scale.data <- res
   return(object)
 }
 
