@@ -61,11 +61,12 @@ Imports:
     fitdistrplus,
     png,
     doSNOW,
-    foreach
+    foreach,
+    reticulate
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate: 
+Collate:
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
