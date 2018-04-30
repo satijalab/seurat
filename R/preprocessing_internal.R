@@ -260,7 +260,7 @@ RegressOutNB <- function(
 # @param min.theta minimum theta to use in NB regression
 # @param residual.type string specifying the type of residual used (default is pearson)
 # @param bin.size number of genes to put in each bin (to show progress)
-# @param use.stored.theta skip the first step and use the fitted thetas from a previous run 
+# @param use.stored.theta skip the first step and use the fitted thetas from a previous run
 # @param min.cells only use genes that have been observed in at least this many cells
 #
 # @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals from the regression model
@@ -268,7 +268,7 @@ RegressOutNB <- function(
 #' @import Matrix
 #' @import parallel
 #' @importFrom MASS theta.ml negative.binomial
-#' @importFrom stats glm loess residuals
+#' @importFrom stats glm loess residuals approx
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutNBreg <- function(
@@ -284,7 +284,7 @@ RegressOutNBreg <- function(
   min.cells = 3
 ) {
   # in the first step we use all genes, except if n.genes.step1 has been set
-  cm <- Matrix(object@raw.data[, colnames(x = object@data), drop=FALSE])
+  cm <- Matrix(object@raw.data[, colnames(x = object@data), drop = FALSE])
   gene.observed <- rowSums(cm > 0)
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = cm))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = cm)[gene.observed >= min.cells])
@@ -326,7 +326,7 @@ RegressOutNBreg <- function(
             as.numeric(
               x = MASS::theta.ml(
                 as.numeric(x = unlist(x = cm[j, ])),
-                glm(as.numeric(x = unlist(x = cm[j, ])) ~ ., data = latent.data, family=poisson)$fitted
+                glm(as.numeric(x = unlist(x = cm[j, ])) ~ ., data = latent.data, family = poisson)$fitted
               )
             )
           }
@@ -366,7 +366,7 @@ RegressOutNBreg <- function(
   max.bin <- max(bin.ind)
   pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
   res <- c()
-  for(i in 1:max.bin) {
+  for (i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
     names(genes.bin.regress) <- genes.bin.regress
     bin.res.lst <- parallel::mclapply(
@@ -377,9 +377,9 @@ RegressOutNBreg <- function(
           fit <- glm(
             as.numeric(x = unlist(x = cm[j, ])) ~ .,
             data = latent.data,
-            family=MASS::negative.binomial(theta = theta.fit[j])
+            family = MASS::negative.binomial(theta = theta.fit[j])
           ),
-          silent=TRUE
+          silent = TRUE
         )
         if (class(fit)[1] == 'numeric') {
           message <-
@@ -391,14 +391,16 @@ RegressOutNBreg <- function(
           res <- scale(x = log10(as.numeric(x = unlist(x = cm[j, ])) + 1))[, 1]
         } else {
           message <- NULL
-          res <- residuals(object = fit, type=residual.type)
+          res <- residuals(object = fit, type = residual.type)
         }
         return(list(res = res, message = message))
       }
     )
     # Print message to keep track of the genes for which glm failed to converge
     message <- unlist(x = lapply(X = bin.res.lst, FUN = function(l) { return(l$message) }), use.names = FALSE)
-    if(!is.null(x = message)) { message(paste(message, collapse = "\n")) }
+    if (!is.null(x = message)) {
+      message(paste(message, collapse = "\n"))
+    }
     bin.res.lst <- lapply(X = bin.res.lst, FUN = function(l) { return(l$res) })
     res <- rbind(res, do.call(rbind, bin.res.lst))
     setTxtProgressBar(pb, i)
