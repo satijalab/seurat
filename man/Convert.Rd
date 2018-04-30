@@ -4,22 +4,27 @@
 \alias{Convert}
 \alias{Convert.seurat}
 \alias{Convert.SingleCellExperiment}
-\title{Convert Seurat objects to loom and vice versa}
+\alias{Convert.anndata.base.AnnData}
+\title{Convert Seurat objects to other classes and vice versa}
 \usage{
 Convert(from, ...)
 
 \method{Convert}{seurat}(from, to, filename, chunk.dims = "auto",
-  chunk.size = 1000, overwrite = FALSE, display.progress = TRUE)
+  chunk.size = 1000, overwrite = FALSE, display.progress = TRUE,
+  anndata.raw = "raw.data", anndata.X = "data")
 
 \method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
   data.slot = "logcounts")
+
+\method{Convert}{AnnData}(from, to, X.slot = "scale.data",
+  raw.slot = "data")
 }
 \arguments{
 \item{from}{Object to convert from}
 
 \item{to}{Class of object to convert to}
 
-\item{filename}{Filename for writing loom files}
+\item{filename}{Filename for writing files}
 
 \item{chunk.dims}{Internal HDF5 chunk size}
 
@@ -29,20 +34,32 @@ Convert(from, ...)
 
 \item{display.progress}{Display a progress bar}
 
+\item{anndata.raw}{Name of matrix (raw.data, data) to put in the anndata raw slot}
+
+\item{anndata.X}{Name of matrix (data, scale.data) to put in the anndata X slot}
+
 \item{raw.data.slot}{name of the SingleCellExperiment assay to slot into @raw.data}
 
 \item{data.slot}{name of the SingleCellExperiment assay to slot into @data}
+
+\item{X.slot}{Seurat slot to transfer anndata X into. Default is scale.data}
+
+\item{raw.slot}{Seurat slot to transfer anndata raw into. Default is data}
 }
 \value{
 An object of class \code{to}
 }
 \description{
-Convert Seurat objects to loom and vice versa
+Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
+SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
+and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
 }
 \section{Methods (by class)}{
 \itemize{
 \item \code{seurat}: Convert a Seurat object
 
 \item \code{SingleCellExperiment}: Convert from SingleCellExperiment to a Seurat object
+
+\item \code{AnnData}: from Anndata file to a Seurat object
 }}
 

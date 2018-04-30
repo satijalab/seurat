@@ -2,7 +2,11 @@
 #' @importFrom methods signature
 NULL
 
-#' Convert Seurat objects to loom and vice versa
+#' Convert Seurat objects to other classes and vice versa
+#'
+#' Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
+#' SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
+#' and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
 #'
 #' @param from Object to convert from
 #' @param to Class of object to convert to
@@ -25,6 +29,7 @@ Convert <- function(from, ...) {
 #' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
 #' @describeIn Convert Convert a Seurat object
+#' @importFrom reticulate import np_array tuple dict
 #' @export Convert.seurat
 #' @method Convert seurat
 #'
@@ -199,7 +204,7 @@ Convert.seurat <- function(
       sp_sparse_csc <- scipy$csc_matrix
       raw.rownames <- rownames(raw)
       raw <- sp_sparse_csc(tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)), shape = tuple(raw@Dim[1], raw@Dim[2]))
-      raw <-  raw$T
+      raw <- raw$T
       raw <- dict(X = raw, var = dict(var_names = raw.rownames))
       X <- np_array(t(X))
       obsm <- list()
@@ -207,18 +212,25 @@ Convert.seurat <- function(
         obsm[[paste0("X_",dr)]] <- np_array(GetCellEmbeddings(from, reduction.type = dr))
       }
       obsm <- dict(obsm)
-
       meta_data <- from@meta.data
-      colnames(meta_data) <- gsub("nUMI","n_counts",colnames(meta_data))
-      colnames(meta_data) <- gsub("\\.","_",colnames(meta_data))
-      colnames(meta_data) <- gsub("nGene","n_genes",colnames(meta_data))
-
+      if ("nUMI" %in% colnames(meta_data)) {
+        colnames(meta_data) <- gsub(pattern = "nUMI",
+                                    replacement = "n_counts",
+                                    x = colnames(meta_data))
+      }
+      if ("nGene" %in% colnames(meta_data)) {
+        colnames(meta_data) <- gsub(pattern = "nGene",
+                                    replacement = "n_genes",
+                                    x = colnames(meta_data))
+      }
+      colnames(meta_data) <- gsub(pattern = "\\.",
+                                  replacement = "_",
+                                  x = colnames(meta_data))
       anndata.object <- ad$AnnData(raw = raw,
                                    X = X,
                                    obs = meta_data,
                                    var = from@hvg.info,
                                    obsm = obsm)
-
       anndata.object$var_names <- gene_names
       anndata.object$obs_names <- cell_names
       if (! missing(filename)) {
@@ -276,10 +288,11 @@ Convert.SingleCellExperiment <- function(
                                            reduction.type = dr,
                                            slot = "cell.embeddings",
                                            new.data = reducedDim(x = from, type = dr))
+          key <- gsub("[[:digit:]]","", colnames(reducedDim(x = from, type = dr))[1])
           seurat.object <- SetDimReduction(object = seurat.object,
                                            reduction.type = dr,
                                            slot = "key",
-                                           new.data = dr)
+                                           new.data = key)
         }
       }
       seurat.object
@@ -297,58 +310,78 @@ setAs(
   }
 )
 
-#' @param filename.from filename holding the AnnData object, should end in h5ad
-#' @param X.slot Which Seurat slot should AnnData.X be transferred into? Default is data
+#' @param X.slot Seurat slot to transfer anndata X into. Default is scale.data
+#' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
 #' @describeIn Convert from Anndata file to a Seurat object
-#' @export Convert.AnnData
+#' @importFrom reticulate py_to_r
+#' @export Convert.anndata.base.AnnData
 #' @method Convert AnnData
 #'
 #'
-Convert.AnnData <- function(
-  filename.from,
+Convert.anndata.base.AnnData <- function(
+  from,
   to,
-  X.slot = "data"
+  X.slot = "scale.data",
+  raw.slot = "data"
 ) {
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      #to do - make sure we load in hdf5r functions
-      h5 <- h5file(filename)
-      raw_data <- h5[["raw.X"]]
+      raw.data.matrix <- sparseMatrix(i = as.numeric(from$raw$X$indices),
+                                      p = as.numeric(from$raw$X$indptr),
+                                      x = as.numeric(from$raw$X$data),
+                                      index1 = FALSE)
 
-      #to do, make sure we properly import Matrix and sparseMatrix
-      raw_data_matrix <- Matrix(sparseMatrix(i=raw_data[["indices"]][],p=raw_data[["indptr"]][],x=raw_data[["data"]][],index1 = F),sparse=T)
-      rownames(raw_data_matrix) <- h5[["raw.var"]][][,1]
-      colnames(raw_data_matrix) <- h5[["obs"]][][,1]
+      rownames(raw.data.matrix) <- rownames(py_to_r(from$raw$var))
+      colnames(raw.data.matrix) <- rownames(py_to_r(from$obs))
 
-      data_matrix <- h5[["X"]][,]
-      rownames(data_matrix) <- h5[["var"]][][,1]
-      colnames(data_matrix) <- h5[["obs"]][][,1]
+      data.matrix <- t(py_to_r(from$X))
+      rownames(data.matrix) <- rownames(py_to_r(from$var))
+      colnames(data.matrix) <- rownames(py_to_r(from$obs))
 
-      meta_data <- h5[["obs"]][]
-      rownames(meta_data) <- meta_data$index
-      meta_data <- meta_data[,-1]
-      colnames(meta_data) <- gsub("n_counts", "nUMI",colnames(meta_data))
-      colnames(meta_data) <- gsub("n_gene","nGene",colnames(meta_data))
-      object.to <- CreateSeuratObject(raw.data = raw_data_matrix, meta.data = meta_data)
-
-      #todo, check for sparse matrix possibilities
-      object.to <- SetAssayData(object, "RNA", X.slot, data_matrix)
+      meta.data <- py_to_r(from$obs)
+      if ("n_counts" %in% colnames(meta.data)) {
+        colnames(meta.data) <- gsub(pattern = "n_counts",
+                                    replacement = "nUMI",
+                                    x = colnames(meta.data))
+      }
+      if ("n_gene" %in% colnames(meta.data)) {
+        colnames(meta.data) <- gsub(pattern = "n_gene",
+                                    replacement = "nGene",
+                                    x = colnames(meta.data))
+      }
+      seurat.object <- CreateSeuratObject(raw.data = raw.data.matrix, meta.data = meta.data)
+      seurat.object <- SetAssayData(object = seurat.object,
+                                    assay.type = "RNA",
+                                    slot = X.slot,
+                                    new.data = data.matrix)
 
       #todo, deal with obsm fields that are not dimensional reductions, or have different name structures
-      drs <- names(h5[["obsm"]][])
-      dr_names <- sapply(drs,function(x)ExtractField(x,2))
-      for(i in 1:length(dr_names)) {
-        dr_embed <- matrix(h5[["obsm"]][][i][,1],nrow = length(object.to@cell.names))
-        dr <- dr_names[i]
-        #todo: translate DR codes
-        dr_key <- toupper(dr)
-        colnames(dr_embed) <- paste0(dr_key,1:ncol(dr_embed))
-        rownames(dr_embed) <- object.to@cell.names
-        object.to <- SetDimReduction(object.to,dr,"cell.embeddings",dr_embed)
-        object.to <- SetDimReduction(object.to,dr,"key",dr_key)
+      drs <- unlist(py_to_r(from$obsm$keys()))
+      for(dr in drs) {
+        dr.embed <- py_to_r(from$obsm[[eval(dr)]])
+        dr.name <- ExtractField(string = dr, field = 2)
+        if (is.na(dr.name)) {
+          dr.name <- dr
+        }
+        dr.dict <- list(tSNE_ = "tsne", PC = "pca")
+        if (dr.name %in% dr.dict) {
+          dr.key <- names(which(dr.dict == dr.name))
+        } else {
+          dr.key <- toupper(dr.name)
+        }
+        colnames(dr.embed) <- paste0(dr.key, 1:ncol(dr.embed))
+        rownames(dr.embed) <- seurat.object@cell.names
+        seurat.object <- SetDimReduction(object = seurat.object,
+                                         reduction.type = dr.name,
+                                         slot = "cell.embeddings",
+                                         new.data = dr.embed)
+        seurat.object <- SetDimReduction(object = seurat.object,
+                                         reduction.type = dr.name,
+                                         slot = "key",
+                                         new.data = dr.key)
       }
-      return(object.to)
+      seurat.object
     },
     stop(paste0("Cannot convert AnnData objects to class '", to, "'"))
   )
