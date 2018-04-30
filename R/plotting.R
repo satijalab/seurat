@@ -743,8 +743,12 @@ DotPlot <- function(
     )) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
@@ -879,8 +883,12 @@ SplitDotPlotGG <- function(
     ))) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   palette.1 <- CustomPalette(low = "grey", high = cols.use[1], k = 20)
   palette.2 <- CustomPalette(low = "grey", high = cols.use[2], k = 20)
