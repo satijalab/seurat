@@ -493,7 +493,7 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if (! missing(vars.to.regress)) {
+  if (!missing(x = vars.to.regress) && !is.null(x = vars.to.regress)) {
     data.use <- RegressOutResid(
       object = object,
       vars.to.regress = vars.to.regress,
@@ -507,7 +507,7 @@ ScaleData <- function(
     if (model.use != "linear") {
       use.umi <- TRUE
     }
-    if(use.umi && missing(scale.max)){
+    if (use.umi && missing(scale.max)) {
       scale.max <- 50
     }
   }
@@ -519,7 +519,7 @@ ScaleData <- function(
     calculation = "ScaleData",
     ... = parameters.to.store
   )
-  if(!do.cpp){
+  if (!do.cpp) {
     return(ScaleDataR(
       object = object,
       data.use = data.use,
@@ -536,7 +536,7 @@ ScaleData <- function(
     )
   )
   rownames(scaled.data) <- genes.use
-  if(length(object@cell.names) <= min.cells.to.block) {
+  if (length(object@cell.names) <= min.cells.to.block) {
     block.size <- length(genes.use)
   }
   gc()
@@ -673,7 +673,7 @@ SampleUMI <- function(
     display_progress = progress.bar
   )
   dimnames(new_data) <- dimnames(data)
-  return(new_data) 
+  return(new_data)
 }
 
 #' Identify variable genes
