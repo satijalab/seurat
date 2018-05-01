@@ -658,7 +658,7 @@ globalVariables(
 #' Intuitive way of visualizing how gene expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
 #' cells within a class, while the color encodes the AverageExpression level of
-#' 'expressing' cells (blue is high).
+#' cells within a class (blue is high).
 #'
 #' @param object Seurat object
 #' @param genes.plot Input vector of genes
@@ -718,6 +718,7 @@ DotPlot <- function(
     object <- SetAllIdent(object = object, id = group.by)
   }
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
+  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>% gather(
@@ -742,8 +743,12 @@ DotPlot <- function(
     )) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
@@ -878,8 +883,12 @@ SplitDotPlotGG <- function(
     ))) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   palette.1 <- CustomPalette(low = "grey", high = cols.use[1], k = 20)
   palette.2 <- CustomPalette(low = "grey", high = cols.use[2], k = 20)

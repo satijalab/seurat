@@ -79,7 +79,7 @@ ValidateClusters <- function(
           )
           if (verbose) {
             progress <- length(x = connectivity[connectivity > min.connectivity])
-            print(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- merge clusters ",
               c1,
@@ -92,7 +92,7 @@ ValidateClusters <- function(
           merge.done <- TRUE
         } else {
           if (verbose & status == 5) {
-            print(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- Last 5 cluster comparisons failed to merge, ",
               "still checking possible merges ..."
@@ -110,7 +110,7 @@ ValidateClusters <- function(
     }
   }
   if (verbose) {
-    print(paste0(
+    message(paste0(
       "100% complete --- started with ",
       num.clusters.orig,
       " clusters, ",
@@ -162,7 +162,7 @@ ValidateSpecificClusters <- function(
     pcs = pc.use,
     num.genes = top.genes
   )
-  print(paste0(
+  message(paste0(
     "Comparing cluster ",
     cluster1,
     " and ",
@@ -176,7 +176,7 @@ ValidateSpecificClusters <- function(
       cells.use = WhichCells(object = object, ident = cluster1),
       ident.use = cluster2
     )
-    print(paste("merge cluster", cluster1, "and", cluster2))
+    message(paste("merge cluster", cluster1, "and", cluster2))
     merge.done <- TRUE
   }
   return(object)
@@ -375,7 +375,7 @@ AssessSplit <- function(
   )
   oobe <- rfc$prediction.error
   if (print.output) {
-    print(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"))
+    message(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"))
   }
   return(oobe)
 }
