@@ -1020,26 +1020,30 @@ RunDiffusion <- function(
 #' \url{https://arxiv.org/abs/1802.03426}.
 #'
 #' @param object Seurat object
-#' @param dims.use Which dimensions to use as input features, used only if \code{genes.use} is NULL
+#' @param dims.use Which dimensions to use as input features, used only if
+#' \code{genes.use} is NULL
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
 #' @param genes.use If set, run UMAP on this subset of genes (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default
 #' @param assay.use Assay to pull data for when using \code{genes.use}
-#' @param max.dim Max dimension to keep from UMAP procedure. default is 2.
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. umap by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. UMAP by default
-#' @param n_neighbors This determines the number of neighboring points used in local
-#' approximations of manifold structure. Larger values will result in more global
-#' structure being preserved at the loss of detailed local structure. In general
-#' this parameter should often be in the range 5 to 50. Default is 10.
+#' @param max.dim Max dimension to keep from UMAP procedure.
+#' @param reduction.name dimensional reduction name, specifies the position in
+#' the object$dr list. umap by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
+#' @param n_neighbors This determines the number of neighboring points used in
+#' local approximations of manifold structure. Larger values will result in more
+#' global structure being preserved at the loss of detailed local structure. In
+#' general this parameter should often be in the range 5 to 50.
 #' @param min_dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more evenly
-#' distributed, while smaller values allow the algorithm to optimise more accurately
-#' with regard to local structure. Sensible values are in the range 0.001 to 0.5. Default is 0.1
-#' @param metric metric: This determines the choice of metric used to measure distance
-#' in the input space. A wide variety of metrics are already coded, and a user
-#' defined function can be passed as long as it has been JITd by numba.
+#' compress points together. Larger values ensure embedded points are more
+#' evenly distributed, while smaller values allow the algorithm to optimise more
+#' accurately with regard to local structure. Sensible values are in the range
+#' 0.001 to 0.5.
+#' @param metric metric: This determines the choice of metric used to measure
+#' distance in the input space. A wide variety of metrics are already coded, and
+#' a user defined function can be passed as long as it has been JITd by numba.
 #' @param ... Additional arguments to the umap
 #'
 #' @return Returns a Seurat object containing a UMAP representation
