@@ -243,14 +243,6 @@ Convert.seurat <- function(
   return(object.to)
 }
 
-setAs(
-  from = "seurat",
-  to = "SingleCellExperiment",
-  def = function(from) {
-    return(Convert(from = from, to = "sce"))
-  }
-)
-
 #' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
@@ -302,14 +294,6 @@ Convert.SingleCellExperiment <- function(
   return(object.to)
 }
 
-setAs(
-  from = "SingleCellExperiment",
-  to = "seurat",
-  def = function(from) {
-    return(Convert(from = from, to = "seurat"))
-  }
-)
-
 #' @param X.slot Seurat slot to transfer anndata X into. Default is scale.data
 #' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
 #' @describeIn Convert from Anndata file to a Seurat object
@@ -327,38 +311,46 @@ Convert.anndata.base.AnnData <- function(
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      raw.data.matrix <- sparseMatrix(i = as.numeric(from$raw$X$indices),
-                                      p = as.numeric(from$raw$X$indptr),
-                                      x = as.numeric(from$raw$X$data),
-                                      index1 = FALSE)
-
-      rownames(raw.data.matrix) <- rownames(py_to_r(from$raw$var))
-      colnames(raw.data.matrix) <- rownames(py_to_r(from$obs))
-
-      data.matrix <- t(py_to_r(from$X))
-      rownames(data.matrix) <- rownames(py_to_r(from$var))
-      colnames(data.matrix) <- rownames(py_to_r(from$obs))
-
+      raw.data.matrix <- sparseMatrix(
+        i = as.numeric(x = from$raw$X$indices),
+        p = as.numeric(x = from$raw$X$indptr),
+        x = as.numeric(x = from$raw$X$data),
+        index1 = FALSE
+      )
+      rownames(x = raw.data.matrix) <- rownames(x = py_to_r(from$raw$var))
+      colnames(x = raw.data.matrix) <- rownames(x = py_to_r(from$obs))
+      data.matrix <- t(x = py_to_r(from$X))
+      rownames(x = data.matrix) <- rownames(x = py_to_r(from$var))
+      colnames(x = data.matrix) <- rownames(x = py_to_r(from$obs))
       meta.data <- py_to_r(from$obs)
-      if ("n_counts" %in% colnames(meta.data)) {
-        colnames(meta.data) <- gsub(pattern = "n_counts",
-                                    replacement = "nUMI",
-                                    x = colnames(meta.data))
+      if ("n_counts" %in% colnames(x = meta.data)) {
+        colnames(x = meta.data) <- gsub(
+          pattern = "n_counts",
+          replacement = "nUMI",
+          x = colnames(x = meta.data)
+        )
       }
-      if ("n_gene" %in% colnames(meta.data)) {
-        colnames(meta.data) <- gsub(pattern = "n_gene",
-                                    replacement = "nGene",
-                                    x = colnames(meta.data))
+      if ("n_gene" %in% colnames(x = meta.data)) {
+        colnames(x = meta.data) <- gsub(
+          pattern = "n_gene",
+          replacement = "nGene",
+          x = colnames(x = meta.data)
+        )
       }
-      seurat.object <- CreateSeuratObject(raw.data = raw.data.matrix, meta.data = meta.data)
-      seurat.object <- SetAssayData(object = seurat.object,
-                                    assay.type = "RNA",
-                                    slot = X.slot,
-                                    new.data = data.matrix)
+      seurat.object <- CreateSeuratObject(
+        raw.data = raw.data.matrix,
+        meta.data = meta.data
+      )
+      seurat.object <- SetAssayData(
+        object = seurat.object,
+        assay.type = "RNA",
+        slot = X.slot,
+        new.data = data.matrix
+      )
 
       #todo, deal with obsm fields that are not dimensional reductions, or have different name structures
-      drs <- unlist(py_to_r(from$obsm$keys()))
-      for(dr in drs) {
+      drs <- unlist(x = py_to_r(from$obsm$keys()))
+      for (dr in drs) {
         dr.embed <- py_to_r(from$obsm[[eval(dr)]])
         dr.name <- ExtractField(string = dr, field = 2)
         if (is.na(dr.name)) {
@@ -366,20 +358,24 @@ Convert.anndata.base.AnnData <- function(
         }
         dr.dict <- list(tSNE_ = "tsne", PC = "pca")
         if (dr.name %in% dr.dict) {
-          dr.key <- names(which(dr.dict == dr.name))
+          dr.key <- names(x = which(x = dr.dict == dr.name))
         } else {
-          dr.key <- toupper(dr.name)
+          dr.key <- toupper(x = dr.name)
         }
-        colnames(dr.embed) <- paste0(dr.key, 1:ncol(dr.embed))
-        rownames(dr.embed) <- seurat.object@cell.names
-        seurat.object <- SetDimReduction(object = seurat.object,
-                                         reduction.type = dr.name,
-                                         slot = "cell.embeddings",
-                                         new.data = dr.embed)
-        seurat.object <- SetDimReduction(object = seurat.object,
-                                         reduction.type = dr.name,
-                                         slot = "key",
-                                         new.data = dr.key)
+        colnames(x = dr.embed) <- paste0(dr.key, 1:ncol(x = dr.embed))
+        rownames(x = dr.embed) <- seurat.object@cell.names
+        seurat.object <- SetDimReduction(
+          object = seurat.object,
+          reduction.type = dr.name,
+          slot = "cell.embeddings",
+          new.data = dr.embed
+        )
+        seurat.object <- SetDimReduction(
+          object = seurat.object,
+          reduction.type = dr.name,
+          slot = "key",
+          new.data = dr.key
+        )
       }
       seurat.object
     },
