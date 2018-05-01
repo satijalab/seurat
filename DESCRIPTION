@@ -61,6 +61,7 @@ Imports:
     fitdistrplus,
     png,
     doSNOW,
+    reticulate,
     foreach
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
