@@ -1011,6 +1011,13 @@ RunDiffusion <- function(
 
 #' Run UMAP
 #'
+#' Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
+#' reduction technique. To run, you must first install the umap-learn python
+#' package (e.g. via pip install umap-learn). Details on this package can be
+#' found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
+#' discussion of the mathematics underlying UMAP, see the ArXiv paper here:
+#' \url{https://arxiv.org/abs/1802.03426}.
+#'
 #' @param object Seurat object
 #' @param dims.use Which dimensions to use as input features, used only if \code{genes.use} is NULL
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
@@ -1035,6 +1042,8 @@ RunDiffusion <- function(
 #' @param ... Additional arguments to the umap
 #'
 #' @return Returns a Seurat object containing a UMAP representation
+#'
+#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 #'
 #' @importFrom reticulate import py_module_available
 #'
@@ -1065,7 +1074,7 @@ RunUMAP <- function(
   ...
 ) {
   if (!py_module_available(module = 'umap')) {
-    stop("Cannot find UMAP, please install through pip")
+    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
   }
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
