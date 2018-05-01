@@ -50,7 +50,7 @@ default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 
 Intuitive way of visualizing how gene expression changes across different
 identity classes (clusters). The size of the dot encodes the percentage of
 cells within a class, while the color encodes the AverageExpression level of
-'expressing' cells (blue is high).
+cells within a class (blue is high).
 }
 \examples{
 cd_genes <- c("CD247", "CD3E", "CD9")
