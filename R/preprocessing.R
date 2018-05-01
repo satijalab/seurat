@@ -113,6 +113,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
+  object@meta.data[["orig.ident"]] <- NULL
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if (!is.null(normalization.method)) {
     object <- NormalizeData(
