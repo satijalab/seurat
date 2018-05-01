@@ -245,8 +245,7 @@ Read10X <- function(data.dir = NULL){
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param display.progress display progress bar for scaling procedure.
 #'
-#' @return Returns object after normalization. Normalized data is stored in data
-#' or scale.data slot, depending on the method
+#' @return Returns object after normalization. Normalized data is stored in data slot
 #'
 #' @export
 #'
