@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## [2.3.1] - 2018-05-03
 ### Added
 - Support for [UMAP](https://github.com/lmcinnes/umap) dimensional reduction technique
-- New conversion functions
+- New conversion functions for SingleCellExperiment and anndata
 
 ### Changed
 - FetchData preserves cell order
