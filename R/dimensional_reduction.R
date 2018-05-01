@@ -273,7 +273,10 @@ RunTSNE <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  if (! is.null(x = distance.matrix)) {
+  if (length(x = dims.use) < 2) {
+    stop("Cannot perform tSNE on only one dimension, please provide two or more dimensions")
+  }
+  if (!is.null(x = distance.matrix)) {
     genes.use <- rownames(x = object@data)
   }
   if (is.null(x = genes.use)) {
@@ -283,14 +286,13 @@ RunTSNE <- function(
       slot = "cell.embeddings"
     )[, dims.use]
   }
-  if (! is.null(x = genes.use)) {
+  if (!is.null(x = genes.use)) {
     data.use <- t(PrepDR(
       object = object,
       genes.use = genes.use))
   }
   set.seed(seed = seed.use)
-
-  if(tsne.method == "Rtsne"){
+  if (tsne.method == "Rtsne") {
     if (is.null(x = distance.matrix)) {
       data.tsne <- Rtsne(X = as.matrix(x = data.use),
                          dims = dim.embed,
@@ -309,9 +311,8 @@ RunTSNE <- function(
   } else if (tsne.method == "tsne") {
     data.tsne <- tsne(X = data.use, k = dim.embed, ...)
   } else {
-    stop ("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
+    stop("Invalid tsne.method: Please select from Rtsne, tsne, or FIt-SNE")
   }
-
   if (add.iter > 0) {
     data.tsne <- tsne(
       X = data.use,
@@ -336,7 +337,7 @@ RunTSNE <- function(
   )
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
-  if(!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
+  if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))) {
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
     object@calc.params$RunTSNE$cells.use <- rownames(data.use)
   }

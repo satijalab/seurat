@@ -4,15 +4,18 @@
 \alias{AssessNodes}
 \title{Assess Internal Nodes}
 \usage{
-AssessNodes(object, node.list, all.below = FALSE)
+AssessNodes(object, node.list, all.below = FALSE, genes.training = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node.list}{List of internal nodes to assess and return}
 
-\item{all.below}{If single node provided in node.list, assess all splits below (and including)
-provided node
+\item{all.below}{If single node provided in node.list, assess all splits
+below (and including) provided node}
+
+\item{genes.training}{A vector of genes to use to train the classifier,
+defaults to \code{rownames(x = object@data)}
 .}
 }
 \value{

@@ -63,7 +63,8 @@ of the two groups, currently only used for poisson and negative binomial tests}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
-\item{latent.vars}{remove the effects of these variables}
+\item{latent.vars}{Remove the effects of these variables, used only when \code{test.use} is one of
+'negbinom', 'poisson', or 'MAST'}
 
 \item{assay.type}{Type of assay to perform DE for (default is RNA)}
 

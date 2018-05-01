@@ -1,33 +1,13 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
 language: R
-sudo: required
-r: bioc-devel
-bioc_required: true
-bioc_use_devel: true
+sudo: false
+cache: packages
+dist: trusty
 
-r_binary_packages:
-  - lars
-  - mixtools
-  - caret
-  - e1071
-  - ica
-  - fpc
-  - ape
-  - igraph
-  - dplyr
-  - irlba
-  - reshape2
-  - gdata
-  - compositions
-  - dtw
-  - plotly
-  - httr
-  - tidyr
-  - ranger
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
   - MAST
+  
 warnings_are_errors: false
-dist: trusty

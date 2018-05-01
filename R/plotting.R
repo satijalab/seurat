@@ -658,19 +658,23 @@ globalVariables(
 #' Intuitive way of visualizing how gene expression changes across different
 #' identity classes (clusters). The size of the dot encodes the percentage of
 #' cells within a class, while the color encodes the AverageExpression level of
-#' 'expressing' cells (blue is high).
+#' cells within a class (blue is high).
 #'
 #' @param object Seurat object
 #' @param genes.plot Input vector of genes
-#' @param cols.use colors to plot
+#' @param cols.use Colors to plot, can pass a single character giving the name of
+#' a palette from \code{RColorBrewer::brewer.pal.info}
 #' @param col.min Minimum scaled average expression threshold (everything smaller
 #'  will be set to this)
 #' @param col.max Maximum scaled average expression threshold (everything larger
 #' will be set to this)
 #' @param dot.min The fraction of cells at which to draw the smallest dot
-#' (default is 0.05). All cell groups with less than this expressing the given
+#' (default is 0). All cell groups with less than this expressing the given
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
+#' @param scale.by Scale the size of the points by 'size' or by 'radius'
+#' @param scale.min Set lower limit for scaling, use NA for default
+#' @param scale.max Set upper limit for scaling, use NA for default
 #' @param group.by Factor to group the cells by
 #' @param plot.legend plots the legends
 #' @param x.lab.rot Rotate x-axis labels
@@ -682,6 +686,7 @@ globalVariables(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #'
 #' @export
+#' @seealso \code{\link{RColorBrewer::brewer.pal.info}}
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
@@ -695,15 +700,25 @@ DotPlot <- function(
   col.max = 2.5,
   dot.min = 0,
   dot.scale = 6,
+  scale.by = 'radius',
+  scale.min = NA,
+  scale.max = NA,
   group.by,
   plot.legend = FALSE,
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
-  if (! missing(x = group.by)) {
+  scale.func <- switch(
+    EXPR = scale.by,
+    'size' = scale_size,
+    'radius' = scale_radius,
+    stop("'scale.by' must be either 'size' or 'radius'")
+  )
+  if (!missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
+  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>% gather(
@@ -728,15 +743,23 @@ DotPlot <- function(
     )) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
-    scale_radius(range = c(0, dot.scale)) +
-    scale_color_gradient(low = cols.use[1], high = cols.use[2]) +
+    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank())
-  if (! plot.legend) {
+  if (length(x = cols.use) == 1) {
+    p <- p + scale_color_distiller(palette = cols.use)
+  } else {
+    p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
+  }
+  if (!plot.legend) {
     p <- p + theme(legend.position = "none")
   }
   if (x.lab.rot) {
@@ -826,6 +849,7 @@ SplitDotPlotGG <- function(
     ordered = TRUE
   )
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
+  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>%
@@ -859,8 +883,12 @@ SplitDotPlotGG <- function(
     ))) ->  data.to.plot
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+    levels = rev(x = genes.plot)
   )
+  # data.to.plot$genes.plot <- factor(
+  #   x = data.to.plot$genes.plot,
+  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
+  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
   palette.1 <- CustomPalette(low = "grey", high = cols.use[1], k = 20)
   palette.2 <- CustomPalette(low = "grey", high = cols.use[2], k = 20)
@@ -1163,6 +1191,7 @@ globalVariables(
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param group.by Group cells in different ways (for example, orig.ident)
+#' @param data.use Dataset to use for plotting, choose from 'data', 'scale.data', or 'imputed'
 #' @param sep.scale Scale each group separately. Default is FALSE.
 #' @param max.exp Max cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
 #' @param min.exp Min cutoff for scaled expression value, supports quantiles in the form of 'q##' (see FeaturePlot)
@@ -1195,6 +1224,7 @@ FeatureHeatmap <- function(
   pch.use = 16,
   reduction.use = "tsne",
   group.by = NULL,
+  data.use = 'data',
   sep.scale = FALSE,
   do.return = FALSE,
   min.exp = -Inf,
@@ -1203,7 +1233,23 @@ FeatureHeatmap <- function(
   plot.horiz = FALSE,
   key.position = "right"
 ) {
-  if (! is.null(x = group.by)) {
+  switch(
+    EXPR = data.use,
+    'data' = {
+      use.imputed <- FALSE
+      use.scaled <- FALSE
+    },
+    'scale.data' = {
+      use.imputed <- FALSE
+      use.scaled <- TRUE
+    },
+    'imputed' = {
+      use.imputed <- TRUE
+      use.scaled <- FALSE
+    },
+    stop("Invalid dataset to use")
+  )
+  if (!is.null(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
   idents.use <- SetIfNull(x = idents.use, default = sort(x = unique(x = object@ident)))
@@ -1216,7 +1262,9 @@ FeatureHeatmap <- function(
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- data.frame(FetchData(
     object = object,
-    vars.all = c(dim.codes, features.plot)
+    vars.all = c(dim.codes, features.plot),
+    use.imputed = use.imputed,
+    use.scaled = use.scaled
   ))
   colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
   data.plot$ident <- as.character(x = object@ident)
@@ -2437,7 +2485,7 @@ DimPlot <- function(
         length.out = length(x = cells.highlight)
       )
       highlight <- rep_len(x = NA_character_, length.out = nrow(x = data.plot))
-      cols.use <- c('black', cols.highlight)
+      cols.use <- c(cols.use[1], cols.highlight)
       size <- rep_len(x = pt.size, length.out = nrow(x = data.plot))
       for (i in 1:length(x = cells.highlight)) {
         cells.check <- cells.highlight[[i]]

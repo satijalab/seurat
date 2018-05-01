@@ -22,8 +22,7 @@ log-normalization (LogNormalize). More methods to be added very shortly.}
 \item{display.progress}{display progress bar for scaling procedure.}
 }
 \value{
-Returns object after normalization. Normalized data is stored in data
-or scale.data slot, depending on the method
+Returns object after normalization. Normalized data is stored in data slot
 }
 \description{
 Normalize data for a given assay
