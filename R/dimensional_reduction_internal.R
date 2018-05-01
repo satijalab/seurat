@@ -101,6 +101,9 @@ CheckGroup <- function(object, group, group.id) {
       ))
     }
   }
+  if (length(cells.use) == 0) {
+    stop(paste0("No cells present in group: ", group.id))
+  }
   return(cells.use)
 }
 

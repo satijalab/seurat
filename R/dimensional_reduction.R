@@ -580,7 +580,7 @@ RunCCA <- function(
     if (missing(x = genes.use)) {
       genes.use <- object@var.genes
       if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run MeanVarPlot and retry")
+        stop("No variable genes present. Run FindVariableGenes and retry or set genes.use")
       }
     }
     if (missing(x = group.by)) {
