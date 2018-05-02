@@ -287,7 +287,7 @@ Convert.SingleCellExperiment <- function(
           stop(paste0("No data in provided assay - ", data.slot))
         }
       )
-      meta.data <- as.data.frame(SingleCellExperiment::colData(from))
+      meta.data <- as.data.frame(SummarizedExperiment::colData(from))
       seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
       seurat.object@data <- data
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
