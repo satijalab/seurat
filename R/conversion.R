@@ -155,9 +155,9 @@ Convert.seurat <- function(
         sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
       }
       if (class(from@data) %in% c("matrix", "dgTMatrix")) {
-        assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
+        SummarizedExperiment::assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
       } else {
-        assay(sce, "logcounts") <- from@data
+        SummarizedExperiment::assay(sce, "logcounts") <- from@data
       }
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
@@ -287,10 +287,10 @@ Convert.SingleCellExperiment <- function(
           stop(paste0("No data in provided assay - ", data.slot))
         }
       )
-      meta.data <- as.data.frame(colData(from))
+      meta.data <- as.data.frame(SingleCellExperiment::colData(from))
       seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
       seurat.object@data <- data
-      if (length(x = reducedDimNames(from)) > 0) {
+      if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
         for (dr in reducedDimNames(from)) {
           seurat.object <- SetDimReduction(
             object = seurat.object,
