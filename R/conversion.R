@@ -30,9 +30,11 @@ Convert <- function(from, ...) {
 #' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
 #' @describeIn Convert Convert a Seurat object
+#'
 #' @importFrom utils installed.packages
-#' @importFrom reticulate import np_array tuple dict
-#' @export Convert.seurat
+#' @importFrom reticulate import np_array tuple dict r_to_py
+#'
+#' @export
 #' @method Convert seurat
 #'
 Convert.seurat <- function(
@@ -53,10 +55,9 @@ Convert.seurat <- function(
       if (!'loomR' %in% rownames(x = installed.packages())) {
         stop("Please install loomR from GitHub before converting to a loom object")
       }
-      requireNamespace('loomR')
       cell.order <- from@cell.names
       gene.order <- rownames(x = from@raw.data)
-      loomfile <- create(
+      loomfile <- loomR::create(
         filename = filename,
         data = from@raw.data[, cell.order],
         cell.attrs = from@meta.data[cell.order, ],
@@ -148,11 +149,10 @@ Convert.seurat <- function(
       if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
         stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
       }
-      requireNamespace('SingleCellExperiment')
       if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
-        sce <- SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
+        sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
       } else {
-        sce <- SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
+        sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
       }
       if (class(from@data) %in% c("matrix", "dgTMatrix")) {
         assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
@@ -161,13 +161,15 @@ Convert.seurat <- function(
       }
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
-      colData(sce) <- DataFrame(meta.data)
+      SingleCellExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
       row.data <- from@hvg.info[rownames(from@data), ]
-      row.data <- cbind(gene = rownames(from@data), row.data)
-      rowData(sce) <- DataFrame(row.data)
-      for (dr in names(from@dr)){
-        reducedDim(sce, toupper(dr)) <-
-          slot(slot(from, "dr")[[dr]], "cell.embeddings")
+      row.data <- cbind(gene = rownames(x = from@data), row.data)
+      SingleCellExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
+      for (dr in names(from@dr)) {
+        SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- slot(
+          object = slot(object = from, name = "dr")[[dr]],
+          name = "cell.embeddings"
+        )
       }
       sce
     },
@@ -260,7 +262,7 @@ Convert.seurat <- function(
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
 #' @describeIn Convert Convert from SingleCellExperiment to a Seurat object
-#' @export Convert.SingleCellExperiment
+#' @export
 #' @method Convert SingleCellExperiment
 #'
 Convert.SingleCellExperiment <- function(
@@ -316,7 +318,7 @@ Convert.SingleCellExperiment <- function(
 #' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
 #' @describeIn Convert from Anndata file to a Seurat object
 #' @importFrom reticulate py_to_r
-#' @export Convert.anndata.base.AnnData
+#' @export
 #' @method Convert anndata.base.AnnData
 #'
 #'
