@@ -772,7 +772,7 @@ DotPlot <- function(
 }
 
 globalVariables(
-  names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor'),
+  names = c('cell', 'id', 'avg.exp', 'pct.exp', 'ptcolor', 'ident2'),
   package = 'Seurat',
   add = TRUE
 )
