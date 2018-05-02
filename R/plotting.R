@@ -834,9 +834,14 @@ SplitDotPlotGG <- function(
     vars.all = grouping.var
   )[names(x = object@ident), 1]
   
-  if(length(cols.use) < length(unique(grouping.data))){
-    stop(paste("Not enough colors supplied for number of grouping variables. Need", as.character(length(unique(grouping.data))), "got",
-               as.character(length(cols.use)), "colors"))
+  ncolor <- length(cols.use)
+  ngroups <- length(unique(grouping.data))
+  
+  if(ncolor < ngroups){
+    stop(paste("Not enough colors supplied for number of grouping variables. Need", as.character(ngroups), "got",
+               as.character(ncolor), "colors"))
+  } else if(ncolor > ngroups){
+    cols.use <- cols.use[1:ngroups]
   }
   
   idents.old <- levels(x = object@ident)
@@ -930,10 +935,10 @@ SplitDotPlotGG <- function(
     plot.legend <- cowplot::get_legend(plot = p)
     # Get gradient legends from both palettes
     palettes <- list()
-    for(i in palette.use){
-      {palettes[[i]] <- colorRampPalette(c("grey", i))(20)}
+    for(i in seq_along(colorlist)){
+      {palettes[[names(colorlist[i])]] <- colorRampPalette(c("grey", colorlist[[i]]))(20)}
     }
-    gradient.legends <- mapply(FUN = GetGradientLegend, palette = palettes, group = as.list(unique(grouping.data)), SIMPLIFY = F, USE.NAMES = F)
+    gradient.legends <- mapply(FUN = GetGradientLegend, palette = palettes, group = names(palettes), SIMPLIFY = F, USE.NAMES = F)
     # Remove legend from p
     p <- p + theme(legend.position = "none")
     # Arrange legends using plot_grid
