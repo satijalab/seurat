@@ -837,14 +837,20 @@ SplitDotPlotGG <- function(
     object = object,
     vars.all = grouping.var
   )[names(x = object@ident), 1]
-  if (length(x = cols.use) < length(x = unique(x = grouping.data))) {
-    stop(paste(
-      "Not enough colors supplied for number of grouping variables. Need",
-      length(x = unique(x = grouping.data)),
-      "got",
-      length(x = cols.use),
-      "colors"
-    ))
+  ncolor <- length(x = cols.use)
+  ngroups <- length(x = unique(x = grouping.data))
+  if (ncolor < ngroups) {
+    stop(
+      paste(
+        "Not enough colors supplied for number of grouping variables. Need",
+        ngroups,
+        "got",
+        ncolor,
+        "colors"
+      )
+    )
+  } else if (ncolor > ngroups) {
+    cols.use <- cols.use[1:ngroups]
   }
   idents.old <- levels(x = object@ident)
   idents.new <- paste(object@ident, grouping.data, sep = "_")
@@ -875,7 +881,6 @@ SplitDotPlotGG <- function(
       avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
-
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
@@ -884,7 +889,6 @@ SplitDotPlotGG <- function(
       x = MinMax(data = avg.exp, max = col.max, min = col.min),
       breaks = 20
     ))) ->  data.to.plot
-
   data.to.plot %>%
     separate(col = id, into = c('ident1', 'ident2'), sep = "_") %>%
     rowwise() %>%
@@ -934,13 +938,13 @@ SplitDotPlotGG <- function(
     plot.legend <- cowplot::get_legend(plot = p)
     # Get gradient legends from both palettes
     palettes <- list()
-    for (i in palette.use) {
-      palettes[[i]] <- colorRampPalette(c("grey", i))(20)
+    for (i in seq_along(along.with = colorlist)) {
+      palettes[[names(colorlist[i])]] <- colorRampPalette(colors = c("grey", colorlist[[i]]))(20)
     }
     gradient.legends <- mapply(
       FUN = GetGradientLegend,
       palette = palettes,
-      group = as.list(x = unique(x = grouping.data)),
+      group = names(x = palettes),
       SIMPLIFY = FALSE,
       USE.NAMES = FALSE
     )
@@ -955,7 +959,12 @@ SplitDotPlotGG <- function(
       scale = rep(0.5, length(gradient.legends)), align = "hv"
     )
     # Arrange plot and legends using plot_grid
-    p <- cowplot::plot_grid(p, legends, ncol = 2, rel_widths = c(1, 0.3), scale = c(1, 0.8))
+    p <- cowplot::plot_grid(
+      p, legends,
+      ncol = 2,
+      rel_widths = c(1, 0.3),
+      scale = c(1, 0.8)
+    )
   }
   suppressWarnings(print(p))
   if (do.return) {
@@ -967,7 +976,6 @@ SplitDotPlotGG <- function(
 #'
 #' Colors single cells on a dimensional reduction plot according to a 'feature'
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
-#'
 #'
 #' @param object Seurat object
 #' @param features.plot Vector of features to plot
