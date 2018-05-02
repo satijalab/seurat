@@ -5,7 +5,7 @@ NULL
 #' @export as.seurat
 #' @aliases as.seurat
 #'
-as.seurat <- function(from, ...) {
+as.seurat <- function(from) {
   UseMethod(generic = 'as.seurat', object = from)
 }
 
