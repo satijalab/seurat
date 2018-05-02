@@ -161,10 +161,10 @@ Convert.seurat <- function(
       }
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
-      SingleCellExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
+      SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
       row.data <- from@hvg.info[rownames(from@data), ]
       row.data <- cbind(gene = rownames(x = from@data), row.data)
-      SingleCellExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
+      SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
       for (dr in names(from@dr)) {
         SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- slot(
           object = slot(object = from, name = "dr")[[dr]],
@@ -291,14 +291,18 @@ Convert.SingleCellExperiment <- function(
       seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
       seurat.object@data <- data
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
-        for (dr in reducedDimNames(from)) {
+        for (dr in SingleCellExperiment::reducedDimNames(from)) {
           seurat.object <- SetDimReduction(
             object = seurat.object,
             reduction.type = dr,
             slot = "cell.embeddings",
-            new.data = reducedDim(x = from, type = dr)
+            new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
           )
-          key <- gsub("[[:digit:]]","", colnames(x = reducedDim(x = from, type = dr))[1])
+          key <- gsub(
+            pattern = "[[:digit:]]",
+            replacement = "",
+            x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+          )[1])
           seurat.object <- SetDimReduction(
             object = seurat.object,
             reduction.type = dr,
