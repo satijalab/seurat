@@ -780,7 +780,7 @@ globalVariables(
 #'
 #' Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
 #' The size of the dot encodes the percentage of cells within a class, while the color encodes the
-#' AverageExpression level of 'expressing' cells (green is high). Splits the cells into two groups based on a
+#' AverageExpression level of 'expressing' cells. Splits the cells into groups based on a
 #' grouping variable.
 #' Still in BETA
 #'
@@ -798,8 +798,8 @@ globalVariables(
 #' @param do.return Return ggplot2 object
 #' @param gene.groups Add labeling bars to the top of the plot
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each mutate ungroup
-#' @importFrom tidyr gather
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup rowwise
+#' @importFrom tidyr gather separate unite
 #' @export
 #'
 #' @examples
@@ -816,7 +816,7 @@ SplitDotPlotGG <- function(
   grouping.var,
   genes.plot,
   gene.groups,
-  cols.use = c("green", "red"),
+  cols.use = c("blue", "red"),
   col.min = -2.5,
   col.max = 2.5,
   dot.min = 0,
@@ -833,23 +833,34 @@ SplitDotPlotGG <- function(
     object = object,
     vars.all = grouping.var
   )[names(x = object@ident), 1]
+  
+  if(length(cols.use) < length(unique(grouping.data))){
+    stop(paste("Not enough colors supplied for number of grouping variables. Need", as.character(length(unique(grouping.data))), "got",
+               as.character(length(cols.use)), "colors"))
+  }
+  
   idents.old <- levels(x = object@ident)
   idents.new <- paste(object@ident, grouping.data, sep="_")
+  
+  colorlist <- cols.use
+  names(colorlist) <- levels(grouping.data)
+  
   object@ident <- factor(
     x = idents.new,
     levels = unlist(x = lapply(
       X = idents.old,
       FUN = function(x) {
-        return(c(
-          paste(x, unique(x = grouping.data)[1], sep="_"),
-          paste(x, unique(x = grouping.data)[2], sep="_")
-        ))
+        lvls <- list()
+        for(i in seq_along(levels(grouping.data))){
+          lvls[[i]] <- paste(x, levels(grouping.data)[i], sep="_")
+        }
+        return(unlist(lvls))
       }
     )),
     ordered = TRUE
   )
+  
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
-  colnames(x = data.to.plot) <- genes.plot
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
   data.to.plot %>%
@@ -860,19 +871,7 @@ SplitDotPlotGG <- function(
       avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
-  ids.2 <- paste(
-    idents.old,
-    as.character(x = unique(x = grouping.data)[2]),
-    sep = "_"
-  )
-  vals.2 <- which(x = data.to.plot$id %in% ids.2)
-  ids.1 <- paste(
-    idents.old,
-    as.character(x = unique(x = grouping.data)[1]),
-    sep = "_"
-  )
-  vals.1 <- which(x = data.to.plot$id %in% ids.1)
-  #data.to.plot[vals.2,3]=-1*data.to.plot[vals.2,3]
+  
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
@@ -881,24 +880,22 @@ SplitDotPlotGG <- function(
       x = MinMax(data = avg.exp, max = col.max, min = col.min),
       breaks = 20
     ))) ->  data.to.plot
+  
+  data.to.plot %>%
+    separate(col = id, into = c('ident1', 'ident2'), sep = "_") %>%
+    rowwise() %>%
+    mutate(palette.use = colorlist[[ident2]],
+           ptcolor = colorRampPalette(c("grey", palette.use))(20)[avg.exp.scale]) %>%
+    unite('id', c('ident1', 'ident2'), sep = '_') -> data.to.plot
+  
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
-    levels = rev(x = genes.plot)
+    levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   )
-  # data.to.plot$genes.plot <- factor(
-  #   x = data.to.plot$genes.plot,
-  #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
-  # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  palette.1 <- CustomPalette(low = "grey", high = cols.use[1], k = 20)
-  palette.2 <- CustomPalette(low = "grey", high = cols.use[2], k = 20)
-  data.to.plot$ptcolor <- "grey"
-  data.to.plot[vals.1, "ptcolor"] <- palette.1[as.matrix(
-    x = data.to.plot[vals.1, "avg.exp.scale"]
-  )[, 1]]
-  data.to.plot[vals.2, "ptcolor"] <- palette.2[as.matrix(
-    x = data.to.plot[vals.2, "avg.exp.scale"]
-  )[, 1]]
+  data.to.plot$id <- factor(data.to.plot$id, levels = levels(object@ident))
+  palette.use <- unique(data.to.plot$palette.use)
+  
   if (! missing(x = gene.groups)) {
     names(x = gene.groups) <- genes.plot
     data.to.plot %>%
@@ -929,16 +926,21 @@ SplitDotPlotGG <- function(
   if (! plot.legend) {
     p <- p + theme(legend.position = "none")
   } else if (plot.legend) {
-  # Get legend from plot
-  plot.legend <- cowplot::get_legend(plot = p)
-  # Get gradient legends from both palettes
-  gradient.legends <- mapply(FUN = GetGradientLegend, palette = list(palette.1, palette.2), group = as.list(unique(grouping.data)), SIMPLIFY = F, USE.NAMES = F)
-  # Remove legend from p
-  p <- p + theme(legend.position = "none")
-  # Arrange legends using plot_grid
-  legends <- cowplot::plot_grid(gradient.legends[[1]], gradient.legends[[2]], plot.legend, ncol = 1, nrow = 3, rel_heights = c(0.5, 0.5, 1), scale = c(0.5, 0.5, 0.5), align = "hv")
-  # Arrange plot and legends using plot_grid
-  p <- cowplot::plot_grid(p, legends, ncol = 2, rel_widths = c(1, 0.3), scale = c(1, 0.8))
+    # Get legend from plot
+    plot.legend <- cowplot::get_legend(plot = p)
+    # Get gradient legends from both palettes
+    palettes <- list()
+    for(i in palette.use){
+      {palettes[[i]] <- colorRampPalette(c("grey", i))(20)}
+    }
+    gradient.legends <- mapply(FUN = GetGradientLegend, palette = palettes, group = as.list(unique(grouping.data)), SIMPLIFY = F, USE.NAMES = F)
+    # Remove legend from p
+    p <- p + theme(legend.position = "none")
+    # Arrange legends using plot_grid
+    legends <- cowplot::plot_grid(plotlist = gradient.legends, plot.legend, ncol = 1, rel_heights = c(1, rep(0.5, length(gradient.legends))),
+                                  scale = rep(0.5, length(gradient.legends)), align = "hv")
+    # Arrange plot and legends using plot_grid
+    p <- cowplot::plot_grid(p, legends, ncol = 2, rel_widths = c(1, 0.3), scale = c(1, 0.8))
   }
   suppressWarnings(print(p))
   if (do.return) {
