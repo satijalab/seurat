@@ -1020,6 +1020,7 @@ RunDiffusion <- function(
 #' \url{https://arxiv.org/abs/1802.03426}.
 #'
 #' @param object Seurat object
+#' @param cells.use Which cells to analyze (default, all cells)
 #' @param dims.use Which dimensions to use as input features, used only if
 #' \code{genes.use} is NULL
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the

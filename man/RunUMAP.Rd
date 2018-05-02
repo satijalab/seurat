@@ -12,6 +12,8 @@ RunUMAP(object, cells.use = NULL, dims.use = 1:5, reduction.use = "pca",
 \arguments{
 \item{object}{Seurat object}
 
+\item{cells.use}{Which cells to analyze (default, all cells)}
+
 \item{dims.use}{Which dimensions to use as input features, used only if
 \code{genes.use} is NULL}
 
