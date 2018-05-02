@@ -235,11 +235,13 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
 #'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
 #' pbmc_small <- BuildClusterTree(pbmc_small, reorder.numeric = TRUE, do.reorder = TRUE)
 #' AssessNodes(pbmc_small)
+#' }
 #'
 AssessNodes <- function(
   object,
