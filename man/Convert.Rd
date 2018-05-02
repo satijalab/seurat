@@ -20,7 +20,7 @@ Convert(from, ...)
 \method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
   data.slot = "logcounts", ...)
 
-\method{Convert}{AnnData}(from, to, X.slot = "scale.data",
+\method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)
 
 as.seurat(from)
@@ -74,6 +74,6 @@ and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
 
 \item \code{SingleCellExperiment}: Convert from SingleCellExperiment to a Seurat object
 
-\item \code{AnnData}: from Anndata file to a Seurat object
+\item \code{anndata.base.AnnData}: from Anndata file to a Seurat object
 }}
 

@@ -203,6 +203,9 @@ Convert.seurat <- function(
         tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)),
         shape = tuple(raw@Dim[1], raw@Dim[2])
       )
+      if (inherits(x = raw, what = c('matrix', 'Matrix', 'data.frame'))) {
+        raw <- r_to_py(x = raw)
+      }
       raw <- raw$T
       raw <- dict(X = raw, var = dict(var_names = raw.rownames))
       X <- np_array(t(x = X))
@@ -314,7 +317,7 @@ Convert.SingleCellExperiment <- function(
 #' @describeIn Convert from Anndata file to a Seurat object
 #' @importFrom reticulate py_to_r
 #' @export Convert.anndata.base.AnnData
-#' @method Convert AnnData
+#' @method Convert anndata.base.AnnData
 #'
 #'
 Convert.anndata.base.AnnData <- function(
