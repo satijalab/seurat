@@ -21,7 +21,7 @@ as.seurat.SingleCellExperiment <- function(from) {
 #' @export as.SingleCellExperiment
 #' @aliases as.SingleCellExperiment
 #'
-as.SingleCellExperiment <- function(from, ...) {
+as.SingleCellExperiment <- function(from) {
   UseMethod(generic = 'as.SingleCellExperiment', object = from)
 }
 

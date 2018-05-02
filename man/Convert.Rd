@@ -27,7 +27,7 @@ as.seurat(from)
 
 \method{as.seurat}{SingleCellExperiment}(from)
 
-as.SingleCellExperiment(from, ...)
+as.SingleCellExperiment(from)
 
 \method{as.SingleCellExperiment}{seurat}(from)
 }
