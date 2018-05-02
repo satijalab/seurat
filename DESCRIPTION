@@ -8,8 +8,8 @@ Authors@R: c(
   person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
   person(given = 'Paul', family = 'Hoffman', email = 'seuratpackage@gmail.com', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
   person(given = 'Jeff', family = 'Farrell', email = 'jfarrell@g.harvard.edu', role = 'ctb'),
-  person(given = 'Shiwei', family = 'Zheng', email = 'szheng@nygenome.org', role = 'ctb'),
-  person(given = 'Christoph', family = 'Hafemeister', email = 'chafemeister@nygenome.org', role = 'ctb'),
+  person(given = 'Shiwei', family = 'Zheng', email = 'szheng@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0001-6682-6743')),
+  person(given = 'Christoph', family = 'Hafemeister', email = 'chafemeister@nygenome.org', role = 'ctb', comment = (ORCID = '0000-0001-6365-8254')),
   person(given = 'Patrick', family = 'Roelli', email = 'proelli@nygenome.org', role = 'ctb')
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
