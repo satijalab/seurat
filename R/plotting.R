@@ -797,9 +797,13 @@ globalVariables(
 #' @param x.lab.rot Rotate x-axis labels
 #' @param do.return Return ggplot2 object
 #' @param gene.groups Add labeling bars to the top of the plot
+#'
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
-#' @importFrom dplyr %>% group_by summarize_each mutate ungroup rowwise
+#'
+#' @importFrom grDevices colorRampPalette
 #' @importFrom tidyr gather separate unite
+#' @importFrom dplyr %>% group_by summarize_each mutate ungroup rowwise
+#'
 #' @export
 #'
 #' @examples
@@ -826,40 +830,40 @@ SplitDotPlotGG <- function(
   do.return = FALSE,
   x.lab.rot = FALSE
 ) {
-  if (! missing(x = group.by)) {
+  if (!missing(x = group.by)) {
     object <- SetAllIdent(object = object, id = group.by)
   }
   grouping.data <- FetchData(
     object = object,
     vars.all = grouping.var
   )[names(x = object@ident), 1]
-  
-  if(length(cols.use) < length(unique(grouping.data))){
-    stop(paste("Not enough colors supplied for number of grouping variables. Need", as.character(length(unique(grouping.data))), "got",
-               as.character(length(cols.use)), "colors"))
+  if (length(x = cols.use) < length(x = unique(x = grouping.data))) {
+    stop(paste(
+      "Not enough colors supplied for number of grouping variables. Need",
+      length(x = unique(x = grouping.data)),
+      "got",
+      length(x = cols.use),
+      "colors"
+    ))
   }
-  
   idents.old <- levels(x = object@ident)
-  idents.new <- paste(object@ident, grouping.data, sep="_")
-  
+  idents.new <- paste(object@ident, grouping.data, sep = "_")
   colorlist <- cols.use
-  names(colorlist) <- levels(grouping.data)
-  
+  names(x = colorlist) <- levels(x = grouping.data)
   object@ident <- factor(
     x = idents.new,
     levels = unlist(x = lapply(
       X = idents.old,
       FUN = function(x) {
         lvls <- list()
-        for(i in seq_along(levels(grouping.data))){
-          lvls[[i]] <- paste(x, levels(grouping.data)[i], sep="_")
+        for (i in seq_along(along.with = levels(x = grouping.data))) {
+          lvls[[i]] <- paste(x, levels(x = grouping.data)[i], sep = "_")
         }
-        return(unlist(lvls))
+        return(unlist(x = lvls))
       }
     )),
     ordered = TRUE
   )
-  
   data.to.plot <- data.frame(FetchData(object = object, vars.all = genes.plot))
   data.to.plot$cell <- rownames(x = data.to.plot)
   data.to.plot$id <- object@ident
@@ -871,32 +875,32 @@ SplitDotPlotGG <- function(
       avg.exp = ExpMean(x = expression),
       pct.exp = PercentAbove(x = expression, threshold = 0)
     ) -> data.to.plot
-  
+
   data.to.plot %>%
     ungroup() %>%
     group_by(genes.plot) %>%
-    mutate(avg.exp = scale(avg.exp)) %>%
+    mutate(avg.exp = scale(x = avg.exp)) %>%
     mutate(avg.exp.scale = as.numeric(x = cut(
       x = MinMax(data = avg.exp, max = col.max, min = col.min),
       breaks = 20
     ))) ->  data.to.plot
-  
+
   data.to.plot %>%
     separate(col = id, into = c('ident1', 'ident2'), sep = "_") %>%
     rowwise() %>%
-    mutate(palette.use = colorlist[[ident2]],
-           ptcolor = colorRampPalette(c("grey", palette.use))(20)[avg.exp.scale]) %>%
+    mutate(
+      palette.use = colorlist[[ident2]],
+      ptcolor = colorRampPalette(colors = c("grey", palette.use))(20)[avg.exp.scale]
+    ) %>%
     unite('id', c('ident1', 'ident2'), sep = '_') -> data.to.plot
-  
   data.to.plot$genes.plot <- factor(
     x = data.to.plot$genes.plot,
     levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  data.to.plot$id <- factor(data.to.plot$id, levels = levels(object@ident))
-  palette.use <- unique(data.to.plot$palette.use)
-  
-  if (! missing(x = gene.groups)) {
+  data.to.plot$id <- factor(x = data.to.plot$id, levels = levels(object@ident))
+  palette.use <- unique(x = data.to.plot$palette.use)
+  if (!missing(x = gene.groups)) {
     names(x = gene.groups) <- genes.plot
     data.to.plot %>%
       mutate(gene.groups = gene.groups[genes.plot]) -> data.to.plot
@@ -906,7 +910,7 @@ SplitDotPlotGG <- function(
     scale_radius(range = c(0, dot.scale)) +
     scale_color_identity() +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank())
-  if (! missing(x = gene.groups)) {
+  if (!missing(x = gene.groups)) {
     p <- p +
       facet_grid(
         facets = ~gene.groups,
@@ -923,22 +927,33 @@ SplitDotPlotGG <- function(
   if (x.lab.rot) {
     p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
   }
-  if (! plot.legend) {
+  if (!plot.legend) {
     p <- p + theme(legend.position = "none")
   } else if (plot.legend) {
     # Get legend from plot
     plot.legend <- cowplot::get_legend(plot = p)
     # Get gradient legends from both palettes
     palettes <- list()
-    for(i in palette.use){
-      {palettes[[i]] <- colorRampPalette(c("grey", i))(20)}
+    for (i in palette.use) {
+      palettes[[i]] <- colorRampPalette(c("grey", i))(20)
     }
-    gradient.legends <- mapply(FUN = GetGradientLegend, palette = palettes, group = as.list(unique(grouping.data)), SIMPLIFY = F, USE.NAMES = F)
+    gradient.legends <- mapply(
+      FUN = GetGradientLegend,
+      palette = palettes,
+      group = as.list(x = unique(x = grouping.data)),
+      SIMPLIFY = FALSE,
+      USE.NAMES = FALSE
+    )
     # Remove legend from p
     p <- p + theme(legend.position = "none")
     # Arrange legends using plot_grid
-    legends <- cowplot::plot_grid(plotlist = gradient.legends, plot.legend, ncol = 1, rel_heights = c(1, rep(0.5, length(gradient.legends))),
-                                  scale = rep(0.5, length(gradient.legends)), align = "hv")
+    legends <- cowplot::plot_grid(
+      plotlist = gradient.legends,
+      plot.legend,
+      ncol = 1,
+      rel_heights = c(1, rep.int(x = 0.5, times = length(x = gradient.legends))),
+      scale = rep(0.5, length(gradient.legends)), align = "hv"
+    )
     # Arrange plot and legends using plot_grid
     p <- cowplot::plot_grid(p, legends, ncol = 2, rel_widths = c(1, 0.3), scale = c(1, 0.8))
   }
