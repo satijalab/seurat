@@ -10,7 +10,7 @@ as.seurat <- function(from) {
 }
 
 #' @rdname Convert
-#' @export as.seurat.SingleCellExperiment
+#' @export
 #' @method as.seurat SingleCellExperiment
 #'
 as.seurat.SingleCellExperiment <- function(from) {
@@ -26,7 +26,7 @@ as.SingleCellExperiment <- function(from) {
 }
 
 #' @rdname Convert
-#' @export as.SingleCellExperiment.seurat
+#' @export
 #' @method as.SingleCellExperiment seurat
 #'
 as.SingleCellExperiment.seurat <- function(from) {
