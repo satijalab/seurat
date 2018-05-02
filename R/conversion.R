@@ -10,6 +10,7 @@ NULL
 #'
 #' @param from Object to convert from
 #' @param to Class of object to convert to
+#' @param ... Arguments passed to and from other methods
 #'
 #' @return An object of class \code{to}
 #'
@@ -43,7 +44,8 @@ Convert.seurat <- function(
   overwrite = FALSE,
   display.progress = TRUE,
   anndata.raw = "raw.data",
-  anndata.X = "data"
+  anndata.X = "data",
+  ...
 ) {
   object.to <- switch(
     EXPR = to,
@@ -262,7 +264,8 @@ Convert.SingleCellExperiment <- function(
   from,
   to,
   raw.data.slot = "counts",
-  data.slot = "logcounts"
+  data.slot = "logcounts",
+  ...
 ) {
   object.to <- switch(
     EXPR = to,
@@ -318,7 +321,8 @@ Convert.anndata.base.AnnData <- function(
   from,
   to,
   X.slot = "scale.data",
-  raw.slot = "data"
+  raw.slot = "data",
+  ...
 ) {
   object.to <- switch(
     EXPR = to,
