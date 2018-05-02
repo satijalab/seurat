@@ -15,15 +15,15 @@ Convert(from, ...)
 
 \method{Convert}{seurat}(from, to, filename, chunk.dims = "auto",
   chunk.size = 1000, overwrite = FALSE, display.progress = TRUE,
-  anndata.raw = "raw.data", anndata.X = "data")
+  anndata.raw = "raw.data", anndata.X = "data", ...)
 
 \method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
-  data.slot = "logcounts")
+  data.slot = "logcounts", ...)
 
 \method{Convert}{AnnData}(from, to, X.slot = "scale.data",
-  raw.slot = "data")
+  raw.slot = "data", ...)
 
-as.seurat(from, ...)
+as.seurat(from)
 
 \method{as.seurat}{SingleCellExperiment}(from)
 
@@ -33,6 +33,8 @@ as.SingleCellExperiment(from, ...)
 }
 \arguments{
 \item{from}{Object to convert from}
+
+\item{...}{Arguments passed to and from other methods}
 
 \item{to}{Class of object to convert to}
 
