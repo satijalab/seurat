@@ -161,7 +161,7 @@ Convert.seurat <- function(
       }
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
-      SingleCellExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
+      SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
       row.data <- from@hvg.info[rownames(from@data), ]
       row.data <- cbind(gene = rownames(x = from@data), row.data)
       SingleCellExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
@@ -287,7 +287,7 @@ Convert.SingleCellExperiment <- function(
           stop(paste0("No data in provided assay - ", data.slot))
         }
       )
-      meta.data <- as.data.frame(SingleCellExperiment::colData(from))
+      meta.data <- as.data.frame(SummarizedExperiment::colData(from))
       seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
       seurat.object@data <- data
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
