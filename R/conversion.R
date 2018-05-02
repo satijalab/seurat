@@ -164,7 +164,7 @@ Convert.seurat <- function(
       SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
       row.data <- from@hvg.info[rownames(from@data), ]
       row.data <- cbind(gene = rownames(x = from@data), row.data)
-      SingleCellExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
+      SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
       for (dr in names(from@dr)) {
         SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- slot(
           object = slot(object = from, name = "dr")[[dr]],
