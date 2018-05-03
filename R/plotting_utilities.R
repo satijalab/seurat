@@ -32,6 +32,9 @@ DarkTheme <- function(...) {
   no.line <- element_line(size = 0)
   #   Create the dark theme
   dark.theme <- theme(
+    # panel.ontop = TRUE,
+    # panel.border = element_blank(),
+    # axis.ticks.length = unit(x = 2.75, units = 'pt'),
     #   Set background colors
     plot.background = black.background,
     panel.background = black.background,
@@ -51,7 +54,7 @@ DarkTheme <- function(...) {
     panel.grid = no.line,
     panel.grid.minor = no.line,
     #   Make this a complete theme and validate it
-    complete = TRUE,
+    # complete = TRUE,
     validate = TRUE,
     #   Extra parameters
     ...
