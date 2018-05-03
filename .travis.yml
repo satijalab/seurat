@@ -4,9 +4,6 @@ language: R
 sudo: required
 cache: packages
 
-apt_packages:
-  - libhdf5-7
-
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
@@ -19,3 +16,7 @@ r_github_packages:
   - mojaveazure/loomR  
 
 warnings_are_errors: false
+
+before_install: 
+  - chmod +x travis_setup.sh
+  - ./travis_setup.sh
