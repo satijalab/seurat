@@ -22,6 +22,9 @@ build_script:
   - travis-tool.sh bioc_install GenomeInfoDbData
   - travis-tool.sh bioc_install DESeq2
   - travis-tool.sh bioc_install MAST
+  - travis-tool.sh bioc_install S4Vectors
+  - travis-tool.sh bioc_install SummarizedExperiment
+  - travis-tool.sh bioc_install SingleCellExperiment
 
 test_script:
   - travis-tool.sh run_tests

@@ -103,9 +103,10 @@ Collate:
 RoxygenNote: 6.0.1
 Suggests:
     testthat,
-    loomR,
     S4Vectors,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
     DESeq2
+Remotes: mojaveazure/loomR
+
