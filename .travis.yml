@@ -4,6 +4,15 @@ language: R
 sudo: required
 cache: packages
 
+env:
+  global:
+    - PKG_CFLAGS="-pedantic"
+    - _R_CHECK_CRAN_INCOMING_=FALSE
+    - ASAN="-fsanitize=address -fno-omit-frame-pointer"
+    - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
+    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    - HDF5_VERSION=1.8.17
+
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
