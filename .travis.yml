@@ -5,7 +5,7 @@ sudo: false
 cache: packages
 
 apt_packages:
-  - libhdf5-10
+  - libhdf5-7
 
 bioc_packages:
   - GenomeInfoDbData
