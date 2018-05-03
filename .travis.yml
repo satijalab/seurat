@@ -3,7 +3,9 @@
 language: R
 sudo: false
 cache: packages
-dist: trusty
+
+apt_packages:
+  - libhdf5-10
 
 bioc_packages:
   - GenomeInfoDbData
