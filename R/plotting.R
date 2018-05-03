@@ -686,7 +686,7 @@ globalVariables(
 #' @importFrom dplyr %>% group_by summarize_each mutate ungroup
 #'
 #' @export
-#' @seealso \code{\link{RColorBrewer::brewer.pal.info}}
+#' @seealso \code{RColorBrewer::brewer.pal.info}
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")

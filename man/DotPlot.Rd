@@ -58,5 +58,5 @@ DotPlot(object = pbmc_small, genes.plot = cd_genes)
 
 }
 \seealso{
-\code{\link{RColorBrewer::brewer.pal.info}}
+\code{RColorBrewer::brewer.pal.info}
 }
