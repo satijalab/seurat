@@ -6,12 +6,7 @@ cache: packages
 
 env:
   global:
-    - PKG_CFLAGS="-pedantic"
-    - _R_CHECK_CRAN_INCOMING_=FALSE
-    - ASAN="-fsanitize=address -fno-omit-frame-pointer"
-    - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
-    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-    - HDF5_VERSION=1.8.17
+    - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
 bioc_packages:
   - GenomeInfoDbData
@@ -26,6 +21,3 @@ r_github_packages:
 
 warnings_are_errors: false
 
-before_install: 
-  - chmod +x travis_setup.sh
-  - ./travis_setup.sh
