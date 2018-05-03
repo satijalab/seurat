@@ -15,7 +15,7 @@ environment:
   global:
     R_ARCH: x64
     USE_RTOOLS: true
-    HDF5_VERSION_USE: 1_8_14
+    _R_CHECK_FORCE_SUGGESTS_: false
 
 build_script:
   - travis-tool.sh install_deps
