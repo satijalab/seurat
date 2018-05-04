@@ -1548,7 +1548,7 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
-#' @import gridExtra
+#' @importFrom reshape2 melt
 #' @importFrom stats qqplot runif prop.test qunif
 #'
 #' @export

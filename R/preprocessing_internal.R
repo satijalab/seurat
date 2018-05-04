@@ -50,7 +50,7 @@ RegressOutResid <- function(
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
   if (display.progress) {
-    message(paste("Regressing out", vars.to.regress))
+    message(paste("Regressing out:", paste(vars.to.regress, collapse = ", ")))
     pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   }
   data.resid <- c()
@@ -76,7 +76,7 @@ RegressOutResid <- function(
   cl <- parallel::makeCluster(num.cores)#, outfile = "")
   # using doSNOW library because it supports progress bar update
   registerDoSNOW(cl)
-  opts <- list(verbose = FALSE)
+  opts <- list()
   if (display.progress) {
     # define progress bar function
     progress <- function(n) setTxtProgressBar(pb, n)

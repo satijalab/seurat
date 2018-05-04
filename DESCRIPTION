@@ -43,7 +43,6 @@ Imports:
     MASS,
     irlba,
     reshape2,
-    gridExtra,
     gplots,
     gdata,
     Rcpp,

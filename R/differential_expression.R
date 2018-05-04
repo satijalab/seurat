@@ -85,7 +85,7 @@ FindMarkers <- function(
   only.pos = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
-  latent.vars = "nUMI",
+  latent.vars = NULL,
   min.cells.gene = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -366,7 +366,7 @@ FindAllMarkers <- function(
   random.seed = 1,
   min.cells.gene = 3,
   min.cells.group = 3,
-  latent.vars = "nUMI",
+  latent.vars = NULL,
   assay.type = "RNA",
   ...
 ) {
