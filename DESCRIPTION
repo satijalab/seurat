@@ -21,7 +21,7 @@ Depends:
     Matrix,
 SystemRequirements: Java (>= 6)
 Imports:
-    loomR,
+    loomR (>= 0.2.0),
     methods,
     ROCR,
     stringr,
@@ -66,7 +66,7 @@ Imports:
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate: 
+Collate:
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
