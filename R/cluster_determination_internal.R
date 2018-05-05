@@ -137,7 +137,7 @@ GroupSingletons <- function(object, SNN) {
     )
   }
   if (length(x = singletons) > 0) {
-    print(paste(
+    message(paste(
       length(x = singletons),
       "singletons identified.",
       length(x = unique(object@ident)),
@@ -160,4 +160,3 @@ kmeans.info <- setClass(
     cell.kmeans.obj = "ANY"
   )
 )
-

@@ -43,7 +43,8 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 #' @param max.cells.per.ident Down sample each identity class to a max number.
 #' Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
-#' @param latent.vars Variables to test
+#' @param latent.vars Variables to test, used only when \code{test.use} is one of
+#' 'negbinom', 'poisson', or 'MAST'
 #' @param min.cells.gene Minimum number of cells expressing the gene in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
@@ -84,7 +85,7 @@ FindMarkers <- function(
   only.pos = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
-  latent.vars = "nUMI",
+  latent.vars = NULL,
   min.cells.gene = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
@@ -119,11 +120,11 @@ FindMarkers <- function(
   cells.2 <- setdiff(x = cells.2, y = cells.1)
   # error checking
   if (length(x = cells.1) == 0) {
-    print(paste("Cell group 1 is empty - no cells with identity class", ident.1))
+    message(paste("Cell group 1 is empty - no cells with identity class", ident.1))
     return(NULL)
   }
   if (length(x = cells.2) == 0) {
-    print(paste("Cell group 2 is empty - no cells with identity class", ident.2))
+    message(paste("Cell group 2 is empty - no cells with identity class", ident.2))
     return(NULL)
   }
   if (length(cells.1) < min.cells.group) {
@@ -171,7 +172,6 @@ FindMarkers <- function(
   if (length(x = genes.use) == 0) {
     stop("No genes pass min.diff.pct threshold")
   }
-
   #gene selection (based on average difference)
   data.1 <- apply(X = data.use[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   data.2 <- apply(X = data.use[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
@@ -188,6 +188,9 @@ FindMarkers <- function(
     if (length(cells.2) > max.cells.per.ident) cells.2 = sample(x = cells.2, size = max.cells.per.ident)
   }
   #perform DR
+  if (!(test.use %in% c('negbinom', 'poisson', 'MAST')) && !is.null(x = latent.vars)) {
+    warning("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests")
+  }
   if (test.use == "bimod") {
     to.return <- DiffExpTest(
       object = object,
@@ -263,7 +266,6 @@ FindMarkers <- function(
       ...
     )
   }
-
   if (test.use == "wilcox") {
     to.return <- WilcoxDETest(
       object = object,
@@ -286,7 +288,7 @@ FindMarkers <- function(
       ...
     )
   }
-    if (test.use == "DESeq2") {
+  if (test.use == "DESeq2") {
       to.return <- DESeq2DETest(
         object = object,
         assay.type = assay.type,
@@ -299,10 +301,14 @@ FindMarkers <- function(
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
   to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
-  to.return$p_val_adj = p.adjust(p = to.return$p_val,method = "bonferroni",
-                                 n =   nrow(GetAssayData(object = object,
-                                                         assay.type = assay.type,
-                                                         slot = "data")))
+  to.return$p_val_adj = p.adjust(
+    p = to.return$p_val,method = "bonferroni",
+    n = nrow(x = GetAssayData(
+      object = object,
+      assay.type = assay.type,
+      slot = "data"
+    ))
+  )
   if (test.use == "roc") {
     to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
   } else {
@@ -332,7 +338,8 @@ globalVariables(
 #' @param min.cells.gene Minimum number of cells expressing the gene in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
-#' @param latent.vars remove the effects of these variables
+#' @param latent.vars Remove the effects of these variables, used only when \code{test.use} is one of
+#' 'negbinom', 'poisson', or 'MAST'
 #' @param assay.type Type of assay to perform DE for (default is RNA)
 #' @param \dots Additional parameters to pass to specific DE functions
 #'
@@ -359,7 +366,7 @@ FindAllMarkers <- function(
   random.seed = 1,
   min.cells.gene = 3,
   min.cells.group = 3,
-  latent.vars = "nUMI",
+  latent.vars = NULL,
   assay.type = "RNA",
   ...
 ) {
@@ -403,7 +410,7 @@ FindAllMarkers <- function(
       }
     )
     if (do.print) {
-      print(paste("Calculating cluster", idents.all[i]))
+      message(paste("Calculating cluster", idents.all[i]))
     }
   }
   gde.all <- data.frame()
@@ -435,7 +442,7 @@ FindAllMarkers <- function(
     return(subset(x = gde.all, subset = avg_logFC > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
-  if(nrow(gde.all) == 0) {
+  if (nrow(gde.all) == 0) {
     warning("No DE genes identified.")
   }
   return(gde.all)
@@ -595,7 +602,7 @@ FindAllMarkersNode <- function(
       min.cells.group = min.cells.group
     )
     if (do.print) {
-      print(paste("Calculating node", i))
+      message(paste("Calculating node", i))
     }
   }
   gde.all <- data.frame()
@@ -951,10 +958,14 @@ NegBinomRegDETest <- function(
   min.cells = 3,
   assay.type = "RNA"
 ) {
+  if (!is.null(genes.use)) {
+    message('Make sure that genes.use contains mostly genes that are not expected to be
+             differentially expressed to allow unbiased theta estimation')
+  }
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  print(
+  message(
     sprintf(
       'NegBinomRegDETest for %d genes and %d and %d cells',
       length(x = genes.use),
@@ -969,12 +980,12 @@ NegBinomRegDETest <- function(
     )
   )
   to.test.data <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, c(cells.1, cells.2), drop = FALSE]
-  print('Calculating mean per gene per group')
+  message('Calculating mean per gene per group')
   above.threshold <- pmax(
     apply(X = to.test.data[, cells.1] > 0, MARGIN = 1, FUN = mean),
     apply(X = to.test.data[, cells.2] > 0, MARGIN = 1, FUN = mean)
   ) >= 0.02
-  print(
+  message(
     sprintf(
       '%d genes are detected in at least 2%% of the cells in at least one of the groups and will be tested',
       sum(above.threshold)
@@ -989,7 +1000,7 @@ NegBinomRegDETest <- function(
     use.raw = TRUE
   )
   to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  print(paste('Latent variables are', latent.vars))
+  message(paste('Latent variables are', latent.vars))
   # get regularized theta (ignoring group factor)
   theta.fit <- RegularizedTheta(
     cm = to.test.data,
@@ -997,12 +1008,12 @@ NegBinomRegDETest <- function(
     min.theta = 0.01,
     bin.size = 128
   )
-  print('Running NB regression model comparison')
+  message('Running NB regression model comparison')
   to.test$NegBinomRegDETest.group <- grp.fac
   bin.size <- 128
   bin.ind <- ceiling(1:length(x = genes.use) / bin.size)
   max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   res <- c()
   for (i in 1:max.bin) {
     genes.bin.use <- genes.use[bin.ind == i]
@@ -1025,7 +1036,7 @@ NegBinomRegDETest <- function(
   rownames(res) <- genes.use
   res <- as.data.frame(x = res)
   res$adj.pval <- p.adjust(p = res$pval, method='fdr')
-  res <- res[order(res$pval, -abs(x = res$log.fc)), ]
+  res <- res[order(res$pval, -abs(x = res$log2.fc)), ]
   return(res)
 }
 
@@ -1107,7 +1118,7 @@ PoissonDETest <- function(
         }
         # check that variance between groups is not 0
         if (var(to.test$GENE) == 0) {
-          print("what") # what?
+          message("what") # what?
           warning(paste0(
             "Skipping gene -- ",
             x,
@@ -1355,23 +1366,23 @@ WilcoxDETest <- function(
   # check that the gene made it through the any filtering that was done
   genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
   coldata <- object@meta.data[c(cells.1, cells.2), ]
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
+  group <- RandomName(length = 23)
+  coldata[cells.1, group] <- "Group1"
+  coldata[cells.2, group] <- "Group2"
+  coldata[, group] <- factor(x = coldata[, group])
   coldata$wellKey <- rownames(x = coldata)
   countdata.test <- data.test[genes.use, rownames(x = coldata)]
   mysapply <- if (print.bar) {pbsapply} else {sapply}
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),
     FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata$group, ...)$p.value)
+      return(wilcox.test(countdata.test[x, ] ~ coldata[, group], ...)$p.value)
     }
   )
   genes.return <- rownames(x = countdata.test)
   to.return <- data.frame(p_val, row.names = genes.return)
   return(to.return)
 }
-
 
 LRDETest <- function(
   object,

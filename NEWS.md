@@ -3,6 +3,18 @@ All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 
+## [2.3.1] - 2018-05-03
+### Added
+- Support for [UMAP](https://github.com/lmcinnes/umap) dimensional reduction technique
+- New conversion functions for SingleCellExperiment and anndata
+
+### Changed
+- FetchData preserves cell order
+- Require Matrix 1.2-14 or higher
+- AddModuleScore no longer densifies sparse-matrices
+- Various visualization fixes and improvements
+- Default value for latent.vars in FindMarkers/FindAllMarkers changed to NULL.
+
 ## [2.3.0] - 2018-03-22
 ### Added
 - Support for HTO demultiplexing

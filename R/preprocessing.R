@@ -118,6 +118,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
+  object@meta.data[["orig.ident"]] <- NULL
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if (!is.null(normalization.method)) {
     object <- NormalizeData(
@@ -141,7 +142,7 @@ CreateSeuratObject <- function(
     mix.probs = data.frame(nGene)
   )
   object@spatial <- spatial.obj
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
   parameters.to.store$raw.data <- NULL
   parameters.to.store$meta.data <- NULL
   object <- SetCalcParams(
@@ -387,8 +388,8 @@ ScaleDataR <- function(
   if (do.scale | do.center) {
     bin.size <- 1000
     max.bin <- floor(length(genes.use)/bin.size) + 1
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
     for (i in 1:max.bin) {
       my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
       my.inds <- my.inds[my.inds <= length(x = genes.use)]
@@ -494,7 +495,7 @@ ScaleData.seurat <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if (!missing(x = vars.to.regress)) {
+  if (!missing(x = vars.to.regress) && !is.null(x = vars.to.regress)) {
     data.use <- RegressOutResid(
       object = object,
       vars.to.regress = vars.to.regress,
@@ -508,11 +509,11 @@ ScaleData.seurat <- function(
     if (model.use != "linear") {
       use.umi <- TRUE
     }
-    if (use.umi && missing(x = scale.max)) {
+    if (use.umi && missing(scale.max)) {
       scale.max <- 50
     }
   }
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
   parameters.to.store$data.use <- NULL
   object <- SetCalcParams(
     object = object,
@@ -536,7 +537,7 @@ ScaleData.seurat <- function(
     )
   )
   rownames(scaled.data) <- genes.use
-  if (length(x = object@cell.names) <= min.cells.to.block) {
+  if (length(object@cell.names) <= min.cells.to.block) {
     block.size <- length(genes.use)
   }
   gc()
@@ -544,8 +545,8 @@ ScaleData.seurat <- function(
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
   if (display.progress) {
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   for (i in 1:max.block) {
     my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
@@ -774,18 +775,43 @@ SampleUMI <- function(
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
   }
-  return(
-    RunUMISamplingPerCell(
-      data = data,
-      sample_val = max.umi,
-      upsample = upsample,
-      display_progress = progress.bar
-    )
+  new_data = RunUMISamplingPerCell(
+    data = data,
+    sample_val = max.umi,
+    upsample = upsample,
+    display_progress = progress.bar
   )
+  dimnames(new_data) <- dimnames(data)
+  return(new_data)
 }
 
+#' @param mean.function Function to compute x-axis value (average expression). Default
+#' is to take the mean of the detected (i.e. non-zero) values
+#' @param dispersion.function Function to compute y-axis value (dispersion). Default is to
+#' take the standard deviation of all values/
+#' @param do.plot Plot the average/dispersion relationship
+#' @param set.var.genes Set object@@var.genes to the identified variable genes
+#' (default is TRUE)
+#' @param x.low.cutoff Bottom cutoff on x-axis for identifying variable genes
+#' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
+#' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
+#' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
+#' @param num.bin Total number of bins to use in the scaled analysis (default
+#' is 20)
+#' @param binning.method Specifies how the bins should be computed. Available methods are:
+#' \itemize{
+#' \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+#' \item{equal_frequency:}{ each bin contains an equal number of genes (can increase
+#' statistical power to detect overdispersed genes at high expression values, at
+#' the cost of reduced resolution along the x-axis)}
+#' }
+#' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
+#' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
+#' @param do.cpp Run c++ version of mean.function and dispersion.function if they
+#' exist.
+#'
 #' @describeIn FindVariableGenes Find variable genes with data stored in a Seurat object
-#' @export FindVariableGenes.seurat
+#' @export
 #' @method FindVariableGenes seurat
 #'
 FindVariableGenes.seurat <- function(
@@ -799,13 +825,14 @@ FindVariableGenes.seurat <- function(
   y.cutoff = 1,
   y.high.cutoff = Inf,
   num.bin = 20,
+  binning.method = "equal_width",
   do.recalc = TRUE,
   sort.results = TRUE,
   do.cpp = TRUE,
   display.progress = TRUE,
   ...
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
   parameters.to.store$mean.function <- as.character(substitute(mean.function))
   parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
   object <- SetCalcParams(
@@ -842,9 +869,9 @@ FindVariableGenes.seurat <- function(
       gene.dispersion.scaled <- gene.mean
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-      if (display.progress) {
-        print("Calculating gene dispersion")
-        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      if(display.progress){
+        message("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
       for (i in 1:max.bin) {
         my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
@@ -853,17 +880,25 @@ FindVariableGenes.seurat <- function(
         data.iter <- data[genes.iter, , drop = F]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-        if (display.progress) {
+        if(display.progress) {
           setTxtProgressBar(pb = pb, value = i)
         }
       }
-      if (display.progress) {
+      if(display.progress){
         close(con = pb)
       }
     }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
-    data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    if (binning.method=="equal_width") {
+         data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    }
+    else if (binning.method=="equal_frequency") {
+        data_x_bin <- cut(x = gene.mean, breaks = c(-1,quantile(gene.mean[gene.mean>0],probs=seq(0,1,length.out=num.bin))))
+    }
+    else {
+        stop(paste0("Invalid selection: '",binning.method,"' for 'binning.method'."))
+    }
     names(x = data_x_bin) <- names(x = gene.mean)
     mean_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = mean)
     sd_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = sd)
@@ -910,13 +945,15 @@ FindVariableGenes.seurat <- function(
   }
 }
 
+#' @param chunk.size Chunk size to iterate over
+#' @param normalized.data Full path to normalized data in loom file
 #' @param overwrite Overwrite previous results
 #'
 #' @importFrom hdf5r list.datasets
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @describeIn FindVariableGenes Find variable genes with data stored in a loom file
-#' @export FindVariableGenes.loom
+#' @export
 #' @method FindVariableGenes loom
 #'
 FindVariableGenes.loom <- function(
@@ -1049,7 +1086,7 @@ FilterCells <- function(
   high.thresholds,
   cells.use = NULL
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
   object <- SetCalcParams(
     object = object,
     calculation = "FilterCells",

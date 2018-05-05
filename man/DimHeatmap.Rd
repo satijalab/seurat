@@ -5,7 +5,7 @@
 \title{Dimensional reduction heatmap}
 \usage{
 DimHeatmap(object, assay.use = "RNA", reduction.type = "pca", dim.use = 1,
-  cells.use = 500, num.genes = 30, use.full = FALSE, disp.min = -2.5,
+  cells.use = NULL, num.genes = 30, use.full = FALSE, disp.min = -2.5,
   disp.max = 2.5, do.return = FALSE, col.use = PurpleAndYellow(),
   use.scale = TRUE, do.balanced = FALSE, remove.key = FALSE,
   label.columns = NULL, check.plot = TRUE, ...)

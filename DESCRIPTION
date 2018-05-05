@@ -1,27 +1,27 @@
 Package: Seurat
-Version: 2.3.0
-Date: 2018-03-22
+Version: 2.3.1
+Date: 2018-05-03
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Butler A and Satija R (2017) <doi:10.1101/164889> for more details.
 Authors@R: c(
   person(given = 'Rahul', family = 'Satija', email = 'rsatija@nygenome.org', role = 'aut'),
-  person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut'),
-  person(given = 'Paul', family = 'Hoffman', email = 'seuratpackage@gmail.com', role = c('aut', 'cre')),
+  person(given = 'Andrew', family = 'Butler', email = 'abutler@nygenome.org', role = 'aut', comment = c(ORCID = '0000-0003-3608-0463')),
+  person(given = 'Paul', family = 'Hoffman', email = 'seuratpackage@gmail.com', role = c('aut', 'cre'), comment = c(ORCID = '0000-0002-7693-8957')),
   person(given = 'Jeff', family = 'Farrell', email = 'jfarrell@g.harvard.edu', role = 'ctb'),
-  person(given = 'Shiwei', family = 'Zheng', email = 'szheng@nygenome.org', role = 'ctb'),
-  person(given = 'Christoph', family = 'Hafemeister', email = 'chafemeister@nygenome.org', role = 'ctb'),
+  person(given = 'Shiwei', family = 'Zheng', email = 'szheng@nygenome.org', role = 'ctb', comment = c(ORCID = '0000-0001-6682-6743')),
+  person(given = 'Christoph', family = 'Hafemeister', email = 'chafemeister@nygenome.org', role = 'ctb', comment = (ORCID = '0000-0001-6365-8254')),
   person(given = 'Patrick', family = 'Roelli', email = 'proelli@nygenome.org', role = 'ctb')
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
-    R (>= 3.2.0),
+    R (>= 3.4.0),
     ggplot2,
     cowplot,
-    Matrix,
+    Matrix (>= 1.2.14),
 SystemRequirements: Java (>= 6)
 Imports:
-    loomR (>= 0.2.0),
     methods,
     ROCR,
     stringr,
@@ -43,7 +43,6 @@ Imports:
     MASS,
     irlba,
     reshape2,
-    gridExtra,
     gplots,
     gdata,
     Rcpp,
@@ -62,6 +61,8 @@ Imports:
     fitdistrplus,
     png,
     doSNOW,
+    reticulate,
+    loomR (>= 0.2.0),
     foreach
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
@@ -70,11 +71,12 @@ Collate:
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
+    'conversion.R'
+    'as.R'
     'cluster_determination_generics.R'
     'cluster_determination.R'
     'cluster_determination_internal.R'
     'cluster_validation.R'
-    'conversion.R'
     'data.R'
     'deprecated_functions.R'
     'differential_expression.R'
@@ -104,13 +106,15 @@ Collate:
     'spatial.R'
     'spatial_internal.R'
     'tSNE_project.R'
-    'utilities_generics.R'
     'utilities.R'
+    'utilities_generics.R'
     'utilities_internal.R'
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
     testthat,
+    S4Vectors,
     SummarizedExperiment,
+    SingleCellExperiment,
     MAST,
     DESeq2

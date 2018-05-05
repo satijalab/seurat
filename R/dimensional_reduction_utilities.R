@@ -534,7 +534,7 @@ DimTopGenes <- function(
   if (inherits(x = object, what = 'loom')) {
     use.full <- FALSE
   }
-  dim.scores <- if (use.full) {
+  if (use.full) {
     dim.scores <- GetDimReduction(
       object = object,
       reduction.type = reduction.type,

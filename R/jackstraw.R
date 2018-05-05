@@ -16,6 +16,9 @@
 #' If set to TRUE, will use half of the machines available cores (FALSE by default)
 #' @param num.cores If do.par = TRUE, specify the number of cores to use.
 #' Note that for higher number of cores, larger free memory is needed.
+#' If \code{num.cores = 1} and \code{do.par = TRUE}, \code{num.cores} will be set to half
+#' of all available cores on the machine.
+#' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
 #' represents p-values for each gene in the PCA analysis. If ProjectPCA is
@@ -42,7 +45,8 @@ JackStraw <- function(
   prop.freq = 0.01,
   display.progress = TRUE,
   do.par = FALSE,
-  num.cores = 1
+  num.cores = 1,
+  maxit = 1000
 ) {
   if (is.null(object@dr$pca)) {
     stop("PCA has not been computed yet. Please run RunPCA().")
@@ -88,32 +92,29 @@ JackStraw <- function(
   )[pc.genes,]
 
   # input checking for parallel options
-  if(do.par){
-    if(num.cores == 1){
+  if (do.par) {
+    if (num.cores == 1) {
       num.cores <- detectCores() / 2
-    } else {
-      if(num.cores > detectCores()){
-        num.cores <- detectCores() - 1
-        warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
-      }
+      warning(paste0("do.par set to TRUE but num.cores set to 1. Setting num.cores to ", num.cores, "."))
+    } else if (num.cores > detectCores()) {
+      num.cores <- detectCores() - 1
+      warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
     }
-  } else {
-    if(num.cores != 1){
+  } else if (num.cores != 1) {
       num.cores <- 1
       warning("For parallel processing, please set do.par to TRUE.")
-    }
   }
 
-  cl<- parallel::makeCluster(num.cores)
+  cl <- parallel::makeCluster(num.cores)
 
   registerDoSNOW(cl)
 
-  if(display.progress) {
+  if (display.progress) {
     time_elapsed <- Sys.time()
   }
 
   opts <- list()
-  if(display.progress) {
+  if (display.progress) {
     # define progress bar function
     pb <- txtProgressBar(min = 0, max = num.replicate, style = 3)
     progress <- function(n) setTxtProgressBar(pb, n)
@@ -121,7 +122,11 @@ JackStraw <- function(
     time_elapsed <- Sys.time()
   }
 
-  fake.pcVals.raw <- foreach(x = 1:num.replicate, .options.snow = opts) %dopar% {
+  fake.pcVals.raw <- foreach(
+    x = 1:num.replicate,
+    .options.snow = opts,
+    .export = c('JackRandom')
+  ) %dopar% {
     JackRandom(
       scaled.data = data.use.scaled,
       prop.use = prop.freq,
@@ -129,11 +134,12 @@ JackStraw <- function(
       r2.use = num.pc,
       seed.use = x,
       rev.pca = rev.pca,
-      weight.by.var = weight.by.var
+      weight.by.var = weight.by.var,
+      maxit = maxit
     )
   }
 
-  if(display.progress){
+  if (display.progress) {
     time_elapsed <- Sys.time() - time_elapsed
     cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed), "\n"))
     close(pb)

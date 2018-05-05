@@ -101,7 +101,7 @@ RunPCA.seurat <- function(
   #object@dr[reduction.name] <- pca.obj
   # eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
   object@dr[[reduction.name]] <- pca.obj
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
     object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
@@ -484,7 +484,7 @@ RunICA <- function(
   )
 
   eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
   object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
   if(is.null(object@calc.params$ICA$ic.genes)){
     object@calc.params$ICA$ic.genes <- rownames(data.use)
@@ -514,6 +514,9 @@ RunTSNE.seurat <- function(
   reduction.key = "tSNE_",
   ...
 ) {
+  if (length(x = dims.use) < 2) {
+    stop("Cannot perform tSNE on only one dimension, please provide two or more dimensions")
+  }
   object <- DoTSNE(
     object = object,
     reduction.use = reduction.use,
@@ -529,9 +532,9 @@ RunTSNE.seurat <- function(
     reduction.key = reduction.key,
     ...
   )
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
-  if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))){
+  if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))) {
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
     object@calc.params$RunTSNE$cells.use <- rownames(data.use)
   }
@@ -815,7 +818,7 @@ RunCCA <- function(
     if (missing(x = genes.use)) {
       genes.use <- object@var.genes
       if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run MeanVarPlot and retry")
+        stop("No variable genes present. Run FindVariableGenes and retry or set genes.use")
       }
     }
     if (missing(x = group.by)) {
@@ -928,7 +931,7 @@ RunCCA <- function(
         genes.use = genes.use
       )
     )
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
     combined.object <- SetCalcParams(
       object = combined.object,
       calculation = "RunCCA",
@@ -978,7 +981,7 @@ RunCCA <- function(
       )
     )
     object@scale.data[is.na(x = object@scale.data)] <- 0
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
     object <- SetCalcParams(
       object = object,
       calculation = "RunCCA",
@@ -1205,7 +1208,7 @@ RunDiffusion <- function(
       max = scale.clip
     )
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunDiffusion"))]
   object <- SetCalcParams(object = object,
                           calculation = "RunDiffusion",
                           ... = parameters.to.store)
@@ -1240,6 +1243,133 @@ RunDiffusion <- function(
     reduction.type = reduction.name,
     slot = "key",
     new.data = "DM"
+  )
+  return(object)
+}
+
+
+#' Run UMAP
+#'
+#' Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
+#' reduction technique. To run, you must first install the umap-learn python
+#' package (e.g. via pip install umap-learn). Details on this package can be
+#' found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
+#' discussion of the mathematics underlying UMAP, see the ArXiv paper here:
+#' \url{https://arxiv.org/abs/1802.03426}.
+#'
+#' @param object Seurat object
+#' @param cells.use Which cells to analyze (default, all cells)
+#' @param dims.use Which dimensions to use as input features, used only if
+#' \code{genes.use} is NULL
+#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
+#' UMAP input. Default is PCA
+#' @param genes.use If set, run UMAP on this subset of genes (instead of running on a
+#' set of reduced dimensions). Not set (NULL) by default
+#' @param assay.use Assay to pull data for when using \code{genes.use}
+#' @param max.dim Max dimension to keep from UMAP procedure.
+#' @param reduction.name dimensional reduction name, specifies the position in
+#' the object$dr list. umap by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
+#' @param n_neighbors This determines the number of neighboring points used in
+#' local approximations of manifold structure. Larger values will result in more
+#' global structure being preserved at the loss of detailed local structure. In
+#' general this parameter should often be in the range 5 to 50.
+#' @param min_dist min_dist: This controls how tightly the embedding is allowed
+#' compress points together. Larger values ensure embedded points are more
+#' evenly distributed, while smaller values allow the algorithm to optimise more
+#' accurately with regard to local structure. Sensible values are in the range
+#' 0.001 to 0.5.
+#' @param metric metric: This determines the choice of metric used to measure
+#' distance in the input space. A wide variety of metrics are already coded, and
+#' a user defined function can be passed as long as it has been JITd by numba.
+#' @param ... Additional arguments to the umap
+#'
+#' @return Returns a Seurat object containing a UMAP representation
+#'
+#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
+#'
+#' @importFrom reticulate import py_module_available
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' # Run UMAP map on first 5 PCs
+#' pbmc_small <- RunUMAP(object = pbmc_small, dims.use = 1:5)
+#' # Plot results
+#' DimPlot(object = pbmc_small, reduction.use = 'umap')
+#' }
+#'
+RunUMAP <- function(
+  object,
+  cells.use = NULL,
+  dims.use = 1:5,
+  reduction.use = 'pca',
+  genes.use = NULL,
+  assay.use = 'RNA',
+  max.dim = 2L,
+  reduction.name = "umap",
+  reduction.key = "UMAP",
+  n_neighbors = 30L,
+  min_dist = 0.3,
+  metric = "correlation",
+  ...
+) {
+  if (!py_module_available(module = 'umap')) {
+    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+  }
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  if (is.null(x = genes.use)) {
+    dim.code <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = 'key'
+    )
+    dim.codes <- paste0(dim.code, dims.use)
+    data.use <- GetDimReduction(
+      object = object,
+      reduction.type = reduction.use,
+      slot = 'cell.embeddings'
+    )
+    data.use <- data.use[cells.use, dim.codes, drop = FALSE]
+  } else {
+    data.use <- GetAssayData(object = object, assay.type = assay.use, slot = 'scale.data')
+    genes.use <- intersect(x = genes.use, y = rownames(x = data.use))
+    if (!length(x = genes.use)) {
+      stop("No genes found in the scale.data slot of assay ", assay.use)
+    }
+    data.use <- data.use[genes.use, cells.use, drop = FALSE]
+    data.use <- t(x = data.use)
+  }
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("RunUMAP"))]
+  object <- SetCalcParams(
+    object = object,
+    calculation = "RunUMAP",
+    ... = parameters.to.store
+  )
+  umap_import <- import("umap")
+  umap <- umap_import$UMAP(
+    n_neighbors = as.integer(x = n_neighbors),
+    n_components = as.integer(x = max.dim),
+    metric = metric,
+    min_dist = min_dist
+  )
+  umap_output <- umap$fit_transform(as.matrix(x = data.use))
+  colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
+  rownames(x = umap_output) <- cells.use
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "cell.embeddings",
+    new.data = as.matrix(x = umap_output)
+  )
+  object <- SetDimReduction(
+    object = object,
+    reduction.type = reduction.name,
+    slot = "key",
+    new.data = reduction.key
   )
   return(object)
 }
