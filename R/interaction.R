@@ -693,7 +693,7 @@ FetchData.seurat <- function(
 #' @importFrom hdf5r list.datasets
 #'
 #' @describeIn FetchData Fetch data from a loom file
-#' @export FetchData.loom
+#' @export
 #' @method FetchData loom
 #'
 FetchData.loom <- function(
@@ -1493,7 +1493,7 @@ ProjectSeurat.Matrix <- function(
 #' @importFrom class knn
 #'
 #' @describeIn ProjectSeurat Project to a loom-based dataset
-#' @export ProjectSeurat.loom
+#' @export
 #' @method ProjectSeurat loom
 #'
 ProjectSeurat.loom <- function(

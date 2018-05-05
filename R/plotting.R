@@ -2634,7 +2634,7 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @importFrom hdf5r list.datasets
 #'
 #' @describeIn DimPlot Generate a DimPlot for loom objects
-#' @export DimPlot.loom
+#' @export
 #' @method DimPlot loom
 #'
 DimPlot.loom <- function(

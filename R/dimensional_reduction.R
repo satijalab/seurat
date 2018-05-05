@@ -137,7 +137,7 @@ RunPCA.seurat <- function(
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @describeIn RunPCA Run PCA on loom objects
-#' @export RunPCA.loom
+#' @export
 #' @method RunPCA loom
 #'
 RunPCA.loom <- function(
@@ -544,7 +544,7 @@ RunTSNE.seurat <- function(
 #' @param overwrite Overwrite existing data? Used only for loom objects
 #'
 #' @describeIn RunTSNE Run TSNE on a loom file
-#' @export RunTSNE.loom
+#' @export
 #' @method RunTSNE loom
 #'
 RunTSNE.loom <- function(

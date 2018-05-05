@@ -70,7 +70,7 @@ GetAssayData.seurat <- function(object, assay.type = "RNA", slot = "data", ...) 
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @describeIn GetAssayData Get assay data from a Seurat object
-#' @export GetAssayData.loom
+#' @export
 #' @method GetAssayData loom
 #'
 GetAssayData.loom <- function(

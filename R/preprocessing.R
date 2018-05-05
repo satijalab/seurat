@@ -307,7 +307,7 @@ NormalizeData.seurat <- function(
 #' @importFrom Matrix Matrix
 #'
 #' @describeIn NormalizeData Normalize data in a loom file
-#' @export NormalizeData.loom
+#' @export
 #' @method NormalizeData loom
 #'
 NormalizeData.loom <- function(
@@ -599,7 +599,7 @@ ScaleData.seurat <- function(
 #' @return Nothing, modifies loom file directly
 #'
 #' @describeIn ScaleData Scaling loom objects
-#' @export ScaleData.loom
+#' @export
 #' @method ScaleData loom
 #'
 ScaleData.loom <- function(
@@ -1032,7 +1032,7 @@ FindVariableGenes.loom <- function(
 }
 
 #' @describeIn GetVariableGenes Get variable genes dataframe from a loom file
-#' @export GetVariableGenes.loom
+#' @export
 #' @method GetVariableGenes loom
 #'
 GetVariableGenes.loom <- function(object) {

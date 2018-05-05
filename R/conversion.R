@@ -421,7 +421,7 @@ Convert.anndata.base.AnnData <- function(
 #' @importFrom Matrix Matrix
 #'
 #' @describeIn Convert Convert a loom object
-#' @export Convert.loom
+#' @export
 #' @method Convert loom
 #'
 Convert.loom <- function(

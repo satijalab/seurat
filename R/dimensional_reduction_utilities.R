@@ -27,7 +27,7 @@ GetDimReduction.seurat <- function(
 #' @importFrom hdf5r list.datasets h5attr
 #'
 #' @describeIn GetDimReduction Get dimensional reduction information for loom objects
-#' @export GetDimReduction.loom
+#' @export
 #' @method GetDimReduction loom
 #'
 GetDimReduction.loom <- function(
@@ -286,7 +286,7 @@ SetDimReduction.seurat <- function(
 #' @importFrom hdf5r list.datasets h5attr
 #'
 #' @describeIn SetDimReduction Set a dimmensional reduction for a loom object
-#' @export SetDimReduction.loom
+#' @export
 #' @method SetDimReduction loom
 #'
 SetDimReduction.loom <- function(
