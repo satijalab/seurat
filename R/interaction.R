@@ -1675,13 +1675,14 @@ setMethod(
     mat <- GetAssayData.loom(object=object, slot='raw.data', cells.use=cells.use, chunk.size=chunk.size)
 
     # get meta data
-    meta.data <- object$get.attribute.df(MARGIN = 2)[cells.use, ]
+    meta.data <- object$get.attribute.df(MARGIN = 2)[cells.use, , drop = FALSE]
     gene.attrs <- object$get.attribute.df(MARGIN = 1)
-
     if (return.type == "seurat") {
       new.object <- CreateSeuratObject(raw.data = as(mat, "dgCMatrix"))
       duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)
-      colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
+      if (length(duplicate.cols) > 0){
+        colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
+      }	
       new.object <- AddMetaData(object = new.object, metadata = meta.data)
       if (!keep.layers) {
         cat('Note: SubsetSeurat is converting from loom to seurat; keep.layers=FALSE, so only raw data and cell attributes are kept, no layers\n')
