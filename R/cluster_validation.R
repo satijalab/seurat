@@ -79,7 +79,7 @@ ValidateClusters <- function(
           )
           if (verbose) {
             progress <- length(x = connectivity[connectivity > min.connectivity])
-            print(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- merge clusters ",
               c1,
@@ -92,7 +92,7 @@ ValidateClusters <- function(
           merge.done <- TRUE
         } else {
           if (verbose & status == 5) {
-            print(paste0(
+            message(paste0(
               sprintf("%3.0f", (1 - progress / end) * 100),
               "% complete --- Last 5 cluster comparisons failed to merge, ",
               "still checking possible merges ..."
@@ -110,7 +110,7 @@ ValidateClusters <- function(
     }
   }
   if (verbose) {
-    print(paste0(
+    message(paste0(
       "100% complete --- started with ",
       num.clusters.orig,
       " clusters, ",
@@ -162,7 +162,7 @@ ValidateSpecificClusters <- function(
     pcs = pc.use,
     num.genes = top.genes
   )
-  print(paste0(
+  message(paste0(
     "Comparing cluster ",
     cluster1,
     " and ",
@@ -176,7 +176,7 @@ ValidateSpecificClusters <- function(
       cells.use = WhichCells(object = object, ident = cluster1),
       ident.use = cluster2
     )
-    print(paste("merge cluster", cluster1, "and", cluster2))
+    message(paste("merge cluster", cluster1, "and", cluster2))
     merge.done <- TRUE
   }
   return(object)
@@ -224,8 +224,10 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #'
 #' @param object Seurat object
 #' @param node.list List of internal nodes to assess and return
-#' @param all.below If single node provided in node.list, assess all splits below (and including)
-#' provided node
+#' @param all.below If single node provided in node.list, assess all splits
+#' below (and including) provided node
+#' @param genes.training A vector of genes to use to train the classifier,
+#' defaults to \code{rownames(x = object@data)}
 #' .
 #' @return Returns the Out of Bag error for a random forest classifiers trained on
 #' each internal node split or each split provided in the node list.
@@ -233,19 +235,31 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
 #'                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
 #' pbmc_small <- BuildClusterTree(pbmc_small, reorder.numeric = TRUE, do.reorder = TRUE)
 #' AssessNodes(pbmc_small)
+#' }
 #'
-AssessNodes <- function(object, node.list, all.below = FALSE) {
+AssessNodes <- function(
+  object,
+  node.list,
+  all.below = FALSE,
+  genes.training = NULL
+) {
+  genes.training <- SetIfNull(x = genes.training, default = rownames(x = object@data))
+  genes.training <- intersect(x = genes.training, rownames(x = object@data))
+  if (!length(x = genes.training)) {
+    stop("None of the genes provided are in the data")
+  }
   tree <- object@cluster.tree[[1]]
   if (missing(x = node.list)) {
     node.list <- GetAllInternalNodes(tree = tree)
   } else {
     possible.nodes <- GetAllInternalNodes(tree = tree)
-    if (any(! node.list %in% possible.nodes)){
+    if (any(!node.list %in% possible.nodes)) {
       stop(paste(
         node.list[!(node.list %in% possible.nodes)],
         "not valid internal nodes"
@@ -261,6 +275,7 @@ AssessNodes <- function(object, node.list, all.below = FALSE) {
       return(AssessSplit(
         object = object,
         node = x,
+        genes.training = genes.training,
         print.output = FALSE,
         verbose = FALSE
       ))
@@ -279,6 +294,8 @@ AssessNodes <- function(object, node.list, all.below = FALSE) {
 #' @param node Node in the cluster tree in question
 #' @param cluster1 First cluster to compare
 #' @param cluster2 Second cluster to compare
+#' @param genes.training A vector of genes to use to train the classifier,
+#' defaults to \code{rownames(x = object@data)}
 #' @param print.output Print the OOB error for the classifier
 #' @inheritDotParams BuildRFClassifier -object
 #' @return Returns the Out of Bag error for a random forest classifier
@@ -301,19 +318,25 @@ AssessSplit <- function(
   node,
   cluster1,
   cluster2,
+  genes.training = NULL,
   print.output = TRUE,
   ...
 ) {
+  genes.training <- SetIfNull(x = genes.training, default = rownames(x = object@data))
+  genes.training <- intersect(x = genes.training, rownames(x = object@data))
+  if (!length(x = genes.training)) {
+    stop("None of the genes provided are in the data")
+  }
   tree <- object@cluster.tree[[1]]
-  if (! missing(x = node)){
-    if (! missing(x = cluster1) || ! missing(x = cluster2)) {
+  if (!missing(x = node)) {
+    if (!missing(x = cluster1) || !missing(x = cluster2)) {
       warning("Both node and cluster IDs provided. Defaulting to using node ID")
     }
     possible.nodes <- c(
       DFT(tree = tree, node = tree$edge[,1][1]),
       tree$edge[,1][1]
     )
-    if (! node %in% possible.nodes) {
+    if (!node %in% possible.nodes) {
       stop("Not a valid node")
     }
     split <- tree$edge[which(x = tree$edge[,1] == node), ][,2]
@@ -347,13 +370,14 @@ AssessSplit <- function(
   )
   rfc <- BuildRFClassifier(
     object = assess.data,
-    training.genes = assess.data@var.genes,
+    # training.genes = assess.data@var.genes,
+    training.genes = genes.training,
     training.classes = assess.data@ident,
     ...
   )
   oobe <- rfc$prediction.error
   if (print.output) {
-    print(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"))
+    message(paste0("Out of Bag Error: ", round(x = oobe, digits = 4) * 100, "%"))
   }
   return(oobe)
 }

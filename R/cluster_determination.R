@@ -4,7 +4,7 @@
 NULL
 
 #' @describeIn FindClusters ...
-#' @export FindClusters.seurat
+#' @export
 #' @method FindClusters seurat
 #'
 FindClusters.seurat <- function(
@@ -134,7 +134,7 @@ FindClusters.seurat <- function(
 #' @param graph.use Path to a graph in the loom dataset. If NULL, calculates SNN
 #'
 #' @describeIn FindClusters ...
-#' @export FindClusters.loom
+#' @export
 #' @method FindClusters loom
 #'
 FindClusters.loom <- function(
@@ -316,7 +316,7 @@ NumberClusters <- function(object) {
   clusters <- unique(x = object@ident)
   if(any(sapply(X = clusters,
                 FUN = function(x) { !grepl("\\D", x) }))
-  ) {
+     ) {
     n <- as.numeric(x = max(clusters)) + 1
     for (i in clusters) {
       object <- SetIdent(
@@ -401,7 +401,7 @@ ClassifyCells <- function(
   new.data <- rbind(new.data, data.to.add)
   new.data <- new.data[features, ]
   new.data <- as.matrix(x = t(x = new.data))
-  print("Running Classifier ...")
+  message("Running Classifier ...")
   prediction <- predict(classifier, new.data)
   new.classes <- prediction$predictions
   return(new.classes)
@@ -452,7 +452,7 @@ BuildRFClassifier <- function(
   )
   training.data$class <- factor(x = training.classes)
   if (verbose) {
-    print("Training Classifier ...")
+    message("Training Classifier ...")
   }
   classifier <- ranger(
     data = training.data,

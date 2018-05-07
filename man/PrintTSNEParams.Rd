@@ -19,6 +19,7 @@ No return value. Only prints to console.
 Print the parameters chosen for the latest stored TSNE calculation.
 }
 \examples{
+pbmc_small <- RunTSNE(pbmc_small, perplexity = 10)
 PrintTSNEParams(object = pbmc_small)
 
 }

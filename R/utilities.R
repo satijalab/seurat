@@ -1,8 +1,3 @@
-#' @include seurat.R
-#' @include utilities_generics.R
-#' @importFrom methods setMethod
-NULL
-
 #' Shuffle a vector
 #' @param x A vector
 #' @return A vector with the same values of x, just in random order
@@ -606,7 +601,7 @@ AverageExpression <- function(
       data.all <- cbind(data.all, data.temp)
       colnames(x = data.all)[ncol(x = data.all)] <- j
       if (show.progress) {
-        print(paste0("Finished averaging ", assays.use[i], " for cluster ", j))
+        message(paste("Finished averaging", assays.use[i], "for cluster", j))
       }
       if(i == 1) {
         ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
@@ -910,7 +905,7 @@ CaseMatch <- function(search, match) {
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @describeIn BlockCov Calculate blocked covariates in loom files
-#' @export BlockCov.loom
+#' @export
 #' @method BlockCov loom
 #'
 BlockCov.loom <- function(

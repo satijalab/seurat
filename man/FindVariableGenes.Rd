@@ -11,8 +11,9 @@ FindVariableGenes(object, ...)
 \method{FindVariableGenes}{seurat}(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
-  y.high.cutoff = Inf, num.bin = 20, do.recalc = TRUE,
-  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
+  y.high.cutoff = Inf, num.bin = 20, binning.method = "equal_width",
+  do.recalc = TRUE, sort.results = TRUE, do.cpp = TRUE,
+  display.progress = TRUE, ...)
 
 \method{FindVariableGenes}{loom}(object, x.low.cutoff = 0.1,
   x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20,
@@ -20,7 +21,7 @@ FindVariableGenes(object, ...)
   overwrite = FALSE, display.progress = TRUE, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{...}{Extra parameters to VariableGenePlot}
 
@@ -28,7 +29,7 @@ FindVariableGenes(object, ...)
 is to take the mean of the detected (i.e. non-zero) values}
 
 \item{dispersion.function}{Function to compute y-axis value (dispersion). Default is to
-take the standard deviation of all values}
+take the standard deviation of all values/}
 
 \item{do.plot}{Plot the average/dispersion relationship}
 
@@ -46,6 +47,14 @@ take the standard deviation of all values}
 \item{num.bin}{Total number of bins to use in the scaled analysis (default
 is 20)}
 
+\item{binning.method}{Specifies how the bins should be computed. Available methods are:
+\itemize{
+\item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+\item{equal_frequency:}{ each bin contains an equal number of genes (can increase
+statistical power to detect overdispersed genes at high expression values, at
+the cost of reduced resolution along the x-axis)}
+}}
+
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
 
 \item{sort.results}{If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion}
@@ -60,6 +69,17 @@ exist.}
 \item{normalized.data}{Full path to normalized data in loom file}
 
 \item{overwrite}{Overwrite previous results}
+
+\item{x.low.cutoff}{Bottom cutoff on x-axis for identifying variable genes}
+
+\item{x.high.cutoff}{Top cutoff on x-axis for identifying variable genes}
+
+\item{y.cutoff}{Bottom cutoff on y-axis for identifying variable genes}
+
+\item{y.high.cutoff}{Top cutoff on y-axis for identifying variable genes}
+
+\item{num.bin}{Total number of bins to use in the scaled analysis (default
+is 20)}
 }
 \value{
 Returns a Seurat object, placing variable genes in object@var.genes.

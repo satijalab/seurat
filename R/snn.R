@@ -136,7 +136,7 @@ BuildSNN.seurat <- function(
 #' @param overwrite Overwrite existing SNN graph?
 #'
 #' @describeIn BuildSNN ...
-#' @export BuildSNN.loom
+#' @export
 #' @method BuildSNN loom
 #'
 BuildSNN.loom <- function(

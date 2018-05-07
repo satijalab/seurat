@@ -49,26 +49,13 @@ NormalizeData <- function(object, ...) {
 #' calculations are not performed in log-space, but the results are reported in log-space -
 #' see relevant functions for exact details.
 #'
-#' @param object Seurat object
-#' @param mean.function Function to compute x-axis value (average expression). Default
-#' is to take the mean of the detected (i.e. non-zero) values
-#' @param dispersion.function Function to compute y-axis value (dispersion). Default is to
-#' take the standard deviation of all values
-#' @param do.plot Plot the average/dispersion relationship
-#' @param set.var.genes Set object@@var.genes to the identified variable genes
-#' (default is TRUE)
+#' @param object An object
 #' @param x.low.cutoff Bottom cutoff on x-axis for identifying variable genes
 #' @param x.high.cutoff Top cutoff on x-axis for identifying variable genes
 #' @param y.cutoff Bottom cutoff on y-axis for identifying variable genes
 #' @param y.high.cutoff Top cutoff on y-axis for identifying variable genes
 #' @param num.bin Total number of bins to use in the scaled analysis (default
 #' is 20)
-#' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
-#' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
-#' @param do.cpp Run c++ version of mean.function and dispersion.function if they
-#' exist.
-#' @param chunk.size Chunk size to iterate over
-#' @param normalized.data Full path to normalized data in loom file
 #' @param display.progress Show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot

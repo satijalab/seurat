@@ -4,15 +4,18 @@
 \alias{AssessNodes}
 \title{Assess Internal Nodes}
 \usage{
-AssessNodes(object, node.list, all.below = FALSE)
+AssessNodes(object, node.list, all.below = FALSE, genes.training = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{node.list}{List of internal nodes to assess and return}
 
-\item{all.below}{If single node provided in node.list, assess all splits below (and including)
-provided node
+\item{all.below}{If single node provided in node.list, assess all splits
+below (and including) provided node}
+
+\item{genes.training}{A vector of genes to use to train the classifier,
+defaults to \code{rownames(x = object@data)}
 .}
 }
 \value{
@@ -25,10 +28,12 @@ or a provided list of internal nodes. Uses AssessSplit() for calculation
 of Out of Bag error (proxy for confidence in split).
 }
 \examples{
+\dontrun{
 pbmc_small
 pbmc_small <- FindClusters(object = pbmc_small, reduction.type = "pca",
                            dims.use = 1:10, resolution = 1.1, save.SNN = TRUE)
 pbmc_small <- BuildClusterTree(pbmc_small, reorder.numeric = TRUE, do.reorder = TRUE)
 AssessNodes(pbmc_small)
+}
 
 }
