@@ -18,16 +18,10 @@ There were 2 NOTEs:
   Availability using Additional_repositories specification:
     loomR   yes   https://mojaveazure.github.io/loomR
   Uses the superseded package: 'doSNOW'
-  Found the following (possibly) invalid DOIs:
-    DOI: doi:10.1038/nbt.4096
-      From: inst/CITATION
-      Message: Invalid DOI
 
   The package we suggest, loomR, is currently underdevelopment and not yet available on CRAN. This package is not required for core functionality of Seurat.
 
   We use doSNOW instead of doParallel because doSNOW has support for a progress bar while doParallel does not. doSNOW is still on CRAN and works for our purposes.
-
-  The DOI is not invalid, it goes to a Nature Biotech article describing some of the methods in our package.
 
 * checking package dependencies ... NOTE
   Package suggested but not available for checking: 'loomR'
