@@ -285,7 +285,7 @@ RegressOutNBreg <- function(
 ) {
   # in the first step we use all genes, except if n.genes.step1 has been set
   cm <- Matrix(object@raw.data[, colnames(x = object@data), drop = FALSE])
-  gene.observed <- rowSums(cm > 0)
+  gene.observed <- Matrix::rowSums(cm > 0)
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = cm))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = cm)[gene.observed >= min.cells])
   genes.step1 <- rownames(cm)[gene.observed >= min.cells]
