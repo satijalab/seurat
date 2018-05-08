@@ -2474,7 +2474,9 @@ DimPlot <- function(
   data.plot$pt.size <- pt.size
   if (!is.null(x = cells.highlight)) {
     # Ensure that cells.highlight are in our data.frame
-    if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
+    if (is.character(x = cells.highlight)) {
+      cells.highlight <- list(cells.highlight)
+    } else if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
       cells.highlight <- as.list(x = cells.highlight)
     }
     cells.highlight <- lapply(
@@ -2510,6 +2512,9 @@ DimPlot <- function(
         length.out = length(x = cells.highlight)
       )
       highlight <- rep_len(x = NA_character_, length.out = nrow(x = data.plot))
+      if (is.null(x = cols.use)) {
+        cols.use <- 'black'
+      }
       cols.use <- c(cols.use[1], cols.highlight)
       size <- rep_len(x = pt.size, length.out = nrow(x = data.plot))
       for (i in 1:length(x = cells.highlight)) {
