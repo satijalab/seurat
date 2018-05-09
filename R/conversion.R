@@ -91,7 +91,7 @@ Convert.seurat <- function(
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
           if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
             cell.embeddings.padded <- matrix(
-              nrow = ncol(x = from@raw.data),
+              nrow = length(x = from@cell.names),
               ncol = ncol(x = cell.embeddings)
             )
             if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = from@cell.names)) {
