@@ -4,6 +4,19 @@ language: R
 sudo: required
 cache: packages
 
+os:
+  - linux
+  - osx
+
+r:
+  - release
+  - devel
+
+matrix:
+  exclude:
+    - os: osx
+      r: devel
+
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
@@ -17,7 +30,7 @@ bioc_packages:
   - SingleCellExperiment
 
 r_github_packages:
-  - mojaveazure/loomR  
+  - mojaveazure/loomR
 
 warnings_are_errors: false
 
