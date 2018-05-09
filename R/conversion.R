@@ -56,10 +56,10 @@ Convert.seurat <- function(
         stop("Please install loomR from GitHub before converting to a loom object")
       }
       cell.order <- from@cell.names
-      gene.order <- rownames(x = from@raw.data)
+      gene.order <- rownames(x = from@data)
       loomfile <- loomR::create(
         filename = filename,
-        data = from@raw.data[, cell.order],
+        data = from@raw.data[gene.order, cell.order],
         cell.attrs = from@meta.data[cell.order, ],
         layers = list('norm_data' = t(x = from@data[, cell.order])),
         chunk.dims = chunk.dims,
@@ -89,7 +89,7 @@ Convert.seurat <- function(
         cell.embeddings <- from@dr[[dim.reduc]]@cell.embeddings
         ce.dims <- unique(x = dim(x = cell.embeddings))
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
-          if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
+          if (nrow(x = cell.embeddings) < ncol(x = from@data)) {
             cell.embeddings.padded <- matrix(
               nrow = length(x = from@cell.names),
               ncol = ncol(x = cell.embeddings)
@@ -103,7 +103,7 @@ Convert.seurat <- function(
               )
             }
             cell.embeddings.padded[pad.order, ] <- cell.embeddings
-          } else if (nrow(x = cell.embeddings) > ncol(x = from@raw.data)) {
+          } else if (nrow(x = cell.embeddings) > ncol(x = from@data)) {
             stop("Cannot have more cells in the dimmensional reduction than in the dataset")
           } else {
             cell.embeddings.padded <- cell.embeddings
@@ -119,21 +119,21 @@ Convert.seurat <- function(
         }
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) != 1 || gl.dims != 0) {
-          if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
+          if (nrow(x = gene.loadings) < nrow(x = from@data)) {
             gene.loadings.padded <- matrix(
-              nrow = nrow(x = from@raw.data),
+              nrow = nrow(x = from@data),
               ncol = ncol(x = gene.loadings)
             )
-            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@raw.data))) {
+            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@data))) {
               pad.order <- 1:nrow(x = gene.loadings)
             } else {
               pad.order <- match(
                 x = rownames(x = gene.loadings),
-                table = rownames(x = from@raw.data)
+                table = rownames(x = from@data)
               )
             }
             gene.loadings.padded[pad.order, ] <- gene.loadings
-          } else if (nrow(x = gene.loadings) > nrow(x = from@raw.data)) {
+          } else if (nrow(x = gene.loadings) > nrow(x = from@data)) {
             stop("Cannot have more genes in the dimmensional reduction than in the dataset")
           } else {
             gene.loadings.padded <- gene.loadings
