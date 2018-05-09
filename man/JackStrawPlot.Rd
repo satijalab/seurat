@@ -22,7 +22,9 @@ significance (see Details)}
 \item{plot.y.lim}{Y-axis maximum on each QQ plot.}
 }
 \value{
-A ggplot object
+Returns a Seurat object where object@dr$pca@jackstraw@overall.p.values
+represents p-values for each PC and object@dr$pca@misc$jackstraw.plot 
+stores the ggplot2 plot.
 }
 \description{
 Plots the results of the JackStraw analysis for PCA significance. For each
