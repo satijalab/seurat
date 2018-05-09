@@ -2,28 +2,22 @@
 
 language: R
 sudo: required
-r_binary_packages:
-  - lars
-  - mixtools
-  - caret
-  - e1071
-  - ica
-  - fpc
-  - ape
-  - igraph
-  - dplyr
-  - irlba
-  - reshape2
-  - gdata
-  - compositions
-  - dtw
-  - plotly
-  - httr
-  - tidyr
-  - ranger
+cache: packages
+
+env:
+  global:
+    - _R_CHECK_FORCE_SUGGESTS_=FALSE
+
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
   - MAST
+  - S4Vectors
+  - SummarizedExperiment
+  - SingleCellExperiment
+
+r_github_packages:
+  - mojaveazure/loomR  
+
 warnings_are_errors: false
-dist: trusty
+

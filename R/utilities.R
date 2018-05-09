@@ -601,7 +601,7 @@ AverageExpression <- function(
       data.all <- cbind(data.all, data.temp)
       colnames(x = data.all)[ncol(x = data.all)] <- j
       if (show.progress) {
-        print(paste0("Finished averaging ", assays.use[i], " for cluster ", j))
+        message(paste("Finished averaging", assays.use[i], "for cluster", j))
       }
       if(i == 1) {
         ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))

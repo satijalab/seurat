@@ -113,6 +113,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
+  object@meta.data[["orig.ident"]] <- NULL
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if (!is.null(normalization.method)) {
     object <- NormalizeData(
@@ -245,8 +246,7 @@ Read10X <- function(data.dir = NULL){
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param display.progress display progress bar for scaling procedure.
 #'
-#' @return Returns object after normalization. Normalized data is stored in data
-#' or scale.data slot, depending on the method
+#' @return Returns object after normalization. Normalized data is stored in data slot
 #'
 #' @export
 #'
@@ -358,8 +358,8 @@ ScaleDataR <- function(
   if (do.scale | do.center) {
     bin.size <- 1000
     max.bin <- floor(length(genes.use)/bin.size) + 1
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
     for (i in 1:max.bin) {
       my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
       my.inds <- my.inds[my.inds <= length(x = genes.use)]
@@ -493,7 +493,7 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if (! missing(vars.to.regress)) {
+  if (!missing(x = vars.to.regress) && !is.null(x = vars.to.regress)) {
     data.use <- RegressOutResid(
       object = object,
       vars.to.regress = vars.to.regress,
@@ -507,7 +507,7 @@ ScaleData <- function(
     if (model.use != "linear") {
       use.umi <- TRUE
     }
-    if(use.umi && missing(scale.max)){
+    if (use.umi && missing(scale.max)) {
       scale.max <- 50
     }
   }
@@ -519,7 +519,7 @@ ScaleData <- function(
     calculation = "ScaleData",
     ... = parameters.to.store
   )
-  if(!do.cpp){
+  if (!do.cpp) {
     return(ScaleDataR(
       object = object,
       data.use = data.use,
@@ -536,7 +536,7 @@ ScaleData <- function(
     )
   )
   rownames(scaled.data) <- genes.use
-  if(length(object@cell.names) <= min.cells.to.block) {
+  if (length(object@cell.names) <= min.cells.to.block) {
     block.size <- length(genes.use)
   }
   gc()
@@ -544,8 +544,8 @@ ScaleData <- function(
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
   if (display.progress) {
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   for (i in 1:max.block) {
     my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
@@ -666,14 +666,14 @@ SampleUMI <- function(
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
   }
-  return(
-    RunUMISamplingPerCell(
-      data = data,
-      sample_val = max.umi,
-      upsample = upsample,
-      display_progress = progress.bar
-    )
+  new_data = RunUMISamplingPerCell(
+    data = data,
+    sample_val = max.umi,
+    upsample = upsample,
+    display_progress = progress.bar
   )
+  dimnames(new_data) <- dimnames(data)
+  return(new_data)
 }
 
 #' Identify variable genes
@@ -792,8 +792,8 @@ FindVariableGenes <- function(
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
       if(display.progress){
-        print("Calculating gene dispersion")
-        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+        message("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
       for (i in 1:max.bin) {
         my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1

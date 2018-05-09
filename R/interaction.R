@@ -403,24 +403,28 @@ SubsetData <- function(
   ...
 ) {
   data.use <- NULL
-  cells.use <- WhichCells(object = object,
-                          ident = ident.use,
-                          ident.remove = ident.remove,
-                          cells.use = cells.use,
-                          subset.name = subset.name,
-                          accept.low = accept.low,
-                          accept.high = accept.high,
-                          accept.value = accept.value,
-                          max.cells.per.ident = max.cells.per.ident,
-                          random.seed = random.seed,
-                          ... = ...)
+  cells.use <- WhichCells(
+    object = object,
+    ident = ident.use,
+    ident.remove = ident.remove,
+    cells.use = cells.use,
+    subset.name = subset.name,
+    accept.low = accept.low,
+    accept.high = accept.high,
+    accept.value = accept.value,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    ... = ...
+  )
   object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
-  if(! is.null(x = object@scale.data)) {
+  gc(verbose = FALSE)
+  if (!is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
       object@scale.data[, cells.use]
       object@scale.data <- object@scale.data[, cells.use]
     }
+    gc(verbose = FALSE)
   }
   if (do.scale) {
     object <- ScaleData(
@@ -428,30 +432,33 @@ SubsetData <- function(
       do.scale = do.scale,
       do.center = do.center
     )
+    gc(verbose = FALSE)
   }
   object@ident <- drop.levels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
-      if(length(object@dr[[i]]@cell.embeddings) > 0){
+      if (length(object@dr[[i]]@cell.embeddings) > 0) {
         object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
       }
     }
+    gc(verbose = FALSE)
   }
   # handle multimodal casess
-  if (! .hasSlot(object = object, name = "assay")) {
+  if (!.hasSlot(object = object, name = "assay")) {
     object@assay <- list()
   }
   if (length(object@assay) > 0) {
-    for(i in 1:length(object@assay)) {
-      if ((! is.null(x = object@assay[[i]]@raw.data)) && (ncol(x = object@assay[[i]]@raw.data) > 1)) {
+    for (i in 1:length(object@assay)) {
+      if ((!is.null(x = object@assay[[i]]@raw.data)) && (ncol(x = object@assay[[i]]@raw.data) > 1)) {
         object@assay[[i]]@raw.data <- object@assay[[i]]@raw.data[, cells.use]
       }
-      if ((! is.null(x = object@assay[[i]]@data)) && (ncol(x = object@assay[[i]]@data) > 1)) {
+      if ((!is.null(x = object@assay[[i]]@data)) && (ncol(x = object@assay[[i]]@data) > 1)) {
         object@assay[[i]]@data <- object@assay[[i]]@data[, cells.use]
       }
-      if ((! is.null(x = object@assay[[i]]@scale.data)) && (ncol(x = object@assay[[i]]@scale.data) > 1)) {
+      if ((!is.null(x = object@assay[[i]]@scale.data)) && (ncol(x = object@assay[[i]]@scale.data) > 1)) {
         object@assay[[i]]@scale.data <- object@assay[[i]]@scale.data[, cells.use]
       }
+      gc(verbose = FALSE)
     }
   }
   #object@tsne.rot=object@tsne.rot[cells.use, ]
@@ -459,8 +466,9 @@ SubsetData <- function(
   # colnames(x = object@gene.scores)[1] <- "nGene"
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
   object@meta.data <- data.frame(object@meta.data[cells.use,])
+  gc(verbose = FALSE)
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
-  if (do.clean){
+  if (do.clean) {
     calcs.to.keep <- c("CreateSeuratObject", "NormalizeData", "ScaleData")
     object@calc.params <- object@calc.params[calcs.to.keep]
     object@var.genes <- vector()
@@ -472,14 +480,16 @@ SubsetData <- function(
     object@kmeans <- NULL
     object@dr <- list()
     object@meta.data
-    if(missing(subset.raw)) {
+    if (missing(x = subset.raw)) {
       subset.raw <- TRUE
     }
     object@meta.data[, sapply(colnames(object@meta.data), function(x){grepl("res", x)})] <- NULL
+    gc(verbose = FALSE)
   }
-  if(!missing(subset.raw)){
-    if(subset.raw){
+  if (!missing(x = subset.raw)) {
+    if (subset.raw) {
       object@raw.data <- object@raw.data[, cells.use]
+      gc(verbose = FALSE)
     }
   }
   return(object)
@@ -630,7 +640,7 @@ FetchData <- function(
       genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
       data.expression <- cbind(
         data.expression,
-        t(x = all_data[genes.include, , drop = FALSE])
+        t(x = all_data[genes.include, cells.use, drop = FALSE])
       )
     }
   }
@@ -670,7 +680,7 @@ FetchData <- function(
       }
     }
     if (my.var %in% colnames(object@meta.data)) {
-      data.use <- object@meta.data[, my.var, drop = FALSE]
+      data.use <- object@meta.data[cells.use, my.var, drop = FALSE]
     }
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
