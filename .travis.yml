@@ -1,6 +1,6 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language: R
+language: r
 sudo: required
 cache: packages
 
@@ -8,14 +8,7 @@ os:
   - linux
   - osx
 
-r:
-  - release
-  - devel
-
-matrix:
-  exclude:
-    - os: osx
-      r: devel
+r: release
 
 env:
   global:
