@@ -1000,7 +1000,7 @@ NegBinomRegDETest <- function(
     use.raw = TRUE
   )
   to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  message(paste('Latent variables are', latent.vars))
+  message(paste('Latent variables are', paste(latent.vars, collapse = " ")))
   # get regularized theta (ignoring group factor)
   theta.fit <- RegularizedTheta(
     cm = to.test.data,
