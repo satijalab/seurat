@@ -198,7 +198,7 @@ Convert.seurat <- function(
       } else {
         raw <- as(object = as.matrix(x = raw), Class = "dgCMatrix")
       }
-      scipy <- import('scipy.sparse')
+      scipy <- import(module = 'scipy.sparse', convert = FALSE)
       sp_sparse_csc <- scipy$csc_matrix
       raw.rownames <- rownames(x = raw)
       raw <- sp_sparse_csc(
@@ -210,7 +210,15 @@ Convert.seurat <- function(
       }
       raw <- raw$T
       raw <- dict(X = raw, var = dict(var_names = raw.rownames))
-      X <- np_array(t(x = X))
+      if (anndata.X == 'data') {
+        X <- sp_sparse_csc(
+          tuple(np_array(X@x), np_array(X@i), np_array(X@p)),
+          shape = tuple(X@Dim[1], X@Dim[2])
+        )
+        X <- X$T
+      } else {
+        X <- np_array(t(x = X))
+      }
       obsm <- list()
       for (dr in names(from@dr)) {
         obsm[[paste0("X_",dr)]] <- np_array(GetCellEmbeddings(
