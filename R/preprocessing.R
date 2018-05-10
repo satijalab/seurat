@@ -513,7 +513,7 @@ ScaleData.seurat <- function(
       scale.max <- 50
     }
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ScaleData"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   parameters.to.store$data.use <- NULL
   object <- SetCalcParams(
     object = object,
