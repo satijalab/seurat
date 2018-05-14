@@ -80,7 +80,7 @@ Convert.seurat <- function(
       if (length(x = from@var.genes) > 0) {
         loomfile$add.row.attribute(list('var_genes' = gene.order %in% from@var.genes))
       }
-      if (!is.null(x = from@scale.data)) {
+      if (!is.null(x = from@scale.data) && dim(x = from@scale.data) != c(1, 1)) {
         loomfile$add.layer(list(
           'scale_data' = as.matrix(x = t(x = as.data.frame(x = from@scale.data)[gene.order, cell.order]))
         ))
