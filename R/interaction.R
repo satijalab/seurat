@@ -1284,9 +1284,6 @@ setMethod(
   definition = function(object,
                         size,
                         dims.use = 1:10,
-                        return.type = "seurat",
-                        filename,
-                        overwrite = FALSE,
                         ...) {
     if (! "pca" %in% names(object@dr)) {
       stop("PCA not found")
@@ -1296,11 +1293,7 @@ setMethod(
                                       size = size,
                                       ...)
     object <- SubsetData(object = object, cells.use = cells.to.keep, subset.raw = TRUE, random.seed = NA)
-    if (return.type == "seurat") {
-      return(object)
-    } else {
-      return(Convert(from = object, to = "loom", filename = filename, ...))
-    }
+    return(object)
   }
 )
 
