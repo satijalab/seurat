@@ -114,9 +114,9 @@ GetAssayData.loom <- function(
   }
   cells.use <- SetIfNull(x = cells.use, default = 1:object$shape[2])
   cells.use <- sort(x = cells.use)
-#   if (is.unsorted(cells.use)) {
-#     stop("Cells to use must be in the same order as in object")
-#   }
+  # if (is.unsorted(cells.use)) {
+  #   stop("Cells to use must be in the same order as in object")
+  # }
   if (is.character(x = genes.use)) {
     if (is.null(x = genes.use)) {
       stop("Cannot find genes to use without a gene names dataset specified")
@@ -128,9 +128,9 @@ GetAssayData.loom <- function(
   }
   genes.use <- SetIfNull(x = genes.use, default = 1:object$shape[1])
   genes.use <- sort(x = genes.use)
-#   if (is.unsorted(genes.use)) {
-#     stop("Genes to use must be in the same order as in object")
-#   }
+  # if (is.unsorted(genes.use)) {
+  #   stop("Genes to use must be in the same order as in object")
+  # }
   batch <- object$batch.scan(
     chunk.size = chunk.size,
     MARGIN = MARGIN,
