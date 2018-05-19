@@ -108,6 +108,7 @@ RegressOutResid <- function(
   data.resid <- foreach(i = 1:max.bin, .combine = "c", .options.snow = opts) %dopar% {
     genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
     gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
+    empty_char = character(length = dim(gene.expr)[1]) # Empty vector to reuse
     new.data <- sapply(
       X = genes.bin.regress,
       FUN = function(x) {
@@ -136,7 +137,7 @@ RegressOutResid <- function(
           ) 
         }
         if (!is.list(x = resid)) {
-          resid <- list('resid' = resid, 'mode' = character(length = length(x = resid)))
+          resid <- list('resid' = resid, 'mode' = empty_char)
         }
         return(resid)
       }
