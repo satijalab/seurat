@@ -100,8 +100,7 @@ RegressOutResid <- function(
     regression.mat <- cbind(latent.data, data.use[1,])
     colnames(regression.mat) <- reg.mat.colnames
     qr = lm(fmla, data = regression.mat, qr=TRUE)$qr
-    rm(regression.mat) # Ensure memory isn't held by fastResiduals closure
-    fastResiduals <- function(y) {qr.resid(qr, y)}
+    rm(regression.mat)
   }
   
   
@@ -114,7 +113,7 @@ RegressOutResid <- function(
       FUN = function(x) {
         # Fast path for std. linear models
         if(model.use=="linear") {
-          resid <- fastResiduals(gene.expr[x,])
+          resid <- qr.resid(qr, gene.expr[x,])
         } else {
           regression.mat <- cbind(latent.data, gene.expr[x,])
           colnames(x = regression.mat) <- reg.mat.colnames
