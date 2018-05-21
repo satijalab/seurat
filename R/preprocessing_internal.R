@@ -84,13 +84,7 @@ RegressOutResid <- function(
     time_elapsed <- Sys.time()
   }
   reg.mat.colnames <- c(colnames(x = latent.data), "GENE")
-  fmla <- as.formula(
-    object = paste0(
-      "GENE ",
-      " ~ ",
-      paste(vars.to.regress, collapse = "+")
-    )
-  )
+  fmla_str = paste0("GENE ", " ~ ", paste(vars.to.regress, collapse = "+"))
   if(model.use == "linear") {
     # In this code, we'll repeatedly regress different Y against the same X
     # (latent.data) in order to calculate residuals.  Rather that repeatedly
@@ -99,7 +93,7 @@ RegressOutResid <- function(
     # storing it in a fastResiduals function.
     regression.mat <- cbind(latent.data, data.use[1,])
     colnames(regression.mat) <- reg.mat.colnames
-    qr = lm(fmla, data = regression.mat, qr=TRUE)$qr
+    qr = lm(as.formula(fmla_str), data = regression.mat, qr=TRUE)$qr
     rm(regression.mat)
   }
   
@@ -117,6 +111,7 @@ RegressOutResid <- function(
         } else {
           regression.mat <- cbind(latent.data, gene.expr[x,])
           colnames(x = regression.mat) <- reg.mat.colnames
+          fmla = as.formula(fmla_str)
           resid <- switch(
             EXPR = model.use,
             'poisson' = residuals(
