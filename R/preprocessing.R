@@ -317,7 +317,8 @@ NormalizeData.loom <- function(
   name = 'norm_data',
   dataset.use = 'matrix',
   display.progress = TRUE,
-  overwrite = FALSE
+  overwrite = FALSE,
+  ...
 ) {
   name <- paste('layers', basename(path = name[1]), sep = '/')
   object$apply(
@@ -333,9 +334,10 @@ NormalizeData.loom <- function(
     chunk.size = chunk.size,
     dataset.use = dataset.use,
     overwrite = overwrite,
-    display.progress = display.progress
+    display.progress = display.progress,
+    ...
   )
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[setdiff(names(formals()), '...')]
   SetCalcParams(
     object = object,
     dataset.use = "layers/norm_data",
@@ -684,10 +686,11 @@ ScaleData.loom <- function(
     chunk.size = chunk.size,
     dataset.use = dataset.use,
     overwrite = overwrite,
-    display.progress = display.progress
+    display.progress = display.progress,
+    ...
   )
   # Store parameters
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(x = formals())]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[setdiff(names(formals()), '...')]
   SetCalcParams(
     object = object,
     dataset.use = "layers/scale_data",
