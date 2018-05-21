@@ -9,8 +9,7 @@
 \usage{
 DownsampleSeurat(object, ...)
 
-\S4method{DownsampleSeurat}{seurat}(object, size, dims.use = 1:10,
-  return.type = "seurat", filename, overwrite = FALSE, ...)
+\S4method{DownsampleSeurat}{seurat}(object, size, dims.use = 1:10, ...)
 
 \S4method{DownsampleSeurat}{loom}(object, size, dims.use = 1:10,
   cell.names = "col_attrs/cell_names", keep.layers = FALSE, ...)
@@ -22,12 +21,6 @@ DownsampleSeurat(object, ...)
 
 \item{dims.use}{A vector giving the PCs that are used}
 
-\item{return.type}{Return as either a "seurat" or "loom" object}
-
-\item{filename}{file name/path for new loom object if returning loom}
-
-\item{overwrite}{overwrite loom file if it already exists}
-
 \item{cell.names}{location in loom object of cell names}
 
 \item{method}{Sampling strategy, one of 'random', 'max', 'prod', 'mean'}
@@ -35,6 +28,12 @@ DownsampleSeurat(object, ...)
 \item{eps}{A small value added to the density estimate}
 
 \item{bw.adjust}{Factor applied to default bandwidth}
+
+\item{return.type}{Return as either a "seurat" or "loom" object}
+
+\item{filename}{file name/path for new loom object if returning loom}
+
+\item{overwrite}{overwrite loom file if it already exists}
 
 \item{display.progress}{display progress of the process}
 }

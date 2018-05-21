@@ -14,7 +14,7 @@ NormalizeData(object, ...)
 
 \method{NormalizeData}{loom}(object, scale.factor = 10000,
   chunk.size = 1000, name = "norm_data", dataset.use = "matrix",
-  display.progress = TRUE, overwrite = FALSE)
+  display.progress = TRUE, overwrite = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
