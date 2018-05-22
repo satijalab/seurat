@@ -125,7 +125,7 @@ Convert.seurat <- function(
               ncol = ncol(x = gene.loadings)
             )
             if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@raw.data))) {
-              pad.order <- 1:nrow(x = gene.loadings)
+              pad.order <- seq_len(nrow(x = gene.loadings))
             } else {
               pad.order <- match(
                 x = rownames(x = gene.loadings),
@@ -149,21 +149,31 @@ Convert.seurat <- function(
       if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
         stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
       }
-      if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
-        sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
+      if (inherits(x = from@raw.data, what = "data.frame")) {
+        from@raw.data <- as.matrix(from@raw.data)
+      }
+      if (inherits(x = from@data, what = "data.frame")) {
+        from@data <- as.matrix(from@data)
+      }
+      sce <- if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
+        SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
+      } else if (inherts(x = from@raw.data, what = "dgCMatrix")){
+        SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
       } else {
-        sce <- SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
+        stop("Invalid class stored in seurat object's raw.data slot")
       }
       if (class(from@data) %in% c("matrix", "dgTMatrix")) {
         SummarizedExperiment::assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
-      } else {
+      } else if (inherits(x = from@data, what = "dgCMatrix")) {
         SummarizedExperiment::assay(sce, "logcounts") <- from@data
+      } else {
+        stop("Invalid class stored in seurat object's data slot")
       }
       meta.data <- from@meta.data
       meta.data$ident <- from@ident
       SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
       row.data <- from@hvg.info[rownames(from@data), ]
-      row.data <- cbind(gene = rownames(x = from@data), row.data)
+      row.data <- cbind(gene = rownames(x = from@data), row.data, stringsAsFactors = FALSE)
       SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
       for (dr in names(from@dr)) {
         SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- slot(
