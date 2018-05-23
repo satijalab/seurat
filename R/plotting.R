@@ -1293,6 +1293,7 @@ FeatureHeatmap <- function(
   ))
   colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
   data.plot$ident <- as.character(x = object@ident)
+  data.plot <- data.plot[data.plot$ident %in% idents.use,] # keep only identities defined in idents.use
   data.plot$cell <- rownames(x = data.plot)
   features.plot <- gsub('-', '\\.', features.plot)
   data.plot  %>% gather(key = "gene", value = "expression", -dim1, -dim2, -ident, -cell) -> data.plot
