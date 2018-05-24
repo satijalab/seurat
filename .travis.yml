@@ -1,9 +1,6 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language:
-  - r
-  - python
-python: 3.5
+language: r
 sudo: required
 cache: packages
 
@@ -18,7 +15,16 @@ env:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
 before_install:
-  - pip3 install phate
+  - wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - export RETICULATE_PYTHON="$HOME/miniconda/bin/python"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+  - pip install --upgrade pip
+  - pip install phate
 
 bioc_packages:
   - GenomeInfoDbData
