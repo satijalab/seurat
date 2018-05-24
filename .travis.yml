@@ -1,6 +1,9 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language: r
+language:
+  - r
+  - python
+python: 3.5
 sudo: required
 cache: packages
 
@@ -13,13 +16,6 @@ r: release
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
-
-addons:
-  apt:
-    update: true
-    packages:
-      - python3-dev
-      - python3-pip
 
 before_install:
   - pip3 install phate
