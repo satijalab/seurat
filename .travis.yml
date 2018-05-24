@@ -18,7 +18,6 @@ addons:
   apt:
     packages:
       - python-dev
-      - python-numpy
       - python-pip
 
 before_install:
