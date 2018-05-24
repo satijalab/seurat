@@ -62,7 +62,8 @@ Imports:
     png,
     doSNOW,
     reticulate,
-    foreach
+    foreach,
+    phateR
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
