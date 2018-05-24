@@ -9,7 +9,7 @@ init:
 install:
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install phate"
-  ps: Bootstrap
+  - ps: Bootstrap
 
 # Adapt as necessary starting from here
 
