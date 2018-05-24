@@ -300,7 +300,7 @@ FindMarkers <- function(
   }
   #return results
   to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
-  to.return <- cbind(to.return, data.alpha[rownames(x = to.return), ])
+  to.return <- cbind(to.return, data.alpha[rownames(x = to.return), , drop = FALSE])
   to.return$p_val_adj = p.adjust(
     p = to.return$p_val,method = "bonferroni",
     n = nrow(x = GetAssayData(
@@ -1000,7 +1000,7 @@ NegBinomRegDETest <- function(
     use.raw = TRUE
   )
   to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  message(paste('Latent variables are', latent.vars))
+  message(paste('Latent variables are', paste(latent.vars, collapse = " ")))
   # get regularized theta (ignoring group factor)
   theta.fit <- RegularizedTheta(
     cm = to.test.data,
@@ -1371,7 +1371,7 @@ WilcoxDETest <- function(
   coldata[cells.2, group] <- "Group2"
   coldata[, group] <- factor(x = coldata[, group])
   coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- data.test[genes.use, rownames(x = coldata)]
+  countdata.test <- data.test[genes.use, rownames(x = coldata), drop = FALSE]
   mysapply <- if (print.bar) {pbsapply} else {sapply}
   p_val <- mysapply(
     X = 1:nrow(x = countdata.test),

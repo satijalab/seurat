@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @importFrom methods setClass setMethod
 NULL
 # Set up dim.reduction class
 
@@ -10,9 +11,22 @@ dim.reduction <- setClass(
     gene.loadings.full = "matrix",
     sdev = "numeric",
     key = "character",
-    jackstraw="ANY",
+    jackstraw = "ANY",
     misc = "ANY"
   )
+)
+
+setMethod(
+  f = 'show',
+  signature = 'dim.reduction',
+  definition = function(object) {
+    cat(
+      "A dimensional reduction object with key", object@key, '\n',
+      'Number of dimensions:', ncol(x = object@cell.embeddings), '\n',
+      'Projected dimensional reduction calculated:', !all(dim(object@gene.loadings.full) == 0), '\n',
+      'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
+    )
+  }
 )
 
 # Prep data for dimensional reduction
@@ -33,7 +47,6 @@ PrepDR <- function(
   use.imputed = FALSE,
   assay.type="RNA"
 ) {
-
   if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
     stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector
           of genes names in genes.use and retry.")
@@ -47,7 +60,7 @@ PrepDR <- function(
   genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
   genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
   genes.use <- genes.use[genes.var > 0]
-  genes.use <- genes.use[! is.na(x = genes.use)]
+  genes.use <- genes.use[!is.na(x = genes.use)]
   data.use <- data.use[genes.use, ]
   return(data.use)
 }
