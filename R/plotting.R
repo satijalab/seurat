@@ -1293,6 +1293,7 @@ FeatureHeatmap <- function(
   ))
   colnames(x = data.plot)[1:2] <- c("dim1", "dim2")
   data.plot$ident <- as.character(x = object@ident)
+  data.plot <- data.plot[data.plot$ident %in% idents.use,] # keep only identities defined in idents.use
   data.plot$cell <- rownames(x = data.plot)
   features.plot <- gsub('-', '\\.', features.plot)
   data.plot  %>% gather(key = "gene", value = "expression", -dim1, -dim2, -ident, -cell) -> data.plot
@@ -1544,7 +1545,9 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' @param plot.x.lim X-axis maximum on each QQ plot.
 #' @param plot.y.lim Y-axis maximum on each QQ plot.
 #'
-#' @return A ggplot object
+#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@overall.p.values
+#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot 
+#' stores the ggplot2 plot.
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
@@ -1569,7 +1572,7 @@ JackStrawPlot <- function(
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
-  pAll.l <- melt(data = pAll, id.vars = "Contig")
+  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = pAll.l) <- c("Contig", "PC", "Value")
   qq.df <- NULL
   score.df <- NULL
@@ -1620,7 +1623,11 @@ JackStrawPlot <- function(
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
     theme_bw()
-  return(gp)
+  
+  object@dr$pca@misc[["jackstraw.plot"]] <- gp
+  print(gp)
+  
+  return(object)
 }
 
 globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
@@ -2474,7 +2481,9 @@ DimPlot <- function(
   data.plot$pt.size <- pt.size
   if (!is.null(x = cells.highlight)) {
     # Ensure that cells.highlight are in our data.frame
-    if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
+    if (is.character(x = cells.highlight)) {
+      cells.highlight <- list(cells.highlight)
+    } else if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
       cells.highlight <- as.list(x = cells.highlight)
     }
     cells.highlight <- lapply(
@@ -2510,6 +2519,9 @@ DimPlot <- function(
         length.out = length(x = cells.highlight)
       )
       highlight <- rep_len(x = NA_character_, length.out = nrow(x = data.plot))
+      if (is.null(x = cols.use)) {
+        cols.use <- 'black'
+      }
       cols.use <- c(cols.use[1], cols.highlight)
       size <- rep_len(x = pt.size, length.out = nrow(x = data.plot))
       for (i in 1:length(x = cells.highlight)) {
