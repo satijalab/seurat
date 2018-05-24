@@ -137,9 +137,8 @@ RegressOutResid <- function(
       }
     )
     new.data.resid <- new.data[seq.int(from = 1, to = length(x = new.data), by = 2)]
-    new.data.resid <- as.data.frame(x = new.data.resid)
+    new.data.resid = matrix(unlist(new.data.resid), nrow = length(new.data.resid[[1]]))
     colnames(x = new.data.resid) <- genes.bin.regress
-    new.data.resid <- as.matrix(x = new.data.resid)
     new.data.mode <- unlist(x = new.data[seq.int(from = 2, to = length(x = new.data), by = 2)])
     names(x = new.data.mode) <- genes.bin.regress
     new.data <- list('resid' = new.data.resid, 'mode' = new.data.mode)
