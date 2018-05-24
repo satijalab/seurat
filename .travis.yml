@@ -16,6 +16,7 @@ env:
 
 addons:
   apt:
+    update: true
     packages:
       - python-dev
       - python-pip
