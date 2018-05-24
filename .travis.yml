@@ -8,6 +8,16 @@ env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
+addons:
+  apt:
+    packages:
+      - python-dev
+      - python-numpy
+      - python-pip
+
+before_install:
+  - pip install phate
+
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
@@ -17,7 +27,8 @@ bioc_packages:
   - SingleCellExperiment
 
 r_github_packages:
-  - mojaveazure/loomR  
+  - mojaveazure/loomR
+  - KrishnaswamyLab/phateR
 
 warnings_are_errors: false
 

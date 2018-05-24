@@ -7,6 +7,8 @@ init:
         Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
         Import-Module '..\appveyor-tool.ps1'
 install:
+  - "%PYTHON%\\python.exe -m pip install wheel"
+  - "%PYTHON%\\python.exe -m pip install phate"
   ps: Bootstrap
 
 # Adapt as necessary starting from here
@@ -17,6 +19,13 @@ environment:
     USE_RTOOLS: true
     _R_CHECK_FORCE_SUGGESTS_: false
 
+  matrix:
+    - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36-x64"
+
 build_script:
   - travis-tool.sh install_deps
   - travis-tool.sh r_binary_install curl
@@ -26,6 +35,7 @@ build_script:
   - travis-tool.sh bioc_install S4Vectors
   - travis-tool.sh bioc_install SummarizedExperiment
   - travis-tool.sh bioc_install SingleCellExperiment
+  - travis-tool.sh install_github KrishnaswamyLab/phateR
 
 test_script:
   - travis-tool.sh run_tests
