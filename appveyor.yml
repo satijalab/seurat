@@ -18,13 +18,8 @@ environment:
     R_ARCH: x64
     USE_RTOOLS: true
     _R_CHECK_FORCE_SUGGESTS_: false
-
-  matrix:
-    - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python35"
-    - PYTHON: "C:\\Python27-x64"
-    - PYTHON: "C:\\Python35-x64"
-    - PYTHON: "C:\\Python36-x64"
+    PYTHON: "C:\\Python36-x64"
+    RETICULATE_PYTHON: "C:\\Python36-x64"
 
 build_script:
   - travis-tool.sh install_deps
