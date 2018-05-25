@@ -24,14 +24,14 @@ Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int
           if (fmod(entry, 1) != 0){
             double rn = runif(1)[0];
             if(fmod(entry, 1) <= rn){
-              data.coeffRef(it.row(), it.col()) = floor(entry);
+              it.valueRef() = floor(entry);
             }
             else{
-              data.coeffRef(it.row(), it.col()) = ceil(entry);
+              it.valueRef() = ceil(entry);
             }
           }
           else{
-            data.coeffRef(it.row(), it.col()) = entry;
+            it.valueRef() = entry;
           }
         }
       }
@@ -52,14 +52,14 @@ Eigen::SparseMatrix<double> RunUMISamplingPerCell(Eigen::SparseMatrix<double> da
         if (fmod(entry, 1) != 0){
           double rn = runif(1)[0];
           if(fmod(entry, 1) <= rn){
-            data.coeffRef(it.row(), it.col()) = floor(entry);
+            it.valueRef() = floor(entry);
           }
           else{
-            data.coeffRef(it.row(), it.col()) = ceil(entry);
+            it.valueRef() = ceil(entry);
           }
         }
         else{
-          data.coeffRef(it.row(), it.col()) = entry;
+          it.valueRef() = entry;
         }
       }
     }
@@ -117,7 +117,7 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
   for (int k=0; k < data.outerSize(); ++k){
     p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
-      data.coeffRef(it.row(), it.col()) = log1p(double(it.value()) / colSums[k] * scale_factor);
+      it.valueRef() = log1p(double(it.value()) / colSums[k] * scale_factor);
     }
   }
   return data;
