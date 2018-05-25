@@ -22,7 +22,7 @@ Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int
         if( (upsample) || (colSums[k] > sample_val)){
           entry = entry * double(sample_val) / colSums[k];
           if (fmod(entry, 1) != 0){
-            double rn = runif(1)[0];
+            double rn = R::runif(0,1);
             if(fmod(entry, 1) <= rn){
               it.valueRef() = floor(entry);
             }
@@ -50,7 +50,7 @@ Eigen::SparseMatrix<double> RunUMISamplingPerCell(Eigen::SparseMatrix<double> da
       if( (upsample) || (colSums[k] > sample_val[k])){
         entry = entry * double(sample_val[k]) / colSums[k];
         if (fmod(entry, 1) != 0){
-          double rn = runif(1)[0];
+          double rn = R::runif(0,1);
           if(fmod(entry, 1) <= rn){
             it.valueRef() = floor(entry);
           }
