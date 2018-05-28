@@ -234,6 +234,50 @@ Read10X <- function(data.dir = NULL){
   return(full.data)
 }
 
+#' Read 10X hdf5 file
+#' 
+#' Read gene expression matrix from 10X CellRanger hdf5 file
+#' 
+#' @param filename Path to h5 file
+#' 
+#' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present, 
+#' returns a list of sparse matrices (one per genome).
+#' 
+#' @import hdf5r
+#' 
+#' @export
+#' 
+Read10X_h5 <- function(filename){
+  if(!file.exists(filename)){
+    stop("File not found")
+  }
+  infile <- H5File$new(filename)
+  genomes <- names(infile)
+  output <- list()
+  for(genome in genomes){
+    raw.data <- infile[[paste0(genome, '/data')]]
+    indices <- infile[[paste0(genome, '/indices')]]
+    indptr <- infile[[paste0(genome, '/indptr')]]
+    shp <- infile[[paste0(genome, '/shape')]]
+    genes <- infile[[paste0(genome, '/genes')]]
+    gene_names <- infile[[paste0(genome, '/gene_names')]]
+    barcodes <- infile[[paste0(genome, '/barcodes')]]
+    sparse.mat <- sparseMatrix(i = indices[] + 1, p = indptr[],
+                               x = as.numeric(raw.data[]),
+                               dims = shp[], giveCsparse = FALSE)
+    rownames(sparse.mat) <- genes[]
+    colnames(sparse.mat) <- barcodes[]
+    output[[genome]] <- sparse.mat
+  }
+  infile$close_all()
+  if(length(output) == 1) {
+    return(output[[genome]])
+  } else{
+    return(output)
+  }
+}
+
+
 #' Normalize Assay Data
 #'
 #' Normalize data for a given assay
