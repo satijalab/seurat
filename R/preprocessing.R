@@ -267,7 +267,7 @@ Read10X_h5 <- function(filename){
                                dims = shp[], giveCsparse = FALSE)
     rownames(sparse.mat) <- genes[]
     colnames(sparse.mat) <- barcodes[]
-    output[genome] <- sparse.mat
+    output[[genome]] <- sparse.mat
   }
   infile$close_all()
   if(length(output) == 1) {
