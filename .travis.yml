@@ -14,6 +14,11 @@ env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
+addons:
+  apt:
+    packages:
+      - hdf5-tools
+      
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
