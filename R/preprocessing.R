@@ -318,7 +318,8 @@ NormalizeData.loom <- function(
   dataset.use = 'matrix',
   display.progress = TRUE,
   overwrite = FALSE,
-  ...
+  dtype = h5types$float,
+  chunk.dims = c(256, 256)
 ) {
   name <- paste('layers', basename(path = name[1]), sep = '/')
   object$apply(
@@ -335,9 +336,10 @@ NormalizeData.loom <- function(
     dataset.use = dataset.use,
     overwrite = overwrite,
     display.progress = display.progress,
-    ...
+    dtype = dtype,
+    chunk.dims = chunk.dims
   )
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[setdiff(names(formals()), '...')]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   SetCalcParams(
     object = object,
     dataset.use = "layers/norm_data",
@@ -618,7 +620,8 @@ ScaleData.loom <- function(
   normalized.data = 'layers/norm_data',
   overwrite = FALSE,
   display.progress = TRUE,
-  ...
+  dtype  = h5types$float,
+  chunk.dims = c(256, 256)
 ) {
   # Set index.use
   if (is.null(x = genes.use)) {
@@ -687,10 +690,11 @@ ScaleData.loom <- function(
     dataset.use = dataset.use,
     overwrite = overwrite,
     display.progress = display.progress,
-    ...
+    dtype = dtype,
+    chunk.dims = chunk.dims
   )
   # Store parameters
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[setdiff(names(formals()), '...')]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   SetCalcParams(
     object = object,
     dataset.use = "layers/scale_data",
