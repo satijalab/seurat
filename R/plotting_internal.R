@@ -676,7 +676,6 @@ SingleVlnPlot <- function(
       mapping = aes(fill = factor(x = ident))
     ) +
     guides(fill = guide_legend(title = NULL)) +
-    geom_jitter(height = 0, size = point.size.use) +
     xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
@@ -693,6 +692,9 @@ SingleVlnPlot <- function(
               size = size.y.use
           )
    )
+  if (point.size.use != 0) {
+      plot <- plot + geom_jitter(height = 0, size = point.size.use)
+  }
   plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()
