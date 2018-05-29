@@ -101,7 +101,7 @@ RunPCA.seurat <- function(
   #object@dr[reduction.name] <- pca.obj
   # eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
   object@dr[[reduction.name]] <- pca.obj
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
   if (is.null(x = object@calc.params$RunPCA$pc.genes)) {
     object@calc.params$RunPCA$pc.genes <- rownames(x = data.use)
@@ -532,7 +532,7 @@ RunTSNE.seurat <- function(
     reduction.key = reduction.key,
     ...
   )
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunTSNE"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   object <- SetCalcParams(object = object, calculation = "RunTSNE", ... = parameters.to.store)
   if (!is.null(GetCalcParam(object = object, calculation = "RunTSNE", parameter = "genes.use"))) {
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
