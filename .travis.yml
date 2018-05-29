@@ -18,6 +18,7 @@ addons:
   apt:
     packages:
       - hdf5-tools
+      - libhdf5-dev
       
 bioc_packages:
   - GenomeInfoDbData
