@@ -12,7 +12,7 @@ Read10X_h5(filename, ensg.names = FALSE)
 \item{ensg.names}{Label row names with ENSG names rather than unique gene names}
 }
 \value{
-Returns a sparse matrix with rows and columns labeled. If multiple genomes are present, 
+Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
 returns a list of sparse matrices (one per genome).
 }
 \description{
