@@ -38,7 +38,6 @@ bioc_packages:
 
 r_github_packages:
   - mojaveazure/loomR
-  - KrishnaswamyLab/phateR
 
 warnings_are_errors: false
 

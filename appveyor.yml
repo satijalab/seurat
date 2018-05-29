@@ -30,7 +30,6 @@ build_script:
   - travis-tool.sh bioc_install S4Vectors
   - travis-tool.sh bioc_install SummarizedExperiment
   - travis-tool.sh bioc_install SingleCellExperiment
-  - travis-tool.sh install_github KrishnaswamyLab/phateR
 
 test_script:
   - travis-tool.sh run_tests
