@@ -244,7 +244,7 @@ Read10X <- function(data.dir = NULL){
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
 #' returns a list of sparse matrices (one per genome).
 #'
-#' @import hdf5r
+#' @importFrom hdf5r H5File
 #'
 #' @export
 #'
