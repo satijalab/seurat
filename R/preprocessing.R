@@ -699,7 +699,7 @@ SampleUMI <- function(
   data,
   max.umi = 1000,
   upsample = FALSE,
-  progress.bar = TRUE
+  progress.bar = FALSE
 ) {
   data <- as(data, "dgCMatrix")
   if (length(x = max.umi) == 1) {
