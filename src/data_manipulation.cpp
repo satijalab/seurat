@@ -381,9 +381,12 @@ Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
       colMean += it.value();
     }
     colMean = colMean / mat.rows();
+    int nZero = mat.rows();
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      nZero -= 1;
       colSdev += pow(it.value() - colMean, 2);
     }
+    colSdev += pow(colMean, 2) * nZero;
     colSdev = sqrt(colSdev / (mat.rows() - 1));
     allSds(k) = colSdev;
     }
