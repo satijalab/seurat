@@ -1313,7 +1313,7 @@ setMethod(
     cells.to.keep <- DownsampleMatrix(mat = input.matrix,
                                       size = size,
                                       ...)
-    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, keep.layers = keep.layers)
+    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, keep.layers = keep.layers, ...)
     return(new.object)
   }
 )
@@ -1505,7 +1505,7 @@ ProjectSeurat.loom <- function(
   cluster.k = 11,
   cluster.res = 'res.0.8',
   display.progress = TRUE,
-  ...
+  chunk.dims = c(256, 256)
 ) {
   umi.mat <- object[['matrix']]
   cell.names <- object[[cell.names]][]
@@ -1528,7 +1528,9 @@ ProjectSeurat.loom <- function(
     object <- NormalizeData(
       object,
       scale.factor = template@calc.params$NormalizeData$scale.factor,
-      overwrite = overwrite
+      overwrite = overwrite,
+      chunk.size = chunk.size,
+      chunk.dims = chunk.dims
     )
   }
   if (do.scale) {
@@ -1538,10 +1540,13 @@ ProjectSeurat.loom <- function(
     }
     # get parameters from the seurat template
     pars <- template@calc.params$ScaleData
-    #genes.use <- pars$genes.use #rownames(template@scale.data)
-    genes.use <- gene.names
+    #genes.use <- rownames(template@scale.data) 
+    genes.use <- pars$genes.use 
+    index.use <- match(genes.use, gene.names)
+    #index.use <- which(gene.names %in% genes.use)
+    #genes.use <- gene.names
     if (pars$do.center) {
-      gene.mean <- rowMeans(template@data)
+      gene.mean <- rowMeans(template@data[genes.use, ])
     } else {
       gene.mean <- rep(0, length(genes.use))
     }
@@ -1553,7 +1558,8 @@ ProjectSeurat.loom <- function(
     object$apply(
       name = scale.data,
       FUN = function(mat) {
-        chunk.scaled <- sweep(sweep(mat, 2, gene.mean, FUN = '-'), 2, gene.sd, FUN = '/')
+        chunk.scaled <- matrix(NA, nrow(mat), ncol(mat))
+        chunk.scaled[, index.use] <- sweep(sweep(mat[, index.use], 2, gene.mean, FUN = '-'), 2, gene.sd, FUN = '/')
         chunk.scaled[chunk.scaled > pars$scale.max] <- pars$scale.max
         return(chunk.scaled)
       },
@@ -1561,7 +1567,9 @@ ProjectSeurat.loom <- function(
       chunk.size = chunk.size,
       dataset.use = norm.data,
       overwrite = overwrite,
-      display.progress = display.progress
+      display.progress = display.progress,
+      chunk.dims = chunk.dims,
+      dtype = h5types$float
     )
   }
   # apply PCA transformation saved in template
