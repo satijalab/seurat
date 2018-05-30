@@ -13,26 +13,23 @@ r: release
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
+    - ASAN="-fsanitize=address -fno-omit-frame-pointer"
+    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    - HDF5_VERSION=1.8.17
+    - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
+
+before_install: 
+  - chmod +x travis_setup.sh
+  - ./travis_setup.sh
 
 addons:
   apt:
     packages:
-      - hdf5-tools
-      - libhdf5-dev
-
-before_install:
-#  - chmod +x travis_python_setup.sh
-#  - ./travis_python_setup.sh
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh; elif [[ $TRAVIS_OS_NAME == "osx" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh; fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - export RETICULATE_PYTHON="$HOME/miniconda/bin/python"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda info -a
-  - pip install --upgrade pip
-  - pip install phate
+      - subversion
+      - autoconf
+      - build-essential
+      - libtool
+      - libmagick++-dev
 
 bioc_packages:
   - GenomeInfoDbData
@@ -46,4 +43,3 @@ r_github_packages:
   - mojaveazure/loomR
 
 warnings_are_errors: false
-
