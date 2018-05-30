@@ -22,7 +22,10 @@ setMethod(
   signature = 'assay',
   definition = function(object) {
     cat(
-      'Seurat assay data with', nrow(x = object@data), 'measurements for', ncol(x = object@scale.data), 'cells\n'
+      'Seurat assay data with',
+      nrow(x = object@data),
+      'measurements for',
+      ncol(x = object@data), 'cells\n'
     )
     if (length(x = object@var.genes) > 0) {
       cat(

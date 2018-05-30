@@ -14,6 +14,12 @@ env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
+addons:
+  apt:
+    packages:
+      - hdf5-tools
+      - libhdf5-dev
+
 before_install:
 #  - chmod +x travis_python_setup.sh
 #  - ./travis_python_setup.sh
