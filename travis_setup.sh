@@ -25,3 +25,4 @@ conda config --set always_yes yes --set changeps1 no
 conda update -q conda
 conda info -a
 pip install --upgrade pip
+pip install phate
