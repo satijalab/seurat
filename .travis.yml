@@ -13,12 +13,21 @@ r: release
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
+    - HDF5_VERSION=1.8.20
+    - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
+
+before_install: 
+  - chmod +x travis_setup.sh
+  - ./travis_setup.sh
 
 addons:
   apt:
     packages:
-      - hdf5-tools
-      - libhdf5-dev
+      - subversion
+      - autoconf
+      - build-essential
+      - libtool
+      - libmagick++-dev
       
 bioc_packages:
   - GenomeInfoDbData
@@ -32,4 +41,3 @@ r_github_packages:
   - mojaveazure/loomR
 
 warnings_are_errors: false
-
