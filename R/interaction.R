@@ -24,8 +24,8 @@ globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param add.cell.id1 String to be appended to the names of all cells in object1
-#' @param add.cell.id2 String to be appended to the names of all cells in object2
+#' @param add.cell.id1 String passed to \code{\link{RenameCells}} for object1
+#' @param add.cell.id2 String passed to \code{\link{RenameCells}} for object1
 #'
 #' @return Merged Seurat object
 #'
@@ -67,30 +67,10 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (!missing(x = add.cell.id1)) {
-    object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
-    colnames(x = object1@raw.data) <- paste(
-      add.cell.id1,
-      colnames(x = object1@raw.data),
-      sep = "_"
-    )
-    rownames(x = object1@meta.data) <- paste(
-      add.cell.id1,
-      rownames(x = object1@meta.data),
-      sep = "_"
-    )
+    object1 <- RenameCells(object1, add.cell.id = add.cell.id1)
   }
   if (!missing(x = add.cell.id2)) {
-  object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
-    colnames(x = object2@raw.data) <- paste(
-      add.cell.id2,
-      colnames(x = object2@raw.data),
-      sep = "_"
-    )
-    rownames(x = object2@meta.data) <- paste(
-      add.cell.id2,
-      rownames(x = object2@meta.data),
-      sep = "_"
-    )
+    object2 <- RenameCells(object2, add.cell.id = add.cell.id2)
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
     stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
@@ -1171,29 +1151,29 @@ RenameCells <- function(object, add.cell.id) {
     colnames(object@data) <- new.cell.names
 
     if (!is.null(object@scale.data)) {
-        colnames(object@scale.data) <- new.cell.names
+      colnames(object@scale.data) <- new.cell.names
     }
     rownames(object@meta.data) <- new.cell.names
     names(object@ident) <- new.cell.names
 
     if (length(object@dr) > 0) {
-        for (dr in names(object@dr)) {
-            rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
-        }
+      for (dr in names(object@dr)) {
+        rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
+      }
     }
 
     if (nrow(object@snn) > 0) {
-        colnames(object@snn) <- new.cell.names
-        rownames(object@snn) <- new.cell.names
+      colnames(object@snn) <- new.cell.names
+      rownames(object@snn) <- new.cell.names
     }
 
     if (!is.null(object@kmeans)) {
-        if (!is.null(object@kmeans@gene.kmeans.obj)) {
-            colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
-        }
-        if (!is.null(object@kmeans@cell.kmeans.obj)) {
-            names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
-        }
+      if (!is.null(object@kmeans@gene.kmeans.obj)) {
+        colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
+      }
+      if (!is.null(object@kmeans@cell.kmeans.obj)) {
+        names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
+      }
     }
 
     rownames(object@spatial@mix.probs) <- new.cell.names
