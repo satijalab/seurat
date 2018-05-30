@@ -1,13 +1,25 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language: R
+language: r
 sudo: required
 cache: packages
+
+os:
+  - linux
+  - osx
+
+r: release
 
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
 
+addons:
+  apt:
+    packages:
+      - hdf5-tools
+      - libhdf5-dev
+      
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
@@ -17,7 +29,7 @@ bioc_packages:
   - SingleCellExperiment
 
 r_github_packages:
-  - mojaveazure/loomR  
+  - mojaveazure/loomR
 
 warnings_are_errors: false
 

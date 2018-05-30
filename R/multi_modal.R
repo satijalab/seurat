@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @importFrom methods setClass setMethod
 NULL
 
 # Set up assay class to hold multimodal data sets
@@ -11,9 +12,28 @@ assay <- setClass(
     scale.data = "ANY",
     key = "character",
     misc = "ANY",
-    var.genes="vector",
-    mean.var="data.frame"
+    var.genes = "vector",
+    mean.var = "data.frame"
   )
+)
+
+setMethod(
+  f = 'show',
+  signature = 'assay',
+  definition = function(object) {
+    cat(
+      'Seurat assay data with',
+      nrow(x = object@data),
+      'measurements for',
+      ncol(x = object@data), 'cells\n'
+    )
+    if (length(x = object@var.genes) > 0) {
+      cat(
+        "Top 10 variable measurements:\n",
+        strwrap(x = paste(head(x = object@var.genes, n = 10L), collapse = ', '))
+      )
+    }
+  }
 )
 
 #' Accessor function for multimodal data
@@ -54,7 +74,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
       }
       to.return <- object@scale.data
     }
-    if(is.null(to.return)) {
+    if (is.null(x = to.return)) {
       return(to.return)
     }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided
@@ -63,10 +83,10 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     }
     return(to.return[, object@cell.names])
   }
-  if (! (assay.type %in% names(object@assay))) {
+  if (!(assay.type %in% names(object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
-  if (! (slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
+  if (!(slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
   to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
@@ -104,7 +124,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #' )
 #'
 SetAssayData <- function(object, assay.type, slot, new.data) {
-  if(! all(colnames(new.data) %in% object@cell.names)) {
+  if (!all(colnames(new.data) %in% object@cell.names)) {
     stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
   }
   if (assay.type == "RNA") {
