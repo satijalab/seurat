@@ -13,7 +13,7 @@ r: release
 env:
   global:
     - _R_CHECK_FORCE_SUGGESTS_=FALSE
-    - HDF5_VERSION=1.8.20
+    - HDF5_VERSION=1.8.17
     - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
 
 before_install: 
