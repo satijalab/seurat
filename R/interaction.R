@@ -1129,10 +1129,15 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' Rename cells
 #'
 #' Change the cell names in all the different parts of a Seurat object. Can
-#' be useful before combining multiple object.
+#' be useful before combining multiple objects.
 #'
 #' @param object Seurat object
 #' @param add.cell.id prefix to add cell names
+#' @param new.names vector of new cell names
+#'
+#' @details
+#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
+#' \code{new.names} is set these will be used to replace existing names.
 #'
 #' @return Seurat object with new cell names
 #'
@@ -1143,40 +1148,59 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
 #' head(pbmc_small@cell.names)
 #'
-RenameCells <- function(object, add.cell.id) {
+RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
+
+  if (missing(add.cell.id) && missing(new.names)) {
+    stop("One of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id) && !missing(new.names)) {
+    stop("Only one of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id)) {
     new.cell.names <- paste(add.cell.id, object@cell.names, sep = "_")
-
-    object@cell.names <- new.cell.names
-    colnames(object@raw.data) <- new.cell.names
-    colnames(object@data) <- new.cell.names
-
-    if (!is.null(object@scale.data)) {
-      colnames(object@scale.data) <- new.cell.names
+  } else {
+    if (length(new.names) == length(object@cell.names)) {
+      new.cell.names <- new.names
+    } else {
+      stop("the length of 'new.names' (", length(new.names), ") must be the ",
+           "same as the length of 'object@cell.names' (",
+           length(object@cell.names), ")")
     }
-    rownames(object@meta.data) <- new.cell.names
-    names(object@ident) <- new.cell.names
+  }
 
-    if (length(object@dr) > 0) {
-      for (dr in names(object@dr)) {
-        rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
-      }
+  object@cell.names <- new.cell.names
+  colnames(object@raw.data) <- new.cell.names
+  colnames(object@data) <- new.cell.names
+
+  if (!is.null(object@scale.data)) {
+    colnames(object@scale.data) <- new.cell.names
+  }
+  rownames(object@meta.data) <- new.cell.names
+  names(object@ident) <- new.cell.names
+
+  if (length(object@dr) > 0) {
+    for (dr in names(object@dr)) {
+      rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
     }
+  }
 
-    if (nrow(object@snn) > 0) {
-      colnames(object@snn) <- new.cell.names
-      rownames(object@snn) <- new.cell.names
+  if (nrow(object@snn) > 0) {
+    colnames(object@snn) <- new.cell.names
+    rownames(object@snn) <- new.cell.names
+  }
+
+  if (!is.null(object@kmeans)) {
+    if (!is.null(object@kmeans@gene.kmeans.obj)) {
+      colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
     }
-
-    if (!is.null(object@kmeans)) {
-      if (!is.null(object@kmeans@gene.kmeans.obj)) {
-        colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
-      }
-      if (!is.null(object@kmeans@cell.kmeans.obj)) {
-        names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
-      }
+    if (!is.null(object@kmeans@cell.kmeans.obj)) {
+      names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
     }
+  }
 
-    rownames(object@spatial@mix.probs) <- new.cell.names
+  rownames(object@spatial@mix.probs) <- new.cell.names
 
-    return(object)
+  return(object)
 }
