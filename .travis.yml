@@ -30,7 +30,7 @@ addons:
       - build-essential
       - libtool
       - libmagick++-dev
-      
+
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2

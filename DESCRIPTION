@@ -63,6 +63,7 @@ Imports:
     doSNOW,
     reticulate,
     foreach,
+    phateR,
     hdf5r
 LinkingTo: Rcpp, RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
