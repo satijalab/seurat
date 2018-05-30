@@ -101,3 +101,20 @@ test_that("do.clean and do.raw work", {
   expect_equal(length(x@dr), 2)
 })
 
+# Tests for RenameCells
+# --------------------------------------------------------------------------------
+context("RenameCells")
+
+test_that("RenameCells works", {
+    test.names <- paste("Test", pbmc_small@cell.names, sep = "_")
+    x <- RenameCells(pbmc_small, add.cell.id = "Test")
+    expect_equal(x@cell.names, test.names)
+    expect_equal(colnames(x@raw.data), test.names)
+    expect_equal(colnames(x@data), test.names)
+    expect_equal(colnames(x@scale.data), test.names)
+    expect_equal(rownames(x@meta.data), test.names)
+    expect_equal(names(x@ident), test.names)
+    expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
+    expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
+    expect_equal(rownames(x@spatial@mix.probs), test.names)
+})
