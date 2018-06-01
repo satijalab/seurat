@@ -1185,8 +1185,7 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
       rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
     }
   }
-
-  if (nrow(object@snn) > 0) {
+  if (nrow(object@snn) == length(new.cell.names)) {
     colnames(object@snn) <- new.cell.names
     rownames(object@snn) <- new.cell.names
   }
