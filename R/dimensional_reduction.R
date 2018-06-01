@@ -811,19 +811,21 @@ RunMultiCCA <- function(object.list, genes.use, add.cell.ids = NULL,
   else{
     stop("input data not Seurat objects")
   }
-  names.list <- lapply(object.list, slot, name = "cell.names")
-  names.intersect <- Reduce(intersect, names.list)
-  if(length(names.intersect) > 0) {
-    stop("duplicate cell names detected, please set 'add.cell.ids'")
-  }
+
   if (!missing(add.cell.ids)) {
     if (length(add.cell.ids) != length(object.list)) {
       stop("add.cell.ids must have the same length as object.list")
     }
     object.list <- lapply(seq_along(object.list), function(i) {
-      RenameCells(object.list[[i]], add.cell.id = add.cell.ids[i])
+      RenameCells(object = object.list[[i]], add.cell.id = add.cell.ids[i])
     })
   }
+  names.list <- lapply(object.list, slot, name = "cell.names")
+  names.intersect <- Reduce(intersect, names.list)
+  if(length(names.intersect) > 0) {
+    stop("duplicate cell names detected, please set 'add.cell.ids'")
+  }
+
   num.sets <- length(mat.list)
   if(standardize){
     for (i in 1:num.sets){
