@@ -1308,12 +1308,11 @@ setMethod(
                         dims.use = 1:10,
                         cell.names = "col_attrs/cell_names",
                         keep.layers = FALSE,
+                        chunk.size = 1024,
                         ...) {
     input.matrix <- GetDimReduction(object = object, reduction.type = 'pca', slot = "cell_embeddings")[, dims.use]
-    cells.to.keep <- DownsampleMatrix(mat = input.matrix,
-                                      size = size,
-                                      ...)
-    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, keep.layers = keep.layers, ...)
+    cells.to.keep <- DownsampleMatrix(mat = input.matrix, size = size, ...)
+    new.object <- SubsetSeurat(object = object, cells = cells.to.keep, cell.names = cell.names, keep.layers = keep.layers, chunk.size = chunk.size)
     return(new.object)
   }
 )

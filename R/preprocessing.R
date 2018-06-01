@@ -620,7 +620,7 @@ ScaleData.loom <- function(
   normalized.data = 'layers/norm_data',
   overwrite = FALSE,
   display.progress = TRUE,
-  dtype  = h5types$float,
+  dtype = h5types$float,
   chunk.dims = c(256, 256)
 ) {
   # Set index.use
