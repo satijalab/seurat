@@ -759,6 +759,8 @@ RunCCA <- function(
 #'
 #' @param object.list List of Seurat objects
 #' @param genes.use Genes to use in mCCA.
+#' @param add.cell.ids Vector of strings to pass to \code{\link{RenameCells}} to
+#' give unique cell names
 #' @param niter Number of iterations to perform. Set by default to 25.
 #' @param num.ccs Number of canonical vectors to calculate
 #' @param standardize standardize scale.data matrices to be centered (mean zero)
@@ -781,7 +783,8 @@ RunCCA <- function(
 #' # Print results
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
 #'
-RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standardize = TRUE){
+RunMultiCCA <- function(object.list, genes.use, add.cell.ids = NULL,
+                        niter = 25, num.ccs = 1, standardize = TRUE){
   set.seed(42)
   if(length(object.list) < 3){
     stop("Must give at least 3 objects/matrices for MultiCCA")
@@ -808,6 +811,21 @@ RunMultiCCA <- function(object.list, genes.use, niter = 25, num.ccs = 1, standar
   else{
     stop("input data not Seurat objects")
   }
+
+  if (!missing(add.cell.ids)) {
+    if (length(add.cell.ids) != length(object.list)) {
+      stop("add.cell.ids must have the same length as object.list")
+    }
+    object.list <- lapply(seq_along(object.list), function(i) {
+      RenameCells(object = object.list[[i]], add.cell.id = add.cell.ids[i])
+    })
+  }
+  names.list <- lapply(object.list, slot, name = "cell.names")
+  names.intersect <- Reduce(intersect, names.list)
+  if(length(names.intersect) > 0) {
+    stop("duplicate cell names detected, please set 'add.cell.ids'")
+  }
+
   num.sets <- length(mat.list)
   if(standardize){
     for (i in 1:num.sets){

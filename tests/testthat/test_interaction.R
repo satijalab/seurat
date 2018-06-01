@@ -101,3 +101,41 @@ test_that("do.clean and do.raw work", {
   expect_equal(length(x@dr), 2)
 })
 
+# Tests for RenameCells
+# --------------------------------------------------------------------------------
+context("RenameCells")
+
+test_that("argument checks work", {
+  expect_error(RenameCells(pbmc_small),
+               "One of 'add.cell.id' and 'new.names' must be set")
+  expect_error(RenameCells(pbmc_small, add.cell.id = "A", new.names = "A"),
+               "Only one of 'add.cell.id' and 'new.names' must be set")
+})
+
+test_that("add.cell.id works", {
+    test.names <- paste("Test", pbmc_small@cell.names, sep = "_")
+    x <- RenameCells(pbmc_small, add.cell.id = "Test")
+    expect_equal(x@cell.names, test.names)
+    expect_equal(colnames(x@raw.data), test.names)
+    expect_equal(colnames(x@data), test.names)
+    expect_equal(colnames(x@scale.data), test.names)
+    expect_equal(rownames(x@meta.data), test.names)
+    expect_equal(names(x@ident), test.names)
+    expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
+    expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
+    expect_equal(rownames(x@spatial@mix.probs), test.names)
+})
+
+test_that("new.names works", {
+  test.names <- paste0("A", 1:80)
+  x <- RenameCells(pbmc_small, new.names = paste0("A", 1:80))
+  expect_equal(x@cell.names, test.names)
+  expect_equal(colnames(x@raw.data), test.names)
+  expect_equal(colnames(x@data), test.names)
+  expect_equal(colnames(x@scale.data), test.names)
+  expect_equal(rownames(x@meta.data), test.names)
+  expect_equal(names(x@ident), test.names)
+  expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
+  expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
+  expect_equal(rownames(x@spatial@mix.probs), test.names)
+})
