@@ -1,7 +1,7 @@
 # Tests for conversions
 set.seed(42)
 
-context("conversions")
+context("Conversions")
 
 test_that("Conversion to anndata", {
   expect_silent(Convert(pbmc_small, "anndata"))
