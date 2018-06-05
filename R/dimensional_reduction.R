@@ -1099,6 +1099,9 @@ RunDiffusion <- function(
 #'
 #' @return Returns a Seurat object containing a PHATE representation
 #'
+#' @importFrom utils installed.packages
+#' @export
+#'
 #' @references Moon K, van Dijk D, Wang Z, Burkhardt D, Chen W, van den Elzen A,
 #' Hirn M, Coifman R, Ivanova N, Wolf G and Krishnaswamy S (2017).
 #' "Visualizing Transitions and Structure for High Dimensional Data
@@ -1120,16 +1123,13 @@ RunDiffusion <- function(
 #' pbmc_small <- RunPHATE(object = pbmc_small, k = 4, t = 12)
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#'
+#'1
 #' # For increased emphasis on local structure, use sqrt potential
 #' pbmc_small <- RunPHATE(object = pbmc_small, potential.method='sqrt')
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#'
 #' }
-#' @export
 #'
-
 RunPHATE <- function(
   object,
   cells.use = NULL,
@@ -1155,15 +1155,18 @@ RunPHATE <- function(
   reduction.key = "PHATE",
   ...
 ) {
+  if (!'phateR' %in% rownames(x = installed.packages())) {
+    stop("Please install phateR")
+  }
   data.use <- GetAssayData(object, assay.type = assay.type, slot = "scale.data")
-  if (!is.null(cells.use)) {
+  if (!is.null(x = cells.use)) {
     data.use <- data.use[, cells.use]
   }
-  if (!is.null(genes.use)) {
+  if (!is.null(x = genes.use)) {
     data.use <- data.use[genes.use, ]
   }
-  data.use <- t(data.use)
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("RunPHATE"))]
+  data.use <- t(x = data.use)
+  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(x = formals(fun = "RunPHATE"))]
   object <- SetCalcParams(
     object = object,
     calculation = "RunPHATE",
@@ -1171,7 +1174,7 @@ RunPHATE <- function(
   )
   phate_output <- phateR::phate(
     data.use,
-    ndim=max.dim,
+    ndim = max.dim,
     k = k,
     alpha = alpha,
     use.alpha = alpha,
@@ -1179,18 +1182,18 @@ RunPHATE <- function(
     potential.method = potential.method,
     t = t,
     knn.dist.method = knn.dist.method,
-    init=NULL,
+    init = NULL,
     mds.method = mds.method,
     mds.dist.method = mds.dist.method,
-    t.max=t.max,
+    t.max = t.max,
     npca = npca,
-    plot.optimal.t=plot.optimal.t,
-    verbose=verbose,
-    n.jobs=n.jobs,
-    seed=seed.use,
+    plot.optimal.t = plot.optimal.t,
+    verbose = verbose,
+    n.jobs = n.jobs,
+    seed = seed.use,
     ...
   )
-  phate_output <- as.matrix(phate_output)
+  phate_output <- as.matrix(x = phate_output)
   colnames(x = phate_output) <- paste0(reduction.key, 1:ncol(x = phate_output))
   object <- SetDimReduction(
     object = object,
@@ -1308,7 +1311,7 @@ RunUMAP <- function(
     calculation = "RunUMAP",
     ... = parameters.to.store
   )
-  umap_import <- import("umap")
+  umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
     n_neighbors = as.integer(x = n_neighbors),
     n_components = as.integer(x = max.dim),
