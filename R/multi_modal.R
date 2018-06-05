@@ -124,9 +124,14 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #' )
 #'
 SetAssayData <- function(object, assay.type, slot, new.data) {
-  if (!all(colnames(new.data) %in% object@cell.names)) {
+  if (!all(colnames(x = new.data) %in% object@cell.names)) {
     stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
   }
+  new.order <- as.numeric(x = na.omit(object = match(
+    x = object@cell.names,
+    table = colnames(x = new.data)
+  )))
+  new.data <- new.data[, new.order, drop = FALSE]
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
       (object@raw.data <- new.data)
