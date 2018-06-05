@@ -2,7 +2,7 @@
 set.seed(42)
 
 # load a minimal example data set (subset of nbt dataset)
-load("tests/testdata/nbt_small.Rdata")
+load("../testdata/nbt_small.Rdata")
 nbt.small <- log(nbt.small + 1)
 
 
