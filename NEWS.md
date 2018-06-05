@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 ## Develop
 ### Added
 - Support for [PHATE](https://github.com/KrishnaswamyLab/PHATE) dimensional reduction technique
+- RenameCells added for easy renaming of all cells 
+- Read10X_h5 added to read in 10X formatted h5 files
 
 ## [2.3.1] - 2018-05-03
 ### Added
