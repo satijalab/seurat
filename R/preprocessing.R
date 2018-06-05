@@ -892,7 +892,7 @@ FindVariableGenes <- function(
   gene.mean <- object@hvg.info[, 1]
   gene.dispersion <- object@hvg.info[, 2]
   gene.dispersion.scaled <- object@hvg.info[, 3]
-  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@hvg.info)
   pass.cutoff <- names(x = gene.mean)[which(
     x = (
       (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)

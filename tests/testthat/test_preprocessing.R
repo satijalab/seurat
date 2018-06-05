@@ -242,6 +242,11 @@ test_that("Option to only return vector of genes works", {
   expect_equal(var.genes[1:2], c("MS4A1", "CD2"))
 })
 
+object2 <- FindVariableGenes(object, display.progress = F, do.plot = F, do.recalc = FALSE)
+test_that("do.recalc doesn't change vector of variable genes", {
+  expect_equal(intersect(object@var.genes, object2@var.genes), object@var.genes)
+})
+
 # Tests for FilterCells
 # --------------------------------------------------------------------------------
 context("FilterCells")
