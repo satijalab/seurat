@@ -31,11 +31,12 @@ df <- t(x = data.frame(
   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
   row.names = pbmc_small@cell.names
 ))
-pbmc_small = SetAssayData(
+pbmc_small <- SetAssayData(
   object = pbmc_small,
   assay.type = 'CITE',
   new.data = df,
-  slot = 'raw.data'
+  slot = 'data'
 )
+pbmc_small@assay
 
 }

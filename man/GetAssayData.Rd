@@ -30,8 +30,8 @@ pbmc_small <- SetAssayData(
   object = pbmc_small,
   assay.type = 'CITE',
   new.data = df,
-  slot = 'raw.data'
+  slot = 'data'
 )
-GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'raw.data')
+GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'data')
 
 }
