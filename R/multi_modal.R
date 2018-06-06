@@ -59,9 +59,9 @@ setMethod(
 #'   object = pbmc_small,
 #'   assay.type = 'CITE',
 #'   new.data = df,
-#'   slot = 'raw.data'
+#'   slot = 'data'
 #' )
-#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'raw.data')
+#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'data')
 #'
 GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
   if (assay.type == "RNA") {
@@ -118,22 +118,24 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
 #'   row.names = pbmc_small@cell.names
 #' ))
-#' pbmc_small = SetAssayData(
+#' pbmc_small <- SetAssayData(
 #'   object = pbmc_small,
 #'   assay.type = 'CITE',
 #'   new.data = df,
-#'   slot = 'raw.data'
+#'   slot = 'data'
 #' )
+#' pbmc_small@assay
 #'
 SetAssayData <- function(object, assay.type, slot, new.data) {
-  if (!all(colnames(x = new.data) %in% object@cell.names)) {
+  if (ncol(x = new.data) != length(x = object@cell.names)) {
+    stop("Wrong number of cells being added: should be ", length(x = object@cell.names))
+  } else if (!all(colnames(x = new.data) %in% object@cell.names)) {
     stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
   }
-  new.order <- as.numeric(x = na.omit(object = match(
-    x = object@cell.names,
-    table = colnames(x = new.data)
-  )))
-  new.data <- new.data[, new.order, drop = FALSE]
+  new.data <- new.data[, match(x = object@cell.names, table = colnames(x = new.data))]
+  if (any(colnames(x = new.data) != object@cell.names)) {
+    stop("Please ensure cell names for assay data match exactly (including in order) the cell names in object@cell.names")
+  }
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
       (object@raw.data <- new.data)
@@ -148,8 +150,14 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
     eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot, "<- new.data")))
   } else {
     new.assay <- new(Class = "assay")
-    eval(expr = parse(text = paste0("new.assay@", slot, "<- new.data")))
-    eval(expr = parse(text = paste0("object@assay$", assay.type, "<- new.assay")))
+    slot(object = new.assay, name = slot) <- new.data
+    object@assay <- c(object@assay, new.assay)
+    names(x = object@assay) <- c(
+      names(x = object@assay)[1:(length(x = object@assay) - 1)],
+      assay.type
+    )
+    # eval(expr = parse(text = paste0("new.assay@", slot, "<- new.data")))
+    # eval(expr = parse(text = paste0("object@assay$", assay.type, "<- new.assay")))
   }
   return(object)
 }
