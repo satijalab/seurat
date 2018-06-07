@@ -90,7 +90,10 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
   if (!(slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
-  to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
+  to.return <- slot(object = object@assay[[assay.type]], name = slot)
+  if(is.null(to.return)){
+    stop(paste0("The ", slot, " for the ", assay.type, " assay is empty"))
+  }
   if (length(x = object@cell.names) == ncol(x = to.return)) {
     return(to.return)
   }

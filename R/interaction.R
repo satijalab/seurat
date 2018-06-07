@@ -612,16 +612,25 @@ FetchData <- function(
   if (length(x = object@assay) > 0) {
     data.types <- names(x = object@assay)
     for (data.type in data.types) {
-      all_data <- (GetAssayData(
-        object = object,
-        assay.type = data.type,
-        slot = slot.use
-      ))
-      genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
-      data.expression <- cbind(
-        data.expression,
-        t(x = all_data[genes.include, cells.use, drop = FALSE])
+      all_data <- tryCatch(
+        {
+          GetAssayData(
+            object = object,
+            assay.type = data.type,
+            slot = slot.use
+          )
+        },
+        error = function(cond){
+          return(NULL)
+        }
       )
+      if(!is.null(all_data)){
+        genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
+        data.expression <- cbind(
+          data.expression,
+          t(x = all_data[genes.include, cells.use, drop = FALSE])
+        )
+      }
     }
   }
   var.options <- c("meta.data", "mix.probs", "gene.scores")
