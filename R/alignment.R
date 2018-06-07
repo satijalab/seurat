@@ -176,7 +176,6 @@ AlignSubspace <- function(
       }
       mean.difference <- mean(x = ReferenceRange(x = metagenes[[g]])) -
         mean(x = ReferenceRange(x = metagenes[[1]]))
-      metric.use <- "Euclidean"
       align.1 <- ReferenceRange(x = metagenes[[g]])
       align.2 <- ReferenceRange(x = metagenes[[1]])
       a1q <- sapply(
@@ -200,8 +199,7 @@ AlignSubspace <- function(
       align.2 <- align.2 + iqrmin
       alignment <- dtw(x = align.1,
                        y = align.2,
-                       keep.internals = TRUE,
-                       dist.method = metric.use)
+                       keep.internals = TRUE)
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
       alignment.map$cc_data2 <- sort(cc.embeds[[1]][, cc.use])[alignment$index2]
