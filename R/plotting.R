@@ -999,6 +999,7 @@ SplitDotPlotGG <- function(
 #' @param nCol Number of columns to use when plotting multiple features.
 #' @param no.axes Remove axis labels
 #' @param no.legend Remove legend from the graph. Default is TRUE.
+#' @param coord.fixed Use a fixed scale coordinate system (for spatial coordinates). Default is FALSE.
 #' @param dark.theme Plot in a dark theme
 #' @param do.return return the ggplot2 object
 #' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
@@ -1032,6 +1033,7 @@ FeaturePlot <- function(
   nCol = NULL,
   no.axes = FALSE,
   no.legend = TRUE,
+  coord.fixed = FALSE,
   dark.theme = FALSE,
   do.return = FALSE,
   vector.friendly=FALSE
@@ -1123,6 +1125,7 @@ FeaturePlot <- function(
         dim.codes = dim.codes,
         min.cutoff = min.cutoff,
         max.cutoff = max.cutoff,
+        coord.fixed = coord.fixed,
         no.axes = no.axes,
         no.legend = no.legend,
         dark.theme = dark.theme
@@ -1135,6 +1138,7 @@ FeaturePlot <- function(
       feature = features.plot,
       min.cutoff = min.cutoff,
       max.cutoff = max.cutoff,
+      coord.fixed = coord.fixed,
       MoreArgs = list( # Arguments that are not being repeated
         data.use = data.use,
         data.plot = data.plot,
@@ -2358,6 +2362,7 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
 #' @param no.legend Setting to TRUE will remove the legend
+#' @param coord.fixed Use a fixed scale coordinate system (for spatial coordinates). Default is FALSE.
 #' @param no.axes Setting to TRUE will remove the axes
 #' @param dark.theme Use a dark theme for the plot
 #' @param plot.order Specify the order of plotting for the idents. This can be
@@ -2408,6 +2413,7 @@ DimPlot <- function(
   do.label = FALSE,
   label.size = 4,
   no.legend = FALSE,
+  coord.fixed = FALSE,
   no.axes = FALSE,
   dark.theme = FALSE,
   plot.order = NULL,
@@ -2569,6 +2575,9 @@ DimPlot <- function(
   }
   if (!is.null(x = cols.use)) {
     p <- p + scale_colour_manual(values = cols.use)
+  }
+  if(coord.fixed){
+    p <- p + coord_fixed()
   }
   p <- p + guides(size = FALSE)
   p2 <- p +

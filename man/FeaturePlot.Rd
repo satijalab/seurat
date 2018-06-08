@@ -9,8 +9,8 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   cols.use = c("yellow", "red"), pch.use = 16, overlay = FALSE,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
-  no.axes = FALSE, no.legend = TRUE, dark.theme = FALSE,
-  do.return = FALSE, vector.friendly = FALSE)
+  no.axes = FALSE, no.legend = TRUE, coord.fixed = FALSE,
+  dark.theme = FALSE, do.return = FALSE, vector.friendly = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -53,6 +53,8 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{no.axes}{Remove axis labels}
 
 \item{no.legend}{Remove legend from the graph. Default is TRUE.}
+
+\item{coord.fixed}{Use a fixed scale coordinate system (for spatial coordinates). Default is FALSE.}
 
 \item{dark.theme}{Plot in a dark theme}
 
