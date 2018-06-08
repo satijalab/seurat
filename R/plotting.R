@@ -2411,6 +2411,7 @@ DimPlot <- function(
   vector.friendly = FALSE,
   png.file = NULL,
   png.arguments = c(10,10, 100),
+  na.value = 'grey50'
   ...
 ) {
   #first, consider vector friendly case
@@ -2556,7 +2557,7 @@ DimPlot <- function(
       ))
   }
   if (!is.null(x = cols.use)) {
-    p <- p + scale_colour_manual(values = cols.use)
+    p <- p + scale_colour_manual(values = cols.use, na.value=na.value)
   }
   p <- p + guides(size = FALSE)
   p2 <- p +
