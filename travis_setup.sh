@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# if [ "$TRAVIS_OS_NAME" != "osx" ]; then #
-#   cd ..
-#   wget "$HDF5_RELEASE_URL/hdf5-${HDF5_VERSION%.*}/hdf5-$HDF5_VERSION/src/hdf5-$HDF5_VERSION.tar.gz"
-#   tar -xzf "hdf5-$HDF5_VERSION.tar.gz"
-#   cd "hdf5-$HDF5_VERSION"
-#   ./configure --prefix=/usr/local
-#   sudo make install
-#   cd ../seurat
-# fi
+if [ "$TRAVIS_OS_NAME" != "osx" ]; then #
+  cd ..
+  wget "$HDF5_RELEASE_URL/hdf5-${HDF5_VERSION%.*}/hdf5-$HDF5_VERSION/src/hdf5-$HDF5_VERSION.tar.gz"
+  tar -xzf "hdf5-$HDF5_VERSION.tar.gz"
+  cd "hdf5-$HDF5_VERSION"
+  ./configure --prefix=/usr/local
+  sudo make install
+  cd ../seurat
+fi
 
 # install python
 if [[ $TRAVIS_OS_NAME == "linux" ]]; then
@@ -36,4 +36,3 @@ echo "check python installation"
 pip list
 conda list
 which python
-R -e "reticulate::py_config()"
