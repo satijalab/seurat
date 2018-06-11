@@ -286,6 +286,9 @@ iter.k.fit <- function(scale.data, cell.ident, data.use) {
       ))
     }
   )
+  if (is.null(x = dim(x = means.all))) {
+    dim(x = means.all) <- c(1, length(x = means.all))
+  }
   all.dist <- data.frame(
     t(x = sapply(
       X = 1:ncol(x = scale.data),
