@@ -4,7 +4,8 @@
 \alias{RenameCells}
 \title{Rename cells}
 \usage{
-RenameCells(object, add.cell.id = NULL, new.names = NULL)
+RenameCells(object, add.cell.id = NULL, new.names = NULL,
+  for.merge = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -12,6 +13,9 @@ RenameCells(object, add.cell.id = NULL, new.names = NULL)
 \item{add.cell.id}{prefix to add cell names}
 
 \item{new.names}{vector of new cell names}
+
+\item{for.merge}{Only rename slots needed for merging Seurat objects.
+Currently only renames the raw.data and meta.data slots.}
 }
 \value{
 Seurat object with new cell names

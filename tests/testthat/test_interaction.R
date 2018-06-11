@@ -123,7 +123,6 @@ test_that("add.cell.id works", {
     expect_equal(names(x@ident), test.names)
     expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
     expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
-    expect_equal(rownames(x@spatial@mix.probs), test.names)
 })
 
 test_that("new.names works", {
@@ -137,5 +136,29 @@ test_that("new.names works", {
   expect_equal(names(x@ident), test.names)
   expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
   expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
-  expect_equal(rownames(x@spatial@mix.probs), test.names)
+})
+
+pbmc_small2 <- FilterCells(pbmc_small, subset.names = "nGene", low.thresholds = 50)
+test_that("Renaming works when data is a subset of raw.data", {
+  test.names <- paste("Test", pbmc_small2@cell.names, sep = "_")
+  test.rawdata.names <- paste("Test", colnames(pbmc_small2@raw.data), sep = "_")
+  x <- RenameCells(object = pbmc_small2, add.cell.id = "Test")
+  expect_equal(x@cell.names, test.names)
+  expect_equal(colnames(x@raw.data), test.rawdata.names)
+  expect_equal(colnames(x@data), test.names)
+  expect_equal(colnames(x@scale.data), test.names)
+  expect_equal(rownames(x@meta.data), test.names)
+  expect_equal(names(x@ident), test.names)
+  expect_equal(rownames(x@dr$pca@cell.embeddings), test.names)
+  expect_equal(rownames(x@dr$tsne@cell.embeddings), test.names)
+
+  expect_error(RenameCells(object = pbmc_small2, new.names = paste("Test", pbmc_small2@cell.names, sep = "_")))
+  expect_error(RenameCells(object = pbmc_small2, new.names = paste("Test", colnames(pbmc_small2@raw.data), sep = "_")))
+})
+
+pbmc_small2 <- pbmc_small
+pbmc_small2@raw.data <- pbmc_small@raw.data[, sample(x = 1:ncol(pbmc_small@raw.data))]
+
+test_that("Renaming error checking", {
+  expect_error(RenameCells(object = pbmc_small2, new.names = paste("Test", pbmc_small2@cell.names, sep = "_")))
 })

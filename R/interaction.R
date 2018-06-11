@@ -67,10 +67,10 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (!missing(x = add.cell.id1)) {
-    object1 <- RenameCells(object1, add.cell.id = add.cell.id1)
+    object1 <- RenameCells(object1, add.cell.id = add.cell.id1, for.merge = TRUE)
   }
   if (!missing(x = add.cell.id2)) {
-    object2 <- RenameCells(object2, add.cell.id = add.cell.id2)
+    object2 <- RenameCells(object2, add.cell.id = add.cell.id2, for.merge = TRUE)
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
     stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
@@ -1143,6 +1143,8 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' @param object Seurat object
 #' @param add.cell.id prefix to add cell names
 #' @param new.names vector of new cell names
+#' @param for.merge Only rename slots needed for merging Seurat objects.
+#' Currently only renames the raw.data and meta.data slots.
 #'
 #' @details
 #' If \code{add.cell.id} is set a prefix is added to existing cell names. If
@@ -1157,7 +1159,8 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
 #' head(pbmc_small@cell.names)
 #'
-RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
+RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
+                        for.merge = FALSE) {
 
   if (missing(add.cell.id) && missing(new.names)) {
     stop("One of 'add.cell.id' and 'new.names' must be set")
@@ -1169,24 +1172,35 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
 
   if (!missing(add.cell.id)) {
     new.cell.names <- paste(add.cell.id, object@cell.names, sep = "_")
+    new.rawdata.names <- paste(add.cell.id, colnames(object@raw.data), sep = "_")
   } else {
+    if(ncol(object@raw.data) != ncol(object@data)) {
+      stop("raw.data contains a different number of cells than data")
+    }
+    if(any(colnames(object@raw.data) != colnames(object@data))){
+      stop("cells in raw.data are different than the cells in data")
+    }
     if (length(new.names) == length(object@cell.names)) {
       new.cell.names <- new.names
+      new.rawdata.names <- new.names
     } else {
       stop("the length of 'new.names' (", length(new.names), ") must be the ",
            "same as the length of 'object@cell.names' (",
            length(object@cell.names), ")")
     }
   }
+  colnames(object@raw.data) <- new.rawdata.names
+  rownames(object@meta.data) <- new.cell.names
+  if (for.merge) {
+    return(object)
+  }
 
   object@cell.names <- new.cell.names
-  colnames(object@raw.data) <- new.cell.names
   colnames(object@data) <- new.cell.names
 
   if (!is.null(object@scale.data)) {
     colnames(object@scale.data) <- new.cell.names
   }
-  rownames(object@meta.data) <- new.cell.names
   names(object@ident) <- new.cell.names
 
   if (length(object@dr) > 0) {
@@ -1194,6 +1208,7 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
       rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
     }
   }
+
   if (nrow(object@snn) == length(new.cell.names)) {
     colnames(object@snn) <- new.cell.names
     rownames(object@snn) <- new.cell.names
@@ -1208,7 +1223,7 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
     }
   }
 
-  rownames(object@spatial@mix.probs) <- new.cell.names
+  # rownames(object@spatial@mix.probs) <- new.cell.names
 
   return(object)
 }
