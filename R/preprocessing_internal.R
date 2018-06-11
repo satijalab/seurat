@@ -83,49 +83,62 @@ RegressOutResid <- function(
     opts <- list(progress = progress)
     time_elapsed <- Sys.time()
   }
+  reg.mat.colnames <- c(colnames(x = latent.data), "GENE")
+  fmla_str = paste0("GENE ", " ~ ", paste(vars.to.regress, collapse = "+"))
+  if(model.use == "linear") {
+    # In this code, we'll repeatedly regress different Y against the same X
+    # (latent.data) in order to calculate residuals.  Rather that repeatedly
+    # call lm to do this, we'll avoid recalculating the QR decomposition for the
+    # latent.data matrix each time by reusing it after calculating it once and
+    # storing it in a fastResiduals function.
+    regression.mat <- cbind(latent.data, data.use[1,])
+    colnames(regression.mat) <- reg.mat.colnames
+    qr = lm(as.formula(fmla_str), data = regression.mat, qr=TRUE)$qr
+    rm(regression.mat)
+  }
+  
+  
   data.resid <- foreach(i = 1:max.bin, .combine = "c", .options.snow = opts) %dopar% {
     genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
     gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
+    empty_char = character(length = dim(gene.expr)[1]) # Empty vector to reuse
     new.data <- sapply(
       X = genes.bin.regress,
       FUN = function(x) {
-        regression.mat <- cbind(latent.data, gene.expr[x,])
-        colnames(x = regression.mat) <- c(colnames(x = latent.data), "GENE")
-        fmla <- as.formula(
-          object = paste0(
-            "GENE ",
-            " ~ ",
-            paste(vars.to.regress, collapse = "+")
-          )
-        )
-        resid <- switch(
-          EXPR = model.use,
-          'linear' = lm(formula = fmla, data = regression.mat)$residuals,
-          'poisson' = residuals(
-            object = glm(
-              formula = fmla,
-              data = regression.mat,
-              family = "poisson"
+        # Fast path for std. linear models
+        if(model.use=="linear") {
+          resid <- qr.resid(qr, gene.expr[x,])
+        } else {
+          regression.mat <- cbind(latent.data, gene.expr[x,])
+          colnames(x = regression.mat) <- reg.mat.colnames
+          fmla = as.formula(fmla_str)
+          resid <- switch(
+            EXPR = model.use,
+            'poisson' = residuals(
+              object = glm(
+                formula = fmla,
+                data = regression.mat,
+                family = "poisson"
+              ),
+              type = 'pearson'
             ),
-            type = 'pearson'
-          ),
-          'negbinom' = NBResiduals(
-            fmla = fmla,
-            regression.mat = regression.mat,
-            gene = x,
-            return.mode = TRUE
-          )
-        )
+            'negbinom' = NBResiduals(
+              fmla = fmla,
+              regression.mat = regression.mat,
+              gene = x,
+              return.mode = TRUE
+            )
+          ) 
+        }
         if (!is.list(x = resid)) {
-          resid <- list('resid' = resid, 'mode' = character(length = length(x = resid)))
+          resid <- list('resid' = resid, 'mode' = empty_char)
         }
         return(resid)
       }
     )
     new.data.resid <- new.data[seq.int(from = 1, to = length(x = new.data), by = 2)]
-    new.data.resid <- as.data.frame(x = new.data.resid)
+    new.data.resid = matrix(unlist(new.data.resid), nrow = length(new.data.resid[[1]]))
     colnames(x = new.data.resid) <- genes.bin.regress
-    new.data.resid <- as.matrix(x = new.data.resid)
     new.data.mode <- unlist(x = new.data[seq.int(from = 2, to = length(x = new.data), by = 2)])
     names(x = new.data.mode) <- genes.bin.regress
     new.data <- list('resid' = new.data.resid, 'mode' = new.data.mode)
@@ -285,7 +298,7 @@ RegressOutNBreg <- function(
 ) {
   # in the first step we use all genes, except if n.genes.step1 has been set
   cm <- Matrix(object@raw.data[, colnames(x = object@data), drop = FALSE])
-  gene.observed <- rowSums(cm > 0)
+  gene.observed <- Matrix::rowSums(cm > 0)
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = cm))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = cm)[gene.observed >= min.cells])
   genes.step1 <- rownames(cm)[gene.observed >= min.cells]

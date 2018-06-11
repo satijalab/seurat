@@ -111,9 +111,15 @@ test_that("tSNE is run correctly", {
 })
 
 test_that("tSNE plots correctly", {
-  p <- TSNEPlot(nbt.test)
-  expect_is(p, "list")
-  expect_equal(length(unique(p[[1]][[1]]$group)), 3)
+  p <- TSNEPlot(object = nbt.test)
+  expect_is(object = p, class = c('list', 'ggplot'))
+  num.groups <- if (inherits(x = p, what = 'list')) {
+    p[[1]][[1]]$group
+  } else {
+    p$data$ident
+  }
+  num.groups <- length(x = unique(x = num.groups))
+  expect_equal(object = num.groups, expected = 3)
 })
 
 # Tests for plotting functionality (via Setup)
@@ -196,12 +202,12 @@ test_that("SubsetData works properly", {
 test_that("SubsetByPredicate subsets properly", {
   expect_equal(SubsetByPredicate(nbt.test, vars.use = "nGene", predicate = "2500 < nGene & nGene < 3000")@cell.names, "Hi_GW16_23")
   expect_equal(SubsetByPredicate(nbt.test, vars.use = "PC1",   predicate = "-1.5 < PC1 & PC1 < -1.4"    )@cell.names, "Hi_GW21.2_3")
-  
+
   nbt.test@dr <- list()
   count <- length(WhichCells(nbt.test, 1))
   nbt.test.subset <- SubsetByPredicate(nbt.test, "ident", "ident == '1'")
   expect_equal(length(nbt.test.subset@ident), count)
-  
+
 })
 
 # Test CCA procedure

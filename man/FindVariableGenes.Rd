@@ -8,8 +8,8 @@ FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, num.bin = 20, binning.method = "equal_width",
-  do.recalc = TRUE, sort.results = TRUE, do.cpp = TRUE,
-  display.progress = TRUE, ...)
+  selection.method = "mean.var.plot", top.genes = 1000, do.recalc = TRUE,
+  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -43,6 +43,15 @@ is 20)}
 statistical power to detect overdispersed genes at high expression values, at
 the cost of reduced resolution along the x-axis)}
 }}
+
+\item{selection.method}{Specifies how to select the genes to store in @var.genes.
+\itemize{
+\item{mean.var.plot: }{Default method, placing cutoffs on the mean variablility plot}
+\item{dispersion: }{Choose the top.genes with the highest dispersion}
+}}
+
+\item{top.genes}{Selects the genes with the highest value according to the
+selection method.}
 
 \item{do.recalc}{TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.}
 

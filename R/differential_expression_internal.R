@@ -214,11 +214,11 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
   to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
   if (any(to.fix)) {
     message(
-      'Fitted theta below',
+      'Fitted theta below ',
       min.theta,
-      'for',
+      ' for ',
       sum(to.fix),
-      'genes, setting them to',
+      ' genes, setting them to ',
       min.theta
     )
     theta.fit[to.fix] <- min.theta

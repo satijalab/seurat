@@ -1,5 +1,5 @@
-#' @import methods
 #' @importFrom utils globalVariables
+#' @importFrom methods setClass setMethod
 NULL
 
 ################################################################################
@@ -44,7 +44,7 @@ NULL
 #' @importFrom Rcpp evalCpp
 #' @useDynLib Seurat
 
-seurat <- methods::setClass(
+seurat <- setClass(
   "seurat",
   slots = c(
     raw.data = "ANY",
@@ -70,14 +70,14 @@ seurat <- methods::setClass(
   )
 )
 
-#' show method for seurat
-#'
-#' @param object A Seurat object
-#' @name show
-#' @aliases show,seurat-method
-#' @docType methods
-#' @rdname show-methods
-#'
+# show method for seurat
+#
+# @param object A Seurat object
+# @name show
+# @aliases show,seurat-method
+# @docType methods
+# @rdname show-methods
+#
 setMethod(
   f = "show",
   signature = "seurat",

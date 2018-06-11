@@ -28,13 +28,15 @@ must match the cell names in the object (object@cell.names).
 # Simulate CITE-Seq results
 df <- t(x = data.frame(
   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-  y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+  y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
+  row.names = pbmc_small@cell.names
 ))
-pbmc_small = SetAssayData(
+pbmc_small <- SetAssayData(
   object = pbmc_small,
   assay.type = 'CITE',
   new.data = df,
-  slot = 'raw.data'
+  slot = 'data'
 )
+pbmc_small@assay
 
 }

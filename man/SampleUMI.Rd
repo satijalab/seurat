@@ -4,7 +4,7 @@
 \alias{SampleUMI}
 \title{Sample UMI}
 \usage{
-SampleUMI(data, max.umi = 1000, upsample = FALSE, progress.bar = TRUE)
+SampleUMI(data, max.umi = 1000, upsample = FALSE, progress.bar = FALSE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}

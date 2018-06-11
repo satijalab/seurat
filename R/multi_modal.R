@@ -1,4 +1,5 @@
 #' @include seurat.R
+#' @importFrom methods setClass setMethod
 NULL
 
 # Set up assay class to hold multimodal data sets
@@ -11,9 +12,28 @@ assay <- setClass(
     scale.data = "ANY",
     key = "character",
     misc = "ANY",
-    var.genes="vector",
-    mean.var="data.frame"
+    var.genes = "vector",
+    mean.var = "data.frame"
   )
+)
+
+setMethod(
+  f = 'show',
+  signature = 'assay',
+  definition = function(object) {
+    cat(
+      'Seurat assay data with',
+      nrow(x = object@data),
+      'measurements for',
+      ncol(x = object@data), 'cells\n'
+    )
+    if (length(x = object@var.genes) > 0) {
+      cat(
+        "Top 10 variable measurements:\n",
+        strwrap(x = paste(head(x = object@var.genes, n = 10L), collapse = ', '))
+      )
+    }
+  }
 )
 
 #' Accessor function for multimodal data
@@ -32,15 +52,16 @@ assay <- setClass(
 #' # Simulate CITE-Seq results
 #' df <- t(x = data.frame(
 #'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
+#'   row.names = pbmc_small@cell.names
 #' ))
 #' pbmc_small <- SetAssayData(
 #'   object = pbmc_small,
 #'   assay.type = 'CITE',
 #'   new.data = df,
-#'   slot = 'raw.data'
+#'   slot = 'data'
 #' )
-#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'raw.data')
+#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'data')
 #'
 GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
   if (assay.type == "RNA") {
@@ -54,7 +75,7 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
       }
       to.return <- object@scale.data
     }
-    if(is.null(to.return)) {
+    if (is.null(x = to.return)) {
       return(to.return)
     }
     #note that we check for this to avoid a long subset for large matrices if it can be avoided
@@ -63,13 +84,16 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
     }
     return(to.return[, object@cell.names])
   }
-  if (! (assay.type %in% names(object@assay))) {
+  if (!(assay.type %in% names(object@assay))) {
     stop(paste(assay.type, "data has not been added"))
   }
-  if (! (slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
+  if (!(slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
     stop(paste(slot, "slot doesn't exist"))
   }
-  to.return <- (eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot))))
+  to.return <- slot(object = object@assay[[assay.type]], name = slot)
+  if(is.null(to.return)){
+    stop(paste0("The ", slot, " for the ", assay.type, " assay is empty"))
+  }
   if (length(x = object@cell.names) == ncol(x = to.return)) {
     return(to.return)
   }
@@ -94,18 +118,26 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #' # Simulate CITE-Seq results
 #' df <- t(x = data.frame(
 #'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2))
+#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
+#'   row.names = pbmc_small@cell.names
 #' ))
-#' pbmc_small = SetAssayData(
+#' pbmc_small <- SetAssayData(
 #'   object = pbmc_small,
 #'   assay.type = 'CITE',
 #'   new.data = df,
-#'   slot = 'raw.data'
+#'   slot = 'data'
 #' )
+#' pbmc_small@assay
 #'
 SetAssayData <- function(object, assay.type, slot, new.data) {
-  if(! all(colnames(new.data) %in% object@cell.names)) {
+  if (ncol(x = new.data) != length(x = object@cell.names)) {
+    stop("Wrong number of cells being added: should be ", length(x = object@cell.names))
+  } else if (!all(colnames(x = new.data) %in% object@cell.names)) {
     stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
+  }
+  new.data <- new.data[, match(x = object@cell.names, table = colnames(x = new.data))]
+  if (any(colnames(x = new.data) != object@cell.names)) {
+    stop("Please ensure cell names for assay data match exactly (including in order) the cell names in object@cell.names")
   }
   if (assay.type == "RNA") {
     if (slot == "raw.data") {
@@ -121,8 +153,14 @@ SetAssayData <- function(object, assay.type, slot, new.data) {
     eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot, "<- new.data")))
   } else {
     new.assay <- new(Class = "assay")
-    eval(expr = parse(text = paste0("new.assay@", slot, "<- new.data")))
-    eval(expr = parse(text = paste0("object@assay$", assay.type, "<- new.assay")))
+    slot(object = new.assay, name = slot) <- new.data
+    object@assay <- c(object@assay, new.assay)
+    names(x = object@assay) <- c(
+      names(x = object@assay)[1:(length(x = object@assay) - 1)],
+      assay.type
+    )
+    # eval(expr = parse(text = paste0("new.assay@", slot, "<- new.data")))
+    # eval(expr = parse(text = paste0("object@assay$", assay.type, "<- new.assay")))
   }
   return(object)
 }

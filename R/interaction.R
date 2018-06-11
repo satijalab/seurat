@@ -24,8 +24,8 @@ globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param add.cell.id1 String to be appended to the names of all cells in object1
-#' @param add.cell.id2 String to be appended to the names of all cells in object2
+#' @param add.cell.id1 String passed to \code{\link{RenameCells}} for object1
+#' @param add.cell.id2 String passed to \code{\link{RenameCells}} for object1
 #'
 #' @return Merged Seurat object
 #'
@@ -67,30 +67,10 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (!missing(x = add.cell.id1)) {
-    object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
-    colnames(x = object1@raw.data) <- paste(
-      add.cell.id1,
-      colnames(x = object1@raw.data),
-      sep = "_"
-    )
-    rownames(x = object1@meta.data) <- paste(
-      add.cell.id1,
-      rownames(x = object1@meta.data),
-      sep = "_"
-    )
+    object1 <- RenameCells(object1, add.cell.id = add.cell.id1)
   }
   if (!missing(x = add.cell.id2)) {
-  object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
-    colnames(x = object2@raw.data) <- paste(
-      add.cell.id2,
-      colnames(x = object2@raw.data),
-      sep = "_"
-    )
-    rownames(x = object2@meta.data) <- paste(
-      add.cell.id2,
-      rownames(x = object2@meta.data),
-      sep = "_"
-    )
+    object2 <- RenameCells(object2, add.cell.id = add.cell.id2)
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
     stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
@@ -313,21 +293,21 @@ AddSamples <- function(
 #' Creates a Seurat object containing only a subset of the cells in the
 #' original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
 #' subsets it using \code{base::subset} with \code{predicate} as the filter.
-#' Returns the corresponding subset of the Seurat object. 
+#' Returns the corresponding subset of the Seurat object.
 #'
 #' @param object Seurat object
 #' @param vars.use Variables to fetch for use in base::subset. Character vector.
 #' @param predicate String to be parsed into an R expression and evaluated as an input to base::subset.
-#' 
+#'
 #' @export
 #'
 #' @examples
-#' pbmc1 <- SubsetByPredicate(object = pbmc_small, 
-#'                       vars.use = c("nUMI", "res.1"), 
+#' pbmc1 <- SubsetByPredicate(object = pbmc_small,
+#'                       vars.use = c("nUMI", "res.1"),
 #'                       predicate = "nUMI < 200 & res.1=='3'")
 #' pbmc1
 #'
-SubsetByPredicate = function( 
+SubsetByPredicate = function(
   object,
   vars.use,
   predicate
@@ -632,16 +612,25 @@ FetchData <- function(
   if (length(x = object@assay) > 0) {
     data.types <- names(x = object@assay)
     for (data.type in data.types) {
-      all_data <- (GetAssayData(
-        object = object,
-        assay.type = data.type,
-        slot = slot.use
-      ))
-      genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
-      data.expression <- cbind(
-        data.expression,
-        t(x = all_data[genes.include, cells.use, drop = FALSE])
+      all_data <- tryCatch(
+        {
+          GetAssayData(
+            object = object,
+            assay.type = data.type,
+            slot = slot.use
+          )
+        },
+        error = function(cond){
+          return(NULL)
+        }
       )
+      if(!is.null(all_data)){
+        genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
+        data.expression <- cbind(
+          data.expression,
+          t(x = all_data[genes.include, cells.use, drop = FALSE])
+        )
+      }
     }
   }
   var.options <- c("meta.data", "mix.probs", "gene.scores")
@@ -1142,5 +1131,84 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     stop("Metadata provided doesn't match the cells in this object")
   }
   object@meta.data[, cols.add] <- meta.add
+  return(object)
+}
+
+
+#' Rename cells
+#'
+#' Change the cell names in all the different parts of a Seurat object. Can
+#' be useful before combining multiple objects.
+#'
+#' @param object Seurat object
+#' @param add.cell.id prefix to add cell names
+#' @param new.names vector of new cell names
+#'
+#' @details
+#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
+#' \code{new.names} is set these will be used to replace existing names.
+#'
+#' @return Seurat object with new cell names
+#'
+#' @export
+#'
+#' @examples
+#' head(pbmc_small@cell.names)
+#' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
+#' head(pbmc_small@cell.names)
+#'
+RenameCells <- function(object, add.cell.id = NULL, new.names = NULL) {
+
+  if (missing(add.cell.id) && missing(new.names)) {
+    stop("One of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id) && !missing(new.names)) {
+    stop("Only one of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id)) {
+    new.cell.names <- paste(add.cell.id, object@cell.names, sep = "_")
+  } else {
+    if (length(new.names) == length(object@cell.names)) {
+      new.cell.names <- new.names
+    } else {
+      stop("the length of 'new.names' (", length(new.names), ") must be the ",
+           "same as the length of 'object@cell.names' (",
+           length(object@cell.names), ")")
+    }
+  }
+
+  object@cell.names <- new.cell.names
+  colnames(object@raw.data) <- new.cell.names
+  colnames(object@data) <- new.cell.names
+
+  if (!is.null(object@scale.data)) {
+    colnames(object@scale.data) <- new.cell.names
+  }
+  rownames(object@meta.data) <- new.cell.names
+  names(object@ident) <- new.cell.names
+
+  if (length(object@dr) > 0) {
+    for (dr in names(object@dr)) {
+      rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
+    }
+  }
+  if (nrow(object@snn) == length(new.cell.names)) {
+    colnames(object@snn) <- new.cell.names
+    rownames(object@snn) <- new.cell.names
+  }
+
+  if (!is.null(object@kmeans)) {
+    if (!is.null(object@kmeans@gene.kmeans.obj)) {
+      colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
+    }
+    if (!is.null(object@kmeans@cell.kmeans.obj)) {
+      names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
+    }
+  }
+
+  rownames(object@spatial@mix.probs) <- new.cell.names
+
   return(object)
 }

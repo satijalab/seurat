@@ -136,6 +136,7 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
 # @param dim.codes Codes for the dimensions to plot in
 # @param min.cutoff Minimum cutoff for data
 # @param max.cutoff Maximum cutoff for data
+# @param coord.fixed Use a fixed scale coordinate system (for spatial coordinates)
 # @param no.axes Remove axes from plot
 # @param no.legend Remove legend from plot
 # @param dark.theme Plot in dark theme
@@ -156,6 +157,7 @@ SingleFeaturePlot <- function(
   dim.codes,
   min.cutoff,
   max.cutoff,
+  coord.fixed,
   no.axes,
   no.title = FALSE,
   no.legend,
@@ -270,6 +272,9 @@ SingleFeaturePlot <- function(
   if (no.legend) {
     p <- p + theme(legend.position = 'none')
   }
+  if(coord.fixed) {
+    p <- p + coord_fixed()
+  }
 
   return(p)
 }
@@ -285,6 +290,7 @@ SingleFeaturePlot <- function(
 # @param dim.codes Codes for the dimensions to plot in
 # @param min.cutoff Minimum cutoff for data
 # @param max.cutoff Maximum cutoff for data
+# @param coord.fixed Use a fixed scale coordinate system (for spatial coordinates)
 # @param no.axes Remove axes from plot
 # @param no.legend Remove legend from plot
 # @param dark.theme Plot in dark theme
@@ -306,6 +312,7 @@ BlendPlot <- function(
   dim.codes,
   min.cutoff,
   max.cutoff,
+  coord.fixed,
   no.axes,
   no.legend,
   dark.theme
@@ -461,6 +468,9 @@ BlendPlot <- function(
   }
   if (dark.theme) {
     p <- p + DarkTheme()
+  }
+  if(coord.fixed) {
+    p <- p + coord_fixed()
   }
   return(p)
 }
@@ -676,7 +686,6 @@ SingleVlnPlot <- function(
       mapping = aes(fill = factor(x = ident))
     ) +
     guides(fill = guide_legend(title = NULL)) +
-    geom_jitter(height = 0, size = point.size.use) +
     xlab("Identity") +
     NoGrid() +
     ggtitle(feature) +
@@ -693,6 +702,9 @@ SingleVlnPlot <- function(
               size = size.y.use
           )
    )
+  if (point.size.use != 0) {
+      plot <- plot + geom_jitter(height = 0, size = point.size.use)
+  }
   plot <- plot + ggtitle(feature.name)
   if (y.log) {
     plot <- plot + scale_y_log10()

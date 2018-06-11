@@ -40,9 +40,9 @@ field from the cell's column name}
 \item{names.delim}{For the initial identity class for each cell, choose this
 delimiter from the cell's column name}
 
-\item{add.cell.id1}{String to be appended to the names of all cells in object1}
+\item{add.cell.id1}{String passed to \code{\link{RenameCells}} for object1}
 
-\item{add.cell.id2}{String to be appended to the names of all cells in object2}
+\item{add.cell.id2}{String passed to \code{\link{RenameCells}} for object1}
 }
 \value{
 Merged Seurat object
