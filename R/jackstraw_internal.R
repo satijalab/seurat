@@ -57,6 +57,8 @@ EmpiricalP <- function(x, nullval) {
 }
 
 #internal
+#' @importFrom methods new
+#
 JackRandom <- function(
   scaled.data,
   prop.use = 0.01,

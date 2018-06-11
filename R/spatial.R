@@ -227,7 +227,7 @@ FitGeneK <- function(
   scale.data <- t(x = scale(x = t(x = object@imputed)))
   genes.use <- SetIfNull(x = genes.use, default = rownames(x = scale.data))
   genes.use <- genes.use[genes.use %in% rownames(x = scale.data)]
-  scale.data <- scale.data[genes.use, ]
+  scale.data <- scale.data[genes.use, , drop = FALSE]
   data.cut <- as.numeric(x = data.use[gene, ])
   cell.ident <- as.numeric(x = cut(x = data.cut, breaks = do.k))
   if (! (is.null(x = start.pct))) {

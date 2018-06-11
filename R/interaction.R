@@ -359,6 +359,8 @@ SubsetByPredicate = function(
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
+#' @importFrom methods .hasSlot as
+#'
 #' @export
 #'
 #' @examples

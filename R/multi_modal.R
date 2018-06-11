@@ -46,6 +46,8 @@ setMethod(
 #'
 #' @return Returns assay data
 #'
+#' @importFrom methods slotNames
+#'
 #' @export
 #'
 #' @examples
@@ -111,6 +113,8 @@ GetAssayData <- function(object, assay.type = "RNA", slot = "data") {
 #' @param new.data New data to insert
 #'
 #' @return Seurat object with updated slot
+#'
+#' @importFrom methods new slot<-
 #'
 #' @export
 #'

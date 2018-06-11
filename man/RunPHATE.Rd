@@ -91,9 +91,6 @@ the object$dr list. phate by default}
 the number for the dimension names. PHATE by default}
 
 \item{...}{Additional arguments for `phateR::phate`}
-
-\item{ndim}{int, optional, default: 2
-number of dimensions in which the data will be embedded}
 }
 \value{
 Returns a Seurat object containing a PHATE representation
