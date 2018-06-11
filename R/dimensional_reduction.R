@@ -1055,8 +1055,6 @@ RunDiffusion <- function(
 #' Not set (NULL) by default
 #' @param assay.type Assay to pull data for (default: 'RNA')
 #' @param max.dim Total number of dimensions to embed in PHATE.
-#' @param ndim int, optional, default: 2
-#' number of dimensions in which the data will be embedded
 #' @param k int, optional, default: 15
 #' number of nearest neighbors on which to build kernel
 #' @param alpha int, optional, default: 10
@@ -1150,19 +1148,19 @@ RunPHATE <- function(
   max.dim = 2L,
   k = 15,
   alpha = 10,
-  use.alpha=NA,
-  n.landmark=2000,
+  use.alpha = NA,
+  n.landmark = 2000,
   potential.method = "log",
   t = "auto",
   knn.dist.method = "euclidean",
   mds.method = "metric",
   mds.dist.method = "euclidean",
-  t.max=100,
+  t.max = 100,
   npca = 100,
-  plot.optimal.t=FALSE,
-  verbose=1,
-  n.jobs=1,
-  seed.use=NA,
+  plot.optimal.t = FALSE,
+  verbose = 1,
+  n.jobs = 1,
+  seed.use = NA,
   reduction.name = "phate",
   reduction.key = "PHATE",
   ...
