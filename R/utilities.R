@@ -62,6 +62,7 @@ RemoveFromTable <- function(to.remove, data) {
 #' @return Returns a seurat object with data converted to sparse matrices.
 #'
 #' @import Matrix
+#' @importFrom methods as
 #'
 #' @export
 #'
@@ -96,6 +97,7 @@ MakeSparse <- function(object) {
 #' @return Returns a Seurat object compatible with latest changes
 #'
 #' @importFrom utils packageVersion
+#' @importFrom methods .hasSlot new slotNames as
 #'
 #' @export
 #'

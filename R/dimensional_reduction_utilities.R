@@ -12,6 +12,8 @@
 #'
 #' @return Returns specified slot results from given reduction technique
 #'
+#' @importFrom methods slotNames
+#'
 #' @export
 #'
 #' @examples
@@ -183,7 +185,11 @@ GetGeneLoadings <- function(
 #' "cell.embeddings", "gene.loadings", "gene.loadings.full", "sdev", "key",
 #' "misc")
 #' @param new.data New data to set
+#'
 #' @return Seurat object with updated slot
+#'
+#' @importFrom methods new
+#'
 #' @export
 #'
 #' @examples

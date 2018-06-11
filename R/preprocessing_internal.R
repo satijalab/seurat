@@ -85,7 +85,7 @@ RegressOutResid <- function(
   }
   reg.mat.colnames <- c(colnames(x = latent.data), "GENE")
   fmla_str = paste0("GENE ", " ~ ", paste(vars.to.regress, collapse = "+"))
-  if(model.use == "linear") {
+  if (model.use == "linear") {
     # In this code, we'll repeatedly regress different Y against the same X
     # (latent.data) in order to calculate residuals.  Rather that repeatedly
     # call lm to do this, we'll avoid recalculating the QR decomposition for the
@@ -93,11 +93,9 @@ RegressOutResid <- function(
     # storing it in a fastResiduals function.
     regression.mat <- cbind(latent.data, data.use[1,])
     colnames(regression.mat) <- reg.mat.colnames
-    qr = lm(as.formula(fmla_str), data = regression.mat, qr=TRUE)$qr
+    qr = lm(as.formula(fmla_str), data = regression.mat, qr = TRUE)$qr
     rm(regression.mat)
   }
-  
-  
   data.resid <- foreach(i = 1:max.bin, .combine = "c", .options.snow = opts) %dopar% {
     genes.bin.regress <- rownames(x = data.use)[bin.ind == i]
     gene.expr <- as.matrix(x = data.use[genes.bin.regress, , drop = FALSE])
@@ -128,7 +126,7 @@ RegressOutResid <- function(
               gene = x,
               return.mode = TRUE
             )
-          ) 
+          )
         }
         if (!is.list(x = resid)) {
           resid <- list('resid' = resid, 'mode' = empty_char)
@@ -436,6 +434,7 @@ RegressOutNBreg <- function(
 #
 # @return Returns a matrix with the custom normalization
 #
+#' @importFrom methods as
 # @import Matrix
 #
 CustomNormalize <- function(data, custom_function, across) {

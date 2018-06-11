@@ -33,6 +33,7 @@
 #'
 #' @import stringr
 #' @import pbapply
+#' @importFrom methods new
 #' @importFrom utils packageVersion
 #' @importFrom Matrix colSums rowSums
 #'
@@ -648,6 +649,7 @@ ScaleData <- function(
 #' @return Returns a matrix with the normalize and log transformed data
 #'
 #' @import Matrix
+#' @importFrom methods as
 #'
 #' @export
 #'
@@ -685,6 +687,7 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
 #' @param progress.bar Display the progress bar
 #'
 #' @import Matrix
+#' @importFrom methods as
 #'
 #' @return Matrix with downsampled data
 #'
@@ -778,6 +781,7 @@ SampleUMI <- function(
 #' @inheritParams VariableGenePlot
 #'
 #' @importFrom MASS kde2d
+#' @importFrom methods as
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
@@ -822,18 +826,18 @@ FindVariableGenes <- function(
   data <- object@data
   genes.use <- rownames(x = object@data)
   if (do.recalc) {
-    if(do.cpp){
-      if(! identical(mean.function, ExpMean)){
+    if (do.cpp) {
+      if (!identical(mean.function, ExpMean)) {
         warning("No equivalent mean.function implemented in c++ yet, falling back to R version")
         do.cpp <- FALSE
       }
-      if(! identical(dispersion.function, LogVMR)){
+      if (!identical(dispersion.function, LogVMR)) {
         warning("No equivalent dispersion.function implemented in c++ yet, falling back to R version")
         do.cpp <- FALSE
       }
     }
-    if (do.cpp ){
-      if(class(data) != "dgCMatrix"){
+    if (do.cpp ) {
+      if (class(data) != "dgCMatrix") {
         data <- as(as.matrix(data), "dgCMatrix")
       }
       gene.mean <- FastExpMean(data, display.progress)
@@ -841,14 +845,14 @@ FindVariableGenes <- function(
       gene.dispersion <- FastLogVMR(data, display.progress)
       names(gene.dispersion) <- genes.use
     }
-    if(!do.cpp){
+    if (!do.cpp) {
       gene.mean <- rep(x = 0, length(x = genes.use))
       names(x = gene.mean) <- genes.use
       gene.dispersion <- gene.mean
       gene.dispersion.scaled <- gene.mean
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-      if(display.progress){
+      if (display.progress) {
         message("Calculating gene dispersion")
         pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
@@ -859,11 +863,11 @@ FindVariableGenes <- function(
         data.iter <- data[genes.iter, , drop = F]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-        if(display.progress) {
+        if (display.progress) {
           setTxtProgressBar(pb = pb, value = i)
         }
       }
-      if(display.progress){
+      if (display.progress) {
         close(con = pb)
       }
     }

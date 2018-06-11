@@ -21,6 +21,8 @@ RandomName <- function(length = 5L, ...) {
 #
 # @return A merged matrix
 #
+#' @importFrom methods as
+#
 RowMergeSparseMatrices <- function(mat1, mat2){
   if (inherits(x = mat1, what = "data.frame")) {
     mat1 <- as.matrix(x = mat1)
@@ -86,7 +88,7 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 #              length as from)
 # @return      returns vector of mapped values
 #
-MapVals <- function(v, from, to){
+MapVals <- function(v, from, to) {
   if (length(from) != length(to)) {
     stop("from and to vectors are not the equal length.")
   }
@@ -102,9 +104,11 @@ MapVals <- function(v, from, to){
 # @param old.object  object to get slot value from
 # @param new.slot    object to set slot value in
 #
+#' @importFrom methods slot slot<-
+#
 # @return            returns new object with slot filled
 #
-FillSlot <- function(slot.name, old.object, new.object){
+FillSlot <- function(slot.name, old.object, new.object) {
   new.slot <- tryCatch(
     {
       slot(object = old.object, name = slot.name)
@@ -113,7 +117,7 @@ FillSlot <- function(slot.name, old.object, new.object){
       return(NULL)
     }
   )
-  if(!is.null(x = new.slot)) {
+  if (!is.null(x = new.slot)) {
     slot(new.object, slot.name) <- new.slot
   }
   return(new.object)

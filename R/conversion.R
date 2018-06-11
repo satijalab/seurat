@@ -32,6 +32,7 @@ Convert <- function(from, ...) {
 #' @describeIn Convert Convert a Seurat object
 #'
 #' @importFrom utils installed.packages
+#' @importFrom methods as slot
 #' @importFrom reticulate import np_array tuple dict r_to_py
 #'
 #' @export
@@ -157,7 +158,7 @@ Convert.seurat <- function(
       }
       sce <- if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
         SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
-      } else if (inherts(x = from@raw.data, what = "dgCMatrix")){
+      } else if (inherits(x = from@raw.data, what = "dgCMatrix")) {
         SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
       } else {
         stop("Invalid class stored in seurat object's raw.data slot")

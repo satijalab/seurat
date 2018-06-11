@@ -26,6 +26,7 @@
 #' represents p-values for all genes.
 #'
 #' @import doSNOW
+#' @importFrom methods new
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
