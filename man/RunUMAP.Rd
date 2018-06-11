@@ -7,7 +7,7 @@
 RunUMAP(object, cells.use = NULL, dims.use = 1:5, reduction.use = "pca",
   genes.use = NULL, assay.use = "RNA", max.dim = 2L,
   reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
-  min_dist = 0.3, metric = "correlation", ...)
+  min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -47,6 +47,9 @@ accurately with regard to local structure. Sensible values are in the range
 \item{metric}{metric: This determines the choice of metric used to measure
 distance in the input space. A wide variety of metrics are already coded, and
 a user defined function can be passed as long as it has been JITd by numba.}
+
+\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
+NULL will not set a seed.}
 
 \item{...}{Additional arguments to the umap}
 }

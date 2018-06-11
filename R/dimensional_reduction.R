@@ -1255,13 +1255,15 @@ RunPHATE <- function(
 #' @param metric metric: This determines the choice of metric used to measure
 #' distance in the input space. A wide variety of metrics are already coded, and
 #' a user defined function can be passed as long as it has been JITd by numba.
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
 #' @param ... Additional arguments to the umap
 #'
 #' @return Returns a Seurat object containing a UMAP representation
 #'
 #' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 #'
-#' @importFrom reticulate import py_module_available
+#' @importFrom reticulate import py_module_available py_set_seed
 #'
 #' @export
 #'
@@ -1287,10 +1289,15 @@ RunUMAP <- function(
   n_neighbors = 30L,
   min_dist = 0.3,
   metric = "correlation",
+  seed.use = 42,
   ...
 ) {
   if (!py_module_available(module = 'umap')) {
     stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+  }
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+    py_set_seed(seed = seed.use)
   }
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
