@@ -257,6 +257,7 @@ HTODemux <- function(
     assay.type = assay.type,
     slot = "raw.data"
   )[, object@cell.names]
+  hash_raw_data <- as.matrix(hash_raw_data)
   ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
   if (k_function == "kmeans") {
     hto_init_clusters <- kmeans(
@@ -441,4 +442,165 @@ HTODemux <- function(
     print(x = table(object@meta.data$hto_classification_global, object@meta.data$confidence))
   }
   return(object)
+}
+
+
+#' Canonical Correlation Analysis between modalities
+#'
+#' Runs a canonical correlation analysis between two assays (for example, RNA and ADT from CITE-seq)
+#'
+#' @param object Seurat object. Assumes that scale.data exist for both assays.
+#' @param assay.1 The first assay for CCA.
+#' @param assay.2 The second assay for CCA.
+#' @param features.1 Features to use for the first assay, default is all the features (use object@var.genes if this is RNA).
+#' @param features.2 Features to use for the second assay, default is all the features.
+#' @param num.cc Minimal number of CCs to return.
+#' @param normalize.variance Whether to scale the embeddings. Default is TRUE.
+#' 
+#' @return Returns Seurat object with two CCA results stored (for example, object@dr$RNACCA and object@dr$ADTCCA).
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- MultiModal_CCA(object,assay.1 = "RNA",assay.2 = "ADT")
+#' }
+
+MultiModal_CCA=function(
+  object,
+  assay.1 = "RNA",
+  assay.2 = "ADT",
+  features.1 = NULL,
+  features.2 = NULL,
+  num.cc = 20,
+  normalize.variance = TRUE
+) {
+  #first pull out data, define features
+  data.1 <- GetAssayData(
+    object = object,
+    assay.type = assay.1,
+    slot = "scale.data"
+  )
+  data.2 <- GetAssayData(
+    object = object,
+    assay.type = assay.2,
+    slot = "scale.data"
+  )
+  if (is.null(x = features.1)) {
+    if ((assay.1 == "RNA") && length(x = object@var.genes) > 0) {
+      features.1 <- object@var.genes
+    } else {
+      features.1 <- rownames(x = data.1)
+    }
+  }
+  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
+  data.1 <- t(x = data.1[features.1, ])
+  data.2 <- t(x = data.2[features.2, ])
+  #data.1.var=apply(data.1,2,var)
+  #data.2.var=apply(data.2,2,var)
+  data.1 <- data.1[,apply(data.1,2,var)>0]
+  data.2 <- data.2[,apply(data.2,2,var)>0]
+  
+  num.cc <- max(20, min(ncol(data.1), ncol(data.2)))
+  cca.data <- list(data.1, data.2)
+  names(x = cca.data) <- c(assay.1, assay.2)
+  # now run CCA
+  out <- CCA(
+    x = cca.data[[1]],
+    z = cca.data[[2]],
+    typex = "standard",
+    typez = "standard",
+    K = num.cc,
+    penaltyz = 1,
+    penaltyx = 1
+  )
+  cca.output <- list(out$u, out$v)
+  embeddings.cca <- list()
+  for (i in 1:length(x = cca.data)) {
+    assay.use <- names(x = cca.data)[i]
+    rownames(x = cca.output[[i]]) <- colnames(x = cca.data[[i]])
+    embeddings.cca[[i]] <- cca.data[[i]] %*% cca.output[[i]]
+    colnames(x = embeddings.cca[[i]]) <- paste0(
+      assay.use,
+      "CC",
+      1:ncol(x = embeddings.cca[[i]])
+    )
+    colnames(x = cca.output[[i]]) <- colnames(x = embeddings.cca[[i]])
+    if (normalize.variance) {
+      embeddings.cca[[i]] <- scale(x = embeddings.cca[[i]])
+    }
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "cell.embeddings",
+      new.data = embeddings.cca[[i]]
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "key",
+      new.data = paste0(assay.use, "CC")
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "gene.loadings",
+      new.data =  cca.output[[i]]
+    )
+  }
+  return(object)
+}
+
+
+#' Hashtag oligo heatmap
+#'
+#' Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.
+#'
+#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().
+#' @param hto.classification The naming for object@meta.data slot with classification result from HTODemux().
+#' @param global.classification The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.
+#' @param assay.type The naming for HTO assay.
+#' @param num.cells Number of cells to plot. Default is 5000.
+#' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
+#' @param ... Additional arguments for DoHeatmap().
+#' 
+#' @return Returns a ggplot2 plot object.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- HTODemux(object)
+#' HTOHeatmap(object)
+#' }
+
+HTOHeatmap <- function(
+  object,
+  hto.classification = "hto_classification",
+  global.classification = "hto_classification_global",
+  assay.type = "HTO", 
+  num.cells = 5000, 
+  singlet.names = NULL,
+  ...
+){
+  
+  object <- SetAllIdent(object,id = hto.classification)
+  objmini <- SubsetData(object,cells.use = sample(object@cell.names,num.cells))
+  
+  metadata_use <- objmini@meta.data
+  singlet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Singlet",hto.classification])))
+  doublet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Doublet",hto.classification])))
+  
+  heatmap_levels <- c(singlet_id,doublet_id,"Negative")
+  objmini <- SetIdent(objmini,FastWhichCells(objmini,group.by = global.classification,"Doublet"),"Multiplet")
+  
+  objmini@ident <- factor(objmini@ident, c(singlet_id,"Multiplet","Negative"))
+  cells.ordered=as.character(unlist(sapply(heatmap_levels,function(x) sample(FastWhichCells(objmini,group.by = hto.classification,x)))))
+  objmini <- ScaleData(objmini,assay.type = "HTO")
+  
+  if (!is.null(singlet.names)){
+    levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
+  } 
+  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
+  
 }
