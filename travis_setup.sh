@@ -23,8 +23,7 @@ export RETICULATE_PYTHON="$HOME/miniconda/bin/python"
 hash -r
 conda config --set always_yes yes --set changeps1 no
 conda update -q conda
-conda create -q -n test_environment python=3.6
-source activate test_environment
+source activate base
 conda install -q hdf5
 conda info -a
 # Scanpy dependencies
