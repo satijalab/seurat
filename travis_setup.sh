@@ -19,12 +19,11 @@ fi
 
 bash miniconda.sh -b -p $HOME/miniconda
 export PATH="$HOME/miniconda/bin:$PATH"
-export RETICULATE_PYTHON="$HOME/miniconda/bin/python"
+# export RETICULATE_PYTHON="$HOME/miniconda/bin/python"
 hash -r
 conda config --set always_yes yes --set changeps1 no
 conda update -q conda
-source activate base
-conda install -q hdf5
+# source activate base
 conda info -a
 # Scanpy dependencies
 conda install -q numpy seaborn scikit-learn statsmodels numba
