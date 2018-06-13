@@ -1138,7 +1138,10 @@ RunDiffusion <- function(
 #' pbmc_small <- RunPHATE(object = pbmc_small, potential.method='sqrt')
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#' } else { reticulate::py_config() }
+#' } else { 
+#'   reticulate::py_config() 
+#'   reticulate::py_module_available("anndata")
+#' }
 #'
 RunPHATE <- function(
   object,
