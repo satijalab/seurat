@@ -2354,10 +2354,12 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' class. By default, ggplot assigns colors.
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param pt.shape If NULL, all points are circles (default). You can specify any
-#' cell attribute (that can be pulled with FetchData) allowing for both different colors and
-#' different shapes on cells.
+#' cell attribute (that can be pulled with FetchData) allowing for both
+#' different colors and different shapes on cells.
 #' @param do.hover Enable hovering over points to view information
-#' @param data.hover Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.
+#' @param data.hover Data to add to the hover, pass a character vector of
+#' features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
+#' information.
 #' @param do.identify Opens a locator session to identify clusters of cells.
 #' @param do.label Whether to label the clusters
 #' @param label.size Sets size of labels
@@ -2368,16 +2370,25 @@ globalVariables(names = c('x', 'y', 'ident'), package = 'Seurat', add = TRUE)
 #' @param plot.order Specify the order of plotting for the idents. This can be
 #' useful for crowded plots if points of interest are being buried. Provide
 #' either a full list of valid idents or a subset to be plotted last (on top).
-#' @param cells.highlight A list of character or numeric vectors of cells to highlight. If only one group of cells desired, can simply
-#' pass a vector instead of a list. If set, colors selected cells to the color(s) in \code{cols.highlight} and other cells black
-#' (white if dark.theme = TRUE); will also resize to the size(s) passed to \code{sizes.highlight}
-#' @param cols.highlight A vector of colors to highlight the cells as; will repeat to the length groups in cells.highlight
-#' @param sizes.highlight Size of highlighted cells; will repeat to the length groups in cells.highlight
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply
+#' pass a vector instead of a list. If set, colors selected cells to the color(s)
+#' in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+#'  will also resize to the size(s) passed to \code{sizes.highlight}
+#' @param cols.highlight A vector of colors to highlight the cells as; will
+#' repeat to the length groups in cells.highlight
+#' @param sizes.highlight Size of highlighted cells; will repeat to the length
+#' groups in cells.highlight
 #' @param plot.title Title for plot
-#' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
-#' @param png.file Used only if vector.friendly is TRUE. Location for temporary PNG file.
-#' @param png.arguments Used only if vector.friendly is TRUE. Vector of three elements
-#' (PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)
+#' @param vector.friendly FALSE by default. If TRUE, points are flattened into
+#' a PNG, while axes/labels retain full vector resolution. Useful for producing
+#' AI-friendly plots with large numbers of cells.
+#' @param png.file Used only if vector.friendly is TRUE. Location for temporary
+#' PNG file.
+#' @param png.arguments Used only if vector.friendly is TRUE. Vector of three
+#' elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
+#' Default is c(10,10,100)
+#' @param na.value Color value for NA points when using custom scale.
 #' @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
 #' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
@@ -2424,6 +2435,7 @@ DimPlot <- function(
   vector.friendly = FALSE,
   png.file = NULL,
   png.arguments = c(10,10, 100),
+  na.value = 'grey50',
   ...
 ) {
   #first, consider vector friendly case
@@ -2574,7 +2586,7 @@ DimPlot <- function(
       ))
   }
   if (!is.null(x = cols.use)) {
-    p <- p + scale_colour_manual(values = cols.use)
+    p <- p + scale_colour_manual(values = cols.use, na.value=na.value)
   }
   if(coord.fixed){
     p <- p + coord_fixed()
