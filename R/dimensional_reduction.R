@@ -1119,9 +1119,10 @@ RunDiffusion <- function(
 #' (URL: http://doi.org/10.1101/120378),
 #' <URL: https://www.biorxiv.org/content/early/2017/12/01/120378>.
 #' @examples
+#' library(reticulate)
 #' system2(conda_binary("auto"), args=c("list"))
 #' reticulate::conda_list()
-#; reticulate::use_condaenv("base")
+#' reticulate::use_condaenv("base")
 #' system2(conda_binary("auto"), args=c("list"))
 #' reticulate::conda_list()
 #' if (reticulate::py_module_available("phate")) {

@@ -105,8 +105,10 @@ discussion of the mathematics underlying PHATE, see the bioRxiv paper here:
 \url{https://www.biorxiv.org/content/early/2017/12/01/120378}.
 }
 \examples{
+library(reticulate)
 system2(conda_binary("auto"), args=c("list"))
 reticulate::conda_list()
+reticulate::use_condaenv("base")
 system2(conda_binary("auto"), args=c("list"))
 reticulate::conda_list()
 if (reticulate::py_module_available("phate")) {
