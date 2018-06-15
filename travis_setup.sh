@@ -23,14 +23,5 @@ export PATH="$HOME/miniconda/bin:$PATH"
 hash -r
 conda config --set always_yes yes --set changeps1 no
 conda update -q conda
-# source activate base
 conda info -a
-# Scanpy dependencies
-conda install -q numpy # seaborn scikit-learn statsmodels numba
-# pip install --upgrade pip
-# pip install scanpy
-# pip install phate
-# echo "check python installation"
-# pip list
-# conda list
-# which python
+conda install -q numpy # Required for reticulate

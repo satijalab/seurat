@@ -23,6 +23,7 @@ before_install:
   - ./travis_setup.sh
 
 before_script:
+  - Rscript py_install.R
   - R -e "reticulate::py_config()"
 
 addons:
