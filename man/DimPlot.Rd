@@ -12,7 +12,8 @@ DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
   coord.fixed = FALSE, no.axes = FALSE, dark.theme = FALSE,
   plot.order = NULL, cells.highlight = NULL, cols.highlight = "red",
   sizes.highlight = 1, plot.title = NULL, vector.friendly = FALSE,
-  png.file = NULL, png.arguments = c(10, 10, 100), ...)
+  png.file = NULL, png.arguments = c(10, 10, 100), na.value = "grey50",
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,12 +39,14 @@ class. By default, ggplot assigns colors.}
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
 \item{pt.shape}{If NULL, all points are circles (default). You can specify any
-cell attribute (that can be pulled with FetchData) allowing for both different colors and
-different shapes on cells.}
+cell attribute (that can be pulled with FetchData) allowing for both
+different colors and different shapes on cells.}
 
 \item{do.hover}{Enable hovering over points to view information}
 
-\item{data.hover}{Data to add to the hover, pass a character vector of features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra information.}
+\item{data.hover}{Data to add to the hover, pass a character vector of
+features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
+information.}
 
 \item{do.identify}{Opens a locator session to identify clusters of cells.}
 
@@ -63,22 +66,32 @@ different shapes on cells.}
 useful for crowded plots if points of interest are being buried. Provide
 either a full list of valid idents or a subset to be plotted last (on top).}
 
-\item{cells.highlight}{A list of character or numeric vectors of cells to highlight. If only one group of cells desired, can simply
-pass a vector instead of a list. If set, colors selected cells to the color(s) in \code{cols.highlight} and other cells black
-(white if dark.theme = TRUE); will also resize to the size(s) passed to \code{sizes.highlight}}
+\item{cells.highlight}{A list of character or numeric vectors of cells to
+highlight. If only one group of cells desired, can simply
+pass a vector instead of a list. If set, colors selected cells to the color(s)
+in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+ will also resize to the size(s) passed to \code{sizes.highlight}}
 
-\item{cols.highlight}{A vector of colors to highlight the cells as; will repeat to the length groups in cells.highlight}
+\item{cols.highlight}{A vector of colors to highlight the cells as; will
+repeat to the length groups in cells.highlight}
 
-\item{sizes.highlight}{Size of highlighted cells; will repeat to the length groups in cells.highlight}
+\item{sizes.highlight}{Size of highlighted cells; will repeat to the length
+groups in cells.highlight}
 
 \item{plot.title}{Title for plot}
 
-\item{vector.friendly}{FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.}
+\item{vector.friendly}{FALSE by default. If TRUE, points are flattened into
+a PNG, while axes/labels retain full vector resolution. Useful for producing
+AI-friendly plots with large numbers of cells.}
 
-\item{png.file}{Used only if vector.friendly is TRUE. Location for temporary PNG file.}
+\item{png.file}{Used only if vector.friendly is TRUE. Location for temporary
+PNG file.}
 
-\item{png.arguments}{Used only if vector.friendly is TRUE. Vector of three elements
-(PNG width, PNG height, PNG DPI) to be used for temporary PNG. Default is c(10,10,100)}
+\item{png.arguments}{Used only if vector.friendly is TRUE. Vector of three
+elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
+Default is c(10,10,100)}
+
+\item{na.value}{Color value for NA points when using custom scale.}
 
 \item{...}{Extra parameters to FeatureLocator for do.identify = TRUE}
 }
