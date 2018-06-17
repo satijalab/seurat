@@ -1193,11 +1193,12 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
   }
   colnames(object@raw.data) <- new.rawdata.names
   rownames(object@meta.data) <- new.cell.names
+  object@cell.names <- new.cell.names
+  
   if (for.merge) {
     return(object)
   }
 
-  object@cell.names <- new.cell.names
   colnames(object@data) <- new.cell.names
 
   if (!is.null(object@scale.data)) {
