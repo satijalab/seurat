@@ -750,6 +750,7 @@ DotPlot <- function(
   #   levels = rev(x = sub(pattern = "-", replacement = ".", x = genes.plot))
   # )
   data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
+  data.to.plot$pct.exp <- data.to.plot$pct.exp * 100
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
@@ -909,6 +910,7 @@ SplitDotPlotGG <- function(
     data.to.plot %>%
       mutate(gene.groups = gene.groups[genes.plot]) -> data.to.plot
   }
+  data.to.plot$pct.exp <- data.to.plot$pct.exp * 100
   p <- ggplot(data = data.to.plot, mapping = aes(x = genes.plot, y = id)) +
     geom_point(mapping = aes(size = pct.exp, color = ptcolor)) +
     scale_radius(range = c(0, dot.scale)) +
@@ -1550,7 +1552,7 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' @param plot.y.lim Y-axis maximum on each QQ plot.
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@overall.p.values
-#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot 
+#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot
 #' stores the ggplot2 plot.
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
@@ -1627,10 +1629,10 @@ JackStrawPlot <- function(
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
     theme_bw()
-  
+
   object@dr$pca@misc[["jackstraw.plot"]] <- gp
   print(gp)
-  
+
   return(object)
 }
 
