@@ -1036,7 +1036,9 @@ FeaturePlot <- function(
   coord.fixed = FALSE,
   dark.theme = FALSE,
   do.return = FALSE,
-  vector.friendly=FALSE
+  vector.friendly=FALSE,
+  png.file = NULL,
+  png.arguments = c(10,10, 100)
 ) {
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = nCol)) {
@@ -1149,7 +1151,9 @@ FeaturePlot <- function(
         no.axes = no.axes,
         no.legend = no.legend,
         dark.theme = dark.theme,
-        vector.friendly = vector.friendly
+        vector.friendly = vector.friendly,
+        png.file = png.file,
+        png.arguments = png.arguments
       ),
       SIMPLIFY = FALSE # Get list, not matrix
     )
@@ -1550,7 +1554,7 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' @param plot.y.lim Y-axis maximum on each QQ plot.
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@overall.p.values
-#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot 
+#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot
 #' stores the ggplot2 plot.
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
@@ -1627,10 +1631,10 @@ JackStrawPlot <- function(
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
     theme_bw()
-  
+
   object@dr$pca@misc[["jackstraw.plot"]] <- gp
   print(gp)
-  
+
   return(object)
 }
 
