@@ -84,6 +84,37 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
+# Zip vectors together
+#
+# Similar to Python's \code{zip}
+#
+# @param x A list where each value is a vector of the same length
+#
+# @return A list where each entry is contains one value, in order, from each entry in \code{x}
+#
+Zip <- function(x) {
+  if (!is.list(x = x)) {
+    stop("'x' must be a list")
+  }
+  length.check <- vapply(
+    X = x,
+    FUN = length,
+    FUN.VALUE = integer(length = 1L)
+  )
+  length.check <- unique(x = length.check)
+  if (length(x = length.check) != 1) {
+    stop("All values in 'x' must be the same length")
+  }
+  x <- as.data.frame(x = x)
+  x <- lapply(
+    X = 1:nrow(x = x),
+    FUN = function(i) {
+      as.vector(x = x[i, ])
+    }
+  )
+  return(x)
+}
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix

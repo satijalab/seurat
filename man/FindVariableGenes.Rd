@@ -64,7 +64,7 @@ exist.}
 
 \item{display.progress}{Show progress bar for calculations}
 
-\item{chunk.size}{Chunk size to iterate over}
+\item{chunk.size}{Chunk size to iterate over, pass \code{NULL} for loomR defaults}
 
 \item{normalized.data}{Full path to normalized data in loom file}
 

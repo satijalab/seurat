@@ -952,7 +952,7 @@ FindVariableGenes.seurat <- function(
   }
 }
 
-#' @param chunk.size Chunk size to iterate over
+#' @param chunk.size Chunk size to iterate over, pass \code{NULL} for loomR defaults
 #' @param normalized.data Full path to normalized data in loom file
 #' @param overwrite Overwrite previous results
 #'
@@ -983,28 +983,46 @@ FindVariableGenes.loom <- function(
       "' in the loom file, please run NormalizeData"
     ))
   }
-  if (display.progress) {
-    cat("Calculating gene means and dispersion\n")
-    pb <- txtProgressBar(char = '=', style = 3)
-  }
-  batch <- object$batch.scan(
-    chunk.size = chunk.size,
+  # if (display.progress) {
+  #   cat("Calculating gene means and dispersion\n")
+  #   pb <- txtProgressBar(char = '=', style = 3)
+  # }
+  # batch <- object$batch.scan(
+  #   chunk.size = chunk.size,
+  #   MARGIN = 1,
+  #   force.reset = TRUE
+  # )
+  # # Preallocate memory for the results
+  # gene.means <- vector(mode = 'numeric', length = object$shape[1])
+  # raw.dispersion <- vector(mode = 'numeric', length = object$shape[1])
+  # for (i in 1:length(x = batch)) {
+  #   chunk.indices <- object$batch.next(return.data = FALSE)
+  #   chunk.data <- object[[normalized.data]][, chunk.indices]
+  #   chunk.data <- Matrix(data = t(x = chunk.data), sparse = TRUE)
+  #   gene.means[chunk.indices] <- FastExpMean(mat = chunk.data, display_progress = FALSE)
+  #   raw.dispersion[chunk.indices] <- FastLogVMR(mat = chunk.data, display_progress = FALSE)
+  #   if (display.progress) {
+  #     setTxtProgressBar(pb = pb, value = i / length(x = batch))
+  #   }
+  # }
+  results <- object$map(
+    FUN = function(mat) {
+      mat <- t(x = mat)
+      mat <- Matrix(data = mat)
+      gene.means <- FastExpMean(mat = mat, display_progress = FALSE)
+      raw.dispersion <- FastLogVMR(mat = mat, display_progress = FALSE)
+      to.return <- list(gene.means, raw.dispersion)
+      to.return <- Zip(x = to.return)
+      return(to.return)
+    },
     MARGIN = 1,
-    force.reset = TRUE
+    chunk.size = chunk.size,
+    dataset.use = normalized.data,
+    display.progress = display.progress,
   )
-  # Preallocate memory for the results
-  gene.means <- vector(mode = 'numeric', length = object$shape[1])
-  raw.dispersion <- vector(mode = 'numeric', length = object$shape[1])
-  for (i in 1:length(x = batch)) {
-    chunk.indices <- object$batch.next(return.data = FALSE)
-    chunk.data <- object[[normalized.data]][, chunk.indices]
-    chunk.data <- Matrix(data = t(x = chunk.data), sparse = TRUE)
-    gene.means[chunk.indices] <- FastExpMean(mat = chunk.data, display_progress = FALSE)
-    raw.dispersion[chunk.indices] <- FastLogVMR(mat = chunk.data, display_progress = FALSE)
-    if (display.progress) {
-      setTxtProgressBar(pb = pb, value = i / length(x = batch))
-    }
-  }
+  # Assemble results
+  gene.means <- results[seq.int(from = 1, to = length(x = results), by = 2)]
+  raw.dispersion <- results[seq.int(from = 2, to = length(x = results), by = 2)]
   # Clean out NAs
   gene.means[is.na(x = gene.means)] <- 0
   raw.dispersion[is.na(x = raw.dispersion)] <- 0
@@ -1012,10 +1030,12 @@ FindVariableGenes.loom <- function(
   data.x.bin <- cut(x = gene.means, breaks = num.bin)
   mean.y <- tapply(X = raw.dispersion, INDEX = data.x.bin, FUN = mean)
   sd.y <- tapply(X = raw.dispersion, INDEX = data.x.bin, FUN = sd)
-  scaled.dispersion <- (raw.dispersion - mean.y[as.numeric(x = data.x.bin)]) / sd.y[as.numeric(x = data.x.bin)]
+  scaled.dispersion <- (raw.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+    sd.y[as.numeric(x = data.x.bin)]
   scaled.dispersion[is.na(x = scaled.dispersion)] <- 0
   # Find variable genes
-  var.genes <- (gene.means > x.low.cutoff) & (gene.means < x.high.cutoff) & (scaled.dispersion > y.cutoff) & (scaled.dispersion < y.high.cutoff)
+  var.genes <- (gene.means > x.low.cutoff) & (gene.means < x.high.cutoff) &
+    (scaled.dispersion > y.cutoff) & (scaled.dispersion < y.high.cutoff)
   # Add datasets
   dset.names <- c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled', 'var_genes')
   if (overwrite) {
@@ -1034,7 +1054,7 @@ FindVariableGenes.loom <- function(
       'var_genes' = var.genes
     )
   )
-  gc()
+  gc(verbose = FALSE)
   invisible(x = object)
 }
 
