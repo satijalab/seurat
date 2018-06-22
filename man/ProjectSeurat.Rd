@@ -17,7 +17,8 @@ ProjectSeurat(object, ...)
   cell.names = "col_attrs/cell_names", norm.data = "layers/norm_data",
   scale.data = "layers/scale_data", chunk.size = 1000, overwrite = FALSE,
   tsne.k = 11, tsne.rbf.gamma = 50, cluster.k = 11,
-  cluster.res = "res.0.8", display.progress = TRUE, ...)
+  cluster.res = "res.0.8", display.progress = TRUE, chunk.dims = c(256,
+  256))
 }
 \arguments{
 \item{object}{An object to project back to}
