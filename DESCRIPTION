@@ -24,7 +24,6 @@ SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
-    stringr,
     mixtools,
     lars,
     ica,
