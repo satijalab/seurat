@@ -42,7 +42,6 @@ Imports:
     reshape2,
     gplots,
     Rcpp (>= 0.11.0),
-    tclust,
     ranger,
     dtw,
     SDMTools,
@@ -101,6 +100,7 @@ RoxygenNote: 6.0.1
 Suggests:
     gdata,
     VGAM,
+    tclust,
     testthat,
     loomR,
     phateR,
