@@ -31,7 +31,6 @@ Imports:
     Rtsne,
     fpc,
     ape,
-    VGAM,
     pbapply,
     igraph,
     RANN,
@@ -101,6 +100,7 @@ Collate:
 RoxygenNote: 6.0.1
 Suggests:
     gdata,
+    VGAM,
     testthat,
     loomR,
     phateR,
