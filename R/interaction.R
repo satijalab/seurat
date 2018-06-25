@@ -810,7 +810,7 @@ FetchData.loom <- function(
     vars.left <- vars.left[-vars.dsets]
     attr.df <- object$get.attribute.df(
       # attribute.layer = 'col',
-      MARGIN = 1,
+      MARGIN = 2,
       attribute.names = dsets.use,
       col.names = basename(path = cell.names.dset)
     )
@@ -1539,8 +1539,8 @@ ProjectSeurat.loom <- function(
     }
     # get parameters from the seurat template
     pars <- template@calc.params$ScaleData
-    #genes.use <- rownames(template@scale.data) 
-    genes.use <- pars$genes.use 
+    #genes.use <- rownames(template@scale.data)
+    genes.use <- pars$genes.use
     index.use <- match(genes.use, gene.names)
     #index.use <- which(gene.names %in% genes.use)
     #genes.use <- gene.names
@@ -1692,7 +1692,7 @@ setMethod(
       duplicate.cols <- colnames(meta.data) %in% colnames(new.object@meta.data)
       if (length(duplicate.cols) > 0){
         colnames(meta.data)[duplicate.cols] <- paste(colnames(meta.data)[duplicate.cols], 'loom', sep='.')
-      }	
+      }
       new.object <- AddMetaData(object = new.object, metadata = meta.data)
       if (!keep.layers) {
         cat('Note: SubsetSeurat is converting from loom to seurat; keep.layers=FALSE, so only raw data and cell attributes are kept, no layers\n')
