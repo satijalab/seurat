@@ -34,7 +34,6 @@ Imports:
     VGAM,
     pbapply,
     igraph,
-    FNN,
     RANN,
     caret,
     dplyr,
