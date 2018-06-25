@@ -596,7 +596,7 @@ HTOHeatmap <- function(
   
   objmini@ident <- factor(objmini@ident, c(singlet_id,"Multiplet","Negative"))
   cells.ordered=as.character(unlist(sapply(heatmap_levels,function(x) sample(FastWhichCells(objmini,group.by = hto.classification,x)))))
-  objmini <- ScaleData(objmini,assay.type = "HTO")
+  objmini <- ScaleData(objmini,assay.type = assay.type)
   
   if (!is.null(singlet.names)){
     levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
