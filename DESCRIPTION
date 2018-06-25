@@ -43,7 +43,6 @@ Imports:
     irlba,
     reshape2,
     gplots,
-    gdata,
     Rcpp (>= 0.11.0),
     tclust,
     ranger,
@@ -102,6 +101,7 @@ Collate:
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
+    gdata,
     testthat,
     loomR,
     phateR,

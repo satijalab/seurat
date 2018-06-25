@@ -921,8 +921,6 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
-#' @importFrom gdata drop.levels
-#'
 #' @export
 #'
 #' @examples
@@ -954,7 +952,7 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
     )
   )
   object@ident[cells.use] <- ident.use
-  object@ident <- drop.levels(x = object@ident)
+  object@ident <- droplevels(x = object@ident)
   return(object)
 }
 
@@ -1194,7 +1192,7 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
   colnames(object@raw.data) <- new.rawdata.names
   rownames(object@meta.data) <- new.cell.names
   object@cell.names <- new.cell.names
-  
+
   if (for.merge) {
     return(object)
   }
