@@ -416,7 +416,7 @@ SubsetData <- function(
     )
     gc(verbose = FALSE)
   }
-  object@ident <- drop.levels(x = object@ident[cells.use])
+  object@ident <- droplevels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
       if (length(object@dr[[i]]@cell.embeddings) > 0) {
