@@ -414,6 +414,7 @@ BuildRFClassifier <- function(
   verbose = TRUE,
   ...
 ) {
+  PackageCheck('ranger')
   training.classes <- as.vector(x = training.classes)
   training.genes <- SetIfNull(
     x = training.genes,
