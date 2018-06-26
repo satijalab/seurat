@@ -334,7 +334,6 @@ NumberClusters <- function(object) {
 #'
 #' @import Matrix
 #' @importFrom stats predict
-#' @importFrom ranger ranger
 #'
 #' @export
 #'
@@ -357,6 +356,7 @@ ClassifyCells <- function(
   new.data = NULL,
   ...
 ) {
+  PackageCheck('ranger')
   # build the classifier
   if (missing(classifier)){
     classifier <- BuildRFClassifier(
@@ -398,7 +398,6 @@ ClassifyCells <- function(
 #' @return Returns the random forest classifier
 #'
 #' @import Matrix
-#' @importFrom ranger ranger
 #'
 #' @export
 #'
@@ -431,7 +430,7 @@ BuildRFClassifier <- function(
   if (verbose) {
     message("Training Classifier ...")
   }
-  classifier <- ranger(
+  classifier <- ranger::ranger(
     data = training.data,
     dependent.variable.name = "class",
     classification = TRUE,
