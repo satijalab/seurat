@@ -241,7 +241,7 @@ CollapseSpeciesExpressionMatrix <- function(
 #' }
 HTODemux <- function(
   object,
-  percent_cutoff = 0.999,
+  percent_cutoff = 0.99,
   init_centers = NULL,
   cluster_nstarts = 100,
   k_function = "clara",
