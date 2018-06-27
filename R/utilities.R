@@ -592,6 +592,10 @@ AverageExpression <- function(
       genes.assay <- unique(x = intersect(x = genes.assay, y = rownames(x = data.use)))
       if (length(x = temp.cells) == 1) {
         data.temp <- (data.use[genes.assay, temp.cells])
+        # transform data if needed (alternative: apply fxn.average to single value above)
+        if(!(use.scale | use.raw)) { # equivalent: slot.use == "data"
+          data.temp <- expm1(data.temp)
+        }
       }
       if (length(x = temp.cells) >1 ) {
         data.temp <- apply(
