@@ -13,7 +13,6 @@ NULL
 #' clusters
 #' @param acc.cutoff Accuracy cutoff for classifier
 #' @param verbose Controls whether to display progress and merging results
-#' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with new
 #' cluster info
 #' @export
@@ -35,6 +34,7 @@ ValidateClusters <- function(
   acc.cutoff = 0.9,
   verbose = TRUE
 ) {
+  PackageCheck('caret')
   # probably should refactor to make cleaner
   if (length(x = object@snn) > 1) {
     SNN.use <- object@snn
@@ -133,7 +133,6 @@ ValidateClusters <- function(
 #' @param pc.use Which PCs to use for model construction
 #' @param top.genes Use the top X genes for model construction
 #' @param acc.cutoff Accuracy cutoff for classifier
-#' @importFrom caret trainControl train
 #' @return Returns a Seurat object, object@@ident has been updated with
 #' new cluster info
 #' @export
@@ -155,6 +154,7 @@ ValidateSpecificClusters <- function(
   top.genes = 30,
   acc.cutoff = 0.9
 ) {
+  PackageCheck('caret')
   acc <- RunClassifier(
     object = object,
     group1 = cluster1,
@@ -203,9 +203,9 @@ RunClassifier <- function(object, group1, group2, pcs, num.genes) {
   xv <- apply(X = x, MARGIN = 2, FUN = var)
   x  <- x[, names(x = which(xv > 0))]
   # run k-fold cross validation
-  ctrl <- trainControl(method = "repeatedcv", repeats = 5)
+  ctrl <- caret::trainControl(method = "repeatedcv", repeats = 5)
   set.seed(seed = 1500)
-  model <- train(
+  model <- caret::train(
     x = x,
     y = as.factor(x = y),
     formula = as.factor(x = y) ~ .,
