@@ -921,6 +921,8 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
+#' @importFrom stats reorder
+#'
 #' @export
 #'
 #' @examples
@@ -952,7 +954,7 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
     )
   )
   object@ident[cells.use] <- ident.use
-  object@ident <- droplevels(x = object@ident)
+  object@ident <- reorder(x = droplevels(x = object@ident))
   return(object)
 }
 
