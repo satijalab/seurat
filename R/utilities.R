@@ -592,6 +592,10 @@ AverageExpression <- function(
       genes.assay <- unique(x = intersect(x = genes.assay, y = rownames(x = data.use)))
       if (length(x = temp.cells) == 1) {
         data.temp <- (data.use[genes.assay, temp.cells])
+        # transform data if needed (alternative: apply fxn.average to single value above)
+        if(!(use.scale | use.raw)) { # equivalent: slot.use == "data"
+          data.temp <- expm1(data.temp)
+        }
       }
       if (length(x = temp.cells) >1 ) {
         data.temp <- apply(
@@ -710,8 +714,10 @@ MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
 #' @param reduction.use Dimensional reduction to use
 #' @param k k-param for k-nearest neighbor calculation. 30 by default
 #' @param do.log Whether to perform smoothing in log space. Default is false.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #'
-#' @importFrom FNN get.knn
+#' @importFrom RANN nn2
 #'
 #' @export
 #'
@@ -726,7 +732,8 @@ AddSmoothedScore <- function(
   reduction.use = "tsne",
   k = 30,
   do.log = FALSE,
-  do.print = FALSE
+  do.print = FALSE,
+  nn.eps = 0
 ) {
   genes.fit <- SetIfNull(x = genes.fit, default = object@var.genes)
   genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
@@ -737,31 +744,23 @@ AddSmoothedScore <- function(
   )
   dim.codes <- paste0(dim.code, c(dim.1, dim.2))
   data.plot <- FetchData(object = object, vars.all = dim.codes)
-  knn.smooth <- get.knn(data = data.plot, k = k)$nn.index
-  avg.fxn <- mean
-  if (! do.log) {
-    avg.fxn <- ExpMean
-  }
-  lasso.fits <- data.frame(
-    t(
-      x = sapply(
-        X = genes.fit,
-        FUN = function(g) {
-          return(unlist(
-            x = lapply(
-              X = 1:nrow(x = data.plot),
-              FUN = function(y) {
-                avg.fxn(as.numeric(x = object@data[g, knn.smooth[y, ]]))
-              }
-            )
-          ))
+  # knn.smooth <- get.knn(data = data.plot, k = k)$nn.index
+  knn.smooth <- nn2(data = data.plot, k = k, searchtype = 'standard', eps = nn.eps)$nn.idx
+  avg.fxn <- ifelse(test = do.log, yes = mean, no = ExpMean)
+  lasso.fits <- data.frame(t(x = sapply(
+    X = genes.fit,
+    FUN = function(g) {
+      return(unlist(x = lapply(
+        X = 1:nrow(x = data.plot),
+        FUN = function(y) {
+          avg.fxn(as.numeric(x = object@data[g, knn.smooth[y, ]]))
         }
-      )
-    )
-  )
+      )))
+    }
+  )))
   colnames(x = lasso.fits) <- rownames(x = data.plot)
   genes.old <- genes.fit[genes.fit %in% rownames(x = object@imputed)]
-  genes.new <- genes.fit[! (genes.fit %in% rownames(x = object@imputed))]
+  genes.new <- genes.fit[!genes.fit %in% rownames(x = object@imputed)]
   if (length(x = genes.old) > 0) {
     object@imputed[genes.old, ] <- lasso.fits[genes.old, ]
   }

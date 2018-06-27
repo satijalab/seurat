@@ -31,8 +31,6 @@
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
 #' object@@data, object@@meta.data, object@@ident, also initialized.
 #'
-#' @import stringr
-#' @import pbapply
 #' @importFrom methods new
 #' @importFrom utils packageVersion
 #' @importFrom Matrix colSums rowSums

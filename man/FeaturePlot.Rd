@@ -10,7 +10,8 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
   no.axes = FALSE, no.legend = TRUE, coord.fixed = FALSE,
-  dark.theme = FALSE, do.return = FALSE, vector.friendly = FALSE)
+  dark.theme = FALSE, do.return = FALSE, vector.friendly = FALSE,
+  png.file = NULL, png.arguments = c(10, 10, 100))
 }
 \arguments{
 \item{object}{Seurat object}
