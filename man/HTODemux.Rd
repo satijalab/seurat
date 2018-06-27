@@ -4,8 +4,8 @@
 \alias{HTODemux}
 \title{Demultiplex samples based on data from cell 'hashing'}
 \usage{
-HTODemux(object, percent_cutoff = 0.999, init_centers = NULL,
-  cluster_nstarts = 100, k_function = "kmeans", nsamples = 100,
+HTODemux(object, percent_cutoff = 0.99, init_centers = NULL,
+  cluster_nstarts = 100, k_function = "clara", nsamples = 100,
   print.output = TRUE, assay.type = "HTO", confidence_threshold = 0.05)
 }
 \arguments{
@@ -17,7 +17,7 @@ HTODemux(object, percent_cutoff = 0.999, init_centers = NULL,
 
 \item{cluster_nstarts}{nstarts value for the initial k-means clustering}
 
-\item{k_function}{Clustering function for initial HTO grouping. Default is "kmeans", also support "clara" for fast k-medoids clustering on large applications}
+\item{k_function}{Clustering function for initial HTO grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
 
 \item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"}
 
