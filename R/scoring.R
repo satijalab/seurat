@@ -208,7 +208,7 @@ CellCycleScoring <- function(
       if (all(scores < 0)) {
         return(null)
       } else {
-        return(c(first, second)[which(x = scores == max(scores))])
+        return(c(first, second)[which(x = scores == max(scores))][1])
       }
     }
   )
