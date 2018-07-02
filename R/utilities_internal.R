@@ -621,9 +621,31 @@ LengthCheck <- function(values, cutoff = 0) {
 #
 MaxN <- function(x, N = 2){
   len <- length(x)
-  if(N > len) {
+  if (N > len) {
     warning('N greater than length(x).  Setting N=length(x)')
     N <- length(x)
   }
   sort(x, partial = len - N + 1)[len - N + 1]
+}
+
+# Check the existence of a package
+#
+# @param ... Package names
+# @param error If true, throw an error if the package doesn't exist
+#
+# @return Invisibly returns boolean denoting if the package is installed
+#
+#' @importFrom utils installed.packages
+#
+PackageCheck <- function(..., error = TRUE) {
+  pkgs <- unlist(x = c(...), use.names = FALSE)
+  package.installed <- pkgs %in% rownames(x = installed.packages())
+  if (error && any(!package.installed)) {
+    stop(
+      "Cannot find ",
+      paste(pkgs[!package.installed], collapse = ', '),
+      "; please install"
+    )
+  }
+  invisible(x = package.installed)
 }

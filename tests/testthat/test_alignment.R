@@ -21,7 +21,7 @@ test_that("Alignment returns expected values", {
 })
 
 test_that("Alignment score calculated correctly", {
-  expect_equal(CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var = "group"), 0.625)
+  expect_equal(CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var = "group", nn = 5), 0.655)
 })
 
 pbmc_cca <- CalcVarExpRatio(pbmc_cca, reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
