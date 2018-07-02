@@ -2,7 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [2.3.3] - 2018-07-03
+## [2.3.3] - 2018-07-02
 ### Added
 - New HTOHeatmap function
 - Support for custom PNG arguments for vector-friendly plotting
