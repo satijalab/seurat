@@ -65,11 +65,12 @@ LazyData: true
 Collate: 
     'RcppExports.R'
     'alignment.R'
+    'assay_generics.R'
+    'seurat_generics.R'
     'objects.R'
     'seurat.R'
     'conversion.R'
     'as.R'
-    'assay_generics.R'
     'assay.R'
     'cluster_determination.R'
     'cluster_determination_internal.R'
