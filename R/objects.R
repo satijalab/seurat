@@ -1,5 +1,4 @@
-#' @importFrom utils globalVariables
-#' @importFrom methods setClass setMethod setOldClass
+#' @importFrom methods setClass setOldClass
 #' @importFrom Rcpp evalCpp
 #' @useDynLib Seurat
 NULL
