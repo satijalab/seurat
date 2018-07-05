@@ -15,6 +15,8 @@ The Seurat object is ...
 \item{\code{meta.data}}{Contains meta-information about each cell, starting with number of genes detected (nGene)
 and the original identity class (orig.ident); more information is added using \code{AddMetaData}}
 
+\item{\code{active.assay}}{...}
+
 \item{\code{active.ident}}{The active cluster identity for this Seurat object}
 
 \item{\code{graphs}}{...}

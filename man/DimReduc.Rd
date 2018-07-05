@@ -16,6 +16,8 @@ The DimReduc object is ...
 
 \item{\code{gene.loadings.projected}}{...}
 
+\item{\code{assay.used}}{...}
+
 \item{\code{stdev}}{...}
 
 \item{\code{key}}{...}
