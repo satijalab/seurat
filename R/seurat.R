@@ -68,9 +68,10 @@ MakeSeuratObject <- function(
 #' @export
 #' @method GetAssay Seurat
 #'
-GetAssay.Seurat <- function(object, assay.use) {
-  stopifnot(assay.use %in% names(x = object@assays))
-  return(object@assays[[assay.use]])
+GetAssay.Seurat <- function(object, assay.use = NULL) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  stopifnot(assay.use %in% names(x = slot(object = object, name = 'assays')))
+  return(slot(object = object, name = 'assays')[[assay.use]])
 }
 
 #' @param assay.use Name of assay to pull data from
@@ -79,7 +80,8 @@ GetAssay.Seurat <- function(object, assay.use) {
 #' @export
 #' @method GetAssayData Seurat
 #'
-GetAssayData.Seurat <- function(object, slot = 'data', assay.use, ...) {
+GetAssayData.Seurat <- function(object, slot = 'data', assay.use = NULL, ...) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
   return(GetAssayData(
     object = GetAssay(object = object, assay.use = assay.use),
     slot = slot
@@ -93,6 +95,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay.use, ...) {
 #' @method SetAssayData Seurat
 #'
 SetAssayData.Seurat <- function(object, slot, new.data, assay.use, ...) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
   return(SetAssayData(
     object = GetAssay(object = object, assay.use = assay.use),
     slot = slot,
@@ -118,6 +121,30 @@ DefaultAssay.Seurat <- function(object, ...) {
   }
   slot(object = object, name = 'active.assay') <- value
   return(object)
+}
+
+#' @export
+#' @method names Seurat
+#'
+names.Seurat <- function(x) {
+  return(unlist(
+    x = lapply(
+      X = c('assays', 'reductions', 'graphs', 'neighbors'),
+      FUN = function(n) {
+        return(names(x = slot(object = x, name = n)))
+      }
+    ),
+    use.names = FALSE
+  ))
+}
+
+"[[.Seurat" <- function(x, i, ...) {
+  if (i %in% names(x = slot(object = x, name = 'assays'))) {
+    return(slot(object = x, name = 'assays')[[i]])
+  } else if (i %in% names(x = slot(object = x, name = 'reductions'))) {
+    return(slot(object = x, name = 'reductions')[[i]])
+  }
+  stop("Cannot find '", i, "' in this Seurat object")
 }
 
 setMethod(
