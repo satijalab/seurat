@@ -227,7 +227,7 @@ RunICA <- function(
 #' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
 #' \item{tsne: }{standard tsne - not recommended for large datasets}
 #' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-#' Kluger Lab code found here: https://github.com/ChristophH/FIt-SNE}
+#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
 #' }
 #' @param add.iter If an existing tSNE has already been computed, uses the
 #' current tSNE to seed the algorithm and then adds additional iterations on top
