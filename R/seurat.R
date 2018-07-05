@@ -100,6 +100,26 @@ SetAssayData.Seurat <- function(object, slot, new.data, assay.use, ...) {
   ))
 }
 
+#' @describeIn DefaultAssay Get the default assay of a Seurat object
+#' @export
+#' @method DefaultAssay Seurat
+#'
+DefaultAssay.Seurat <- function(object, ...) {
+  return(slot(object = object, name = 'active.assay'))
+}
+
+#' @describeIn DefaultAssay Set the default assay of a Seurat object
+#' @export
+#' @method DefaultAssay<- Seurat
+#'
+"DefaultAssay<-.Seurat" <- function(object, ..., value) {
+  if (!value %in% names(x = slot(object = object, name = 'assays'))) {
+    stop("Cannot find assay ", value)
+  }
+  slot(object = object, name = 'active.assay') <- value
+  return(object)
+}
+
 setMethod(
   f = "show",
   signature = "Seurat",
