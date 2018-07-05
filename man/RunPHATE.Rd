@@ -95,7 +95,8 @@ PHATE is a data reduction method specifically designed for visualizing
 **high** dimensional data in **low** dimensional spaces.
 To run, you must first install the `phate` python
 package (e.g. via pip install phate). Details on this package can be
-found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For a more in depth
+found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For help,
+visit \url{https://krishnaswamylab.org/get-help}. For a more in depth
 discussion of the mathematics underlying PHATE, see the bioRxiv paper here:
 \url{https://www.biorxiv.org/content/early/2017/12/01/120378}.
 }
