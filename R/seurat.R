@@ -128,23 +128,14 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @export
-#' @method dimnames Seurat
-#'
 dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
 }
 
-#' @export
-#' @method dim Seurat
-#'
 dim.Seurat <- function(x) {
   return(dim(x = GetAssay(object = x)))
 }
 
-#' @export
-#' @method names Seurat
-#'
 names.Seurat <- function(x) {
   return(unlist(
     x = lapply(

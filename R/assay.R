@@ -109,16 +109,10 @@ GetIdent.Assay <- function(object, ...) {
   return(slot(object = object, name = 'ident'))
 }
 
-#' @export
-#' @method dim Assay
-#'
 dim.Assay <- function(x) {
   return(dim(x = GetAssayData(object = x)))
 }
 
-#' @export
-#' @method dimnames Assay
-#'
 dimnames.Assay <- function(x) {
   return(dimnames(x = GetAssayData(object = x)))
 }
@@ -127,17 +121,10 @@ setMethod(
   f = 'show',
   signature = 'Assay',
   definition = function(object) {
-    cat(
-      'Seurat assay data with',
-      nrow(x = object),
-      'features for',
-      ncol(x = object), 'cells\n'
-    )
+    cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = object@var.features) > 0) {
-      cat(
-        "Top 10 variable features:\n",
-        strwrap(x = paste(head(x = object@var.features, n = 10L), collapse = ', '))
-      )
+      top.ten <- head(x = object@var.features, n = 10L)
+      cat("Top 10 variable features:\n", strwrap(x = paste(top.ten, collapse = ', ')))
     }
   }
 )
