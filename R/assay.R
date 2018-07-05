@@ -4,6 +4,23 @@
 #' @importFrom methods slot slot<- setMethod
 NULL
 
+#' Make an Assay object
+#'
+#' @param raw.data Raw input data
+#' @param min.cells Include genes with detected expression in at least this
+#' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
+#' genes, create a new object with a lower cutoff.
+#' @param min.genes Include cells where at least this many genes are detected.
+#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
+#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
+#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
+#' values less than this will be set to 0 (though maintained in object@raw.data).
+#' @param names.field For the initial identity class for each cell, choose this field from the
+#' cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this delimiter from the
+#' cell's column name
+#' @param ... Ignored for now
+#'
 #' @export
 #'
 MakeAssayObject <- function(
@@ -41,12 +58,12 @@ MakeAssayObject <- function(
     field = names.field,
     delim = names.delim
   )))
-  names(x = idents) <- colnames(x = raw.data)
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- factor(x = RandomName()) # TODO: change this
+    idents <- rep.int(x = factor(x = RandomName()), times = ncol(x = raw.data)) # TODO: change this
   }
+  names(x = idents) <- colnames(x = raw.data)
   assay <- new(
     Class = 'Assay',
     raw.data = raw.data,
@@ -73,18 +90,37 @@ SetAssayData.Assay <- function(object, slot, new.data) {
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
   }
-  slot(object = object, name = slot) <- new.data
+  if (any(dim(x = new.data) != dim(x = object))) {
+    stop("The new data doesn't have the same dimensions as the current data")
+  }
+  new.cells <- colnames(x = new.data)
+  if (!all(new.cells %in% colnames(x = object))) {
+    stop("All cell names must match current cell names")
+  }
+  slot(object = object, name = slot) <- new.data[, colnames(x = object)]
   return(object)
+}
+
+#' @describeIn GetIdent Get cell identities from an Assay object
+#' @export
+#' @method GetIdent Assay
+#'
+GetIdent.Assay <- function(object, ...) {
+  return(slot(object = object, name = 'ident'))
 }
 
 #' @export
 #' @method dim Assay
 #'
 dim.Assay <- function(x) {
-  return(c(
-    nrow(x = GetAssayData(object = x, slot = 'data')),
-    ncol(x = GetAssayData(object = x, slot = 'data'))
-  ))
+  return(dim(x = GetAssayData(object = x)))
+}
+
+#' @export
+#' @method dimnames Assay
+#'
+dimnames.Assay <- function(x) {
+  return(dimnames(x = GetAssayData(object = x)))
 }
 
 setMethod(

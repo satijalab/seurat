@@ -20,6 +20,7 @@ GetAssayData <- function(object, slot, ...) {
 #' @param object An object
 #' @param slot Where to store the new data
 #' @param new.data New data to insert
+#' @param ... Arguments passed to other methods
 #'
 #' @return object with the assay data set
 #'
@@ -28,4 +29,18 @@ GetAssayData <- function(object, slot, ...) {
 #'
 SetAssayData <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
+}
+
+#' Get the idents of multimodal data
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A factor with the cell identities
+#'
+#' @rdname GetIdent
+#' @export GetIdent
+#'
+GetIdent <- function(object, ...) {
+  UseMethod(generic = 'GetIdent', object = object)
 }
