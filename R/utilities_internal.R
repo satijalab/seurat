@@ -412,10 +412,28 @@ WeightedEuclideanDistance <- function(x, y, w) {
 # @return default if x is null, else x
 #
 SetIfNull <- function(x, default) {
-  if(is.null(x = x)){
+  if (is.null(x = x)) {
     return(default)
   } else {
     return(x)
+  }
+}
+
+# Set a default value if an object is null
+#
+# @param lhs An object to set if it's null
+# @param rhs The value to provide if x is null
+#
+# @return rhs if lhs is null, else lhs
+#
+# @author Hadley Wickham
+# @references https://adv-r.hadley.nz/functions.html#missing-arguments
+#
+`%||%` <- function(lhs, rhs) {
+  if (!is.null(x = lhs)) {
+    return(lhs)
+  } else {
+    return(rhs)
   }
 }
 
