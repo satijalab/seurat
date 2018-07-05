@@ -94,13 +94,18 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay.use = NULL, ...) {
 #' @export
 #' @method SetAssayData Seurat
 #'
-SetAssayData.Seurat <- function(object, slot, new.data, assay.use, ...) {
+SetAssayData.Seurat <- function(
+  object,
+  slot = 'data',
+  new.data,
+  assay.use = NULL,
+  ...
+) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  return(SetAssayData(
-    object = GetAssay(object = object, assay.use = assay.use),
-    slot = slot,
-    new.data = new.data
-  ))
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- SetAssayData(object = assay.data, slot = slot, new.data = new.data)
+  object[[assay.use]] <- assay.data
+  return(object)
 }
 
 #' @describeIn DefaultAssay Get the default assay of a Seurat object
@@ -146,6 +151,24 @@ names.Seurat <- function(x) {
   }
   stop("Cannot find '", i, "' in this Seurat object")
 }
+
+setMethod( # because R doesn't allow S3-style [[<- for S4 classes
+  f = '[[<-',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, i, ..., value) {
+    if (!is.character(x = i)) {
+      stop("'i' must be a character")
+    }
+    slot.use <- switch(
+      EXPR = as.character(x = class(x = value)),
+      'Assay' = 'assays',
+      'DimReduc' = 'reductions',
+      stop("Unknown object type: ", class(x = value))
+    )
+    slot(object = x, name = slot.use)[[i]] <- value
+    return(x)
+  }
+)
 
 setMethod(
   f = "show",
