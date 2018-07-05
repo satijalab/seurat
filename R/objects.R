@@ -86,7 +86,7 @@ DimReduc <- setClass(
 #' @slot active.ident The active cluster identity for this Seurat object
 #' @slot graphs ...
 #' @slot neighbors ...
-#' @slot dim.reduc A list of dimmensional reduction objects for this Assay
+#' @slot reductions A list of dimmensional reduction objects for this Assay
 #' @slot project.name ...
 #' @slot calc.params A list of calculation parameters performed on this Seurat object
 #' @slot misc A list of miscellaneous information
@@ -104,7 +104,7 @@ Seurat <- setClass(
     active.ident = 'factor',
     graphs = 'list',
     neighbors = 'list',
-    dim.reduc = 'list',
+    reductions = 'list',
     project.name = 'character',
     calc.params = 'list',
     misc = 'list',

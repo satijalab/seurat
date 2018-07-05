@@ -23,7 +23,7 @@ and the original identity class (orig.ident); more information is added using \c
 
 \item{\code{neighbors}}{...}
 
-\item{\code{dim.reduc}}{A list of dimmensional reduction objects for this Assay}
+\item{\code{reductions}}{A list of dimmensional reduction objects for this Assay}
 
 \item{\code{project.name}}{...}
 
