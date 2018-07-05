@@ -129,6 +129,20 @@ DefaultAssay.Seurat <- function(object, ...) {
 }
 
 #' @export
+#' @method dimnames Seurat
+#'
+dimnames.Seurat <- function(x) {
+  return(dimnames(x = GetAssay(object = x)))
+}
+
+#' @export
+#' @method dim Seurat
+#'
+dim.Seurat <- function(x) {
+  return(dim(x = GetAssay(object = x)))
+}
+
+#' @export
 #' @method names Seurat
 #'
 names.Seurat <- function(x) {
@@ -174,17 +188,8 @@ setMethod(
   f = "show",
   signature = "Seurat",
   definition = function(object) {
-    cat(
-      "An object of class",
-      class(x = object)
-      #   "in project",
-      #   object@project.name,
-      #   "\n",
-      #   nrow(x = object@data),
-      #   "genes across",
-      #   ncol(x = object@data),
-      #   "samples.\n"
-    )
+    cat("An object of class", class(x = object))
+    cat('\n', nrow(x = object), 'features across', ncol(x = object), 'samples\n')
     invisible(x = NULL)
   }
 )
