@@ -109,6 +109,45 @@ GetIdent.Assay <- function(object, ...) {
   return(slot(object = object, name = 'ident'))
 }
 
+#' @describeIn VariableFeatures Get the variable features of an assay object
+#' @export
+#' @method VariableFeatures Assay
+#'
+VariableFeatures.Assay <- function(object, ...) {
+  return(slot(object = object, name = 'var.features'))
+}
+
+#' @describeIn VariableFeatures Set the variable features of an assay object
+#' @export
+#' @method VariableFeatures<- Assay
+#'
+"VariableFeatures<-.Assay" <- function(object, ..., value) {
+  slot(object = object, name = 'var.features') <- value
+  return(object)
+}
+
+#' @describeIn GetHVFInfo Get highly variable feature information from an Assay
+#' @export
+#' @method GetHVFInfo Assay
+#'
+GetHVFInfo.Assay <- function(object, ...) {
+  return(slot(object = object, name = 'hvf.info'))
+}
+
+#' @param ... Arguments passed to GetVariableFeatures
+#'
+#' @describeIn SetHVFInfo Get highly variable feature information from an Assay
+#' @export
+#' @method SetHVFInfo Assay
+#'
+#' @seealso GetVariableFeatures
+#'
+SetHVFInfo.Assay <- function(object, hvf.info, ...) {
+  slot(object = object, name = 'hvf.info') <- hvf.info
+  VariableFeatures(object = object) <- GetVariableFeatures(object = hvf.info, ...)
+  return(object)
+}
+
 dim.Assay <- function(x) {
   return(dim(x = GetAssayData(object = x)))
 }

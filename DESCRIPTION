@@ -90,6 +90,7 @@ Collate:
     'plotting_internal.R'
     'plotting_utilities.R'
     'preprocessing.R'
+    'preprocessing_generics.R'
     'preprocessing_internal.R'
     'printing_utilities.R'
     'scoring.R'

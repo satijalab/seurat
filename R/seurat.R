@@ -128,6 +128,30 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
+#' @param assay.use Name of assay to pull variable features for
+#'
+#' @describeIn VariableFeatures Get the variable features of a Seurat object
+#' @export
+#' @method VariableFeatures Seurat
+#'
+VariableFeatures.Seurat <- function(object, assay.use = NULL, ...) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  return(VariableFeatures(object = assay.data))
+}
+
+#' @param assay.use Name of assay to pull highly variable feature information for
+#'
+#' @describeIn GetHVFInfo Get highly variable feature information from a Seurat object
+#' @export
+#' @method GetHVFInfo Seurat
+#'
+GetHVFInfo.Seurat <- function(object, assay.use = NULL, ...) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  return(GetHVFInfo(object = assay.data))
+}
+
 dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
 }

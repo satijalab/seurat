@@ -44,3 +44,51 @@ SetAssayData <- function(object, slot, new.data, ...) {
 GetIdent <- function(object, ...) {
   UseMethod(generic = 'GetIdent', object = object)
 }
+
+#' Get and set variable feature information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname VariableFeatures
+#' @export VariableFeatures
+#'
+VariableFeatures <- function(object, ...) {
+  UseMethod(generic = 'VariableFeatures', object = object)
+}
+
+#' @inheritParams VariableFeatures
+#' @param value A character vector of variable features
+#'
+#' @rdname VariableFeatures
+#' @export VariableFeatures<-
+#'
+"VariableFeatures<-" <- function(object, ..., value) {
+  UseMethod(generic = 'VariableFeatures<-', object = object)
+}
+
+#' Get highly variable feature information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A dataframe with feature means, dispersion, and scaled dispersion
+#'
+#' @rdname GetHVFInfo
+#' @export GetHVFInfo
+#'
+GetHVFInfo <- function(object, ...) {
+  UseMethod(generic = 'GetHVFInfo', object = object)
+}
+
+#' Set highly variable feature information
+#'
+#' @param object An object
+#' @param hvf.info A dataframe with feature means, dispersion, and scaled dispersion
+#'
+#' @rdname SetHVFInfo
+#' @export SetHVFInfo
+#'
+SetHVFInfo <- function(object, hvf.info, ...) {
+  UseMethod(generic = 'SetHVFInfo', object = object)
+}

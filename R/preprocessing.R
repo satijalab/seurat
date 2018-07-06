@@ -280,85 +280,96 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
   }
 }
 
-
-#' Normalize Assay Data
-#'
-#' Normalize data for a given assay
-#'
-#' @param object Seurat object
-#' @param assay.type Type of assay to normalize for (default is RNA), but can be
-#' changed for multimodal analyses.
-#' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize). More methods to be added very shortly.
-#' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param display.progress display progress bar for scaling procedure.
-#'
-#' @return Returns object after normalization. Normalized data is stored in data slot
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' pmbc_small <- NormalizeData(object = pbmc_small)
-#'
-NormalizeData <- function(
+NormalizeData.default <- function(
   object,
-  assay.type = "RNA",
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  display.progress = TRUE
+  display.progress = TRUE,
+  ...
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "NormalizeData",
-    ... = parameters.to.store
-  )
-  if(is.null(normalization.method)) {
+  if (is.null(x = normalization.method)) {
     return(object)
   }
-  if (normalization.method == "LogNormalize") {
-    raw.data <- GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "raw.data"
-    )
-    if (is.null(x = raw.data)) {
-      stop(paste("Raw data for", assay.type, "has not been set"))
-    }
-    normalized.data <- LogNormalize(
-      data = raw.data,
+  normalized.data <- switch(
+    EXPR = normalization.method,
+    'LogNormalize' = LogNormalize(
+      data = object,
       scale.factor = scale.factor,
       display.progress = display.progress
+    ),
+    'genesCLR' = CustomNormalize(
+      data = object,
+      custom_function = function(x) {
+        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+      },
+      across = 'genes'
+    ),
+    stop("Unkown normalization method: ", normalization.method)
+  )
+  return(normalized.data)
+}
+
+#' @describeIn NormalizeData Normalize data in an Assay object
+#' @export
+#' @method NormalizeData Assay
+#'
+NormalizeData.Assay <- function(
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  display.progress = TRUE,
+  ...
+) {
+  object <- SetAssayData(
+    object = object,
+    slot = 'data',
+    new.data = NormalizeData(
+      object = GetAssayData(object = object, slot = 'raw.data'),
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      display.progress = display.progress,
+      ...
     )
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data",
-      new.data = normalized.data
-    )
-  }
-  if (normalization.method == "genesCLR") {
-    raw.data <- GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "raw.data"
-    )
-    if (is.null(x = raw.data)) {
-      stop(paste("Raw data for", assay.type, "has not been set"))
-    }
-    normalized.data <- CustomNormalize(
-      data = raw.data,
-      custom_function = function(x) log1p((x)/(exp(sum(log1p((x)[x > 0]), na.rm=TRUE) / length(x+1)))),
-      across = "genes"
-    )
-    object <- SetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data",
-      new.data = normalized.data
-    )
-  }
+  )
+  return(object)
+}
+
+#' @param assay.use Name of assay to use
+#'
+#' @describeIn NormalizeData Normalize data in a Seurat object
+#' @export
+#' @method NormalizeData Seurat
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' pmbc_small <- NormalizeData(object = pbmc_small)
+#' }
+#'
+NormalizeData.Seurat <- function(
+  object,
+  assay.use = NULL,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  display.progress = TRUE,
+  ...
+) {
+  # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  # object <- SetCalcParams(
+  #   object = object,
+  #   calculation = "NormalizeData",
+  #   ... = parameters.to.store
+  # )
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- NormalizeData(
+    object = assay.data,
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    display.progress = display.progress,
+    ...
+  )
+  object[[assay.use]] <- assay.data
   return(object)
 }
 
@@ -725,6 +736,171 @@ SampleUMI <- function(
   return(new_data)
 }
 
+FindVariableFeatures.default <- function(
+  object,
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  display.progress = TRUE,
+  ...
+) {
+  if (!inherits(x = mean.function, what = 'function')) {
+    stop("'mean.function' must be a function")
+  }
+  if (!inherits(x = dispersion.function, what = 'function')) {
+    stop("'dispersion.function' must be a function")
+  }
+  feature.mean <- mean.function(object, display.progress)
+  feature.dispersion <- dispersion.function(object, display.progress)
+  names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+  feature.dispersion[is.na(x = feature.dispersion)] <- 0
+  feature.mean[is.na(x = feature.mean)] <- 0
+  data.x.breaks <- switch(
+    EXPR = binning.method,
+    'equal_width' = num.bin,
+    'equal_frequency' = c(
+      -1,
+      quantile(
+        x = feature.mean[feature.mean > 0],
+        probs = seq.int(from = 0, to = 1, length.out = num.bin)
+      )
+    ),
+    stop("Unkown binning method: ", binning.method)
+  )
+  data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
+  names(x = data.x.bin) <- names(x = feature.mean)
+  mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
+  sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
+  feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+    sd.y[as.numeric(x = data.x.bin)]
+  names(x = feature.dispersion.scaled) <- names(x = feature.mean)
+  hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+  rownames(x = hvf.info) <- rownames(x = object)
+  colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+  hvf.info <- hvf.info[order(feature.dispersion, decreasing = TRUE), , drop = FALSE]
+  # pass.cutoff <- names(x = gene.mean)[which(
+  #   x = (
+  #     (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
+  #   ) &
+  #     (gene.dispersion.scaled > y.cutoff) &
+  #     (gene.dispersion.scaled < y.high.cutoff)
+  # )]
+  return(hvf.info)
+}
+
+#' @inheritParams GetVariableFeatures
+#'
+#' @describeIn FindVariableFeatures Find variable features in an Assay object
+#' @export
+#' @method FindVariableFeatures Assay
+#'
+FindVariableFeatures.Assay <- function(
+  object,
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  num.features = 1000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  selection.method = "mean.var.plot",
+  display.progress = TRUE,
+  ...
+) {
+  hvf.info <- FindVariableFeatures(
+    object = GetAssayData(object = object),
+    mean.function = mean.function,
+    dispersion.function = dispersion.function,
+    num.bin = num.bin,
+    binning.method = binning.method,
+    display.progress = display.progress,
+    ...
+  )
+  object <- SetHVFInfo(
+    object = object,
+    hvf.info  = hvf.info,
+    num.features = num.features,
+    mean.cutoff = mean.cutoff,
+    dispersion.cutoff = dispersion.cutoff,
+    selection.method = selection.method
+  )
+  # var.features <- GetVariableFeatures(
+  #   object = hvf.info,
+  #   num.features = num.features,
+  #   mean.cutoff = mean.cutoff,
+  #   dispersion.cutoff = dispersion.cutoff,
+  #   selection.method = selection.method
+  # )
+  # VariableFeatures(object = object) <- var.features
+  # invisible(x = NULL)
+  return(object)
+}
+
+#' @inheritParams GetVariableFeatures
+#' @param assay.use ...
+#'
+#' @describeIn FindVariableFeatures Find variable features in a Seurat object
+#' @export
+#' @method FindVariableFeatures Seurat
+#'
+FindVariableFeatures.Seurat <- function(
+  object,
+  assay.use = NULL,
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  num.features = 1000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  selection.method = "mean.var.plot",
+  display.progress = TRUE,
+  ...
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- FindVariableFeatures(
+    object = assay.data,
+    mean.function = mean.function,
+    dispersion.function = dispersion.function,
+    num.bin = num.bin,
+    binning.method = binning.method,
+    display.progress = display.progress,
+    ...
+  )
+  object[[assay.use]] <- assay.data
+  return(object)
+}
+
+GetVariableFeatures.data.frame <- function(
+  object,
+  num.features = 1000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  selection.method = 'mean.var.plot',
+  ...
+) {
+  if (ncol(x = object) != 3) {
+    stop("Wrong number of columns in the variable features data frame")
+  }
+  if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
+    stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
+  }
+  top.features <- switch(
+    EXPR = selection.method,
+    'mean.var.plot' = {
+      means.use <- (object[, 1] > mean.cutoff[1]) & (object[, 1] < mean.cutoff[2])
+      dispersions.use <- (object[, 3] > dispersion.cutoff[1]) & (object[, 3] < dispersion.cutoff[2])
+      rownames(x = object)[which(x = means.use & dispersions.use)]
+    },
+    'dispersion' = rownames(x = object),
+    stop("Unkown selection method: ", selection.method)
+  )
+  top.features <- head(x = top.features, n = num.features)
+  return(top.features)
+}
+
 #' Identify variable genes
 #'
 #' Identifies genes that are outliers on a 'mean variability plot'. First, uses
@@ -834,8 +1010,8 @@ FindVariableGenes <- function(
         do.cpp <- FALSE
       }
     }
-    if (do.cpp ) {
-      if (class(data) != "dgCMatrix") {
+    if (do.cpp) {
+      if (class(x = data) != "dgCMatrix") {
         data <- as(as.matrix(data), "dgCMatrix")
       }
       gene.mean <- FastExpMean(data, display.progress)
@@ -871,14 +1047,14 @@ FindVariableGenes <- function(
     }
     gene.dispersion[is.na(x = gene.dispersion)] <- 0
     gene.mean[is.na(x = gene.mean)] <- 0
-    if (binning.method=="equal_width") {
-         data_x_bin <- cut(x = gene.mean, breaks = num.bin)
+    if (binning.method == "equal_width") {
+      data_x_bin <- cut(x = gene.mean, breaks = num.bin)
     }
-    else if (binning.method=="equal_frequency") {
-        data_x_bin <- cut(x = gene.mean, breaks = c(-1,quantile(gene.mean[gene.mean>0],probs=seq(0,1,length.out=num.bin))))
+    else if (binning.method == "equal_frequency") {
+      data_x_bin <- cut(x = gene.mean, breaks = c(-1, quantile(gene.mean[gene.mean > 0], probs = seq(from = 0, to = 1,length.out = num.bin))))
     }
     else {
-        stop(paste0("Invalid selection: '",binning.method,"' for 'binning.method'."))
+      stop(paste0("Invalid selection: '",binning.method,"' for 'binning.method'."))
     }
     names(x = data_x_bin) <- names(x = gene.mean)
     mean_y <- tapply(X = gene.dispersion, INDEX = data_x_bin, FUN = mean)
