@@ -150,7 +150,7 @@ names.Seurat <- function(x) {
 
 "[[.Seurat" <- function(x, i, ...) {
   if (i %in% names(x = slot(object = x, name = 'assays'))) {
-    return(slot(object = x, name = 'assays')[[i]])
+    return(GetAssay(object = x, assay.use = i))
   } else if (i %in% names(x = slot(object = x, name = 'reductions'))) {
     return(slot(object = x, name = 'reductions')[[i]])
   }
