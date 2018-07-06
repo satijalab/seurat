@@ -501,13 +501,13 @@ ScaleDataR <- function(
 #' @export
 #'
 #' @examples
-#' pbmc_small <- ScaleData(object = pbmc_small)
 #' \dontrun{
+#' pbmc_small <- ScaleData(object = pbmc_small)
 #' # To regress out certain effects
 #' pbmc_small = ScaleData(object = pbmc_small, vars.to.regress = effects_list)
 #' }
 #'
-ScaleData <- function(
+ScaleDataOld <- function(
   object,
   genes.use = NULL,
   data.use = NULL,
@@ -534,7 +534,6 @@ ScaleData <- function(
       slot = "data"
     )
   )
-
   if (check.for.norm) {
     if (!("NormalizeData" %in% names(object@calc.params))) {
       cat("NormalizeData has not been run, therefore ScaleData is running on non-normalized values. Recommended workflow is to run NormalizeData first.\n")
@@ -647,6 +646,158 @@ ScaleData <- function(
   return(object)
 }
 
+ScaleData.default <- function(
+  object,
+  features.use = NULL,
+  vars.to.regress = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  display.progress = TRUE,
+  ...
+) {
+  features.use <- features.use %||% rownames(x = object)
+  features.use <- as.vector(x = intersect(x = features.use, y = rownames(x = object)))
+  scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
+  dimnames(x = scaled.data) <- dimnames(x = object)
+  min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
+  object <- object[features.use, , drop = FALSE]
+  gc(verbose = FALSE)
+  if (!is.null(x = vars.to.regress)) {
+    # TODO: implement FetchData for this
+    warning("Regressing out data currently doesn't work", immediate. = TRUE)
+    # Currently, RegressOutMatrix will do nothing if latent.data = NULL
+    # TODO: implement parallelization for RegressOutMatrix
+    object <- RegressOutMatrix(
+      data.expr = object,
+      latent.data = NULL,
+      features.regress = vars.to.regress,
+      model.use = model.use,
+      use.umi = use.umi,
+      display.progress = display.progress
+    )
+    gc(verbose = FALSE)
+  }
+  max.block <- ceiling(x = length(x = features.use) / block.size)
+  if (display.progress) {
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
+  }
+  for (i in 1:max.block) {
+    my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+    my.inds <- my.inds[my.inds <= length(x = features.use)]
+    if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
+      scale.function <- FastSparseRowScale
+    } else {
+      object <- as.matrix(x = object)
+      scale.function <- FastRowScale
+    }
+    data.scale <- scale.function(
+      mat = object[features.use[my.inds], , drop = FALSE],
+      scale = do.scale,
+      center = do.center,
+      scale_max = scale.max,
+      display_progress = FALSE
+    )
+    dimnames(x = data.scale) <- dimnames(x = object[features.use[my.inds], ])
+    scaled.data[features.use[my.inds], ] <- data.scale
+    rm(data.scale)
+    gc(verbose = FALSE)
+    if (display.progress) {
+      setTxtProgressBar(pb = pb, value = i)
+    }
+  }
+  if (display.progress) {
+    close(con = pb)
+  }
+  scaled.data[is.na(x = scaled.data)] <- 0
+  gc(verbose = FALSE)
+  return(scaled.data)
+}
+
+#' @describeIn ScaleData Scale an Assay object
+#' @export
+#' @method ScaleData Assay
+#'
+ScaleData.Assay <- function(
+  object,
+  features.use = NULL,
+  vars.to.regress = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  display.progress = TRUE,
+  ...
+) {
+  object <- SetAssayData(
+    object = object,
+    slot = 'scale.data',
+    new.data = ScaleData(
+      object = GetAssayData(object = object, slot = 'data'),
+      features.use = features.use,
+      vars.to.regress = vars.to.regress,
+      model.use = model.use,
+      use.umi = use.umi,
+      do.scale = do.scale,
+      do.center = do.center,
+      scale.max = scale.max,
+      block.size = block.size,
+      min.cells.to.block = min.cells.to.block,
+      display.progress = display.progress,
+      ...
+    )
+  )
+  return(object)
+}
+
+#' @param assay.use Name of Assay to scale
+#'
+#' @describeIn ScaleData Scale a Seurat object
+#' @export
+#' @method ScaleData Seurat
+#'
+ScaleData.Seurat <- function(
+  features.use = NULL,
+  assay.use = NULL,
+  vars.to.regress = NULL,
+  model.use = 'linear',
+  use.umi = FALSE,
+  do.scale = TRUE,
+  do.center = TRUE,
+  scale.max = 10,
+  block.size = 1000,
+  min.cells.to.block = 3000,
+  display.progress = TRUE,
+  ...
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- ScaleData(
+    object = assay.data,
+    features.use = features.use,
+    vars.to.regress = vars.to.regress,
+    model.use = model.use,
+    use.umi = use.umi,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = scale.max,
+    block.size = block.size,
+    min.cells.to.block = min.cells.to.block,
+    display.progress = display.progress,
+    ...
+  )
+  object[[assay.use]] <- assay.data
+  return(object)
+}
+
 #' Normalize raw data
 #'
 #' Normalize count data per cell and transform to log scale
@@ -750,6 +901,12 @@ FindVariableFeatures.default <- function(
   }
   if (!inherits(x = dispersion.function, what = 'function')) {
     stop("'dispersion.function' must be a function")
+  }
+  if (!inherits(x = object, 'Matrix')) {
+    object <- as(object = as.matrix(x = object), Class = 'Matrix')
+  }
+  if (!inherits(x = object, what = 'dgCMatrix')) {
+    object <- as(object = object, Class = 'dgCMatrix')
   }
   feature.mean <- mean.function(object, display.progress)
   feature.dispersion <- dispersion.function(object, display.progress)

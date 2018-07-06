@@ -36,7 +36,7 @@ is 20)}
 \item{binning.method}{Specifies how the bins should be computed. Available methods are:
 \itemize{
   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
-  \item{equal_frequency:}{ each bin contains an equal number of genes (can increase
+  \item{equal_frequency:}{ each bin contains an equal number of features (can increase
 statistical power to detect overdispersed features at high expression values, at
 the cost of reduced resolution along the x-axis)}
 }}
@@ -47,7 +47,7 @@ the cost of reduced resolution along the x-axis)}
 
 \item{dispersion.cutoff}{Cutoff for feature dispersion values, must be a two-length numeric for low and high values}
 
-\item{selection.method}{Specifies how to select the features to store in @var.genes.
+\item{selection.method}{Specifies how to select the features to store in the object
 \itemize{
   \item{mean.var.plot: }{Default method, placing cutoffs on the mean variablility plot}
   \item{dispersion: }{Choose the top.features with the highest dispersion}
@@ -62,7 +62,7 @@ the cost of reduced resolution along the x-axis)}
 \description{
 Identifies features that are outliers on a 'mean variability plot'. First, uses
 a function to calculate average expression (mean.function) and dispersion (dispersion.function)
-for each gene. Next, divides features into num.bin (deafult 20) bins based on
+for each feautre Next, divides features into num.bin (deafult 20) bins based on
 their average expression, and calculates z-scores for dispersion within each
 bin. The purpose of this is to identify variable features while controlling for
 the strong relationship between variability and average expression.

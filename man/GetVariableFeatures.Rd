@@ -16,7 +16,7 @@ GetVariableFeatures(object, num.features, mean.cutoff, dispersion.cutoff,
 
 \item{dispersion.cutoff}{Cutoff for feature dispersion values, must be a two-length numeric for low and high values}
 
-\item{selection.method}{Specifies how to select the features to store in @var.genes.
+\item{selection.method}{Specifies how to select the features to store in the object
 \itemize{
   \item{mean.var.plot: }{Default method, placing cutoffs on the mean variablility plot}
   \item{dispersion: }{Choose the top.features with the highest dispersion}
