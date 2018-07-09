@@ -1097,6 +1097,8 @@ CombineIdent <- function(object, attribute.1 = "ident",
 #' @param cells.use A vector of cell names. If specified, only the identity of
 #' these cells will be returned.
 #'
+#' @return Return the cell identites of this Seurat object
+#'
 #' @export
 #'
 #' @examples

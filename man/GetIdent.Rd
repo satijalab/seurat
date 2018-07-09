@@ -15,6 +15,9 @@ of all cells}
 \item{cells.use}{A vector of cell names. If specified, only the identity of
 these cells will be returned.}
 }
+\value{
+Return the cell identites of this Seurat object
+}
 \description{
 Get identity of cells
 }
