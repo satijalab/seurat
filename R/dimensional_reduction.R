@@ -13,14 +13,14 @@ RunPCA.default <- function(
   seed.use = 42,
   ...
 ) {
-  if (!is.null(seed.use)) {
+  if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
     pcs.compute <- min(pcs.compute, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = pcs.compute, ...)
-    sdev <- pca.results$d/sqrt(max(1, nrow(object) - 1))
-    if(weight.by.var){
+    sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
+    if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
     } else{
       feature.loadings <- pca.results$u
@@ -32,7 +32,7 @@ RunPCA.default <- function(
     pca.results <- irlba(A = t(x = object), nv = pcs.compute, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-    if(weight.by.var){
+    if (weight.by.var) {
       cell.embeddings <- pca.results$u %*% diag(pca.results$d)
     } else {
       cell.embeddings <- pca.results$u
@@ -75,20 +75,22 @@ RunPCA.Assay <- function(
     object = object,
     features.use = features.use
   )
-  reduction.data <- RunPCA(object = data.use,
-                           assay.used = assay.used,
-                           pc.features = features.use,
-                           pcs.compute = pcs.compute,
-                           rev.pca = rev.pca,
-                           weight.by.var = weight.by.var,
-                           verbose = verbose,
-                           pcs.print = pcs.print,
-                           features.print = features.print,
-                           reduction.name = reduction.name,
-                           reduction.key = reduction.key,
-                           seed.use = seed.use,
-                           ...
-                          )
+  reduction.data <- RunPCA(
+    object = data.use,
+    assay.used = assay.used,
+    pc.features = features.use,
+    pcs.compute = pcs.compute,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    pcs.print = pcs.print,
+    features.print = features.print,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+
+  )
   return(reduction.data)
 }
 
