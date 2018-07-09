@@ -36,6 +36,9 @@ SetDimReduc <- function(object, slot, new.data, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
+#' @rdname Loadings
+#' @export Loadings
+#'
 Loadings <- function(object, ...) {
   UseMethod(generic = 'Loadings', object = object)
 }
@@ -45,6 +48,9 @@ Loadings <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
+#' @rdname Embeddings
+#' @export Embeddings
+#'
 Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
 }
@@ -53,6 +59,9 @@ Embeddings <- function(object, ...) {
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
+#'
+#' @rdname Key
+#' @export Key
 #'
 Key <- function(object, ...) {
   UseMethod(generic = 'Key', object = object)
