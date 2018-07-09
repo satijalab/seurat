@@ -167,6 +167,32 @@ dimnames.Assay <- function(x) {
 }
 
 setMethod(
+  f = 'rowSums',
+  signature = c(x = 'Assay'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(rowSums(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+
+setMethod(
+  f = 'colSums',
+  signature = c(x = 'Assay'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(colSums(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+
+setMethod(
   f = 'show',
   signature = 'Assay',
   definition = function(object) {

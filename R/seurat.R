@@ -232,6 +232,57 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
 )
 
 setMethod(
+  f = 'rowSums',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(rowSums(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+
+setMethod(
+  f = 'colSums',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(colSums(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+setMethod(
+  f = 'rowMeans',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(rowMeans(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+
+setMethod(
+  f = 'colMeans',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+    return(colMeans(
+      x = GetAssayData(object = x),
+      na.rm = na.rm,
+      dims = dims,
+      ...
+    ))
+  }
+)
+
+setMethod(
   f = "show",
   signature = "Seurat",
   definition = function(object) {
