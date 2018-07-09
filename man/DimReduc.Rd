@@ -12,9 +12,9 @@ The DimReduc object is ...
 \describe{
 \item{\code{cell.embeddings}}{...}
 
-\item{\code{gene.loadings}}{...}
+\item{\code{feature.loadings}}{...}
 
-\item{\code{gene.loadings.projected}}{...}
+\item{\code{feature.loadings.projected}}{...}
 
 \item{\code{assay.used}}{...}
 

@@ -1,0 +1,80 @@
+# Methods for DimReduc objects
+#' @include objects.R
+# #' @include dimreduc_generics.R
+#' @importFrom methods slot slot<- setMethod
+NULL
+
+#' Make a DimReduc object
+#'
+#' @param cell.embeddings ...
+#' @param feature.loadings ...
+#' @param feature.loadings.projected ...
+#' @param assay.used ...
+#' @param stdev ...
+#' @param key ...
+#' @param jackstraw ...
+#' @param misc ...
+#' @param ... Ignored for now
+#'
+#' @export
+#'
+MakeDimReducObject <- function(
+  cell.embeddings = matrix(),
+  feature.loadings = matrix(),
+  feature.loadings.projected = matrix(),
+  assay.used = NULL,
+  stdev = numeric(),
+  key = NULL,
+  jackstraw = NULL,
+  misc = list(),
+  ...
+) {
+  if (is.null(assay.used)) {
+    stop("Please specify the assay that was used to construct the reduction")
+  }
+  if (is.null(key)) {
+    stop("Please specify a key for the DimReduc object")
+  }
+
+  dim.reduc <- new(
+    Class = 'DimReduc',
+    cell.embeddings = cell.embeddings,
+    feature.loadings = feature.loadings,
+    feature.loadings.projected = feature.loadings.projected,
+    assay.used = assay.used,
+    stdev = stdev,
+    key = key,
+    jackstraw = jackstraw,
+    misc = misc
+  )
+  return(dim.reduc)
+}
+
+#' @describeIn GetDimReduc Get a slot for a given DimReduc
+#' @export
+#' @method GetDimReduc Seurat
+#'
+GetDimReduc.Seurat <- function(object, slot) {
+  return(slot(object = object, name = slot))
+}
+
+#' @describeIn SetDimReduc Set a slot for a given DimReduc
+#' @export
+#' @method SetDimReduc Seurat
+#'
+SetDimReduc.Seurat <- function(object, slot, new.data) {
+  slots.use <- c("cell.embeddings", "gene.loadings", "gene.loadings.projected",
+                 "assay.used", "stdev", "key", "jackstraw", "misc")
+  if (!slot %in% slots.use) {
+    stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
+  }
+  if (slot == "cell.embeddings") {
+    new.cells <- rownames(new.data)
+    if(! all(new.cells %in% colnames(x = object))) {
+      stop("All cell names must match current cell names")
+    }
+    new.data <- new.data[, colnames(x = object)]
+  }
+  slot(object = object, name = slot) <- new.data
+  return(object)
+}

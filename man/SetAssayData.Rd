@@ -4,7 +4,7 @@
 \alias{SetAssayData}
 \alias{SetAssayData.Seurat}
 \alias{SetAssayData.Assay}
-\title{Settter for multimodal data}
+\title{Setter for multimodal data}
 \usage{
 SetAssayData(object, slot, new.data, ...)
 
@@ -28,7 +28,7 @@ SetAssayData(object, slot, new.data, ...)
 object with the assay data set
 }
 \description{
-Settter for multimodal data
+Setter for multimodal data
 }
 \section{Methods (by class)}{
 \itemize{

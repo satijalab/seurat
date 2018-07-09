@@ -15,7 +15,7 @@ GetAssayData <- function(object, slot, ...) {
   UseMethod(generic = 'GetAssayData', object = object)
 }
 
-#' Settter for multimodal data
+#' Setter for multimodal data
 #'
 #' @param object An object
 #' @param slot Where to store the new data

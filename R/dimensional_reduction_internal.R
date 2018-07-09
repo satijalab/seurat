@@ -34,34 +34,25 @@ setMethod(
 # Common checks and preparatory steps before running certain dimensional
 # reduction techniques
 #
-# @param object        Seurat object
-# @param genes.use     Genes to use as input for the dimensional reduction technique.
-#                      Default is object@@var.genes
-# @param dims.compute  Number of dimensions to compute
-# @param use.imputed   Whether to run the dimensional reduction on imputed values
-# @param assay.type Assay to scale data for. Default is RNA. Can be changed for multimodal analysis
+# @param object        Assay object
+# @param features.use  Features to use as input for the dimensional reduction technique.
+#                      Default is variable features
 
 PrepDR <- function(
   object,
-  genes.use = NULL,
-  use.imputed = FALSE,
-  assay.type="RNA"
+  features.use = NULL
 ) {
-  if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
-    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector
-          of genes names in genes.use and retry.")
+
+  if (length(VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
+    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
   }
-  if (use.imputed) {
-    data.use <- t(x = scale(x = t(x = object@imputed)))
-  } else {
-    data.use <- GetAssayData(object, assay.type = assay.type,slot = "scale.data")
-  }
-  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
-  genes.use <- unique(x = genes.use[genes.use %in% rownames(x = data.use)])
-  genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
-  genes.use <- genes.use[genes.var > 0]
-  genes.use <- genes.use[!is.na(x = genes.use)]
-  data.use <- data.use[genes.use, ]
+  data.use <- GetAssayData(object = object, slot = "scale.data")
+  features.use <- features.use %||% VariableFeatures(object = object)
+  features.use <- unique(x = features.use[features.use %in% rownames(x = data.use)])
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  features.use <- features.use[features.var > 0]
+  features.use <- features.use[!is.na(x = features.use)]
+  data.use <- data.use[features.use, ]
   return(data.use)
 }
 
