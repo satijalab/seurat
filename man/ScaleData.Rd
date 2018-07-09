@@ -7,11 +7,12 @@
 \title{Scale and center the data.}
 \usage{
 \method{ScaleData}{Assay}(object, features.use = NULL,
-  vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
-  do.scale = TRUE, do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, display.progress = TRUE, ...)
+  vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE, scale.max = 10,
+  block.size = 1000, min.cells.to.block = 3000, display.progress = TRUE,
+  ...)
 
-\method{ScaleData}{Seurat}(features.use = NULL, assay.use = NULL,
+\method{ScaleData}{Seurat}(object, features.use = NULL, assay.use = NULL,
   vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
   do.scale = TRUE, do.center = TRUE, scale.max = 10, block.size = 1000,
   min.cells.to.block = 3000, display.progress = TRUE, ...)
@@ -26,6 +27,8 @@ ScaleData(object, features.use, vars.to.regress, model.use, use.umi, do.scale,
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
 RegressOut). For example, nUMI, or percent.mito.}
+
+\item{latent.data}{Extra data to regress out, should be cells x latent data}
 
 \item{model.use}{Use a linear model or generalized linear model
 (poisson, negative binomial) for the regression. Options are 'linear'

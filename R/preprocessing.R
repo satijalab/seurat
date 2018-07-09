@@ -650,6 +650,7 @@ ScaleData.default <- function(
   object,
   features.use = NULL,
   vars.to.regress = NULL,
+  latent.data = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -668,14 +669,27 @@ ScaleData.default <- function(
   object <- object[features.use, , drop = FALSE]
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
-    # TODO: implement FetchData for this
-    warning("Regressing out data currently doesn't work", immediate. = TRUE)
+    if (is.null(x = latent.data)) {
+      latent.data <- data.frame(row.names = colnames(x = object))
+    } else {
+      latent.data <- latent.data[colnames(x = object), , drop = FALSE]
+      rownames(x = latent.data) <- colnames(x = object)
+    }
+    if (any(vars.to.regress %in% rownames(x = object))) {
+      latent.data <- cbind(
+        latent.data,
+        t(x = object[vars.to.regress[vars.to.regress %in% rownames(x = object)], ])
+      )
+    }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
     # TODO: implement parallelization for RegressOutMatrix
+    if (display.progress) {
+      message("Regressing out ", paste(vars.to.regress, collapse = ', '))
+    }
     object <- RegressOutMatrix(
       data.expr = object,
-      latent.data = NULL,
-      features.regress = vars.to.regress,
+      latent.data = latent.data,
+      features.regress = features.use,
       model.use = model.use,
       use.umi = use.umi,
       display.progress = display.progress
@@ -719,6 +733,8 @@ ScaleData.default <- function(
   return(scaled.data)
 }
 
+#' @param latent.data Extra data to regress out, should be cells x latent data
+#'
 #' @describeIn ScaleData Scale an Assay object
 #' @export
 #' @method ScaleData Assay
@@ -727,6 +743,7 @@ ScaleData.Assay <- function(
   object,
   features.use = NULL,
   vars.to.regress = NULL,
+  latent.data = NULL,
   model.use = 'linear',
   use.umi = FALSE,
   do.scale = TRUE,
@@ -737,13 +754,16 @@ ScaleData.Assay <- function(
   display.progress = TRUE,
   ...
 ) {
+  use.umi <- ifelse(test = model.use != 'linear', yes = use.umi, no = use.umi)
+  slot.use <- ifelse(test = use.umi, yes = 'matrix', no = 'data')
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
     new.data = ScaleData(
-      object = GetAssayData(object = object, slot = 'data'),
+      object = GetAssayData(object = object, slot = slot.use),
       features.use = features.use,
       vars.to.regress = vars.to.regress,
+      latent.data = latent.data,
       model.use = model.use,
       use.umi = use.umi,
       do.scale = do.scale,
@@ -765,6 +785,7 @@ ScaleData.Assay <- function(
 #' @method ScaleData Seurat
 #'
 ScaleData.Seurat <- function(
+  object,
   features.use = NULL,
   assay.use = NULL,
   vars.to.regress = NULL,
@@ -780,10 +801,16 @@ ScaleData.Seurat <- function(
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
+  if (any(vars.to.regress %in% colnames(x = object[]))) {
+    latent.data <- object[vars.to.regress[vars.to.regress %in% colnames(x = object[])]]
+  } else {
+    latent.data <- NULL
+  }
   assay.data <- ScaleData(
     object = assay.data,
     features.use = features.use,
     vars.to.regress = vars.to.regress,
+    latent.data = latent.data,
     model.use = model.use,
     use.umi = use.umi,
     do.scale = do.scale,
