@@ -229,6 +229,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'DimReduc' = 'reductions',
       stop("Unknown object type: ", class(x = value))
     )
+    if (!all(colnames(x = value) == colnames(x = x))) {
+      stop("All cells in the object being added must match the cells in this object")
+    }
     slot(object = x, name = slot.use)[[i]] <- value
     return(x)
   }
