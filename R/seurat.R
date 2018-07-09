@@ -178,29 +178,12 @@ names.Seurat <- function(x) {
   ))
 }
 
-setMethod(
-  f = '[',
-  signature = c('x' = 'Seurat', 'i' = 'missing', 'j' = 'missing', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = TRUE) {
-    return(slot(object = x, name = 'meta.data'))
+"[.Seurat" <- function(x, i, ...) {
+  if (missing(x = i)) {
+    i <- colnames(x = slot(object = x, name = 'meta.data'))
   }
-)
-
-setMethod(
-  f = '[',
-  signature = c('x' = 'Seurat', 'i' = 'index', 'j' = 'missing', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = TRUE) {
-    return(slot(object = x, name = 'meta.data')[, i, drop = FALSE])
-  }
-)
-
-setMethod(
-  f = '[',
-  signature = c('x' = 'Seurat', 'i' = 'index', 'j' = 'index', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = TRUE) {
-    return(GetAssayData(object = x)[i, j, ..., drop = drop])
-  }
-)
+  return(slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...])
+}
 
 setMethod(
   f = '[<-',
