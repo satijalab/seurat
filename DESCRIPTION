@@ -44,7 +44,6 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    diffusionMap,
     Hmisc,
     tidyr,
     ggridges,
@@ -108,4 +107,5 @@ Suggests:
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
-    DESeq2
+    DESeq2,
+    destiny
