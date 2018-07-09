@@ -43,16 +43,19 @@ MakeSeuratObject <- function(
   display.progress = TRUE,
   ...
 ) {
-  assay.list <- list()
-  assay.list[assay.use] <- MakeAssayObject(
+  assay.data <- MakeAssayObject(
     raw.data = raw.data,
     min.cells = min.cells,
     min.genes = min.genes,
     is.expr = is.expr
   )
+  assay.list <- list(assay.data)
+  names(x = assay.list) <- assay.use
+  meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
+    meta.data = meta.data,
     active.assay = assay.use,
     active.ident = GetIdent(object = assay.list[[assay.use]]), # TODO: replace this
     project.name = project,
@@ -171,6 +174,35 @@ names.Seurat <- function(x) {
     use.names = FALSE
   ))
 }
+
+"[.Seurat" <- function(x, i, ...) {
+  if (missing(x = i)) {
+    i <- colnames(x = slot(object = x, name = 'meta.data'))
+  }
+  return(slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...])
+}
+
+setMethod(
+  f = '[<-',
+  signature = c('x' = 'Seurat'),
+  definition = function(x, i, ..., value) {
+    meta.data <- x[]
+    cell.names <- rownames(x = meta.data)
+    if (length(x = i) > 1) {
+      stop("Seurat can currently add only one column to metadata at a time")
+    } else {
+      if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
+        meta.data[, i] <- value[cell.names]
+      } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+        meta.data[, i] <- value
+      } else {
+        stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
+      }
+    }
+    slot(object = x, name = 'meta.data') <- meta.data
+    return(x)
+  }
+)
 
 "[[.Seurat" <- function(x, i, ...) {
   if (i %in% names(x = slot(object = x, name = 'assays'))) {
