@@ -35,7 +35,6 @@ MakeDimReducObject <- function(
   if (is.null(key)) {
     stop("Please specify a key for the DimReduc object")
   }
-
   dim.reduc <- new(
     Class = 'DimReduc',
     cell.embeddings = cell.embeddings,
@@ -48,6 +47,40 @@ MakeDimReducObject <- function(
     misc = misc
   )
   return(dim.reduc)
+}
+
+Loadings.DimReduc <- function(object, ...) {
+  projected <- slot(object = object, name = 'feature.loadings.projected')
+  if (all(is.na(x = projected)) && unique(x = dim(x = projected)) == 1) {
+    return(slot(object = object, name = 'feature.loadings'))
+  }
+  return(projected)
+}
+
+Embeddings.DimReduc <- function(object, ...) {
+  return(slot(object = object, name = 'cell.embeddings'))
+}
+
+Key.DimReduc <- function(object, ...) {
+  return(slot(object = object, name = 'key'))
+}
+
+dim.DimReduc <- function(x) {
+  return(list(
+    nrow(x = Loadings(object = x)),
+    nrow(x = Embeddings(object = x))
+  ))
+}
+
+dimnames.DimReduc <- function(x) {
+  return(list(
+    rownames(x = Loadings(object = x)),
+    rownames(x = Embeddings(object = x)))
+  )
+}
+
+length.DimReduc <- function(x) {
+  return(ncol(x = Embeddings(object = x)))
 }
 
 #' @describeIn GetDimReduc Get a slot for a given DimReduc
@@ -70,7 +103,7 @@ SetDimReduc.Seurat <- function(object, slot, new.data) {
   }
   if (slot == "cell.embeddings") {
     new.cells <- rownames(new.data)
-    if(! all(new.cells %in% colnames(x = object))) {
+    if (!all(new.cells %in% colnames(x = object))) {
       stop("All cell names must match current cell names")
     }
     new.data <- new.data[, colnames(x = object)]
@@ -78,3 +111,16 @@ SetDimReduc.Seurat <- function(object, slot, new.data) {
   slot(object = object, name = slot) <- new.data
   return(object)
 }
+
+setMethod(
+  f = 'show',
+  signature = 'DimReduc',
+  definition = function(object) {
+    cat(
+      "A dimensional reduction object with key", Key(object = object), '\n',
+      'Number of dimensions:', length(x = object), '\n',
+      # 'Projected dimensional reduction calculated:', !all(dim(object@feature.loadings.projected) == 0), '\n',
+      'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
+    )
+  }
+)

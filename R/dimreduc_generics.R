@@ -30,3 +30,30 @@ GetDimReduc <- function(object, slot, ...) {
 SetDimReduc <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetDimReduc', object = object)
 }
+
+#' Get feature loadings
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+Loadings <- function(object, ...) {
+  UseMethod(generic = 'Loadings', object = object)
+}
+
+#' Get cell embeddings
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+Embeddings <- function(object, ...) {
+  UseMethod(generic = 'Embeddings', object = object)
+}
+
+#' Get a key
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+Key <- function(object, ...) {
+  UseMethod(generic = 'Key', object = object)
+}
