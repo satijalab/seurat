@@ -61,6 +61,9 @@ MakeSeuratObject <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
+  # Calculate nUMI and nFeature
+  object['nUMI'] <- colSums(x = object)
+  object[paste('nFeautre', assay.use, sep = '_')] <- colSums(raw.data > is.expr)
   # TODO: Add normalization routine
   # TODO: Add scaling routine
   # TODO: Add MetaData
