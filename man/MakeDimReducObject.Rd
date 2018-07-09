@@ -4,9 +4,9 @@
 \alias{MakeDimReducObject}
 \title{Make a DimReduc object}
 \usage{
-MakeDimReducObject(cell.embeddings = NULL, feature.loadings = NULL,
-  feature.loadings.projected = NULL, assay.used = NULL, stdev = NULL,
-  key = NULL, jackstraw = NULL, misc = NULL, ...)
+MakeDimReducObject(cell.embeddings = matrix(), feature.loadings = matrix(),
+  feature.loadings.projected = matrix(), assay.used = NULL,
+  stdev = numeric(), key = NULL, jackstraw = NULL, misc = list(), ...)
 }
 \arguments{
 \item{cell.embeddings}{...}

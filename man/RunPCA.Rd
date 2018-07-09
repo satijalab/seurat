@@ -7,10 +7,10 @@
 \alias{RunPCA}
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-\method{RunPCA}{Assay}(object, features.use = NULL, pcs.compute = 20,
-  rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  pcs.print = 1:5, features.print = 30, reduction.name = "pca",
-  reduction.key = "PC", seed.use = 42, ...)
+\method{RunPCA}{Assay}(object, assay.used = NULL, features.use = NULL,
+  pcs.compute = 20, rev.pca = FALSE, weight.by.var = TRUE,
+  verbose = TRUE, pcs.print = 1:5, features.print = 30,
+  reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay.use = NULL, features.use = NULL,
   pcs.compute = 20, rev.pca = FALSE, weight.by.var = TRUE,
