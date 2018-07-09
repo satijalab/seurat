@@ -223,12 +223,17 @@ RegressOutMatrix <- function(
       paste0(possible.models, collapse = ", ")
     ))
   }
-  # Check genes.regress
+  # Check features.regress
   if (is.null(x = features.regress)) {
     features.regress <- 1:nrow(x = data.expr)
   }
-  if (max(features.regress) > nrow(x = data.expr)) {
-    stop("Cannot use genes that are beyond the scope of data.expr")
+  if (is.character(x = features.regress)) {
+    features.regress <- intersect(x = features.regress, y = rownames(x = data.expr))
+    if (length(x = features.regress) == 0) {
+      stop("Cannot use features that are beyond the scope of data.expr")
+    }
+  } else if (max(features.regress) > nrow(x = data.expr)) {
+    stop("Cannot use features that are beyond the scope of data.expr")
   }
   # Check dataset dimensions
   if (nrow(x = latent.data) != ncol(x = data.expr)) {
@@ -282,6 +287,7 @@ RegressOutMatrix <- function(
       FUN = '-'
     ))
   }
+  dimnames(x = data.resid) <- dimnames(x = data.expr)
   return(data.resid)
 }
 
