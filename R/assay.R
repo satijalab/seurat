@@ -156,6 +156,16 @@ dimnames.Assay <- function(x) {
   return(dimnames(x = GetAssayData(object = x)))
 }
 
+'[.Assay' <- function(x, i, j, ...) {
+  if (missing(x = i)) {
+    i <- 1:nrow(x = x)
+  }
+  if (missing(x = j)) {
+    j <- 1:ncol(x = x)
+  }
+  return(GetAssayData(object = x)[i, j, ...])
+}
+
 setMethod(
   f = 'show',
   signature = 'Assay',
