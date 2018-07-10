@@ -224,7 +224,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     slot.use <- switch(
       EXPR = as.character(x = class(x = value)),
       'Assay' = 'assays',
-      'DimReduc' = 'reductions',
+      'DimReduc' = {
+        if (is.null(x = DefaultAssay(object = value))) {
+          stop("Cannot add a DimReduc without an assay associated with it")
+        }
+        'reductions'
+      },
       stop("Unknown object type: ", class(x = value))
     )
     if (!all(colnames(x = value) == colnames(x = x))) {
