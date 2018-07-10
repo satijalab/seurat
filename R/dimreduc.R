@@ -1,6 +1,5 @@
 # Methods for DimReduc objects
-#' @include objects.R seurat_generics.R
-# #' @include dimreduc_generics.R
+#' @include objects.R seurat_generics.R dimreduc_generics.R
 #' @importFrom methods slot slot<- setMethod
 NULL
 
@@ -49,6 +48,9 @@ MakeDimReducObject <- function(
   return(dim.reduc)
 }
 
+#' @describeIn Loadings Get the feature loadings from a DimReduc object
+#' @export
+#' @method Loadings DimReduc
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
   slot.use <- if (is.null(x = projected)) {
     projected.data <- slot(object = object, name = 'feature.loadings.projected')
@@ -65,10 +67,18 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot.use))
 }
 
+#' @describeIn Embeddings Get the cell embeddings from a DimReduc object
+#' @export
+#' @method Embeddings DimReduc
+#'
 Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
+#' @describeIn Key Get the key for a DimReduc object
+#' @export
+#' @method Key DimReduc
+#'
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }

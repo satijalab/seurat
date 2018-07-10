@@ -121,10 +121,18 @@ SetHVFInfo.Assay <- function(object, hvf.info, ...) {
   return(object)
 }
 
+#' @describeIn Key Get the key for an Assay object
+#' @export
+#' @method Key Assay
+#'
 Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
+#' @describeIn Key Set the key for an Assay object
+#' @export
+#' @method Key<- Assay
+#'
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
   return(object)
