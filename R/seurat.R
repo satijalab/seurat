@@ -265,6 +265,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     slot.use <- switch(
       EXPR = as.character(x = class(x = value)),
       'Assay' = 'assays',
+      'Graph' = 'graphs',
       'DimReduc' = {
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it")

@@ -70,6 +70,19 @@ DimReduc <- setClass(
   )
 )
 
+
+#' The Graph Class
+#'
+#' The Graph class simply inherits from dgCMatrix
+#'
+#' @name Graph
+#' @exportClass Graph
+#'
+Graph <- setClass(
+  Class = 'Graph',
+  contains = "dgCMatrix"
+)
+
 #' The Seurat Class
 #'
 #' The Seurat object is ...
