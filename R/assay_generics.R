@@ -31,20 +31,6 @@ SetAssayData <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
 }
 
-#' Get the idents of multimodal data
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @return A factor with the cell identities
-#'
-#' @rdname GetIdent
-#' @export GetIdent
-#'
-GetIdent <- function(object, ...) {
-  UseMethod(generic = 'GetIdent', object = object)
-}
-
 #' Get and set variable feature information
 #'
 #' @param object An object

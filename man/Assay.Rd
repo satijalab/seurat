@@ -18,16 +18,11 @@ Assays should contain single cell expression data such as RNA-seq, protein, or i
 
 \item{\code{scale.data}}{Scaled expression data}
 
-\item{\code{ident}}{...}
-
 \item{\code{key}}{...}
 
 \item{\code{hvf.info}}{Output of mean/variability analysis for all features}
 
 \item{\code{var.features}}{Vector of features exhibiting high variance across single cells}
-
-\item{\code{meta.data}}{Contains meta-information about each cell, starting with number of genes detected (nGene)
-and the original identity class (orig.ident); more information is added using \code{AddMetaData}}
 
 \item{\code{meta.features}}{Feature-level meteadata}
 

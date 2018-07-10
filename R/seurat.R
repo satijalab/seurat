@@ -16,6 +16,10 @@ NULL
 #' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
 #' can specify do.scale = TRUE (and do.center = TRUE) here.
 #' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
+#' @param names.field For the initial identity class for each cell, choose this field from the
+#' cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this delimiter from the
+#' cell's column name
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
 #' the rows are cell names, and the columns are additional metadata fields
 #' @param display.progress display progress bar for normalization and/or scaling procedure.
@@ -50,15 +54,29 @@ MakeSeuratObject <- function(
   assay.list <- list(assay.data)
   names(x = assay.list) <- assay.use
   meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
+  # Set idents
+  idents <- factor(x = unlist(x = lapply(
+    X = colnames(x = raw.data),
+    FUN = ExtractField,
+    field = names.field,
+    delim = names.delim
+  )))
+  # if there are more than 100 idents, set all idents to ... name
+  ident.levels <- length(x = unique(x = idents))
+  if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
+    idents <- rep.int(x = factor(x = project), times = ncol(x = raw.data))
+  }
+  names(x = idents) <- colnames(x = raw.data)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
     meta.data = meta.data,
     active.assay = assay.use,
-    active.ident = GetIdent(object = assay.list[[assay.use]]), # TODO: replace this
+    active.ident = idents,
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
+  object['orig.ident'] <- idents
   # Calculate nUMI and nFeature
   object['nUMI'] <- colSums(x = object)
   object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data > is.expr)
@@ -129,6 +147,29 @@ DefaultAssay.Seurat <- function(object, ...) {
     stop("Cannot find assay ", value)
   }
   slot(object = object, name = 'active.assay') <- value
+  return(object)
+}
+
+#' @describeIn Idents Get the active identities of a Seurat object
+#' @export
+#' @method Idents Seurat
+#'
+Idents.Seurat <- function(object, ...) {
+  return(slot(object = object, name = 'active.ident'))
+}
+
+#' @describeIn Idents Set the active identities of a Seurat object
+#' @export
+#' @method Idents<- Seurat
+#'
+"Idents<-.Seurat" <- function(object, ..., value) {
+  idents.use <- if (value %in% colnames(x = object[])) {
+    as.factor(x = unlist(x = object[value], use.names = FALSE))
+  } else {
+    factor(x = rep.int(x = value, times = ncol(x = object)))
+  }
+  names(x = idents.use) <- colnames(x = object)
+  slot(object = object, name = 'active.ident') <- idents.use
   return(object)
 }
 
@@ -238,7 +279,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     if (!all(colnames(x = value) == colnames(x = x))) {
       stop("All cells in the object being added must match the cells in this object")
     }
-    if (i %in% names(x = x) && class(x = i) != class(x = x[[i]])) {
+    if (i %in% names(x = x) && class(x = value) != class(x = x[[i]])) {
       stop("This object already contains ", i, " as a ", class(x = x[[i]]), "; duplicate names are not allowed", call. = FALSE)
     }
     slot(object = x, name = slot.use)[[i]] <- value

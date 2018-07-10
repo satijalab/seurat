@@ -1,4 +1,3 @@
-
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
 #' @describeIn BuildSNN Build an SNN on a given matrix
@@ -19,9 +18,8 @@ BuildSNN.default <- function(
     warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
     k.param <- n.cells - 1
   }
-
   # find the k-nearest neighbors for each single cell
-  if (! distance.matrix) {
+  if (!distance.matrix) {
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
@@ -37,19 +35,21 @@ BuildSNN.default <- function(
     }
     knn.mat <- matrix(data = 0, ncol = k.param, nrow = n.cells)
     knd.mat <- knn.mat
-    for (i in 1:n.cells){
-      knn.mat[i, ] <- order(data.use[i, ])[1:k.param]
-      knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
+    for (i in 1:n.cells) {
+      knn.mat[i, ] <- order(object[i, ])[1:k.param]
+      knd.mat[i, ] <- object[i, knn.mat[i, ]]
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
   if (verbose) {
     message("Computing SNN")
   }
-  snn.matrix <- ComputeSNN(nn_ranked = nn.ranked,
-                           prune = prune.SNN)
-  rownames(snn.matrix) <- rownames(object)
-  colnames(snn.matrix) <- rownames(object)
+  snn.matrix <- ComputeSNN(
+    nn_ranked = nn.ranked,
+    prune = prune.SNN
+  )
+  rownames(x = snn.matrix) <- rownames(x = object)
+  colnames(x = snn.matrix) <- rownames(x = object)
   snn.matrix <- as(object = snn.matrix, Class = "Graph")
   return(snn.matrix)
 }
@@ -80,16 +80,18 @@ BuildSNN.Assay <- function(
 ) {
   if (is.null(dims.use)) {
     features.use <- features.use %||% VariableFeatures(object = object)
-    data.use <- t(GetAssayData(object = object, slot = "data")[features.use, ])
+    data.use <- t(x = GetAssayData(object = object, slot = "data")[features.use, ])
   } else {
     data.use <- Embeddings(object = object)[, dims.use]
   }
-  snn.matrix <- BuildSNN(object = data.use,
-                         k.param = k.param,
-                         prune.SNN = prune.SNN,
-                         nn.eps = nn.eps,
-                         verbose = verbose,
-                         force.recalc = force.recalc)
+  snn.matrix <- BuildSNN(
+    object = data.use,
+    k.param = k.param,
+    prune.SNN = prune.SNN,
+    nn.eps = nn.eps,
+    verbose = verbose,
+    force.recalc = force.recalc
+  )
   return(snn.matrix)
 }
 

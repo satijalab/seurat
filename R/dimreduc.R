@@ -49,12 +49,20 @@ MakeDimReducObject <- function(
   return(dim.reduc)
 }
 
-Loadings.DimReduc <- function(object, ...) {
-  projected <- slot(object = object, name = 'feature.loadings.projected')
-  if (all(is.na(x = projected)) && unique(x = dim(x = projected)) == 1) {
-    return(slot(object = object, name = 'feature.loadings'))
+Loadings.DimReduc <- function(object, projected = NULL, ...) {
+  slot.use <- if (is.null(x = projected)) {
+    projected.data <- slot(object = object, name = 'feature.loadings.projected')
+    ifelse(
+      test = all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1,
+      yes = 'feature.loadings',
+      no = 'feature.loadings.projected'
+    )
+  } else if (projected) {
+    'feature.loadings.projected'
+  } else {
+    'feature.loadings'
   }
-  return(projected)
+  return(slot(object = object, name = slot.use))
 }
 
 Embeddings.DimReduc <- function(object, ...) {
