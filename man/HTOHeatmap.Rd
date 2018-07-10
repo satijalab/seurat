@@ -15,9 +15,9 @@ HTOHeatmap(object, hto.classification = "hto_classification",
 
 \item{global.classification}{The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.}
 
-\item{assay.type}{The naming for HTO assay.}
+\item{assay.type}{Hashtag assay name.}
 
-\item{num.cells}{Number of cells to plot. Default is 5000.}
+\item{num.cells}{Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.}
 
 \item{singlet.names}{Namings for the singlets. Default is to use the same names as HTOs.}
 

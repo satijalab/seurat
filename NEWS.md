@@ -2,7 +2,19 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## Develop
+## [2.3.3] - 2018-07-02
+### Added
+- New HTOHeatmap function
+- Support for custom PNG arguments for vector-friendly plotting
+- Fix for 'NA'-labeled cells disappearing with custom color scale
+
+### Changed
+- Replaced FNN with RANN
+- Removed unused compiler flags
+- Moved several lightly-used packages from 'imports' to 'suggests'
+
+
+## [2.3.2] - 2018-06-11
 ### Added
 - RenameCells added for easy renaming of all cells
 - Read10X_h5 added to read in 10X formatted h5 files

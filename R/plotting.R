@@ -1005,6 +1005,8 @@ SplitDotPlotGG <- function(
 #' @param dark.theme Plot in a dark theme
 #' @param do.return return the ggplot2 object
 #' @param vector.friendly FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.
+#' @param png.file Use specific name for temporary png file
+#' @param png.arguments Set width, height, and DPI for ggsave
 #'
 #' @importFrom RColorBrewer brewer.pal.info
 #'

@@ -20,7 +20,6 @@ Depends:
     ggplot2,
     cowplot,
     Matrix (>= 1.2.14),
-SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
@@ -34,7 +33,6 @@ Imports:
     pbapply,
     igraph,
     RANN,
-    caret,
     dplyr,
     RColorBrewer,
     MASS,
@@ -42,7 +40,6 @@ Imports:
     reshape2,
     gplots,
     Rcpp (>= 0.11.0),
-    ranger,
     dtw,
     SDMTools,
     plotly,
@@ -89,6 +86,7 @@ Collate:
     'jackstraw.R'
     'jackstraw_internal.R'
     'multi_modal.R'
+    'not_used_yet.R'
     'plotting.R'
     'plotting_internal.R'
     'plotting_utilities.R'
@@ -110,9 +108,12 @@ Suggests:
     VGAM,
     tclust,
     testthat,
+    caret,
+    ranger,
     loomR,
     phateR,
     S4Vectors,
+    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
