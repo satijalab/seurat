@@ -70,7 +70,6 @@ DimReduc <- setClass(
   )
 )
 
-
 #' The Graph Class
 #'
 #' The Graph class simply inherits from dgCMatrix
