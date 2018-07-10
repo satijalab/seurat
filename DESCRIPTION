@@ -96,6 +96,7 @@ Collate:
     'printing_utilities.R'
     'scoring.R'
     'snn.R'
+    'snn_generics.R'
     'spatial.R'
     'spatial_internal.R'
     'tSNE_project.R'

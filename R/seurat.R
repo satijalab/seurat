@@ -225,6 +225,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       EXPR = as.character(x = class(x = value)),
       'Assay' = 'assays',
       'DimReduc' = 'reductions',
+      'Graph' = 'graphs',
       stop("Unknown object type: ", class(x = value))
     )
     if (!all(colnames(x = value) == colnames(x = x))) {

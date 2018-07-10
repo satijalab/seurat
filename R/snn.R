@@ -1,162 +1,159 @@
-#' @include seurat.R
-NULL
-#' SNN Graph Construction
-#'
-#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-#' first determine the k-nearest neighbors of each cell. We use this knn graph
-#' to construct the SNN graph by calculating the neighborhood overlap
-#' (Jaccard index) between every cell and its k.param nearest neighbors.
-#'
-#' @param object Seurat object
-#' @param genes.use A vector of gene names to use in construction of SNN graph
-#' if building directly based on expression data rather than a dimensionally
-#' reduced representation (i.e. PCs).
-#' @param reduction.type Name of dimensional reduction technique to use in
-#' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims.use A vector of the dimensions to use in construction of the SNN
-#' graph (e.g. To use the first 10 PCs, pass 1:10)
-#' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param plot.SNN Plot the SNN graph
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
-#' computing the neighborhood overlap for the SNN construction. Any edges with
-#' values less than or equal to this will be set to 0 and removed from the SNN
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
-#' prune everything).
-#' @param print.output Whether or not to print output to the console
-#' @param distance.matrix Build SNN from distance matrix (experimental)
-#' @param force.recalc Force recalculation of SNN.
-#' @param filename Write SNN directly to file named here as an edge list
-#' compatible with FindClusters
-#' @param save.SNN Default behavior is to store the SNN in object@@snn. Setting
-#' to FALSE can be used together with a provided filename to only write the SNN
-#' out as an edge file to disk.
-#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
-#' default of 0.0 implies exact nearest neighbor search
-#'
-#' @importFrom RANN nn2
-#' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
-#' @importFrom Matrix sparseMatrix
-#' @return Returns the object with object@@snn filled
+
+#' @param distance.matrix Boolean value of whether the provided matrix is a
+#' distance matrix
+#' @describeIn BuildSNN Build an SNN on a given matrix
 #' @export
+#' @method BuildSNN default
 #'
-#' @examples
-#'
-#' pbmc_small
-#' # Compute an SNN on the gene expression level
-#' pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
-#'
-#' # More commonly, we build the SNN on a dimensionally reduced form of the data
-#' # such as the first 10 principle components.
-#'
-#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
-#'
-BuildSNN <- function(
+BuildSNN.default <- function(
   object,
-  genes.use = NULL,
-  reduction.type = "pca",
-  dims.use = NULL,
+  distance.matrix = FALSE,
   k.param = 10,
-  plot.SNN = FALSE,
   prune.SNN = 1/15,
-  print.output = TRUE,
-  distance.matrix = NULL,
-  force.recalc = FALSE,
-  filename = NULL,
-  save.SNN = TRUE,
-  nn.eps = 0
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE
 ) {
-  if (! is.null(x = distance.matrix)) {
-    data.use <- distance.matrix
-    force.recalc <- TRUE
-  } else if (is.null(x = dims.use)) {
-    genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
-    data.use <- t(x = as.matrix(x = object@data[genes.use, ]))
-  } else {
-    data.use <- GetCellEmbeddings(object = object,
-                                  reduction.type = reduction.type,
-                                  dims.use = dims.use)
-  }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("BuildSNN"))]
-  parameters.to.store$object <- NULL
-  parameters.to.store$distance.matrix <- NULL
-  parameters.to.store$print.output <- NULL
-  if (CalcInfoExists(object, "BuildSNN") && ! force.recalc){
-    old.parameters <- GetAllCalcParam(object, "BuildSNN")
-    old.parameters$time <- NULL
-    old.parameters$print.output <- NULL
-    if(all(all.equal(old.parameters, parameters.to.store) == TRUE)){
-      warning("Build parameters exactly match those of already computed and stored SNN. To force recalculation, set force.recalc to TRUE.")
-      return(object)
-    }
-  }
-  object <- SetCalcParams(object = object,
-                          calculation = "BuildSNN",
-                          ... = parameters.to.store)
-  n.cells <- nrow(x = data.use)
+  n.cells <- nrow(x = object)
   if (n.cells < k.param) {
     warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
     k.param <- n.cells - 1
   }
+
   # find the k-nearest neighbors for each single cell
-  if (is.null(x = distance.matrix)) {
-    if (print.output) {
-      cat("Computing nearest neighbor graph\n", file = stderr())
+  if (! distance.matrix) {
+    if (verbose) {
+      message("Computing nearest neighbor graph")
     }
     my.knn <- nn2(
-        data = data.use,
-        k = k.param,
-        searchtype = 'standard',
-        eps = nn.eps)
+      data = object,
+      k = k.param,
+      searchtype = 'standard',
+      eps = nn.eps)
     nn.ranked <- my.knn$nn.idx
   } else {
-    if (print.output) {
-      cat("Building SNN based on a provided distance matrix\n", file = stderr())
+    if (verbose) {
+      message("Building SNN based on a provided distance matrix")
     }
-    n <- nrow(x = distance.matrix)
-    k.for.nn <- k.param
-    knn.mat <- matrix(data = 0, ncol = k.for.nn, nrow = n)
+    knn.mat <- matrix(data = 0, ncol = k.param, nrow = n.cells)
     knd.mat <- knn.mat
-    for (i in 1:n){
-      knn.mat[i, ] <- order(data.use[i, ])[1:k.for.nn]
+    for (i in 1:n.cells){
+      knn.mat[i, ] <- order(data.use[i, ])[1:k.param]
       knd.mat[i, ] <- data.use[i, knn.mat[i, ]]
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  if (print.output) {
-    cat("Computing SNN\n", file = stderr())
+  if (verbose) {
+    message("Computing SNN")
   }
-  if (save.SNN | is.null(filename)) {
-    object@snn <- ComputeSNN(nn_ranked = nn.ranked,
-                             prune = prune.SNN)
-    rownames(object@snn) <- object@cell.names
-    colnames(object@snn) <- object@cell.names
-    if (!is.null(filename)) {
-      WriteEdgeFile(snn = object@snn, filename = filename, display_progress = print.output)
-    }
+  snn.matrix <- ComputeSNN(nn_ranked = nn.ranked,
+                           prune = prune.SNN)
+  rownames(snn.matrix) <- rownames(object)
+  colnames(snn.matrix) <- rownames(object)
+  snn.matrix <- as(object = snn.matrix, Class = "Graph")
+  return(snn.matrix)
+}
+
+#' @param features.use A vector of feature names to use in construction of SNN
+#' graph if building directly based on data rather than a dimensionally reduced
+#' representation (i.e. PCs).
+#' @param reduction.use Name of dimensional reduction technique to use in
+#' construction of SNN graph. (e.g. "pca", "ica")
+#' @param dims.use A vector of the dimensions to use in construction of the SNN
+#' graph (e.g. To use the first 10 PCs, pass 1:10)
+#'
+#'
+#' @describeIn BuildSNN Build an SNN on an Assay object
+#' @export
+#' @method BuildSNN Assay
+#'
+BuildSNN.Assay <- function(
+  object,
+  features.use = NULL,
+  reduction.use = "pca",
+  dims.use = NULL,
+  k.param = 10,
+  prune.SNN = 1/15,
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE
+) {
+  if (is.null(dims.use)) {
+    features.use <- features.use %||% VariableFeatures(object = object)
+    data.use <- t(GetAssayData(object = object, slot = "data")[features.use, ])
   } else {
-    DirectSNNToFile(nn_ranked = nn.ranked, prune = prune.SNN,
-                    display_progress = print.output, filename = filename)
+    data.use <- Embeddings(object = object)[, dims.use]
   }
-  if (plot.SNN & save.SNN) {
-    if(!"tsne" %in% names(object@dr)) {
+  snn.matrix <- BuildSNN(object = data.use,
+                         k.param = k.param,
+                         prune.SNN = prune.SNN,
+                         nn.eps = nn.eps,
+                         verbose = verbose,
+                         force.recalc = force.recalc)
+  return(snn.matrix)
+}
+
+#' @param assay.use Assay to use in construction of SNN
+#' @param features.use Features to use as input for building the SNN
+#' @param reduction.use Reduction to use as input for building the SNN
+#' @param dims.use Dimensions of reduction to use as input
+#' @param do.plot Plot SNN graph on tSNE coordinates
+#' @param graph.name Optional naming parameter for stored SNN graph. Default is
+#' assay.name_snn.
+#'
+#' @describeIn BuildSNN Build an SNN on a Seurat object
+#' @export
+#' @method BuildSNN Seurat
+#'
+BuildSNN.Seurat <- function(
+  object,
+  assay.use = NULL,
+  features.use = NULL,
+  reduction.use = "pca",
+  dims.use = NULL,
+  k.param = 10,
+  prune.SNN = 1/15,
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  do.plot = FALSE,
+  graph.name = NULL
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  snn.matrix <- BuildSNN(object = assay.data,
+                         features.use = features.use,
+                         reduction.use = reduction.use,
+                         dims.use = dims.use,
+                         k.param = k.param,
+                         prune.SNN = prune.SNN,
+                         nn.eps = nn.eps,
+                         verbose = verbose,
+                         force.recalc = force.recalc)
+
+  graph.name <- graph.name %||% paste0(assay.use, "_snn")
+  object[[graph.name]] <- snn.matrix
+
+  if (do.plot) {
+    if(!"tsne" %in% names(object@reductions)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
     } else {
-      if (nrow(object@dr$tsne@cell.embeddings) != length(x = object@cell.names)) {
+      if (nrow(Embeddings(object = object[["tsne"]])) != ncol(object)) {
         warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
       } else {
         net <- graph.adjacency(
-          adjmatrix = as.matrix(object@snn),
+          adjmatrix = as.matrix(snn.matrix),
           mode = "undirected",
           weighted = TRUE,
           diag = FALSE
         )
         plot.igraph(
           x = net,
-          layout = as.matrix(x = object@dr$tsne@cell.embeddings),
-          edge.width = E(graph = net)$weight,
-          vertex.label = NA,
-          vertex.size = 0
-        )
+          layout = as.matrix(x = Embeddings(object = object[["tsne"]])),
+                             edge.width = E(graph = net)$weight,
+                             vertex.label = NA,
+                             vertex.size = 0
+          )
       }
     }
   }
