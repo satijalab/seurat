@@ -83,6 +83,18 @@ length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
 
+#' @importFrom ggplot2 ggplot aes
+#' @export
+#'
+ggplot.DimReduc <- function(data = NULL, mapping = aes(), ..., environment = parent.frame()) {
+  return(ggplot(
+    data = as.data.frame(x = Embeddings(object = data)),
+    mapping = mapping,
+    ...,
+    environment = environment
+  ))
+}
+
 #' @describeIn GetDimReduc Get a slot for a given DimReduc
 #' @export
 #' @method GetDimReduc Seurat
