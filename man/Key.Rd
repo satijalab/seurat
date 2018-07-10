@@ -2,15 +2,22 @@
 % Please edit documentation in R/dimreduc_generics.R
 \name{Key}
 \alias{Key}
+\alias{Key<-}
 \title{Get a key}
 \usage{
 Key(object, ...)
+
+Key(object, ...) <- value
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{value}{Key value}
 }
 \description{
 Get a key
+
+Set a key
 }
