@@ -1,7 +1,5 @@
 # Methods for Seurat objects
-#' @include objects.R
-#' @include seurat_generics.R
-#' @include assay_generics.R
+#' @include objects.R seurat_generics.R assay_generics.R
 #' @importFrom methods setMethod
 NULL
 
