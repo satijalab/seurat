@@ -1,6 +1,6 @@
 RunPCA.default <- function(
   object,
-  assay.used = NULL,
+  assay.use = NULL,
   features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
@@ -45,7 +45,7 @@ RunPCA.default <- function(
   reduction.data <- MakeDimReducObject(
     cell.embeddings = cell.embeddings,
     feature.loadings = feature.loadings,
-    assay.used = assay.used,
+    assay.used = assay.use,
     stdev = sdev,
     key = reduction.key
   )
@@ -58,7 +58,7 @@ RunPCA.default <- function(
 #'
 RunPCA.Assay <- function(
   object,
-  assay.used = NULL,
+  assay.use = NULL,
   features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
@@ -77,7 +77,7 @@ RunPCA.Assay <- function(
   )
   reduction.data <- RunPCA(
     object = data.use,
-    assay.used = assay.used,
+    assay.use = assay.use,
     pc.features = features.use,
     pcs.compute = pcs.compute,
     rev.pca = rev.pca,
@@ -94,8 +94,6 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
-#' @param assay.use Name of Assay to scale
-#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -119,7 +117,7 @@ RunPCA.Seurat <- function(
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
-    assay.used = assay.use,
+    assay.use = assay.use,
     features.use = features.use,
     pcs.compute = pcs.compute,
     rev.pca = rev.pca,
