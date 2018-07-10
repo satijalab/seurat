@@ -1,5 +1,5 @@
 # Methods for DimReduc objects
-#' @include objects.R
+#' @include objects.R seurat_generics.R
 # #' @include dimreduc_generics.R
 #' @importFrom methods slot slot<- setMethod
 NULL
@@ -29,9 +29,9 @@ MakeDimReducObject <- function(
   misc = list(),
   ...
 ) {
-  if (is.null(assay.used)) {
-    stop("Please specify the assay that was used to construct the reduction")
-  }
+  # if (is.null(assay.used)) {
+  #   stop("Please specify the assay that was used to construct the reduction")
+  # }
   if (is.null(key)) {
     stop("Please specify a key for the DimReduc object")
   }
@@ -93,6 +93,31 @@ ggplot.DimReduc <- function(data = NULL, mapping = aes(), ..., environment = par
     ...,
     environment = environment
   ))
+}
+
+setMethod(
+  f = '[',
+  signature = c('x' = 'DimReduc', 'i' = 'index', 'j' = 'missing', 'drop' = 'ANY'),
+  definition = function(x, i, j, ..., drop = FALSE) {
+    return(Loadings(object = x)[, i])
+  }
+)
+
+setMethod(
+  f = '[',
+  signature = c('x' = 'DimReduc', 'i' = 'missing', 'j' = 'index', 'drop' = 'ANY'),
+  definition = function(x, i, j, ..., drop = FALSE) {
+    return(Embeddings(object = x)[, j])
+  }
+)
+
+DefaultAssay.DimReduc <- function(object, ...) {
+  return(slot(object = object, name = 'assay.used'))
+}
+
+"DefaultAssay<-.DimReduc" <- function(object, ..., value) {
+  slot(object = object, name = 'assay.used') <- value
+  return(object)
 }
 
 #' @describeIn GetDimReduc Get a slot for a given DimReduc
