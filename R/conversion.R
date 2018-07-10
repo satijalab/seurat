@@ -157,9 +157,9 @@ Convert.seurat <- function(
         from@data <- as.matrix(from@data)
       }
       sce <- if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
-        SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[, from@cell.names], "dgCMatrix")))
+        SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[rownames(from@data), from@cell.names], "dgCMatrix")))
       } else if (inherits(x = from@raw.data, what = "dgCMatrix")) {
-        SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[, from@cell.names]))
+        SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[rownames(from@data), from@cell.names]))
       } else {
         stop("Invalid class stored in seurat object's raw.data slot")
       }

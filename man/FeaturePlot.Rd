@@ -10,7 +10,8 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
   reduction.use = "tsne", use.imputed = FALSE, nCol = NULL,
   no.axes = FALSE, no.legend = TRUE, coord.fixed = FALSE,
-  dark.theme = FALSE, do.return = FALSE, vector.friendly = FALSE)
+  dark.theme = FALSE, do.return = FALSE, vector.friendly = FALSE,
+  png.file = NULL, png.arguments = c(10, 10, 100))
 }
 \arguments{
 \item{object}{Seurat object}
@@ -61,6 +62,10 @@ color scale or vector of colors. Note: this will bin the data into number of col
 \item{do.return}{return the ggplot2 object}
 
 \item{vector.friendly}{FALSE by default. If TRUE, points are flattened into a PNG, while axes/labels retain full vector resolution. Useful for producing AI-friendly plots with large numbers of cells.}
+
+\item{png.file}{Use specific name for temporary png file}
+
+\item{png.arguments}{Set width, height, and DPI for ggsave}
 }
 \value{
 No return value, only a graphical output

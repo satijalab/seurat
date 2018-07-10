@@ -94,14 +94,14 @@ DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
 #internal function to run Tobit DE test
 #credit to Cole Trapnell for this
 #
-#' @importFrom VGAM vgam tobit
 #' @importFrom stats as.formula
 #
-TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
+TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf) {
+  PackageCheck('VGAM')
   tryCatch(
-    expr = return(suppressWarnings(expr = vgam(
+    expr = return(suppressWarnings(expr = VGAM::vgam(
       formula = as.formula(object = modelFormulaStr),
-      family = tobit(Lower = lower, Upper = upper),
+      family = VGAM::tobit(Lower = lower, Upper = upper),
       data = x
     ))),
     #warning = function(w) { FM_fit },

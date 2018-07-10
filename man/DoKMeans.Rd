@@ -44,7 +44,7 @@ object@kmeans.col[[1]]. The cluster for each cell is stored in object@meta.data[
 and also object@ident (if set.ident=TRUE)
 }
 \description{
-Perform k=means clustering on both genes and single cells
+Perform k-means clustering on both genes and single cells
 }
 \details{
 K-means and heatmap are calculated on object@scale.data

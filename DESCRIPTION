@@ -1,6 +1,6 @@
 Package: Seurat
-Version: 2.3.2
-Date: 2018-06-11
+Version: 2.3.3
+Date: 2018-07-02
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Butler A and Satija R (2017) <doi:10.1101/164889> for more details.
 Authors@R: c(
@@ -20,11 +20,9 @@ Depends:
     ggplot2,
     cowplot,
     Matrix (>= 1.2.14),
-SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
-    stringr,
     mixtools,
     lars,
     ica,
@@ -32,22 +30,16 @@ Imports:
     Rtsne,
     fpc,
     ape,
-    VGAM,
     pbapply,
     igraph,
-    FNN,
     RANN,
-    caret,
     dplyr,
     RColorBrewer,
     MASS,
     irlba,
     reshape2,
     gplots,
-    gdata,
-    Rcpp,
-    tclust,
-    ranger,
+    Rcpp (>= 0.11.0),
     dtw,
     SDMTools,
     plotly,
@@ -64,7 +56,7 @@ Imports:
     reticulate,
     foreach,
     hdf5r
-LinkingTo: Rcpp, RcppEigen, RcppProgress
+LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
 Collate:
@@ -87,6 +79,7 @@ Collate:
     'jackstraw.R'
     'jackstraw_internal.R'
     'multi_modal.R'
+    'not_used_yet.R'
     'plotting.R'
     'plotting_internal.R'
     'plotting_utilities.R'
@@ -103,10 +96,16 @@ Collate:
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
+    gdata,
+    VGAM,
+    tclust,
     testthat,
+    caret,
+    ranger,
     loomR,
     phateR,
     S4Vectors,
+    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,

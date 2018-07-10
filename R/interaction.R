@@ -416,7 +416,7 @@ SubsetData <- function(
     )
     gc(verbose = FALSE)
   }
-  object@ident <- drop.levels(x = object@ident[cells.use])
+  object@ident <- droplevels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
       if (length(object@dr[[i]]@cell.embeddings) > 0) {
@@ -921,7 +921,7 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
-#' @importFrom gdata drop.levels
+#' @importFrom stats reorder
 #'
 #' @export
 #'
@@ -954,7 +954,7 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
     )
   )
   object@ident[cells.use] <- ident.use
-  object@ident <- drop.levels(x = object@ident)
+  object@ident <- reorder(x = droplevels(x = object@ident))
   return(object)
 }
 
@@ -1193,11 +1193,12 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
   }
   colnames(object@raw.data) <- new.rawdata.names
   rownames(object@meta.data) <- new.cell.names
+  object@cell.names <- new.cell.names
+
   if (for.merge) {
     return(object)
   }
 
-  object@cell.names <- new.cell.names
   colnames(object@data) <- new.cell.names
 
   if (!is.null(object@scale.data)) {

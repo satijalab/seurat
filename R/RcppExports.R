@@ -53,6 +53,10 @@ FastLogVMR <- function(mat, display_progress) {
     .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
 }
 
+RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename) {
+    .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
+}
+
 ComputeSNN <- function(nn_ranked, prune) {
     .Call('_Seurat_ComputeSNN', PACKAGE = 'Seurat', nn_ranked, prune)
 }

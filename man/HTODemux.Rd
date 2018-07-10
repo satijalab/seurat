@@ -4,31 +4,35 @@
 \alias{HTODemux}
 \title{Demultiplex samples based on data from cell 'hashing'}
 \usage{
-HTODemux(object, percent_cutoff = 0.999, init_centers = NULL,
-  cluster_nstarts = 100, k_function = "kmeans", nsamples = 100,
-  print.output = TRUE, assay.type = "HTO", confidence_threshold = 0.05)
+HTODemux(object, assay.type = "HTO", positive_quantile = 0.99,
+  init_centers = NULL, cluster_nstarts = 100, k_function = "clara",
+  nsamples = 100, print.output = TRUE)
 }
 \arguments{
-\item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized in the HTO slot.}
+\item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.}
 
-\item{percent_cutoff}{The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'. Default is 0.999}
+\item{assay.type}{Name of the Hashtag assay (HTO by default)}
 
-\item{init_centers}{Initial number of clusters for kmeans of the HTO oligos. Default is the # of samples + 1 (to account for negatives)}
+\item{positive_quantile}{The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99}
 
-\item{cluster_nstarts}{nstarts value for the initial k-means clustering}
+\item{init_centers}{Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)}
 
-\item{k_function}{Clustering function for initial HTO grouping. Default is "kmeans", also support "clara" for fast k-medoids clustering on large applications}
+\item{cluster_nstarts}{nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default}
+
+\item{k_function}{Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
 
 \item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"}
 
 \item{print.output}{Prints the output}
-
-\item{assay.type}{Naming of HTO assay}
-
-\item{confidence_threshold}{The quantile of the inferred 'positive' distribution for each HTO. Cells that have lower counts than this threshold are labeled as uncertain in the confidence field. Default is 0.05}
 }
 \value{
-Seurat object. Demultiplexed information is stored in the object meta data.
+The Seurat object with the following demultiplexed information stored in the meta data:
+\item{hash_maxID}{Name of hashtag with the highest signal}
+\item{hash_secondID}{Name of hashtag with the second highest signal}
+\item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
+\item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+\item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
+\item{hash_ID}{Classification result where doublet IDs are collapsed}
 }
 \description{
 Assign sample-of-origin for each cell, annotate doublets.

@@ -23,7 +23,7 @@ significance (see Details)}
 }
 \value{
 Returns a Seurat object where object@dr$pca@jackstraw@overall.p.values
-represents p-values for each PC and object@dr$pca@misc$jackstraw.plot 
+represents p-values for each PC and object@dr$pca@misc$jackstraw.plot
 stores the ggplot2 plot.
 }
 \description{

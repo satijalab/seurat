@@ -219,16 +219,22 @@ CollapseSpeciesExpressionMatrix <- function(
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
 #'
-#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized in the HTO slot.
-#' @param percent_cutoff The quantile of inferred 'negative' distribution for each HTO - over which the cell is considered 'positive'. Default is 0.999
-#' @param init_centers Initial number of clusters for kmeans of the HTO oligos. Default is the # of samples + 1 (to account for negatives)
-#' @param cluster_nstarts nstarts value for the initial k-means clustering
-#' @param k_function Clustering function for initial HTO grouping. Default is "kmeans", also support "clara" for fast k-medoids clustering on large applications
+#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.
+#' @param assay.type Name of the Hashtag assay (HTO by default)
+#' @param positive_quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
+#' @param init_centers Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
+#' @param k_function Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
 #' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
+#' @param cluster_nstarts nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default
 #' @param print.output Prints the output
-#' @param assay.type Naming of HTO assay
-#' @param confidence_threshold The quantile of the inferred 'positive' distribution for each HTO. Cells that have lower counts than this threshold are labeled as uncertain in the confidence field. Default is 0.05
-#' @return Seurat object. Demultiplexed information is stored in the object meta data.
+#' 
+#' @return The Seurat object with the following demultiplexed information stored in the meta data:
+#' \item{hash_maxID}{Name of hashtag with the highest signal}
+#' \item{hash_secondID}{Name of hashtag with the second highest signal}
+#' \item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
+#' \item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+#' \item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
+#' \item{hash_ID}{Classification result where doublet IDs are collapsed}
 #'
 #' @importFrom stats pnbinom
 #' @importFrom cluster clara
@@ -239,24 +245,25 @@ CollapseSpeciesExpressionMatrix <- function(
 #' \dontrun{
 #' object <- HTODemux(object)
 #' }
+
 HTODemux <- function(
   object,
-  percent_cutoff = 0.999,
+  assay.type = "HTO",
+  positive_quantile = 0.99,
   init_centers = NULL,
   cluster_nstarts = 100,
-  k_function = "kmeans",
+  k_function = "clara",
   nsamples = 100,
-  print.output = TRUE,
-  assay.type = "HTO",
-  confidence_threshold = 0.05
+  print.output = TRUE
 ) {
-  #hashing
+  #initial clustering
   hash_data <- GetAssayData(object = object, assay.type = assay.type)
   hash_raw_data <- GetAssayData(
     object = object,
     assay.type = assay.type,
     slot = "raw.data"
   )[, object@cell.names]
+  hash_raw_data <- as.matrix(hash_raw_data)
   ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
   if (k_function == "kmeans") {
     hto_init_clusters <- kmeans(
@@ -283,6 +290,8 @@ HTODemux <- function(
       ident.use = hto_init_clusters$clustering
     )
   }
+  
+  #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
   object2 <- object
   object2@data <- object2@data[1:10, ]
@@ -296,64 +305,26 @@ HTODemux <- function(
     assay.type = assay.type,
     slot = "raw.data"
   )
+  
+  #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay.type = assay.type)
   hto_discrete[hto_discrete > 0] <- 0
-  hto_prob_pos <- hto_discrete
-  rownames(x = hto_prob_pos) <- paste(rownames(x = hto_prob_pos), "pos", sep = "_")
-  hto_prob_neg <- hto_discrete
-  rownames(x = hto_prob_neg) <- paste(rownames(x = hto_prob_neg), "neg", sep = "_")
-  hash_data <- GetAssayData(object = object, assay.type = assay.type)
-  hash_raw_data <- GetAssayData(
-    object = object,
-    assay.type = assay.type,
-    slot = "raw.data"
-  )
+  
   # for each HTO, we will use the minimum cluster for fitting
-  # we will also store positive and negative distributions for all cells after determining the cutoff
-  hto_dist_pos = list()
-  hto_dist_neg = list()
   for (hto_iter in rownames(x = hash_data)) {
     hto_values <- hash_raw_data[hto_iter, object@cell.names]
     #commented out if we take all but the top cluster as background
     #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
     hto_values_use <- hto_values[WhichCells(object = object, ident = which.min(x = average_hto[hto_iter, ])
     )]
-    #throw off the top 0% of values, probably should be excluded for the min
-    #hto_values_use <- hto_values_negative[hto_values_negative<quantile(hto_values_negative,1)]
+    
     hto_fit <- fitdist(hto_values_use, "nbinom")
-    hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = percent_cutoff)$quantiles[1])
+    hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
     hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
     if (print.output) {
       print(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
     }
-    hto_values_pos <- hto_values[hto_values > hto_cutoff]
-    hto_values_neg <- hto_values[hto_values <= hto_cutoff]
-    hto_dist_neg[[hto_iter]] <- fitdist(hto_values_neg, "nbinom")
-    hto_dist_pos[[hto_iter]] <- fitdist(hto_values_pos, "nbinom")
-    hto_prob_pos[paste(hto_iter, "pos", sep = "_"),] <- sapply(
-      X = hto_values,
-      FUN = function(x) {
-        return(pnbinom(
-          q = x,
-          size = hto_dist_pos[[hto_iter]]$estimate["size"],
-          mu = hto_dist_pos[[hto_iter]]$estimate["mu"],
-          log.p = TRUE
-        ))
-      }
-    )
-    hto_prob_neg[paste(hto_iter, "neg", sep = "_"),] <- -1 * sapply(
-      X = hto_values,
-      FUN = function(x) {
-        return(pnbinom(
-          q = x,
-          size = hto_dist_neg[[hto_iter]]$estimate["size"],
-          mu = hto_dist_neg[[hto_iter]]$estimate["mu"],
-          log.p = TRUE,
-          lower.tail = FALSE
-        ))
-      }
-    )
-    #hto_prob_neg=sapply(hto_values,function(x) pnbinom(x,size = hto_dist_neg[[hto_iter]]$estimate["size"],mu = hto_dist_neg[[hto_iter]]$estimate["mu"]))
+    
   }
   # now assign cells to HTO based on discretized values
   num_hto_positive <- colSums(x = hto_discrete)
@@ -364,7 +335,6 @@ HTODemux <- function(
   donor_id = rownames(x = hash_data)
   hash_max <- apply(X = hash_data, MARGIN = 2, FUN = max)
   hash_maxID <- apply(X = hash_data, MARGIN = 2, FUN = which.max)
-  # hash_second <- apply(X = hash_data, MARGIN = 2, FUN = function(x) MaxN(x, 2))
   hash_second <- apply(X = hash_data, MARGIN = 2, FUN = MaxN, N = 2)
   hash_maxID <- as.character(x = donor_id[sapply(
     X = 1:ncol(x = hash_data),
@@ -386,59 +356,74 @@ HTODemux <- function(
   hto_classification[hto_classification_global == "Singlet"] <- hash_maxID[which(hto_classification_global == "Singlet")]
   hto_classification[hto_classification_global == "Doublet"] <- doublet_id[which(hto_classification_global == "Doublet")]
   classification_metadata <- data.frame(
-    hash_max,
     hash_maxID,
-    hash_second,
     hash_secondID, hash_margin,
     hto_classification,
     hto_classification_global
   )
   object <- AddMetaData(object = object, metadata = classification_metadata)
-  hto_shortID <- paste(object@meta.data$hash_maxID, object@meta.data$hto_classification_global, sep = "_")
-  names(x = hto_shortID) <- object@cell.names
-  object <- AddMetaData(object = object, metadata = hto_shortID, col.name = "hto_shortID")
-  object <- SetAllIdent(object = object, id = "hto_shortID")
-  object_pn <- data.frame(t(x = rbind(hto_prob_neg, hto_prob_pos)))
-  object <- AddMetaData(object = object, metadata = object_pn)
-  confidence_threshold <- log(x = confidence_threshold)
-  object@meta.data$confidence <- "Confident"
-  singlet_data <- subset(x = object@meta.data, subset = hto_classification_global == "Singlet")
-  singlet_pos <- sapply(
-    X = 1:nrow(x = singlet_data),
-    FUN = function(x) {
-      return(singlet_data[
-        x,
-        paste(as.character(x = singlet_data[x, "hash_maxID"]), "pos", sep = "_")
-      ])
-    }
-  )
-  names(x = singlet_pos) <- rownames(x = singlet_data)
-  object@meta.data[names(x = which(x = singlet_pos < confidence_threshold)), "confidence"] <- "Uncertain"
-  doublet_data <- subset(x = object@meta.data, hto_classification_global == "Doublet")
-  doublet_pos <- sapply(
-    X = 1:nrow(x = doublet_data),
-    FUN = function(x) {
-      return(doublet_data[
-        x,
-        paste(as.character(x = doublet_data[x, "hash_maxID"]), "pos", sep = "_")
-      ])
-    }
-  )
-  names(x = doublet_pos) <- rownames(x = doublet_data)
-  object@meta.data[names(x = which(x = doublet_pos < confidence_threshold)), "confidence"] <- "Uncertain"
-  doublet_pos <- sapply(
-    X = 1:nrow(doublet_data),
-    FUN = function(x) {
-      return(doublet_data[
-        x,
-        paste(as.character(x = doublet_data[x, "hash_secondID"]), "pos", sep = "_")
-      ])
-    }
-  )
-  names(x = doublet_pos) <- rownames(x = doublet_data)
-  object@meta.data[names(x = which(x = doublet_pos < confidence_threshold)), "confidence"] <- "Uncertain"
+  
   if (print.output) {
-    print(x = table(object@meta.data$hto_classification_global, object@meta.data$confidence))
+    print(x = table(object@meta.data$hto_classification_global))
   }
+  object=SetAllIdent(object = object,id = "hto_classification")
+  object=SetIdent(object,cells.use = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
+  object@meta.data$hash_ID=object@ident[rownames(object@meta.data)]
+  
   return(object)
+}
+
+
+
+#' Hashtag oligo heatmap
+#'
+#' Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.
+#'
+#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().
+#' @param hto.classification The naming for object@meta.data slot with classification result from HTODemux().
+#' @param global.classification The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.
+#' @param assay.type Hashtag assay name.
+#' @param num.cells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
+#' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
+#' @param ... Additional arguments for DoHeatmap().
+#' 
+#' @return Returns a ggplot2 plot object.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- HTODemux(object)
+#' HTOHeatmap(object)
+#' }
+
+HTOHeatmap <- function(
+  object,
+  hto.classification = "hto_classification",
+  global.classification = "hto_classification_global",
+  assay.type = "HTO", 
+  num.cells = 5000, 
+  singlet.names = NULL,
+  ...
+){
+  
+  object <- SetAllIdent(object,id = hto.classification)
+  objmini <- SubsetData(object,cells.use = sample(object@cell.names,num.cells))
+  
+  metadata_use <- objmini@meta.data
+  singlet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Singlet",hto.classification])))
+  doublet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Doublet",hto.classification])))
+  
+  heatmap_levels <- c(singlet_id,doublet_id,"Negative")
+  objmini <- SetIdent(objmini,FastWhichCells(objmini,group.by = global.classification,"Doublet"),"Multiplet")
+  
+  objmini@ident <- factor(objmini@ident, c(singlet_id,"Multiplet","Negative"))
+  cells.ordered=as.character(unlist(sapply(heatmap_levels,function(x) sample(FastWhichCells(objmini,group.by = hto.classification,x)))))
+  objmini <- ScaleData(objmini,assay.type = assay.type,display.progress = FALSE)
+  
+  if (!is.null(singlet.names)){
+    levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
+  } 
+  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
+  
 }
