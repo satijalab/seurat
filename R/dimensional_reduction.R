@@ -434,7 +434,7 @@ RunTSNE.DimReduc <- function(
   ...
 ) {
   tsne.reduction <- RunTSNE(
-    object = object[, dims.use],
+    object = object[[, dims.use]],
     assay.use = DefaultAssay(object = object),
     seed.use = seed.use,
     tsne.method = tsne.method,

@@ -87,7 +87,7 @@ Key.DimReduc <- function(object, ...) {
 #' @method dim DimReduc
 #'
 dim.DimReduc <- function(x) {
-  return(list(
+  return(c(
     nrow(x = Loadings(object = x)),
     nrow(x = Embeddings(object = x))
   ))
@@ -121,21 +121,29 @@ ggplot.DimReduc <- function(data = NULL, mapping = aes(), ..., environment = par
   ))
 }
 
-setMethod(
-  f = '[',
-  signature = c('x' = 'DimReduc', 'i' = 'index', 'j' = 'missing', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = FALSE) {
-    return(Loadings(object = x)[, i])
+#' @export
+#'
+'[.DimReduc' <- function(x, i, j, ...) {
+  if (missing(x = i)) {
+    i <- 1:nrow(x = x)
   }
-)
+  if (missing(x = j)) {
+    j <- 1:length(x = x)
+  }
+  return(Loadings(object = x)[i, j, ...])
+}
 
-setMethod(
-  f = '[',
-  signature = c('x' = 'DimReduc', 'i' = 'missing', 'j' = 'index', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = FALSE) {
-    return(Embeddings(object = x)[, j])
+#' @export
+#'
+"[[.DimReduc" <- function(x, i, j, ...) {
+  if (missing(x = i)) {
+    i <- 1:ncol(x = x)
   }
-)
+  if (missing(x = j)) {
+    j <- 1:length(x = x)
+  }
+  return(Embeddings(object = x)[i, j, ...])
+}
 
 DefaultAssay.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'assay.used'))
