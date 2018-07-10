@@ -247,12 +247,19 @@ setMethod(
 )
 
 "[[.Seurat" <- function(x, i, ...) {
-  if (i %in% names(x = slot(object = x, name = 'assays'))) {
-    return(GetAssay(object = x, assay.use = i))
-  } else if (i %in% names(x = slot(object = x, name = 'reductions'))) {
-    return(slot(object = x, name = 'reductions')[[i]])
+  slot.use <- unlist(x = lapply(
+    X = c('assays', 'reductions', 'graphs', 'neighbors'),
+    FUN = function(s) {
+      if (i %in% names(x = slot(object = x, name = s))) {
+        return(s)
+      }
+      return(NULL)
+    }
+  ))
+  if (is.null(x = slot.use)) {
+    stop("Cannot find '", i, "' in this Seurat object")
   }
-  stop("Cannot find '", i, "' in this Seurat object")
+  return(slot(object = x, name = slot.use)[[i]])
 }
 
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
