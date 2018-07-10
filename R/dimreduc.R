@@ -83,6 +83,9 @@ Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
+#' @export
+#' @method dim DimReduc
+#'
 dim.DimReduc <- function(x) {
   return(list(
     nrow(x = Loadings(object = x)),
@@ -90,6 +93,9 @@ dim.DimReduc <- function(x) {
   ))
 }
 
+#' @export
+#' @method dimnames DimReduc
+#'
 dimnames.DimReduc <- function(x) {
   return(list(
     rownames(x = Loadings(object = x)),
@@ -97,6 +103,8 @@ dimnames.DimReduc <- function(x) {
   )
 }
 
+#' @export
+#' @method length DimReduc
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }

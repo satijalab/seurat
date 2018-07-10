@@ -138,14 +138,22 @@ Key.Assay <- function(object, ...) {
   return(object)
 }
 
+#' @export
+#' @method dim Assay
+#'
 dim.Assay <- function(x) {
   return(dim(x = GetAssayData(object = x)))
 }
 
+#' @export
+#' @method dimnames Assay
+#'
 dimnames.Assay <- function(x) {
   return(dimnames(x = GetAssayData(object = x)))
 }
 
+#' @export
+#'
 '[.Assay' <- function(x, i, j, ...) {
   if (missing(x = i)) {
     i <- 1:nrow(x = x)

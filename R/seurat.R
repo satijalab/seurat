@@ -197,14 +197,23 @@ GetHVFInfo.Seurat <- function(object, assay.use = NULL, ...) {
   return(GetHVFInfo(object = assay.data))
 }
 
+#' @export
+#' @method dimnames Seurat
+#'
 dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
 }
 
+#' @export
+#' @method dim Seurat
+#'
 dim.Seurat <- function(x) {
   return(dim(x = GetAssay(object = x)))
 }
 
+#' @export
+#' @method names Seurat
+#'
 names.Seurat <- function(x) {
   return(unlist(
     x = lapply(
@@ -217,6 +226,8 @@ names.Seurat <- function(x) {
   ))
 }
 
+#' @export
+#'
 "[.Seurat" <- function(x, i, ...) {
   if (missing(x = i)) {
     i <- colnames(x = slot(object = x, name = 'meta.data'))
@@ -246,6 +257,8 @@ setMethod(
   }
 )
 
+#' @export
+#'
 "[[.Seurat" <- function(x, i, ...) {
   slot.use <- unlist(x = lapply(
     X = c('assays', 'reductions', 'graphs', 'neighbors'),
