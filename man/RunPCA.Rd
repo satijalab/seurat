@@ -7,7 +7,7 @@
 \alias{RunPCA}
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-\method{RunPCA}{Assay}(object, assay.used = NULL, features.use = NULL,
+\method{RunPCA}{Assay}(object, assay.use = NULL, features.use = NULL,
   pcs.compute = 20, rev.pca = FALSE, weight.by.var = TRUE,
   verbose = TRUE, pcs.print = 1:5, features.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
@@ -22,6 +22,8 @@ RunPCA(object, features.use, pcs.compute, rev.pca, weight.by.var, verbose,
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{assay.use}{Name of Assay PCA is being run on}
 
 \item{features.use}{Features to use as input for PCA. Defaults to variable features}
 
@@ -49,8 +51,6 @@ the number for the dimension names. PC by default}
 NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
-
-\item{assay.use}{Name of Assay to scale}
 }
 \value{
 Returns Seurat object with the PCA calculation stored in the reductions slot

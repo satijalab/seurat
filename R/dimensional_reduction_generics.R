@@ -4,6 +4,7 @@
 #' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object Seurat object
+#' @param assay.use Name of Assay PCA is being run on
 #' @param features.use Features to use as input for PCA. Defaults to variable features
 #' @param pcs.compute Total Number of PCs to compute and store (20 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting

@@ -1,6 +1,6 @@
 RunPCA.default <- function(
   object,
-  assay.used = NULL,
+  assay.use = NULL,
   features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
@@ -45,7 +45,7 @@ RunPCA.default <- function(
   reduction.data <- MakeDimReducObject(
     cell.embeddings = cell.embeddings,
     feature.loadings = feature.loadings,
-    assay.used = assay.used,
+    assay.used = assay.use,
     stdev = sdev,
     key = reduction.key
   )
@@ -58,7 +58,7 @@ RunPCA.default <- function(
 #'
 RunPCA.Assay <- function(
   object,
-  assay.used = NULL,
+  assay.use = NULL,
   features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
@@ -77,7 +77,7 @@ RunPCA.Assay <- function(
   )
   reduction.data <- RunPCA(
     object = data.use,
-    assay.used = assay.used,
+    assay.use = assay.use,
     pc.features = features.use,
     pcs.compute = pcs.compute,
     rev.pca = rev.pca,
@@ -94,8 +94,6 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
-#' @param assay.use Name of Assay to scale
-#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -119,7 +117,7 @@ RunPCA.Seurat <- function(
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
-    assay.used = assay.use,
+    assay.use = assay.use,
     features.use = features.use,
     pcs.compute = pcs.compute,
     rev.pca = rev.pca,
@@ -132,123 +130,6 @@ RunPCA.Seurat <- function(
     ...
   )
   object[[reduction.name]] <- reduction.data
-  return(object)
-}
-
-
-#' Run Principal Component Analysis on gene expression using IRLBA
-#'
-#' Run a PCA dimensionality reduction. For details about stored PCA calculation
-#' parameters, see \code{PrintPCAParams}.
-#'
-#' @param object Seurat object
-#' @param pc.genes Genes to use as input for PCA. Default is object@@var.genes
-#' @param pcs.compute Total Number of PCs to compute and store (20 by default)
-#' @param use.imputed Run PCA on imputed values (FALSE by default)
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
-#' to true will compute it on gene x cell matrix.
-#' @param weight.by.var Weight the cell embeddings by the variance of each PC
-#' (weights the gene loadings if rev.pca is TRUE)
-#' @param do.print Print the top genes associated with high/low loadings for
-#' the PCs
-#' @param pcs.print PCs to print genes for
-#' @param genes.print Number of genes to print for each PC
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. pca by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. PC by default
-#' @param assay.type Data type, RNA by default. Can be changed for multimodal
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#' @param \dots Additional arguments to be passed to IRLBA
-#'
-#' @importFrom irlba irlba
-#' @importFrom methods new
-#'
-#' @return Returns Seurat object with the PCA calculation stored in
-#' object@@dr$pca.
-#'
-#' @importFrom irlba irlba
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' # Run PCA on variable genes (default)
-#' pbmc_small <- RunPCA(pbmc_small)
-#' # Run PCA on different gene set (in this case all genes)
-#' pbmc_small=RunPCA(pbmc_small,pc.genes = rownames(pbmc_small@data))
-#' # Run PCA but compute more than 20 dimensions
-#' pbmc_small=RunPCA(pbmc_small,pcs.compute=30)
-#' # Plot results
-#' PCAPlot(pbmc_small)
-#'
-RunPCA2 <- function(
-  object,
-  pc.genes = NULL,
-  pcs.compute = 20,
-  use.imputed = FALSE,
-  rev.pca = FALSE,
-  weight.by.var = TRUE,
-  do.print = TRUE,
-  pcs.print = 1:5,
-  genes.print = 30,
-  reduction.name = "pca",
-  reduction.key = "PC",
-  assay.type="RNA",
-  seed.use = 42,
-  ...
-) {
-  if (!is.null(seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  data.use <- PrepDR(
-    object = object,
-    genes.use = pc.genes,
-    use.imputed = use.imputed,
-    assay.type = assay.type)
-  if (rev.pca) {
-    pcs.compute <- min(pcs.compute, ncol(x = data.use)-1)
-    pca.results <- irlba(A = data.use, nv = pcs.compute, ...)
-    sdev <- pca.results$d/sqrt(max(1, nrow(data.use) - 1))
-    if(weight.by.var){
-      gene.loadings <- pca.results$u %*% diag(pca.results$d)
-    } else{
-      gene.loadings <- pca.results$u
-    }
-    cell.embeddings <- pca.results$v
-  }
-  else {
-    pcs.compute <- min(pcs.compute, nrow(x = data.use)-1)
-    pca.results <- irlba(A = t(x = data.use), nv = pcs.compute, ...)
-    gene.loadings <- pca.results$v
-    sdev <- pca.results$d/sqrt(max(1, ncol(data.use) - 1))
-    if(weight.by.var){
-      cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-    } else {
-      cell.embeddings <- pca.results$u
-    }
-  }
-  rownames(x = gene.loadings) <- rownames(x = data.use)
-  colnames(x = gene.loadings) <- paste0(reduction.key, 1:pcs.compute)
-  rownames(x = cell.embeddings) <- colnames(x = data.use)
-  colnames(x = cell.embeddings) <- colnames(x = gene.loadings)
-  pca.obj <- new(
-    Class = "dim.reduction",
-    gene.loadings = gene.loadings,
-    cell.embeddings = cell.embeddings,
-    sdev = sdev,
-    key = reduction.key
-  )
-  #object@dr[reduction.name] <- pca.obj
-  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- pca.obj")))
-
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunPCA"))]
-  object <- SetCalcParams(object = object, calculation = "RunPCA", ... = parameters.to.store)
-  if(is.null(object@calc.params$RunPCA$pc.genes)){
-    object@calc.params$RunPCA$pc.genes <- rownames(data.use)
-  }
-  if(do.print){
-    PrintDim(object = object, dims.print = pcs.print, genes.print = genes.print,reduction.type = reduction.name)
-  }
   return(object)
 }
 
