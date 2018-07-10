@@ -1,7 +1,6 @@
 RunPCA.default <- function(
   object,
   assay.use = NULL,
-  features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
@@ -52,6 +51,8 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
+#' @param features.use Features to use as input for PCA. Defaults to variable features
+#'
 #' @describeIn RunPCA Run a PCA on an Assay object
 #' @export
 #' @method RunPCA Assay
@@ -94,6 +95,8 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param features.use Features to use as input for PCA. Defaults to variable features
+#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
