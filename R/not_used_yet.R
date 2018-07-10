@@ -875,7 +875,7 @@ MultiModal_CCA <- function(
 #' @param num.axes Number of principal axes to compute and store. Default is 20, but will calculate less if either assay has <20 features.
 #' @param normalize.variance Return the normalized row scares, so each aexis contributes equally in downstream analysis (default is T)
 #'
-#' @importFrom made4 cia
+#' @importFrom utils installed.packages
 #'
 #' @return Returns object after CIA, with results stored in dimensional reduction cia.assay1 (ie. cia.RNA) and cia.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cia.RNA")
 #'
@@ -890,6 +890,9 @@ MultiModal_CIA <- function(
   num.axes = 20,
   normalize.variance = T
 ) {
+  if (!'made4' %in% rownames(x = installed.packages())) {
+      stop("Please install made4")
+  }
   #first pull out data, define features
   data.1 <- GetAssayData(
     object = object,
@@ -915,7 +918,7 @@ MultiModal_CIA <- function(
   cia.data <- list(data.1, data.2)
   names(x = cia.data) <- c(assay.1, assay.2)
   # now run cia
-  out <- cia(
+  out <- made4::cia(
     df1 = t(x = cia.data[[1]]),
     df2 = t(x = cia.data[[2]]),
     cia.nf = num.axes
@@ -957,4 +960,3 @@ MultiModal_CIA <- function(
   }
   return(object)
 }
-

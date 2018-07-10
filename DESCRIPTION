@@ -60,7 +60,7 @@ Imports:
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate: 
+Collate:
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
@@ -106,6 +106,7 @@ Suggests:
     loomR,
     phateR,
     S4Vectors,
+    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
