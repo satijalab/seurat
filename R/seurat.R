@@ -210,6 +210,8 @@ setMethod(
     return(GetAssay(object = x, assay.use = i))
   } else if (i %in% names(x = slot(object = x, name = 'reductions'))) {
     return(slot(object = x, name = 'reductions')[[i]])
+  } else if (i %in% names(x = slot(object = x, name = 'graphs'))) {
+    return(slot(object = x, name = 'graphs')[[i]])
   }
   stop("Cannot find '", i, "' in this Seurat object")
 }

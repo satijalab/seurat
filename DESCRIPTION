@@ -71,6 +71,7 @@ Collate:
     'dimreduc_generics.R'
     'assay.R'
     'cluster_determination.R'
+    'cluster_determination_generics.R'
     'cluster_determination_internal.R'
     'cluster_validation.R'
     'data.R'
