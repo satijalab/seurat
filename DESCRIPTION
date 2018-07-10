@@ -60,7 +60,7 @@ Imports:
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate:
+Collate: 
     'RcppExports.R'
     'alignment.R'
     'seurat.R'
@@ -80,6 +80,7 @@ Collate:
     'jackstraw.R'
     'jackstraw_internal.R'
     'multi_modal.R'
+    'not_used_yet.R'
     'plotting.R'
     'plotting_internal.R'
     'plotting_utilities.R'
