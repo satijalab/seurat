@@ -235,6 +235,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     if (!all(colnames(x = value) == colnames(x = x))) {
       stop("All cells in the object being added must match the cells in this object")
     }
+    if (i %in% names(x = x) && class(x = i) != class(x = x[[i]])) {
+      stop("This object already contains ", i, " as a ", class(x = x[[i]]), "; duplicate names are not allowed", call. = FALSE)
+    }
     slot(object = x, name = slot.use)[[i]] <- value
     return(x)
   }
