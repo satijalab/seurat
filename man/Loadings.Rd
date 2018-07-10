@@ -4,10 +4,12 @@
 \alias{Loadings}
 \title{Get feature loadings}
 \usage{
-Loadings(object, ...)
+Loadings(object, projected, ...)
 }
 \arguments{
 \item{object}{An object}
+
+\item{projected}{Pull the projected feature loadings?}
 
 \item{...}{Arguments passed to other methods}
 }

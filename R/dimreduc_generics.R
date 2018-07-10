@@ -34,12 +34,13 @@ SetDimReduc <- function(object, slot, new.data, ...) {
 #' Get feature loadings
 #'
 #' @param object An object
+#' @param projected Pull the projected feature loadings?
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname Loadings
 #' @export Loadings
 #'
-Loadings <- function(object, ...) {
+Loadings <- function(object, projected, ...) {
   UseMethod(generic = 'Loadings', object = object)
 }
 
