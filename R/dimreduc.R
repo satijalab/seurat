@@ -161,10 +161,12 @@ setMethod(
   f = 'show',
   signature = 'DimReduc',
   definition = function(object) {
+    projected.data <- slot(object = object, name = 'feature.loadings.projected')
+    projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1)
     cat(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
-      # 'Projected dimensional reduction calculated:', !all(dim(object@feature.loadings.projected) == 0), '\n',
+      'Projected dimensional reduction calculated:', projected, '\n',
       'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
     )
   }
