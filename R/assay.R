@@ -1,6 +1,5 @@
 # Methods for Assay objects
-#' @include objects.R
-#' @include assay_generics.R
+#' @include objects.R assay_generics.R dimreduc_generics.R
 #' @importFrom methods slot slot<- setMethod
 NULL
 
@@ -145,6 +144,15 @@ GetHVFInfo.Assay <- function(object, ...) {
 SetHVFInfo.Assay <- function(object, hvf.info, ...) {
   slot(object = object, name = 'hvf.info') <- hvf.info
   VariableFeatures(object = object) <- GetVariableFeatures(object = hvf.info, ...)
+  return(object)
+}
+
+Key.Assay <- function(object, ...) {
+  return(slot(object = object, name = 'key'))
+}
+
+"Key<-.Assay" <- function(object, ..., value) {
+  slot(object = object, name = 'key') <- value
   return(object)
 }
 

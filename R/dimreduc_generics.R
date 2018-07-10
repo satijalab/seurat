@@ -66,3 +66,15 @@ Embeddings <- function(object, ...) {
 Key <- function(object, ...) {
   UseMethod(generic = 'Key', object = object)
 }
+
+#' Set a key
+#'
+#' @inheritParams Key
+#' @param value Key value
+#'
+#' @rdname Key
+#' @export Key<-
+#'
+"Key<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Key<-', object = object)
+}
