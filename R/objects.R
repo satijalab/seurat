@@ -14,12 +14,9 @@ setOldClass(Classes = 'package_version')
 #' @slot raw.data Raw expression data
 #' @slot data Normalized expression data
 #' @slot scale.data Scaled expression data
-#' @slot ident ...
 #' @slot key ...
 #' @slot hvf.info Output of mean/variability analysis for all features
 #' @slot var.features Vector of features exhibiting high variance across single cells
-#' @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
-#' and the original identity class (orig.ident); more information is added using \code{AddMetaData}
 #' @slot meta.features Feature-level meteadata
 #' @slot cluster.tree ...
 #' @slot kmeans ...
@@ -34,11 +31,9 @@ Assay <- setClass(
     raw.data = 'dgCMatrix',
     data = 'dgCMatrix',
     scale.data = 'matrix',
-    ident = 'factor',
     key = 'character',
     hvf.info = 'data.frame',
     var.features = 'vector',
-    meta.data = 'data.frame',
     meta.features = 'data.frame',
     cluster.tree = 'ANY',
     kmeans = 'ANY'

@@ -21,12 +21,6 @@ datasets, will be set to 0 (default). If not, when initializing, this should be 
 based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
 values less than this will be set to 0 (though maintained in object@raw.data).}
 
-\item{names.field}{For the initial identity class for each cell, choose this field from the
-cell's column name}
-
-\item{names.delim}{For the initial identity class for each cell, choose this delimiter from the
-cell's column name}
-
 \item{...}{Ignored for now}
 }
 \description{
