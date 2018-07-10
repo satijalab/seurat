@@ -1,6 +1,9 @@
+#' @export
+#'
 RunPCA.default <- function(
   object,
   assay.use = NULL,
+  features.use = NULL,
   pcs.compute = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
@@ -51,8 +54,6 @@ RunPCA.default <- function(
   return(reduction.data)
 }
 
-#' @param features.use Features to use as input for PCA. Defaults to variable features
-#'
 #' @describeIn RunPCA Run a PCA on an Assay object
 #' @export
 #' @method RunPCA Assay
@@ -95,8 +96,6 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
-#' @param features.use Features to use as input for PCA. Defaults to variable features
-#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -372,6 +371,9 @@ RunTSNEOld <- function(
   return(object)
 }
 
+#' @export
+#' @method RunTSNE matrix
+#'
 RunTSNE.matrix <- function(
   object,
   assay.use = NULL,
@@ -1222,8 +1224,7 @@ RunDiffusion <- function(
 #' **high** dimensional data in **low** dimensional spaces.
 #' To run, you must first install the `phate` python
 #' package (e.g. via pip install phate). Details on this package can be
-#' found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For help,
-#' visit \url{https://krishnaswamylab.org/get-help}. For a more in depth
+#' found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For a more in depth
 #' discussion of the mathematics underlying PHATE, see the bioRxiv paper here:
 #' \url{https://www.biorxiv.org/content/early/2017/12/01/120378}.
 #'
@@ -1233,37 +1234,41 @@ RunDiffusion <- function(
 #' Not set (NULL) by default
 #' @param assay.type Assay to pull data for (default: 'RNA')
 #' @param max.dim Total number of dimensions to embed in PHATE.
-#' @param k int, optional (default: 5)
+#' @param k int, optional, default: 15
 #' number of nearest neighbors on which to build kernel
-#' @param alpha int, optional (default: 15)
+#' @param alpha int, optional, default: 10
 #' sets decay rate of kernel tails.
 #' If NA, alpha decaying kernel is not used
-#' @param n.landmark int, optional (default: 2000)
+#' @param use.alpha boolean, default: NA
+#' forces the use of alpha decaying kernel
+#' If NA, alpha decaying kernel is used for small inputs
+#' (n_samples < n_landmark) and not used otherwise
+#' @param n.landmark int, optional, default: 2000
 #' number of landmarks to use in fast PHATE
-#' @param gamma float, optional (default: 1)
-#' Informational distance constant between -1 and 1.
-#' `gamma=1` gives the PHATE log potential, `gamma=0` gives
-#' a square root potential.
-#' @param t int, optional (default: 'auto')
+#' @param potential.method string, optional, default: 'log'
+#' choose from 'log' and 'sqrt'
+#' which transformation of the diffusional operator is used
+#' to compute the diffusion potential
+#' @param t int, optional, default: 'auto'
 #' power to which the diffusion operator is powered
 #' sets the level of diffusion
-#' @param knn.dist.method string, optional (default: 'euclidean')
+#' @param knn.dist.method string, optional, default: 'euclidean'.
 #' The desired distance function for calculating pairwise distances on the data.
 #' If 'precomputed', `data` is treated as a
 #' (n_samples, n_samples) distance or affinity matrix
-#' @param mds.method string, optional (default: 'metric')
+#' @param mds.method string, optional, default: 'metric'
 #' choose from 'classic', 'metric', and 'nonmetric'
 #' which MDS algorithm is used for dimensionality reduction
-#' @param mds.dist.method string, optional (default: 'euclidean')
+#' @param mds.dist.method string, optional, default: 'euclidean'
 #' recommended values: 'euclidean' and 'cosine'
-#' @param t.max int, optional (default: 100)
+#' @param t.max int, optional, default: 100.
 #' Maximum value of t to test for automatic t selection.
-#' @param npca int, optional (default: 100)
+#' @param npca int, optional, default: 100
 #' Number of principal components to use for calculating
 #' neighborhoods. For extremely large datasets, using
 #' n_pca < 20 allows neighborhoods to be calculated in
 #' log(n_samples) time.
-#' @param plot.optimal.t boolean, optional (default: FALSE)
+#' @param plot.optimal.t boolean, optional, default: FALSE
 #' If TRUE, produce a plot showing the Von Neumann Entropy
 #' curve for automatic t selection.
 #' @param verbose `int` or `boolean`, optional (default : 1)
@@ -1308,8 +1313,8 @@ RunDiffusion <- function(
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
 #'1
-#' # For increased emphasis on local structure, use sqrt potential (gamma=0)
-#' pbmc_small <- RunPHATE(object = pbmc_small, gamma=0)
+#' # For increased emphasis on local structure, use sqrt potential
+#' pbmc_small <- RunPHATE(object = pbmc_small, potential.method='sqrt')
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
 #' }
@@ -1320,10 +1325,11 @@ RunPHATE <- function(
   genes.use = NULL,
   assay.type = 'RNA',
   max.dim = 2L,
-  k = 5,
-  alpha = 15,
+  k = 15,
+  alpha = 10,
+  use.alpha = NA,
   n.landmark = 2000,
-  gamma = 1,
+  potential.method = "log",
   t = "auto",
   knn.dist.method = "euclidean",
   mds.method = "metric",
@@ -1362,6 +1368,7 @@ RunPHATE <- function(
     alpha = alpha,
     use.alpha = alpha,
     n.landmark = n.landmark,
+    potential.method = potential.method,
     t = t,
     knn.dist.method = knn.dist.method,
     init = NULL,

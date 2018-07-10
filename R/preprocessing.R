@@ -280,6 +280,8 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
   }
 }
 
+#' @export
+#'
 NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
@@ -646,6 +648,8 @@ ScaleDataOld <- function(
   return(object)
 }
 
+#' @export
+#'
 ScaleData.default <- function(
   object,
   features.use = NULL,
@@ -914,6 +918,8 @@ SampleUMI <- function(
   return(new_data)
 }
 
+#' @export
+#'
 FindVariableFeatures.default <- function(
   object,
   mean.function = FastExpMean,
@@ -1057,6 +1063,9 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @export
+#' @method GetVariableFeatures data.frame
+#'
 GetVariableFeatures.data.frame <- function(
   object,
   num.features = 1000,

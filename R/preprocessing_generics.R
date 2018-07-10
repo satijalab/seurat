@@ -56,6 +56,9 @@ NormalizeData <- function(
 #' @param display.progress show progress bar for calculations
 #' @param ... Arguments passed to other methods
 #'
+#' @rdname FindVariableFeatures
+#' @export FindVariableFeatures
+#'
 FindVariableFeatures <- function(
   object,
   mean.function,
