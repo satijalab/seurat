@@ -48,3 +48,49 @@ RunPCA <- function(
 ) {
   UseMethod(generic = 'RunPCA', object = object)
 }
+
+#' Run t-distributed Stochastic Neighbor Embedding
+#'
+#' Run t-SNE dimensionality reduction on selected features. Has the option of
+#' running in a reduced dimensional space (i.e. spectral tSNE, recommended),
+#' or running based on a set of genes. For details about stored TSNE calculation
+#' parameters, see \code{PrintTSNEParams}.
+#'
+#' @param object Seurat object
+#' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
+#' the tSNE. Default is PCA
+#' @param cells.use Which cells to analyze (default, all cells)
+#' @param seed.use Random seed for the t-SNE
+#' @param tsne.method Select the method to use to compute the tSNE. Available
+#' methods are:
+#' \itemize{
+#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
+#' \item{tsne: }{standard tsne - not recommended for large datasets}
+#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
+#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
+#' }
+#' @param add.iter If an existing tSNE has already been computed, uses the
+#' current tSNE to seed the algorithm and then adds additional iterations on top
+#' of this
+#' @param dim.embed The dimensional space of the resulting tSNE embedding
+#' (default is 2). For example, set to 3 for a 3d tSNE
+#' @param \dots Additional arguments to the tSNE call. Most commonly used is
+#' perplexity (expected number of neighbors default is 30)
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
+#'
+#' @rdname RunTSNE
+#' @export RunTSNE
+#'
+RunTSNE <- function(
+  object,
+  reduction.use,
+  cells.use,
+  seed.use,
+  tsne.method,
+  add.iter,
+  dim.embed,
+  reduction.key,
+  ...
+) {
+  UseMethod(generic = 'RunTSNE', object = object)
+}

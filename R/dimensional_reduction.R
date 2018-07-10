@@ -272,6 +272,7 @@ RunICA <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Run tSNE on first five PCs, note that for test dataset (only 80 cells)
 #' # we can't use default perplexity of 30
@@ -281,13 +282,14 @@ RunICA <- function(
 #' pbmc_small <- RunTSNE(pbmc_small, reduction.use = "ica", dims.use = 1:5, perplexity=10)
 #' # Plot results
 #' TSNEPlot(pbmc_small)
+#' }
 #'
-RunTSNE <- function(
+RunTSNEOld <- function(
   object,
   reduction.use = "pca",
-  cells.use = NULL,
+  # cells.use = NULL,
   dims.use = 1:5,
-  genes.use = NULL,
+  features.use = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
   add.iter = 0,
@@ -313,14 +315,16 @@ RunTSNE <- function(
   if (!is.null(x = genes.use)) {
     data.use <- t(PrepDR(
       object = object,
-      genes.use = genes.use))
+      features.use = features.use))
   }
   set.seed(seed = seed.use)
   if (tsne.method == "Rtsne") {
     if (is.null(x = distance.matrix)) {
-      data.tsne <- Rtsne(X = as.matrix(x = data.use),
-                         dims = dim.embed,
-                         pca = FALSE, ...)
+      data.tsne <- Rtsne(
+        X = as.matrix(x = data.use),
+        dims = dim.embed,
+        pca = FALSE, ...
+      )
     } else {
       data.tsne <- Rtsne(
         X = as.matrix(x = distance.matrix),
@@ -365,6 +369,157 @@ RunTSNE <- function(
     object@calc.params$RunTSNE$genes.use <- colnames(data.use)
     object@calc.params$RunTSNE$cells.use <- rownames(data.use)
   }
+  return(object)
+}
+
+RunTSNE.matrix <- function(
+  object,
+  assay.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  ...
+) {
+  set.seed(seed = seed.use)
+  tsne.data <- switch(
+    EXPR = tsne.method,
+    'Rtsne' = Rtsne(
+      X = object,
+      dims = dim.embed,
+      ... # PCA/is_distance
+    )$Y,
+    'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
+    'tsne' = tsne(X = object, k = dim.embed, ...),
+    stop("Invalid tSNE method: please choose from 'Rtsne', 'FIt-SNE', or 'tsne'")
+  )
+  if (add.iter > 0) {
+    tsne.data <- tsne(
+      X = object,
+      intial_config = as.matrix(x = tsne.data),
+      max_iter = add.iter,
+      ...
+    )
+  }
+  colnames(x = tsne.data) <- paste0(reduction.key, 1:ncol(x = tsne.data))
+  rownames(x = tsne.data) <- rownames(x = object)
+  tsne.reduction <- MakeDimReducObject(
+    cell.embeddings = tsne.data,
+    key = reduction.key,
+    assay.used = assay.use
+  )
+  return(tsne.reduction)
+}
+
+#' @param dims.use Which dimensions to use as input features
+#'
+#' @describeIn RunTSNE Run tSNE on a DimReduc object
+#' @export
+#' @method RunTSNE DimReduc
+#'
+RunTSNE.DimReduc <- function(
+  object,
+  cells.use = NULL,
+  dims.use = 1:5,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+) {
+  tsne.reduction <- RunTSNE(
+    object = object[, dims.use],
+    assay.use = DefaultAssay(object = object),
+    seed.use = seed.use,
+    tsne.method = tsne.method,
+    add.iter = add.iter,
+    dim.embed = dim.embed,
+    reduction.key = reduction.key,
+    ...
+  )
+  return(tsne.reduction)
+}
+
+#' @param distance.matrix If set, runs tSNE on the given distance matrix
+#' instead of data matrix (experimental)
+#' @param features.use If set, run the tSNE on this subset of features
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
+#'
+#' @describeIn RunTSNE Run tSNE on a Seurat object
+#' @export
+#' @method RunTSNE Seurat
+#'
+RunTSNE.Seurat <- function(
+  object,
+  reduction.use = "pca",
+  cells.use = NULL,
+  dims.use = 1:5,
+  features.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  ...
+) {
+  tsne.reduction <- if (tsne.method == 'Rtsne') {
+    if (!is.null(x = distance.matrix)) {
+      RunTSNE(
+        object = as.matrix(x = distance.matrix),
+        assay.use = DefaultAssay(object = object),
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        is_distance = TRUE,
+        ...
+      )
+    } else if (!is.null(x = features.use)) {
+      RunTSNE(
+        object = as.matrix(x = GetAssayData(object = object)[features.use, ]),
+        assay.use = DefaultAssay(object = object),
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        pca = FALSE,
+        ...
+      )
+    } else {
+      RunTSNE(
+        object = object[[reduction.use]],
+        dims.use = dims.use,
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        pca = FALSE,
+        ...
+      )
+    }
+  } else {
+    RunTSNE(
+      object = object[[reduction.use]],
+      dims.use = dims.use,
+      seed.use = seed.use,
+      tsne.method = tsne.method,
+      add.iter = add.iter,
+      dim.embed = dim.embed,
+      reduction.key = reduction.key,
+      ...
+    )
+  }
+  object[[reduction.name]] <- tsne.reduction
   return(object)
 }
 
