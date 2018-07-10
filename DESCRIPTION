@@ -20,7 +20,6 @@ Depends:
     ggplot2,
     cowplot,
     Matrix (>= 1.2.14),
-SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
