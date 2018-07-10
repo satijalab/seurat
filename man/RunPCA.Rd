@@ -17,8 +17,8 @@
   verbose = TRUE, pcs.print = 1:5, features.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
 
-RunPCA(object, features.use, pcs.compute, rev.pca, weight.by.var, verbose,
-  pcs.print, features.print, reduction.name, reduction.key, seed.use, ...)
+RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
+  features.print, reduction.name, reduction.key, seed.use, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -51,6 +51,8 @@ the number for the dimension names. PC by default}
 NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
+
+\item{features.use}{Features to use as input for PCA. Defaults to variable features}
 }
 \value{
 Returns Seurat object with the PCA calculation stored in the reductions slot

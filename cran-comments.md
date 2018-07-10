@@ -1,9 +1,10 @@
-# Seurat v2.3.2
+# Seurat v2.3.3
 
 ## Test environments
 * local Ubuntu 16.04 and 18.04 installs, R 3.4.4
 * Ubuntu 12.04 (on travis-ci), R 3.5.0
 * macOS 10.12.6 (on travis-ci), R 3.5.0
+* Windows Server 2012 (on AppVeyor), R 3.5.0
 * win-builder (devel, release)
 
 ## R CMD check results
@@ -27,4 +28,4 @@ There were 2 NOTEs:
 
 ## Downstream dependencies
 
-There are currently no downstream dependencies for this package. There is one package that suggests Seurat, clustree. Running `R CMD check` on this package with Seurat 2.3.2 yielded no ERRORs, WARNINGs, or NOTEs
+There are currently no downstream dependencies for this package.
