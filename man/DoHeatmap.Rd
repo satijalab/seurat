@@ -10,8 +10,7 @@ DoHeatmap(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
   col.mid = "#000000", col.high = "#FFFF00", slim.col.label = FALSE,
   remove.key = FALSE, rotate.key = FALSE, title = NULL, cex.col = 10,
   cex.row = 10, group.label.loc = "bottom", group.label.rot = FALSE,
-  group.cex = 15, group.spacing = 0.15, assay.type = "RNA",
-  do.plot = TRUE)
+  group.cex = 15, group.spacing = 0.15, assay.use = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

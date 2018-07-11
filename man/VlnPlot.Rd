@@ -9,8 +9,7 @@ VlnPlot(object, features.plot, ident.include = NULL, nCol = NULL,
   size.y.use = 16, size.title.use = 20, adjust.use = 1,
   point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = FALSE,
   x.lab.rot = FALSE, y.lab.rot = FALSE, legend.position = "right",
-  single.legend = TRUE, remove.legend = FALSE, do.return = FALSE,
-  return.plotlist = FALSE, ...)
+  single.legend = TRUE, remove.legend = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -55,15 +54,10 @@ expression of the attribute being potted}
 
 \item{remove.legend}{Remove the legend from the plot}
 
-\item{do.return}{Return a ggplot2 object (default : FALSE)}
-
-\item{return.plotlist}{Return the list of individual plots instead of compiled plot.}
-
-\item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
+\item{...}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
-By default, no return, only graphical output. If do.return=TRUE,
-returns a list of ggplot objects.
+A list of ggplot objects
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC

@@ -96,6 +96,7 @@ Collate:
     'preprocessing_internal.R'
     'printing_utilities.R'
     'scoring.R'
+    'seurat_internal.R'
     'snn.R'
     'snn_generics.R'
     'spatial.R'
