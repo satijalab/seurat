@@ -53,7 +53,7 @@ MakeSeuratObject <- function(
   )
   assay.list <- list(assay.data)
   names(x = assay.list) <- assay.use
-  meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
+  init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
     X = colnames(x = raw.data),
@@ -70,7 +70,7 @@ MakeSeuratObject <- function(
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
-    meta.data = meta.data,
+    meta.data = init.meta.data,
     active.assay = assay.use,
     active.ident = idents,
     project.name = project,
@@ -80,9 +80,26 @@ MakeSeuratObject <- function(
   # Calculate nUMI and nFeature
   object['nUMI'] <- colSums(x = object)
   object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data > is.expr)
-  # TODO: Add normalization routine
-  # TODO: Add scaling routine
-  # TODO: Add MetaData
+  if (!is.null(normalization.method)) {
+    object <- NormalizeData(
+      object = object,
+      assay.use = assay.use,
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      display.progress = display.progress
+    )
+  }
+  if (do.scale || do.center) {
+    object <- ScaleData(
+      object = object,
+      do.scale = do.scale,
+      do.center = do.center,
+      display.progress = display.progress
+    )
+  }
+  if(!is.null(meta.data)){
+    object <- AddMetaData(object = object, metadata = meta.data)
+  }
   return(object)
 }
 
@@ -92,7 +109,10 @@ MakeSeuratObject <- function(
 #'
 GetAssay.Seurat <- function(object, assay.use = NULL) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  stopifnot(assay.use %in% names(x = slot(object = object, name = 'assays')))
+  if (!assay.use %in% names(x = slot(object = object, name = 'assays'))) {
+    stop(paste0(assay.use, " is not an assay present in the given object. Available assays are: ",
+                paste(names(x = slot(object = object, name = 'assays')), collapse = ", ")))
+  }
   return(slot(object = object, name = 'assays')[[assay.use]])
 }
 
