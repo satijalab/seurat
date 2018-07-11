@@ -26,6 +26,8 @@ FindClusters.default <- function(
       print.output = verbose,
       temp.file.location = temp.file.location,
       edge.file.name = edge.file.name)
+    names(ids) <- colnames(object)
+    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
     clustering.results[, paste0("res.", r)] <- ids
   }
   return(clustering.results)
@@ -62,17 +64,16 @@ FindClusters.Seurat <- function(
     modularity.fxn = modularity.fxn,
     resolution = resolution,
     algorithm = algorithm,
-    n.start = n.start, n.iter = n.iter,
+    n.start = n.start,
+    n.iter = n.iter,
     random.seed = random.seed,
     temp.file.location = temp.file.location,
     edge.file.name = edge.file.name,
     verbose = verbose
   )
-  ids <- clustering.results[, length(resolution)]
-  names(ids) <- rownames(clustering.results)
-  Idents(object = object) <- ids
-  object <- GroupSingletons(object = object, SNN = object[[graph.name]])
-  object[paste0(graph.name, ".res.", r)] <- Idents(object)
+  colnames(clustering.results) <- paste0(graph.name, "_", colnames(clustering.results))
+  object <- AddMetaData(object = object, metadata = clustering.results)
+  Idents(object = object) <- colnames(clustering.results)[ncol(clustering.results)]
   return(object)
 }
 

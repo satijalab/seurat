@@ -767,20 +767,20 @@ WhichCells <- function(
   if (!is.na(x = random.seed)) {
     set.seed(seed = random.seed)
   }
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  ident <- SetIfNull(x = ident, default = unique(x = object@ident))
-  bad.remove.idents <- ident.remove[! (ident.remove %in% unique(x = object@ident))]
+  cells.use <- cells.use %||% colnames(x = object)
+  ident <- ident %||% unique(Idents(object = object))
+  bad.remove.idents <- ident.remove[! (ident.remove %in% unique(Idents(object = object)))]
   if(length(bad.remove.idents) > 0) {
     stop(paste("Identity :", bad.remove.idents, "not found.   "))
   }
   ident <- setdiff(x = ident, y = ident.remove)
-  if (! all(ident %in% unique(x = object@ident))) {
-    bad.idents <- ident[! (ident %in% unique(x = object@ident))]
+  if (! all(ident %in% unique(Idents(object = object)))) {
+    bad.idents <- ident[! (ident %in% unique(Idents(object = object)))]
     stop(paste("Identity :", bad.idents, "not found.   "))
   }
   cells.to.use <- character()
   for (id in ident) {
-    cells.in.ident <- object@ident[cells.use]
+    cells.in.ident <- Idents(object = object)[cells.use]
     cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
     cells.in.ident <- cells.in.ident[! is.na(x = cells.in.ident)]
     if (length(x = cells.in.ident) > max.cells.per.ident) {
@@ -789,29 +789,29 @@ WhichCells <- function(
     cells.to.use <- c(cells.to.use, cells.in.ident)
   }
   cells.use <- cells.to.use
-  if (! is.null(x = subset.name)){
-    subset.name <- as.character(subset.name)
-    data.use <- FetchData(
-      object = object,
-      vars.all = subset.name,
-      cells.use = cells.use,
-      ... = ...
-    )
-    if (length(x = data.use) == 0) {
-      stop(paste("Error : ", id, " not found"))
-    }
-    subset.data <- data.use[, subset.name, drop = F]
-    if(! is.null(x = accept.value)) {
-      if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
-        bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]
-        stop(paste("Identity :", bad.vals, "not found.   "))
-      }
-      pass.inds <- which(apply(subset.data, MARGIN = 1, function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
-    }
-    cells.use <- rownames(x = data.use)[pass.inds]
-  }
+  #if (! is.null(x = subset.name)){
+  #  subset.name <- as.character(subset.name)
+  #  data.use <- FetchData(
+  #    object = object,
+  #    vars.all = subset.name,
+  #    cells.use = cells.use,
+  #    ... = ...
+  #  )
+  #  if (length(x = data.use) == 0) {
+  #    stop(paste("Error : ", id, " not found"))
+  #  }
+  #  subset.data <- data.use[, subset.name, drop = F]
+  #  if(! is.null(x = accept.value)) {
+  #    if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
+  #      bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]
+  #      stop(paste("Identity :", bad.vals, "not found.   "))
+  #    }
+  #    pass.inds <- which(apply(subset.data, MARGIN = 1, function(x) x %in% accept.value))
+  #  } else {
+  #    pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
+  #  }
+  #  cells.use <- rownames(x = data.use)[pass.inds]
+  #}
   return(cells.use)
 }
 
@@ -908,56 +908,6 @@ StashIdent <- function(object, save.name = "oldIdent") {
   object@meta.data[, save.name] <- as.character(x = object@ident)
   return(object)
 }
-
-#' Set identity class information
-#'
-#' Sets the identity class value for a subset (or all) cells
-#'
-#' @param object Seurat object
-#' @param cells.use Vector of cells to set identity class info for (default is
-#' all cells)
-#' @param ident.use Vector of identity class values to assign (character
-#' vector)
-#'
-#' @return A Seurat object where object@@ident has been appropriately modified
-#'
-#' @importFrom stats reorder
-#'
-#' @export
-#'
-#' @examples
-#' cluster2 <- WhichCells(object = pbmc_small, ident = 2)
-#' pbmc_small@ident[cluster2]
-#' pbmc_small <- SetIdent(
-#'   object = pbmc_small,
-#'   cells.use = cluster2,
-#'   ident.use = 'cluster_2'
-#' )
-#' pbmc_small@ident[cluster2]
-#'
-SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
-  if (length(x = setdiff(x = cells.use, y = object@cell.names) > 0)) {
-    stop(paste(
-      "ERROR : Cannot find cells ",
-      setdiff(x = cells.use, y = object@cell.names)
-    ))
-  }
-  ident.new <- setdiff(x = ident.use, y = levels(x = object@ident))
-  object@ident <- factor(
-    x = object@ident,
-    levels = unique(
-      x = c(
-        as.character(x = object@ident),
-        as.character(x = ident.new)
-      )
-    )
-  )
-  object@ident[cells.use] <- ident.use
-  object@ident <- reorder(x = droplevels(x = object@ident))
-  return(object)
-}
-
 
 #' Transfer identity class information (or meta data) from one object to another
 #'
@@ -1115,54 +1065,6 @@ GetIdent <- function(object, uniq = TRUE, cells.use = NULL){
         ident
     }
 }
-
-#' Add Metadata
-#'
-#' Adds additional data for single cells to the Seurat object. Can be any piece
-#' of information associated with a cell (examples include read depth,
-#' alignment rate, experimental batch, or subpopulation identity). The
-#' advantage of adding it to the Seurat object is so that it can be
-#' analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
-#'
-#' @param object Seurat object
-#' @param metadata Data frame where the row names are cell names (note : these
-#' must correspond exactly to the items in object@@cell.names), and the columns
-#' are additional metadata items.
-#' @param col.name Name for metadata if passing in single vector of information
-#'
-#' @return Seurat object where the additional metadata has been added as
-#' columns in object@@meta.data
-#'
-#' @export
-#'
-#' @examples
-#' cluster_letters <- LETTERS[pbmc_small@ident]
-#' pbmc_small <- AddMetaData(
-#'   object = pbmc_small,
-#'   metadata = cluster_letters,
-#'   col.name = 'letter.idents'
-#' )
-#' head(x = pbmc_small@meta.data)
-#'
-AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (typeof(x = metadata) != "list") {
-    metadata <- as.data.frame(x = metadata)
-    if (is.null(x = col.name)) {
-      stop("Please provide a name for provided metadata")
-    }
-    colnames(x = metadata) <- col.name
-  }
-  cols.add <- colnames(x = metadata)
-  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(rownames(object@meta.data), rownames(metadata))
-  meta.add <- metadata[meta.order, ]
-  if (all(is.null(x = meta.add))) {
-    stop("Metadata provided doesn't match the cells in this object")
-  }
-  object@meta.data[, cols.add] <- meta.add
-  return(object)
-}
-
 
 #' Rename cells
 #'

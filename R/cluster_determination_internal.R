@@ -44,34 +44,29 @@ RunModularityClustering <- function(
 # Group single cells that make up their own cluster in with the cluster they are
 # most connected to.
 #
-# @param object  Seurat object
+# @param ids     Named vector of cluster ids
 # @param SNN     SNN graph used in clustering
 # @return        Returns Seurat object with all singletons merged with most
 #                connected cluster
 
-GroupSingletons <- function(object, SNN) {
+GroupSingletons <- function(ids, SNN, verbose) {
   # identify singletons
   singletons <- c()
-  for (cluster in unique(x = Idents(object))) {
-    if (length(x = WhichCells(object = object, ident = cluster)) == 1) {
-      singletons <- append(x = singletons, values = cluster)
-    }
-  }
+  singletons <- names(which(table(ids) == 1))
+  singletons <- intersect(unique(ids), singletons)
   # calculate connectivity of singletons to other clusters, add singleton
   # to cluster it is most connected to
-  cluster_names <- unique(x = object@ident)
+  cluster_names <- as.character(unique(x = ids))
   cluster_names <- setdiff(x = cluster_names, y = singletons)
-  connectivity <- vector(mode="numeric", length = length(x = cluster_names))
+  connectivity <- vector(mode = "numeric", length = length(x = cluster_names))
   names(x = connectivity) <- cluster_names
+  new.ids <- ids
   for (i in singletons) {
+    i.cells <- names(which(ids == i))
     for (j in cluster_names) {
-      subSNN = SNN[
-        WhichCells(object = object, ident = i), # Row
-        match(
-          x = WhichCells(object = object, ident = j),
-          table = colnames(x = SNN)
-        )
-        ]
+      j.cells <- names(which(ids == j))
+      subSNN <- SNN[i.cells, j.cells]
+      set.seed(1) # to match previous behavior, random seed being set in WhichCells
       if (is.object(x = subSNN)) {
         connectivity[j] <- sum(subSNN) / (nrow(x = subSNN) * ncol(x = subSNN))
       } else {
@@ -81,21 +76,17 @@ GroupSingletons <- function(object, SNN) {
     m <- max(connectivity, na.rm = T)
     mi <- which(x = connectivity == m, arr.ind = TRUE)
     closest_cluster <- sample(x = names(x = connectivity[mi]), 1)
-    object <- SetIdent(
-      object = object,
-      cells.use = WhichCells(object = object, ident = i),
-      ident.use = closest_cluster
-    )
+    ids[i.cells] <- closest_cluster
   }
-  if (length(x = singletons) > 0) {
+  if (length(x = singletons) > 0 && verbose) {
     message(paste(
       length(x = singletons),
       "singletons identified.",
-      length(x = unique(object@ident)),
+      length(x = unique(x = ids)),
       "final clusters."
     ))
   }
-  return(object)
+  return(ids)
 }
 
 
