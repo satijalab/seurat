@@ -11,14 +11,14 @@ context("Object creation")
 fake.meta.data <- data.frame(rep(1, ncol(pbmc.test)))
 rownames(fake.meta.data) <- colnames(pbmc.test)
 colnames(fake.meta.data) <- "FMD"
-object <- CreateSeuratObject(raw.data = pbmc.test,
+object <- MakeSeuratObject(raw.data = pbmc.test,
                              normalization.method = "LogNormalize",
                              do.scale = T,
                              meta.data = fake.meta.data,
                              # save.raw = F,
                              display.progress = F)
 test_that("object initialization actually creates seurat object", {
-  expect_is(object, "seurat")
+  expect_is(object, "Seurat")
 })
 
 # test_that("save.raw option handled properly", {
@@ -27,33 +27,33 @@ test_that("object initialization actually creates seurat object", {
 # })
 
 test_that("meta.data slot generated correctly", {
-  expect_equal(dim(object@meta.data), c(80, 4))
-  expect_equal(colnames(object@meta.data), c("nGene", "nUMI", "FMD", "orig.ident"))
-  expect_equal(rownames(object@meta.data), colnames(object@data))
-  expect_equal(object@meta.data$nGene[1:5], c(47, 52, 50, 56, 53))
-  expect_equal(object@meta.data$nUMI[75:80], c(228, 527, 202, 157, 150, 233))
+  expect_equal(dim(object[]), c(80, 4))
+  expect_equal(colnames(object[]), c("orig.ident", "nUMI", "nFeature_RNA", "FMD"))
+  expect_equal(rownames(object[]), colnames(object))
+  expect_equal(object["nFeature_RNA"][1:5, ], c(47, 52, 50, 56, 53))
+  expect_equal(object["nUMI"][75:80, ], c(228, 527, 202, 157, 150, 233))
 })
 
 test_that("normalization and scaling run during object creation process", {
-  expect_equal(object@data[2, 1], 4.968821, tolerance = 1e-6)
-  expect_equal(object@data[174, 80], 5.554937, tolerance = 1e-6)
-  expect_equal(object@scale.data[2, 1], 1.917418, tolerance = 1e-6)
-  expect_equal(object@scale.data[174, 80], 1.998957, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 4.968821, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "data")[174, 80], 5.554937, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[2, 1], 1.917418, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "scale.data")[174, 80], 1.998957, tolerance = 1e-6)
 })
 
-object <- CreateSeuratObject(raw.data = pbmc.test,
-                             is.expr = 2,
-                             min.cells = 3,
-                             min.genes = 10)
+object.filtered <- MakeSeuratObject(raw.data = pbmc.test,
+                     is.expr = 2,
+                     min.cells = 3,
+                     min.genes = 10)
 
 test_that("Expression threshold zeros out proper entries in expression matrix", {
-  expect_equal(nnzero(object@data), 1939)
-  expect_equal(nnzero(object@raw.data), 3197)
+  expect_equal(nnzero(x = GetAssayData(object = object.filtered, slot = "data")), 1939)
+  expect_equal(nnzero(x = GetAssayData(object = object.filtered, slot = "raw.data")), 1939)
 })
 
 test_that("Genes are filtered out based on min.cells", {
-  expect_equal(nrow(object@raw.data), 162)
-  expect_equal(nrow(object@data), 162)
+  expect_equal(nrow(GetAssayData(object = object.filtered, slot = "raw.data")), 162)
+  expect_equal(nrow(GetAssayData(object = object.filtered, slot = "data")), 162)
 })
 
 # Tests for Read10X
@@ -75,21 +75,20 @@ test_that("Read10X creates sparse matrix", {
 # --------------------------------------------------------------------------------
 context("NormalizeData")
 
-test.object <- object
-test.object@raw.data <- NULL
-
 test_that("NormalizeData error handling", {
-  expect_error(NormalizeData(object, assay.type = "FAKE"))
-  expect_equal(object@data, NormalizeData(object, normalization.method = NULL)@data)
-  expect_error(NormalizeData(test.object))
+  expect_error(NormalizeData(object = object, assay.use = "FAKE"))
+  expect_equal(GetAssayData(object = object, slot = "raw.data"),
+               GetAssayData(object = NormalizeData(object = object,
+                                                   normalization.method = NULL),
+                            slot = "data"))
 })
 
-object <- NormalizeData(object, scale.factor = 1e6, display.progress = F)
+object <- NormalizeData(object = object, scale.factor = 1e6, display.progress = FALSE)
 test_that("NormalizeData scales properly", {
-  expect_equal(object@data[2, 2], 9.304742, tolerance = 1e-6)
-  expect_equal(object@data[161, 55], 7.659003, tolerance = 1e-6)
-  expect_equal(object@calc.params$NormalizeData$scale.factor, 1e6)
-  expect_equal(object@calc.params$NormalizeData$normalization.method, "LogNormalize")
+  expect_equal(GetAssayData(object = object, slot = "data")[2, 2], 9.304742, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 7.659003, tolerance = 1e-6)
+  #expect_equal(object@calc.params$NormalizeData$scale.factor, 1e6)
+  #expect_equal(object@calc.params$NormalizeData$normalization.method, "LogNormalize")
 })
 
 normalized.data <- LogNormalize(data = object@raw.data)
