@@ -25,8 +25,6 @@ RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
 
 \item{assay.use}{Name of Assay PCA is being run on}
 
-\item{features.use}{Features to use as input for PCA. Defaults to variable features}
-
 \item{pcs.compute}{Total Number of PCs to compute and store (20 by default)}
 
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
@@ -51,8 +49,6 @@ the number for the dimension names. PC by default}
 NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
-
-\item{features.use}{Features to use as input for PCA. Defaults to variable features}
 }
 \value{
 Returns Seurat object with the PCA calculation stored in the reductions slot

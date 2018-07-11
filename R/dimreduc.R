@@ -1,6 +1,5 @@
 # Methods for DimReduc objects
-#' @include objects.R seurat_generics.R
-# #' @include dimreduc_generics.R
+#' @include objects.R seurat_generics.R dimreduc_generics.R
 #' @importFrom methods slot slot<- setMethod
 NULL
 
@@ -49,6 +48,9 @@ MakeDimReducObject <- function(
   return(dim.reduc)
 }
 
+#' @describeIn Loadings Get the feature loadings from a DimReduc object
+#' @export
+#' @method Loadings DimReduc
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
   slot.use <- if (is.null(x = projected)) {
     projected.data <- slot(object = object, name = 'feature.loadings.projected')
@@ -65,21 +67,35 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot.use))
 }
 
+#' @describeIn Embeddings Get the cell embeddings from a DimReduc object
+#' @export
+#' @method Embeddings DimReduc
+#'
 Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
+#' @describeIn Key Get the key for a DimReduc object
+#' @export
+#' @method Key DimReduc
+#'
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
+#' @export
+#' @method dim DimReduc
+#'
 dim.DimReduc <- function(x) {
-  return(list(
+  return(c(
     nrow(x = Loadings(object = x)),
     nrow(x = Embeddings(object = x))
   ))
 }
 
+#' @export
+#' @method dimnames DimReduc
+#'
 dimnames.DimReduc <- function(x) {
   return(list(
     rownames(x = Loadings(object = x)),
@@ -87,6 +103,8 @@ dimnames.DimReduc <- function(x) {
   )
 }
 
+#' @export
+#' @method length DimReduc
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
@@ -103,21 +121,29 @@ ggplot.DimReduc <- function(data = NULL, mapping = aes(), ..., environment = par
   ))
 }
 
-setMethod(
-  f = '[',
-  signature = c('x' = 'DimReduc', 'i' = 'index', 'j' = 'missing', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = FALSE) {
-    return(Loadings(object = x)[, i])
+#' @export
+#'
+'[.DimReduc' <- function(x, i, j, ...) {
+  if (missing(x = i)) {
+    i <- 1:nrow(x = x)
   }
-)
+  if (missing(x = j)) {
+    j <- 1:length(x = x)
+  }
+  return(Loadings(object = x)[i, j, ...])
+}
 
-setMethod(
-  f = '[',
-  signature = c('x' = 'DimReduc', 'i' = 'missing', 'j' = 'index', 'drop' = 'ANY'),
-  definition = function(x, i, j, ..., drop = FALSE) {
-    return(Embeddings(object = x)[, j])
+#' @export
+#'
+"[[.DimReduc" <- function(x, i, j, ...) {
+  if (missing(x = i)) {
+    i <- 1:ncol(x = x)
   }
-)
+  if (missing(x = j)) {
+    j <- 1:length(x = x)
+  }
+  return(Embeddings(object = x)[i, j, ...])
+}
 
 DefaultAssay.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'assay.used'))
@@ -161,10 +187,12 @@ setMethod(
   f = 'show',
   signature = 'DimReduc',
   definition = function(object) {
+    projected.data <- slot(object = object, name = 'feature.loadings.projected')
+    projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1)
     cat(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
-      # 'Projected dimensional reduction calculated:', !all(dim(object@feature.loadings.projected) == 0), '\n',
+      'Projected dimensional reduction calculated:', projected, '\n',
       'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
     )
   }

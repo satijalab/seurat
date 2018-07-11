@@ -71,8 +71,13 @@ SetAssayData.Assay <- function(object, slot, new.data) {
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
   }
-  if (any(dim(x = new.data) != dim(x = object))) {
-    stop("The new data doesn't have the same dimensions as the current data")
+  if (ncol(x = new.data) != ncol(x = object)) {
+    stop("The new data doesn't have the same number of cells as the current data")
+  }
+  if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
+    stop("Cannot add more features than present in current data")
+  } else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
+    stop("The new data doesn't have the same number of features as the current data")
   }
   new.cells <- colnames(x = new.data)
   if (!all(new.cells %in% colnames(x = object))) {
@@ -121,23 +126,39 @@ SetHVFInfo.Assay <- function(object, hvf.info, ...) {
   return(object)
 }
 
+#' @describeIn Key Get the key for an Assay object
+#' @export
+#' @method Key Assay
+#'
 Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
+#' @describeIn Key Set the key for an Assay object
+#' @export
+#' @method Key<- Assay
+#'
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
   return(object)
 }
 
+#' @export
+#' @method dim Assay
+#'
 dim.Assay <- function(x) {
   return(dim(x = GetAssayData(object = x)))
 }
 
+#' @export
+#' @method dimnames Assay
+#'
 dimnames.Assay <- function(x) {
   return(dimnames(x = GetAssayData(object = x)))
 }
 
+#' @export
+#'
 '[.Assay' <- function(x, i, j, ...) {
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
@@ -205,8 +226,8 @@ setMethod(
   signature = 'Assay',
   definition = function(object) {
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
-    if (length(x = object@var.features) > 0) {
-      top.ten <- head(x = object@var.features, n = 10L)
+    if (length(x = VariableFeatures(object = object)) > 0) {
+      top.ten <- VariableFeatures(object = object)[1:10]
       cat("Top 10 variable features:\n", strwrap(x = paste(top.ten, collapse = ', ')))
     }
   }

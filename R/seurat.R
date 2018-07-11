@@ -158,18 +158,33 @@ Idents.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.ident'))
 }
 
+#' @param cells.use Set cell identities for specific cells
+#'
 #' @describeIn Idents Set the active identities of a Seurat object
 #' @export
 #' @method Idents<- Seurat
 #'
-"Idents<-.Seurat" <- function(object, ..., value) {
-  idents.use <- if (value %in% colnames(x = object[])) {
-    as.factor(x = unlist(x = object[value], use.names = FALSE))
-  } else {
-    factor(x = rep.int(x = value, times = ncol(x = object)))
+"Idents<-.Seurat" <- function(object, cells.use = NULL, ..., value) {
+  cells.use <- cells.use %||% colnames(x = object)
+  if (is.numeric(x = cells.use)) {
+    cells.use <- colnames(x = object)[cells.use]
   }
-  names(x = idents.use) <- colnames(x = object)
-  slot(object = object, name = 'active.ident') <- idents.use
+  cells.use <- intersect(x = cells.use, y = colnames(x = object))
+  cells.use <- match(x = cells.use, table = colnames(x = object))
+  idents.new <- if (value %in% colnames(x = object[])) {
+    unlist(x = object[value], use.names = FALSE)[cells.use]
+  } else {
+    if (is.list(x = value)) {
+      value <- unlist(x = value, use.names = FALSE)
+    }
+    rep_len(x = value, length.out = length(x = cells.use))
+  }
+  idents.new <- as.vector(x = idents.new)
+  idents <- as.vector(x = Idents(object = object))
+  idents[cells.use] <- idents.new
+  idents <- factor(x = idents)
+  names(x = idents) <- colnames(x = object)
+  slot(object = object, name = 'active.ident') <- idents
   return(object)
 }
 
@@ -197,14 +212,23 @@ GetHVFInfo.Seurat <- function(object, assay.use = NULL, ...) {
   return(GetHVFInfo(object = assay.data))
 }
 
+#' @export
+#' @method dimnames Seurat
+#'
 dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
 }
 
+#' @export
+#' @method dim Seurat
+#'
 dim.Seurat <- function(x) {
   return(dim(x = GetAssay(object = x)))
 }
 
+#' @export
+#' @method names Seurat
+#'
 names.Seurat <- function(x) {
   return(unlist(
     x = lapply(
@@ -217,6 +241,8 @@ names.Seurat <- function(x) {
   ))
 }
 
+#' @export
+#'
 "[.Seurat" <- function(x, i, ...) {
   if (missing(x = i)) {
     i <- colnames(x = slot(object = x, name = 'meta.data'))
@@ -231,7 +257,11 @@ setMethod(
     meta.data <- x[]
     cell.names <- rownames(x = meta.data)
     if (length(x = i) > 1) {
-      stop("Seurat can currently add only one column to metadata at a time")
+      value <- rep_len(x = value, length.out = length(x = i))
+      for (index in 1:length(x = i)) {
+        meta.data[i[index]] <- value[index]
+      }
+      # stop("Seurat can currently add only one column to metadata at a time")
     } else {
       if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
         meta.data[, i] <- value[cell.names]
@@ -246,15 +276,22 @@ setMethod(
   }
 )
 
+#' @export
+#'
 "[[.Seurat" <- function(x, i, ...) {
-  if (i %in% names(x = slot(object = x, name = 'assays'))) {
-    return(GetAssay(object = x, assay.use = i))
-  } else if (i %in% names(x = slot(object = x, name = 'reductions'))) {
-    return(slot(object = x, name = 'reductions')[[i]])
-  } else if (i %in% names(x = slot(object = x, name = 'graphs'))) {
-    return(slot(object = x, name = 'graphs')[[i]])
+  slot.use <- unlist(x = lapply(
+    X = c('assays', 'reductions', 'graphs', 'neighbors'),
+    FUN = function(s) {
+      if (i %in% names(x = slot(object = x, name = s))) {
+        return(s)
+      }
+      return(NULL)
+    }
+  ))
+  if (is.null(x = slot.use)) {
+    stop("Cannot find '", i, "' in this Seurat object")
   }
-  stop("Cannot find '", i, "' in this Seurat object")
+  return(slot(object = x, name = slot.use)[[i]])
 }
 
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
