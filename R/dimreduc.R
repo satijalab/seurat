@@ -112,9 +112,22 @@ length.DimReduc <- function(x) {
 #' @importFrom ggplot2 ggplot aes
 #' @export
 #'
-ggplot.DimReduc <- function(data = NULL, mapping = aes(), ..., environment = parent.frame()) {
+ggplot.DimReduc <- function(
+  data = NULL,
+  type = 'embeddings',
+  projected = NULL,
+  mapping = aes(), ...,
+  environment = parent.frame()
+) {
+  data.plot <- if (type == 'embeddings') {
+    Embeddings(object = data)
+  } else if (type == 'loadings') {
+    Loadings(object = data, projected = projected)
+  } else {
+    stop("'type' must be either 'embeddings' or 'loadings'")
+  }
   return(ggplot(
-    data = as.data.frame(x = Embeddings(object = data)),
+    data = as.data.frame(x = data.plot),
     mapping = mapping,
     ...,
     environment = environment
