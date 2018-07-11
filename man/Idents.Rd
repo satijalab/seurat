@@ -13,7 +13,7 @@ Idents(object, ...) <- value
 
 \method{Idents}{Seurat}(object, ...)
 
-\method{Idents}{Seurat}(object, ...) <- value
+\method{Idents}{Seurat}(object, cells.use = NULL, ...) <- value
 }
 \arguments{
 \item{object}{An object}
@@ -21,6 +21,8 @@ Idents(object, ...) <- value
 \item{...}{Arguments passed to other methods}
 
 \item{value}{The name of the identites to pull or the identities themselves}
+
+\item{cells.use}{Set cell identities for specific cells}
 }
 \value{
 The cell identies

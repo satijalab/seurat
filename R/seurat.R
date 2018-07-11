@@ -158,18 +158,33 @@ Idents.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.ident'))
 }
 
+#' @param cells.use Set cell identities for specific cells
+#'
 #' @describeIn Idents Set the active identities of a Seurat object
 #' @export
 #' @method Idents<- Seurat
 #'
-"Idents<-.Seurat" <- function(object, ..., value) {
-  idents.use <- if (value %in% colnames(x = object[])) {
-    as.factor(x = unlist(x = object[value], use.names = FALSE))
-  } else {
-    factor(x = rep.int(x = value, times = ncol(x = object)))
+"Idents<-.Seurat" <- function(object, cells.use = NULL, ..., value) {
+  cells.use <- cells.use %||% colnames(x = object)
+  if (is.numeric(x = cells.use)) {
+    cells.use <- colnames(x = object)[cells.use]
   }
-  names(x = idents.use) <- colnames(x = object)
-  slot(object = object, name = 'active.ident') <- idents.use
+  cells.use <- intersect(x = cells.use, y = colnames(x = object))
+  cells.use <- match(x = cells.use, table = colnames(x = object))
+  idents.new <- if (value %in% colnames(x = object[])) {
+    unlist(x = object[value], use.names = FALSE)[cells.use]
+  } else {
+    if (is.list(x = value)) {
+      value <- unlist(x = value, use.names = FALSE)
+    }
+    rep_len(x = value, length.out = length(x = cells.use))
+  }
+  idents.new <- as.vector(x = idents.new)
+  idents <- as.vector(x = Idents(object = object))
+  idents[cells.use] <- idents.new
+  idents <- factor(x = idents)
+  names(x = idents) <- colnames(x = object)
+  slot(object = object, name = 'active.ident') <- idents
   return(object)
 }
 
