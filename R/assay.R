@@ -226,8 +226,8 @@ setMethod(
   signature = 'Assay',
   definition = function(object) {
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
-    if (length(x = object@var.features) > 0) {
-      top.ten <- head(x = object@var.features, n = 10L)
+    if (length(x = VariableFeatures(object = object)) > 0) {
+      top.ten <- VariableFeatures(object = object)[1:10]
       cat("Top 10 variable features:\n", strwrap(x = paste(top.ten, collapse = ', ')))
     }
   }
