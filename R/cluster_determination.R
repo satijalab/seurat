@@ -13,20 +13,22 @@ FindClusters.default <- function(
   if(is.null(object)) {
     stop("Please provide an SNN graph")
   }
-  ids <- RunModularityClustering(
-    SNN = object,
-    modularity = modularity.fxn,
-    resolution = r,
-    algorithm = algorithm,
-    n.start = n.start,
-    n.iter = n.iter,
-    random.seed = random.seed,
-    print.output = verbose,
-    temp.file.location = temp.file.location,
-    edge.file.name = edge.file.name
-  )
-  names(ids) <- colnames(object)
-  return(ids)
+  clustering.results <- data.frame(row.names = colnames(object))
+  for(r in resolution){
+    ids <- RunModularityClustering(
+      SNN = object,
+      modularity = modularity.fxn,
+      resolution = r,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = verbose,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name)
+    clustering.results[, paste0("res.", r)] <- ids
+  }
+  return(clustering.results)
 }
 
 #' @param graph.name Name of graph to use for the clustering algorithm
@@ -55,22 +57,22 @@ FindClusters.Seurat <- function(
   if(! is(object = object[[graph.name]], class2 = "Graph")){
     stop("Provided graph.name does not correspond to a graph object.")
   }
-  for(r in resolution){
-    ids <- FindClusters(object = object[[graph.name]],
-                        modularity = modularity,
-                        resolution = r,
-                        algorithm = algorithm,
-                        n.start = n.start,
-                        n.iter = n.iter,
-                        random.seed = random.seed,
-                        verbose = verbose,
-                        temp.file.location = temp.file.location,
-                        edge.file.name = edge.file.name)
-    object <- Idents(object = object,
-                     ident.use = ids)
-    object <- GroupSingletons(object = object, SNN = object[[graph.name]])
-    object[paste0(graph.name, ".res.", r)] <- Idents(object)
-  }
+  clustering.results <- FindClusters(
+    object = object[[graph.name]],
+    modularity.fxn = modularity.fxn,
+    resolution = resolution,
+    algorithm = algorithm,
+    n.start = n.start, n.iter = n.iter,
+    random.seed = random.seed,
+    temp.file.location = temp.file.location,
+    edge.file.name = edge.file.name,
+    verbose = verbose
+  )
+  ids <- clustering.results[, length(resolution)]
+  names(ids) <- rownames(clustering.results)
+  Idents(object = object) <- ids
+  object <- GroupSingletons(object = object, SNN = object[[graph.name]])
+  object[paste0(graph.name, ".res.", r)] <- Idents(object)
   return(object)
 }
 

@@ -34,9 +34,9 @@ RunModularityClustering <- function(
   temp.file.location = NULL,
   edge.file.name = NULL
 ) {
-  
+
   edge_file = SetIfNull(x = edge.file.name, default="")
-  clusters = RunModularityClusteringCpp(SNN, modularity, resolution, algorithm, 
+  clusters = RunModularityClusteringCpp(SNN, modularity, resolution, algorithm,
                              n.start, n.iter, random.seed, print.output, edge_file)
   return(clusters)
 }
@@ -52,7 +52,7 @@ RunModularityClustering <- function(
 GroupSingletons <- function(object, SNN) {
   # identify singletons
   singletons <- c()
-  for (cluster in unique(x = object@ident)) {
+  for (cluster in unique(x = Idents(object))) {
     if (length(x = WhichCells(object = object, ident = cluster)) == 1) {
       singletons <- append(x = singletons, values = cluster)
     }
