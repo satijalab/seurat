@@ -257,7 +257,11 @@ setMethod(
     meta.data <- x[]
     cell.names <- rownames(x = meta.data)
     if (length(x = i) > 1) {
-      stop("Seurat can currently add only one column to metadata at a time")
+      value <- rep_len(x = value, length.out = length(x = i))
+      for (index in 1:length(x = i)) {
+        meta.data[i[index]] <- value[index]
+      }
+      # stop("Seurat can currently add only one column to metadata at a time")
     } else {
       if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
         meta.data[, i] <- value[cell.names]
