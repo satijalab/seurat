@@ -188,6 +188,55 @@ Idents.Seurat <- function(object, ...) {
   return(object)
 }
 
+
+
+#' Add Metadata
+#'
+#' Adds additional data for single cells to the Seurat object. Can be any piece
+#' of information associated with a cell (examples include read depth,
+#' alignment rate, experimental batch, or subpopulation identity). The
+#' advantage of adding it to the Seurat object is so that it can be
+#' analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
+#'
+#' @param object Seurat object
+#' @param metadata Data frame where the row names are cell names (note : these
+#' must correspond exactly to the items in object@@cell.names), and the columns
+#' are additional metadata items.
+#' @param col.name Name for metadata if passing in single vector of information
+#'
+#' @return Seurat object where the additional metadata has been added as
+#' columns in object@@meta.data
+#'
+#' @export
+#'
+#' @examples
+#' cluster_letters <- LETTERS[pbmc_small@ident]
+#' pbmc_small <- AddMetaData(
+#'   object = pbmc_small,
+#'   metadata = cluster_letters,
+#'   col.name = 'letter.idents'
+#' )
+#' head(x = pbmc_small@meta.data)
+#'
+AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (typeof(x = metadata) != "list") {
+    metadata <- as.data.frame(x = metadata)
+    if (is.null(x = col.name)) {
+      stop("Please provide a name for provided metadata")
+    }
+    colnames(x = metadata) <- col.name
+  }
+  cols.add <- colnames(x = metadata)
+  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
+  meta.order <- match(rownames(object[]), rownames(metadata))
+  meta.add <- metadata[meta.order, ]
+  if (all(is.null(x = meta.add))) {
+    stop("Metadata provided doesn't match the cells in this object")
+  }
+  slot(object = object, name = "meta.data")[, cols.add] <- meta.add
+  return(object)
+}
+
 #' @param assay.use Name of assay to pull variable features for
 #'
 #' @describeIn VariableFeatures Get the variable features of a Seurat object
