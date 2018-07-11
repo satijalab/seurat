@@ -667,10 +667,10 @@ ScaleData.default <- function(
 ) {
   features.use <- features.use %||% rownames(x = object)
   features.use <- as.vector(x = intersect(x = features.use, y = rownames(x = object)))
+  object <- object[features.use, , drop = FALSE]
   scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
   dimnames(x = scaled.data) <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  object <- object[features.use, , drop = FALSE]
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
