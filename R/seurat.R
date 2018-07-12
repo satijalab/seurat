@@ -381,11 +381,16 @@ names.Seurat <- function(x) {
 
 #' @export
 #'
-"[.Seurat" <- function(x, i, ...) {
+"[.Seurat" <- function(x, i, ..., drop = FALSE) {
   if (missing(x = i)) {
     i <- colnames(x = slot(object = x, name = 'meta.data'))
   }
-  return(slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...])
+  data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
+  if (drop) {
+    data.return <- unlist(x = data.return, use.names = FALSE)
+    names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
+  }
+  return(data.return)
 }
 
 setMethod(
