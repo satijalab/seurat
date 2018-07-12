@@ -1544,7 +1544,6 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-
   pAll <- GetDimReduction(object,reduction.type = "pca", slot = "jackstraw")@emperical.p.value
   pAll <- pAll[, PCs, drop = FALSE]
   pAll <- as.data.frame(pAll)
@@ -2463,7 +2462,7 @@ DimPlot <- function(
   if (group.by != "ident") {
     ident.use <- as.factor(x = FetchData(
       object = object,
-      vars.all = group.by
+      vars.fetch = group.by
     )[cells.use, 1])
   }
   data.plot$ident <- ident.use
@@ -2561,7 +2560,7 @@ DimPlot <- function(
   if (!is.null(x = cols.use)) {
     p <- p + scale_colour_manual(values = cols.use, na.value=na.value)
   }
-  if(coord.fixed){
+  if (coord.fixed) {
     p <- p + coord_fixed()
   }
   p <- p + guides(size = FALSE)

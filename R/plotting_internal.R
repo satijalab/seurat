@@ -12,11 +12,7 @@ PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
   #   Do we use a smooth scatterplot?
   #   Take advantage of functions as first class objects
   #   to dynamically choose normal vs smooth scatterplot
-  if (smooth) {
-    myplot <- smoothScatter
-  } else {
-    myplot <- plot
-  }
+  myplot <- ifelse(test = smooth, yes = smoothScatter, no = plot)
   if (dark.theme) {
     par(bg = 'black')
     axes = FALSE
@@ -67,8 +63,10 @@ PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
 #
 # @return A dataframe with the data that created the ggplot2 scatterplot
 #
+#' @importFrom ggplot2 ggplot_build
+#
 GGpointToBase <- function(plot, do.plot = TRUE, ...) {
-  plot.build <- ggplot2::ggplot_build(plot = plot)
+  plot.build <- ggplot_build(plot = plot)
   build.data <- plot.build$data[[1]]
   plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
   names(x = plot.data) <- c(
@@ -94,6 +92,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # @return A dataframe of x and y coordinates for points selected
 #
 #' @importFrom graphics locator
+#' @importFrom SDMTools pnt.in.poly
 #
 PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
@@ -105,19 +104,15 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   polygon <- locator(n = npoints, type = 'l')
   polygon <- data.frame(polygon)
   #   pnt.in.poly returns a data.frame of points
-  points.all <- SDMTools::pnt.in.poly(
+  points.all <- pnt.in.poly(
     pnts = plot.data[, c(1, 2)],
     poly.pnts = polygon
   )
   #   Find the located points
   points.located <- points.all[which(x = points.all$pip == 1), ]
   #   If we're recoloring, do the recolor
-  if(recolor) {
-    if (dark.theme) {
-      no = 'white'
-    } else {
-      no = 'black'
-    }
+  if (recolor) {
+    no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
     points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
     plot.data$color <- points.all$color
     PlotBuild(plot.data = plot.data, dark.theme = dark.theme, ...)
@@ -483,6 +478,8 @@ BlendPlot <- function(
 #
 # @return The blended color in RGB form (1 x 3 matrix) or hexadecimal form
 #
+#' @importFrom grDevices rgb col2rgb
+#
 BlendColors <- function(..., as.rgb = FALSE) {
   #   Assemble the arguments passed into a character vector
   colors <- as.character(x = c(...))
@@ -509,33 +506,20 @@ BlendColors <- function(..., as.rgb = FALSE) {
     }
   }
   #   Convert to a 3 by `length(colors)` matrix of RGB values
-  rgb.vals <- sapply(X = colors, FUN = grDevices::col2rgb)
+  rgb.vals <- sapply(X = colors, FUN = col2rgb)
   if (nrow(x = rgb.vals) != 3) {
     rgb.vals <- t(x = rgb.vals)
   }
   #   Blend together using the additive method
   #   Basically, resulting colors are the mean of the component colors
-  blend <- apply(
-    X = rgb.vals,
-    MARGIN = 1,
-    FUN = mean
-  )
+  blend <- as.matrix(x = rowMeans(x = rgb.vals))
+  dimnames(x = blend) <- list(c('red', 'green', 'blue'), 'blend')
   #   If we're returning RGB values, convert to matrix, just like col2rgb
   #   Otherwise, return as hexadecimal; can be used directly for plotting
-  if (as.rgb) {
-    result <- matrix(
-      data = blend,
-      nrow = 3,
-      dimnames = list(c('red', 'green', 'blue'), 'blend')
-    )
-  } else {
-    result <- grDevices::rgb(
-      matrix(data = blend, ncol = 3),
-      alpha = alpha.value,
-      maxColorValue = 255
-    )
+  if (!as.rgb) {
+    blend <- rgb(t(x = blend), alpha = alpha.value, maxColorValue = 255)
   }
-  return(result)
+  return(blend)
 }
 
 # Find the quantile of a data
@@ -549,9 +533,9 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # @param cutoff The cutoff to turn into a quantile
 # @param data The data to turn find the quantile of
 #
-#' @importFrom stats quantile
-#
 # @return The numerical representation of the quantile
+#
+#' @importFrom stats quantile
 #
 SetQuantile <- function(cutoff, data) {
   if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
@@ -567,26 +551,6 @@ SetQuantile <- function(cutoff, data) {
   return(as.numeric(x = cutoff))
 }
 
-# No Grid
-#
-# Remove the grid lines from a ggplot2 plot
-#
-# @param ... Extra parameters to be passed to theme()
-# @import ggplot2
-# @return A ggplot2 theme object
-# @seealso \code{theme}
-# @import ggplot2
-# @export
-#
-NoGrid <- function(...) {
-  no.grid <- theme(
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    ...
-  )
-  return(no.grid)
-}
-
 # Reset Par
 #
 # Reset the graphing space to
@@ -596,6 +560,82 @@ NoGrid <- function(...) {
 #
 ResetPar <- function(...) {
   par(mfrow = c(1, 1), ...)
+}
+
+SetHighlight <- function(
+  cells.highlight,
+  cells.all,
+  sizes.highlight,
+  cols.highlight,
+  col.base = 'black',
+  pt.size = 1
+) {
+  if (is.character(x = cells.highlight)) {
+    cells.highlight <- list(cells.highlight)
+  } else if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
+    cells.highlight <- as.list(x = cells.highlight)
+  }
+  cells.highlight <- lapply(
+    X = cells.highlight,
+    FUN = function(cells) {
+      cells.return <- if (is.character(x = cells)) {
+        cells[cells %in% cells.all]
+      } else {
+        cells <- as.numeric(x = cells)
+        cells <- cells[cells <= length(x = cells.all)]
+        cells.all[cells]
+      }
+      return(cells.return)
+    }
+  )
+  cells.highlight <- Filter(f = length, x = cells.highlight)
+  names.highlight <- if (is.null(x = names(x = cells.highlight))) {
+    paste0('Group_', 1L:length(x = cells.highlight))
+  } else {
+    names(x = cells.highlight)
+  }
+  sizes.highlight <- rep_len(
+    x = sizes.highlight,
+    length.out = length(x = cells.highlight)
+  )
+  cols.highlight <- c(
+    col.base,
+    rep_len(x = cols.highlight, length.out = length(x = cells.highlight))
+  )
+  size <- rep_len(x = pt.size, length.out = length(x = cells.all))
+  highlight <- rep_len(x = NA_character_, length.out = length(x = cells.all))
+  if (length(x = cells.highlight) > 0) {
+    for (i in 1:length(x = cells.highlight)) {
+      cells.check <- cells.highlight[[i]]
+      index.check <- match(x = cells.check, cells.all)
+      highlight[index.check] <- names.highlight[i]
+      size[index.check] <- sizes.highlight[i]
+    }
+  }
+  plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
+  plot.order[is.na(x = plot.order)] <- 'Unselected'
+  highlight[is.na(x = highlight)] <- 'Unselected'
+  highlight <- as.factor(x = highlight)
+  return(list(
+    plot.order = plot.order,
+    highlight = highlight,
+    size = size,
+    color = cols.highlight
+  ))
+}
+
+MakeLabels <- function(data.plot) {
+  data.labels <- lapply(
+    X = unique(x = data.plot[, 3]),
+    FUN = function(group) {
+      data.use <- data.plot[data.plot[, 3] == group, 1:2]
+      return(apply(X = data.use, MARGIN = 2, FUN = median))
+    }
+  )
+  names(x = data.labels) <- unique(x = data.plot[, 3])
+  data.labels <- as.data.frame(x = t(x = as.data.frame(x = data.labels)))
+  data.labels[, colnames(x = data.plot)[3]] <- rownames(x = data.labels)
+  return(data.labels)
 }
 
 # Plot feature expression by identity
@@ -878,6 +918,103 @@ SingleExIPlot <- function(
   }
 }
 
+# Plot a single dimension
+#
+#' @importFrom ggplot2 ggplot aes_string
+#
+SingleDimPlot <- function(
+  object,
+  dims.use,
+  col.by,
+  cols.use = NULL,
+  cells.use = NULL,
+  pt.size = 1,
+  shape.by = NULL,
+  plot.order = NULL,
+  do.label = FALSE,
+  label.size = 4,
+  cells.highlight = NULL,
+  cols.highlight = 'red',
+  sizes.highlight = 1,
+  na.value = 'grey50',
+  legend.title = NULL,
+  ...
+) {
+  if (length(x = dims.use) != 2) {
+    stop("'dims.use' must be a two-length integer vector")
+  }
+  dims.plot <- colnames(x = Embeddings(object = object))[dims.use]
+  shape.plot <- if (is.null(x = shape.by)) {
+    NULL
+  } else {
+    'shape'
+  }
+  if (!is.null(x = cells.highlight)) {
+    highlight.info <- SetHighlight(
+      cells.highlight = cells.highlight,
+      cells.all = colnames(x = object),
+      sizes.highlight = sizes.highlight,
+      cols.highlight = cols.highlight,
+      col.base = cols.use[1] %||% 'black',
+      pt.size = pt.size
+    )
+    plot.order <- highlight.info$plot.order
+    col.by <- highlight.info$highlight
+    pt.size <- highlight.info$size
+    cols.use <- highlight.info$color
+  }
+  if (!is.null(x = plot.order)) {
+    plot.order <- rev(x = c(
+      plot.order,
+      setdiff(x = unique(x = col.by), y = plot.order)
+    ))
+    col.by <- factor(x = col.by, levels = plot.order)
+  }
+  p <- ggplot(
+    data = object,
+    colors = col.by,
+    rows.use = cells.use,
+    pt.size = pt.size,
+    pt.shape = shape.by,
+    ...
+  ) +
+    geom_point(mapping = aes_string(
+      x = dims.plot[1],
+      y = dims.plot[2],
+      color = 'color',
+      shape = shape.plot
+    ))
+  if (do.label) {
+    labels <- MakeLabels(data.plot = p$data[, c(dims.plot, 'color')])
+    p <- p +
+      geom_point(
+        data = labels,
+        mapping = aes_string(
+          x = colnames(x = labels)[1],
+          y = colnames(x = labels)[2]
+        ),
+        size = 0,
+        alpha = 0
+      ) +
+      geom_text(
+        data = labels,
+        mapping = aes_string(
+          x = colnames(x = labels)[1],
+          y = colnames(x = labels)[2],
+          label = colnames(x = labels)[3]
+        ),
+        size = label.size
+      )
+  }
+  if (!is.null(x = legend.title)) {
+    p <- p + labs(color = legend.title)
+  }
+  if (!is.null(x = cols.use)) {
+    p <- p + scale_color_manual(values = cols.use, na.value = na.value)
+  }
+  return(p)
+}
+
 #remove legend title
 no.legend.title <- theme(legend.title = element_blank())
 
@@ -934,7 +1071,7 @@ GetGradientLegend <- function(palette, group) {
 #' @importFrom graphics axis mtext rect abline text title hist lines
 #' @importFrom stats median order.dendrogram as.dendrogram reorder density
 #
-heatmap2NoKey <- function (
+heatmap2NoKey <- function(
   x,
   Rowv = TRUE,
   Colv = if (symm) "Rowv" else TRUE,
@@ -1440,7 +1577,6 @@ heatmap2NoKey <- function (
 }
 
 # Documentation
-###############
 PlotDim <- function(
   ndim,
   object,
@@ -1495,7 +1631,7 @@ PlotDim <- function(
     slot = "key"
   )
   cells.ordered <- cells.use[order(dim.scores[cells.use, paste0(dim.key, ndim)])]
-  if (! use.scaled) {
+  if (!use.scaled) {
     data.use <- as.matrix(object@data[genes.use, cells.ordered])
   } else {
     data.use <- object@scale.data[genes.use, cells.ordered]
@@ -1520,8 +1656,7 @@ PlotDim <- function(
     group.label.rot = group.label.rot,
     group.cex = group.cex,
     group.spacing = group.spacing,
-    title = paste0(dim.key, ndim),
-    do.plot = FALSE
+    title = paste0(dim.key, ndim)
   ))
 }
 
@@ -1563,15 +1698,21 @@ globalVariables(
 # but may result in metagenes constructed on fewer than num.genes genes.
 # @param display.progress Show progress bar
 
-EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
-                        num.possible.genes, display.progress) {
+EvaluateCCs <- function(
+  object,
+  grouping.var,
+  dims.eval,
+  gene.num,
+  num.possible.genes,
+  display.progress
+) {
   reduction.type <-  "cca"
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
   num.groups <- length(levels.split)
   objects <- list()
-  for (i in 1:num.groups){
+  for (i in 1:num.groups) {
     objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
   }
   object@ident <- ident.orig
@@ -1580,8 +1721,11 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
   cc.embeds <- list()
   for (i in 1:num.groups) {
     cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000,
-                              display.progress = display.progress)
+    objects[[i]] <- ScaleData(
+      object = objects[[i]],
+      block.size = 5000,
+      display.progress = display.progress
+    )
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
       reduction.type = reduction.type,
@@ -1606,7 +1750,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
   }
   for (cc.use in dims.eval) {
     bc.gene.g1 <- c()
-    for (g in 2:num.groups){
+    for (g in 2:num.groups) {
       if (display.progress) {
         pb.idx <- pb.idx + 1
         setTxtProgressBar(pb, pb.idx)

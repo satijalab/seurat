@@ -459,3 +459,121 @@ DotPlot <- function(
   }
   return(p)
 }
+
+#' Dimensional reduction plot
+#'
+#' Graphs the output of a dimensional reduction technique (PCA by default).
+#' Cells are colored by their identity class.
+#'
+#' @param object Seurat object
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "pca", can also be "tsne", or "ica", assuming these are precomputed.
+#' @param dims.use Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
+#' @param cells.use Vector of cells to plot (default is all cells)
+#' @param pt.size Adjust point size for plotting
+# @param do.return Return a ggplot2 object (default : FALSE)
+# @param do.bare Do only minimal formatting (default : FALSE)
+#' @param cols.use Vector of colors, each color corresponds to an identity
+#' class. By default, ggplot assigns colors.
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param shape.by If NULL, all points are circles (default). You can specify any
+#' cell attribute (that can be pulled with FetchData) allowing for both
+#' different colors and different shapes on cells.
+# @param do.hover Enable hovering over points to view information
+# @param data.hover Data to add to the hover, pass a character vector of
+# features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
+# information.
+# @param do.identify Opens a locator session to identify clusters of cells.
+#' @param plot.order Specify the order of plotting for the idents. This can be
+#' useful for crowded plots if points of interest are being buried. Provide
+#' either a full list of valid idents or a subset to be plotted last (on top).
+#' @param do.label Whether to label the clusters
+#' @param label.size Sets size of labels
+#' @param cells.highlight A list of character or numeric vectors of cells to
+#' highlight. If only one group of cells desired, can simply
+#' pass a vector instead of a list. If set, colors selected cells to the color(s)
+#'in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+#'  will also resize to the size(s) passed to \code{sizes.highlight}
+#' @param cols.highlight A vector of colors to highlight the cells as; will
+#' repeat to the length groups in cells.highlight
+#' @param sizes.highlight Size of highlighted cells; will repeat to the length
+#' groups in cells.highlight
+# @param vector.friendly FALSE by default. If TRUE, points are flattened into
+# a PNG, while axes/labels retain full vector resolution. Useful for producing
+# AI-friendly plots with large numbers of cells.
+# @param png.file Used only if vector.friendly is TRUE. Location for temporary
+# PNG file.
+# @param png.arguments Used only if vector.friendly is TRUE. Vector of three
+# elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
+# Default is c(10,10,100)
+#' @param na.value Color value for NA points when using custom scale.
+# @param ... Extra parameters to FeatureLocator for do.identify = TRUE
+#'
+#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
+#' graphical output.
+#'
+# @seealso \code{\link{FeatureLocator}}
+#'
+#' @import SDMTools
+#' @importFrom stats median
+#' @importFrom dplyr summarize group_by
+#' @importFrom png readPNG
+#'
+#' @export
+#'
+#' @examples
+#' DimPlot(object = pbmc_small)
+#'
+DimPlot <- function(
+  object,
+  reduction.use = 'pca',
+  dims.use = c(1, 2),
+  group.by = NULL,
+  cols.use = NULL,
+  cells.use = NULL,
+  pt.size = 1,
+  shape.by = NULL,
+  plot.order = NULL,
+  do.label = FALSE,
+  label.size = 4,
+  cells.highlight = NULL,
+  cols.highlight = 'red',
+  sizes.highlight = 1,
+  na.value = 'grey50',
+  # ...,
+  do.hover = FALSE,
+  data.hover = 'ident',
+  do.identify = FALSE,
+  no.legend = FALSE,
+  vector.friendly = FALSE,
+  png.file = NULL,
+  png.arguments = c(10,10, 100),
+  ...
+) {
+  group.by <- group.by %||% 'ident'
+  col.by <- switch(
+    EXPR = group.by,
+    'ident' = Idents(object = object),
+    object[group.by, drop = TRUE]
+  )
+  if (!is.null(x = shape.by)) {
+    shape.by <- object[shape.by, drop = TRUE]
+  }
+  plot <- SingleDimPlot(
+    object = object[[reduction.use]],
+    dims.use = dims.use,
+    col.by = col.by,
+    cols.use = cols.use,
+    cells.use = cells.use,
+    pt.size = pt.size,
+    shape.by = shape.by,
+    plot.order = plot.order,
+    do.label = do.label,
+    label.size = label.size,
+    cells.highlight = cells.highlight,
+    cols.highlight = cols.highlight,
+    sizes.highlight = sizes.highlight,
+    legend.title = group.by
+  )
+  return(plot)
+}
