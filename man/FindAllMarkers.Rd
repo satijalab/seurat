@@ -4,15 +4,19 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
-  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
-  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  return.thresh = 0.01, do.print = FALSE, random.seed = 1,
-  min.cells.gene = 3, min.cells.group = 3, latent.vars = NULL,
-  assay.type = "RNA", ...)
+FindAllMarkers(object, assay.use = NULL, features.use = NULL,
+  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
+  min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
+  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
+  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1,
+  return.thresh = 0.01, ...)
 }
 \arguments{
 \item{object}{Seurat object}
+
+\item{assay.use}{Assay to use in differential expression testing}
+
+\item{features.use}{Genes to test. Default is to use all genes}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -65,29 +69,24 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
-
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
-\item{max.cells.per.ident}{Down sample each identity class to a max number. Default is no downsampling.}
-
-\item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
-
-\item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
+\item{max.cells.per.ident}{Down sample each identity class to a max number.
+Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
-of the two groups, currently only used for poisson and negative binomial tests}
+\item{latent.vars}{Variables to test, used only when \code{test.use} is one of
+'negbinom', 'poisson', or 'MAST'}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
-\item{latent.vars}{Remove the effects of these variables, used only when \code{test.use} is one of
-'negbinom', 'poisson', or 'MAST'}
+\item{pseudocount.use}{Pseudocount to add to averaged expression values when
+calculating logFC. 1 by default.}
 
-\item{assay.type}{Type of assay to perform DE for (default is RNA)}
+\item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{\dots}{Additional parameters to pass to specific DE functions}
+\item{...}{Additional parameters to pass to specific DE functions}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

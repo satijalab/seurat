@@ -309,18 +309,7 @@ globalVariables(
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 #'
 #' @inheritParams FindMarkers
-#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
-#' @param random.seed Random seed for downsampling
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
-#' @param do.print FALSE by default. If TRUE, outputs updates on progress.
-#' @param min.cells.gene Minimum number of cells expressing the gene in at least one
-#' of the two groups, currently only used for poisson and negative binomial tests
-#' @param min.cells.group Minimum number of cells in one of the groups
-#' @param latent.vars Remove the effects of these variables, used only when \code{test.use} is one of
-#' 'negbinom', 'poisson', or 'MAST'
-#' @param assay.type Type of assay to perform DE for (default is RNA)
-#' @param \dots Additional parameters to pass to specific DE functions
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
@@ -332,55 +321,49 @@ globalVariables(
 #'
 FindAllMarkers <- function(
   object,
-  genes.use = NULL,
+  assay.use = NULL,
+  features.use = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
-  print.bar = TRUE,
+  verbose = TRUE,
   only.pos = FALSE,
   max.cells.per.ident = Inf,
-  return.thresh = 1e-2,
-  do.print = FALSE,
   random.seed = 1,
-  min.cells.gene = 3,
-  min.cells.group = 3,
   latent.vars = NULL,
-  assay.type = "RNA",
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  return.thresh = 1e-2,
   ...
 ) {
-  data.1 <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.1))
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
-    return.thresh = 0.7
+    return.thresh <- 0.7
   }
-  idents.all <- sort(x = unique(x = object@ident))
+  idents.all <- sort(x = unique(x = Idents(object = object)))
   genes.de <- list()
-  #if (max.cells.per.ident < Inf) {
-  #  object <- SubsetData(
-  #    object = object,
-  #    max.cells.per.ident = max.cells.per.ident,
-  #    random.seed = random.seed
-  #  )
-  #}
   for (i in 1:length(x = idents.all)) {
     genes.de[[i]] <- tryCatch(
       {
         FindMarkers(
           object = object,
-          assay.type = assay.type,
+          assay.use = assay.use,
           ident.1 = idents.all[i],
           ident.2 = NULL,
-          genes.use = genes.use,
+          features.use = features.use,
           logfc.threshold = logfc.threshold,
           test.use = test.use,
           min.pct = min.pct,
           min.diff.pct = min.diff.pct,
-          print.bar = print.bar,
-          min.cells.gene = min.cells.gene,
-          min.cells.group = min.cells.group,
-          latent.vars = latent.vars,
+          verbose = verbose,
+          only.pos = only.pos,
           max.cells.per.ident = max.cells.per.ident,
+          random.seed = random.seed,
+          latent.vars = latent.vars,
+          min.cells.feature = min.cells.feature,
+          min.cells.group = min.cells.group,
+          pseudocount.use = pseudocount.use,
           ...
         )
       },
@@ -388,7 +371,7 @@ FindAllMarkers <- function(
         return(NULL)
       }
     )
-    if (do.print) {
+    if (verbose) {
       message(paste("Calculating cluster", idents.all[i]))
     }
   }
