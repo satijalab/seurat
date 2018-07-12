@@ -42,7 +42,11 @@ the number for the dimension names. DM by default}
 Returns a Seurat object with a diffusion map
 }
 \description{
-Run diffusion map
+NOTE: Prior to v2.3.4, this function used the R package diffusionMap to compute
+the diffusion map components. This package was being archived and thus
+RunDiffusion now uses the destiny package for the diffusion computations.
+Please be aware that this will result in different default values as the two
+underlying package implementations are different.
 }
 \examples{
 \dontrun{
