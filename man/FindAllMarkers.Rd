@@ -4,17 +4,19 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, genes.use = NULL, logfc.threshold = 0.25,
-  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
-  print.bar = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  return.thresh = 0.01, do.print = FALSE, random.seed = 1,
-  min.cells.gene = 3, min.cells.group = 3, latent.vars = NULL,
-  assay.type = "RNA", ...)
+FindAllMarkers(object, assay.use = NULL, features.use = NULL,
+  logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
+  min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
+  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
+  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1,
+  return.thresh = 0.01, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{genes.use}{Genes to test. Default is to use all genes}
+\item{assay.use}{Assay to use in differential expression testing}
+
+\item{features.use}{Genes to test. Default is to use all genes}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -22,21 +24,42 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
 
 \item{test.use}{Denotes which test to use. Available options are:
 \itemize{
- \item{"wilcox"} : Wilcoxon rank sum test (default)
+ \item{"wilcox"} : Identifies differentially expressed genes between two
+ groups of cells using a Wilcoxon Rank Sum test (default)
  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
  (McDavid et al., Bioinformatics, 2013)
- \item{"roc"} : Standard AUC classifier
- \item{"t"} : Student's t-test
- \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et
- al., Nature Biotech, 2014)
- \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
-  distribution. Use only for UMI-based datasets
- \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
- binomial distribution. Use only for UMI-based datasets
- \item{"MAST} : GLM-framework that treates cellular detection rate as a
- covariate (Finak et al, Genome Biology, 2015)
- \item{"DESeq2} : DE based on a model using the negative binomial
- distribution (Love et al, Genome Biology, 2014)
+ \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
+ For each gene, evaluates (using AUC) a classifier built on that gene alone,
+ to classify between two groups of cells. An AUC value of 1 means that
+ expression values for this gene alone can perfectly classify the two
+ groupings (i.e. Each of the cells in cells.1 exhibit a higher level than
+ each of the cells in cells.2). An AUC value of 0 also means there is perfect
+ classification, but in the other direction. A value of 0.5 implies that
+ the gene has no predictive power to classify the two groups. Returns a
+ 'predictive power' (abs(AUC-0.5)) ranked matrix of putative differentially
+ expressed genes.
+ \item{"t"} : Identify differentially expressed genes between two groups of
+ cells using the Student's t-test.
+ \item{"tobit"} : Identifies differentially expressed genes between two
+ groups of cells using Tobit models, as proposed in Trapnell et al.,
+ Nature Biotechnology, 2014
+ \item{"negbinom"} : Identifies differentially expressed genes between two
+  groups of cells using a negative binomial generalized linear model.
+  Use only for UMI-based datasets
+ \item{"poisson"} : Identifies differentially expressed genes between two
+  groups of cells using a poisson generalized linear model.
+  Use only for UMI-based datasets
+ \item{"MAST} : Identifies differentially expressed genes between two groups
+ of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
+ package to run the DE testing.
+ \item{"DESeq2} : Identifies differentially expressed genes between two groups
+ of cells based on a model using DESeq2 which uses a negative binomial
+ distribution (Love et al, Genome Biology, 2014).This test does not support
+ pre-filtering of genes based on average difference (or percent detection rate)
+ between cell groups. However, genes may be pre-filtered based on their
+ minimum detection rate (min.pct) across both cell groups. To use this method,
+ please install DESeq2, using the instructions at
+ https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
@@ -46,29 +69,24 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
-\item{print.bar}{Print a progress bar once expression testing begins (uses pbapply to do this)}
-
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
-\item{max.cells.per.ident}{Down sample each identity class to a max number. Default is no downsampling.}
-
-\item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
-
-\item{do.print}{FALSE by default. If TRUE, outputs updates on progress.}
+\item{max.cells.per.ident}{Down sample each identity class to a max number.
+Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
-of the two groups, currently only used for poisson and negative binomial tests}
+\item{latent.vars}{Variables to test, used only when \code{test.use} is one of
+'negbinom', 'poisson', or 'MAST'}
 
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
-\item{latent.vars}{Remove the effects of these variables, used only when \code{test.use} is one of
-'negbinom', 'poisson', or 'MAST'}
+\item{pseudocount.use}{Pseudocount to add to averaged expression values when
+calculating logFC. 1 by default.}
 
-\item{assay.type}{Type of assay to perform DE for (default is RNA)}
+\item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{\dots}{Additional parameters to pass to specific DE functions}
+\item{...}{Additional parameters to pass to specific DE functions}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

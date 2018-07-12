@@ -1,3 +1,483 @@
+# Differential expression using Wilcoxon Rank Sum
+#
+# Identifies differentially expressed genes between two groups of cells using
+# a Wilcoxon Rank Sum test
+#
+# @param data.use Data matrix to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param verbose Print a progress bar
+# @param ... Extra parameters passed to wilcox.test
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# features
+#
+#' @importFrom pbapply pbsapply
+#' @importFrom stats wilcox.test
+#
+# @export
+#
+# @examples
+# pbmc_small
+# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+WilcoxDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  data.use <- data.use[, rownames(group.info)]
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = data.use),
+    FUN = function(x) {
+      return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+    }
+  )
+  return(data.frame(p_val, row.names = rownames(data.use)))
+}
+
+# Likelihood ratio test for zero-inflated data
+#
+# Identifies differentially expressed genes between two groups of cells using
+# the LRT model proposed in McDavid et al, Bioinformatics, 2013
+#
+# @inheritParams FindMarkers
+# @param object Seurat object
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param assay.type Type of assay to fetch data for (default is RNA)
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @export
+# @examples
+# pbmc_small
+# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+DiffExpTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(x = data.use),
+      FUN = function(x) {
+        return(DifferentialLRT(
+          x = as.numeric(x = data.use[x, cells.1]),
+          y = as.numeric(x = data.use[x, cells.2])
+        ))
+      }
+    )
+  )
+  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  return(to.return)
+}
+
+# ROC-based marker discovery
+#
+# Identifies 'markers' of gene expression using ROC analysis. For each gene,
+# evaluates (using AUC) a classifier built on that gene alone, to classify
+# between two groups of cells.
+#
+# An AUC value of 1 means that expression values for this gene alone can
+# perfectly classify the two groupings (i.e. Each of the cells in cells.1
+# exhibit a higher level than each of the cells in cells.2). An AUC value of 0
+# also means there is perfect classification, but in the other direction. A
+# value of 0.5 implies that the gene has no predictive power to classify the
+# two groups.
+#
+# @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
+# putative differentially expressed genes.
+#
+# @export
+#
+# @examples
+# pbmc_small
+# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+MarkerTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  to.return <- AUCMarkerTest(
+    data1 = data.use[, cells.1],
+    data2 = data.use[, cells.2],
+    mygenes = rownames(data.use),
+    print.bar = verbose
+  )
+  to.return$power <- abs(x = to.return$myAUC - 0.5) * 2
+  return(to.return)
+}
+
+# Differential expression testing using Student's t-test
+#
+# Identify differentially expressed genes between two groups of cells using
+# the Student's t-test
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @importFrom stats t.test
+# @importFrom pbapply pblapply
+#
+# @export
+#
+# @examples
+# pbmc_small
+# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+DiffTTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(data.use),
+      FUN = function(x) {
+        t.test(x = data.use[x, cells.1], y = data.use[x, cells.2])$p.value
+      }
+    )
+  )
+  to.return <- data.frame(p_val,row.names = rownames(data.use))
+  return(to.return)
+}
+
+# Differential expression testing using Tobit models
+#
+# Identifies differentially expressed genes between two groups of cells using
+# Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @export
+#
+#@examples
+# pbmc_small
+# \dontrun{
+# TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+TobitTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  to.return <- TobitDiffExpTest(
+    data1 = data.use[, cells.1],
+    data2 = data.use[, cells.2],
+    mygenes = rownames(data.use),
+    print.bar = verbose
+  )
+  return(to.return)
+}
+
+# Tests for UMI-count based data
+#
+# Identifies differentially expressed genes between two groups of cells using
+# either a negative binomial or poisson generalized linear model
+#
+# @param data.use Data to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param min.cells Minimum number of cells threshold
+# @param latent.vars Latent variables to test
+# @param test.use parameterizes the glm
+# @param verbose Print progress bar
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+#' @importFrom MASS glm.nb
+#' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula
+#
+# @export
+#
+#@examples
+# pbmc_small
+# # Note, not recommended for particularly small datasets - expect warnings
+# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+GLMDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  latent.vars = NULL,
+  test.use = NULL,
+  verbose = TRUE
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars <- cbind(group.info, latent.vars)
+  latent.var.names <- colnames(latent.vars)
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(data.use),
+      FUN = function(x) {
+        latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
+        # check that gene is expressed in specified number of cells in one group
+        if (sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells ||
+            sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells) {
+          warning(paste0(
+            "Skipping gene --- ",
+            x,
+            ". Fewer than ",
+            min.cells,
+            " in at least one of the two clusters."
+          ))
+          return(2)
+        }
+        # check that variance between groups is not 0
+        if (var(x = latent.vars$GENE) == 0) {
+          warning(paste0(
+            "Skipping gene -- ",
+            x,
+            ". No variance in expression between the two clusters."
+          ))
+          return(2)
+        }
+        fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.var.names, collapse = "+")))
+        p.estimate <- 2
+        if(test.use == "negbinom"){
+          try(
+            expr = p.estimate <- summary(
+              object = glm.nb(formula = fmla, data = latent.vars)
+            )$coef[2, 4],
+            silent = TRUE
+          )
+          return(p.estimate)
+        } else if (test.use == "poisson"){
+          return(
+            summary(
+              object = glm(
+                formula = fmla,
+                data = latent.vars,
+                family = "poisson"
+              )
+            )$coef[2,4]
+          )
+        }
+      }
+    )
+  )
+  features.keep <- rownames(data.use)
+  if (length(x = which(x = p_val == 2)) > 0){
+    features.keep <- features.keep[-which(x = p_val == 2)]
+    p_val <- p_val[! p_val == 2]
+  }
+  to.return <- data.frame(p_val, row.names = features.keep)
+  return(to.return)
+}
+
+# Differential expression using MAST
+#
+# Identifies differentially expressed genes between two groups of cells using
+# a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run
+# the DE testing.
+#
+# @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
+# Analysis of Single Cell Transcriptomics. R package version 1.2.1.
+# https://github.com/RGLab/MAST/
+#
+# @param data.use Data to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param latent.vars Confounding variables to adjust for in DE test. Default is
+# "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
+# non-UMI based data, set to nGene instead.
+# @param verbose print output
+# @param \dots Additional parameters to zero-inflated regression (zlm) function
+# in MAST
+# @details
+# To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+#' @importFrom stats relevel
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+MASTDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  latent.vars = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # Check for MAST
+  if (!'MAST' %in% rownames(x = installed.packages())) {
+    stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
+  }
+  if (length(x = latent.vars) > 0) {
+    latent.vars <- scale(x = latent.vars)
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars.names <- c("condition", colnames(latent.vars))
+  latent.vars <- cbind(latent.vars, group.info)
+  latent.vars$wellKey <- rownames(x = latent.vars)
+  fdat <- data.frame(rownames(x = data.use))
+  colnames(x = fdat)[1] <- "primerid"
+  rownames(x = fdat) <- fdat[, 1]
+  sca <- MAST::FromMatrix(
+    exprsArray = as.matrix(x = data.use),
+    cData = latent.vars,
+    fData = fdat
+  )
+  cond <- factor(x = SummarizedExperiment::colData(sca)$group)
+  cond <- relevel(x = cond, ref = "Group1")
+  SummarizedExperiment::colData(sca)$condition <- cond
+  fmla <- as.formula(
+    object = paste0(" ~ ", paste(latent.vars.names, collapse = "+"))
+  )
+  zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
+  summaryCond <- summary(object = zlmCond, doLRT = 'conditionGroup2')
+  summaryDt <- summaryCond$datatable
+  # fcHurdle <- merge(
+  #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
+  #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
+  # ) #logFC coefficients
+  # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
+  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
+  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
+  # p_val <- subset(summaryDt, component == "H")[, 4]
+  # genes.return <- subset(summaryDt, component == "H")[, 1]
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
+
+# Differential expression using DESeq2
+#
+# Identifies differentially expressed genes between two groups of cells using
+# DESeq2
+#
+# @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
+# fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
+# https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+# @param data.use Data matrix to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param verbose Print a progress bar
+# @param ... Extra parameters to pass to DESeq2::results
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @details
+# This test does not support pre-filtering of genes based on average difference
+# (or percent detection rate) between cell groups. However, genes may be
+# pre-filtered based on their minimum detection rate (min.pct) across both cell
+# groups. To use this method, please install DESeq2, using the instructions at
+#  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+DESeq2DETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  if (!'DESeq2' %in% rownames(x = installed.packages())) {
+    stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  group.info$wellKey <- rownames(x = group.info)
+  dds1 <- DESeq2::DESeqDataSetFromMatrix(
+    countData = data.use,
+    colData = group.info,
+    design = ~ group
+  )
+  dds1 <- DESeq2::estimateSizeFactors(object = dds1)
+  dds1 <- DESeq2::estimateDispersions(object = dds1, fitType = "local")
+  dds1 <- DESeq2::nbinomWaldTest(object = dds1)
+  res <- DESeq2::results(
+    object = dds1,
+    contrast = c("group", "Group1", "Group2"),
+    alpha = 0.05,
+    ...
+  )
+  to.return <- data.frame(p_val = res$pvalue, row.names = rownames(res))
+  return(to.return)
+}
+
+
+LRDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  data.use <- data.use[, rownames(group.info)]
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = data.use),
+    FUN = function(x) {
+      model1 <- glm(group.info$group ~ data.use[x, ], family = "binomial")
+      model2 <- glm(group.info$group ~ 1, family = "binomial")
+      lrtest <- lrtest(model1, model2)
+      return(lrtest$Pr[2])
+    }
+  )
+  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  return(to.return)
+}
+
 #internal function to run mcdavid et al. DE test
 #
 #' @importFrom stats pchisq

@@ -26,7 +26,7 @@ NormalizeData <- function(
 #'
 #' Identifies features that are outliers on a 'mean variability plot'. First, uses
 #' a function to calculate average expression (mean.function) and dispersion (dispersion.function)
-#' for each feautre Next, divides features into num.bin (deafult 20) bins based on
+#' for each feature. Next, divides features into num.bin (deafult 20) bins based on
 #' their average expression, and calculates z-scores for dispersion within each
 #' bin. The purpose of this is to identify variable features while controlling for
 #' the strong relationship between variability and average expression.
