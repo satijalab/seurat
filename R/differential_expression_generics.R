@@ -37,8 +37,14 @@
 ##'  \item{"MAST} : Identifies differentially expressed genes between two groups
 ##'  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
 ##'  package to run the DE testing.
-##'  \item{"DESeq2} : DE based on a model using the negative binomial
-##'  distribution (Love et al, Genome Biology, 2014)
+##'  \item{"DESeq2} : Identifies differentially expressed genes between two groups
+##'  of cells based on a model using DESeq2 which uses a negative binomial
+##'  distribution (Love et al, Genome Biology, 2014).This test does not support
+##'  pre-filtering of genes based on average difference (or percent detection rate)
+##'  between cell groups. However, genes may be pre-filtered based on their
+##'  minimum detection rate (min.pct) across both cell groups. To use this method,
+##'  please install DESeq2, using the instructions at
+##'  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 ##' }
 #' @param min.pct  only test genes that are detected in a minimum fraction of
 #' min.pct cells in either of the two populations. Meant to speed up the function
@@ -59,7 +65,7 @@
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
 #' calculating logFC. 1 by default.
 #' @param \dots Additional parameters to pass to specific DE functions
-#' @seealso \code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
+
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #' @details p-value adjustment is performed using bonferroni correction based on
@@ -69,13 +75,21 @@
 #' should be interpreted cautiously, as the genes used for clustering are the
 #' same genes tested for differential expression.
 #'
+#' @references McDavid A, Finak G, Chattopadyay PK, et al. Data exploration,
+#' quality control and testing in single-cell qPCR-based gene expression experiments.
+#' Bioinformatics. 2013;29(4):461-467. doi:10.1093/bioinformatics/bts714
+#' @references Trapnell C, et al. The dynamics and regulators of cell fate
+#' decisions are revealed by pseudotemporal ordering of single cells. Nature
+#' Biotechnology volume 32, pages 381–386 (2014)
 #' @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
 #' Analysis of Single Cell Transcriptomics. R package version 1.2.1.
 #' https://github.com/RGLab/MAST/
+#' @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
+#' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
+#' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#'
 #' @import pbapply
 #' @importFrom lmtest lrtest
-#'
-#' @seealso \code{\link{NegBinomDETest}}
 #'
 #' @export
 #'

@@ -384,6 +384,100 @@ MASTDETest <- function(
   return(to.return)
 }
 
+# Differential expression using DESeq2
+#
+# Identifies differentially expressed genes between two groups of cells using
+# DESeq2
+#
+# @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
+# fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
+# https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+# @param data.use Data matrix to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param verbose Print a progress bar
+# @param ... Extra parameters to pass to DESeq2::results
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @details
+# This test does not support pre-filtering of genes based on average difference
+# (or percent detection rate) between cell groups. However, genes may be
+# pre-filtered based on their minimum detection rate (min.pct) across both cell
+# groups. To use this method, please install DESeq2, using the instructions at
+#  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+DESeq2DETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  if (!'DESeq2' %in% rownames(x = installed.packages())) {
+    stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  group.info$wellKey <- rownames(x = group.info)
+  dds1 <- DESeq2::DESeqDataSetFromMatrix(
+    countData = data.use,
+    colData = group.info,
+    design = ~ group
+  )
+  dds1 <- DESeq2::estimateSizeFactors(object = dds1)
+  dds1 <- DESeq2::estimateDispersions(object = dds1, fitType = "local")
+  dds1 <- DESeq2::nbinomWaldTest(object = dds1)
+  res <- DESeq2::results(
+    object = dds1,
+    contrast = c("group", "Group1", "Group2"),
+    alpha = 0.05,
+    ...
+  )
+  to.return <- data.frame(p_val = res$pvalue, row.names = rownames(res))
+  return(to.return)
+}
+
+
+LRDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  data.use <- data.use[, rownames(group.info)]
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = data.use),
+    FUN = function(x) {
+      model1 <- glm(group.info$group ~ data.use[x, ], family = "binomial")
+      model2 <- glm(group.info$group ~ 1, family = "binomial")
+      lrtest <- lrtest(model1, model2)
+      return(lrtest$Pr[2])
+    }
+  )
+  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  return(to.return)
+}
+
 #internal function to run mcdavid et al. DE test
 #
 #' @importFrom stats pchisq

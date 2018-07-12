@@ -27,9 +27,9 @@ FindMarkers(object, features.use, logfc.threshold, test.use, min.pct,
 \arguments{
 \item{object}{Seurat object}
 
-\item{cells.1}{...}
+\item{cells.1}{Vector of cell names belonging to group 1}
 
-\item{cells.2}{...}
+\item{cells.2}{Vector of cell names belonging to group 2}
 
 \item{features.use}{Genes to test. Default is to use all genes}
 
@@ -67,8 +67,14 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  \item{"MAST} : Identifies differentially expressed genes between two groups
  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
  package to run the DE testing.
- \item{"DESeq2} : DE based on a model using the negative binomial
- distribution (Love et al, Genome Biology, 2014)
+ \item{"DESeq2} : Identifies differentially expressed genes between two groups
+ of cells based on a model using DESeq2 which uses a negative binomial
+ distribution (Love et al, Genome Biology, 2014).This test does not support
+ pre-filtering of genes based on average difference (or percent detection rate)
+ between cell groups. However, genes may be pre-filtered based on their
+ minimum detection rate (min.pct) across both cell groups. To use this method,
+ please install DESeq2, using the instructions at
+ https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
@@ -136,12 +142,19 @@ head(markers)
 
 }
 \references{
+McDavid A, Finak G, Chattopadyay PK, et al. Data exploration,
+quality control and testing in single-cell qPCR-based gene expression experiments.
+Bioinformatics. 2013;29(4):461-467. doi:10.1093/bioinformatics/bts714
+
+Trapnell C, et al. The dynamics and regulators of cell fate
+decisions are revealed by pseudotemporal ordering of single cells. Nature
+Biotechnology volume 32, pages 381–386 (2014)
+
 Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
 Analysis of Single Cell Transcriptomics. R package version 1.2.1.
 https://github.com/RGLab/MAST/
-}
-\seealso{
-\code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
 
-\code{\link{NegBinomDETest}}
+Love MI, Huber W and Anders S (2014). "Moderated estimation of
+fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
+https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }

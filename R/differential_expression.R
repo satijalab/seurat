@@ -1,5 +1,5 @@
-#' @param cells.1 ...
-#' @param cells.2 ...
+#' @param cells.1 Vector of cell names belonging to group 1
+#' @param cells.2 Vector of cell names belonging to group 2
 #'
 #' @describeIn FindMarkers Run differential expression test on matrix
 #' @export
@@ -177,11 +177,21 @@ FindMarkers.default <- function(
       latent.vars = latent.vars,
       verbose = verbose
     ),
-
+    "DESeq2" = DESeq2DETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    "LR" = LRDETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
     stop("Unknown test: ", test.use)
   )
   de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
-
   de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
   de.results$p_val_adj = p.adjust(
     p = de.results$p_val,method = "bonferroni",
@@ -230,7 +240,7 @@ FindMarkers.Seurat <- function(
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
   data.slot <- "data"
-  if (test.use %in% c("negbinom", "poisson")) {
+  if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
     data.slot <- "raw.data"
   }
   data.use <- GetAssayData(object = object[[assay.use]], slot = data.slot)
@@ -853,120 +863,3 @@ NegBinomRegDETest <- function(
   res <- res[order(res$pval, -abs(x = res$log2.fc)), ]
   return(res)
 }
-
-
-#' Differential expression using DESeq2
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' DESeq2
-#'
-#' @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
-#' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
-#' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to use for test
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param ... Extra parameters to pass to DESeq2::results
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @details
-#' This test does not support pre-filtering of genes based on average difference
-#' (or percent detection rate) between cell groups. However, genes may be
-#' pre-filtered based on their minimum detection rate (min.pct) across both cell
-#' groups. To use this method, please install DESeq2, using the instructions at
-#'  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-#'
-#' @importFrom utils installed.packages
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#'   pbmc_small
-#'   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'               cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#' }
-#'
-DESeq2DETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  assay.type = "RNA",
-  ...
-) {
-  if (!'DESeq2' %in% rownames(x = installed.packages())) {
-    stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
-  }
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  coldata <- object@meta.data[c(cells.1, cells.2), ]
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
-  coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, rownames(x = coldata)]
-  fdat <- data.frame(rownames(x = countdata.test))
-  colnames(x = fdat)[1] <- "primerid"
-  rownames(x = fdat) <- fdat[, 1]
-  dds1 <- DESeq2::DESeqDataSetFromMatrix(
-    countData = countdata.test,
-    colData = coldata,
-    design = ~ group
-  )
-  dds1 <- DESeq2::estimateSizeFactors(object = dds1)
-  dds1 <- DESeq2::estimateDispersions(object = dds1, fitType = "local")
-  dds1 <- DESeq2::nbinomWaldTest(object = dds1)
-  res <- DESeq2::results(
-    object = dds1,
-    contrast = c("group", "Group1", "Group2"),
-    alpha = 0.05,
-    ...
-  )
-  p_val <- res$pvalue
-  genes.return <- rownames(x = res)
-  to.return <- data.frame(p_val, row.names = genes.return)
-  return(to.return)
-}
-
-
-LRDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  min.cells = 3,
-  genes.use = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA",
-  ...
-) {
-  data.test <- GetAssayData(object = object, assay.type = assay.type, slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
-  coldata <- object@meta.data[c(cells.1, cells.2), ]
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
-  coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- data.test[genes.use, rownames(x = coldata)]
-  mysapply <- if (print.bar) {pbsapply} else {sapply}
-  p_val <- mysapply(
-    X = 1:nrow(x = countdata.test),
-    FUN = function(x) {
-      model1 <- glm(coldata$group ~ countdata.test[x,],family = "binomial")
-      model2 <- glm(coldata$group ~ 1, family = "binomial")
-      lrtest <- lrtest(model1, model2)
-      return(lrtest$Pr[2])
-    }
-  )
-  genes.return <- rownames(x = countdata.test)
-  to.return <- data.frame(p_val, row.names = genes.return)
-  return(to.return)
-}
-
-

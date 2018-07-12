@@ -48,8 +48,14 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  \item{"MAST} : Identifies differentially expressed genes between two groups
  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
  package to run the DE testing.
- \item{"DESeq2} : DE based on a model using the negative binomial
- distribution (Love et al, Genome Biology, 2014)
+ \item{"DESeq2} : Identifies differentially expressed genes between two groups
+ of cells based on a model using DESeq2 which uses a negative binomial
+ distribution (Love et al, Genome Biology, 2014).This test does not support
+ pre-filtering of genes based on average difference (or percent detection rate)
+ between cell groups. However, genes may be pre-filtered based on their
+ minimum detection rate (min.pct) across both cell groups. To use this method,
+ please install DESeq2, using the instructions at
+ https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
 
 \item{min.pct}{only test genes that are detected in a minimum fraction of
