@@ -120,160 +120,6 @@ PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
   return(points.located[, c(1, 2)])
 }
 
-# Plot a single feature
-#
-# @param data.use The data regarding the feature
-# @param feature The feature to plot
-# @param data.plot The data to be plotted
-# @param pt.size Size of each point
-# @param pch.use Shape of each point
-# @param cols.use Colors to plot
-# @param dim.codes Codes for the dimensions to plot in
-# @param min.cutoff Minimum cutoff for data
-# @param max.cutoff Maximum cutoff for data
-# @param coord.fixed Use a fixed scale coordinate system (for spatial coordinates)
-# @param no.axes Remove axes from plot
-# @param no.legend Remove legend from plot
-# @param dark.theme Plot in dark theme
-#
-# @return A ggplot2 scatterplot
-#
-#' @importFrom stats na.omit
-#' @importFrom utils globalVariables
-#
-globalVariables(names = c('x', 'y', 'gene'), package = 'Seurat', add = TRUE)
-SingleFeaturePlot <- function(
-  data.use,
-  feature,
-  data.plot,
-  pt.size,
-  pch.use,
-  cols.use,
-  dim.codes,
-  min.cutoff,
-  max.cutoff,
-  coord.fixed,
-  no.axes,
-  no.title = FALSE,
-  no.legend,
-  dark.theme,
-  vector.friendly = FALSE,
-  png.file = NULL,
-  png.arguments=c(10,10,100)
-) {
-  #first, consider vector friendly case
-  if (vector.friendly) {
-    previous_call <- blank_call <- png_call <- match.call()
-    blank_call$pt.size <- -1
-    blank_call$vector.friendly <- FALSE
-    png_call$no.axes <- TRUE
-    png_call$no.legend <- TRUE
-    png_call$vector.friendly <- FALSE
-    png_call$no.title <- TRUE
-    blank_plot <- eval(blank_call, sys.frame(sys.parent()))
-    png_plot <- eval(png_call, sys.frame(sys.parent()))
-    png.file <- SetIfNull(x = png.file, default = paste0(tempfile(), ".png"))
-    ggsave(filename = png.file, plot = png_plot,
-           width = png.arguments[1],
-           height = png.arguments[2],
-           dpi = png.arguments[3])
-    to_return <- AugmentPlot(blank_plot, png.file)
-    file.remove(png.file)
-    return(to_return)
-  }
-  data.gene <- na.omit(object = data.frame(data.use[feature, ]))
-  #   Check for quantiles
-  min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.gene)
-  max.cutoff <- SetQuantile(cutoff = max.cutoff, data = data.gene)
-  #   Mask any values below the minimum and above the maximum values
-  data.gene <- sapply(
-    X = data.gene,
-    FUN = function(x) {
-      return(ifelse(test = x < min.cutoff, yes = min.cutoff, no = x))
-    }
-  )
-  data.gene <- sapply(
-    X = data.gene,
-    FUN = function(x) {
-      return(ifelse(test = x > max.cutoff, yes = max.cutoff, no = x))
-    }
-  )
-  data.plot$gene <- data.gene
-  #   Stuff for break points
-  if (length(x = cols.use) == 1) {
-    brewer.gran <- brewer.pal.info[cols.use, ]$maxcolors
-  } else {
-    brewer.gran <- length(x = cols.use)
-  }
-  #   Cut points
-  if (all(data.gene == 0)) {
-    data.cut <- 0
-  } else {
-    data.cut <- as.numeric(x = as.factor(x = cut(
-      x = as.numeric(x = data.gene),
-      breaks = brewer.gran
-    )))
-  }
-  data.plot$col <- as.factor(x = data.cut)
-  #   Start plotting
-  p <- ggplot(data = data.plot, mapping = aes(x = x, y = y))
-  if (brewer.gran != 2) {
-    if (length(x = cols.use) == 1) {
-      p <- p + geom_point(
-        mapping = aes(color = col),
-        size = pt.size,
-        shape = pch.use
-      ) + scale_color_brewer(palette = cols.use)
-    } else {
-      p <- p + geom_point(
-        mapping = aes(color = col),
-        size = pt.size,
-        shape = pch.use
-      ) + scale_color_manual(values = cols.use)
-    }
-  } else {
-    if (all(data.plot$gene == data.plot$gene[1])) {
-      warning(paste0("All cells have the same value of ", feature, "."))
-      p <- p + geom_point(color = cols.use[1], size = pt.size, shape = pch.use)
-    } else {
-      p <- p + geom_point(
-        mapping = aes(color = gene),
-        size = pt.size,
-        shape = pch.use
-      ) + scale_color_gradientn(
-        colors = cols.use,
-        guide = guide_colorbar(title = feature)
-      )
-    }
-  }
-  if (dark.theme) {
-    p <- p + DarkTheme()
-  }
-  if (no.axes) {
-    p <- p + theme(
-      axis.line = element_blank(),
-      axis.text.x = element_blank(),
-      axis.text.y = element_blank(),
-      axis.ticks = element_blank(),
-      axis.title.x = element_blank(),
-      axis.title.y = element_blank()
-    )
-    if (!no.title) p <- p + labs(title = feature, x ="", y="")
-    if (no.title) p <- p + labs(x ="", y="")
-  } else {
-    if (no.title) p <- p + labs(x = dim.codes[1], y = dim.codes[2])
-    if (!(no.title)) p <- p + labs(title = feature, x = dim.codes[1], y = dim.codes[2])
-  }
-  if (no.legend) {
-    p <- p + theme(legend.position = 'none')
-  }
-  if(coord.fixed) {
-    p <- p + coord_fixed()
-  }
-
-  return(p)
-}
-
 # Blend two feature plots together
 #
 # @param data.use The data regarding the feature
@@ -562,6 +408,23 @@ ResetPar <- function(...) {
   par(mfrow = c(1, 1), ...)
 }
 
+# Set highlight information
+#
+# @param cells.highlight Cells to highlight
+# @param cells.all A character vector of all cell names
+# @param sizes.highlight Sizes of cells to highlight
+# @param cols.highlight Colors to highlight cells as
+# @param col.base Base color to use for unselected cells
+# @param pt.size Size of unselected cells
+#
+# @return A list will cell highlight information
+# \describe{
+#   \item{plot.order}{An order to plot cells in}
+#   \item{highlight}{A vector giving group information for each cell}
+#   \item{size}{A vector giving size information for each cell}
+#   \item{color}{Colors for highlighting in the order of plot.order}
+# }
+#
 SetHighlight <- function(
   cells.highlight,
   cells.all,
@@ -624,6 +487,13 @@ SetHighlight <- function(
   ))
 }
 
+# Make label information for ggplot2-based scatter plots
+#
+# @param data.plot A three-column data frame (accessed with \code{plot$data})
+# The first column should be the X axis, the second the Y, and the third should be grouping information
+#
+# @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
+#
 MakeLabels <- function(data.plot) {
   data.labels <- lapply(
     X = unique(x = data.plot[, 3]),
@@ -920,6 +790,34 @@ SingleExIPlot <- function(
 
 # Plot a single dimension
 #
+# @param object A DimReduc object
+# @param dims.use A two-length numeric vector with dimensions to use
+# @param cells.use Vector of cells to plot (default is all cells)
+# @param pt.size Adjust point size for plotting
+# @param cols.use Vector of colors, each color corresponds to an identity class. By default, ggplot assigns colors.
+# @param group.by Group (color) cells in different ways (for example, orig.ident)
+# @param shape.by If NULL, all points are circles (default). You can specify any
+# cell attribute (that can be pulled with FetchData) allowing for both
+# different colors and different shapes on cells.
+# @param plot.order Specify the order of plotting for the idents. This can be
+# useful for crowded plots if points of interest are being buried. Provide
+# either a full list of valid idents or a subset to be plotted last (on top).
+# @param do.label Whether to label the clusters
+# @param label.size Sets size of labels
+# @param cells.highlight A list of character or numeric vectors of cells to
+# highlight. If only one group of cells desired, can simply
+# pass a vector instead of a list. If set, colors selected cells to the color(s)
+# in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+#  will also resize to the size(s) passed to \code{sizes.highlight}
+# @param cols.highlight A vector of colors to highlight the cells as; will
+# repeat to the length groups in cells.highlight
+# @param sizes.highlight Size of highlighted cells; will repeat to the length
+# groups in cells.highlight
+# @param na.value Color value for NA points when using custom scale.
+# @param legend.title Title for legend
+# @param ... Ignored for now
+#
+#
 #' @importFrom ggplot2 ggplot aes_string
 #
 SingleDimPlot <- function(
@@ -1010,7 +908,12 @@ SingleDimPlot <- function(
     p <- p + labs(color = legend.title)
   }
   if (!is.null(x = cols.use)) {
-    p <- p + scale_color_manual(values = cols.use, na.value = na.value)
+    cols.use <- if (length(x = cols.use) == 1) {
+      scale_color_brewer(palette = cols.use)
+    } else {
+      scale_color_manual(values = cols.use, na.value = na.value)
+    }
+    p <- p + cols.use
   }
   return(p)
 }

@@ -577,3 +577,133 @@ DimPlot <- function(
   )
   return(plot)
 }
+
+#' Visualize 'features' on a dimensional reduction plot
+#'
+#' Colors single cells on a dimensional reduction plot according to a 'feature'
+#' (i.e. gene expression, PC scores, number of genes detected, etc.)
+#'
+#' @inheritParams DimPlot
+#' @param features.plot Vector of features to plot
+#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param cols.use The two colors to form the gradient over. Provide as string vector with
+#' the first color corresponding to low values, the second to high. Also accepts a Brewer
+#' color scale or vector of colors. Note: this will bin the data into number of colors provided.
+# @param pch.use Pch for plotting
+# @param overlay Plot two features overlayed one on top of the other
+#' @param reduction.use Which dimensionality reduction to use. Default is
+#' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#'
+#' @importFrom RColorBrewer brewer.pal.info
+#' @importFrom ggplot2 scale_color_gradientn
+#'
+#' @return No return value, only a graphical output
+#'
+#' @export
+#'
+#' @examples
+#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+#'
+FeaturePlot <- function(
+  object,
+  features.plot,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  reduction.use = 'tsne',
+  dims.use = c(1, 2),
+  group.by = NULL,
+  cols.use = c("yellow", "red"),
+  cells.use = NULL,
+  pt.size = 1,
+  shape.by = NULL,
+  plot.order = NULL,
+  do.label = FALSE,
+  label.size = 4,
+  na.value = 'grey50'
+) {
+  data.features <- FetchData(object = object, vars.fetch = features.plot)
+  features.plot <- colnames(x = data.features)
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      ifelse(
+        test = is.na(x = cutoff),
+        yes = min(data.features[, feature]),
+        no = cutoff
+      )
+    },
+    cutoff = min.cutoff,
+    feature = features.plot
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      ifelse(
+        test = is.na(x = cutoff),
+        yes = max(data.features[, feature]),
+        no = cutoff
+      )
+    },
+    cutoff = max.cutoff,
+    feature = features.plot
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features.plot, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop('There must be the same number of minimum and maximum cuttoffs as there are features')
+  }
+  brewer.gran <- ifelse(
+    test = length(x = cols.use) == 1,
+    yes = brewer.pal.info[cols.use, ]$maxcolors,
+    no = length(x = cols.use)
+  )
+  data.features <- sapply(
+    X = 1:ncol(x = data.features),
+    FUN = function(index) {
+      data.feature <- as.vector(x = data.features[, index])
+      min.use <- SetQuantile(cutoff = min.cutoff[index], data.feature)
+      max.use <- SetQuantile(cutoff = max.cutoff[index], data.feature)
+      data.feature[data.feature < min.use] <- min.use
+      data.feature[data.feature > max.use] <- max.use
+
+      if (brewer.gran == 2) {
+        return(data.feature)
+      }
+      data.cut <- if (all(data.feature == 0)) {
+        0
+      } else {
+        as.numeric(x = as.factor(x = cut(
+          x = as.numeric(x = data.feature),
+          breaks = brewer.gran
+        )))
+      }
+      return(data.cut)
+    }
+  )
+  colnames(x = data.features) <- features.plot
+  rownames(x = data.features) <- colnames(x = object)
+  plot.list <- vector(mode = 'list', length = length(x = features.plot))
+  for (i in 1:length(x = features.plot)) {
+    p <- SingleDimPlot(
+      object = object[[reduction.use]],
+      dims.use = dims.use,
+      col.by = as.vector(x = data.features[, i]),
+      cols.use = cols.use,
+      cells.use = cells.use,
+      pt.size = pt.size,
+      do.label = do.label,
+      label.size = label.size,
+      legend.title = features.plot[i]
+    )
+    if (brewer.gran == 2) {
+      suppressMessages(expr = p <- p + scale_color_gradientn(
+        colors = cols.use,
+        guide = 'colorbar'
+      ))
+    }
+    plot.list[[i]] <- p
+  }
+  return(plot.list)
+}
