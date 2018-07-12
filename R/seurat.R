@@ -51,6 +51,7 @@ MakeSeuratObject <- function(
     min.genes = min.genes,
     is.expr = is.expr
   )
+  Key(object = assay.data) <- assay.use
   assay.list <- list(assay.data)
   names(x = assay.list) <- assay.use
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
@@ -208,8 +209,6 @@ Idents.Seurat <- function(object, ...) {
   return(object)
 }
 
-
-
 #' Add Metadata
 #'
 #' Adds additional data for single cells to the Seurat object. Can be any piece
@@ -255,6 +254,76 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   }
   slot(object = object, name = "meta.data")[, cols.add] <- meta.add
   return(object)
+}
+
+#' Access cellular data
+#'
+#' Retreives data (feature expression, PCA scores, metrics, etc.) for a set
+#' of cells in a Seurat object
+#'
+#' @param object Seurat object
+#' @param vars.fetch List of all variables to fetch
+#' @param cells.use Cells to collect data for (default is all cells)
+#' @param slot Slot to pull feature data for
+#'
+#' @return A data frame with cells as rows and cellular data as columns
+#'
+#' @export
+#'
+#' @examples
+#' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+#' head(x = pc1)
+#'
+FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
+  cells.use <- cells.use %||% colnames(x = object)
+  if (is.numeric(x = cells.use)) {
+    cells.use <- colnames(x = object)[cells.use]
+  }
+  objects.use <- FilterObjects(object = object)
+  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  keyed.vars <- lapply(
+    X = object.keys,
+    FUN = function(key) {
+      if (length(x = key) == 0) {
+        return(integer(length = 0L))
+      }
+      return(grep(pattern = paste0('^', key), x = vars.fetch))
+    }
+  )
+  keyed.vars <- Filter(f = length, x = keyed.vars)
+  data.fetched <- lapply(
+    X = names(x = keyed.vars),
+    FUN = function(x) {
+      vars.use <- vars.fetch[keyed.vars[[x]]]
+      key.use <- object.keys[x]
+      data.return <- switch(
+        EXPR = class(x = object[[x]]),
+        'DimReduc' = object[[x]][[cells.use, vars.use, drop = FALSE]],
+        'Assay' = {
+          vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
+          t(x = as.matrix(x = GetAssayData(
+            object = object,
+            slot = slot,
+            assay.use = x
+          )[vars.use, cells.use, drop = FALSE]))
+        }
+      )
+      colnames(x = data.return) <- vars.use
+      return(data.return)
+    }
+  )
+  meta.vars <- vars.fetch[vars.fetch %in% colnames(x = object[])]
+  data.fetched <- c(data.fetched, object[meta.vars][cells.use, , drop = FALSE])
+  default.vars <- vars.fetch[vars.fetch %in% rownames(x = object)]
+  data.fetched <- c(
+    data.fetched,
+    as.data.frame(x = t(x = as.matrix(x = GetAssayData(
+      object = object,
+      slot = slot
+    )[default.vars, cells.use, drop = FALSE])))
+  )
+  data.fetched <- as.data.frame(x = data.fetched, row.names = cells.use)
+  return(data.fetched)
 }
 
 #' @param assay.use Name of assay to pull variable features for

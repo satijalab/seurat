@@ -50,15 +50,10 @@ expression of the attribute being potted}
 
 \item{remove.legend}{Remove the legend from the plot}
 
-\item{do.return}{Return a ggplot2 object (default : FALSE)}
-
-\item{return.plotlist}{Return the list of individual plots instead of compiled plot.}
-
 \item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
-By default, no return, only graphical output. If do.return=TRUE,
-returns a list of ggplot objects.
+A list of ggplot objects
 }
 \description{
 Draws a ridge plot of single cell data (gene expression, metrics, PC
