@@ -2,7 +2,7 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
-## [Develop]
+## [2.3.4] - 2018-07-13
 ### Added
 - GetIdent function added to pull identity info
 
