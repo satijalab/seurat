@@ -1,9 +1,14 @@
-# Find gene terms from Enrichr
-#
-# @param QueryGene A gene to query on Enrichr
-#
-# @return An XML document with information on the queried gene
-#
+#' Find gene terms from Enrichr
+#'
+#' Fing gene terms from Enrichr and return the XML information
+#'
+#' @param QueryGene A gene to query on Enrichr
+#'
+#' @export
+#' @importFrom httr GET status_code content
+#'
+#' @return An XML document with information on the queried gene
+#'
 FindGeneTerms <- function(QueryGene = NULL) {
   if (is.null(x = QueryGene)) {
     stop("Missing query gene")
@@ -141,44 +146,44 @@ genes.ca.range <- function(object, my.min, my.max) {
   return(intersect(x = genes.1, y = genes.2))
 }
 
-# Not currently supported, but a cool function for QC
-CalcNoiseModels <- function(
-  object,
-  cell.ids = NULL,
-  trusted.genes = NULL,
-  n.bin = 20,
-  drop.expr = 1
-) {
-  object@drop.expr <- drop.expr
-  cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
-  trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
-  trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
-  object@trusted.genes <- trusted.genes
-  data <- object@data[trusted.genes, ]
-  idents <- data.frame(data[, 1])
-  code_humpAvg <- apply(X = data, MARGIN = 1, FUN = MeanGreaterThan, min = object@drop.expr)
-  code_humpAvg[code_humpAvg > 9] <- 9
-  code_humpAvg[is.na(x = code_humpAvg)] <- 0
-  idents$code_humpAvg <- code_humpAvg
-  data[data > object@drop.expr] <- 1
-  data[data < object@drop.expr] <- 0
-  data$bin <- cut(x = code_humpAvg, breaks = n.bin)
-  data$avg <- code_humpAvg
-  rownames(x = idents) <- rownames(x = data)
-  my.coefs <- data.frame(t(x = pbsapply(
-    X = colnames(x = data[1:(ncol(x = data) - 2)]),
-    FUN = getAB,
-    data = data,
-    data2 = idents,
-    status = "code",
-    code2 = "humpAvg",
-    hasBin = TRUE,
-    doPlot = FALSE
-  )))
-  colnames(x = my.coefs) <- c("a", "b")
-  object@drop.coefs <- my.coefs
-  return(object)
-}
+# # Not currently supported, but a cool function for QC
+# CalcNoiseModels <- function(
+#   object,
+#   cell.ids = NULL,
+#   trusted.genes = NULL,
+#   n.bin = 20,
+#   drop.expr = 1
+# ) {
+#   object@drop.expr <- drop.expr
+#   cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
+#   trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
+#   trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
+#   object@trusted.genes <- trusted.genes
+#   data <- object@data[trusted.genes, ]
+#   idents <- data.frame(data[, 1])
+#   code_humpAvg <- apply(X = data, MARGIN = 1, FUN = MeanGreaterThan, min = object@drop.expr)
+#   code_humpAvg[code_humpAvg > 9] <- 9
+#   code_humpAvg[is.na(x = code_humpAvg)] <- 0
+#   idents$code_humpAvg <- code_humpAvg
+#   data[data > object@drop.expr] <- 1
+#   data[data < object@drop.expr] <- 0
+#   data$bin <- cut(x = code_humpAvg, breaks = n.bin)
+#   data$avg <- code_humpAvg
+#   rownames(x = idents) <- rownames(x = data)
+#   my.coefs <- data.frame(t(x = pbsapply(
+#     X = colnames(x = data[1:(ncol(x = data) - 2)]),
+#     FUN = getAB,
+#     data = data,
+#     data2 = idents,
+#     status = "code",
+#     code2 = "humpAvg",
+#     hasBin = TRUE,
+#     doPlot = FALSE
+#   )))
+#   colnames(x = my.coefs) <- c("a", "b")
+#   object@drop.coefs <- my.coefs
+#   return(object)
+# }
 
 # Visualize expression/dropout curve
 #
@@ -195,50 +200,50 @@ CalcNoiseModels <- function(
 # @param \dots Additional arguments to pass to lines function
 # @return Returns no value, displays a plot
 #
-PlotNoiseModel <- function(
-  object,
-  cell.ids = c(1, 2),
-  col.use = 'black',
-  lwd.use = 2,
-  do.new = TRUE,
-  x.lim = 10,
-  ...
-) {
-  cell.coefs <- object@drop.coefs[cell.ids,]
-  if (do.new) {
-    plot(
-      x = 1,
-      y = 1,
-      pch = 16,
-      type = 'n',
-      xlab = 'Average expression',
-      ylab = 'Probability of detection',
-      xlim = c(0, x.lim),
-      ylim =c(0, 1)
-    )
-  }
-  unlist(
-    x = lapply(
-      X = 1:length(x = cell.ids),
-      FUN = function(y) {
-        x.vals <- seq(from = 0, to = x.lim, by = 0.05)
-        y.vals <- unlist(x = lapply(
-          X = x.vals,
-          FUN = calc.drop.prob,
-          a = cell.coefs[y, 1],
-          b = cell.coefs[y, 2])
-        )
-        lines(
-          x = x.vals,
-          y = y.vals,
-          lwd = lwd.use,
-          col = col.use,
-          ...
-        )
-      }
-    )
-  )
-}
+# PlotNoiseModel <- function(
+#   object,
+#   cell.ids = c(1, 2),
+#   col.use = 'black',
+#   lwd.use = 2,
+#   do.new = TRUE,
+#   x.lim = 10,
+#   ...
+# ) {
+#   cell.coefs <- object@drop.coefs[cell.ids,]
+#   if (do.new) {
+#     plot(
+#       x = 1,
+#       y = 1,
+#       pch = 16,
+#       type = 'n',
+#       xlab = 'Average expression',
+#       ylab = 'Probability of detection',
+#       xlim = c(0, x.lim),
+#       ylim =c(0, 1)
+#     )
+#   }
+#   unlist(
+#     x = lapply(
+#       X = 1:length(x = cell.ids),
+#       FUN = function(y) {
+#         x.vals <- seq(from = 0, to = x.lim, by = 0.05)
+#         y.vals <- unlist(x = lapply(
+#           X = x.vals,
+#           FUN = calc.drop.prob,
+#           a = cell.coefs[y, 1],
+#           b = cell.coefs[y, 2])
+#         )
+#         lines(
+#           x = x.vals,
+#           y = y.vals,
+#           lwd = lwd.use,
+#           col = col.use,
+#           ...
+#         )
+#       }
+#     )
+#   )
+# }
 
 # Deleted, but used in regression.sig (which was kept)...
 vsubc <- function(data,code) {
@@ -263,9 +268,8 @@ regression.sig <- function(x, score, data, latent, code = "rsem") {
 }
 
 # Documentation
-###############
-#' @export
-#'
+# @export
+#
 RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
   data.old <- object@data
   pcs.use <- setdiff(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
@@ -307,12 +311,9 @@ RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
   return(object)
 }
 
-
-
 # Documentation
-###############
-#' @export
-#'
+# @export
+#
 CalinskiPlot <- function(
   object,
   pcs.use,
@@ -362,122 +363,120 @@ CalinskiPlot <- function(
   return(object)
 }
 
+# Documentation
+# #' @export
+# #' @importFrom stats cor kmeans
+# #' @importFrom NMF aheatmap
+#
+# CellCorMatrix <- function(
+#   object,
+#   cor.genes = NULL,
+#   cell.inds = NULL,
+#   do.k = FALSE,
+#   k.seed = 1,
+#   k.num = 4,
+#   vis.low = (-1),
+#   vis.high = 1,
+#   vis.one = 0.8,
+#   pcs.use = 1:3,
+#   col.use = pyCols
+# ) {
+#   cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+#   cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+#   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+#   data.cor <- object@scale.data[cor.genes, cell.inds]
+#   cor.matrix <- cor(x = data.cor)
+#   set.seed(seed = k.seed)
+#   kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+#   if (do.k) {
+#     cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+#   }
+#   kmeans.names <- rownames(x = cor.matrix)
+#   row.annot <- data.frame(
+#     cbind(
+#       kmeans.cor$cluster[kmeans.names],
+#       object@pca.rot[kmeans.names, pcs.use]
+#     )
+#   )
+#   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+#   cor.matrix[cor.matrix == 1] <- vis.one
+#   cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
+#   object@kmeans.cell <- list(kmeans.cor)
+#   if (do.k) {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       Rowv = NA,
+#       Colv = NA,
+#       annRow = row.annot
+#     )
+#   } else {
+#     heatmap.2(
+#       x = cor.matrix,
+#       trace = "none",
+#       Rowv = NA,
+#       Colv = NA,
+#       col = pyCols
+#     )
+#   }
+#   return(object)
+# }
 
 # Documentation
-###############
-#' @export
-#'
-CellCorMatrix <- function(
-  object,
-  cor.genes = NULL,
-  cell.inds = NULL,
-  do.k = FALSE,
-  k.seed = 1,
-  k.num = 4,
-  vis.low = (-1),
-  vis.high = 1,
-  vis.one = 0.8,
-  pcs.use = 1:3,
-  col.use = pyCols
-) {
-  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
-  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
-  cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
-  data.cor <- object@scale.data[cor.genes, cell.inds]
-  cor.matrix <- cor(x = data.cor)
-  set.seed(seed = k.seed)
-  kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
-  if (do.k) {
-    cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
-  }
-  kmeans.names <- rownames(x = cor.matrix)
-  row.annot <- data.frame(
-    cbind(
-      kmeans.cor$cluster[kmeans.names],
-      object@pca.rot[kmeans.names, pcs.use]
-    )
-  )
-  colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
-  cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
-  object@kmeans.cell <- list(kmeans.cor)
-  if (do.k) {
-    aheatmap(
-      x = cor.matrix,
-      col = col.use,
-      Rowv = NA,
-      Colv = NA,
-      annRow = row.annot
-    )
-  } else {
-    heatmap.2(
-      x = cor.matrix,
-      trace = "none",
-      Rowv = NA,
-      Colv = NA,
-      col = pyCols
-    )
-  }
-  return(object)
-}
-
-# Documentation
-###############
-#' @export
-#'
-GeneCorMatrix <- function(
-  object,
-  cor.genes = NULL,
-  cell.inds = NULL,
-  do.k = FALSE,
-  k.seed = 1,
-  k.num = 4,
-  vis.low = (-1),
-  vis.high = 1,
-  vis.one = 0.8,
-  pcs.use = 1:3,
-  col.use = pyCols
-) {
-  cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
-  cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
-  cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
-  data.cor <- object@data[cor.genes, cell.inds]
-  cor.matrix <- cor(x = t(x = data.cor))
-  set.seed(seed = k.seed)
-  kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
-  cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
-  kmeans.names <- rownames(x = cor.matrix)
-  row.annot <- data.frame(
-    cbind(
-      kmeans.cor$cluster[kmeans.names],
-      object@pca.x[kmeans.names, pcs.use]
-    )
-  )
-  colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
-  cor.matrix[cor.matrix == 1] <- vis.one
-  cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
-  object@kmeans.gene <- list(kmeans.cor)
-  if (do.k) {
-    aheatmap(
-      x = cor.matrix,
-      col = col.use,
-      Rowv = NA,
-      Colv = NA,
-      annRow = row.annot
-    )
-  } else {
-    aheatmap(
-      x = cor.matrix,
-      col = col.use,
-      annRow = row.annot
-    )
-  }
-  return(object)
-}
+# #' @export
+#
+# GeneCorMatrix <- function(
+#   object,
+#   cor.genes = NULL,
+#   cell.inds = NULL,
+#   do.k = FALSE,
+#   k.seed = 1,
+#   k.num = 4,
+#   vis.low = (-1),
+#   vis.high = 1,
+#   vis.one = 0.8,
+#   pcs.use = 1:3,
+#   col.use = pyCols
+# ) {
+#   cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+#   cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+#   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+#   data.cor <- object@data[cor.genes, cell.inds]
+#   cor.matrix <- cor(x = t(x = data.cor))
+#   set.seed(seed = k.seed)
+#   kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+#   cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+#   kmeans.names <- rownames(x = cor.matrix)
+#   row.annot <- data.frame(
+#     cbind(
+#       kmeans.cor$cluster[kmeans.names],
+#       object@pca.x[kmeans.names, pcs.use]
+#     )
+#   )
+#   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+#   cor.matrix[cor.matrix == 1] <- vis.one
+#   cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
+#   object@kmeans.gene <- list(kmeans.cor)
+#   if (do.k) {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       Rowv = NA,
+#       Colv = NA,
+#       annRow = row.annot
+#     )
+#   } else {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       annRow = row.annot
+#     )
+#   }
+#   return(object)
+# }
 
 
 #   Documentation
-#################
 ProjectSamples <- function(object, new.samples) {
   genes.use <- rownames(x = object@data)
   genes.pca <- rownames(x = object@pca.x)
@@ -497,10 +496,8 @@ ProjectSamples <- function(object, new.samples) {
 }
 
 # Documentation
-###############
 #Cool, but not supported right now
 SpatialDe <- function(object, marker.cells, genes.use = NULL) {
-  object <- p15
   embed.map <- object@tsne.rot
   mult.use <- 2
   mult.use.far <- 10
@@ -538,7 +535,6 @@ SpatialDe <- function(object, marker.cells, genes.use = NULL) {
   return(diff.genes)
 }
 
-
 #' Identify potential genes associated with batch effects
 #'
 #' Test for genes whose expression value is strongly predictive of batch (based
@@ -565,7 +561,7 @@ BatchGene <- function(
   thresh.use = 0
 ) {
   batch.genes <- c()
-  genes.use <- SetIfNull(x = genes.use, y = rownames(x = object@data))
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
   for (ident in idents.use) {
     cells.1 <- names(x = object@ident)[object@ident == ident]
     cells.2 <- names(x = object@ident)[object@ident != ident]
@@ -594,8 +590,8 @@ BatchGene <- function(
 # Documentation
 #multicore version of jackstraw
 #DOES NOT WORK WITH WINDOWS
-#' @export
-#'
+# @export
+#
 JackStrawMC <- function(
   object,
   num.pc = 30,
@@ -631,7 +627,7 @@ JackStrawMC <- function(
       FUN = function(x) {
         return(JackRandom(
           scaled.data = object@scale.data[pc.genes, ],
-          prop = prop.freq,
+          prop.use = prop.freq,
           r1.use = 1,
           r2.use = num.pc,
           seed.use=x
@@ -674,103 +670,100 @@ JackStrawMC <- function(
 }
 
 
-# Documentation
-###############
-JackStrawFull <- function(
-  object,
-  num.pc = 5,
-  num.replicate = 100,
-  prop.freq = 0.01
-) {
-  pc.genes <- rownames(x = object@pca.x)
-  if (length(x = pc.genes) < 200) {
-    prop.freq <- max(prop.freq, 0.015)
-  }
-  md.x <- as.matrix(x = object@pca.x)
-  md.rot <- as.matrix(x = object@pca.rot)
-  real.fval <- sapply(
-    X = 1:num.pc,
-    FUN = function(x) {
-      return(unlist(x = lapply(
-        X = pc.genes,
-        FUN = JackF,
-        r1 = x,
-        r2 = x,
-        x = md.x,
-        rot = md.rot
-      )))
-    }
-  )
-  rownames(x = real.fval) <- pc.genes
-  object@real.fval <- data.frame(real.fval)
-  fake.fval <- sapply(
-    X = 1:num.pc,
-    FUN = function(x) {
-      return(unlist(x = replicate(
-        n = num.replicate,
-        expr = JackstrawF(
-          prop = prop.freq,
-          data = object@scale.data[pc.genes, ],
-          myR1 = x,
-          myR2 = x
-        ),
-        simplify = FALSE
-      )))
-    }
-  )
-  rownames(x = fake.fval) <- 1:nrow(x = fake.fval)
-  object@fake.fval <- data.frame(fake.fval)
-  object@emp.pval <- data.frame(
-    sapply(
-      X = 1:num.pc,
-      FUN = function(x) {
-        return(unlist(x = lapply(
-          X = object@real.fval[, x],
-          FUN = EmpiricalP,
-          nullval = object@fake.fval[, x]
-        )))
-      }
-    )
-  )
-  rownames(x = object@emp.pval) <- pc.genes
-  colnames(x = object@emp.pval) <- paste0("PC", 1:ncol(x = object@emp.pval),)
-  return(object)
-}
-
+# # Documentation
+# JackStrawFull <- function(
+#   object,
+#   num.pc = 5,
+#   num.replicate = 100,
+#   prop.freq = 0.01
+# ) {
+#   pc.genes <- rownames(x = object@pca.x)
+#   if (length(x = pc.genes) < 200) {
+#     prop.freq <- max(prop.freq, 0.015)
+#   }
+#   md.x <- as.matrix(x = object@pca.x)
+#   md.rot <- as.matrix(x = object@pca.rot)
+#   real.fval <- sapply(
+#     X = 1:num.pc,
+#     FUN = function(x) {
+#       return(unlist(x = lapply(
+#         X = pc.genes,
+#         FUN = JackF,
+#         r1 = x,
+#         r2 = x,
+#         x = md.x,
+#         rot = md.rot
+#       )))
+#     }
+#   )
+#   rownames(x = real.fval) <- pc.genes
+#   object@real.fval <- data.frame(real.fval)
+#   fake.fval <- sapply(
+#     X = 1:num.pc,
+#     FUN = function(x) {
+#       return(unlist(x = replicate(
+#         n = num.replicate,
+#         expr = JackstrawF(
+#           prop = prop.freq,
+#           data = object@scale.data[pc.genes, ],
+#           myR1 = x,
+#           myR2 = x
+#         ),
+#         simplify = FALSE
+#       )))
+#     }
+#   )
+#   rownames(x = fake.fval) <- 1:nrow(x = fake.fval)
+#   object@fake.fval <- data.frame(fake.fval)
+#   object@emp.pval <- data.frame(
+#     sapply(
+#       X = 1:num.pc,
+#       FUN = function(x) {
+#         return(unlist(x = lapply(
+#           X = object@real.fval[, x],
+#           FUN = EmpiricalP,
+#           nullval = object@fake.fval[, x]
+#         )))
+#       }
+#     )
+#   )
+#   rownames(x = object@emp.pval) <- pc.genes
+#   colnames(x = object@emp.pval) <- paste0("PC", 1:ncol(x = object@emp.pval),)
+#   return(object)
+# }
 
 # Documentation
-#' @export
-#'
-JackStrawPermutationTest <- function(
-  object,
-  genes.use = NULL,
-  num.iter = 100,
-  thresh.use = 0.05,
-  do.print = TRUE,
-  k.seed = 1
-) {
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@pca.x))
-  genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
-  data.use <- t(x = as.matrix(x = object@scale.data[genes.use, ]))
-  if (do.print) {
-    print(paste("Running", num.iter, "iterations"))
-  }
-  pa.object <- permutationPA(
-    data.use,
-    B = num.iter,
-    threshold = thresh.use,
-    verbose = do.print,
-    seed = k.seed
-  )
-  if (do.print) {
-    cat("\n\n")
-  }
-  if (do.print) {
-    print(paste("JackStraw returns", pa.object$r, "significant components"))
-  }
-  return(pa.object)
-}
-
+# #' @export
+#
+# JackStrawPermutationTest <- function(
+#   object,
+#   genes.use = NULL,
+#   num.iter = 100,
+#   thresh.use = 0.05,
+#   do.print = TRUE,
+#   k.seed = 1
+# ) {
+#   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@pca.x))
+#   genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
+#   data.use <- t(x = as.matrix(x = object@scale.data[genes.use, ]))
+#   if (do.print) {
+#     print(paste("Running", num.iter, "iterations"))
+#   }
+#   pa.object <- permutationPA(
+#     data.use,
+#     B = num.iter,
+#     threshold = thresh.use,
+#     verbose = do.print,
+#     seed = k.seed
+#   )
+#   if (do.print) {
+#     cat("\n\n")
+#   }
+#   if (do.print) {
+#     print(paste("JackStraw returns", pa.object$r, "significant components"))
+#   }
+#   return(pa.object)
+# }
 
 #' Run Canonical Correlation Analysis (CCA) on multimodal data
 #'
@@ -888,7 +881,7 @@ MultiModal_CIA <- function(
   features.1 = NULL,
   features.2 = NULL,
   num.axes = 20,
-  normalize.variance = T
+  normalize.variance = TRUE
 ) {
   if (!'made4' %in% rownames(x = installed.packages())) {
       stop("Please install made4")
