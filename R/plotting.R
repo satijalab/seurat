@@ -2721,8 +2721,10 @@ PCAPlot <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small <- RunDiffusion(object = pbmc_small)
 #' DMPlot(object = pbmc_small)
+#' }
 #'
 DMPlot <- function(object, ...) {
   return(DimPlot(object = object, reduction.use = "dm", label.size = 4, ...))

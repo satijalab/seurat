@@ -775,6 +775,7 @@ RunCCA <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # As multi-set CCA requires more than two datasets, we will split our test object into
 #' # three just for this example
@@ -788,6 +789,7 @@ RunCCA <- function(
 #' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
 #' # Print results
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
+#' }
 #'
 RunMultiCCA <- function(
   object.list,

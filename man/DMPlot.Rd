@@ -20,7 +20,9 @@ This function is a wrapper for DimPlot. See ?DimPlot for a full list of possible
 arguments which can be passed in here.
 }
 \examples{
+\dontrun{
 pbmc_small <- RunDiffusion(object = pbmc_small)
 DMPlot(object = pbmc_small)
+}
 
 }

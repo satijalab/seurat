@@ -378,6 +378,7 @@ PrintCCAParams <- function(object, raw = FALSE){
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Requires CCA to have previously been run
 #' # As CCA requires two datasets, we will split our test object into two just for this example
 #' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
@@ -387,6 +388,7 @@ PrintCCAParams <- function(object, raw = FALSE){
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
 #' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
 #' PrintCalcVarExpRatioParams(object = pbmc_cca)
+#' }
 #'
 PrintCalcVarExpRatioParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$CalcVarExpRatio)){
@@ -512,9 +514,11 @@ PrintAlignSubspaceParams <- function(object, raw = FALSE){
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Run Diffusion on variable genes
 #' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 #' PrintDMParams(object = pbmc_small)
+#' }
 #'
 PrintDMParams <- function(object, raw = FALSE){
   if(is.null(object@calc.params$RunDiffusion)){
