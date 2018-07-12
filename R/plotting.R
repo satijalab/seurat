@@ -29,7 +29,6 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param group.cex Size of group label text
 #' @param group.spacing Controls amount of space between columns.
 #' @param assay.type to plot heatmap for (default is RNA)
-#' @param do.plot Whether to display the plot.
 #'
 #' @return Returns a ggplot2 plot object
 #'
@@ -254,8 +253,6 @@ RidgePlot <- function(
   legend.position = "right",
   single.legend = TRUE,
   remove.legend = FALSE,
-  do.return = FALSE,
-  return.plotlist = FALSE,
   ...
 ) {
   return(ExIPlot(
@@ -345,4 +342,120 @@ VlnPlot <- function(
     remove.legend = remove.legend,
     ...
   ))
+}
+
+globalVariables(
+  names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
+  package = 'Seurat',
+  add = TRUE
+)
+#' Dot plot visualization
+#'
+#' Intuitive way of visualizing how feature expression changes across different
+#' identity classes (clusters). The size of the dot encodes the percentage of
+#' cells within a class, while the color encodes the AverageExpression level of
+#' cells within a class (blue is high).
+#'
+#' @param object Seurat object
+#' @param features.plot Input vector of features
+#' @param cols.use Colors to plot, can pass a single character giving the name of
+#' a palette from \code{RColorBrewer::brewer.pal.info}
+#' @param col.min Minimum scaled average expression threshold (everything smaller
+#'  will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger
+#' will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot
+#' (default is 0). All cell groups with less than this expressing the given
+#' gene will have no dot drawn.
+#' @param dot.scale Scale the size of the points, similar to cex
+#' @param scale.by Scale the size of the points by 'size' or by 'radius'
+#' @param scale.min Set lower limit for scaling, use NA for default
+#' @param scale.max Set upper limit for scaling, use NA for default
+#' @param group.by Factor to group the cells by
+#' @param plot.legend plots the legends
+#' @param x.lab.rot Rotate x-axis labels
+#'
+#' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
+#'
+#' @importFrom tidyr gather
+#' @importFrom dplyr %>% group_by summarize mutate ungroup
+#'
+#' @export
+#' @seealso \code{RColorBrewer::brewer.pal.info}
+#'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlot(object = pbmc_small, genes.plot = cd_genes)
+#'
+DotPlot <- function(
+  object,
+  features.plot,
+  cols.use = c("lightgrey", "blue"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  scale.by = 'radius',
+  scale.min = NA,
+  scale.max = NA,
+  group.by = NULL,
+  plot.legend = FALSE,
+  x.lab.rot = FALSE
+) {
+  scale.func <- switch(
+    EXPR = scale.by,
+    'size' = scale_size,
+    'radius' = scale_radius,
+    stop("'scale.by' must be either 'size' or 'radius'")
+  )
+  data.to.plot <- FetchData(object = object, vars.fetch = features.plot)
+  colnames(x = data.to.plot) <- features.plot
+  data.to.plot$cell <- rownames(x = data.to.plot)
+  data.to.plot$id <- if (is.null(x = group.by)) {
+    Idents(object = object)
+  } else {
+    object[group.by]
+  }
+  data.to.plot %>% gather(
+    key = features.plot,
+    value = expression,
+    -c(cell, id)
+  ) -> data.to.plot
+  data.to.plot %>%
+    group_by(id, features.plot) %>%
+    summarize(
+      avg.exp = mean(expm1(x = expression)),
+      pct.exp = PercentAbove(x = expression, threshold = 0)
+    ) -> data.to.plot
+  data.to.plot %>%
+    ungroup() %>%
+    group_by(features.plot) %>%
+    mutate(avg.exp.scale = scale(x = avg.exp)) %>%
+    mutate(avg.exp.scale = MinMax(
+      data = avg.exp.scale,
+      max = col.max,
+      min = col.min
+    )) ->  data.to.plot
+  data.to.plot$features.plot <- factor(
+    x = data.to.plot$features.plot,
+    levels = rev(x = features.plot)
+  )
+  data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
+  data.to.plot$pct.exp <- data.to.plot$pct.exp * 100
+  p <- ggplot(data = data.to.plot, mapping = aes(x = features.plot, y = id)) +
+    geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
+    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
+    theme(axis.title.x = element_blank(), axis.title.y = element_blank())
+  if (length(x = cols.use) == 1) {
+    p <- p + scale_color_distiller(palette = cols.use)
+  } else {
+    p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
+  }
+  if (!plot.legend) {
+    p <- p + theme(legend.position = "none")
+  }
+  if (x.lab.rot) {
+    p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  }
+  return(p)
 }

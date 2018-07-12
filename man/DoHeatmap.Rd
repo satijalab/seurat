@@ -62,8 +62,6 @@ and genes as rows.}
 \item{group.spacing}{Controls amount of space between columns.}
 
 \item{assay.type}{to plot heatmap for (default is RNA)}
-
-\item{do.plot}{Whether to display the plot.}
 }
 \value{
 Returns a ggplot2 plot object
