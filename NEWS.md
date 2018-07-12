@@ -3,8 +3,14 @@ All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
 ## [Develop]
+### Added
+- GetIdent function added to pull identity info
+
 ### Changed
-- diffusionMap dependency replaced with destiny to avoid archival
+- DiffusionMap dependency replaced with destiny to avoid archival
+- Java dependency removed and functionality rewritten in Rcpp 
+- Speed and efficiency improvements for Rcpp code
+- More robust duplicate handling in CellCycleScoring
 
 ## [2.3.3] - 2018-07-02
 ### Added
