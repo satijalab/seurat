@@ -613,7 +613,7 @@ JackStrawMC <- function(
         print(x)
         return(JackRandom(
           scaled.data = object@scale.data[pc.genes, ],
-          prop = prop.freq,
+          prop.use = prop.freq,
           r1.use = 1,
           r2.use = num.pc,
           seed.use = x
