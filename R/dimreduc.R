@@ -115,7 +115,11 @@ length.DimReduc <- function(x) {
 ggplot.DimReduc <- function(
   data = NULL,
   type = 'embeddings',
+  colors = NULL,
   projected = NULL,
+  rows.use = NULL,
+  pt.size = NULL,
+  pt.shape = NULL,
   mapping = aes(), ...,
   environment = parent.frame()
 ) {
@@ -126,8 +130,24 @@ ggplot.DimReduc <- function(
   } else {
     stop("'type' must be either 'embeddings' or 'loadings'")
   }
+  data.plot <- as.data.frame(x = data.plot)
+  if (!is.null(x = colors)) {
+    if (!is.null(x = names(x = colors))) {
+      colors <- colors[colnames(x = data)]
+    }
+    data.plot$color <- colors
+  }
+  if (!is.null(x = pt.size)) {
+    data.plot$size <- pt.size
+  }
+  if (!is.null(x = pt.shape)) {
+    data.plot$shape <- pt.shape
+  }
+  if (!is.null(x = rows.use)) {
+    data.plot <- data.plot[rows.use, , drop = FALSE]
+  }
   return(ggplot(
-    data = as.data.frame(x = data.plot),
+    data = data.plot,
     mapping = mapping,
     ...,
     environment = environment
