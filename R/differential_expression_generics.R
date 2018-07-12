@@ -31,10 +31,12 @@
 ##'  \item{"negbinom"} : Identifies differentially expressed genes between two
 ##'   groups of cells using a negative binomial generalized linear model.
 ##'   Use only for UMI-based datasets
-##'  \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
-##'   distribution. Use only for UMI-based datasets
-##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a
-##'  covariate (Finak et al, Genome Biology, 2015)
+##'  \item{"poisson"} : Identifies differentially expressed genes between two
+##'   groups of cells using a poisson generalized linear model.
+##'   Use only for UMI-based datasets
+##'  \item{"MAST} : Identifies differentially expressed genes between two groups
+##'  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
+##'  package to run the DE testing.
 ##'  \item{"DESeq2} : DE based on a model using the negative binomial
 ##'  distribution (Love et al, Genome Biology, 2014)
 ##' }
@@ -66,6 +68,10 @@
 #' the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
 #' should be interpreted cautiously, as the genes used for clustering are the
 #' same genes tested for differential expression.
+#'
+#' @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
+#' Analysis of Single Cell Transcriptomics. R package version 1.2.1.
+#' https://github.com/RGLab/MAST/
 #' @import pbapply
 #' @importFrom lmtest lrtest
 #'

@@ -152,6 +152,31 @@ FindMarkers.default <- function(
       cells.2 = cells.2,
       verbose = verbose
     ),
+    'negbinom' = GLMDETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'poisson' = GLMDETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      min.cells = min.cells.feature,
+      latent.vars = latent.vars,
+      test.use = test.use,
+      verbose = verbose
+    ),
+    'MAST' = MASTDETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      latent.vars = latent.vars,
+      verbose = verbose
+    ),
 
     stop("Unknown test: ", test.use)
   )
@@ -204,7 +229,11 @@ FindMarkers.Seurat <- function(
   ...
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  data.use <- GetAssayData(object = object[[assay.use]], slot = "data")
+  data.slot <- "data"
+  if (test.use %in% c("negbinom", "poisson")) {
+    data.slot <- "raw.data"
+  }
+  data.use <- GetAssayData(object = object[[assay.use]], slot = data.slot)
   if (is.null(ident.1)) {
     stop("Please provide ident.1")
   }
@@ -234,7 +263,7 @@ FindMarkers.Seurat <- function(
   if (!is.null(latent.vars)) {
     latent.vars <- FetchData(
       object = object,
-      vars.all = latent.vars,
+      vars.fetch = latent.vars,
       cells.use = c(ident.1, ident.2)
     )
   }
@@ -825,214 +854,6 @@ NegBinomRegDETest <- function(
   return(res)
 }
 
-globalVariables(names = 'min.cells', package = 'Seurat', add = TRUE)
-#' Poisson test for UMI-count based data
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' a poisson generalized linear model
-#
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param min.cells Minimum number of cells expressing the gene in at least one of the two groups
-#' @param genes.use Genes to use for test
-#' @param latent.vars Latent variables to test
-#' @param print.bar Print progress bar
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @importFrom pbapply pbapply
-#' @importFrom stats var as.formula glm
-#'
-#' @export
-#'
-#'@examples
-#' pbmc_small
-#' # Note, expect warnings with example dataset due to min.cells threshold.
-#' PoissonDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#'
-PoissonDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  min.cells = 3,
-  genes.use = NULL,
-  latent.vars = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA"
-) {
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  my.latent <- FetchData(
-    object = object,
-    vars.all = latent.vars,
-    cells.use = c(cells.1, cells.2),
-    use.raw = TRUE
-  )
-  to.test.data <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, c(cells.1, cells.2)]
-  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  to.test[cells.1,"group"] <- "A"
-  to.test[cells.2,"group"] <- "B"
-  to.test$group <- factor(x = to.test$group)
-  latent.vars <- c("group", latent.vars)
-  if (print.bar) {
-    iterate.fxn <- pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
-  p_val <- unlist(
-    x = iterate.fxn(
-      X = genes.use,
-      FUN = function(x) {
-        to.test[,"GENE"] <- as.numeric(x = to.test.data[x, ])
-        # check that gene is expressed in specified number of cells in one group
-        if (sum(to.test$GENE[to.test$group == "A"]) < min.cells ||
-            sum(to.test$GENE[to.test$group == "B"]) < min.cells) {
-          warning(paste0(
-            "Skipping gene --- ",
-            x,
-            ". Fewer than",
-            min.cells,
-            " in at least one of the two clusters."
-          ))
-          return(2)
-        }
-        # check that variance between groups is not 0
-        if (var(to.test$GENE) == 0) {
-          message("what") # what?
-          warning(paste0(
-            "Skipping gene -- ",
-            x,
-            ". No variance in expression between the two clusters."
-          ))
-          return(2)
-        }
-        fmla <- as.formula(
-          object = paste0("GENE ", " ~ ", paste(latent.vars, collapse="+"))
-        )
-        return(
-          summary(
-            object = glm(
-              formula = fmla,
-              data = to.test,
-              family = "poisson"
-            )
-          )$coef[2,4]
-        )
-      }
-    )
-  )
-  if (length(x = which(x = p_val == 2)) > 0) {
-    genes.use <- genes.use[-which(x = p_val == 2)]
-    p_val <- p_val[! p_val == 2]
-  }
-  to.return <- data.frame(p_val, row.names = genes.use)
-  return(to.return)
-}
-
-#' Differential expression using MAST
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run
-#' the DE testing.
-#'
-#' @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
-#' Analysis of Single Cell Transcriptomics. R package version 1.2.1.
-#' https://github.com/RGLab/MAST/
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to use for test
-#' @param latent.vars Confounding variables to adjust for in DE test. Default is
-#' "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
-#' non-UMI based data, set to nGene instead.
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param \dots Additional parameters to zero-inflated regression (zlm) function
-#' in MAST
-#' @details
-#' To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @importFrom stats relevel
-#' @importFrom utils installed.packages
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#'   pbmc_small
-#'   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'               cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#' }
-#'
-MASTDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  latent.vars = NULL,
-  assay.type = "RNA",
-  ...
-) {
-  # Check for MAST
-  if (!'MAST' %in% rownames(x = installed.packages())) {
-    stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
-  }
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
-  my.latent <- FetchData(
-    object = object,
-    vars.all = latent.vars,
-    cells.use = c(cells.1, cells.2),
-    use.raw = TRUE
-  )
-  if (length(x = latent.vars) > 0) {
-    my.latent <- scale(x = my.latent)
-  }
-  coldata <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  coldata[cells.1, "group"] <- "Group1"
-  coldata[cells.2, "group"] <- "Group2"
-  coldata$group <- factor(x = coldata$group)
-  coldata$wellKey <- rownames(x = coldata)
-  latent.vars <- c("condition", latent.vars)
-  countdata.test <- data.test[genes.use, rownames(x = coldata)]
-  fdat <- data.frame(rownames(x = countdata.test))
-  colnames(x = fdat)[1] <- "primerid"
-  rownames(x = fdat) <- fdat[, 1]
-  sca <- MAST::FromMatrix(
-    exprsArray = as.matrix(x = countdata.test),
-    cData = coldata,
-    fData = fdat
-  )
-  cond <- factor(x = SummarizedExperiment::colData(sca)$group)
-  cond <- relevel(x = cond, ref = "Group1")
-  SummarizedExperiment::colData(sca)$condition <- cond
-  fmla <- as.formula(
-    object = paste0(" ~ ", paste(latent.vars, collapse = "+"))
-  )
-  zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
-  summaryCond <- summary(object = zlmCond, doLRT = 'conditionGroup2')
-  summaryDt <- summaryCond$datatable
-  # fcHurdle <- merge(
-  #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
-  #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
-  # ) #logFC coefficients
-  # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
-  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
-  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
-  # p_val <- subset(summaryDt, component == "H")[, 4]
-  # genes.return <- subset(summaryDt, component == "H")[, 1]
-  to.return <- data.frame(p_val, row.names = genes.return)
-  return(to.return)
-}
 
 #' Differential expression using DESeq2
 #'

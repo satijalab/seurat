@@ -192,18 +192,18 @@ TobitTest <- function(
   return(to.return)
 }
 
-# Negative binomial test for UMI-count based data
+# Tests for UMI-count based data
 #
 # Identifies differentially expressed genes between two groups of cells using
-# a negative binomial generalized linear model
+# either a negative binomial or poisson generalized linear model
 #
 # @param data.use Data to test
 # @param cells.1 Group 1 cells
 # @param cells.2 Group 2 cells
-# @param latent.vars Latent variables to test
-# @param verbose Print progress bar
 # @param min.cells Minimum number of cells threshold
-# @param assay.type Type of assay to fetch data for (default is RNA)
+# @param latent.vars Latent variables to test
+# @param test.use parameterizes the glm
+# @param verbose Print progress bar
 #
 # @return Returns a p-value ranked matrix of putative differentially expressed
 # genes.
@@ -220,17 +220,20 @@ TobitTest <- function(
 # NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
 #             cells.2 = WhichCells(object = pbmc_small, ident = 2))
 #
-NegBinomDETest <- function(
+GLMDETest <- function(
   data.use,
   cells.1,
   cells.2,
   min.cells = 3,
   latent.vars = NULL,
+  test.use = NULL,
   verbose = TRUE
 ) {
-  latent.vars[cells.1, "group"] <- "Group1"
-  latent.vars[cells.2, "group"] <- "Group2"
-  latent.vars[, "group"] <- factor(x = latent.vars[, "group"])
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars <- cbind(group.info, latent.vars)
   latent.var.names <- colnames(latent.vars)
   mysapply <- if (verbose) {pbsapply} else {sapply}
   p_val <- unlist(
@@ -239,8 +242,8 @@ NegBinomDETest <- function(
       FUN = function(x) {
         latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
         # check that gene is expressed in specified number of cells in one group
-        if (sum(latent.vars$GENE[latent.vars$group == "A"]) < min.cells ||
-            sum(latent.vars$GENE[latent.vars$group == "B"]) < min.cells) {
+        if (sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells ||
+            sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells) {
           warning(paste0(
             "Skipping gene --- ",
             x,
@@ -261,13 +264,25 @@ NegBinomDETest <- function(
         }
         fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.var.names, collapse = "+")))
         p.estimate <- 2
-        try(
-          expr = p.estimate <- summary(
-            object = glm.nb(formula = fmla, data = data.use)
-          )$coef[2, 4],
-          silent = TRUE
-        )
-        return(p.estimate)
+        if(test.use == "negbinom"){
+          try(
+            expr = p.estimate <- summary(
+              object = glm.nb(formula = fmla, data = latent.vars)
+            )$coef[2, 4],
+            silent = TRUE
+          )
+          return(p.estimate)
+        } else if (test.use == "poisson"){
+          return(
+            summary(
+              object = glm(
+                formula = fmla,
+                data = latent.vars,
+                family = "poisson"
+              )
+            )$coef[2,4]
+          )
+        }
       }
     )
   )
@@ -280,6 +295,94 @@ NegBinomDETest <- function(
   return(to.return)
 }
 
+# Differential expression using MAST
+#
+# Identifies differentially expressed genes between two groups of cells using
+# a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run
+# the DE testing.
+#
+# @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
+# Analysis of Single Cell Transcriptomics. R package version 1.2.1.
+# https://github.com/RGLab/MAST/
+#
+# @param data.use Data to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param latent.vars Confounding variables to adjust for in DE test. Default is
+# "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
+# non-UMI based data, set to nGene instead.
+# @param verbose print output
+# @param \dots Additional parameters to zero-inflated regression (zlm) function
+# in MAST
+# @details
+# To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+#' @importFrom stats relevel
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+MASTDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  latent.vars = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # Check for MAST
+  if (!'MAST' %in% rownames(x = installed.packages())) {
+    stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
+  }
+  if (length(x = latent.vars) > 0) {
+    latent.vars <- scale(x = latent.vars)
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars.names <- c("condition", colnames(latent.vars))
+  latent.vars <- cbind(latent.vars, group.info)
+  latent.vars$wellKey <- rownames(x = latent.vars)
+  fdat <- data.frame(rownames(x = data.use))
+  colnames(x = fdat)[1] <- "primerid"
+  rownames(x = fdat) <- fdat[, 1]
+  sca <- MAST::FromMatrix(
+    exprsArray = as.matrix(x = data.use),
+    cData = latent.vars,
+    fData = fdat
+  )
+  cond <- factor(x = SummarizedExperiment::colData(sca)$group)
+  cond <- relevel(x = cond, ref = "Group1")
+  SummarizedExperiment::colData(sca)$condition <- cond
+  fmla <- as.formula(
+    object = paste0(" ~ ", paste(latent.vars.names, collapse = "+"))
+  )
+  zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
+  summaryCond <- summary(object = zlmCond, doLRT = 'conditionGroup2')
+  summaryDt <- summaryCond$datatable
+  # fcHurdle <- merge(
+  #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
+  #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
+  # ) #logFC coefficients
+  # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
+  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
+  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
+  # p_val <- subset(summaryDt, component == "H")[, 4]
+  # genes.return <- subset(summaryDt, component == "H")[, 1]
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
 
 #internal function to run mcdavid et al. DE test
 #

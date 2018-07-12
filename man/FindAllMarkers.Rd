@@ -42,10 +42,12 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  \item{"negbinom"} : Identifies differentially expressed genes between two
   groups of cells using a negative binomial generalized linear model.
   Use only for UMI-based datasets
- \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
-  distribution. Use only for UMI-based datasets
- \item{"MAST} : GLM-framework that treates cellular detection rate as a
- covariate (Finak et al, Genome Biology, 2015)
+ \item{"poisson"} : Identifies differentially expressed genes between two
+  groups of cells using a poisson generalized linear model.
+  Use only for UMI-based datasets
+ \item{"MAST} : Identifies differentially expressed genes between two groups
+ of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
+ package to run the DE testing.
  \item{"DESeq2} : DE based on a model using the negative binomial
  distribution (Love et al, Genome Biology, 2014)
 }}
