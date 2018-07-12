@@ -90,6 +90,7 @@ Collate:
     'not_used_yet.R'
     'plotting.R'
     'plotting_internal.R'
+    'plotting_themes.R'
     'plotting_utilities.R'
     'preprocessing.R'
     'preprocessing_generics.R'

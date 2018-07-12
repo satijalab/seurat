@@ -9,7 +9,7 @@ RidgePlot(object, features.plot, ident.include = NULL, nCol = NULL,
   size.y.use = 16, size.title.use = 20, cols.use = NULL,
   group.by = NULL, y.log = FALSE, x.lab.rot = FALSE, y.lab.rot = FALSE,
   legend.position = "right", single.legend = TRUE, remove.legend = FALSE,
-  do.return = FALSE, return.plotlist = FALSE, ...)
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
