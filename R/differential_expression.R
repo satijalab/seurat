@@ -1,323 +1,263 @@
-#' @include seurat.R
-NULL
-
-globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
-#' Gene expression markers of identity classes
+#' @param cells.1 ...
+#' @param cells.2 ...
 #'
-#' Finds markers (differentially expressed genes) for identity classes
-#'
-#' @param object Seurat object
-#' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) -
-#' use all other cells for comparison.
-#' @param genes.use Genes to test. Default is to use all genes
-#' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-#' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
-#' @param test.use Denotes which test to use. Available options are:
-##' \itemize{
-##'  \item{"wilcox"} : Wilcoxon rank sum test (default)
-##'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
-##'  (McDavid et al., Bioinformatics, 2013)
-##'  \item{"roc"} : Standard AUC classifier
-##'  \item{"t"} : Student's t-test
-##'  \item{"tobit"} : Tobit-test for differential gene expression (Trapnell et
-##'  al., Nature Biotech, 2014)
-##'  \item{"poisson"} : Likelihood ratio test assuming an underlying poisson
-##'   distribution. Use only for UMI-based datasets
-##'  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
-##'  binomial distribution. Use only for UMI-based datasets
-##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a
-##'  covariate (Finak et al, Genome Biology, 2015)
-##'  \item{"DESeq2} : DE based on a model using the negative binomial
-##'  distribution (Love et al, Genome Biology, 2014)
-##' }
-#' @param min.pct  only test genes that are detected in a minimum fraction of
-#' min.pct cells in either of the two populations. Meant to speed up the function
-#' by not testing genes that are very infrequently expressed. Default is 0.1
-#' @param min.diff.pct  only test genes that show a minimum difference in the
-#' fraction of detection between the two groups. Set to -Inf by default
-#' @param only.pos Only return positive markers (FALSE by default)
-#' @param print.bar Print a progress bar once expression testing begins (uses
-#' pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number.
-#' Default is no downsampling. Not activated by default (set to Inf)
-#' @param random.seed Random seed for downsampling
-#' @param latent.vars Variables to test, used only when \code{test.use} is one of
-#' 'negbinom', 'poisson', or 'MAST'
-#' @param min.cells.gene Minimum number of cells expressing the gene in at least one
-#' of the two groups, currently only used for poisson and negative binomial tests
-#' @param min.cells.group Minimum number of cells in one of the groups
-#' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param \dots Additional parameters to pass to specific DE functions
-#' @seealso \code{\link{MASTDETest}}, and \code{\link{DESeq2DETest}} for more information on these methods
-#' @return Matrix containing a ranked list of putative markers, and associated
-#' statistics (p-values, ROC score, etc.)
-#' @details p-value adjustment is performed using bonferroni correction based on
-#' the total number of genes in the dataset. Other correction methods are not
-#' recommended, as Seurat pre-filters genes using the arguments above, reducing
-#' the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
-#' should be interpreted cautiously, as the genes used for clustering are the
-#' same genes tested for differential expression.
-#' @import pbapply
-#' @importFrom lmtest lrtest
-#'
-#' @seealso \code{\link{NegBinomDETest}}
-#'
+#' @describeIn FindMarkers Run differential expression test on matrix
 #' @export
+#' @method FindMarkers default
 #'
-#' @examples
-#' markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
-#' head(markers)
-#'
-FindMarkers <- function(
+FindMarkers.default <- function(
   object,
-  ident.1,
-  ident.2 = NULL,
-  genes.use = NULL,
+  cells.1 = NULL,
+  cells.2 = NULL,
+  features.use = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
-  print.bar = TRUE,
+  verbose = TRUE,
   only.pos = FALSE,
   max.cells.per.ident = Inf,
   random.seed = 1,
   latent.vars = NULL,
-  min.cells.gene = 3,
+  min.cells.feature = 3,
   min.cells.group = 3,
   pseudocount.use = 1,
-  assay.type = "RNA",
   ...
 ) {
-  data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
+  features.use <- features.use %||% rownames(object)
   methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
-    genes.use <- rownames(x = data.use)
+    features.use <- rownames(object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
-  # in case the user passed in cells instead of identity classes
-  if (length(x = as.vector(x = ident.1) > 1) && any(as.character(x = ident.1) %in% object@cell.names)) {
-    cells.1 <- intersect(x = ident.1, y = object@cell.names)
-  } else {
-    cells.1 <- WhichCells(object = object, ident = ident.1)
-  }
-  # if NULL for ident.2, use all other cells
-  if (length(x = as.vector(x = ident.2) > 1) && any(as.character(x = ident.2) %in% object@cell.names)) {
-    cells.2 <- intersect(x = ident.2, y = object@cell.names)
-  } else {
-    if (is.null(x = ident.2)) {
-      # cells.2 <- object@cell.names
-      cells.2 <- WhichCells(object = object,cells.use = setdiff(object@cell.names,cells.1))
-    } else {
-      cells.2 <- WhichCells(object = object, ident = ident.2)
-    }
-  }
-  cells.2 <- setdiff(x = cells.2, y = cells.1)
   # error checking
   if (length(x = cells.1) == 0) {
-    message(paste("Cell group 1 is empty - no cells with identity class", ident.1))
+    message(paste("Cell group 1 is empty - no cells with identity class", cells.1))
     return(NULL)
   }
   if (length(x = cells.2) == 0) {
-    message(paste("Cell group 2 is empty - no cells with identity class", ident.2))
+    message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
     return(NULL)
   }
   if (length(cells.1) < min.cells.group) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells in identity class", ident.1))
+    stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells"))
   }
   if (length(cells.2) < min.cells.group) {
-    stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells in identity class", ident.2))
+    stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells"))
   }
-  # gene selection (based on percent expressed)
+  if(any(!cells.1 %in% colnames(object))) {
+    bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
+    stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
+  }
+  if(any(!cells.2 %in% colnames(object))) {
+    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+    stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
+  }
+
+  # feature selection (based on percentages)
   thresh.min <- 0
-  data.temp1 <- round(
+  pct.1 <- round(
     x = apply(
-      X = data.use[genes.use, cells.1, drop = F],
+      X = object[features.use, cells.1, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
-        # return(length(x = x[x>thresh.min]) / length(x = x))
       }
     ),
     digits = 3
   )
-  data.temp2 <- round(
+  pct.2 <- round(
     x = apply(
-      X = data.use[genes.use, cells.2, drop = F],
+      X = object[features.use, cells.2, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
-        # return(length(x = x[x > thresh.min]) / length(x = x))
       }
     ),
     digits = 3
   )
-  data.alpha <- cbind(data.temp1, data.temp2)
-  colnames(x = data.alpha) <- c("pct.1","pct.2")
+  data.alpha <- cbind(pct.1, pct.2)
+  colnames(x = data.alpha) <- c("pct.1", "pct.2")
   alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
   names(x = alpha.min) <- rownames(x = data.alpha)
-  genes.use <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = genes.use) == 0) {
-    stop("No genes pass min.pct threshold")
+  features.use <- names(x = which(x = alpha.min > min.pct))
+  if (length(x = features.use) == 0) {
+    stop("No features pass min.pct threshold")
   }
   alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  genes.use <- names(
+  features.use <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
-  if (length(x = genes.use) == 0) {
-    stop("No genes pass min.diff.pct threshold")
+  if (length(x = features.use) == 0) {
+    stop("No features pass min.diff.pct threshold")
   }
-  #gene selection (based on average difference)
-  data.1 <- apply(X = data.use[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = data.use[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  # gene selection (based on average difference)
+  data.1 <- apply(X = object[features.use, cells.1, drop = F],
+                  MARGIN = 1,
+                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.2 <- apply(X = object[features.use, cells.2, drop = F],
+                  MARGIN = 1,
+                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
-  if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  if (only.pos) genes.diff <- names(x = which(x = total.diff > logfc.threshold))
-  genes.use <- intersect(x = genes.use, y = genes.diff)
-  if (length(x = genes.use) == 0) {
-    stop("No genes pass logfc.threshold threshold")
+  if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
+  if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
+  features.use <- intersect(x = features.use, y = features.diff)
+  if (length(x = features.use) == 0) {
+    stop("No features pass logfc.threshold threshold")
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
-    if (length(cells.1) > max.cells.per.ident) cells.1 = sample(x = cells.1, size = max.cells.per.ident)
-    if (length(cells.2) > max.cells.per.ident) cells.2 = sample(x = cells.2, size = max.cells.per.ident)
+    if (length(ident.1) > max.cells.per.ident) {
+      cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
+    }
+    if (length(ident.2) > max.cells.per.ident) {
+      cells.2 = sample(x = cells.2, size = max.cells.per.ident)
+    }
   }
-  #perform DR
+  # perform DE
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST')) && !is.null(x = latent.vars)) {
     warning("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests")
   }
-  if (test.use == "bimod") {
-    to.return <- DiffExpTest(
-      object = object,
-      assay.type = assay.type,
+  de.results <- switch(
+    EXPR = test.use,
+    'wilcox' = WilcoxDETest(
+      data.use = object[features.use, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar
-    )
-  }
-  if (test.use == "roc") {
-    to.return <- MarkerTest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar
-    )
-  }
-  if (test.use == "t") {
-    to.return <- DiffTTest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar
-    )
-  }
-  if (test.use == "tobit") {
-    to.return <- TobitTest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar
-    )
-  }
-  if (test.use == "negbinom") {
-    to.return <- NegBinomDETest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      latent.vars = latent.vars,
-      print.bar = print.bar,
-      min.cells = min.cells.gene
-    )
-  }
-  if (test.use == "poisson") {
-    to.return <- PoissonDETest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      latent.vars = latent.vars,
-      print.bar = print.bar,
-      min.cells = min.cells.gene
-    )
-  }
-  if (test.use == "MAST") {
-    to.return <- MASTDETest(
-      object = object,
-      assay.type = assay.type,
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      genes.use = genes.use,
-      latent.vars = latent.vars,
+      verbose = verbose,
       ...
-    )
-  }
-  if (test.use == "wilcox") {
-    to.return <- WilcoxDETest(
-      object = object,
-      assay.type = assay.type,
+    ),
+    'bimod' = DiffExpTest(
+      data.use = object[features.use, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar,
-      ...
-    )
-  }
-  if (test.use == "LR") {
-    to.return <- LRDETest(
-      object = object,
-      assay.type = assay.type,
+      verbose = verbose
+    ),
+    'roc' = MarkerTest(
+      data.use = object[features.use, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
-      genes.use = genes.use,
-      print.bar = print.bar,
-      ...
-    )
-  }
-  if (test.use == "DESeq2") {
-      to.return <- DESeq2DETest(
-        object = object,
-        assay.type = assay.type,
-        cells.1 = cells.1,
-        cells.2 = cells.2,
-        genes.use = genes.use,
-        ...
-      )
-  }
-  #return results
-  to.return[, "avg_logFC"] <- total.diff[rownames(x = to.return)]
-  to.return <- cbind(to.return, data.alpha[rownames(x = to.return), , drop = FALSE])
-  to.return$p_val_adj = p.adjust(
-    p = to.return$p_val,method = "bonferroni",
-    n = nrow(x = GetAssayData(
-      object = object,
-      assay.type = assay.type,
-      slot = "data"
-    ))
+      verbose = verbose
+    ),
+    't' = DiffTTest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+    'tobit' = TobitTest(
+      data.use = object[features.use, c(cells.1, cells.2)],
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      verbose = verbose
+    ),
+
+    stop("Unknown test: ", test.use)
+  )
+  de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
+
+  de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
+  de.results$p_val_adj = p.adjust(
+    p = de.results$p_val,method = "bonferroni",
+    n = nrow(object)
   )
   if (test.use == "roc") {
-    to.return <- to.return[order(-to.return$power, -to.return$avg_logFC), ]
+    de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
   } else {
-    to.return <- to.return[order(to.return$p_val, -to.return$avg_logFC), ]
+    de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
   }
   if (only.pos) {
-    to.return <- subset(x = to.return, subset = avg_logFC > 0)
+    de.results <- subset(x = de.results, subset = avg_logFC > 0)
   }
-  return(to.return)
+  return(de.results)
+}
+
+
+#' @param assay.use Assay to use in differential expression testing
+#' @param ident.1 Identity class to define markers for
+#' @param ident.2 A second identity class for comparison. If NULL (default) -
+#' use all other cells for comparison.
+#'
+#' @describeIn FindMarkers Run differential expression test on a Seurat object
+#' @export
+#' @method FindMarkers Seurat
+#'
+FindMarkers.Seurat <- function(
+  object,
+  assay.use = NULL,
+  ident.1 = NULL,
+  ident.2 = NULL,
+  features.use = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  ...
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  data.use <- GetAssayData(object = object[[assay.use]], slot = "data")
+  if (is.null(ident.1)) {
+    stop("Please provide ident.1")
+  }
+  if (length(x = as.vector(x = ident.1)) > 1 &&
+      any(as.character(x = ident.1) %in% colnames(data.use))) {
+    bad.cells <- colnames(data.use)[which(!as.character(x = ident.1) %in% colnames(data.use))]
+    if(length(bad.cells) > 0) {
+      stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
+    }
+  } else {
+    ident.1 <- WhichCells(object = object, ident = ident.1)
+  }
+  # if NULL for ident.2, use all other cells
+  if (length(x = as.vector(x = ident.2)) > 1 &&
+      any(as.character(x = ident.2) %in% colnames(data.use))) {
+    bad.cells <- colnames(data.use)[which(!as.character(x = ident.2) %in% colnames(data.use))]
+    if(length(bad.cells) > 0) {
+      stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
+    }
+  } else {
+    if (is.null(x = ident.2)) {
+      ident.2 <- setdiff(colnames(data.use), ident.1)
+    } else {
+      ident.2 <- WhichCells(object = object, ident = ident.2)
+    }
+  }
+  if (!is.null(latent.vars)) {
+    latent.vars <- FetchData(
+      object = object,
+      vars.all = latent.vars,
+      cells.use = c(ident.1, ident.2)
+    )
+  }
+  de.results <- FindMarkers(
+    object = data.use,
+    cells.1 = ident.1,
+    cells.2 = ident.2,
+    features.use = features.use,
+    logfc.threshold = logfc.threshold,
+    test.use = test.use,
+    min.pct = min.pct,
+    min.diff.pct = min.diff.pct,
+    verbose = verbose,
+    only.pos = only.pos,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    latent.vars = latent.vars,
+    min.cells.feature = min.cells.feature,
+    min.cells.group = min.cells.group,
+    pseudocount.use = pseudocount.use,
+    ...
+  )
+  return(de.results)
 }
 
 globalVariables(
@@ -760,161 +700,6 @@ FindConservedMarkers <- function(
   return(markers.combined)
 }
 
-#' Likelihood ratio test for zero-inflated data
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' the LRT model proposed in McDavid et al, Bioinformatics, 2013
-#'
-#' @inheritParams FindMarkers
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @export
-#' @examples
-#' pbmc_small
-#' DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#'
-DiffExpTest <- function(
-  object,
-  cells.1,
-  cells.2,
-  assay.type = "RNA",
-  genes.use = NULL,
-  print.bar = TRUE
-) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(data.test))
-  if (print.bar) {
-    iterate.fxn <- pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
-  p_val <- unlist(
-    x = iterate.fxn(
-      X = genes.use,
-      FUN = function(x) {
-        return(
-          DifferentialLRT(
-            x = as.numeric(x = data.test[x, cells.1]),
-            y = as.numeric(x = data.test[x, cells.2])
-          )
-        )
-      }
-    )
-  )
-  to.return <- data.frame(p_val, row.names = genes.use)
-  return(to.return)
-}
-
-#' Negative binomial test for UMI-count based data
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' a negative binomial generalized linear model
-#'
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to use for test
-#' @param latent.vars Latent variables to test
-#' @param print.bar Print progress bar
-#' @param min.cells Minimum number of cells threshold
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @importFrom MASS glm.nb
-#' @importFrom pbapply pbapply
-#' @importFrom stats var as.formula
-#'
-#' @export
-#'
-#'@examples
-#' pbmc_small
-#' # Note, not recommended for particularly small datasets - expect warnings
-#' NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#'
-NegBinomDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  latent.vars = NULL,
-  print.bar = TRUE,
-  min.cells = 3,
-  assay.type = "RNA"
-) {
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  my.latent <- FetchData(
-    object = object,
-    vars.all = latent.vars,
-    cells.use = c(cells.1, cells.2),
-    use.raw = TRUE
-  )
-  to.test.data <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, c(cells.1, cells.2)]
-  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  to.test[cells.1, "group"] <- "A"
-  to.test[cells.2, "group"] <- "B"
-  to.test$group <- factor(x = to.test$group)
-  latent.vars <- c("group", latent.vars)
-  if (print.bar) {
-    iterate.fxn <- pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
-  p_val <- unlist(
-    x = iterate.fxn(
-      X = genes.use,
-      FUN = function(x) {
-        to.test[, "GENE"] <- as.numeric(x = to.test.data[x, ])
-        # check that gene is expressed in specified number of cells in one group
-        if (sum(to.test$GENE[to.test$group == "A"]) < min.cells ||
-            sum(to.test$GENE[to.test$group == "B"]) < min.cells) {
-          warning(paste0(
-            "Skipping gene --- ",
-            x,
-            ". Fewer than ",
-            min.cells,
-            " in at least one of the two clusters."
-          ))
-          return(2)
-        }
-        # check that variance between groups is not 0
-        if (var(x = to.test$GENE) == 0) {
-          warning(paste0(
-            "Skipping gene -- ",
-            x,
-            ". No variance in expression between the two clusters."
-          ))
-          return(2)
-        }
-        fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.vars, collapse = "+")))
-        p.estimate <- 2
-        try(
-          expr = p.estimate <- summary(
-            object = glm.nb(formula = fmla, data = to.test)
-          )$coef[2, 4],
-          silent = TRUE
-        )
-        return(p.estimate)
-      }
-    )
-  )
-  if (length(x = which(x = p_val == 2)) > 0){
-    genes.use <- genes.use[-which(x = p_val == 2)]
-    p_val <- p_val[! p_val == 2]
-  }
-  to.return <- data.frame(p_val, row.names = genes.use)
-  return(to.return)
-}
 
 #' Negative binomial test for UMI-count based data (regularized version)
 #'
@@ -1327,62 +1112,6 @@ DESeq2DETest <- function(
   return(to.return)
 }
 
-#' Differential expression using Wilcoxon Rank Sum
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' a Wilcoxon Rank Sum test
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to use for test
-#' @param print.bar Print a progress bar
-#' @param assay.type Type of assay to perform DE for (default is RNA)
-#' @param ... Extra parameters passed to wilcox.test
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @importFrom pbapply pbsapply
-#' @importFrom stats wilcox.test
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#'
-WilcoxDETest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA",
-  ...
-) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = data.test)]
-  coldata <- object@meta.data[c(cells.1, cells.2), ]
-  group <- RandomName(length = 23)
-  coldata[cells.1, group] <- "Group1"
-  coldata[cells.2, group] <- "Group2"
-  coldata[, group] <- factor(x = coldata[, group])
-  coldata$wellKey <- rownames(x = coldata)
-  countdata.test <- data.test[genes.use, rownames(x = coldata), drop = FALSE]
-  mysapply <- if (print.bar) {pbsapply} else {sapply}
-  p_val <- mysapply(
-    X = 1:nrow(x = countdata.test),
-    FUN = function(x) {
-      return(wilcox.test(countdata.test[x, ] ~ coldata[, group], ...)$p.value)
-    }
-  )
-  genes.return <- rownames(x = countdata.test)
-  to.return <- data.frame(p_val, row.names = genes.return)
-  return(to.return)
-}
 
 LRDETest <- function(
   object,
@@ -1419,138 +1148,4 @@ LRDETest <- function(
   return(to.return)
 }
 
-#' Differential expression testing using Tobit models
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
-#'
-#' @inheritParams FindMarkers
-#' @inheritParams DiffExpTest
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @export
-#'
-#'@examples
-#' pbmc_small
-#' \dontrun{
-#' TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#' }
-#'
-TobitTest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA"
-) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  #print(genes.diff)
-  to.return <- TobitDiffExpTest(
-    data1 = data.test[, cells.1],
-    data2 = data.test[, cells.2],
-    mygenes = genes.use,
-    print.bar = print.bar
-  )
-  return(to.return)
-}
 
-#' ROC-based marker discovery
-#'
-#' Identifies 'markers' of gene expression using ROC analysis. For each gene,
-#' evaluates (using AUC) a classifier built on that gene alone, to classify
-#' between two groups of cells.
-#'
-#' An AUC value of 1 means that expression values for this gene alone can
-#' perfectly classify the two groupings (i.e. Each of the cells in cells.1
-#' exhibit a higher level than each of the cells in cells.2). An AUC value of 0
-#' also means there is perfect classification, but in the other direction. A
-#' value of 0.5 implies that the gene has no predictive power to classify the
-#' two groups.
-#'
-#' @inheritParams FindMarkers
-#' @inheritParams DiffExpTest
-#' @param object Seurat object
-#'
-#' @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
-#' putative differentially expressed genes.
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-#'
-MarkerTest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA"
-) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  to.return <- AUCMarkerTest(
-    data1 = data.test[, cells.1],
-    data2 = data.test[, cells.2],
-    mygenes = genes.use,
-    print.bar = print.bar
-  )
-  to.return$power <- abs(x = to.return$myAUC - 0.5) * 2
-  #print(head(to.return))
-  return(to.return)
-}
-
-#' Differential expression testing using Student's t-test
-#'
-#' Identify differentially expressed genes between two groups of cells using
-#' the Student's t-test
-#'
-#' @inheritParams FindMarkers
-#' @inheritParams DiffExpTest
-#'
-#' @return Returns a p-value ranked matrix of putative differentially expressed
-#' genes.
-#'
-#' @importFrom stats t.test
-#' @importFrom pbapply pblapply
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-DiffTTest <- function(
-  object,
-  cells.1,
-  cells.2,
-  genes.use = NULL,
-  print.bar = TRUE,
-  assay.type = "RNA"
-) {
-  data.test <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.test))
-  # data.use <- object@data
-  if (print.bar) {
-    iterate.fxn=pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
-  p_val <- unlist(
-    x = iterate.fxn(
-      X = genes.use,
-      FUN = function(x) {
-        t.test(x = data.test[x, cells.1], y = data.test[x, cells.2])$p.value
-      }
-    )
-  )
-  to.return <- data.frame(p_val,row.names = genes.use)
-  return(to.return)
-}
