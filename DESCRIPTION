@@ -20,7 +20,6 @@ Depends:
     ggplot2,
     cowplot,
     Matrix (>= 1.2.14),
-SystemRequirements: Java (>= 6)
 Imports:
     methods,
     ROCR,
@@ -79,6 +78,7 @@ Collate:
     'jackstraw.R'
     'jackstraw_internal.R'
     'multi_modal.R'
+    'not_used_yet.R'
     'plotting.R'
     'plotting_internal.R'
     'plotting_utilities.R'
@@ -104,6 +104,7 @@ Suggests:
     loomR,
     phateR,
     S4Vectors,
+    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,

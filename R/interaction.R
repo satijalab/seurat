@@ -1089,6 +1089,33 @@ CombineIdent <- function(object, attribute.1 = "ident",
   object <- SetIdent(object = object,cells.use = object@cell.names, ident.use = new_ids)
 }
 
+#' Get identity of cells
+#'
+#' @param object Seurat object
+#' @param uniq logic, indicating whether to return unique ident values or ident
+#' of all cells
+#' @param cells.use A vector of cell names. If specified, only the identity of
+#' these cells will be returned.
+#'
+#' @return Return the cell identites of this Seurat object
+#'
+#' @export
+#'
+#' @examples
+#' GetIdent(pbmc_small)
+#'
+GetIdent <- function(object, uniq = TRUE, cells.use = NULL){
+    ident <- object@ident
+    if(!is.null(cells.use)){
+        ident <- ident[names(ident) %in% cells.use]
+    }
+    if(uniq){
+        unique(ident)
+    }else{
+        ident
+    }
+}
+
 #' Add Metadata
 #'
 #' Adds additional data for single cells to the Seurat object. Can be any piece
