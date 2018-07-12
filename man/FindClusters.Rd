@@ -79,7 +79,9 @@ Identify clusters of cells by a shared nearest neighbor (SNN) modularity
 optimization based clustering algorithm. First calculate k-nearest neighbors
 and construct the SNN graph. Then optimize the modularity function to
 determine clusters. For a full description of the algorithms, see Waltman and
-van Eck (2013) \emph{The European Physical Journal B}.
+van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
+Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
+optimizer code in Rcpp!
 }
 \examples{
 \dontrun{
