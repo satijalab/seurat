@@ -597,6 +597,7 @@ DimPlot <- function(
 #'
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 scale_color_gradientn
+#' @importFrom cowplot plot_grid
 #'
 #' @return No return value, only a graphical output
 #'
@@ -622,6 +623,19 @@ FeaturePlot <- function(
   label.size = 4,
   na.value = 'grey50'
 ) {
+  nCol <- NULL
+  if (is.null(x = nCol)) {
+    nCol <- 2
+    if (length(x = features.plot) == 1) {
+      nCol <- 1
+    }
+    if (length(x = features.plot) > 6) {
+      nCol <- 3
+    }
+    if (length(x = features.plot) > 9) {
+      nCol <- 4
+    }
+  }
   data.features <- FetchData(object = object, vars.fetch = features.plot)
   features.plot <- colnames(x = data.features)
   min.cutoff <- mapply(
@@ -705,5 +719,10 @@ FeaturePlot <- function(
     }
     plot.list[[i]] <- p
   }
-  return(plot.list)
+  plots.combined <- if (length(x = plot.list) > 1) {
+    plot_grid(plotlist = plot.list, ncol = nCol)
+  } else {
+    plot.list[[1]]
+  }
+  return(plots.combined)
 }
