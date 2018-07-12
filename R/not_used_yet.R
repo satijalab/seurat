@@ -515,7 +515,7 @@ SpatialDe <- function(object, marker.cells, genes.use = NULL) {
   diff.genes <- rownames(
     x = subset(
       x = DiffExpTest(
-        object = p15,
+        object = object,
         cells.1 = marker.cells,
         cells.2 = embed.diff,
         genes.use = genes.use
@@ -525,7 +525,7 @@ SpatialDe <- function(object, marker.cells, genes.use = NULL) {
   )
   diff.genes <- subset(
     x = DiffExpTest(
-      object = p15,
+      object = object,
       cells.1 = marker.cells,
       cells.2 = embed.diff,
       genes.use = diff.genes
