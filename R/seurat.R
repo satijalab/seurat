@@ -522,8 +522,37 @@ setMethod(
   f = "show",
   signature = "Seurat",
   definition = function(object) {
+    assays <- FilterObjects(object = object, classes.keep = 'Assay')
+    num.features <- sum(vapply(
+      X = assays,
+      FUN = function(x) {
+        return(nrow(x = object[[x]]))
+      },
+      FUN.VALUE = integer(length = 1L)
+    ))
+    num.assays <- length(x = assays)
     cat("An object of class", class(x = object))
-    cat('\n', nrow(x = object), 'features across', ncol(x = object), 'samples\n')
+    cat(
+      '\n',
+      num.features,
+      'features across',
+      ncol(x = object),
+      'samples within',
+      num.assays,
+      ifelse(test = num.assays == 1, yes = 'assay', no = 'assays')
+    )
+    reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
+    if (length(x = reductions) > 0) {
+      cat(
+        '\n',
+        length(x = reductions),
+        'dimensional',
+        ifelse(test = length(x = reductions) == 1, yes = 'reduction', no = 'reductions'),
+        'calculated:',
+        strwrap(x = paste(reductions, collapse = ', '))
+      )
+    }
+    cat('\n')
     invisible(x = NULL)
   }
 )
