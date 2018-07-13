@@ -343,6 +343,7 @@ globalVariables(
 #' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
 #'
 #' @importFrom tidyr gather
+#' @importFrom ggplot2 scale_size scale_radius
 #' @importFrom dplyr %>% group_by summarize mutate ungroup
 #'
 #' @export
@@ -364,8 +365,9 @@ DotPlot <- function(
   scale.min = NA,
   scale.max = NA,
   group.by = NULL,
-  plot.legend = FALSE,
-  x.lab.rot = FALSE
+  split.by = NULL
+  # plot.legend = FALSE,
+  # x.lab.rot = FALSE
 ) {
   scale.func <- switch(
     EXPR = scale.by,
@@ -373,14 +375,18 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.to.plot <- FetchData(object = object, vars.fetch = features.plot)
-  colnames(x = data.to.plot) <- features.plot
-  data.to.plot$cell <- rownames(x = data.to.plot)
-  data.to.plot$id <- if (is.null(x = group.by)) {
+  data.plot <- FetchData(object = object, vars.fetch = features.plot)
+  colnames(x = data.plot) <- features.plot
+  data.plot$cell <- rownames(x = data.plot)
+  data.plot$id <- if (is.null(x = group.by)) {
     Idents(object = object)
   } else {
     object[group.by]
   }
+  if (!is.null(x = split.by)) {
+    data.plot$split <- FetchData(object = object, vars.fetch = split.by)
+  }
+  invisible(x = NULL)
   data.to.plot %>% gather(
     key = features.plot,
     value = expression,
@@ -416,12 +422,12 @@ DotPlot <- function(
   } else {
     p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
   }
-  if (!plot.legend) {
-    p <- p + theme(legend.position = "none")
-  }
-  if (x.lab.rot) {
-    p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-  }
+  # if (!plot.legend) {
+  #   p <- p + theme(legend.position = "none")
+  # }
+  # if (x.lab.rot) {
+  #   p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+  # }
   return(p)
 }
 

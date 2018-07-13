@@ -47,7 +47,7 @@ Various themes to be applied to ggplot2-based plots
   \item{\code{SeuratAxes}}{Set Seurat-style axes}
   \item{\code{BarePlot}}{Remove all extraneous features}
   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
-  \itme{\code{BoldTitle}}{Enlarges and emphasizes the title}
+  \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 }
 }
 \examples{
