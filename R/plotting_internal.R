@@ -508,6 +508,53 @@ MakeLabels <- function(data.plot) {
   return(data.labels)
 }
 
+# Combine ggplot2-based plots into a single plot
+#
+# @param plot.list A list of gg objects
+# @param nCol Number of columns
+# @param legend.position Combine legends into a single legend
+# choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
+# to leave legends as they are
+#
+# @return A combined plot
+#
+#' @importFrom cowplot plot_grid get_legend
+#
+CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
+  plots.combined <- if (length(x = plot.list) > 1) {
+    if (legend.position == 'none') {
+      plot.list <- lapply(
+        X = plot.list,
+        FUN = function(x) {
+          return(x + NoLegend())
+        }
+      )
+    }
+    plots.combined <- plot_grid(plotlist = plot.list, ncol = nCol)
+    if (!is.null(x = legend.position) && legend.position != 'none') {
+      legend <- get_legend(plot = plot.list[[1]] + theme(legend.position = legend.position))
+      if (legend.position == 'bottom') {
+        plots.combined <- plot_grid(
+          plots.combined,
+          legend,
+          ncol = 1,
+          rel_heights = c(1, 0.2)
+        )
+      } else if (legend.position == 'right') {
+        plots.combined <- plot_grid(
+          plots.combined,
+          legend,
+          rel_widths = c(3, 0.3)
+        )
+      }
+    }
+    plots.combined
+  } else {
+    plot.list[[1]]
+  }
+  return(plots.combined)
+}
+
 # Plot feature expression by identity
 #
 # Basically combines the codebase for VlnPlot and RidgePlot
@@ -523,18 +570,13 @@ MakeLabels <- function(data.plot) {
 # @param same.y.lims Set all the y-axis limits to the same values
 # @param size.x.use X axis title font size
 # @param size.y.use Y axis title font size
-# @param size.title.use Main title font size
 # @param adjust.use Adjust parameter for geom_violin
 # @param point.size.use Point size for geom_violin
 # @param cols.use Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param y.log plot Y axis on log scale
-# @param x.lab.rot Rotate x-axis labels
-# @param y.lab.rot Rotate y-axis labels
-# @param legend.position Position the legend for the plot
-# @param single.legend Consolidate legend the legend for all plots
-# @param remove.legend Remove the legend from the plot
-# @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+# @param combine.plots Combine plots using cowplot::plot_grid
+# @param ... Ignores
 #
 #' @importFrom cowplot plot_grid get_legend
 #
@@ -547,18 +589,11 @@ ExIPlot <- function(
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
-  size.x.use = 16,
-  size.y.use = 16,
-  size.title.use = 20,
   adjust.use = 1,
   cols.use = NULL,
   group.by = NULL,
   y.log = FALSE,
-  x.lab.rot = FALSE,
-  y.lab.rot = FALSE,
-  legend.position = "right",
-  single.legend = TRUE,
-  remove.legend = FALSE,
+  combine.plots = TRUE,
   ...
 ) {
   if (is.null(x = nCol)) {
@@ -581,7 +616,6 @@ ExIPlot <- function(
     object[group.by][cells.use, , drop = TRUE]
   }
   feature.names <- colnames(x = data.use)[colnames(x = data.use) %in% rownames(x = object)]
-  remove.legend <- ifelse(test = single.legend, yes = TRUE, no = remove.legend)
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data.use)
   }
@@ -594,48 +628,18 @@ ExIPlot <- function(
         data = data.use[, x, drop = FALSE],
         cell.ident = ident.use,
         do.sort = do.sort, y.max = y.max,
-        size.x.use = size.x.use,
-        size.y.use = size.y.use,
         size.title.use = size.title.use,
         adjust.use = adjust.use,
-        point.size.use = point.size.use,
         cols.use = cols.use,
         feature.names = feature.names,
-        y.log = y.log,
-        x.lab.rot = x.lab.rot,
-        y.lab.rot = y.lab.rot,
-        legend.position = legend.position,
-        remove.legend = remove.legend
+        y.log = y.log
       ))
     }
   )
-  if (length(x = features.plot) > 1) {
-    plots.combined <- plot_grid(plotlist = plots, ncol = nCol)
-    if (single.legend && !remove.legend) {
-      legend <- get_legend(
-        plot = plots[[1]] + theme(legend.position = legend.position)
-      )
-      if (legend.position == "bottom") {
-        plots.combined <- plot_grid(
-          plots.combined,
-          legend,
-          ncol = 1,
-          rel_heights = c(1, .2)
-        )
-      } else if (legend.position == "right") {
-        plots.combined <- plot_grid(
-          plots.combined,
-          legend,
-          rel_widths = c(3, .3)
-        )
-      } else {
-        warning("Shared legends must be at the bottom or right of the plot")
-      }
-    }
-  } else {
-    plots.combined <- plots[[1]]
+  if (combine.plots) {
+    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = 'none')
   }
-  return(plots.combined)
+  return(plots)
 }
 
 # Plot a single expression by identity on a plot
@@ -648,25 +652,21 @@ ExIPlot <- function(
 # @param y.max Maximum Y value to plot
 # @param size.x.use X axis title font size
 # @param size.y.use Y axis title font size
-# @param size.title.use Main title font size
 # @param adjust.use Adjust parameter for geom_violin
 # @param point.size.use Point size for geom_violin
 # @param cols.use Colors to use for plotting
 # @param gene.names
 # @param y.log plot Y axis on log scale
-# @param x.lab.rot Rotate x-axis labels
-# @param y.lab.rot Rotate y-axis labels
-# @param legend.position Position the legend for the plot
-# @param remove.legend Remove the legend from the plot
+# @param ... Ignored
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
-#' @import ggplot2
+# @import ggplot2
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
+#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
 #
-globalVariables(names = 'ident', package = 'Seurat', add = TRUE)
 SingleExIPlot <- function(
   feature,
   plot.type = 'violin',
@@ -674,18 +674,13 @@ SingleExIPlot <- function(
   cell.ident,
   do.sort,
   y.max,
-  size.x.use,
-  size.y.use,
   size.title.use,
   adjust.use,
   point.size.use,
   cols.use,
   feature.names,
   y.log,
-  x.lab.rot,
-  y.lab.rot,
-  legend.position,
-  remove.legend
+  ...
 ) {
   set.seed(seed = 42)
   feature.name <- colnames(x = data)
@@ -722,70 +717,49 @@ SingleExIPlot <- function(
     ""
   }
   y.max <- y.max %||% max(data[, feature])
-  plot <- ggplot(data = data, mapping = aes(fill = factor(x = ident)))
+  plot <- ggplot(data = data, mapping = aes_string(fill = 'ident'))
   plot <- plot + guides(fill = guide_legend(title = NULL)) +
     NoGrid() +
-    theme(
-      plot.title = element_text(size = size.title.use, face = "bold"),
-      legend.position = legend.position,
-      axis.title.x = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.x.use
-      ),
-      axis.title.y = element_text(
-        face = "bold",
-        colour = "#990000",
-        size = size.y.use
-      )
-    ) +
-    ggtitle(label = feature.name)
-  if (plot.type == 'violin') {
-    plot <- plot +
-      geom_violin(
-        scale = 'width',
-        adjust = adjust.use,
-        trim = TRUE,
-        mapping = aes(x = factor(x = ident), y = feature)
-      ) +
-      labs(x = 'Identity', y = axis.label)#, title = feature)
-    if (y.log) {
-      plot <- plot + scale_y_log10()
-    } else {
-      plot <- plot + ylim(min(data[, feature]), y.max)
-    }
-    x.rot <- element_text(angle = 45, hjust = 1, size = size.x.use)
-    y.rot <- element_text(angle = 90, size = size.y.use)
-  } else if (plot.type == 'ridge') {
-    plot <- plot +
-      geom_density_ridges(
-        scale = 4,
-        mapping = aes(x = feature, y = factor(x = ident))
-      ) +
-      theme_ridges() +
-      labs(x = axis.label, y = 'Identity') + #, title = feature.name) +
-      scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
-      scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-    if (y.log) {
-      plot <- plot + scale_x_log10()
-    }
-    x.rot <- element_text(angle = 90, vjust = 0.5)
-    y.rot <- element_text(angle = 90)
-  } else {
+    labs(title = feature.name)
+  plot <- switch(
+    EXPR = plot.type,
+    'violin' = {
+      plot <- plot +
+        geom_violin(
+          scale = 'width',
+          adjust = adjust.use,
+          trim = TRUE,
+          mapping = aes_string(x = 'ident', y = 'feature')
+        ) +
+        labs(x = 'Identity', y = axis.label)
+      plot <- plot + if (y.log) {
+        scale_y_log10()
+      } else {
+        ylim(min(data[, feature]), y.max)
+      }
+      plot
+    },
+    'ridge' = {
+      plot <- plot +
+        geom_density_ridges(
+          scale = 4,
+          mapping = aes_string(x = 'feature', y = 'ident')
+        ) +
+        theme_ridges() +
+        labs(x = axis.label, y = 'Identity') + #, title = feature.name) +
+        scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+        scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+      if (y.log) {
+        plot <- plot + scale_x_log10()
+      }
+      plot
+    },
     stop("Unknown plot type: ", plot.type)
-  }
+  )
   if (!is.null(x = cols.use)) {
     plot <- plot + scale_fill_manual(values = cols.use)
   }
-  if (x.lab.rot) {
-    plot <- plot + theme(axis.text.x = x.rot)
-  }
-  if (y.lab.rot) {
-    plot <- plot + theme(axis.text.x = y.rot)
-  }
-  if (remove.legend) {
-    plot <- plot + theme(legend.position = "none")
-  }
+  return(plot)
 }
 
 # Plot a single dimension

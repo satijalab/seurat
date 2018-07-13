@@ -214,17 +214,10 @@ DoHeatmap <- function(
 #' expression of the attribute being potted
 #' @param y.max Maximum y axis value
 #' @param same.y.lims Set all the y-axis limits to the same values
-#' @param size.x.use X axis title font size
-#' @param size.y.use Y axis title font size
-#' @param size.title.use Main title font size
 #' @param cols.use Colors to use for plotting
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.log plot Y axis on log scale
-#' @param x.lab.rot Rotate x-axis labels
-#' @param y.lab.rot Rotate y-axis labels
-#' @param legend.position Position the legend for the plot
-#' @param single.legend Consolidate legend the legend for all plots
-#' @param remove.legend Remove the legend from the plot
+#' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @return A list of ggplot objects
@@ -242,17 +235,10 @@ RidgePlot <- function(
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
-  size.x.use = 16,
-  size.y.use = 16,
-  size.title.use = 20,
   cols.use = NULL,
   group.by = NULL,
   y.log = FALSE,
-  x.lab.rot = FALSE,
-  y.lab.rot = FALSE,
-  legend.position = "right",
-  single.legend = TRUE,
-  remove.legend = FALSE,
+  combine.plots = TRUE,
   ...
 ) {
   return(ExIPlot(
@@ -264,17 +250,10 @@ RidgePlot <- function(
     do.sort = do.sort,
     y.max = y.max,
     same.y.lims = same.y.lims,
-    size.x.use = size.x.use,
-    size.y.use = size.y.use,
-    size.title.use = size.title.use,
     cols.use = cols.use,
     group.by = group.by,
     y.log = y.log,
-    x.lab.rot = x.lab.rot,
-    y.lab.rot = y.lab.rot,
-    legend.position = legend.position,
-    single.legend = single.legend,
-    remove.legend = remove.legend,
+    combine.plots = combine.plots,
     ...
   ))
 }
@@ -303,19 +282,12 @@ VlnPlot <- function(
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
-  size.x.use = 16,
-  size.y.use = 16,
-  size.title.use = 20,
   adjust.use = 1,
   point.size.use = 1,
   cols.use = NULL,
   group.by = NULL,
   y.log = FALSE,
-  x.lab.rot = FALSE,
-  y.lab.rot = FALSE,
-  legend.position = "right",
-  single.legend = TRUE,
-  remove.legend = FALSE,
+  combine.plots = TRUE,
   ...
 ) {
   return(ExIPlot(
@@ -327,19 +299,12 @@ VlnPlot <- function(
     do.sort = do.sort,
     y.max = y.max,
     same.y.lims = same.y.lims,
-    size.x.use = size.x.use,
-    size.y.use = size.y.use,
-    size.title.use = size.title.use,
     adjust.use = adjust.use,
     point.size.use = point.size.use,
     cols.use = cols.use,
     group.by = group.by,
     y.log = y.log,
-    x.lab.rot = x.lab.rot,
-    y.lab.rot = y.lab.rot,
-    legend.position = legend.position,
-    single.legend = single.legend,
-    remove.legend = remove.legend,
+    combine.plots = combine.plots,
     ...
   ))
 }
