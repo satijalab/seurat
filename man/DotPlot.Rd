@@ -7,7 +7,7 @@
 DotPlot(object, features.plot, cols.use = c("lightgrey", "blue"),
   col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
   scale.by = "radius", scale.min = NA, scale.max = NA, group.by = NULL,
-  plot.legend = FALSE, x.lab.rot = FALSE)
+  split.by = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

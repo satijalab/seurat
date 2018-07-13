@@ -4,6 +4,7 @@
 \alias{VariableFeatures}
 \alias{VariableFeatures<-}
 \alias{VariableFeatures.Seurat}
+\alias{VariableFeatures<-.Seurat}
 \alias{VariableFeatures.Assay}
 \alias{VariableFeatures<-.Assay}
 \title{Get and set variable feature information}
@@ -13,6 +14,8 @@ VariableFeatures(object, ...)
 VariableFeatures(object, ...) <- value
 
 \method{VariableFeatures}{Seurat}(object, assay.use = NULL, ...)
+
+\method{VariableFeatures}{Seurat}(object, assay.use = NULL, ...) <- value
 
 \method{VariableFeatures}{Assay}(object, ...)
 
@@ -33,6 +36,8 @@ Get and set variable feature information
 \section{Methods (by class)}{
 \itemize{
 \item \code{Seurat}: Get the variable features of a Seurat object
+
+\item \code{Seurat}: Set variable features for a Seurat object
 
 \item \code{Assay}: Get the variable features of an assay object
 
