@@ -8,6 +8,8 @@
 \alias{NoGrid}
 \alias{SeuratAxes}
 \alias{BarePlot}
+\alias{RotatedAxis}
+\alias{BoldTitle}
 \title{Seurat Themes}
 \usage{
 SeuratTheme()
@@ -23,6 +25,10 @@ NoGrid(...)
 SeuratAxes(...)
 
 BarePlot()
+
+RotatedAxis(...)
+
+BoldTitle(...)
 }
 \arguments{
 \item{...}{Extra parameters to be passed to \code{theme}}
@@ -39,7 +45,9 @@ Various themes to be applied to ggplot2-based plots
   \item{\code{NoLegend}}{Removes the legend}
   \item{\code{NoGrid}}{Removes grid lines}
   \item{\code{SeuratAxes}}{Set Seurat-style axes}
-  \item{\code{BarePlot}}{Remove all extraneous features from a}
+  \item{\code{BarePlot}}{Remove all extraneous features}
+  \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
+  \itme{\code{BoldTitle}}{Enlarges and emphasizes the title}
 }
 }
 \examples{

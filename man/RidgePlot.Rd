@@ -5,11 +5,8 @@
 \title{Single cell ridge plot}
 \usage{
 RidgePlot(object, features.plot, ident.include = NULL, nCol = NULL,
-  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE, size.x.use = 16,
-  size.y.use = 16, size.title.use = 20, cols.use = NULL,
-  group.by = NULL, y.log = FALSE, x.lab.rot = FALSE, y.lab.rot = FALSE,
-  legend.position = "right", single.legend = TRUE, remove.legend = FALSE,
-  ...)
+  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE, cols.use = NULL,
+  group.by = NULL, y.log = FALSE, combine.plots = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -28,27 +25,13 @@ expression of the attribute being potted}
 
 \item{same.y.lims}{Set all the y-axis limits to the same values}
 
-\item{size.x.use}{X axis title font size}
-
-\item{size.y.use}{Y axis title font size}
-
-\item{size.title.use}{Main title font size}
-
 \item{cols.use}{Colors to use for plotting}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
 \item{y.log}{plot Y axis on log scale}
 
-\item{x.lab.rot}{Rotate x-axis labels}
-
-\item{y.lab.rot}{Rotate y-axis labels}
-
-\item{legend.position}{Position the legend for the plot}
-
-\item{single.legend}{Consolidate legend the legend for all plots}
-
-\item{remove.legend}{Remove the legend from the plot}
+\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
