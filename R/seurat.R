@@ -338,6 +338,20 @@ VariableFeatures.Seurat <- function(object, assay.use = NULL, ...) {
   return(VariableFeatures(object = assay.data))
 }
 
+#' @inheritParams VariableFeatures<-.Seurat
+#'
+#' @describeIn VariableFeatures Set variable features for a Seurat object
+#' @export
+#' @method VariableFeatures<- Seurat
+#'
+"VariableFeatures<-.Seurat" <- function(object, assay.use = NULL, ..., value) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- object[[assay.use]]
+  VariableFeatures(object = assay.data) <- value
+  object[[assay.use]] <- assay.data
+  return(object)
+}
+
 #' @param assay.use Name of assay to pull highly variable feature information for
 #'
 #' @describeIn GetHVFInfo Get highly variable feature information from a Seurat object
