@@ -237,7 +237,7 @@ Convert.seurat <- function(
           reduction.type = dr
         ))
       }
-      obsm <- dict(obsm)
+      obsm <- if (!identical(obsm, list())) dict(obsm) else NULL
       meta_data <- from@meta.data
       if ("nUMI" %in% colnames(x = meta_data)) {
         colnames(x = meta_data) <- gsub(
