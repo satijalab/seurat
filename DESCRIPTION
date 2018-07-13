@@ -17,7 +17,7 @@ BugReports: https://github.com/satijalab/seurat/issues
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
-    ggplot2,
+    ggplot2 (>= 3.0.0),
     cowplot,
     Matrix (>= 1.2.14),
 Imports:
