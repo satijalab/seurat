@@ -8,7 +8,9 @@
 #'   \item{\code{NoLegend}}{Removes the legend}
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
-#'   \item{\code{BarePlot}}{Remove all extraneous features from a}
+#'   \item{\code{BarePlot}}{Remove all extraneous features}
+#'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
+#'   \itme{\code{BoldTitle}}{Enlarges and emphasizes the title}
 #' }
 #'
 #' @param ... Extra parameters to be passed to \code{theme}
@@ -187,8 +189,6 @@ SeuratAxes <- function(...) {
   return(axes.theme)
 }
 
-#' @inheritParams SeuratThemes
-#'
 #' @export
 #'
 #' @rdname SeuratThemes
@@ -196,4 +196,42 @@ SeuratAxes <- function(...) {
 #'
 BarePlot <- function() {
   return(NoLegend() + NoAxes() + NoGrid())
+}
+
+#' @inheritParams SeuratThemes
+#'
+#' @importFrom ggplot2 theme element_text
+#' @export
+#'
+#' @rdname SeuratThemes
+#' @aliases RotatedAxis
+#'
+RotatedAxis <- function(...) {
+  rotated.theme <- theme(
+    # Rotate X axis text
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
+  return(rotated.theme)
+}
+
+#' @inheritParams SeuratThemes
+#'
+#' @importFrom ggplot2 theme element_text
+#' @export
+#'
+#' @rdname SeuratThemes
+#' @aliases BoldTitle
+#'
+BoldTitle <- function(...) {
+  bold.theme <- theme(
+    # Make the title bold
+    plot.title = element_text(size = 20, face = 'bold'),
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
+  return(bold.theme)
 }
