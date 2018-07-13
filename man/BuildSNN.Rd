@@ -10,9 +10,8 @@
 \method{BuildSNN}{default}(object, distance.matrix = FALSE, k.param = 10,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE)
 
-\method{BuildSNN}{Assay}(object, features.use = NULL, reduction.use = "pca",
-  dims.use = NULL, k.param = 10, prune.SNN = 1/15, nn.eps = 0,
-  verbose = TRUE, force.recalc = FALSE)
+\method{BuildSNN}{Assay}(object, features.use = NULL, k.param = 10,
+  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE)
 
 \method{BuildSNN}{Seurat}(object, assay.use = NULL, features.use = NULL,
   reduction.use = "pca", dims.use = NULL, k.param = 10,
@@ -46,13 +45,13 @@ default of 0.0 implies exact nearest neighbor search}
 graph if building directly based on data rather than a dimensionally reduced
 representation (i.e. PCs).}
 
+\item{assay.use}{Assay to use in construction of SNN}
+
 \item{reduction.use}{Name of dimensional reduction technique to use in
 construction of SNN graph. (e.g. "pca", "ica")}
 
 \item{dims.use}{A vector of the dimensions to use in construction of the SNN
 graph (e.g. To use the first 10 PCs, pass 1:10)}
-
-\item{assay.use}{Assay to use in construction of SNN}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 

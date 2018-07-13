@@ -70,20 +70,14 @@ BuildSNN.default <- function(
 BuildSNN.Assay <- function(
   object,
   features.use = NULL,
-  reduction.use = "pca",
-  dims.use = NULL,
   k.param = 10,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE
 ) {
-  if (is.null(dims.use)) {
-    features.use <- features.use %||% VariableFeatures(object = object)
-    data.use <- t(x = GetAssayData(object = object, slot = "data")[features.use, ])
-  } else {
-    data.use <- Embeddings(object = object)[, dims.use]
-  }
+  features.use <- features.use %||% VariableFeatures(object = object)
+  data.use <- t(x = GetAssayData(object = object, slot = "data")[features.use, ])
   snn.matrix <- BuildSNN(
     object = data.use,
     k.param = k.param,
@@ -121,17 +115,26 @@ BuildSNN.Seurat <- function(
   do.plot = FALSE,
   graph.name = NULL
 ) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  snn.matrix <- BuildSNN(object = assay.data,
-                         features.use = features.use,
-                         reduction.use = reduction.use,
-                         dims.use = dims.use,
-                         k.param = k.param,
-                         prune.SNN = prune.SNN,
-                         nn.eps = nn.eps,
-                         verbose = verbose,
-                         force.recalc = force.recalc)
+  if (! is.null(dims.use)) {
+    data.use <- Embeddings(object = object[[reduction.use]])
+    data.use <- data.use[, dims.use]
+    snn.matrix <- BuildSNN(object = data.use,
+                           k.param = k.param,
+                           prune.SNN = prune.SNN,
+                           nn.eps = nn.eps,
+                           verbose = verbose,
+                           force.recalc = force.recalc)
+  } else {
+    assay.use <- assay.use %||% DefaultAssay(object = object)
+    data.use <- GetAssay(object = object, assay.use = assay.use)
+    snn.matrix <- BuildSNN(object = data.use,
+                           features.use = features.use,
+                           k.param = k.param,
+                           prune.SNN = prune.SNN,
+                           nn.eps = nn.eps,
+                           verbose = verbose,
+                           force.recalc = force.recalc)
+  }
 
   graph.name <- graph.name %||% paste0(assay.use, "_snn")
   object[[graph.name]] <- snn.matrix
