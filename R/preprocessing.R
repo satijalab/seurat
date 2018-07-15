@@ -372,6 +372,7 @@ NormalizeData.Seurat <- function(
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 

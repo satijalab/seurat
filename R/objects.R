@@ -115,7 +115,8 @@ Seurat <- setClass(
     project.name = 'character',
     calc.params = 'list',
     misc = 'list',
-    version = 'package_version'
+    version = 'package_version',
+    commands='list'
   )
 )
 
@@ -208,10 +209,9 @@ Seurat <- setClass(
 Assay <- setClass(
   Class = 'SeuratCommand',
   slots = c(
-    raw.data = 'dgCMatrix',
     name = 'character',
-    timestamp = 'ANY',
-    call_string = 'character',
-    params = 'list'
+    time.stamp = 'ANY',
+    call.string = 'character',
+    params = 'ANY'
   )
 )
