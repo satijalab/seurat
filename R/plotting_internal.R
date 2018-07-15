@@ -846,7 +846,7 @@ SingleDimPlot <- function(
     data = object,
     colors = col.by,
     rows.use = cells.use,
-    pt.size = pt.size,
+    #pt.size = pt.size,
     pt.shape = shape.by,
     ...
   ) +
@@ -855,7 +855,9 @@ SingleDimPlot <- function(
       y = dims.plot[2],
       color = 'color',
       shape = shape.plot
-    ))
+    ),
+      size=pt.size
+    )
   if (do.label) {
     labels <- MakeLabels(data.plot = p$data[, c(dims.plot, 'color')])
     p <- p +
