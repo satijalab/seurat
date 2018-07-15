@@ -7,13 +7,13 @@
 \title{Normalize Assay Data}
 \usage{
 \method{NormalizeData}{Assay}(object, normalization.method = "LogNormalize",
-  scale.factor = 10000, display.progress = TRUE, ...)
+  scale.factor = 10000, verbose = TRUE, ...)
 
 \method{NormalizeData}{Seurat}(object, assay.use = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  display.progress = TRUE, ...)
+  verbose = TRUE, ...)
 
-NormalizeData(object, normalization.method, scale.factor, display.progress, ...)
+NormalizeData(object, normalization.method, scale.factor, verbose, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -23,7 +23,7 @@ log-normalization (LogNormalize). More methods to be added very shortly.}
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
-\item{display.progress}{display progress bar for scaling procedure.}
+\item{verbose}{display progress bar for scaling procedure.}
 
 \item{...}{Arguments passed to other methods}
 

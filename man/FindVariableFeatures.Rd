@@ -10,16 +10,16 @@
   dispersion.function = FastLogVMR, num.bin = 20,
   binning.method = "equal_width", num.features = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot", display.progress = TRUE, ...)
+  selection.method = "mean.var.plot", verbose = TRUE, ...)
 
 \method{FindVariableFeatures}{Seurat}(object, assay.use = NULL,
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
   num.bin = 20, binning.method = "equal_width", num.features = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot", display.progress = TRUE, ...)
+  selection.method = "mean.var.plot", verbose = TRUE, ...)
 
 FindVariableFeatures(object, mean.function, dispersion.function, num.bin,
-  binning.method, display.progress, ...)
+  binning.method, verbose, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -53,7 +53,7 @@ the cost of reduced resolution along the x-axis)}
   \item{dispersion: }{Choose the top.features with the highest dispersion}
 }}
 
-\item{display.progress}{show progress bar for calculations}
+\item{verbose}{show progress bar for calculations}
 
 \item{...}{Arguments passed to other methods}
 

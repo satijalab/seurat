@@ -4,7 +4,7 @@
 #' @param normalization.method Method for normalization. Default is
 #' log-normalization (LogNormalize). More methods to be added very shortly.
 #' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param display.progress display progress bar for scaling procedure.
+#' @param verbose display progress bar for scaling procedure.
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns object after normalization
@@ -16,7 +16,7 @@ NormalizeData <- function(
   object,
   normalization.method,
   scale.factor,
-  display.progress,
+  verbose,
   ...
 ) {
   UseMethod(generic = 'NormalizeData', object = object)
@@ -53,7 +53,7 @@ NormalizeData <- function(
 #' statistical power to detect overdispersed features at high expression values, at
 #' the cost of reduced resolution along the x-axis)}
 #' }
-#' @param display.progress show progress bar for calculations
+#' @param verbose show progress bar for calculations
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname FindVariableFeatures
@@ -65,7 +65,7 @@ FindVariableFeatures <- function(
   dispersion.function,
   num.bin,
   binning.method,
-  display.progress,
+  verbose,
   ...
 ) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
@@ -135,7 +135,7 @@ GetVariableFeatures <- function(
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
 #' don't block for scaling calculations.
-#' @param display.progress Displays a progress bar for scaling procedure
+#' @param verbose Displays a progress bar for scaling procedure
 #'
 #' @rdname ScaleData
 #' @export ScaleData
@@ -151,7 +151,7 @@ ScaleData <- function(
   scale.max,
   block.size,
   min.cells.to.block,
-  display.progress,
+  verbose,
   ...
 ) {
   UseMethod(generic = 'ScaleData', object = object)

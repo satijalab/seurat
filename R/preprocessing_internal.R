@@ -9,7 +9,7 @@ globalVariables(names = 'i', package = 'Seurat', add = TRUE)
 # @param genes.regress gene to run regression for (default is all genes)
 # @param model.use Use a linear model or generalized linear model (poisson, negative binomial) for the regression. Options are 'linear' (default), 'poisson', and 'negbinom'
 # @param use.umi Regress on UMI count data. Default is FALSE for linear modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-# @param display.progress display progress bar for regression procedure.
+# @param verbose display progress bar for regression procedure.
 # @param do.par use parallel processing for regressing out variables faster.
 # If set to TRUE, will use half of the machines available cores (FALSE by default)
 # @param num.cores If do.par = TRUE, specify the number of cores to use.
@@ -28,7 +28,7 @@ RegressOutResid <- function(
   genes.regress = NULL,
   model.use = 'linear',
   use.umi = FALSE,
-  display.progress = TRUE,
+  verbose = TRUE,
   do.par = FALSE,
   num.cores = 1
 ) {
@@ -49,7 +49,7 @@ RegressOutResid <- function(
   bin.size <- ifelse(test = model.use == 'negbinom', yes = 5, no = 100)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  if (display.progress) {
+  if (verbose) {
     message(paste("Regressing out:", paste(vars.to.regress, collapse = ", ")))
     pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   }
@@ -77,7 +77,7 @@ RegressOutResid <- function(
   # using doSNOW library because it supports progress bar update
   registerDoSNOW(cl)
   opts <- list()
-  if (display.progress) {
+  if (verbose) {
     # define progress bar function
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
@@ -142,7 +142,7 @@ RegressOutResid <- function(
     new.data <- list('resid' = new.data.resid, 'mode' = new.data.mode)
     return(new.data)
   }
-  if (display.progress) {
+  if (verbose) {
     time_elapsed <- Sys.time() - time_elapsed
     cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed)))
     close(pb)
@@ -191,7 +191,7 @@ RegressOutResid <- function(
 # @param features.regress An integer vector representing the indices of the genes to run regression on
 # @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
 # @param use.umi Regress on UMI count data
-# @param display.progress Display a progress bar
+# @param verbose Display a progress bar
 #
 #' @importFrom stats as.formula
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -202,7 +202,7 @@ RegressOutMatrix <- function(
   features.regress = NULL,
   model.use = NULL,
   use.umi = FALSE,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   # Do we bypass regression and simply return data.expr?
@@ -249,7 +249,7 @@ RegressOutMatrix <- function(
     nrow = nrow(x = data.expr),
     ncol = ncol(x = data.expr)
   )
-  if (display.progress) {
+  if (verbose) {
     pb <- txtProgressBar(char = '=', style = 3)
   }
   for (i in 1:length(x = features.regress)) {
@@ -272,11 +272,11 @@ RegressOutMatrix <- function(
       )
     )
     data.resid[i, ] <- regression.mat
-    if (display.progress) {
+    if (verbose) {
       setTxtProgressBar(pb = pb, value = i / length(x = features.regress))
     }
   }
-  if (display.progress) {
+  if (verbose) {
     close(con = pb)
   }
   if (use.umi) {
