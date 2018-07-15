@@ -163,6 +163,7 @@ BuildSNN.Seurat <- function(
       }
     }
   }
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 

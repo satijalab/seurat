@@ -114,7 +114,8 @@ Seurat <- setClass(
     project.name = 'character',
     calc.params = 'list',
     misc = 'list',
-    version = 'package_version'
+    version = 'package_version',
+    commands='list'
   )
 )
 
@@ -191,3 +192,25 @@ Seurat <- setClass(
 # @docType methods
 # @rdname show-methods
 #
+
+
+#' The SeuratCommand Class
+#'
+#' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps 
+#'
+#' @slot name Command name
+#' @slot timestamp Timestamp of when command was tun
+#' @slot call_string String of the command call
+#' @slot params List of parameters used in the command call
+#' @name SeuratCommand
+#' @exportClass SeuratCommand
+#'
+SeuratCommand <- setClass(
+  Class = 'SeuratCommand',
+  slots = c(
+    name = 'character',
+    time.stamp = 'ANY',
+    call.string = 'character',
+    params = 'ANY'
+  )
+)
