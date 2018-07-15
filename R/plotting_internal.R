@@ -846,17 +846,17 @@ SingleDimPlot <- function(
     data = object,
     colors = col.by,
     rows.use = cells.use,
-    #pt.size = pt.size,
     pt.shape = shape.by,
     ...
   ) +
-    geom_point(mapping = aes_string(
-      x = dims.plot[1],
-      y = dims.plot[2],
-      color = 'color',
-      shape = shape.plot
-    ),
-      size=pt.size
+    geom_point(
+      mapping = aes_string(
+        x = dims.plot[1],
+        y = dims.plot[2],
+        color = 'color',
+        shape = shape.plot
+      ),
+      size = pt.size
     )
   if (do.label) {
     labels <- MakeLabels(data.plot = p$data[, c(dims.plot, 'color')])
