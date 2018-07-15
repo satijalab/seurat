@@ -25,7 +25,7 @@
 #' cell's column name
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
 #' the rows are cell names, and the columns are additional metadata fields
-#' @param display.progress display progress bar for normalization and/or scaling procedure.
+#' @param verbose display progress bar for normalization and/or scaling procedure.
 #' @param ... Ignored
 #'
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
@@ -58,7 +58,7 @@ CreateSeuratObject <- function(
   names.field = 1,
   names.delim = "_",
   meta.data = NULL,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   seurat.version <- packageVersion("Seurat")
@@ -120,7 +120,7 @@ CreateSeuratObject <- function(
       assay.type = "RNA",
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      display.progress = display.progress
+      verbose = verbose
     )
   }
   if (do.scale | do.center) {
@@ -128,7 +128,7 @@ CreateSeuratObject <- function(
       object = object,
       do.scale = do.scale,
       do.center = do.center,
-      display.progress = display.progress
+      verbose = verbose
     )
   }
   spatial.obj <- new(
@@ -286,7 +286,7 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   if (is.null(x = normalization.method)) {
@@ -297,7 +297,7 @@ NormalizeData.default <- function(
     'LogNormalize' = LogNormalize(
       data = object,
       scale.factor = scale.factor,
-      display.progress = display.progress
+      verbose = verbose
     ),
     'genesCLR' = CustomNormalize(
       data = object,
@@ -319,7 +319,7 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   object <- SetAssayData(
@@ -329,7 +329,7 @@ NormalizeData.Assay <- function(
       object = GetAssayData(object = object, slot = 'raw.data'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      display.progress = display.progress,
+      verbose = verbose,
       ...
     )
   )
@@ -353,7 +353,7 @@ NormalizeData.Seurat <- function(
   assay.use = NULL,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
@@ -368,7 +368,7 @@ NormalizeData.Seurat <- function(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
-    display.progress = display.progress,
+    verbose = verbose,
     ...
   )
   object[[assay.use]] <- assay.data
@@ -482,7 +482,7 @@ ScaleDataR <- function(
 #' additional memory cost.
 #' @param min.cells.to.block If object contains fewer than this number of cells,
 #' don't block for scaling calculations.
-#' @param display.progress Displays a progress bar for scaling procedure
+#' @param verbose Displays a progress bar for scaling procedure
 #' @param assay.type Assay to scale data for. Default is RNA. Can be changed for
 #' multimodal analyses.
 #' @param do.cpp By default (TRUE), most of the heavy lifting is done in c++.
@@ -521,7 +521,7 @@ ScaleDataOld <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
-  display.progress = TRUE,
+  verbose = TRUE,
   assay.type = "RNA",
   do.cpp = TRUE,
   check.for.norm = TRUE,
@@ -559,7 +559,7 @@ ScaleDataOld <- function(
       genes.regress = genes.use,
       use.umi = use.umi,
       model.use = model.use,
-      display.progress = display.progress,
+      verbose = verbose,
       do.par = do.par,
       num.cores = num.cores
     )
@@ -602,7 +602,7 @@ ScaleDataOld <- function(
   colnames(scaled.data) <- colnames(object@data)
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
-  if (display.progress) {
+  if (verbose) {
     message("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
@@ -630,11 +630,11 @@ ScaleDataOld <- function(
     scaled.data[genes.use[my.inds], ] <- data.scale
     rm(data.scale)
     gc()
-    if (display.progress) {
+    if (verbose) {
       setTxtProgressBar(pb, i)
     }
   }
-  if (display.progress) {
+  if (verbose) {
     close(pb)
   }
   object <- SetAssayData(
@@ -662,7 +662,7 @@ ScaleData.default <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   features.use <- features.use %||% rownames(x = object)
@@ -687,7 +687,7 @@ ScaleData.default <- function(
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
     # TODO: implement parallelization for RegressOutMatrix
-    if (display.progress) {
+    if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
     object <- RegressOutMatrix(
@@ -696,12 +696,12 @@ ScaleData.default <- function(
       features.regress = features.use,
       model.use = model.use,
       use.umi = use.umi,
-      display.progress = display.progress
+      verbose = verbose
     )
     gc(verbose = FALSE)
   }
   max.block <- ceiling(x = length(x = features.use) / block.size)
-  if (display.progress) {
+  if (verbose) {
     message("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
@@ -725,11 +725,11 @@ ScaleData.default <- function(
     scaled.data[features.use[my.inds], ] <- data.scale
     rm(data.scale)
     gc(verbose = FALSE)
-    if (display.progress) {
+    if (verbose) {
       setTxtProgressBar(pb = pb, value = i)
     }
   }
-  if (display.progress) {
+  if (verbose) {
     close(con = pb)
   }
   scaled.data[is.na(x = scaled.data)] <- 0
@@ -755,7 +755,7 @@ ScaleData.Assay <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = use.umi, no = use.umi)
@@ -775,7 +775,7 @@ ScaleData.Assay <- function(
       scale.max = scale.max,
       block.size = block.size,
       min.cells.to.block = min.cells.to.block,
-      display.progress = display.progress,
+      verbose = verbose,
       ...
     )
   )
@@ -800,7 +800,7 @@ ScaleData.Seurat <- function(
   scale.max = 10,
   block.size = 1000,
   min.cells.to.block = 3000,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
@@ -822,7 +822,7 @@ ScaleData.Seurat <- function(
     scale.max = scale.max,
     block.size = block.size,
     min.cells.to.block = min.cells.to.block,
-    display.progress = display.progress,
+    verbose = verbose,
     ...
   )
   object[[assay.use]] <- assay.data
@@ -835,7 +835,7 @@ ScaleData.Seurat <- function(
 #'
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data. Default is 1e4
-#' @param display.progress Print progress
+#' @param verbose Print progress
 #'
 #' @return Returns a matrix with the normalize and log transformed data
 #'
@@ -850,7 +850,7 @@ ScaleData.Seurat <- function(
 #' mat_norm <- LogNormalize(data = mat)
 #' mat_norm
 #'
-LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
+LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -858,10 +858,10 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   # call Rcpp function to normalize
-  if (display.progress) {
+  if (verbose) {
     cat("Performing log-normalization\n", file = stderr())
   }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
+  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
   return(norm.data)
@@ -926,7 +926,7 @@ FindVariableFeatures.default <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   if (!inherits(x = mean.function, what = 'function')) {
@@ -941,8 +941,8 @@ FindVariableFeatures.default <- function(
   if (!inherits(x = object, what = 'dgCMatrix')) {
     object <- as(object = object, Class = 'dgCMatrix')
   }
-  feature.mean <- mean.function(object, display.progress)
-  feature.dispersion <- dispersion.function(object, display.progress)
+  feature.mean <- mean.function(object, verbose)
+  feature.dispersion <- dispersion.function(object, verbose)
   names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
   feature.dispersion[is.na(x = feature.dispersion)] <- 0
   feature.mean[is.na(x = feature.mean)] <- 0
@@ -995,7 +995,7 @@ FindVariableFeatures.Assay <- function(
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   selection.method = "mean.var.plot",
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   hvf.info <- FindVariableFeatures(
@@ -1004,7 +1004,7 @@ FindVariableFeatures.Assay <- function(
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
-    display.progress = display.progress,
+    verbose = verbose,
     ...
   )
   object <- SetHVFInfo(
@@ -1045,7 +1045,7 @@ FindVariableFeatures.Seurat <- function(
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   selection.method = "mean.var.plot",
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
@@ -1056,7 +1056,7 @@ FindVariableFeatures.Seurat <- function(
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
-    display.progress = display.progress,
+    verbose = verbose,
     ...
   )
   object[[assay.use]] <- assay.data
@@ -1143,7 +1143,7 @@ GetVariableFeatures.data.frame <- function(
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param do.cpp Run c++ version of mean.function and dispersion.function if they
 #' exist.
-#' @param display.progress show progress bar for calculations
+#' @param verbose show progress bar for calculations
 #' @param ... Extra parameters to VariableGenePlot
 #' @inheritParams VariableGenePlot
 #'
@@ -1179,7 +1179,7 @@ FindVariableGenes <- function(
   do.recalc = TRUE,
   sort.results = TRUE,
   do.cpp = TRUE,
-  display.progress = TRUE,
+  verbose = TRUE,
   ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
@@ -1207,9 +1207,9 @@ FindVariableGenes <- function(
       if (class(x = data) != "dgCMatrix") {
         data <- as(as.matrix(data), "dgCMatrix")
       }
-      gene.mean <- FastExpMean(data, display.progress)
+      gene.mean <- FastExpMean(data, verbose)
       names(gene.mean) <- genes.use
-      gene.dispersion <- FastLogVMR(data, display.progress)
+      gene.dispersion <- FastLogVMR(data, verbose)
       names(gene.dispersion) <- genes.use
     }
     if (!do.cpp) {
@@ -1219,7 +1219,7 @@ FindVariableGenes <- function(
       gene.dispersion.scaled <- gene.mean
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-      if (display.progress) {
+      if (verbose) {
         message("Calculating gene dispersion")
         pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
@@ -1230,11 +1230,11 @@ FindVariableGenes <- function(
         data.iter <- data[genes.iter, , drop = F]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-        if (display.progress) {
+        if (verbose) {
           setTxtProgressBar(pb = pb, value = i)
         }
       }
-      if (display.progress) {
+      if (verbose) {
         close(con = pb)
       }
     }
@@ -1338,12 +1338,6 @@ FilterCells <- function(
   high.thresholds,
   cells.use = NULL
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "FilterCells",
-    ... = parameters.to.store
-  )
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
   }
@@ -1358,14 +1352,14 @@ FilterCells <- function(
     stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
   }
   data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  cells.use <- cells.use %||% colnames(x = object)
   for (i in seq(nrow(data.subsets))) {
     cells.use <- WhichCells(
       object = object,
       cells.use = cells.use,
       subset.name = data.subsets[i, 1],
-      accept.low = data.subsets[i, 2],
-      accept.high = data.subsets[i, 3]
+      low.threshold = data.subsets[i, 2],
+      high.threshold = data.subsets[i, 3]
     )
   }
   object <- SubsetData(object, cells.use = cells.use)

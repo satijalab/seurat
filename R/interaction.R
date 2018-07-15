@@ -324,158 +324,6 @@ SubsetByPredicate = function(
   return( object )
 }
 
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object Seurat object
-#' @param cells.use A vector of cell names to use as a subset. If NULL
-#' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param ident.use Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for
-#' filtration)
-#' @param accept.low Low cutoff for the parameter (default is -Inf)
-#' @param accept.high High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns cells with the subset name equal to this value
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data. FALSE by default
-#' @param max.cells.per.ident Can be used to downsample the data to a certain
-#'  max per cell ident. Default is INF.
-#' @param random.seed Random seed for downsampling
-#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
-#' other slots. Can be useful if you want to start a fresh analysis on just a
-#' subset of the data. Also clears out stored clustering results in
-#' object@@meta.data (any columns containing "res"). Will by default subset the
-#' raw.data slot.
-#' @param subset.raw Also subset object@@raw.data
-#' @param \dots Additional arguments to be passed to FetchData (for example,
-#' use.imputed=TRUE)
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @importFrom methods .hasSlot as
-#'
-#' @export
-#'
-#' @examples
-#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
-#' pbmc1
-#'
-SubsetData <- function(
-  object,
-  cells.use = NULL,
-  subset.name = NULL,
-  ident.use = NULL,
-  ident.remove = NULL,
-  accept.low = -Inf,
-  accept.high = Inf,
-  accept.value = NULL,
-  do.center = FALSE,
-  do.scale = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  do.clean = FALSE,
-  subset.raw,
-  ...
-) {
-  data.use <- NULL
-  cells.use <- WhichCells(
-    object = object,
-    ident = ident.use,
-    ident.remove = ident.remove,
-    cells.use = cells.use,
-    subset.name = subset.name,
-    accept.low = accept.low,
-    accept.high = accept.high,
-    accept.value = accept.value,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    ... = ...
-  )
-  object@cell.names <- cells.use
-  object@data <- object@data[, cells.use]
-  gc(verbose = FALSE)
-  if (!is.null(x = object@scale.data)) {
-    if (length(x = colnames(x = object@scale.data) > 0)) {
-      object@scale.data[, cells.use]
-      object@scale.data <- object@scale.data[, cells.use]
-    }
-    gc(verbose = FALSE)
-  }
-  if (do.scale) {
-    object <- ScaleData(
-      object = object,
-      do.scale = do.scale,
-      do.center = do.center
-    )
-    gc(verbose = FALSE)
-  }
-  object@ident <- droplevels(x = object@ident[cells.use])
-  if (length(x = object@dr) > 0) {
-    for (i in 1:length(object@dr)) {
-      if (length(object@dr[[i]]@cell.embeddings) > 0) {
-        object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
-      }
-    }
-    gc(verbose = FALSE)
-  }
-  # handle multimodal casess
-  if (!.hasSlot(object = object, name = "assay")) {
-    object@assay <- list()
-  }
-  if (length(object@assay) > 0) {
-    for (i in 1:length(object@assay)) {
-      if ((!is.null(x = object@assay[[i]]@raw.data)) && (ncol(x = object@assay[[i]]@raw.data) > 1)) {
-        object@assay[[i]]@raw.data <- object@assay[[i]]@raw.data[, cells.use]
-      }
-      if ((!is.null(x = object@assay[[i]]@data)) && (ncol(x = object@assay[[i]]@data) > 1)) {
-        object@assay[[i]]@data <- object@assay[[i]]@data[, cells.use]
-      }
-      if ((!is.null(x = object@assay[[i]]@scale.data)) && (ncol(x = object@assay[[i]]@scale.data) > 1)) {
-        object@assay[[i]]@scale.data <- object@assay[[i]]@scale.data[, cells.use]
-      }
-      gc(verbose = FALSE)
-    }
-  }
-  #object@tsne.rot=object@tsne.rot[cells.use, ]
-  # object@gene.scores <- data.frame(object@gene.scores[cells.use,])
-  # colnames(x = object@gene.scores)[1] <- "nGene"
-  # rownames(x = object@gene.scores) <- colnames(x = object@data)
-  object@meta.data <- data.frame(object@meta.data[cells.use,])
-  gc(verbose = FALSE)
-  #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
-  if (do.clean) {
-    calcs.to.keep <- c("CreateSeuratObject", "NormalizeData", "ScaleData")
-    object@calc.params <- object@calc.params[calcs.to.keep]
-    object@var.genes <- vector()
-    object@hvg.info <- data.frame()
-    object@cluster.tree <- list()
-    object@snn <- as(matrix(), 'dgCMatrix')
-    object@scale.data <- matrix()
-    object@misc <- NULL
-    object@kmeans <- NULL
-    object@dr <- list()
-    object@meta.data
-    if (missing(x = subset.raw)) {
-      subset.raw <- TRUE
-    }
-    object@meta.data[, sapply(colnames(object@meta.data), function(x){grepl("res", x)})] <- NULL
-    gc(verbose = FALSE)
-  }
-  if (!missing(x = subset.raw)) {
-    if (subset.raw) {
-      object@raw.data <- object@raw.data[, cells.use]
-      gc(verbose = FALSE)
-    }
-  }
-  return(object)
-}
 
 #' Reorder identity classes
 #'
@@ -573,61 +421,92 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
   return(cells.return)
 }
 
-#' Identify cells matching certain criteria
+#' @describeIn WhichCells Get cells from an Assay object
+#' @export
+#' @method WhichCells Assay
 #'
-#' Returns a list of cells that match a particular set of criteria such as
-#' identity class, high/low values for particular PCs, ect..
-#'
-#' @param object Seurat object
-#' @param ident Identity classes to subset. Default is all identities.
-#' @param ident.remove Indentity classes to remove. Default is NULL.
-#' @param cells.use Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param accept.low Low cutoff for the parameter (default is -Inf)
-#' @param accept.high High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
+WhichCells.Assay <- function(
+  object,
+  cells.use,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ...
+) {
+  cells.use <- cells.use %||% colnames(x = object)
+  # input checking
+  if(length(subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if(length(low.threshold) > 1 | length(high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
+  }
+  if(low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
+  }
+  if (! is.null(x = subset.name)){
+    subset.name <- as.character(subset.name)
+    data.use <- GetAssayData(
+      object = object,
+      ... = ...
+    )
+    data.use <- t(data.use[subset.name, cells.use, drop = FALSE])
+    if(! is.null(x = accept.value)) {
+      if (! all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[! (accept.value %in% unique(x = data.use[, 1]))]
+        stop(paste("Identity :", bad.vals, "not found.   "))
+      }
+      pass.inds <- which(apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells.use <- rownames(x = data.use)[pass.inds]
+  }
+  return(cells.use)
+}
+
+#' @param assay.use Which assay to filter on
+#' @param ident.use Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
 #' @param max.cells.per.ident Can be used to downsample the data to a certain
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
-#' @param \dots Additional arguments to be passed to FetchData (for example,
-#' use.imputed=TRUE)
 #'
-#' @return A vector of cell names
-#'
+#' @describeIn WhichCells Get cells from a Seurat object
 #' @export
+#' @method WhichCells Seurat
 #'
-#' @examples
-#' WhichCells(object = pbmc_small, ident = 2)
-#'
-WhichCells <- function(
+WhichCells.Seurat <- function(
   object,
+  assay.use = NULL,
+  cells.use = NULL,
   ident = NULL,
   ident.remove = NULL,
-  cells.use = NULL,
-  subset.name = NULL,
-  accept.low = -Inf,
-  accept.high = Inf,
-  accept.value = NULL,
   max.cells.per.ident = Inf,
   random.seed = 1,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
   ...
 ) {
   # input checking
   if(length(subset.name) > 1) {
     stop("subset.name must be a single parameter")
   }
-  if(length(accept.low) > 1 | length(accept.high) > 1) {
-    stop("Multiple values passed to accept.low or accept.high")
+  if(length(low.threshold) > 1 | length(high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
   }
-  if(accept.low >= accept.high) {
-    stop("accept.low greater than or equal to accept.high")
+  if(low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
   }
   if (!is.na(x = random.seed)) {
     set.seed(seed = random.seed)
   }
   cells.use <- cells.use %||% colnames(x = object)
+  assay.use <- assay.use %||% DefaultAssay(object = object)
   ident <- ident %||% unique(Idents(object = object))
   bad.remove.idents <- ident.remove[! (ident.remove %in% unique(Idents(object = object)))]
   if(length(bad.remove.idents) > 0) {
@@ -649,30 +528,133 @@ WhichCells <- function(
     cells.to.use <- c(cells.to.use, cells.in.ident)
   }
   cells.use <- cells.to.use
-  #if (! is.null(x = subset.name)){
-  #  subset.name <- as.character(subset.name)
-  #  data.use <- FetchData(
-  #    object = object,
-  #    vars.all = subset.name,
-  #    cells.use = cells.use,
-  #    ... = ...
-  #  )
-  #  if (length(x = data.use) == 0) {
-  #    stop(paste("Error : ", id, " not found"))
-  #  }
-  #  subset.data <- data.use[, subset.name, drop = F]
-  #  if(! is.null(x = accept.value)) {
-  #    if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
-  #      bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]
-  #      stop(paste("Identity :", bad.vals, "not found.   "))
-  #    }
-  #    pass.inds <- which(apply(subset.data, MARGIN = 1, function(x) x %in% accept.value))
-  #  } else {
-  #    pass.inds <- which(x = (subset.data > accept.low) & (subset.data < accept.high))
-  #  }
-  #  cells.use <- rownames(x = data.use)[pass.inds]
-  #}
+  if (! is.null(x = subset.name)){
+    subset.name <- as.character(subset.name)
+    data.use <- FetchData(
+      object = object,
+      vars.fetch = subset.name,
+      cells.use = cells.use,
+      ... = ...
+    )
+    if(! is.null(x = accept.value)) {
+      if (! all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[! (accept.value %in% unique(x = data.use[, 1]))]
+        stop(paste("Identity :", bad.vals, "not found.   "))
+      }
+      pass.inds <- which(apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells.use <- rownames(x = data.use)[pass.inds]
+  }
   return(cells.use)
+}
+
+#' @describeIn SubsetData Subset an Assay object
+#' @export
+#' @method SubsetData Assay
+#'
+SubsetData.Assay <- function(
+  object,
+  cells.use = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  do.center = FALSE,
+  do.scale = FALSE,
+  do.clean = FALSE,
+  ...
+) {
+  cells.use <- cells.use %||% colnames(x = object)
+  cells.use <- WhichCells(
+    object = object,
+    cells.use = cells.use,
+    low.threshold = low.threshold,
+    high.threshold = high.threshold,
+    accept.value = accept.value,
+    ... = ...
+  )
+  slot(object = object, name = "raw.data") <- GetAssayData(object = object, slot = "raw.data")[, cells.use]
+  slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells.use]
+  cells.scaled <- colnames(GetAssayData(object = object, slot = "scale.data"))
+  cells.scaled <- cells.scaled[cells.scaled %in% cells.use]
+  if (length(cells.scaled) > 0) {
+    slot(object = object, name = "scale.data") <- GetAssayData(object = object, slot = "scale.data")[, cells.use]
+    if (do.scale) {
+      object <- ScaleData(
+        object = object,
+        do.scale = do.scale,
+        do.center = do.center
+      )
+      gc(verbose = FALSE)
+    }
+  }
+  return(object)
+}
+
+#' @param assay.use Assay to subset on
+#' @param ident.use Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#' max per cell ident. Default is INF.
+#' @param random.seed Random seed for downsampling
+#'
+#' @describeIn SubsetData Subset an Seurat object
+#' @export
+#' @method SubsetData Seurat
+#'
+SubsetData.Seurat <- function(
+  object,
+  assay.use = NULL,
+  cells.use = NULL,
+  subset.name = NULL,
+  ident.use = NULL,
+  ident.remove = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  do.center = FALSE,
+  do.scale = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  do.clean = FALSE,
+  ...
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  cells.use <- WhichCells(
+    object = object,
+    assay.use = assay.use,
+    ident = ident.use,
+    ident.remove = ident.remove,
+    cells.use = cells.use,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    low.threshold = low.threshold,
+    high.threshold = high.threshold,
+    accept.value = accept.value,
+    ... = ...
+  )
+  # Subset all the Assays
+  assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  for (assay in assays) {
+     slot(object = object, name = "assays")[[assay]] <- SubsetData(
+       object = object[[assay]],
+       cells.use = cells.use,
+       do.center = do.center,
+       do.scale = do.scale
+     )
+  }
+  # Subset all the DimReducs
+  drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  for(dr in drs) {
+    #TODO - replace with a setter
+    object[[dr]]@cell.embeddings <- Embeddings(object[[dr]])[cells.use, ]
+  }
+  slot(object = object, name = "active.ident") <- Idents(object = object)[cells.use]
+  slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells.use, ]
+  return(object)
 }
 
 #' Switch identity class definition to another variable

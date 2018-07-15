@@ -7,8 +7,8 @@
 CreateSeuratObject(raw.data, project = "SeuratProject", min.cells = 0,
   min.genes = 0, is.expr = 0, normalization.method = NULL,
   scale.factor = 10000, do.scale = FALSE, do.center = FALSE,
-  names.field = 1, names.delim = "_", meta.data = NULL,
-  display.progress = TRUE, ...)
+  names.field = 1, names.delim = "_", meta.data = NULL, verbose = TRUE,
+  ...)
 }
 \arguments{
 \item{raw.data}{Raw input data}
@@ -47,7 +47,7 @@ cell's column name}
 \item{meta.data}{Additional metadata to add to the Seurat object. Should be a data frame where
 the rows are cell names, and the columns are additional metadata fields}
 
-\item{display.progress}{display progress bar for normalization and/or scaling procedure.}
+\item{verbose}{display progress bar for normalization and/or scaling procedure.}
 
 \item{...}{Ignored}
 }

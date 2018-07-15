@@ -7,7 +7,7 @@
 ScaleDataOld(object, genes.use = NULL, data.use = NULL, vars.to.regress,
   model.use = "linear", use.umi = FALSE, do.scale = TRUE,
   do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
+  min.cells.to.block = 3000, verbose = TRUE, assay.type = "RNA",
   do.cpp = TRUE, check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
 }
 \arguments{
@@ -45,7 +45,7 @@ additional memory cost.}
 \item{min.cells.to.block}{If object contains fewer than this number of cells,
 don't block for scaling calculations.}
 
-\item{display.progress}{Displays a progress bar for scaling procedure}
+\item{verbose}{Displays a progress bar for scaling procedure}
 
 \item{assay.type}{Assay to scale data for. Default is RNA. Can be changed for
 multimodal analyses.}

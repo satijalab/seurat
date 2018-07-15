@@ -9,7 +9,7 @@ FindVariableGenes(object, mean.function = ExpMean,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, num.bin = 20, binning.method = "equal_width",
   selection.method = "mean.var.plot", top.genes = 1000, do.recalc = TRUE,
-  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
+  sort.results = TRUE, do.cpp = TRUE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -60,7 +60,7 @@ selection method.}
 \item{do.cpp}{Run c++ version of mean.function and dispersion.function if they
 exist.}
 
-\item{display.progress}{show progress bar for calculations}
+\item{verbose}{show progress bar for calculations}
 
 \item{...}{Extra parameters to VariableGenePlot}
 }
