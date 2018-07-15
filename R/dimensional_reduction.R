@@ -523,6 +523,7 @@ RunTSNE.Seurat <- function(
     )
   }
   object[[reduction.name]] <- tsne.reduction
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 

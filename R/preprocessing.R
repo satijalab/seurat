@@ -1366,6 +1366,6 @@ FilterCells <- function(
     )
   }
   object <- SubsetData(object, cells.use = cells.use)
-  object <- LogSeuratCommand(object = object)
+  object <- LogSeuratCommand(object)
   return(object)
 }

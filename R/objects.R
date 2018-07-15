@@ -206,7 +206,7 @@ Seurat <- setClass(
 #' @name SeuratCommand
 #' @exportClass SeuratCommand
 #'
-Assay <- setClass(
+SeuratCommand <- setClass(
   Class = 'SeuratCommand',
   slots = c(
     name = 'character',

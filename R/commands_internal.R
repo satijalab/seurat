@@ -10,32 +10,29 @@ LogSeuratCommand <- function(object) {
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
   #capture function arguments
-  arg_list <- formals(sys.function(sys.parent(n = 1)))
+  argnames <- names(formals(sys.function(sys.parent(n = 1))))
   
+  argnames <- grep("object",argnames,invert = T,value = T)
+  argnames <- grep("\\.\\.\\.",argnames,invert = T,value = T)
+  params <- list()
+
   #check if function works on the Assay Level
-  assay.flag=FALSE
-  
-  #set any default arguments
-  for(i in names(x = arg_list)) {
-    #don't want to store this (and its usually not passed)
-    if(i=="object") {
-      arg_list[[i]] <- NULL
-    }
-    if(i=="assay.use") {
-      assay.flag <- TRUE
-      if (is.null(arg_list[[i]])) {
-        arg_list[[i]] <- DefaultAssay(object = object)
-      }
-    }
+  assay.flag="assay.use"%in%argnames
+  p.env <- parent.frame(1)
+  argnames <- intersect(argnames, ls(p.env))
+  #fill in params list
+  for(i in argnames) {
+    param_value <- get(x = i,envir = p.env) 
+    #TODO Institute some check of object size?
+    params[[i]] <- param_value
   }
   #rename function name to include assay info (if needed)
-  if(assay.flag) command.name <- paste0(command.name,".",arg_list[["assay.use"]])
-  
+  if(assay.flag) command.name <- paste0(command.name,".",params[["assay.use"]])
   #Store results
   seurat.command <- new(
     Class = 'SeuratCommand',
     name = command.name,
-    params = arg_list,
+    params = params,
     time.stamp=time.stamp,
     call.string=call.string
   )
