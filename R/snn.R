@@ -116,6 +116,7 @@ BuildSNN.Seurat <- function(
   graph.name = NULL
 ) {
   if (! is.null(dims.use)) {
+    assay.use <- assay.use %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction.use]])
     data.use <- data.use[, dims.use]
     snn.matrix <- BuildSNN(object = data.use,

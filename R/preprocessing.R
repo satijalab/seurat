@@ -1041,7 +1041,7 @@ FindVariableFeatures.Seurat <- function(
   num.features = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot",
+  selection.method = "dispersion",
   verbose = TRUE,
   ...
 ) {
@@ -1056,6 +1056,7 @@ FindVariableFeatures.Seurat <- function(
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
+    selection.method = selection.method,
     ...
   )
   object[[assay.use]] <- assay.data
