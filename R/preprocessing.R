@@ -827,6 +827,7 @@ ScaleData.Seurat <- function(
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -1061,6 +1062,7 @@ FindVariableFeatures.Seurat <- function(
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -1364,5 +1366,6 @@ FilterCells <- function(
     )
   }
   object <- SubsetData(object, cells.use = cells.use)
+  object <- LogSeuratCommand(object = object)
   return(object)
 }

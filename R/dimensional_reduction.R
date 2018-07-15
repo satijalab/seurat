@@ -132,6 +132,7 @@ RunPCA.Seurat <- function(
     ...
   )
   object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
