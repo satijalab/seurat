@@ -41,6 +41,17 @@ statistical power to detect overdispersed features at high expression values, at
 the cost of reduced resolution along the x-axis)}
 }}
 
+\item{num.features}{Number of features to select as top variable features;
+only used when \code{selection.method = 'dispersion'}}
+
+\item{mean.cutoff}{A two-length numeric vector with low- and high-cutoffs for
+feature means}
+
+\item{dispersion.cutoff}{A two-length numeric vector with low- and high-cutoffs for
+feature dispersions}
+
+\item{selection.method}{How to choose top variable features, either 'mean.var.plot' or 'dispersion}
+
 \item{verbose}{show progress bar for calculations}
 
 \item{...}{Arguments passed to other methods}

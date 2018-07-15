@@ -971,7 +971,13 @@ FindVariableFeatures.default <- function(
   return(hvf.info)
 }
 
-#' @inheritParams GetVariableFeatures
+#' @param num.features Number of features to select as top variable features;
+#' only used when \code{selection.method = 'dispersion'}
+#' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
+#' feature means
+#' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
+#' feature dispersions
+#' @param selection.method How to choose top variable features, either 'mean.var.plot' or 'dispersion
 #'
 #' @describeIn FindVariableFeatures Find variable features in an Assay object
 #' @export
@@ -1018,7 +1024,7 @@ FindVariableFeatures.Assay <- function(
   return(object)
 }
 
-#' @inheritParams GetVariableFeatures
+#' @inheritParams FindVariableFeatures.Assay
 #' @param assay.use ...
 #'
 #' @describeIn FindVariableFeatures Find variable features in a Seurat object
