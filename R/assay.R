@@ -114,7 +114,7 @@ GetHVFInfo.Assay <- function(object, ...) {
 
 #' @param ... Arguments passed to GetVariableFeatures
 #'
-#' @describeIn SetHVFInfo Get highly variable feature information from an Assay
+#' @describeIn SetHVFInfo Set highly variable feature information from an Assay
 #' @export
 #' @method SetHVFInfo Assay
 #'

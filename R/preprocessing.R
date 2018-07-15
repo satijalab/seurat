@@ -956,7 +956,7 @@ FindVariableFeatures.default <- function(
         probs = seq.int(from = 0, to = 1, length.out = num.bin)
       )
     ),
-    stop("Unkown binning method: ", binning.method)
+    stop("Unknown binning method: ", binning.method)
   )
   data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
   names(x = data.x.bin) <- names(x = feature.mean)
@@ -1015,15 +1015,6 @@ FindVariableFeatures.Assay <- function(
     dispersion.cutoff = dispersion.cutoff,
     selection.method = selection.method
   )
-  # var.features <- GetVariableFeatures(
-  #   object = hvf.info,
-  #   num.features = num.features,
-  #   mean.cutoff = mean.cutoff,
-  #   dispersion.cutoff = dispersion.cutoff,
-  #   selection.method = selection.method
-  # )
-  # VariableFeatures(object = object) <- var.features
-  # invisible(x = NULL)
   return(object)
 }
 
@@ -1056,6 +1047,8 @@ FindVariableFeatures.Seurat <- function(
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
+    mean.cutoff = mean.cutoff,
+    dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
     ...
   )
@@ -1087,10 +1080,9 @@ GetVariableFeatures.data.frame <- function(
       dispersions.use <- (object[, 3] > dispersion.cutoff[1]) & (object[, 3] < dispersion.cutoff[2])
       rownames(x = object)[which(x = means.use & dispersions.use)]
     },
-    'dispersion' = rownames(x = object),
+    'dispersion' = head(x = rownames(x = object), n = num.features),
     stop("Unkown selection method: ", selection.method)
   )
-  top.features <- head(x = top.features, n = num.features)
   return(top.features)
 }
 

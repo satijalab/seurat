@@ -21,7 +21,7 @@ Set highly variable feature information
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{Assay}: Get highly variable feature information from an Assay
+\item \code{Assay}: Set highly variable feature information from an Assay
 }}
 
 \seealso{
