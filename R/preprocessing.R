@@ -559,7 +559,7 @@ ScaleDataOld <- function(
       genes.regress = genes.use,
       use.umi = use.umi,
       model.use = model.use,
-      display.progress = verbose,
+      verbose = verbose,
       do.par = do.par,
       num.cores = num.cores
     )
@@ -696,7 +696,7 @@ ScaleData.default <- function(
       features.regress = features.use,
       model.use = model.use,
       use.umi = use.umi,
-      display.progress = verbose
+      verbose = verbose
     )
     gc(verbose = FALSE)
   }
