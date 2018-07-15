@@ -190,7 +190,7 @@ setMethod(
   f = '[[<-',
   signature = c('x' = 'Assay'),
   definition = function(x, i, ..., value) {
-    meta.data <- x[]
+    meta.data <- x[[]]
     feature.names <- rownames(x = meta.data)
     if (length(x = i) > 1) {
       value <- rep_len(x = value, length.out = length(x = i))
