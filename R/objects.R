@@ -32,7 +32,6 @@ Assay <- setClass(
     data = 'dgCMatrix',
     scale.data = 'matrix',
     key = 'character',
-    hvf.info = 'data.frame',
     var.features = 'vector',
     meta.features = 'data.frame',
     cluster.tree = 'ANY',

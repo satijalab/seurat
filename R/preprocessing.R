@@ -968,14 +968,6 @@ FindVariableFeatures.default <- function(
   hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
   rownames(x = hvf.info) <- rownames(x = object)
   colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
-  hvf.info <- hvf.info[order(feature.dispersion, decreasing = TRUE), , drop = FALSE]
-  # pass.cutoff <- names(x = gene.mean)[which(
-  #   x = (
-  #     (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
-  #   ) &
-  #     (gene.dispersion.scaled > y.cutoff) &
-  #     (gene.dispersion.scaled < y.high.cutoff)
-  # )]
   return(hvf.info)
 }
 
@@ -998,6 +990,9 @@ FindVariableFeatures.Assay <- function(
   verbose = TRUE,
   ...
 ) {
+  if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
+    stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
+  }
   hvf.info <- FindVariableFeatures(
     object = GetAssayData(object = object),
     mean.function = mean.function,
@@ -1007,14 +1002,19 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose,
     ...
   )
-  object <- SetHVFInfo(
-    object = object,
-    hvf.info  = hvf.info,
-    num.features = num.features,
-    mean.cutoff = mean.cutoff,
-    dispersion.cutoff = dispersion.cutoff,
-    selection.method = selection.method
+  object[[names(x = hvf.info)]] <- list(hvf.info)
+  hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+  top.features <- switch(
+    EXPR = selection.method,
+    'mean.var.plot' = {
+      means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
+      dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
+      rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
+    },
+    'dispersion' = head(x = rownames(x = hvf.info), n = num.features),
+    stop("Unkown selection method: ", selection.method)
   )
+  VariableFeatures(object = object) <- top.features
   return(object)
 }
 
@@ -1054,36 +1054,6 @@ FindVariableFeatures.Seurat <- function(
   )
   object[[assay.use]] <- assay.data
   return(object)
-}
-
-#' @export
-#' @method GetVariableFeatures data.frame
-#'
-GetVariableFeatures.data.frame <- function(
-  object,
-  num.features = 1000,
-  mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf),
-  selection.method = 'mean.var.plot',
-  ...
-) {
-  if (ncol(x = object) != 3) {
-    stop("Wrong number of columns in the variable features data frame")
-  }
-  if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
-    stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
-  }
-  top.features <- switch(
-    EXPR = selection.method,
-    'mean.var.plot' = {
-      means.use <- (object[, 1] > mean.cutoff[1]) & (object[, 1] < mean.cutoff[2])
-      dispersions.use <- (object[, 3] > dispersion.cutoff[1]) & (object[, 3] < dispersion.cutoff[2])
-      rownames(x = object)[which(x = means.use & dispersions.use)]
-    },
-    'dispersion' = head(x = rownames(x = object), n = num.features),
-    stop("Unkown selection method: ", selection.method)
-  )
-  return(top.features)
 }
 
 #' Identify variable genes

@@ -71,33 +71,6 @@ FindVariableFeatures <- function(
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
-#' Get the top variable Features
-#'
-#' @param object An object
-#' @param num.features Number of top variable features to get
-#' @param mean.cutoff Cutoff for feature means, must be a two-length numeric for low and high values
-#' @param dispersion.cutoff Cutoff for feature dispersion values, must be a two-length numeric for low and high values
-#' @param selection.method Specifies how to select the features to store in the object
-#' \itemize{
-#'   \item{mean.var.plot: }{Default method, placing cutoffs on the mean variablility plot}
-#'   \item{dispersion: }{Choose the top.features with the highest dispersion}
-#' }
-#' @param ... Arguments passed to other methods
-#'
-#' @rdname GetVariableFeatures
-#' @export GetVariableFeatures
-#'
-GetVariableFeatures <- function(
-  object,
-  num.features,
-  mean.cutoff,
-  dispersion.cutoff,
-  selection.method,
-  ...
-) {
-  UseMethod(generic = 'GetVariableFeatures', object = object)
-}
-
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,

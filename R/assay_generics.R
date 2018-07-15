@@ -60,21 +60,9 @@ VariableFeatures <- function(object, ...) {
 #'
 #' @return A dataframe with feature means, dispersion, and scaled dispersion
 #'
-#' @rdname GetHVFInfo
-#' @export GetHVFInfo
+#' @rdname HVFInfo
+#' @export HVFInfo
 #'
-GetHVFInfo <- function(object, ...) {
+HVFInfo <- function(object, ...) {
   UseMethod(generic = 'GetHVFInfo', object = object)
-}
-
-#' Set highly variable feature information
-#'
-#' @param object An object
-#' @param hvf.info A dataframe with feature means, dispersion, and scaled dispersion
-#'
-#' @rdname SetHVFInfo
-#' @export SetHVFInfo
-#'
-SetHVFInfo <- function(object, hvf.info, ...) {
-  UseMethod(generic = 'SetHVFInfo', object = object)
 }

@@ -107,26 +107,12 @@ VariableFeatures.Assay <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn GetHVFInfo Get highly variable feature information from an Assay
+#' @describeIn HVFInfo Get highly variable feature information from an Assay
 #' @export
-#' @method GetHVFInfo Assay
+#' @method HVFInfo Assay
 #'
-GetHVFInfo.Assay <- function(object, ...) {
-  return(slot(object = object, name = 'hvf.info'))
-}
-
-#' @param ... Arguments passed to GetVariableFeatures
-#'
-#' @describeIn SetHVFInfo Set highly variable feature information from an Assay
-#' @export
-#' @method SetHVFInfo Assay
-#'
-#' @seealso GetVariableFeatures
-#'
-SetHVFInfo.Assay <- function(object, hvf.info, ...) {
-  slot(object = object, name = 'hvf.info') <- hvf.info
-  VariableFeatures(object = object) <- GetVariableFeatures(object = hvf.info, ...)
-  return(object)
+HVFInfo.Assay <- function(object, ...) {
+  return(object[[c('mean', 'dispersion', 'dispersion.scaled')]])
 }
 
 #' @describeIn Key Get the key for an Assay object
