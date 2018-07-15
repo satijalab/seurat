@@ -1338,12 +1338,6 @@ FilterCells <- function(
   high.thresholds,
   cells.use = NULL
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FilterCells"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "FilterCells",
-    ... = parameters.to.store
-  )
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
   }
@@ -1358,14 +1352,14 @@ FilterCells <- function(
     stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
   }
   data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells.use <- SetIfNull(x = cells.use, default = object@cell.names)
+  cells.use <- cells.use %||% colnames(x = object)
   for (i in seq(nrow(data.subsets))) {
     cells.use <- WhichCells(
       object = object,
       cells.use = cells.use,
       subset.name = data.subsets[i, 1],
-      accept.low = data.subsets[i, 2],
-      accept.high = data.subsets[i, 3]
+      low.threshold = data.subsets[i, 2],
+      high.threshold = data.subsets[i, 3]
     )
   }
   object <- SubsetData(object, cells.use = cells.use)
