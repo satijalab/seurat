@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{DotPlot}
 \alias{DotPlot}
+\alias{SplitDotPlotGG}
 \title{Dot plot visualization}
 \usage{
 DotPlot(object, features.plot, cols.use = c("lightgrey", "blue"),
@@ -37,12 +38,10 @@ gene will have no dot drawn.}
 
 \item{group.by}{Factor to group the cells by}
 
-\item{plot.legend}{plots the legends}
-
-\item{x.lab.rot}{Rotate x-axis labels}
+\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)}
 }
 \value{
-default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
+A ggplot object
 }
 \description{
 Intuitive way of visualizing how feature expression changes across different
@@ -52,7 +51,9 @@ cells within a class (blue is high).
 }
 \examples{
 cd_genes <- c("CD247", "CD3E", "CD9")
-DotPlot(object = pbmc_small, genes.plot = cd_genes)
+DotPlot(object = pbmc_small, features.plot = cd_genes)
+pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
+DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
 
 }
 \seealso{

@@ -1,6 +1,7 @@
 # Methods for Assay objects
 #' @include objects.R assay_generics.R dimreduc_generics.R
 #' @importFrom methods slot slot<- setMethod
+#' @importFrom Matrix colSums rowSums colMeans rowMeans
 NULL
 
 #' Make an Assay object
@@ -37,7 +38,6 @@ MakeAssayObject <- function(
     # "Matrix#ldenseMatrix#missing#replValue" would also be valid
     suppressMessages(expr = raw.data[raw.data < is.expr] <- 0)
   }
-  # TODO: Add ngene and nUMI here
   # Filter based on min.genes
   num.genes <- colSums(x = raw.data > is.expr)
   raw.data <- raw.data[, which(x = num.genes > min.genes)]
@@ -46,10 +46,13 @@ MakeAssayObject <- function(
     num.cells <- rowSums(x = raw.data > 0)
     raw.data <- raw.data[which(x = num.cells >= min.cells), ]
   }
+  # Initialize meta.features
+  init.meta.features <- data.frame(row.names = rownames(x = raw.data))
   assay <- new(
     Class = 'Assay',
     raw.data = raw.data,
-    data = raw.data
+    data = raw.data,
+    meta.features = init.meta.features
   )
   return(assay)
 }
@@ -168,6 +171,45 @@ dimnames.Assay <- function(x) {
   }
   return(GetAssayData(object = x)[i, j, ...])
 }
+
+#' @export
+#'
+'[[.Assay' <- function(x, i, ..., drop = FALSE) {
+  if (missing(x = i)) {
+    i <- colnames(x = slot(object = x, name = 'meta.features'))
+  }
+  data.return <- slot(object = x, name = 'meta.features')[, i, drop = FALSE, ...]
+  if (drop) {
+    data.return <- unlist(x = data.return, use.names = FALSE)
+    names(x = data.return) <- rep.int(x = rownames(x = x), times = length(x = i))
+  }
+  return(data.return)
+}
+
+setMethod(
+  f = '[[<-',
+  signature = c('x' = 'Assay'),
+  definition = function(x, i, ..., value) {
+    meta.data <- x[]
+    feature.names <- rownames(x = meta.data)
+    if (length(x = i) > 1) {
+      value <- rep_len(x = value, length.out = length(x = i))
+      for (index in 1:length(x = i)) {
+        meta.data[i[index]] <- value[index]
+      }
+    } else {
+      if (length(x = intersect(x = names(x = value), y = feature.names)) > 0) {
+        meta.data[, i] <- value[feature.names]
+      } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+        meta.data[, i] <- value
+      } else {
+        stop("Cannot add more or fewer meta.features information without values being named with feature names")
+      }
+    }
+    slot(object = x, name = 'meta.features') <- meta.data
+    return(x)
+  }
+)
 
 setMethod(
   f = 'rowSums',

@@ -309,11 +309,6 @@ VlnPlot <- function(
   ))
 }
 
-globalVariables(
-  names = c('cell', 'id', 'avg.exp', 'avg.exp.scale', 'pct.exp'),
-  package = 'Seurat',
-  add = TRUE
-)
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how feature expression changes across different
@@ -337,21 +332,22 @@ globalVariables(
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
 #' @param group.by Factor to group the cells by
-#' @param plot.legend plots the legends
-#' @param x.lab.rot Rotate x-axis labels
+#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)
 #'
-#' @return default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 object
+#' @return A ggplot object
 #'
-#' @importFrom tidyr gather
-#' @importFrom ggplot2 scale_size scale_radius
-#' @importFrom dplyr %>% group_by summarize mutate ungroup
-#'
+#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank
+#' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
 #' @export
+#'
+#' @aliases SplitDotPlotGG
 #' @seealso \code{RColorBrewer::brewer.pal.info}
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
-#' DotPlot(object = pbmc_small, genes.plot = cd_genes)
+#' DotPlot(object = pbmc_small, features.plot = cd_genes)
+#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
+#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
 #'
 DotPlot <- function(
   object,
@@ -366,8 +362,6 @@ DotPlot <- function(
   scale.max = NA,
   group.by = NULL,
   split.by = NULL
-  # plot.legend = FALSE,
-  # x.lab.rot = FALSE
 ) {
   scale.func <- switch(
     EXPR = scale.by,
@@ -375,59 +369,100 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.plot <- FetchData(object = object, vars.fetch = features.plot)
-  colnames(x = data.plot) <- features.plot
-  data.plot$cell <- rownames(x = data.plot)
-  data.plot$id <- if (is.null(x = group.by)) {
+  data.features <- FetchData(object = object, vars.fetch = features.plot)
+  data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)
   } else {
-    object[group.by]
+    object[group.by, drop = TRUE]
   }
+  data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    data.plot$split <- FetchData(object = object, vars.fetch = split.by)
+    splits <- object[split.by, drop = TRUE]
+    if (length(x = unique(x = splits)) > length(x = cols.use)) {
+      stop("Not enought colors for the number of groups")
+    }
+    cols.use <- cols.use[1:length(x = unique(x = splits))]
+    names(x = cols.use) <- unique(x = splits)
+    data.features$id <- paste(data.features$id, splits, sep = '_')
   }
-  invisible(x = NULL)
-  data.to.plot %>% gather(
-    key = features.plot,
-    value = expression,
-    -c(cell, id)
-  ) -> data.to.plot
-  data.to.plot %>%
-    group_by(id, features.plot) %>%
-    summarize(
-      avg.exp = mean(expm1(x = expression)),
-      pct.exp = PercentAbove(x = expression, threshold = 0)
-    ) -> data.to.plot
-  data.to.plot %>%
-    ungroup() %>%
-    group_by(features.plot) %>%
-    mutate(avg.exp.scale = scale(x = avg.exp)) %>%
-    mutate(avg.exp.scale = MinMax(
-      data = avg.exp.scale,
-      max = col.max,
-      min = col.min
-    )) ->  data.to.plot
-  data.to.plot$features.plot <- factor(
-    x = data.to.plot$features.plot,
+  data.plot <- lapply(
+    X = unique(x = data.features$id),
+    FUN = function(ident) {
+      data.use <- data.features[data.features$id == ident, 1:(ncol(x = data.features) - 1), drop = FALSE]
+      avg.exp <- apply(
+        X = data.use,
+        MARGIN = 2,
+        FUN = function(x) {
+          return(mean(x = expm1(x = x)))
+        }
+      )
+      pct.exp <- apply(X = data.use, MARGIN = 2, FUN = PercentAbove, threshold = 0)
+      return(list(avg.exp = avg.exp, pct.exp = pct.exp))
+    }
+  )
+  names(x = data.plot) <- unique(x = data.features$id)
+  data.plot <- lapply(
+    X = names(x = data.plot),
+    FUN = function(x) {
+      data.use <- as.data.frame(x = data.plot[[x]])
+      data.use$features.plot <- rownames(x = data.use)
+      data.use$id <- x
+      return(data.use)
+    }
+  )
+  data.plot <- do.call(what = 'rbind', args = data.plot)
+  avg.exp.scaled <- sapply(
+    X = unique(x = data.plot$features.plot),
+    FUN = function(x) {
+      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+      data.use <- scale(x = data.use)
+      data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+      return(data.use)
+    }
+  )
+  avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
+  if (!is.null(x = split.by)) {
+    avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
+  }
+  data.plot$avg.exp.scaled <- avg.exp.scaled
+  data.plot$features.plot <- factor(
+    x = data.plot$features.plot,
     levels = rev(x = features.plot)
   )
-  data.to.plot$pct.exp[data.to.plot$pct.exp < dot.min] <- NA
-  data.to.plot$pct.exp <- data.to.plot$pct.exp * 100
-  p <- ggplot(data = data.to.plot, mapping = aes(x = features.plot, y = id)) +
-    geom_point(mapping = aes(size = pct.exp, color = avg.exp.scale)) +
+  data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
+  data.plot$pct.exp <- data.plot$pct.exp * 100
+  if (!is.null(x = split.by)) {
+    splits.use <- vapply(
+      X = strsplit(x = data.plot$id, split = '_'),
+      FUN = '[[',
+      FUN.VALUE = character(length = 1L),
+      2
+    )
+    data.plot$colors <- mapply(
+      FUN = function(color, value) {
+        return(colorRampPalette(colors = c('grey', color))(20)[value])
+      },
+      color = cols.use[splits.use],
+      value = avg.exp.scaled
+    )
+  }
+  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+
+  p <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
+    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
-    theme(axis.title.x = element_blank(), axis.title.y = element_blank())
-  if (length(x = cols.use) == 1) {
+    theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
+    guides(size = guide_legend(title = 'Percent Expressed'))
+  if (!is.null(x = split.by)) {
+    p <- p + scale_color_identity()
+  } else if (length(x = cols.use) == 1) {
     p <- p + scale_color_distiller(palette = cols.use)
   } else {
     p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
   }
-  # if (!plot.legend) {
-  #   p <- p + theme(legend.position = "none")
-  # }
-  # if (x.lab.rot) {
-  #   p <- p + theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
-  # }
+  if (is.null(x = split.by)) {
+    p <- p + guides(color = guide_colorbar(title = 'Average Expression'))
+  }
   return(p)
 }
 
