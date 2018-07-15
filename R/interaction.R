@@ -649,8 +649,14 @@ SubsetData.Seurat <- function(
   # Subset all the DimReducs
   drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
   for(dr in drs) {
-    #TODO - replace with a setter
-    object[[dr]]@cell.embeddings <- Embeddings(object[[dr]])[cells.use, ]
+    object[[dr]] <- MakeDimReducObject(cell.embeddings = Embeddings(object = object[[dr]])[cells.use, ],
+                       feature.loadings = Loadings(object = object[[dr]]),
+                       feature.loadings.projected = Loadings(object = object[[dr]], projected = TRUE),
+                       assay.used = slot(object = object[[dr]], name = "assay.used"),
+                       stdev = slot(object = object[[dr]], name = "stdev"),
+                       key = Key(object = object[[dr]]),
+                       jackstraw = slot(object = object[[dr]], name = "jackstraw"),
+                       misc = slot(object[[dr]], name = "misc"))
   }
   slot(object = object, name = "active.ident") <- Idents(object = object)[cells.use]
   slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells.use, ]
