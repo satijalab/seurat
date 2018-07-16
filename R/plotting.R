@@ -732,3 +732,71 @@ FeaturePlot <- function(
   }
   return(plots.combined)
 }
+
+globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
+#' JackStraw Plot
+#'
+#' Plots the results of the JackStraw analysis for PCA significance. For each
+#' PC, plots a QQ-plot comparing the distribution of p-values for all genes
+#' across each PC, compared with a uniform distribution. Also determines a
+#' p-value for the overall significance of each PC (see Details).
+#'
+#' Significant PCs should show a p-value distribution (black curve) that is
+#' strongly skewed to the left compared to the null distribution (dashed line)
+#' The p-value for each PC is based on a proportion test comparing the number
+#' of genes with a p-value below a particular threshold (score.thresh), compared with the
+#' proportion of genes expected under a uniform distribution of p-values.
+#'
+#' @param object Seurat object
+#' @param reduction.use reduction to pull jackstraw info from
+#' @param dims Dims to plot
+#' @param plot.x.lim X-axis maximum on each QQ plot.
+#' @param plot.y.lim Y-axis maximum on each QQ plot.
+#'
+#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@overall.p.values
+#' represents p-values for each PC and object@@dr$pca@@misc$jackstraw.plot
+#' stores the ggplot2 plot.
+#'
+#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#'
+#' @importFrom reshape2 melt
+#' @importFrom stats qqplot runif prop.test qunif
+#'
+#' @export
+#'
+#' @examples
+#' JackStrawPlot(object = pbmc_small)
+#'
+JackStrawPlot <- function(
+  object,
+  reduction.use = NULL,
+  dims = 1:5,
+  plot.x.lim = 0.1,
+  plot.y.lim = 0.3
+) {
+  pAll <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "emperical.p.value")
+  pAll <- pAll[, dims, drop = FALSE]
+  pAll <- as.data.frame(pAll)
+  pAll$Contig <- rownames(x = pAll)
+  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
+  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
+  score.df <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "overall.p.values")
+  pAll.l$PC.Score <- rep(
+    x = paste0(score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
+    each = length(x = unique(x = pAll.l$Contig))
+  )
+  pAll.l$PC.Score <- factor(
+    x = pAll.l$PC.Score,
+    levels = paste0(score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
+  )
+  gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
+    stat_qq(distribution = qunif) +
+    facet_wrap("PC.Score") +
+    labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
+    xlim(0, plot.y.lim) +
+    ylim(0, plot.x.lim) +
+    coord_flip() +
+    geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
+    theme_bw()
+  return(gp)
+}

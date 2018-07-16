@@ -16,7 +16,7 @@
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
   num.bin = 20, binning.method = "equal_width", num.features = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot", verbose = TRUE, ...)
+  selection.method = "dispersion", verbose = TRUE, ...)
 
 FindVariableFeatures(object, mean.function, dispersion.function, num.bin,
   binning.method, verbose, ...)

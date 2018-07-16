@@ -109,6 +109,103 @@ length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
 
+#' @param dims Number of dimensions to display
+#' @param num.features Number of genes to display
+#' @param projected Use projected slot
+#'
+#' @export
+#'
+#' @describeIn Print Print top features for DimReduc
+#' @method Print DimReduc
+#'
+Print.DimReduc <- function(
+  object,
+  dims = 1:5,
+  num.features = 20,
+  projected = FALSE
+){
+  loadings <- Loadings(object = object, projected = projected)
+  num.features <- min(num.features, nrow(loadings))
+  if (ncol(x = loadings) == 0) {
+    warning("Dimensions have not been projected. Setting projected = FALSE")
+    projected <- FALSE
+    loadings <- Loadings(object, projected = projected)
+  }
+  if (max(dims) > ncol(x = loadings)) {
+    stop(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
+  }
+  for (dim in dims) {
+    genes <- TopGenes(
+      object = object,
+      dim.use = dim,
+      num.features = num.features * 2,
+      projected = projected,
+      do.balanced = TRUE
+    )
+   message(paste0(Key(object), dim))
+   pos.genes <- split(x = genes$pos.genes, f = ceiling(seq_along(genes$pos.genes)/10))
+   message(paste0("Positive: "), paste0(pos.genes[[1]], collapse = ", "))
+   pos.genes[[1]] <- NULL
+   if (length(x = pos.genes) > 0) {
+     for (i in pos.genes) {
+       message(paste0("\t  ", paste0(i, collapse = ", ")))
+     }
+   }
+   neg.genes <- split(x = genes$neg.genes, f = ceiling(seq_along(genes$neg.genes)/10))
+   message(paste0("Negative: "), paste0(neg.genes[[1]], collapse = ", "))
+   neg.genes[[1]] <- NULL
+   if (length(x = neg.genes) > 0) {
+     for (i in neg.genes) {
+       message(paste0("\t  ", paste0(i, collapse = ", ")))
+     }
+   }
+   message("")
+  }
+}
+
+
+#' Find genes with highest scores for a given dimensional reduction technique
+#'
+#' Return a list of genes with the strongest contribution to a set of components
+#'
+#' @param object DimReduc object
+#' @param dim.use Dimension to use
+#' @param num.features Number of genes to return
+#' @param projected Use the full PCA (projected PCA). Default i s FALSE
+#' @param do.balanced Return an equal number of genes with both + and - scores.
+#'
+#' @return Returns a vector of genes
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+#' # After projection:
+#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+#'
+TopGenes <- function(
+  object,
+  dim.use = 1,
+  num.features = 20,
+  projected = FALSE,
+  do.balanced = FALSE
+) {
+  loadings <- Loadings(object = object, projected = projected)[, dim.use, drop = FALSE]
+  if (do.balanced) {
+    num.features <- round(x = num.features / 2)
+    loadings <- loadings[order(loadings), , drop = FALSE]
+    pos.genes <- head(rownames(loadings), num.features)
+    neg.genes <- rev(tail(rownames(loadings), num.features))
+    genes <- list(pos.genes = pos.genes, neg.genes = neg.genes)
+  } else {
+    loadings <- loadings[rev(x = order(abs(x = loadings))), , drop = FALSE]
+    genes <- head(rownames(x = loadings), num.features)
+    genes <- genes[order(loadings[genes, ])]
+  }
+  return(genes)
+}
+
 #' @importFrom ggplot2 ggplot aes
 #' @export
 #'
@@ -189,17 +286,17 @@ DefaultAssay.DimReduc <- function(object, ...) {
 
 #' @describeIn GetDimReduc Get a slot for a given DimReduc
 #' @export
-#' @method GetDimReduc Seurat
+#' @method GetDimReduc DimReduc
 #'
-GetDimReduc.Seurat <- function(object, slot) {
+GetDimReduc.DimReduc <- function(object, slot) {
   return(slot(object = object, name = slot))
 }
 
 #' @describeIn SetDimReduc Set a slot for a given DimReduc
 #' @export
-#' @method SetDimReduc Seurat
+#' @method SetDimReduc DimReduc
 #'
-SetDimReduc.Seurat <- function(object, slot, new.data) {
+SetDimReduc.DimReduc <- function(object, slot, new.data) {
   slots.use <- c("cell.embeddings", "gene.loadings", "gene.loadings.projected",
                  "assay.used", "stdev", "key", "jackstraw", "misc")
   if (!slot %in% slots.use) {

@@ -372,6 +372,7 @@ NormalizeData.Seurat <- function(
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -760,6 +761,8 @@ ScaleData.Assay <- function(
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = use.umi, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'matrix', no = 'data')
+  features.use <- features.use %||% VariableFeatures(object)
+  if (length(features.use) == 0) features.use <- rownames(GetAssayData(object = object, slot = slot.use))
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
@@ -826,6 +829,7 @@ ScaleData.Seurat <- function(
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -1041,7 +1045,7 @@ FindVariableFeatures.Seurat <- function(
   num.features = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot",
+  selection.method = "dispersion",
   verbose = TRUE,
   ...
 ) {
@@ -1056,9 +1060,11 @@ FindVariableFeatures.Seurat <- function(
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
+    selection.method = selection.method,
     ...
   )
   object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
@@ -1331,5 +1337,6 @@ FilterCells <- function(
     )
   }
   object <- SubsetData(object, cells.use = cells.use)
+  object <- LogSeuratCommand(object)
   return(object)
 }

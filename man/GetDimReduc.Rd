@@ -2,12 +2,12 @@
 % Please edit documentation in R/dimreduc_generics.R, R/dimreduc.R
 \name{GetDimReduc}
 \alias{GetDimReduc}
-\alias{GetDimReduc.Seurat}
+\alias{GetDimReduc.DimReduc}
 \title{Accessor function for DimReduc object}
 \usage{
 GetDimReduc(object, slot, ...)
 
-\method{GetDimReduc}{Seurat}(object, slot)
+\method{GetDimReduc}{DimReduc}(object, slot)
 }
 \arguments{
 \item{object}{A DimReduc object}
@@ -24,6 +24,6 @@ Pull information for specified stored dimensional reduction analysis
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{Seurat}: Get a slot for a given DimReduc
+\item \code{DimReduc}: Get a slot for a given DimReduc
 }}
 

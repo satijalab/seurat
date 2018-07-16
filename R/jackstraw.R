@@ -6,18 +6,14 @@
 #' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object
-#' @param num.pc Number of PCs to compute significance for
+#' @param reduction.use DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.
+#' @param assay.use Assay used to calculate reduction.
+#' @param dims Number of PCs to compute significance for
 #' @param num.replicate Number of replicate samplings to perform
 #' @param prop.freq Proportion of the data to randomly permute for each
 #' replicate
-#' @param display.progress Print progress bar showing the number of replicates
+#' @param verbose Print progress bar showing the number of replicates
 #' that have been processed.
-#' @param do.par use parallel processing for regressing out variables faster.
-#' If set to TRUE, will use half of the machines available cores (FALSE by default)
-#' @param num.cores If do.par = TRUE, specify the number of cores to use.
-#' Note that for higher number of cores, larger free memory is needed.
-#' If \code{num.cores = 1} and \code{do.par = TRUE}, \code{num.cores} will be set to half
-#' of all available cores on the machine.
 #' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
 #' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
@@ -39,33 +35,34 @@
 #' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
 #' }
 #'
+
 JackStraw <- function(
   object,
-  num.pc = 20,
+  reduction.use = "pca",
+  assay.use = NULL,
+  dims = 20,
   num.replicate = 100,
   prop.freq = 0.01,
-  display.progress = TRUE,
-  do.par = FALSE,
-  num.cores = 1,
+  verbose = TRUE,
   maxit = 1000
 ) {
-  if (is.null(object@dr$pca)) {
-    stop("PCA has not been computed yet. Please run RunPCA().")
+  if (reduction.use != "pca") {
+    stop("Only pca for reduction.use is currently supported")
   }
-  # error checking for number of PCs
-  if (num.pc > ncol(x = GetDimReduction(object,"pca","cell.embeddings"))) {
-    num.pc <- ncol(x = GetDimReduction(object,"pca","cell.embeddings"))
-    warning("Number of PCs specified is greater than PCs available. Setting num.pc to ", num.pc, " and continuing.")
+  embeddings <- Embeddings(object = object[[reduction.use]])
+  if (dims > ncol(embeddings)) {
+    dims <- ncol(embeddings)
+    warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  if (num.pc > length(x = object@cell.names)) {
-    num.pc <- length(x = object@cell.names)
-    warning("Number of PCs specified is greater than number of cells. Setting num.pc to ", num.pc, " and continuing.")
+  if (dims > ncol(object)) {
+    dims <- ncol(object)
+    warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  pc.genes <- rownames(x = GetDimReduction(object,"pca","gene.loadings"))
-  if (length(x = pc.genes) < 3) {
-    stop("Too few variable genes")
+  reduc.features <- rownames(Loadings(object = object[[reduction.use]]))
+  if (length(x = reduc.features) < 3) {
+    stop("Too few features")
   }
-  if (length(x = pc.genes) * prop.freq < 3) {
+  if (length(x = reduc.features) * prop.freq < 3) {
     warning(
       "Number of variable genes given ",
       prop.freq,
@@ -73,122 +70,139 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  md.x <- as.matrix(x = GetDimReduction(object,"pca","gene.loadings"))
-  md.rot <- as.matrix(x = GetDimReduction(object,"pca","cell.embeddings"))
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  loadings <- Loadings(object = object[[reduction.use]])
+  data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
+  ## TODO: Proper accessors for command params
+  rev.pca <- object[[paste0("RunPCA.", assay.use)]]@params$rev.pca
+  weight.by.var <- object[[paste0("RunPCA.", assay.use)]]@params$weight.by.var
 
-  rev.pca <- GetCalcParam(
-    object = object,
-    calculation = "RunPCA",
-    parameter = "rev.pca"
-  )
-  weight.by.var <- GetCalcParam(
-    object = object,
-    calculation = "RunPCA",
-    parameter = "weight.by.var"
-  )
-  data.use.scaled <- GetAssayData(
-    object = object,
-    assay.type = "RNA",
-    slot = "scale.data"
-  )[pc.genes,]
-
-  # input checking for parallel options
-  if (do.par) {
-    if (num.cores == 1) {
-      num.cores <- detectCores() / 2
-      warning(paste0("do.par set to TRUE but num.cores set to 1. Setting num.cores to ", num.cores, "."))
-    } else if (num.cores > detectCores()) {
-      num.cores <- detectCores() - 1
-      warning(paste0("num.cores set greater than number of available cores(", detectCores(), "). Setting num.cores to ", num.cores, "."))
-    }
-  } else if (num.cores != 1) {
-      num.cores <- 1
-      warning("For parallel processing, please set do.par to TRUE.")
-  }
-
-  cl <- parallel::makeCluster(num.cores)
-
-  registerDoSNOW(cl)
-
-  if (display.progress) {
-    time_elapsed <- Sys.time()
-  }
-
-  opts <- list()
-  if (display.progress) {
-    # define progress bar function
-    pb <- txtProgressBar(min = 0, max = num.replicate, style = 3)
-    progress <- function(n) setTxtProgressBar(pb, n)
-    opts <- list(progress = progress)
-    time_elapsed <- Sys.time()
-  }
-
-  fake.pcVals.raw <- foreach(
-    x = 1:num.replicate,
-    .options.snow = opts,
-    .export = c('JackRandom')
-  ) %dopar% {
+  ## TODO: Parallelization
+  fake.vals.raw <- lapply(X = 1:num.replicate, FUN = function(x) {
     JackRandom(
-      scaled.data = data.use.scaled,
+      scaled.data = data.use,
       prop.use = prop.freq,
       r1.use = 1,
-      r2.use = num.pc,
+      r2.use = dims,
       seed.use = x,
       rev.pca = rev.pca,
       weight.by.var = weight.by.var,
       maxit = maxit
-    )
-  }
-
-  if (display.progress) {
-    time_elapsed <- Sys.time() - time_elapsed
-    cat(paste("\nTime Elapsed: ",time_elapsed, units(time_elapsed), "\n"))
-    close(pb)
-  }
-
-  stopCluster(cl)
-
-  fake.pcVals <- sapply(
-    X = 1:num.pc,
+    )}
+  )
+  fake.vals <- sapply(
+    X = 1:dims,
     FUN = function(x) {
       return(as.numeric(x = unlist(x = lapply(
         X = 1:num.replicate,
         FUN = function(y) {
-          return(fake.pcVals.raw[[y]][, x])
+          return(fake.vals.raw[[y]][, x])
         }
       ))))
     }
   )
-  jackStraw.fakePC <- as.matrix(x = fake.pcVals)
+  jackStraw.fakePC <- as.matrix(x = fake.vals)
   jackStraw.empP <- as.matrix(
     sapply(
-      X = 1:num.pc,
+      X = 1:dims,
       FUN = function(x) {
         return(unlist(x = lapply(
-          X = abs(md.x[, x]),
+          X = abs(loadings[, x]),
           FUN = EmpiricalP,
-          nullval = abs(fake.pcVals[,x])
+          nullval = abs(fake.vals[,x])
         )))
       }
     )
   )
   colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
-
   jackstraw.obj <- new(
     Class = "jackstraw.data",
     emperical.p.value  = jackStraw.empP,
-    fake.pc.scores = fake.pcVals,
+    fake.pc.scores = fake.vals,
     emperical.p.value.full = matrix()
   )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = "pca",
+  object[[reduction.use]] <- SetDimReduc(
+    object = object[[reduction.use]],
     slot = "jackstraw",
     new.data = jackstraw.obj
   )
-
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
+
+#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @export
+#' @method ScoreJackStraw DimReduc
+#'
+ScoreJackStraw.DimReduc <- function(
+  object,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+){
+  pAll <- slot(object = GetDimReduc(object = object, slot = "jackstraw"), name = "emperical.p.value")
+  pAll <- pAll[, dims, drop = FALSE]
+  pAll <- as.data.frame(pAll)
+  pAll$Contig <- rownames(x = pAll)
+  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
+  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
+  qq.df <- NULL
+  score.df <- NULL
+  for (i in dims) {
+    q <- qqplot(x = pAll[, i], y = runif(n = 1000), plot.it = FALSE)
+    pc.score <- suppressWarnings(prop.test(
+      x = c(
+        length(x = which(x = pAll[, i] <= score.thresh)),
+        floor(x = nrow(x = pAll) * score.thresh)
+      ),
+      n = c(nrow(pAll), nrow(pAll))
+    )$p.val)
+    if (length(x = which(x = pAll[, i] <= score.thresh)) == 0) {
+      pc.score <- 1
+    }
+    if (is.null(x = score.df)) {
+      score.df <- data.frame(PC = paste0("PC", i), Score = pc.score)
+    } else {
+      score.df <- rbind(score.df, data.frame(PC = paste0("PC",i), Score = pc.score))
+    }
+    if (is.null(x = qq.df)) {
+      qq.df <- data.frame(x = q$x, y = q$y, PC = paste0("PC", i))
+    } else {
+      qq.df <- rbind(qq.df, data.frame(x = q$x, y = q$y, PC = paste0("PC", i)))
+    }
+  }
+  score.df$PC <- dims
+  score.df <- as.matrix(score.df)
+  ## TODO: proper accessors for jackstraw objects
+  new.jackstraw <- GetDimReduc(object = object, slot = "jackstraw")
+  new.jackstraw@overall.p.values <- score.df
+  object <- SetDimReduc(object = object, slot = "jackstraw", new.data = new.jackstraw)
+  return(object)
+}
+
+#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
+#' @param reduction.use Reduction associated with JackStraw to score
+#' @export
+#' @method ScoreJackStraw Seurat
+#'
+ScoreJackStraw.Seurat <- function(
+  object,
+  reduction.use,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+){
+  object[[reduction.use]] <- ScoreJackStraw(
+    object = object[[reduction.use]],
+    dims = dims,
+    ...
+  )
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
 
 #' Significant genes from a PCA
 #'

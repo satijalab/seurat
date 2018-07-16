@@ -80,19 +80,15 @@ JackRandom <- function(
   }
   data.mod <- scaled.data
   data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
-  temp.object <- new("seurat")
-  temp.object@cell.names <- colnames(x = data.mod)
-  temp.object@scale.data <- data.mod
   temp.object <- RunPCA(
-    object = temp.object,
+    object = data.mod,
+    assay.use = "temp",
     pcs.compute = r2.use,
-    pc.genes = rownames(x = data.mod),
+    features.use = rownames(x = data.mod),
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
-    do.print = FALSE,
+    verbose = FALSE,
     maxit = maxit
   )
-  fake.x <- PCALoad(object = temp.object)
-  fake.rot <- PCAEmbed(object = temp.object)
-  return(fake.x[rand.genes, r1.use:r2.use])
+  return(Loadings(temp.object)[rand.genes, r1.use:r2.use])
 }
