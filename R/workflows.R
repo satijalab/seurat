@@ -75,8 +75,17 @@ CheckWorkflow <- function(object, workflow.name) {
 SetWorkflowParams <- function(object, workflow.name, ...) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   # Set Params
-  params <- (list(...))
-  slot(object[[workflow.name]],"params") <- params
+  newparams <- (list(...))
+  oldparams <- slot(object[[workflow.name]],"params")
+  if (is.null(oldparams)) {
+    slot(object[[workflow.name]],"params") <- newparams
+  }
+  else {
+    for(i in names(newparams)) {
+      oldparams[i] <- newparams[i]
+    }
+    slot(object[[workflow.name]],"params") <- oldparams
+  }
   return(object)
 }
 
@@ -157,4 +166,36 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = NULL
     object <- TouchWorkflow(object,workflow.name = workflow.name,command.name = i,time.stamp = time.stamp)
   }
   return(object)
+}
+
+#' Output individual function calls to recreate workflow
+#'
+#' Output all commands to reproduce your analysis without shortcuts. Should enhance reproducibility, but can be confused by custom modifcations, usage of SubsetData, etc. 
+#' We hope this will be very useful, but use with care and verify that it does indeed reproduce your work.
+#' 
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command at the end of the workflow
+#' 
+#' @return Seurat object with updated workflow
+#' 
+#' @export
+#' 
+#' @examples
+#' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+#' #
+RecreateWorkflows <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  prereq.commands <- colnames(depends)[which(depends[command.name,]==1)]
+  for(i in prereq.commands) {
+    RecreateWorkflows(object = object,workflow.name = workflow.name,command.name = i)   
+  }
+  #TODO deal with Assay better
+  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name)==1) {
+    call.string <- slot(object[[command.name]],"call.string")
+    browser()
+    print(call.string)
+  }
 }

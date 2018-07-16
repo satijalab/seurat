@@ -354,7 +354,7 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name=F,
+  workflow.name=NULL,
   ...
 ) {
 
