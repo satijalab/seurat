@@ -536,20 +536,16 @@ RunTSNE.Seurat <- function(
 #'
 #'
 #' @param object Seurat object
-#' @param reduction.type Reduction to use
-#' @param dims.print Number of dims to print genes for
-#' @param dims.store Number of dims to store (default is 30)
-#' @param genes.print Number of genes with highest/lowest loadings to print for
-#' each PC
-#' @param replace.dim Replace the existing data (overwrite
-#' object@@dr$XXX@gene.loadings), not done by default.
+#' @param reduction.use Reduction to use
+#' @param assay.use Assay to use
+#' @param dims.print Number of dims to print features for
+#' @param features.print Number of features with highest/lowest loadings to print for
+#' each dimension
+#' @param overwrite Replace the existing data in feature.loadings
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
-#' @param do.print Print top genes associated with the projected dimensions
-#' @param assay.type Data type, RNA by default. Can be changed for multimodal
-#' datasets (i.e. project a PCA done on RNA, onto CITE-seq data)
+#' @param verbose Print top genes associated with the projected dimensions
 #'
-#' @return Returns Seurat object with the projected values in
-#' object@@dr$XXX@gene.loadings.full
+#' @return Returns Seurat object with the projected values
 #'
 #' @export
 #'
@@ -561,57 +557,52 @@ RunTSNE.Seurat <- function(
 #'
 ProjectDim <- function(
   object,
-  reduction.type = "pca",
+  reduction.use = "pca",
+  assay.use = NULL,
   dims.print = 1:5,
-  dims.store = 30,
-  genes.print = 30,
-  replace.dim = FALSE,
+  features.print = 20,
+  overwrite = FALSE,
   do.center = FALSE,
-  do.print = TRUE,
-  assay.type = "RNA"
+  verbose = TRUE
 ) {
-  if (! reduction.type %in% names(x = object@dr)) {
-    stop(paste(reduction.type, "dimensional reduction has not been computed"))
-  }
+  reduction <- object[[reduction.use]]
+  assay.use <- assay.use %||% GetDimReduc(object = reduction, slot = "assay.used")
   data.use <- GetAssayData(
     object = object,
-    assay.type = assay.type,
+    assay.us = assay.use,
     slot = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
   }
-  cell.embeddings <- GetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
+  cell.embeddings <- GetDimReduc(
+    object = reduction,
     slot = "cell.embeddings"
   )
-  new.gene.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
-  rownames(x = new.gene.loadings.full) <- rownames(x = data.use)
-  colnames(x = new.gene.loadings.full) <- colnames(x = cell.embeddings)
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.type,
-    slot = "gene.loadings.full",
-    new.data = new.gene.loadings.full
+  new.feature.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
+  rownames(x = new.feature.loadings.full) <- rownames(x = data.use)
+  colnames(x = new.feature.loadings.full) <- colnames(x = cell.embeddings)
+  reduction <- SetDimReduc(
+    object = reduction,
+    slot = "feature.loadings.projected",
+    new.data = new.feature.loadings.full
   )
-  if (replace.dim) {
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = reduction.type,
+  if (overwrite) {
+    reduction <- SetDimReduc(
+      object = reduction,
       slot = "gene.loadings",
       new.data = new.gene.loadings.full
     )
   }
-  if (do.print) {
-    PrintDim(
-      object = object,
-      reduction.type = reduction.type,
-      genes.print = genes.print,
-      use.full = TRUE,
-      dims.print = dims.print
+  if (verbose) {
+    Print(
+      object = reduction,
+      dims = dims.print,
+      num.features = features.print,
+      projected = TRUE
     )
   }
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 

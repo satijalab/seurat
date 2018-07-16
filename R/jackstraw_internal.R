@@ -1,14 +1,3 @@
-#define class to store jackstraw data
-jackstraw.data <- setClass(
-  Class = "jackstraw.data",
-  slots = list(
-    emperical.p.value = "matrix",
-    fake.pc.scores = "matrix",
-    emperical.p.value.full = "matrix",
-    overall.p.values = "matrix"
-  )
-)
-
 # #internal
 # #
 # #' @importFrom stats prcomp
