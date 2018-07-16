@@ -194,6 +194,7 @@ Seurat <- setClass(
 # @rdname show-methods
 #
 
+#TODO - Change the ANY to appropriate names if needed
 
 #' The SeuratCommand Class
 #'
@@ -226,6 +227,7 @@ SeuratCommand <- setClass(
 #' @slot depends Dependency graph encoding the relationship between commands (for example, RunPCA depends on ScaleData)
 #' @slot update Vector specifying for each command, if it needs to be updated/rerun
 #' @slot params List of parameters used across the workflow
+#' @slot mostRecent Vector specifying for each command, the most recent timestamp. If the current timestamp matches this, should not need to be rerun.
 #' @name SeuratWorkflow
 #' @exportClass SeuratWorkflow
 #'
@@ -235,6 +237,7 @@ SeuratWorkflow <- setClass(
     name = 'character',
     depends = 'ANY',
     updates = 'ANY',
-    params = 'ANY'
+    params = 'ANY',
+    mostRecent = 'ANY'
   )
 )
