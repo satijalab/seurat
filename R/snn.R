@@ -92,7 +92,7 @@ BuildSNN.Assay <- function(
 #' @param assay.use Assay to use in construction of SNN
 #' @param features.use Features to use as input for building the SNN
 #' @param reduction.use Reduction to use as input for building the SNN
-#' @param dims.use Dimensions of reduction to use as input
+#' @param dims.cluster Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
@@ -106,19 +106,22 @@ BuildSNN.Seurat <- function(
   assay.use = NULL,
   features.use = NULL,
   reduction.use = "pca",
-  dims.use = NULL,
-  k.param = 10,
+  dims.cluster = 1:10,
+  k.param = 30,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   do.plot = FALSE,
-  graph.name = NULL
+  graph.name = NULL,
+  workflow.name=NULL
 ) {
-  if (! is.null(dims.use)) {
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
+  if (! is.null(dims.cluster)) {
     assay.use <- assay.use %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction.use]])
-    data.use <- data.use[, dims.use]
+    if((length(dims.cluster)==1)&&(!(is.null) (workflow.name))) dims.cluster <- 1:dims.cluster
+    data.use <- data.use[, dims.cluster]
     snn.matrix <- BuildSNN(object = data.use,
                            k.param = k.param,
                            prune.SNN = prune.SNN,
@@ -164,6 +167,7 @@ BuildSNN.Seurat <- function(
     }
   }
   object <- LogSeuratCommand(object = object)
+  if (!(is.null) (workflow.name)) object <- UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 

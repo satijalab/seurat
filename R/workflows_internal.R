@@ -46,6 +46,7 @@ PrepareWorkflow <- function(object, workflow.name) {
     }
   }
   ReadWorkflowParams(object = object,workflow.name = workflow.name,depth = 2)
+  return(object)
 }
 
 #' UpdateWorkflow

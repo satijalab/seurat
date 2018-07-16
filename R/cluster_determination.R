@@ -3,7 +3,7 @@ FindClusters.default <- function(
   modularity.fxn = 1,
   resolution = 0.8,
   algorithm = 1,
-  n.start = 100,
+  n.start = 10,
   n.iter = 10,
   random.seed = 0,
   temp.file.location = NULL,
@@ -50,8 +50,10 @@ FindClusters.Seurat <- function(
   random.seed = 0,
   temp.file.location = NULL,
   edge.file.name = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  workflow.name=NULL
 ){
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
   graph.name <- graph.name %||% paste0(DefaultAssay(object), "_snn")
   if(! graph.name %in% names(object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -75,6 +77,7 @@ FindClusters.Seurat <- function(
   object <- AddMetaData(object = object, metadata = clustering.results)
   Idents(object = object) <- colnames(clustering.results)[ncol(clustering.results)]
   object <- LogSeuratCommand(object)  
+  if (!(is.null) (workflow.name)) object <- UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 

@@ -358,7 +358,7 @@ NormalizeData.Seurat <- function(
   ...
 ) {
 
-  if (!(is.null) (workflow.name)) PrepareWorkflow(object = object,workflow.name = workflow.name)
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   # object <- SetCalcParams(
   #   object = object,
@@ -810,7 +810,7 @@ ScaleData.Seurat <- function(
   workflow.name = NULL,
   ...
 ) {
-  if (!(is.null) (workflow.name)) PrepareWorkflow(object = object,workflow.name = workflow.name)
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   if (any(vars.to.regress %in% colnames(x = object[]))) {
@@ -1053,8 +1053,10 @@ FindVariableFeatures.Seurat <- function(
   dispersion.cutoff = c(1, Inf),
   selection.method = "dispersion",
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   assay.data <- FindVariableFeatures(
@@ -1071,6 +1073,7 @@ FindVariableFeatures.Seurat <- function(
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!(is.null) (workflow.name)) object <- UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 

@@ -1,5 +1,6 @@
 FindClusters	BuildSNN
 RunPCA	ScaleData
-ScaleData	NormalizeData
+ScaleData	FindVariableFeatures
+FindVariableFeatures	NormalizeData
 RunTSNE	RunPCA
 BuildSNN RunPCA

@@ -4,7 +4,7 @@ RunPCA.default <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  dims.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
@@ -19,8 +19,8 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    dims.compute <- min(dims.compute, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = dims.compute, ...)
+    compute.dims <- min(compute.dims, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = compute.dims, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -30,8 +30,8 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    dims.compute <- min(dims.compute, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = dims.compute, ...)
+    compute.dims <- min(compute.dims, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
     if (weight.by.var) {
@@ -41,7 +41,7 @@ RunPCA.default <- function(
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:dims.compute)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- MakeDimReducObject(
@@ -62,11 +62,11 @@ RunPCA.Assay <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  dims.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -81,11 +81,11 @@ RunPCA.Assay <- function(
     object = data.use,
     assay.use = assay.use,
     pc.features = features.use,
-    dims.compute = dims.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
-    pcs.print = pcs.print,
+    print.dims = print.dims,
     features.print = features.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
@@ -104,11 +104,11 @@ RunPCA.Seurat <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  dims.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -116,14 +116,14 @@ RunPCA.Seurat <- function(
   workflow.name = NULL,
   ...
 ) {
-  if (!(is.null) (workflow.name)) PrepareWorkflow(object = object,workflow.name = workflow.name)
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
     assay.use = assay.use,
     features.use = features.use,
-    dims.compute = dims.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
@@ -464,7 +464,7 @@ RunTSNE.Seurat <- function(
   object,
   reduction.use = "pca",
   cells.use = NULL,
-  dims.use = 1:5,
+  dims.viz = 1:5,
   features.use = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
@@ -473,8 +473,11 @@ RunTSNE.Seurat <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  workflow.name = NULL,
   ...
 ) {
+  if (!(is.null) (workflow.name)) object <- PrepareWorkflow(object = object,workflow.name = workflow.name)
+  if ((length(dims.viz)==1)&&(!(is.null) (workflow.name))) dims.viz <- 1:dims.viz
   tsne.reduction <- if (tsne.method == 'Rtsne') {
     if (!is.null(x = distance.matrix)) {
       RunTSNE(
@@ -503,7 +506,7 @@ RunTSNE.Seurat <- function(
     } else {
       RunTSNE(
         object = object[[reduction.use]],
-        dims.use = dims.use,
+        dims.use = dims.viz,
         seed.use = seed.use,
         tsne.method = tsne.method,
         add.iter = add.iter,
@@ -527,6 +530,7 @@ RunTSNE.Seurat <- function(
   }
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
+  if (!(is.null) (workflow.name)) object <- UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 
@@ -628,7 +632,7 @@ ProjectDim <- function(
 #'
 #' @param object Seurat object
 #' @param do.print Print top genes associated with the projected PCs
-#' @param pcs.print Number of PCs to print genes for
+#' @param print.dims Number of PCs to print genes for
 #' @param pcs.store Number of PCs to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
 #' each PC
@@ -650,7 +654,7 @@ ProjectDim <- function(
 ProjectPCA <- function(
   object,
   do.print = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   pcs.store = 30,
   genes.print = 30,
   replace.pc = FALSE,
@@ -659,7 +663,7 @@ ProjectPCA <- function(
   return(ProjectDim(
     object,
     reduction.type = "pca",
-    dims.print = pcs.print,
+    dims.print = print.dims,
     genes.print = 30,
     replace.dim = replace.pc,
     do.center = do.center,
