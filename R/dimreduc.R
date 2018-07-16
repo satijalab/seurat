@@ -123,9 +123,9 @@ Print.DimReduc <- function(
   dims = 1:5,
   num.features = 20,
   projected = FALSE
-){
+) {
   loadings <- Loadings(object = object, projected = projected)
-  num.features <- min(num.features, nrow(loadings))
+  num.features <- min(num.features, nrow(x = loadings))
   if (ncol(x = loadings) == 0) {
     warning("Dimensions have not been projected. Setting projected = FALSE")
     projected <- FALSE
@@ -142,21 +142,21 @@ Print.DimReduc <- function(
       projected = projected,
       do.balanced = TRUE
     )
-   message(paste0(Key(object), dim))
-   pos.genes <- split(x = genes$pos.genes, f = ceiling(seq_along(genes$pos.genes)/10))
-   message(paste0("Positive: "), paste0(pos.genes[[1]], collapse = ", "))
+   message(paste0(Key(object = object), dim))
+   pos.genes <- split(x = genes$pos.genes, f = ceiling(x = seq_along(along.with = genes$pos.genes) / 10))
+   message(paste0("Positive: "), paste(pos.genes[[1]], collapse = ", "))
    pos.genes[[1]] <- NULL
    if (length(x = pos.genes) > 0) {
      for (i in pos.genes) {
-       message(paste0("\t  ", paste0(i, collapse = ", ")))
+       message(paste0("\t  ", paste(i, collapse = ", ")))
      }
    }
-   neg.genes <- split(x = genes$neg.genes, f = ceiling(seq_along(genes$neg.genes)/10))
-   message(paste0("Negative: "), paste0(neg.genes[[1]], collapse = ", "))
+   neg.genes <- split(x = genes$neg.genes, f = ceiling(x = seq_along(along.with = genes$neg.genes) / 10))
+   message(paste0("Negative: "), paste(neg.genes[[1]], collapse = ", "))
    neg.genes[[1]] <- NULL
    if (length(x = neg.genes) > 0) {
      for (i in neg.genes) {
-       message(paste0("\t  ", paste0(i, collapse = ", ")))
+       message(paste0("\t  ", paste(i, collapse = ", ")))
      }
    }
    message("")
