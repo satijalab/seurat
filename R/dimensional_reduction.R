@@ -538,16 +538,14 @@ RunTSNE.Seurat <- function(
 #' @param object Seurat object
 #' @param reduction.use Reduction to use
 #' @param assay.use Assay to use
-#' @param dims.print Number of dims to print genes for
-#' @param dims.store Number of dims to store (default is 30)
-#' @param features Number of genes with highest/lowest loadings to print for
+#' @param dims.print Number of dims to print features for
+#' @param features.print Number of features with highest/lowest loadings to print for
 #' each dimension
 #' @param overwrite Replace the existing data in feature.loadings
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #' @param verbose Print top genes associated with the projected dimensions
 #'
-#' @return Returns Seurat object with the projected values in
-#' object@@dr$XXX@gene.loadings.full
+#' @return Returns Seurat object with the projected values
 #'
 #' @export
 #'
@@ -562,7 +560,6 @@ ProjectDim <- function(
   reduction.use = "pca",
   assay.use = NULL,
   dims.print = 1:5,
-  dims.store = 30,
   features.print = 20,
   overwrite = FALSE,
   do.center = FALSE,

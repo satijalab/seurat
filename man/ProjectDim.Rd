@@ -5,8 +5,8 @@
 \title{Project Dimensional reduction onto full dataset}
 \usage{
 ProjectDim(object, reduction.use = "pca", assay.use = NULL,
-  dims.print = 1:5, dims.store = 30, features.print = 20,
-  overwrite = FALSE, do.center = FALSE, verbose = TRUE)
+  dims.print = 1:5, features.print = 20, overwrite = FALSE,
+  do.center = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,22 +15,19 @@ ProjectDim(object, reduction.use = "pca", assay.use = NULL,
 
 \item{assay.use}{Assay to use}
 
-\item{dims.print}{Number of dims to print genes for}
+\item{dims.print}{Number of dims to print features for}
 
-\item{dims.store}{Number of dims to store (default is 30)}
+\item{features.print}{Number of features with highest/lowest loadings to print for
+each dimension}
 
 \item{overwrite}{Replace the existing data in feature.loadings}
 
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
 
 \item{verbose}{Print top genes associated with the projected dimensions}
-
-\item{features}{Number of genes with highest/lowest loadings to print for
-each dimension}
 }
 \value{
-Returns Seurat object with the projected values in
-object@dr$XXX@gene.loadings.full
+Returns Seurat object with the projected values
 }
 \description{
 Takes a pre-computed dimensional reduction (typically calculated on a subset
