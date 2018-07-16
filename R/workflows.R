@@ -21,7 +21,7 @@ InitializeWorkflow <- function(object, file) {
   for(i in 1:nrow(workflow.data)) {
     depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
   }
-  updates <- rep(TRUE,length(cmds)); names(updates) <- cmds 
+  mostRecent <- rep(NA,length(cmds)); names(updates) <- cmds 
   seurat.workflow <- new(
     Class = 'SeuratWorkflow',
     name = worklow.name,
@@ -29,8 +29,32 @@ InitializeWorkflow <- function(object, file) {
     updates = updates
   )
   object[[worklow.name]] <- seurat.workflow
-  browser()
   return(object)
+}
+
+#' Checks if a workflow is defined for a Seurat object
+#'
+#' Checks if a workflow is defined for a Seurat object
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow#'
+#' @return TRUE if workflow is defined. STOP otherwise
+#'
+#' @export
+#'
+#' @examples
+#' CheckWorkflow(pbmc_small, "cluster")
+#'
+CheckWorkflow <- function(object, workflow.name) {
+  # Check if workflow is there
+  workflow.present=F
+  if (workflow.name%in%names(object)) {
+    if (class(object[[workflow.name]])[[1]]=="SeuratWorkflow") {
+      workflow.present=T
+    }
+  }
+  if (!(workflow.present)) stop("Workflow not present, initialize first.")
+  return(TRUE)
 }
 
 #' Set Seurat workflow parameters
@@ -46,20 +70,14 @@ InitializeWorkflow <- function(object, file) {
 #' @export
 #'
 #' @examples
-#' pbmc_small <- SetWorkflowParams(object = pbmc_small, file = 'workflows/cluster.workflow.txt)
+#' pbmc_small <- SetWorkflowParams(object = pbmc_small, seed.use = 31, dims. = 20)
 #'
 SetWorkflowParams <- function(object, workflow.name, ...) {
-  # Check if workflow is there
-  workflow.present=F
-  if (workflow.name%in%names(object)) {
-    if (class(object[[workflow.name]])[[1]]=="SeuratWorkflow") {
-      workflow.present=T
-    }
-  }
-  if (!(workflow.present)) stop("Workflow not present, initialize first.")
-
+  CheckWorkflow(object = object, workflow.name = workflow.name)
   # Set Params
   params <- (list(...))
   slot(object[[workflow.name]],"params") <- params
   return(object)
 }
+
+

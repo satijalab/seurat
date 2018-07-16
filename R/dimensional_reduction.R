@@ -4,11 +4,11 @@ RunPCA.default <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  dims.compute = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -19,8 +19,8 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    pcs.compute <- min(pcs.compute, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = pcs.compute, ...)
+    dims.compute <- min(dims.compute, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = dims.compute, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -30,8 +30,8 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    pcs.compute <- min(pcs.compute, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = pcs.compute, ...)
+    dims.compute <- min(dims.compute, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = dims.compute, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
     if (weight.by.var) {
@@ -41,7 +41,7 @@ RunPCA.default <- function(
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:pcs.compute)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:dims.compute)
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- MakeDimReducObject(
@@ -62,7 +62,7 @@ RunPCA.Assay <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  dims.compute = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
@@ -81,7 +81,7 @@ RunPCA.Assay <- function(
     object = data.use,
     assay.use = assay.use,
     pc.features = features.use,
-    pcs.compute = pcs.compute,
+    dims.compute = dims.compute,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
@@ -104,7 +104,7 @@ RunPCA.Seurat <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  dims.compute = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
@@ -113,15 +113,17 @@ RunPCA.Seurat <- function(
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
+  workflow.name = NULL,
   ...
 ) {
+  if (!(is.null) (workflow.name)) PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
     assay.use = assay.use,
     features.use = features.use,
-    pcs.compute = pcs.compute,
+    dims.compute = dims.compute,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,

@@ -110,6 +110,7 @@ Collate:
     'utilities.R'
     'utilities_internal.R'
     'workflows.R'
+    'workflows_internal.R'
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
