@@ -297,7 +297,7 @@ GetDimReduc.DimReduc <- function(object, slot) {
 #' @method SetDimReduc DimReduc
 #'
 SetDimReduc.DimReduc <- function(object, slot, new.data) {
-  slots.use <- c("cell.embeddings", "gene.loadings", "gene.loadings.projected",
+  slots.use <- c("cell.embeddings", "feature.loadings", "feature.loadings.projected",
                  "assay.used", "stdev", "key", "jackstraw", "misc")
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
