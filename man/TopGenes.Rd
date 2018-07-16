@@ -4,7 +4,7 @@
 \alias{TopGenes}
 \title{Find genes with highest scores for a given dimensional reduction technique}
 \usage{
-TopGenes(object, dim.use = 1, num.features = 30, projected = FALSE,
+TopGenes(object, dim.use = 1, num.features = 20, projected = FALSE,
   do.balanced = FALSE)
 }
 \arguments{

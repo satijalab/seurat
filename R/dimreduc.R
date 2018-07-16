@@ -121,7 +121,7 @@ length.DimReduc <- function(x) {
 Print.DimReduc <- function(
   object,
   dims = 1:5,
-  num.features = 30,
+  num.features = 20,
   projected = FALSE
 ){
   loadings <- Loadings(object = object, projected = projected)
@@ -143,16 +143,23 @@ Print.DimReduc <- function(
       do.balanced = TRUE
     )
    message(paste0(Key(object), dim))
-   message("Positive: ")
    pos.genes <- split(x = genes$pos.genes, f = ceiling(seq_along(genes$pos.genes)/10))
-   for (i in pos.genes) {
-     message(paste0("\t", paste0(i, collapse = ", ")))
+   message(paste0("Positive: "), paste0(pos.genes[[1]], collapse = ", "))
+   pos.genes[[1]] <- NULL
+   if (length(x = pos.genes) > 0) {
+     for (i in pos.genes) {
+       message(paste0("\t  ", paste0(i, collapse = ", ")))
+     }
    }
-   message("Negative: ")
    neg.genes <- split(x = genes$neg.genes, f = ceiling(seq_along(genes$neg.genes)/10))
-   for (i in neg.genes) {
-     message(paste0("\t", paste0(i, collapse = ", ")))
+   message(paste0("Negative: "), paste0(neg.genes[[1]], collapse = ", "))
+   neg.genes[[1]] <- NULL
+   if (length(x = neg.genes) > 0) {
+     for (i in neg.genes) {
+       message(paste0("\t  ", paste0(i, collapse = ", ")))
+     }
    }
+   message("")
   }
 }
 
@@ -180,7 +187,7 @@ Print.DimReduc <- function(
 TopGenes <- function(
   object,
   dim.use = 1,
-  num.features = 30,
+  num.features = 20,
   projected = FALSE,
   do.balanced = FALSE
 ) {

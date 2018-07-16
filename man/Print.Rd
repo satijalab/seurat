@@ -7,7 +7,7 @@
 \usage{
 Print(object, ...)
 
-\method{Print}{DimReduc}(object, dims = 1:5, num.features = 30,
+\method{Print}{DimReduc}(object, dims = 1:5, num.features = 20,
   projected = FALSE)
 }
 \arguments{
