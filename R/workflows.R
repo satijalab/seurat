@@ -22,6 +22,13 @@ InitializeWorkflow <- function(object, file) {
     depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
   }
   mostRecent <- rep(as.POSIXct("1900-01-01"),length(cmds)); names(mostRecent) <- cmds 
+  for(i in names(mostRecent)) {
+    command.name <- intersect(c(i, paste0(i,".",DefaultAssay(object))), names(object))
+    if (length(x = command.name)==1) {
+      seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+      mostRecent[i] <- seurat.timestamp
+    }
+  }
   seurat.workflow <- new(
     Class = 'SeuratWorkflow',
     name = workflow.name,
@@ -166,6 +173,37 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = NULL
     object <- TouchWorkflow(object,workflow.name = workflow.name,command.name = i,time.stamp = time.stamp)
   }
   return(object)
+}
+
+#' Output status of each command in the workflow
+#'
+#' For each command in the workflow, indicate whether it is up-to-date.
+#' 
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command at the end of the workflow
+#' 
+#' @return Seurat object with updated workflow
+#' 
+#' @export
+#' 
+#' @examples
+#' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+#' #
+WorkflowStatus <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  message(paste0("Status  for ", workflow.name, " workflow"))
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  all.cmds <- rownames(depends)
+  for(i in all.cmds) {
+    is.updated <- (!CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i))
+    if (is.updated) {
+      message(paste0("\t",i, " up to date"))
+    }
+    else {
+      message(paste0("\t\t",i, " is out of date"))
+    }
+  }
 }
 
 #' Output individual function calls to recreate workflow
