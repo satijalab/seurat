@@ -286,9 +286,9 @@ DefaultAssay.DimReduc <- function(object, ...) {
 
 #' @describeIn GetDimReduc Get a slot for a given DimReduc
 #' @export
-#' @method GetDimReduc Seurat
+#' @method GetDimReduc DimReduc
 #'
-GetDimReduc.Seurat <- function(object, slot) {
+GetDimReduc.DimReduc <- function(object, slot) {
   return(slot(object = object, name = slot))
 }
 
