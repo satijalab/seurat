@@ -89,6 +89,7 @@ Collate:
     'interaction.R'
     'interaction_generics.R'
     'jackstraw.R'
+    'jackstraw_generics.R'
     'jackstraw_internal.R'
     'multi_modal.R'
     'not_used_yet.R'

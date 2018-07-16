@@ -130,6 +130,80 @@ JackStraw <- function(
   return(object)
 }
 
+#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @export
+#' @method ScoreJackStraw DimReduc
+#'
+ScoreJackStraw.DimReduc <- function(
+  object,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+){
+  pAll <- slot(object = GetDimReduc(object = object, slot = "jackstraw"), name = "emperical.p.value")
+  pAll <- pAll[, dims, drop = FALSE]
+  pAll <- as.data.frame(pAll)
+  pAll$Contig <- rownames(x = pAll)
+  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
+  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
+  qq.df <- NULL
+  score.df <- NULL
+  for (i in dims) {
+    q <- qqplot(x = pAll[, i], y = runif(n = 1000), plot.it = FALSE)
+    pc.score <- suppressWarnings(prop.test(
+      x = c(
+        length(x = which(x = pAll[, i] <= score.thresh)),
+        floor(x = nrow(x = pAll) * score.thresh)
+      ),
+      n = c(nrow(pAll), nrow(pAll))
+    )$p.val)
+    if (length(x = which(x = pAll[, i] <= score.thresh)) == 0) {
+      pc.score <- 1
+    }
+    if (is.null(x = score.df)) {
+      score.df <- data.frame(PC = paste0("PC", i), Score = pc.score)
+    } else {
+      score.df <- rbind(score.df, data.frame(PC = paste0("PC",i), Score = pc.score))
+    }
+    if (is.null(x = qq.df)) {
+      qq.df <- data.frame(x = q$x, y = q$y, PC = paste0("PC", i))
+    } else {
+      qq.df <- rbind(qq.df, data.frame(x = q$x, y = q$y, PC = paste0("PC", i)))
+    }
+  }
+  score.df$PC <- dims
+  score.df <- as.matrix(score.df)
+  ## TODO: proper accessors for jackstraw objects
+  new.jackstraw <- GetDimReduc(object = object, slot = "jackstraw")
+  new.jackstraw@overall.p.values <- score.df
+  object <- SetDimReduc(object = object, slot = "jackstraw", new.data = new.jackstraw)
+  return(object)
+}
+
+#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
+#' @param reduction.use Reduction associated with JackStraw to score
+#' @export
+#' @method ScoreJackStraw Seurat
+#'
+ScoreJackStraw.Seurat <- function(
+  object,
+  reduction.use,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+){
+  object[[reduction.use]] <- ScoreJackStraw(
+    object = object[[reduction.use]],
+    dims = dims,
+    ...
+  )
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+
 #' Significant genes from a PCA
 #'
 #' Returns a set of genes, based on the JackStraw analysis, that have
