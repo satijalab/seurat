@@ -769,25 +769,31 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #'
 JackStrawPlot <- function(
   object,
-  reduction.use = NULL,
+  reduction.use = "pca",
   dims = 1:5,
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  pAll <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "emperical.p.value")
+  pAll <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "empirical.p.values")
+  if (max(dims) > ncol(pAll)) {
+    stop("Max dimension is ", ncol(pAll), ".")
+  }
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
   pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = pAll.l) <- c("Contig", "PC", "Value")
-  score.df <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "overall.p.values")
+  score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")[dims, ]
+  if (nrow(score.df) == 0) {
+    stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
+  }
   pAll.l$PC.Score <- rep(
-    x = paste0(score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
+    x = paste0("PC ", score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
     each = length(x = unique(x = pAll.l$Contig))
   )
   pAll.l$PC.Score <- factor(
     x = pAll.l$PC.Score,
-    levels = paste0(score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
+    levels = paste0("PC ", score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
   )
   gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
     stat_qq(distribution = qunif) +

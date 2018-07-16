@@ -73,9 +73,8 @@ JackStraw <- function(
   assay.use <- assay.use %||% DefaultAssay(object = object)
   loadings <- Loadings(object = object[[reduction.use]])
   data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
-  ## TODO: Proper accessors for command params
-  rev.pca <- object[[paste0("RunPCA.", assay.use)]]@params$rev.pca
-  weight.by.var <- object[[paste0("RunPCA.", assay.use)]]@params$weight.by.var
+  rev.pca <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$rev.pca
+  weight.by.var <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$weight.by.var
 
   ## TODO: Parallelization
   fake.vals.raw <- lapply(X = 1:num.replicate, FUN = function(x) {
@@ -116,10 +115,10 @@ JackStraw <- function(
   )
   colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
   jackstraw.obj <- new(
-    Class = "jackstraw.data",
-    emperical.p.value  = jackStraw.empP,
-    fake.pc.scores = fake.vals,
-    emperical.p.value.full = matrix()
+    Class = "JackStrawData",
+    empirical.p.values  = jackStraw.empP,
+    fake.reduction.scores = fake.vals,
+    empirical.p.values.full = matrix()
   )
   object[[reduction.use]] <- SetDimReduc(
     object = object[[reduction.use]],
@@ -130,18 +129,18 @@ JackStraw <- function(
   return(object)
 }
 
-#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @describeIn ScoreJackStraw Score JackStraw results given a JackStrawData
 #' @export
-#' @method ScoreJackStraw DimReduc
+#' @method ScoreJackStraw JackStrawData
 #'
-ScoreJackStraw.DimReduc <- function(
+ScoreJackStraw.JackStrawData <- function(
   object,
   dims = 1:5,
   score.thresh = 1e-5,
   do.plot = FALSE,
   ...
-){
-  pAll <- slot(object = GetDimReduc(object = object, slot = "jackstraw"), name = "emperical.p.value")
+) {
+  pAll <- GetJS(object = object, slot = "empirical.p.values")
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
@@ -174,10 +173,30 @@ ScoreJackStraw.DimReduc <- function(
   }
   score.df$PC <- dims
   score.df <- as.matrix(score.df)
-  ## TODO: proper accessors for jackstraw objects
-  new.jackstraw <- GetDimReduc(object = object, slot = "jackstraw")
-  new.jackstraw@overall.p.values <- score.df
-  object <- SetDimReduc(object = object, slot = "jackstraw", new.data = new.jackstraw)
+  object <- SetJS(object = object, slot = "overall.p.values", new.data = score.df)
+  return(object)
+}
+
+
+#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @export
+#' @method ScoreJackStraw DimReduc
+#'
+ScoreJackStraw.DimReduc <- function(
+  object,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+){
+  jackstraw.data <- ScoreJackStraw(
+    object = GetDimReduc(object = object, slot = "jackstraw"),
+    dims = dims,
+    score.thresh = 1e-5,
+    do.plot = FALSE,
+    ...
+  )
+  object <- SetDimReduc(object = object, slot = "jackstraw", new.data = jackstraw.data)
   return(object)
 }
 
@@ -188,7 +207,7 @@ ScoreJackStraw.DimReduc <- function(
 #'
 ScoreJackStraw.Seurat <- function(
   object,
-  reduction.use,
+  reduction.use = "pca",
   dims = 1:5,
   score.thresh = 1e-5,
   do.plot = FALSE,
@@ -231,10 +250,10 @@ PCASigGenes <- function(
   use.full = FALSE,
   max.per.pc = NULL
 ) {
-  pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@emperical.p.value
+  pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values
   pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings")
   if (use.full) {
-    pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@emperical.p.value.full
+    pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values.full
     pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings.full")
   }
   if (length(x = pcs.use) == 1) {
@@ -257,3 +276,39 @@ PCASigGenes <- function(
   }
   return(genes.use)
 }
+
+
+#' @describeIn GetJS Get a slot for a given JackStrawData
+#' @export
+#' @method GetJS JackStrawData
+#'
+GetJS.JackStrawData <- function(object, slot) {
+  return(slot(object = object, name = slot))
+}
+
+#' @describeIn SetJS Set a slot for a given JackStrawData
+#' @export
+#' @method SetJS JackStrawData
+#'
+SetJS.JackStrawData <- function(object, slot, new.data) {
+  slots.use <- c("empirical.p.values", "fake.reduction.scores",
+                 "empirical.p.values.full", "overall.p.values")
+  if (!slot %in% slots.use) {
+    stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
+  }
+  slot(object = object, name = slot) <- new.data
+  return(object)
+}
+
+setMethod(
+  f = 'show',
+  signature = 'JackStrawData',
+  definition = function(object) {
+    empp <- GetJS(object = object, slot = "empirical.p.values")
+    scored <- GetJS(object = object, slot = "overall.p.values")
+    cat(
+      "A JackStrawData object simulated on", nrow(empp), "features for", ncol(empp), "dimensions.\n",
+      "Scored for:", nrow(scored), "dimensions."
+    )
+  }
+)
