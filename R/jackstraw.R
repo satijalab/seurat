@@ -126,6 +126,7 @@ JackStraw <- function(
     slot = "jackstraw",
     new.data = jackstraw.obj
   )
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
