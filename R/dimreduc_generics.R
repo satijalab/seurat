@@ -79,3 +79,20 @@ Key <- function(object, ...) {
 "Key<-" <- function(object, ..., value) {
   UseMethod(generic = 'Key<-', object = object)
 }
+
+
+#' Print the results of a dimensional reduction analysis
+#'
+#' Prints a set of genes that most strongly define a set of components
+#'
+#' @param object DimReduc object
+#'
+#' @return Set of features defining the components
+#'
+#'
+#' @rdname Print
+#' @export Print
+#'
+Print <- function(object, ...) {
+  UseMethod(generic = "Print", object = object)
+}
