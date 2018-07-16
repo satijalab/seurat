@@ -101,10 +101,12 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   # According to the workflow, the most recent update
   mostRecent <- slot(object[[workflow.name]],"mostRecent") 
   workflow.timestamp <- mostRecent[command.name]
-  if (is.na(workflow.timestamp)) {
+  seurat.timestamp <- as.POSIXct("1900-01-01");
+  
+  #means Seurat command has never been run in the workflow
+  if (workflow.timestamp==seurat.timestamp) {
     return(TRUE)
   }
-  seurat.timestamp <- NULL
   # According to SeuratCommand, the most recent update
   #TODO deal with Assay better
   command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
@@ -125,6 +127,7 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' @param object Seurat object
 #' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
 #' @param command.name Name of the command to touch
+#' @param time.stamp Timestamp to assign
 #' 
 #' @return Seurat object with updated workflow
 #' 
@@ -133,7 +136,7 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' @examples
 #' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
 #' #'
-TouchWorkflow <- function(object, workflow.name, command.name) {
+TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = NULL) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
 
   seurat.timestamp <- as.POSIXct("1900-01-01");
@@ -143,14 +146,15 @@ TouchWorkflow <- function(object, workflow.name, command.name) {
   if (length(x = command.name.seurat)==1) {
     seurat.timestamp <- slot(object[[command.name.seurat]],"time.stamp")
   }
-
-  #Now update all dependencies
+  time.stamp <- time.stamp %||% seurat.timestamp
+  #Now update all dependencies, recursively
   depends <- slot(object = object[[workflow.name]],name = "depends")
   depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
   mostRecent <- slot(object[[workflow.name]],"mostRecent") 
-  for(i in c(command.name,depend.commands)) {
-    mostRecent[i] <- seurat.timestamp
-  }
+  mostRecent[command.name] <- time.stamp
   slot(object[[workflow.name]],"mostRecent") <- mostRecent
+  for(i in depend.commands) {
+    object <- TouchWorkflow(object,workflow.name = workflow.name,command.name = i,time.stamp = time.stamp)
+  }
   return(object)
 }

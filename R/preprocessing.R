@@ -1069,6 +1069,7 @@ FindVariableFeatures.Seurat <- function(
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
     selection.method = selection.method,
+    num.features = num.features,
     ...
   )
   object[[assay.use]] <- assay.data

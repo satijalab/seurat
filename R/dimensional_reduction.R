@@ -519,7 +519,7 @@ RunTSNE.Seurat <- function(
   } else {
     RunTSNE(
       object = object[[reduction.use]],
-      dims.use = dims.use,
+      dims.use = dims.viz,
       seed.use = seed.use,
       tsne.method = tsne.method,
       add.iter = add.iter,

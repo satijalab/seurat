@@ -12,14 +12,25 @@ ReadWorkflowParams <- function(object, workflow.name,depth=2) {
   exact.match <- intersect(param.list,names(workflow.params))
   generic.params <- grep(pattern = "\\.$",x = names(workflow.params),value = T)
   p.env <- parent.frame(depth)
-  for(i in exact.match) {
-    assign(x = i,value = unlist(workflow.params[i])[[1]],envir = p.env)
-  }
   for(i in generic.params) {
     generic.match <- grep(pattern = i,x = param.list,value = T)
     for(j in generic.match) {
       assign(x = j,value = unlist(workflow.params[i])[[1]],envir = p.env)
     }
+  }
+  
+  #do exact params last so there can be overwriting
+  for(i in exact.match) {
+    assign(x = i,value = unlist(workflow.params[i])[[1]],envir = p.env)
+  }
+  
+  #overwrite any arguments passed in on the command line
+  argnames <- sys.call(which = depth)
+  argList <- as.list(argnames[-1])
+  args_ignore <- c("","object","workflow.name")
+  args_use <- setdiff(names(argList),args_ignore)
+  for(i in args_use) {
+    assign(x = i,value = unlist(argList[i])[[1]],envir = p.env)
   }
 }
 
