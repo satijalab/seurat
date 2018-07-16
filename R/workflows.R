@@ -108,7 +108,6 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   # According to SeuratCommand, the most recent update
   #TODO deal with Assay better
   command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
-  browser()
   if (length(x = command.name)==1) {
     seurat.timestamp <- slot(object[[command.name]],"time.stamp")
   }
@@ -116,4 +115,43 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
    return(FALSE)
  }
   return(TRUE)
+}
+
+
+#' Updates workflow timestamps
+#'
+#' Like the touch command in linux. Updates a workflow command's timestamp, and its dependencies
+#' 
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command to touch
+#' 
+#' @return Seurat object with updated workflow
+#' 
+#' @export
+#' 
+#' @examples
+#' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
+#' #'
+TouchWorkflow <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+
+  seurat.timestamp <- 0;
+  # According to SeuratCommand, the most recent update
+  #TODO deal with Assay better
+  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name)==1) {
+    seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+  }
+
+  #Now update all dependencies
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
+  mostRecent <- slot(object[[workflow.name]],"mostRecent") 
+  for(i in depend.commands) {
+    mostRecent[i] <- seurat.timestamp
+  }
+  slot(object[[workflow.name]],"mostRecent") <- mostRecent
+  browser()
+  print(1)
 }

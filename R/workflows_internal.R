@@ -31,11 +31,10 @@ PrepareWorkflow <- function(object, workflow.name) {
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
   depends <- slot(object = object[[workflow.name]],name = "depends")
-  depend.commands <- colnames(depends)[which(depends[command.name,]==1)]
-  browser()
-  for(i in depend.commands) {
-    check.depends <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
-    if (check.depends) {
+  prereq.commands <- colnames(depends)[which(depends[command.name,]==1)]
+  for(i in prereq.commands) {
+    check.prereqs <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
+    if (check.prereqs) {
       # run the dependency
       new.cmd <- paste0("object <- ", i, "(object, workflow = ", workflow.name, ")")
       print(paste0("Updating ", i))
@@ -43,6 +42,23 @@ PrepareWorkflow <- function(object, workflow.name) {
     }
   }
   ReadWorkflowParams(object = object,workflow.name = workflow.name)
+}
+
+#' UpdateWorkflow
+#'
+#' Updates a workflow object after a command is run, and makes sure timestamps are properly set. 
+#'
+UpdateWorkflow <- function(object, workflow.name) {
+  CheckWorkflow(object = object,workflow.name = workflow.name)
+  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
+  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
+  command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  depend.commands <- colnames(depends)[which(depends[command.name,]==1)]
+  for(i in depend.commands) {
+    check.depends <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
+    object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name)
+  }
 }
 
 

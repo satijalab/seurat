@@ -806,6 +806,7 @@ ScaleData.Seurat <- function(
   verbose = TRUE,
   ...
 ) {
+  if (!(is.null) (workflow.name)) PrepareWorkflow(object = object,workflow.name = workflow.name)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   if (any(vars.to.regress %in% colnames(x = object[]))) {
@@ -830,6 +831,7 @@ ScaleData.Seurat <- function(
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!(is.null) (workflow.name)) UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 
