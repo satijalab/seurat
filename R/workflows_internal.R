@@ -31,9 +31,18 @@ PrepareWorkflow <- function(object, workflow.name) {
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
   depends <- slot(object = object[[workflow.name]],name = "depends")
-  colnames(depends)[which(depends[command.name,]==1)]
+  depend.commands <- colnames(depends)[which(depends[command.name,]==1)]
   browser()
-  print(1)
+  for(i in depend.commands) {
+    check.depends <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
+    if (check.depends) {
+      # run the dependency
+      new.cmd <- paste0("object <- ", i, "(object, workflow = ", workflow.name, ")")
+      print(paste0("Updating ", i))
+      print(new.cmd)
+    }
+  }
   ReadWorkflowParams(object = object,workflow.name = workflow.name)
 }
+
 

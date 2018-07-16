@@ -236,7 +236,6 @@ SeuratWorkflow <- setClass(
   slots = c(
     name = 'character',
     depends = 'ANY',
-    updates = 'ANY',
     params = 'ANY',
     mostRecent = 'ANY'
   )

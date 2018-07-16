@@ -13,7 +13,7 @@
 #' pbmc_small <- InitializeWorkflow(object = pbmc_small, file = 'workflows/cluster.workflow.txt)
 #'
 InitializeWorkflow <- function(object, file) {
-  worklow.name <- gsub(".workflow.txt","",basename(file))
+  workflow.name <- gsub(".workflow.txt","",basename(file))
   workflow.data <- read.table(file)
   cmds <- sort(unique(as.vector(as.matrix(workflow.data))))
   depends <- data.frame(matrix(nrow=length(cmds),ncol=length(cmds)))
@@ -21,14 +21,14 @@ InitializeWorkflow <- function(object, file) {
   for(i in 1:nrow(workflow.data)) {
     depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
   }
-  mostRecent <- rep(NA,length(cmds)); names(updates) <- cmds 
+  mostRecent <- rep(NA,length(cmds)); names(mostRecent) <- cmds 
   seurat.workflow <- new(
     Class = 'SeuratWorkflow',
-    name = worklow.name,
+    name = workflow.name,
     depends = depends,
-    updates = updates
+    mostRecent = mostRecent
   )
-  object[[worklow.name]] <- seurat.workflow
+  object[[workflow.name]] <- seurat.workflow
   return(object)
 }
 
@@ -80,4 +80,40 @@ SetWorkflowParams <- function(object, workflow.name, ...) {
   return(object)
 }
 
-
+#' Check if workflow command needs update
+#'
+#' Compares the stored timestamp with the most recently recorded timestamp to see if a dependency has been updated
+#' 
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command to check
+#' 
+#' @return Returns TRUE if the dependency has changed (or has not been run), and an update is needed. FALSE otherwise
+#' 
+#' @export
+#' 
+#' @examples
+#' CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
+#' #'
+CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  
+  # According to the workflow, the most recent update
+  mostRecent <- slot(object[[workflow.name]],"mostRecent") 
+  workflow.timestamp <- mostRecent[command.name]
+  if (is.na(workflow.timestamp)) {
+    return(TRUE)
+  }
+  seurat.timestamp <- NULL
+  # According to SeuratCommand, the most recent update
+  #TODO deal with Assay better
+  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  browser()
+  if (length(x = command.name)==1) {
+    seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+  }
+ if (seurat.timestamp == workflow.timestamp) {
+   return(FALSE)
+ }
+  return(TRUE)
+}
