@@ -172,14 +172,6 @@ ScoreJackStraw.DimReduc <- function(
       qq.df <- rbind(qq.df, data.frame(x = q$x, y = q$y, PC = paste0("PC", i)))
     }
   }
-  pAll.l$PC.Score <- rep(
-    x = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score)),
-    each = length(x = unique(x = pAll.l$Contig))
-  )
-  pAll.l$PC.Score <- factor(
-    x = pAll.l$PC.Score,
-    levels = paste0(score.df$PC, " ", sprintf("%1.3g", score.df$Score))
-  )
   score.df$PC <- dims
   score.df <- as.matrix(score.df)
   ## TODO: proper accessors for jackstraw objects
@@ -207,6 +199,7 @@ ScoreJackStraw.Seurat <- function(
     dims = dims,
     ...
   )
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
