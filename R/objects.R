@@ -115,7 +115,7 @@ Seurat <- setClass(
     calc.params = 'list',
     misc = 'list',
     version = 'package_version',
-    commands='list'
+    commands = 'list'
   )
 )
 
@@ -154,35 +154,35 @@ Seurat <- setClass(
 # @name seurat
 # @rdname seurat
 # @aliases seurat-class
-# @exportClass seurat
+#' @exportClass seurat
 # @importFrom Rcpp evalCpp
 # @useDynLib Seurat
 #
-# seurat <- setClass(
-#   "seurat",
-#   slots = c(
-#     raw.data = "ANY",
-#     data = "ANY",
-#     scale.data = "ANY",
-#     var.genes = "vector",
-#     is.expr = "numeric",
-#     ident = "factor",
-#     meta.data = "data.frame",
-#     project.name = "character",
-#     dr = "list",
-#     assay = "list",
-#     hvg.info = "data.frame",
-#     imputed = "data.frame",
-#     cell.names = "vector",
-#     cluster.tree = "list",
-#     snn = "dgCMatrix",
-#     calc.params = "list",
-#     kmeans = "ANY",
-#     spatial = "ANY",
-#     misc = "ANY",
-#     version = "ANY"
-#   )
-# )
+seurat <- setClass(
+  "seurat",
+  slots = c(
+    raw.data = "ANY",
+    data = "ANY",
+    scale.data = "ANY",
+    var.genes = "vector",
+    is.expr = "numeric",
+    ident = "factor",
+    meta.data = "data.frame",
+    project.name = "character",
+    dr = "list",
+    assay = "list",
+    hvg.info = "data.frame",
+    imputed = "data.frame",
+    cell.names = "vector",
+    cluster.tree = "list",
+    snn = "dgCMatrix",
+    calc.params = "list",
+    kmeans = "ANY",
+    spatial = "ANY",
+    misc = "ANY",
+    version = "ANY"
+  )
+)
 
 # show method for seurat
 #
@@ -192,11 +192,17 @@ Seurat <- setClass(
 # @docType methods
 # @rdname show-methods
 #
-
+setMethod(
+  f = 'show',
+  signature = 'seurat',
+  definition = function(object) {
+    cat("An old seurat object\n", nrow(x = object@data), 'genes across', ncol(x = object@data), 'samples')
+  }
+)
 
 #' The SeuratCommand Class
 #'
-#' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps 
+#' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
 #'
 #' @slot name Command name
 #' @slot timestamp Timestamp of when command was tun
