@@ -761,6 +761,8 @@ ScaleData.Assay <- function(
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = use.umi, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'matrix', no = 'data')
+  features.use <- features.use %||% VariableFeatures(object)
+  if (length(features.use) == 0) features.use <- rownames(GetAssayData(object = object, slot = slot.use))
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',

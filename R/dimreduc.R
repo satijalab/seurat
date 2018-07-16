@@ -294,9 +294,9 @@ GetDimReduc.Seurat <- function(object, slot) {
 
 #' @describeIn SetDimReduc Set a slot for a given DimReduc
 #' @export
-#' @method SetDimReduc Seurat
+#' @method SetDimReduc DimReduc
 #'
-SetDimReduc.Seurat <- function(object, slot, new.data) {
+SetDimReduc.DimReduc <- function(object, slot, new.data) {
   slots.use <- c("cell.embeddings", "gene.loadings", "gene.loadings.projected",
                  "assay.used", "stdev", "key", "jackstraw", "misc")
   if (!slot %in% slots.use) {
