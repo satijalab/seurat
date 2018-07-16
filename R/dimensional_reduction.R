@@ -135,7 +135,7 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
-  if (!(is.null) (workflow.name)) UpdateWorkflow(object = object,workflow.name = workflow.name)
+  if (!(is.null) (workflow.name)) object <- UpdateWorkflow(object = object,workflow.name = workflow.name)
   return(object)
 }
 

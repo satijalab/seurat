@@ -2,14 +2,16 @@
 #' Read Seurat workflow parameters
 #'
 #' Reads parameters for a workflow and assigns them to the parent function call. No return
+#' depth is the depth of the call in the function stack. If called directly from, for example, ScaleData, then depth=1.
+#' If called indirectly from PrepareWorkflow, then depth=2
 #'
-ReadWorkflowParams <- function(object, workflow.name) {
+ReadWorkflowParams <- function(object, workflow.name,depth=2) {
   CheckWorkflow(object = object,workflow.name = workflow.name)
-  param.list <- names(formals(fun = sys.function(sys.parent())))
+  param.list <- names(formals(fun = sys.function(sys.parent(depth))))
   workflow.params <- (object[[workflow.name]]@params)
   exact.match <- intersect(param.list,names(workflow.params))
   generic.params <- grep(pattern = "\\.$",x = names(workflow.params),value = T)
-  p.env <- parent.frame(1)
+  p.env <- parent.frame(depth)
   for(i in exact.match) {
     assign(x = i,value = unlist(workflow.params[i])[[1]],envir = p.env)
   }
@@ -36,12 +38,14 @@ PrepareWorkflow <- function(object, workflow.name) {
     check.prereqs <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
     if (check.prereqs) {
       # run the dependency
-      new.cmd <- paste0("object <- ", i, "(object, workflow = ", workflow.name, ")")
+      workflow.name.quotes <- paste0('\"',workflow.name,'\"')
+      new.cmd <- paste0("object <- ", i, "(object, workflow = ", workflow.name.quotes, ")")
       print(paste0("Updating ", i))
       print(new.cmd)
+      eval(expr = parse(text = new.cmd))
     }
   }
-  ReadWorkflowParams(object = object,workflow.name = workflow.name)
+  ReadWorkflowParams(object = object,workflow.name = workflow.name,depth = 2)
 }
 
 #' UpdateWorkflow
@@ -53,12 +57,8 @@ UpdateWorkflow <- function(object, workflow.name) {
   command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  depend.commands <- colnames(depends)[which(depends[command.name,]==1)]
-  for(i in depend.commands) {
-    check.depends <- CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i)
-    object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name)
-  }
+  object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name)
+  return(object)
 }
 
 

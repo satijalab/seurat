@@ -21,7 +21,7 @@ InitializeWorkflow <- function(object, file) {
   for(i in 1:nrow(workflow.data)) {
     depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
   }
-  mostRecent <- rep(NA,length(cmds)); names(mostRecent) <- cmds 
+  mostRecent <- rep(as.POSIXct("1900-01-01"),length(cmds)); names(mostRecent) <- cmds 
   seurat.workflow <- new(
     Class = 'SeuratWorkflow',
     name = workflow.name,
@@ -136,22 +136,21 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 TouchWorkflow <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
 
-  seurat.timestamp <- 0;
+  seurat.timestamp <- as.POSIXct("1900-01-01");
   # According to SeuratCommand, the most recent update
   #TODO deal with Assay better
-  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
-  if (length(x = command.name)==1) {
-    seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+  command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name.seurat)==1) {
+    seurat.timestamp <- slot(object[[command.name.seurat]],"time.stamp")
   }
 
   #Now update all dependencies
   depends <- slot(object = object[[workflow.name]],name = "depends")
   depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
   mostRecent <- slot(object[[workflow.name]],"mostRecent") 
-  for(i in depend.commands) {
+  for(i in c(command.name,depend.commands)) {
     mostRecent[i] <- seurat.timestamp
   }
   slot(object[[workflow.name]],"mostRecent") <- mostRecent
-  browser()
-  print(1)
+  return(object)
 }
