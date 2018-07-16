@@ -209,7 +209,7 @@ SeuratCommand <- setClass(
   Class = 'SeuratCommand',
   slots = c(
     name = 'character',
-    time.stamp = 'ANY',
+    time.stamp = 'POSIXct',
     call.string = 'character',
     params = 'ANY'
   )
