@@ -10,6 +10,15 @@ InitializeWorkflow <- function(object, file) {
   for(i in 1:nrow(workflow.data)) {
     depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
   }
+  updates <- rep(TRUE,length(cmds)); names(updates) <- cmds 
+  seurat.workflow <- new(
+    Class = 'SeuratWorkflow',
+    name = worklow.name,
+    depends = depends,
+    updates = updates
+  )
+  object[[worklow.name]] <- seurat.workflow
+  return(object)
 }
 
 

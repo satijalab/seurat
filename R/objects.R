@@ -115,7 +115,8 @@ Seurat <- setClass(
     calc.params = 'list',
     misc = 'list',
     version = 'package_version',
-    commands='list'
+    commands='list',
+    workflows='list'
   )
 )
 
@@ -233,7 +234,7 @@ SeuratWorkflow <- setClass(
   slots = c(
     name = 'character',
     depends = 'ANY',
-    update = 'ANY',
+    updates = 'ANY',
     params = 'ANY'
   )
 )

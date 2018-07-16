@@ -436,7 +436,7 @@ setMethod(
 #'
 "[[.Seurat" <- function(x, i, ...) {
   slot.use <- unlist(x = lapply(
-    X = c('assays', 'reductions', 'graphs', 'neighbors','commands'),
+    X = c('assays', 'reductions', 'graphs', 'neighbors','commands','workflows'),
     FUN = function(s) {
       if (i %in% names(x = slot(object = x, name = s))) {
         return(s)
@@ -468,6 +468,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         'reductions'
       },
       'SeuratCommand' = 'commands',
+      'SeuratWorkflow' = 'workflows',
       stop("Unknown object type: ", class(x = value))
     )
     if (!all(colnames(x = value) == colnames(x = x))) {
