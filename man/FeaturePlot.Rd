@@ -8,7 +8,7 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   reduction.use = "tsne", dims.use = c(1, 2), group.by = NULL,
   cols.use = c("yellow", "red"), cells.use = NULL, pt.size = 1,
   shape.by = NULL, plot.order = NULL, do.label = FALSE, label.size = 4,
-  na.value = "grey50")
+  na.value = "grey50", combine.plots = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -47,9 +47,11 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 \item{label.size}{Sets size of labels}
 
 \item{na.value}{Color value for NA points when using custom scale.}
+
+\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 }
 \value{
-No return value, only a graphical output
+A ggplot object
 }
 \description{
 Colors single cells on a dimensional reduction plot according to a 'feature'
