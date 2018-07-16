@@ -565,7 +565,6 @@ ProjectDim <- function(
   do.center = FALSE,
   verbose = TRUE
 ) {
-
   reduction <- object[[reduction.use]]
   assay.use <- assay.use %||% GetDimReduc(object = reduction, slot = "assay.used")
   data.use <- GetAssayData(
@@ -603,6 +602,7 @@ ProjectDim <- function(
       projected = TRUE
     )
   }
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
