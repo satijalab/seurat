@@ -61,6 +61,11 @@ RegressOutResid <- function(
   if (use.umi) {
     data.use <- object@raw.data[genes.regress, object@cell.names, drop = FALSE]
   }
+  
+  if(anyNA(latent.data) | anyNA(data.use)) {
+    stop("Data used in regression cannot contain NA values.")
+  }
+  
   # input checking for parallel options
   if (do.par) {
     if (num.cores == 1) {
