@@ -2,12 +2,12 @@
 % Please edit documentation in R/dimreduc_generics.R, R/dimreduc.R
 \name{SetDimReduc}
 \alias{SetDimReduc}
-\alias{SetDimReduc.Seurat}
+\alias{SetDimReduc.DimReduc}
 \title{Setter for DimReduc object}
 \usage{
 SetDimReduc(object, slot, new.data, ...)
 
-\method{SetDimReduc}{Seurat}(object, slot, new.data)
+\method{SetDimReduc}{DimReduc}(object, slot, new.data)
 }
 \arguments{
 \item{object}{A DimReduc object}
@@ -26,6 +26,6 @@ Setter for DimReduc object
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{Seurat}: Set a slot for a given DimReduc
+\item \code{DimReduc}: Set a slot for a given DimReduc
 }}
 
