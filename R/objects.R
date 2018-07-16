@@ -198,7 +198,7 @@ Seurat <- setClass(
 
 #' The SeuratCommand Class
 #'
-#' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps 
+#' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
 #'
 #' @slot name Command name
 #' @slot timestamp Timestamp of when command was tun
@@ -238,5 +238,27 @@ SeuratWorkflow <- setClass(
     depends = 'ANY',
     params = 'ANY',
     mostRecent = 'ANY'
+  )
+)
+
+#' The JackStrawData Class
+#'
+#' The JackStrawData is used to store the results of a JackStraw computation.
+#'
+#' @slot empirical.p.values Empirical p-values
+#' @slot fake.reduction.scores Fake reduction scores
+#' @slot empirical.p.values.full Empirical p-values on full
+#' @slot overall.p.values Overall p-values from ScoreJackStraw
+#'
+#' @name JackStrawData
+#' @exportClass JackStrawData
+#'
+JackStrawData <- setClass(
+  Class = "JackStrawData",
+  slots = list(
+    empirical.p.values = "matrix",
+    fake.reduction.scores = "matrix",
+    empirical.p.values.full = "matrix",
+    overall.p.values = "matrix"
   )
 )

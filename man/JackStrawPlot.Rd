@@ -4,7 +4,7 @@
 \alias{JackStrawPlot}
 \title{JackStraw Plot}
 \usage{
-JackStrawPlot(object, reduction.use = NULL, dims = 1:5, plot.x.lim = 0.1,
+JackStrawPlot(object, reduction.use = "pca", dims = 1:5, plot.x.lim = 0.1,
   plot.y.lim = 0.3)
 }
 \arguments{

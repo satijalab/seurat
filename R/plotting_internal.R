@@ -522,7 +522,7 @@ MakeLabels <- function(data.plot) {
 #
 CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
   plots.combined <- if (length(x = plot.list) > 1) {
-    if (legend.position == 'none') {
+    if (!is.null(x = legend.position) && legend.position == 'none') {
       plot.list <- lapply(
         X = plot.list,
         FUN = function(x) {
@@ -792,7 +792,7 @@ SingleExIPlot <- function(
 # @param ... Ignored for now
 #
 #
-#' @importFrom ggplot2 ggplot aes_string
+#' @importFrom ggplot2 ggplot aes_string scale_color_brewer scale_color_manual
 #
 SingleDimPlot <- function(
   object,
@@ -883,6 +883,65 @@ SingleDimPlot <- function(
   if (!is.null(x = legend.title)) {
     p <- p + labs(color = legend.title)
   }
+  if (!is.null(x = cols.use)) {
+    cols.use <- if (length(x = cols.use) == 1) {
+      scale_color_brewer(palette = cols.use)
+    } else {
+      scale_color_manual(values = cols.use, na.value = na.value)
+    }
+    p <- p + cols.use
+  }
+  return(p)
+}
+
+# A single correlation plot
+#
+# @param data.plot A data frame with two columns to be plotted
+# @param col.by A vector or factor of values to color the plot by
+# @param cols.use An optional vector of colors to use
+# @param pt.size Point size for the plot
+# @param smooth Make a smoothed scatter plot
+# @param legend.title Optional legend title
+# @param ... Extra parameters to MASS::kde2d
+#
+#' @importFrom stats cor
+#' @importFrom MASS kde2d
+#' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
+#' scale_color_manual geom_tile guides
+#'
+SingleCorPlot <- function(
+  data.plot,
+  col.by = NULL,
+  cols.use = NULL,
+  pt.size = 1,
+  smooth = FALSE,
+  legend.title = NULL,
+  ...
+) {
+  names.plot <- colnames(x = data.plot)
+  plot.cor <- round(x = cor(x = data.plot[, 1], y = data.plot[, 2]), digits = 2)
+  if (!is.null(x = col.by)) {
+    data.plot$colors <- col.by
+  }
+  p <- ggplot(
+    data = data.plot,
+    mapping = aes_string(x = names.plot[1], y = names.plot[2])
+  ) +
+    labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
+  if (!is.null(x = col.by)) {
+    p <- p + geom_point(mapping = aes_string(color = 'colors'))
+  }
+  if (smooth) {
+    density <- kde2d(x = data.plot[, 1], y = data.plot[, 2], ...)
+    density <- data.frame(
+      x = unlist(x = lapply(X = density$x, FUN = rep.int, times = length(x = density$x))),
+      y = rep.int(x = density$y, times = length(x = density$y)),
+      z = unlist(x = as.data.frame(x = density$z))
+    )
+    p <- p + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
+      guides(fill = FALSE)
+  }
+  p <- p + geom_point(size = pt.size)
   if (!is.null(x = cols.use)) {
     cols.use <- if (length(x = cols.use) == 1) {
       scale_color_brewer(palette = cols.use)
@@ -996,7 +1055,7 @@ heatmap2NoKey <- function(
   ylab = NULL,
   lmat = NULL,
   lhei = NULL,
-  axRowCol="black",
+  axRowCol = "black",
   lwid = NULL,
   dimTitle = NULL,
   pc_title = NULL,
@@ -1017,7 +1076,7 @@ heatmap2NoKey <- function(
   if (length(x = col) == 1 && is.character(x = col)) {
     col <- get(col, mode = "function")
   }
-  if (! missing(x = breaks) && (scale != "none")) {
+  if (!missing(x = breaks) && (scale != "none")) {
     warning(
       "Using scale=\"row\" or scale=\"column\" when breaks are",
       "specified can produce unpredictable results.",
@@ -1040,13 +1099,13 @@ heatmap2NoKey <- function(
   if (nr <= 1 || nc <= 1) {
     stop("`x' must have at least 2 rows and 2 columns")
   }
-  if (! is.numeric(x = margins) || length(x = margins) != 2) {
+  if (!is.numeric(x = margins) || length(x = margins) != 2) {
     stop("`margins' must be a numeric vector of length 2")
   }
   if (missing(x = cellnote)) {
     cellnote <- matrix(data = "", ncol = ncol(x = x), nrow = nrow(x = x))
   }
-  if (! inherits(x = Rowv, what = "dendrogram")) {
+  if (!inherits(x = Rowv, what = "dendrogram")) {
     if (((! isTRUE(x = Rowv)) || (is.null(x = Rowv))) &&
         (dendrogram %in% c("both", "row"))) {
       if (is.logical(x = Colv) && (Colv)) {
@@ -1056,7 +1115,7 @@ heatmap2NoKey <- function(
       }
     }
   }
-  if (! inherits(x = Colv, what = "dendrogram")) {
+  if (!inherits(x = Colv, what = "dendrogram")) {
     if (((!isTRUE(x = Colv)) || (is.null(x = Colv))) &&
         (dendrogram %in% c("both", "column"))) {
       if (is.logical(x = Rowv) && (Rowv)) {
@@ -1165,7 +1224,7 @@ heatmap2NoKey <- function(
     retval$colSDs <- sx <- apply(X = x, MARGIN = 2, FUN = sd, na.rm = na.rm)
     x <- sweep(x = x, MARGIN = 2, STATS = sx, FUN = "/")
   }
-  if (missing(x = breaks) || is.null(x = breaks) || length(x = breaks) <1) {
+  if (missing(x = breaks) || is.null(x = breaks) || length(x = breaks) < 1) {
     if (missing(x = col) || is.function(x = col)) {
       breaks <- 16
     } else {
@@ -1193,11 +1252,11 @@ heatmap2NoKey <- function(
   max.breaks <- max(breaks)
   x[x < min.breaks] <- min.breaks
   x[x > max.breaks] <- max.breaks
-  if (! missing(x = RowSideColors)) {
+  if (!missing(x = RowSideColors)) {
     par(mar = c(margins[1], 0, 0, 0.5))
     image(x = rbind(1:nr), col = RowSideColors[rowInd], axes = FALSE)
   }
-  if (! missing(x = ColSideColors)) {
+  if (!missing(x = ColSideColors)) {
     par(mar = c(0.5, 0, 0, margins[2]))
     image(x = cbind(1:nc), col = ColSideColors[colInd], axes = FALSE)
   }
@@ -1220,7 +1279,7 @@ heatmap2NoKey <- function(
     iy <- 1:nr
   }
   # add pc number as title if plotting pc heatmaps
-  if(is.null(x = dimTitle)) {
+  if (is.null(x = dimTitle)) {
     dimTitle <- ""
   }
   if (is.null(x = pc_title)) {
@@ -1273,7 +1332,7 @@ heatmap2NoKey <- function(
     tick = 0,
     cex.axis = cexCol
   )
-  if (! is.null(x = xlab)) {
+  if (!is.null(x = xlab)) {
     mtext(text = xlab, side = 1, line = margins[1] - 1.25)
   }
   axis(
@@ -1286,13 +1345,13 @@ heatmap2NoKey <- function(
     cex.axis = cexRow,
     col = axRowCol
   )
-  if (! is.null(x = ylab)) {
+  if (!is.null(x = ylab)) {
     mtext(text = ylab, side = 4, line = margins[2] - 1.25)
   }
-  if (! missing(x = add.expr)) {
+  if (!missing(x = add.expr)) {
     eval(expr = substitute(expr = add.expr))
   }
-  if (! missing(x = colsep)) {
+  if (!missing(x = colsep)) {
     for (csep in colsep) {
       rect(
         xleft = csep + 0.5,
@@ -1306,7 +1365,7 @@ heatmap2NoKey <- function(
       )
     }
   }
-  if (! missing(x = rowsep)) {
+  if (!missing(x = rowsep)) {
     for (rsep in rowsep) {
       rect(
         xleft = 0,
@@ -1353,7 +1412,7 @@ heatmap2NoKey <- function(
       ##lines(x = xv, y = yv, lwd = 1, col = tracecol, type = "s")
     }
   }
-  if (! missing(x = cellnote)) {
+  if (!missing(x = cellnote)) {
     text(
       x = c(row(x = cellnote)),
       y = c(col(x = cellnote)),
@@ -1373,7 +1432,7 @@ heatmap2NoKey <- function(
   }
   ##else plot.new()
   key <- FALSE
-  if (! is.null(x = main))
+  if (!is.null(x = main))
     title(main = main, cex.main = 1.5 * par()[["cex.main"]])
   if (key) {
     par(mar = c(5, 4, 2, 1), cex = 0.75)

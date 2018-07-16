@@ -256,7 +256,10 @@ setMethod(
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = VariableFeatures(object = object)) > 0) {
       top.ten <- VariableFeatures(object = object)[1:10]
-      cat("Top 10 variable features:\n", strwrap(x = paste(top.ten, collapse = ', ')))
+      cat(
+        "Top 10 variable features:\n",
+        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n ')
+      )
     }
   }
 )

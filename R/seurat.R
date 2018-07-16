@@ -395,14 +395,30 @@ names.Seurat <- function(x) {
 
 #' @export
 #'
-"[.Seurat" <- function(x, i, ..., drop = FALSE) {
+"[.Seurat" <- function(x, i, j, ..., drop = FALSE) {
   if (missing(x = i)) {
-    i <- colnames(x = slot(object = x, name = 'meta.data'))
+    i <- if (missing(x = j)) {
+      colnames(x = slot(object = x, name = 'meta.data'))
+    } else {
+      rownames(x = x)
+    }
   }
-  data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
-  if (drop) {
-    data.return <- unlist(x = data.return, use.names = FALSE)
-    names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
+  meta.count <- sum(i %in% colnames(x = slot(object = x, name = 'meta.data')))
+  feat.count <- sum(
+    i %in% rownames(x = x),
+    vapply(X = i, FUN = is.numeric, FUN.VALUE = logical(length = 1L))
+  )
+  if (feat.count == 0 || meta.count > feat.count) {
+    data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
+    if (drop) {
+      data.return <- unlist(x = data.return, use.names = FALSE)
+      names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
+    }
+  } else {
+    if (missing(x = j)) {
+      j <- colnames(x = x)
+    }
+    data.return <- GetAssayData(object = x)[i, j, drop = drop]
   }
   return(data.return)
 }

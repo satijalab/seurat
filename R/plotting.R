@@ -600,12 +600,12 @@ DimPlot <- function(
 # @param overlay Plot two features overlayed one on top of the other
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
+#' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #'
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 scale_color_gradientn
-#' @importFrom cowplot plot_grid
 #'
-#' @return No return value, only a graphical output
+#' @return A ggplot object
 #'
 #' @export
 #'
@@ -627,7 +627,8 @@ FeaturePlot <- function(
   plot.order = NULL,
   do.label = FALSE,
   label.size = 4,
-  na.value = 'grey50'
+  na.value = 'grey50',
+  combine.plots = TRUE
 ) {
   nCol <- NULL
   if (is.null(x = nCol)) {
@@ -704,7 +705,7 @@ FeaturePlot <- function(
   )
   colnames(x = data.features) <- features.plot
   rownames(x = data.features) <- colnames(x = object)
-  plot.list <- vector(mode = 'list', length = length(x = features.plot))
+  plots <- vector(mode = 'list', length = length(x = features.plot))
   for (i in 1:length(x = features.plot)) {
     p <- SingleDimPlot(
       object = object[[reduction.use]],
@@ -723,14 +724,118 @@ FeaturePlot <- function(
         guide = 'colorbar'
       ))
     }
-    plot.list[[i]] <- p
+    plots[[i]] <- p
   }
-  plots.combined <- if (length(x = plot.list) > 1) {
-    plot_grid(plotlist = plot.list, ncol = nCol)
-  } else {
-    plot.list[[1]]
+  if (combine.plots) {
+    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
   }
-  return(plots.combined)
+  return(plots)
+}
+
+#' Scatter plot of single cell data
+#'
+#' Creates a scatter plot of two features (typically gene expression), across a
+#' set of single cells. Cells are colored by their identity class. Pearson
+#' correlation between the two features is displayed above the plot.
+#'
+#' @param object Seurat object
+#' @inheritParams FetchData
+#' @param gene1 First feature to plot. Typically gene expression but can also
+#' be metrics, PC scores, etc. - anything that can be retreived with FetchData
+#' @param gene2 Second feature to plot.
+#' @param cells.use Cells to include on the scatter plot.
+#' @param cols.use Colors to use for identity class plotting.
+#' @param pt.size Size of the points on the plot
+#' @param shape.by Ignored for now
+#' @param span Spline span in loess function call, if \code{NULL}, no spline added
+#' @param ... Ignored for now
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 geom_smooth aes_string
+#' @export
+#'
+#' @examples
+#' GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
+#'
+GenePlot <- function(
+  object,
+  gene1,
+  gene2,
+  cells.use = NULL,
+  cols.use = NULL,
+  slot.use = 'data',
+  pt.size = 1,
+  shape.by = NULL,
+  span = NULL,
+  ...
+) {
+  cells.use <- cells.use %||% colnames(x = object)
+  p <- SingleCorPlot(
+    data.plot = FetchData(
+      object = object,
+      vars.fetch = c(gene1, gene2),
+      cells.use = cells.use,
+      slot = slot.use
+    ),
+    col.by = Idents(object = object)[cells.use],
+    cols.use = cols.use,
+    pt.size = pt.size,
+    legend.title = 'Identity'
+  )
+  if (!is.null(x = span)) {
+    p <- p + geom_smooth(
+      mapping = aes_string(x = gene1, y = gene2),
+      method = 'loess',
+      span = span
+    )
+  }
+  return(p)
+}
+
+#' Cell-cell scatter plot
+#'
+#' Creates a plot of scatter plot of genes across two single cells. Pearson
+#' correlation between the two cells is displayed above the plot.
+#'
+#' @inheritParams GenePlot
+#' @param cell1 Cell 1 name
+#' @param cell2 Cell 2 name
+#' @param features.use Genes to plot (default, all genes)
+#' @param \dots Extra parameters passed to kde2d
+#'
+#' @return A ggplot object
+#'
+#' @export
+#' @seealso \code{\link{MASS::kde2d}}
+#'
+#' @examples
+#' CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
+#'
+CellPlot <- function(
+  object,
+  cell1,
+  cell2,
+  features.use = NULL,
+  cols.use = NULL,
+  pt.size = 1,
+  ...
+) {
+  features.use <- features.use %||% rownames(x = object)
+  data.plot <- FetchData(
+    object = object,
+    vars.fetch = features.use,
+    cells.use = c(cell1, cell2)
+  )
+  data.plot <- as.data.frame(x = t(x = data.plot))
+  p <- SingleCorPlot(
+    data.plot = data.plot,
+    cols.use = cols.use,
+    pt.size = pt.size,
+    smooth = TRUE,
+    ...
+  )
+  return(p)
 }
 
 globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
@@ -769,25 +874,31 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #'
 JackStrawPlot <- function(
   object,
-  reduction.use = NULL,
+  reduction.use = "pca",
   dims = 1:5,
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  pAll <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "emperical.p.value")
+  pAll <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "empirical.p.values")
+  if (max(dims) > ncol(pAll)) {
+    stop("Max dimension is ", ncol(pAll), ".")
+  }
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
   pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = pAll.l) <- c("Contig", "PC", "Value")
-  score.df <- slot(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), name = "overall.p.values")
+  score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")[dims, ]
+  if (nrow(score.df) == 0) {
+    stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
+  }
   pAll.l$PC.Score <- rep(
-    x = paste0(score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
+    x = paste0("PC ", score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
     each = length(x = unique(x = pAll.l$Contig))
   )
   pAll.l$PC.Score <- factor(
     x = pAll.l$PC.Score,
-    levels = paste0(score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
+    levels = paste0("PC ", score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
   )
   gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
     stat_qq(distribution = qunif) +
