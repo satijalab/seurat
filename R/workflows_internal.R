@@ -69,7 +69,14 @@ UpdateWorkflow <- function(object, workflow.name) {
   command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
-  object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name)
+  
+  #TODO - Deal with Assay better
+  seurat.timestamp <- Sys.time()
+  command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name)==1) {
+    seurat.timestamp <- slot(object[[command.name.seurat]],"time.stamp")
+  }
+  object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name,time.stamp = seurat.timestamp)
   return(object)
 }
 

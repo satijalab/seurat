@@ -152,17 +152,8 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' @examples
 #' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
 #' #'
-TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = NULL) {
+TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.time()) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
-
-  seurat.timestamp <- as.POSIXct("1900-01-01");
-  # According to SeuratCommand, the most recent update
-  #TODO deal with Assay better
-  command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
-  if (length(x = command.name.seurat)==1) {
-    seurat.timestamp <- slot(object[[command.name.seurat]],"time.stamp")
-  }
-  time.stamp <- time.stamp %||% seurat.timestamp
   #Now update all dependencies, recursively
   depends <- slot(object = object[[workflow.name]],name = "depends")
   depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
@@ -188,7 +179,7 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = NULL
 #' @export
 #' 
 #' @examples
-#' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+#' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
 #' #
 WorkflowStatus <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
@@ -214,6 +205,7 @@ WorkflowStatus <- function(object, workflow.name, command.name) {
 #' @param object Seurat object
 #' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
 #' @param command.name Name of the command at the end of the workflow
+#' @param depth depth of the recursive call. Only depth 1 outputs the parameters
 #' 
 #' @return Seurat object with updated workflow
 #' 
@@ -222,18 +214,21 @@ WorkflowStatus <- function(object, workflow.name, command.name) {
 #' @examples
 #' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
 #' #
-RecreateWorkflows <- function(object, workflow.name, command.name) {
+RecreateWorkflows <- function(object, workflow.name, command.name,depth=1) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   depends <- slot(object = object[[workflow.name]],name = "depends")
   prereq.commands <- colnames(depends)[which(depends[command.name,]==1)]
+  if (depth == 1) {
+    message(paste0("\tNeed to output SetParams"))
+  }
   for(i in prereq.commands) {
-    RecreateWorkflows(object = object,workflow.name = workflow.name,command.name = i)   
+    RecreateWorkflows(object = object,workflow.name = workflow.name,command.name = i,depth = depth + 1)   
   }
   #TODO deal with Assay better
   command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
   if (length(x = command.name)==1) {
     call.string <- slot(object[[command.name]],"call.string")
-    browser()
-    print(call.string)
+    #browser()
+    message(paste0("\t",call.string))
   }
 }

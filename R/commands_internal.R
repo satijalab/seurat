@@ -2,12 +2,13 @@
 # object is the name of the object
 # not sure if this should be internal (I think it should be)
 LogSeuratCommand <- function(object) {
-  call.string <- deparse(sys.call(which = 1))
   time.stamp <- Sys.time()
   
   #capture function name
   command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
+  call.string <- command.name
+  
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
   #capture function arguments
   argnames <- names(formals(sys.function(sys.parent(n = 1))))
