@@ -86,6 +86,7 @@ Collate:
     'dimensional_reduction_internal.R'
     'dimensional_reduction_utilities.R'
     'dimreduc.R'
+    'dimreduc_internal.R'
     'interaction.R'
     'interaction_generics.R'
     'jackstraw.R'
