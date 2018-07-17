@@ -916,6 +916,7 @@ SingleCorPlot <- function(
   pt.size = 1,
   smooth = FALSE,
   legend.title = NULL,
+  na.value = 'grey50',
   ...
 ) {
   names.plot <- colnames(x = data.plot)
@@ -929,7 +930,9 @@ SingleCorPlot <- function(
   ) +
     labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
   if (!is.null(x = col.by)) {
-    p <- p + geom_point(mapping = aes_string(color = 'colors'))
+    p <- p + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
+  } else {
+    p <- p + geom_point(size = pt.size)
   }
   if (smooth) {
     density <- kde2d(x = data.plot[, 1], y = data.plot[, 2], ...)
@@ -941,14 +944,14 @@ SingleCorPlot <- function(
     p <- p + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
       guides(fill = FALSE)
   }
-  p <- p + geom_point(size = pt.size)
   if (!is.null(x = cols.use)) {
-    cols.use <- if (length(x = cols.use) == 1) {
-      scale_color_brewer(palette = cols.use)
+    cols.scale <- if (length(x = cols.use) == 1 &&
+                    cols.use %in% rownames(RColorBrewer::brewer.pal.info)) {
+        scale_color_brewer(palette = cols.use)
     } else {
       scale_color_manual(values = cols.use, na.value = na.value)
     }
-    p <- p + cols.use
+    p <- p + cols.scale
   }
   return(p)
 }
