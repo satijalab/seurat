@@ -96,6 +96,7 @@ BuildSNN.Assay <- function(
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn BuildSNN Build an SNN on a Seurat object
 #' @export
@@ -106,18 +107,25 @@ BuildSNN.Seurat <- function(
   assay.use = NULL,
   features.use = NULL,
   reduction.use = "pca",
-  dims.use = NULL,
-  k.param = 10,
+  dims.use = 1:10,
+  k.param = 30,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   do.plot = FALSE,
-  graph.name = NULL
+  graph.name = NULL,
+  workflow.name = NULL
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   if (! is.null(dims.use)) {
     assay.use <- assay.use %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction.use]])
+    if (max(dims.use) > ncol(data.use)) {
+      stop("More dimensions specified in dims.use than have been computed")
+    }
     data.use <- data.use[, dims.use]
     snn.matrix <- BuildSNN(object = data.use,
                            k.param = k.param,
@@ -164,6 +172,9 @@ BuildSNN.Seurat <- function(
     }
   }
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 

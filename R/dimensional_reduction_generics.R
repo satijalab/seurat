@@ -5,14 +5,14 @@
 #'
 #' @param object Seurat object
 #' @param assay.use Name of Assay PCA is being run on
-#' @param pcs.compute Total Number of PCs to compute and store (20 by default)
+#' @param compute.dims Total Number of PCs to compute and store (20 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
 #' @param weight.by.var Weight the cell embeddings by the variance of each PC
 #' (weights the gene loadings if rev.pca is TRUE)
 #' @param verbose Print the top genes associated with high/low loadings for
 #' the PCs
-#' @param pcs.print PCs to print genes for
+#' @param print.dims PCs to print genes for
 #' @param features.print Number of genes to print for each PC
 #' @param reduction.name dimensional reduction name,  pca by default
 #' @param reduction.key dimensional reduction key, specifies the string before

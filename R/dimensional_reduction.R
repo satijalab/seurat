@@ -4,11 +4,11 @@ RunPCA.default <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -19,8 +19,8 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    pcs.compute <- min(pcs.compute, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = pcs.compute, ...)
+    compute.dims <- min(pcs.compute, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = compute.dims, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -30,8 +30,8 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    pcs.compute <- min(pcs.compute, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = pcs.compute, ...)
+    compute.dims <- min(pcs.compute, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
     if (weight.by.var) {
@@ -41,7 +41,7 @@ RunPCA.default <- function(
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:pcs.compute)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- MakeDimReducObject(
@@ -62,11 +62,11 @@ RunPCA.Assay <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -81,11 +81,11 @@ RunPCA.Assay <- function(
     object = data.use,
     assay.use = assay.use,
     pc.features = features.use,
-    pcs.compute = pcs.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
-    pcs.print = pcs.print,
+    print.dims = print.dims,
     features.print = features.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
@@ -96,6 +96,8 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param workflow.name Name of workflow
+#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -104,27 +106,32 @@ RunPCA.Seurat <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
     assay.use = assay.use,
     features.use = features.use,
-    pcs.compute = pcs.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
+    print.dims = print.dims,
     feature.print = features.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
@@ -133,6 +140,9 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -452,6 +462,7 @@ RunTSNE.DimReduc <- function(
 #' @param features.use If set, run the tSNE on this subset of features
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn RunTSNE Run tSNE on a Seurat object
 #' @export
@@ -470,8 +481,15 @@ RunTSNE.Seurat <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  if (length(dims.use) == 1 && !is.null(workflow.name)) {
+    dims.use <- 1:dims.use
+  }
   tsne.reduction <- if (tsne.method == 'Rtsne') {
     if (!is.null(x = distance.matrix)) {
       RunTSNE(
@@ -524,6 +542,9 @@ RunTSNE.Seurat <- function(
   }
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 

@@ -115,7 +115,8 @@ Seurat <- setClass(
     calc.params = 'list',
     misc = 'list',
     version = 'package_version',
-    commands = 'list'
+    commands = 'list',
+    workflows = 'list'
   )
 )
 
@@ -218,6 +219,36 @@ SeuratCommand <- setClass(
     time.stamp = 'POSIXct',
     call.string = 'character',
     params = 'ANY'
+  )
+)
+
+#' The SeuratWorkflow class
+#'
+#' The SeuratWorkflow class aims to create a Makefile-like approach for Seurat
+#' analysis. A full set of parameters can be defined with a single command, and
+#' the workflow encodes the pipeline command structure (for example,
+#' NormalizeData -> FindVariableFeatures -> ScaleData -> RunPCA -> FindClusters).
+#' This leads to very simple workflows being encoded in just a couple commands,
+#' without losing the flexibility to run each step for clarity if desired.
+#'
+#' @slot name Workflow name
+#' @slot depends Dependency graph encoding the relationship between commands
+#' (for example, RunPCA depends on ScaleData)
+#' @slot update Vector specifying for each command, if it needs to be
+#' updated/rerun
+#' @slot params List of parameters used across the workflow
+#' @slot mostRecent Vector specifying for each command, the most recent
+#' timestamp. If the current timestamp matches this, should not need to be rerun.
+#' @name SeuratWorkflow
+#' @exportClass SeuratWorkflow
+#'
+SeuratWorkflow <- setClass(
+  Class = 'SeuratWorkflow',
+  slots = c(
+    name = 'character',
+    depends = 'ANY',
+    params = 'ANY',
+    mostRecent = 'ANY'
   )
 )
 

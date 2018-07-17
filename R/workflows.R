@@ -1,0 +1,234 @@
+#' Initialize a Seurat workflow
+#'
+#' Reads dependencies from a file and initializes a Seurat workflow
+#'
+#' @param object Seurat object
+#' @param file Tab-delimited text file with two columns : First is the command, second is the dependency. Name should be workflowName.workflow.txt
+#'
+#' @return Object with modified workflows
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- InitializeWorkflow(object = pbmc_small, file = 'workflows/cluster.workflow.txt)
+#'
+InitializeWorkflow <- function(object, file) {
+  workflow.name <- gsub(".workflow.txt","",basename(file))
+  workflow.data <- read.table(file)
+  cmds <- sort(unique(as.vector(as.matrix(workflow.data))))
+  depends <- data.frame(matrix(nrow=length(cmds),ncol=length(cmds)))
+  rownames(depends) <- cmds; colnames(depends) <- cmds
+  for(i in 1:nrow(workflow.data)) {
+    depends[as.character(workflow.data[i,1]),as.character(workflow.data[i,2])]=1
+  }
+  mostRecent <- rep(as.POSIXct("1900-01-01"),length(cmds)); names(mostRecent) <- cmds
+  for(i in names(mostRecent)) {
+    command.name <- intersect(c(i, paste0(i,".",DefaultAssay(object))), names(object))
+    if (length(x = command.name)==1) {
+      seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+      mostRecent[i] <- seurat.timestamp
+    }
+  }
+  seurat.workflow <- new(
+    Class = 'SeuratWorkflow',
+    name = workflow.name,
+    depends = depends,
+    mostRecent = mostRecent
+  )
+  object[[workflow.name]] <- seurat.workflow
+  return(object)
+}
+
+#' Checks if a workflow is defined for a Seurat object
+#'
+#' Checks if a workflow is defined for a Seurat object
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow#'
+#' @return TRUE if workflow is defined. STOP otherwise
+#'
+#' @export
+#'
+#' @examples
+#' CheckWorkflow(pbmc_small, "cluster")
+#'
+CheckWorkflow <- function(object, workflow.name) {
+  # Check if workflow is there
+  workflow.present=F
+  if (workflow.name%in%names(object)) {
+    if (class(object[[workflow.name]])[[1]]=="SeuratWorkflow") {
+      workflow.present=T
+    }
+  }
+  if (!(workflow.present)) stop("Workflow not present, initialize first.")
+  return(TRUE)
+}
+
+#' Set Seurat workflow parameters
+#'
+#' Sets parameters for a workflow
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param \dots Parameters to set, will be fed into workflow Seurat functions. Parameters ending with a "." will populate all similar variable names (i.e. setting dims. will set both dims.compute, and dims.cluster)
+#'
+#' @return Object with modified workflows
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- SetWorkflowParams(object = pbmc_small, seed.use = 31, dims. = 20)
+#'
+SetWorkflowParams <- function(object, workflow.name, ...) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  # Set Params
+  newparams <- (list(...))
+  oldparams <- slot(object[[workflow.name]],"params")
+  if (is.null(oldparams)) {
+    slot(object[[workflow.name]],"params") <- newparams
+  }
+  else {
+    for(i in names(newparams)) {
+      oldparams[i] <- newparams[i]
+    }
+    slot(object[[workflow.name]],"params") <- oldparams
+  }
+  return(object)
+}
+
+#' Check if workflow command needs update
+#'
+#' Compares the stored timestamp with the most recently recorded timestamp to see if a dependency has been updated
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command to check
+#'
+#' @return Returns TRUE if the dependency has changed (or has not been run), and an update is needed. FALSE otherwise
+#'
+#' @export
+#'
+#' @examples
+#' CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
+#' #'
+CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+
+  # According to the workflow, the most recent update
+  mostRecent <- slot(object[[workflow.name]],"mostRecent")
+  workflow.timestamp <- mostRecent[command.name]
+  seurat.timestamp <- as.POSIXct("1900-01-01");
+
+  #means Seurat command has never been run in the workflow
+  if (workflow.timestamp==seurat.timestamp) {
+    return(TRUE)
+  }
+  # According to SeuratCommand, the most recent update
+  #TODO deal with Assay better
+  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name)==1) {
+    seurat.timestamp <- slot(object[[command.name]],"time.stamp")
+  }
+  if (seurat.timestamp == workflow.timestamp) {
+    return(FALSE)
+  }
+  return(TRUE)
+}
+
+
+#' Updates workflow timestamps
+#'
+#' Like the touch command in linux. Updates a workflow command's timestamp, and its dependencies
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command to touch
+#' @param time.stamp Timestamp to assign
+#'
+#' @return Seurat object with updated workflow
+#'
+#' @export
+#'
+#' @examples
+#' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
+#' #'
+TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.time()) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  #Now update all dependencies, recursively
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
+  mostRecent <- slot(object[[workflow.name]],"mostRecent")
+  mostRecent[command.name] <- time.stamp
+  slot(object[[workflow.name]],"mostRecent") <- mostRecent
+  for(i in depend.commands) {
+    object <- TouchWorkflow(object,workflow.name = workflow.name,command.name = i,time.stamp = time.stamp)
+  }
+  return(object)
+}
+
+#' Output status of each command in the workflow
+#'
+#' For each command in the workflow, indicate whether it is up-to-date.
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command at the end of the workflow
+#'
+#' @return Seurat object with updated workflow
+#'
+#' @export
+#'
+#' @examples
+#' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
+#' #
+WorkflowStatus <- function(object, workflow.name, command.name) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  message(paste0("Status  for ", workflow.name, " workflow"))
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  all.cmds <- rownames(depends)
+  for(i in all.cmds) {
+    is.updated <- (!CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i))
+    if (is.updated) {
+      message(paste0("\t",i, " up to date"))
+    }
+    else {
+      message(paste0("\t\t",i, " is out of date"))
+    }
+  }
+}
+
+#' Output individual function calls to recreate workflow
+#'
+#' Output all commands to reproduce your analysis without shortcuts. Should enhance reproducibility, but can be confused by custom modifcations, usage of SubsetData, etc.
+#' We hope this will be very useful, but use with care and verify that it does indeed reproduce your work.
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command at the end of the workflow
+#' @param depth depth of the recursive call. Only depth 1 outputs the parameters
+#'
+#' @return Seurat object with updated workflow
+#'
+#' @export
+#'
+#' @examples
+#' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+#' #
+RecreateWorkflows <- function(object, workflow.name, command.name,depth=1) {
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  prereq.commands <- colnames(depends)[which(depends[command.name,]==1)]
+  if (depth == 1) {
+    message(paste0("\tNeed to output SetParams"))
+  }
+  for(i in prereq.commands) {
+    RecreateWorkflows(object = object,workflow.name = workflow.name,command.name = i,depth = depth + 1)
+  }
+  #TODO deal with Assay better
+  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (length(x = command.name)==1) {
+    call.string <- slot(object[[command.name]],"call.string")
+    #browser()
+    message(paste0("\t",call.string))
+  }
+}

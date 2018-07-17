@@ -354,15 +354,13 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
-  # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  # object <- SetCalcParams(
-  #   object = object,
-  #   calculation = "NormalizeData",
-  #   ... = parameters.to.store
-  # )
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   object <- switch(
     EXPR = normalization.method,
     'RegNB' = RegNB(object, assay.use, verbose, ...),
@@ -380,6 +378,9 @@ NormalizeData.Seurat <- function(
     }
   )
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -793,6 +794,7 @@ ScaleData.Assay <- function(
 }
 
 #' @param assay.use Name of Assay to scale
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn ScaleData Scale a Seurat object
 #' @export
@@ -811,8 +813,12 @@ ScaleData.Seurat <- function(
   block.size = 1000,
   min.cells.to.block = 3000,
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   if (any(vars.to.regress %in% colnames(x = object[]))) {
@@ -837,6 +843,9 @@ ScaleData.Seurat <- function(
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -1037,6 +1046,7 @@ FindVariableFeatures.Assay <- function(
 
 #' @inheritParams FindVariableFeatures.Assay
 #' @param assay.use ...
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn FindVariableFeatures Find variable features in a Seurat object
 #' @export
@@ -1054,8 +1064,12 @@ FindVariableFeatures.Seurat <- function(
   dispersion.cutoff = c(1, Inf),
   selection.method = "dispersion",
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   assay.data <- FindVariableFeatures(
@@ -1068,10 +1082,14 @@ FindVariableFeatures.Seurat <- function(
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
     selection.method = selection.method,
+    num.features = num.features,
     ...
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
