@@ -19,7 +19,7 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    compute.dims <- min(pcs.compute, ncol(x = object) - 1)
+    compute.dims <- min(compute.dims, ncol(x = object) - 1)
     pca.results <- irlba(A = object, nv = compute.dims, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
@@ -30,7 +30,7 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    compute.dims <- min(pcs.compute, nrow(x = object) - 1)
+    compute.dims <- min(compute.dims, nrow(x = object) - 1)
     pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))

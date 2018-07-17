@@ -63,15 +63,20 @@ PrepareWorkflow <- function(object, workflow.name) {
 #'
 #' Updates a workflow object after a command is run, and makes sure timestamps are properly set.
 #'
-UpdateWorkflow <- function(object, workflow.name) {
+UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
   CheckWorkflow(object = object,workflow.name = workflow.name)
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
-  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-  command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
+  if(is.null(command.name)) {
+    command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
+    command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
+    command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
+    command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  } else {
+    command.name.seurat <- command.name
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\.")
+  }
 
   #TODO - Deal with Assay better
   seurat.timestamp <- Sys.time()
-  command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
   if (length(x = command.name)==1) {
     seurat.timestamp <- slot(object = object[[command.name.seurat]], name = "time.stamp")
   }

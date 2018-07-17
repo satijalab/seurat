@@ -120,6 +120,9 @@ BuildSNN.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
+  if (length(dims.use) == 1 && !is.null(workflow.name)) {
+    dims.use <- 1:dims.use
+  }
   if (! is.null(dims.use)) {
     assay.use <- assay.use %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction.use]])
@@ -173,7 +176,11 @@ BuildSNN.Seurat <- function(
   }
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+    object <- UpdateWorkflow(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = command.name)
   }
   return(object)
 }

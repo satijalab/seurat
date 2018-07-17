@@ -384,7 +384,7 @@ dim.Seurat <- function(x) {
 names.Seurat <- function(x) {
   return(unlist(
     x = lapply(
-      X = c('assays', 'reductions', 'graphs', 'neighbors', 'workflows'),
+      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
       FUN = function(n) {
         return(names(x = slot(object = x, name = n)))
       }
