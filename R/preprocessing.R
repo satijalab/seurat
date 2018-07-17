@@ -363,15 +363,22 @@ NormalizeData.Seurat <- function(
   #   calculation = "NormalizeData",
   #   ... = parameters.to.store
   # )
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  assay.data <- NormalizeData(
-    object = assay.data,
-    normalization.method = normalization.method,
-    scale.factor = scale.factor,
-    verbose = verbose,
-    ...
+  object <- switch(
+    EXPR = normalization.method,
+    'RegNB' = RegNB(object, assay.use, verbose, ...),
+    {
+      assay.data <- GetAssay(object = object, assay.use = assay.use)
+      assay.data <- NormalizeData(
+        object = assay.data,
+        normalization.method = normalization.method,
+        scale.factor = scale.factor,
+        verbose = verbose,
+        ...
+      )
+      object[[assay.use]] <- assay.data
+      object
+    }
   )
-  object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
   return(object)
 }
