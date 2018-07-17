@@ -8,14 +8,15 @@
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
 \method{RunPCA}{Assay}(object, assay.use = NULL, features.use = NULL,
-  pcs.compute = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, pcs.print = 1:5, features.print = 30,
+  compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
+  verbose = TRUE, print.dims = 1:5, features.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay.use = NULL, features.use = NULL,
-  pcs.compute = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, pcs.print = 1:5, features.print = 30,
-  reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
+  compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
+  verbose = TRUE, print.dims = 1:5, features.print = 30,
+  reduction.name = "pca", reduction.key = "PC", seed.use = 42,
+  workflow.name = NULL, ...)
 
 RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
   features.print, reduction.name, reduction.key, seed.use, ...)
@@ -25,7 +26,7 @@ RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
 
 \item{assay.use}{Name of Assay PCA is being run on}
 
-\item{pcs.compute}{Total Number of PCs to compute and store (20 by default)}
+\item{compute.dims}{Total Number of PCs to compute and store (20 by default)}
 
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
@@ -36,7 +37,7 @@ to true will compute it on gene x cell matrix.}
 \item{verbose}{Print the top genes associated with high/low loadings for
 the PCs}
 
-\item{pcs.print}{PCs to print genes for}
+\item{print.dims}{PCs to print genes for}
 
 \item{features.print}{Number of genes to print for each PC}
 
@@ -49,6 +50,8 @@ the number for the dimension names. PC by default}
 NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
+
+\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns Seurat object with the PCA calculation stored in the reductions slot

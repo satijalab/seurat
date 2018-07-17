@@ -543,7 +543,11 @@ RunTSNE.Seurat <- function(
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+    object <- UpdateWorkflow(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = command.name)
   }
   return(object)
 }
@@ -1469,7 +1473,7 @@ RunPHATE <- function(
 #' DimPlot(object = pbmc_small, reduction.use = 'umap')
 #' }
 #'
-RunUMAP <- function(
+RunUMAP.Seurat <- function(
   object,
   cells.use = NULL,
   dims.use = 1:5,

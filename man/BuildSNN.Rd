@@ -14,9 +14,9 @@
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE)
 
 \method{BuildSNN}{Seurat}(object, assay.use = NULL, features.use = NULL,
-  reduction.use = "pca", dims.use = NULL, k.param = 10,
+  reduction.use = "pca", dims.use = 1:10, k.param = 30,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL)
+  do.plot = FALSE, graph.name = NULL, workflow.name = NULL)
 
 BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
 }
@@ -57,6 +57,8 @@ graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{graph.name}{Optional naming parameter for stored SNN graph. Default is
 assay.name_snn.}
+
+\item{workflow.name}{Name of workflow}
 
 \item{features.use}{Features to use as input for building the SNN}
 

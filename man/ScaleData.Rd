@@ -14,7 +14,7 @@
 \method{ScaleData}{Seurat}(object, features.use = NULL, assay.use = NULL,
   vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
   do.scale = TRUE, do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, verbose = TRUE, ...)
+  min.cells.to.block = 3000, verbose = TRUE, workflow.name = NULL, ...)
 
 ScaleData(object, features.use, vars.to.regress, model.use, use.umi, do.scale,
   do.center, scale.max, block.size, min.cells.to.block, verbose, ...)
@@ -55,6 +55,8 @@ don't block for scaling calculations.}
 \item{verbose}{Displays a progress bar for scaling procedure}
 
 \item{assay.use}{Name of Assay to scale}
+
+\item{workflow.name}{Name of workflow}
 }
 \description{
 Scales and centers features in the dataset. If variables are provided in vars.to.regress,

@@ -9,7 +9,7 @@
 \method{FindClusters}{Seurat}(object, graph.name = NULL, modularity.fxn = 1,
   resolution = 0.8, algorithm = 1, n.start = 100, n.iter = 10,
   random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
-  verbose = TRUE)
+  verbose = TRUE, workflow.name = NULL)
 
 FindClusters(object, modularity.fxn, resolution, algorithm, n.start, n.iter,
   random.seed, temp.file.location, edge.file.name, verbose, ...)
@@ -40,6 +40,8 @@ Specify the ABSOLUTE path.}
 \item{edge.file.name}{Edge file to use as input for modularity optimizer jar.}
 
 \item{verbose}{Print output}
+
+\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

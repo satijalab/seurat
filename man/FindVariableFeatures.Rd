@@ -16,7 +16,8 @@
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
   num.bin = 20, binning.method = "equal_width", num.features = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  selection.method = "dispersion", verbose = TRUE, ...)
+  selection.method = "dispersion", verbose = TRUE, workflow.name = NULL,
+  ...)
 
 FindVariableFeatures(object, mean.function, dispersion.function, num.bin,
   binning.method, verbose, ...)
@@ -57,6 +58,8 @@ feature dispersions}
 \item{...}{Arguments passed to other methods}
 
 \item{assay.use}{...}
+
+\item{workflow.name}{Name of workflow}
 }
 \description{
 Identifies features that are outliers on a 'mean variability plot'. First, uses

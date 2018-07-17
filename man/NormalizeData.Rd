@@ -11,7 +11,7 @@
 
 \method{NormalizeData}{Seurat}(object, assay.use = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, ...)
+  verbose = TRUE, workflow.name = NULL, ...)
 
 NormalizeData(object, normalization.method, scale.factor, verbose, ...)
 }
