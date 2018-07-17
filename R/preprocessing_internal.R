@@ -368,6 +368,46 @@ RegressOutNB <- function(
   return(object)
 }
 
+# calls vst
+RegNB <- function(
+  object,
+  assay.use = 'RNA',
+  verbose = TRUE,
+  ...
+) {
+  if (!requireNamespace('sctransform')) {
+    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression for normalization.')
+  }
+  assay.obj <- GetAssay(object = object, assay.use = assay.use)
+  umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
+  
+  vst.out <- sctransform::vst(umi, show_progress = verbose, ...)
+                  # cell_attr = NULL,
+                  # latent_var = c('log_umi_per_gene'),
+                  # batch_var = NULL,
+                  # n_genes = 2000,
+                  # n_cells = NULL,
+                  # method = 'poisson',
+                  # res_clip_range = c(-50, 50),
+                  # bin_size = 256,
+                  # min_cells = 5,
+                  # return_cell_attr = FALSE,
+                  # return_gene_attr = FALSE)
+  assay.obj <- SetAssayData(
+    object = assay.obj,
+    slot = 'scale.data',
+    new.data = vst.out$y
+  )
+  # set variable features
+  feature.variance <- apply(vst.out$y, 1, var)
+  feature.variance <- scale(feature.variance)[, 1]
+  feature.variance <- sort(feature.variance, decreasing = TRUE)
+  top.features <- names(feature.variance)[feature.variance > 1]
+  VariableFeatures(object = assay.obj) <- top.features
+  object[[assay.use]] <- assay.obj
+  return(object)
+}
+
 # Regress out technical effects and cell cycle using regularized Negative Binomial regression
 #
 # Remove unwanted effects from umi data and set scale.data to Pearson residuals
@@ -393,7 +433,7 @@ RegressOutNB <- function(
 #' @importFrom stats glm loess residuals approx
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
-RegressOutNBreg <- function(
+RegressOutNBregOld <- function(
   object,
   latent.vars,
   n.genes.step1 = NULL,
