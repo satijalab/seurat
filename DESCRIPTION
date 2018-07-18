@@ -43,8 +43,8 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    diffusionMap,
     Hmisc,
+    httr,
     tidyr,
     ggridges,
     metap,
@@ -128,4 +128,5 @@ Suggests:
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
-    DESeq2
+    DESeq2,
+    destiny

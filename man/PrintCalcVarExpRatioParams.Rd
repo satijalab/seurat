@@ -20,6 +20,7 @@ No return value. Only prints to console.
 Print the parameters chosen for CalcVarExpRatio.
 }
 \examples{
+\dontrun{
 # Requires CCA to have previously been run
 # As CCA requires two datasets, we will split our test object into two just for this example
 pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
@@ -29,5 +30,6 @@ pbmc2@meta.data$group <- "group2"
 pbmc_cca <- RunCCA(pbmc1,pbmc2)
 pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
 PrintCalcVarExpRatioParams(object = pbmc_cca)
+}
 
 }

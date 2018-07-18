@@ -972,6 +972,7 @@ RunCCA <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # As multi-set CCA requires more than two datasets, we will split our test object into
 #' # three just for this example
@@ -985,6 +986,7 @@ RunCCA <- function(
 #' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
 #' # Print results
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
+#' }
 #'
 RunMultiCCA <- function(
   object.list,
@@ -1135,6 +1137,12 @@ RunMultiCCA <- function(
 
 #' Run diffusion map
 #'
+#' NOTE: Prior to v2.3.4, this function used the R package diffusionMap to compute
+#' the diffusion map components. This package was being archived and thus
+#' RunDiffusion now uses the destiny package for the diffusion computations.
+#' Please be aware that this will result in different default values as the two
+#' underlying package implementations are different.
+#'
 #' @param object Seurat object
 #' @param cells.use Which cells to analyze (default, all cells)
 #' @param dims.use Which dimensions to use as input features
@@ -1143,21 +1151,26 @@ RunMultiCCA <- function(
 #' default
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
 #' diffusion map input. Default is PCA
-#' @param q.use Quantile to clip diffusion map components at. This addresses an issue where 1-2 cells will have extreme values that obscure all other points. 0.01 by default
+#' @param q.use Quantile to clip diffusion map components at. This addresses an
+#' issue where 1-2 cells will have extreme values that obscure all other points.
+#' 0.01 by default
 #' @param max.dim Max dimension to keep from diffusion calculation
 #' @param scale.clip Max/min value for scaled data. Default is 3
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. dm by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. DM by default
-#' @param ... Additional arguments to the diffuse call
+#' @param reduction.name dimensional reduction name, specifies the position in
+#' the object$dr list. dm by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. DM by default
+#' @param ... Additional arguments to the DiffusionMap call
 #'
 #' @return Returns a Seurat object with a diffusion map
 #'
-#' @import diffusionMap
+#' @importFrom utils installed.packages
 #' @importFrom stats dist quantile
 #'
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Run Diffusion on variable genes
 #' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
@@ -1165,6 +1178,7 @@ RunMultiCCA <- function(
 #' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 #' # Plot results
 #' DMPlot(pbmc_small)
+#' }
 #'
 RunDiffusion <- function(
   object,
@@ -1179,6 +1193,10 @@ RunDiffusion <- function(
   reduction.key = "DM",
   ...
 ) {
+  # Check for destiny
+  if (!'destiny' %in% rownames(x = installed.packages())) {
+    stop("Please install destiny - learn more at https://bioconductor.org/packages/release/bioc/html/destiny.html")
+  }
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
     dim.code <- GetDimReduction(
@@ -1203,12 +1221,8 @@ RunDiffusion <- function(
                           ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
-    diffuse(
-      D = data.dist,
-      neigen = max.dim,
-      maxdim = max.dim,
-      ...
-    )$X
+    destiny::DiffusionMap(data = as.matrix(data.dist),
+                          n_eigs = max.dim, ...)@eigenvectors
   )
   colnames(x = data.diffusion) <- paste0(reduction.key, 1:ncol(x = data.diffusion))
   rownames(x = data.diffusion) <- cells.use

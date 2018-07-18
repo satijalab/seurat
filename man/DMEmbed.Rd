@@ -20,8 +20,10 @@ Diffusion maps embedding matrix for given cells and DMs
 Pull Diffusion maps cell embedding matrix
 }
 \examples{
+\dontrun{
 pbmc_small
 pbmc_small <- RunDiffusion(pbmc_small, genes.use = pbmc_small@var.genes)
 head(DMEmbed(object = pbmc_small))
+}
 
 }

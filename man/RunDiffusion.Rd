@@ -22,25 +22,34 @@ default}
 \item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the
 diffusion map input. Default is PCA}
 
-\item{q.use}{Quantile to clip diffusion map components at. This addresses an issue where 1-2 cells will have extreme values that obscure all other points. 0.01 by default}
+\item{q.use}{Quantile to clip diffusion map components at. This addresses an
+issue where 1-2 cells will have extreme values that obscure all other points.
+0.01 by default}
 
 \item{max.dim}{Max dimension to keep from diffusion calculation}
 
 \item{scale.clip}{Max/min value for scaled data. Default is 3}
 
-\item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. dm by default}
+\item{reduction.name}{dimensional reduction name, specifies the position in
+the object$dr list. dm by default}
 
-\item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. DM by default}
+\item{reduction.key}{dimensional reduction key, specifies the string before
+the number for the dimension names. DM by default}
 
-\item{...}{Additional arguments to the diffuse call}
+\item{...}{Additional arguments to the DiffusionMap call}
 }
 \value{
 Returns a Seurat object with a diffusion map
 }
 \description{
-Run diffusion map
+NOTE: Prior to v2.3.4, this function used the R package diffusionMap to compute
+the diffusion map components. This package was being archived and thus
+RunDiffusion now uses the destiny package for the diffusion computations.
+Please be aware that this will result in different default values as the two
+underlying package implementations are different.
 }
 \examples{
+\dontrun{
 pbmc_small
 # Run Diffusion on variable genes
 pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
@@ -48,5 +57,6 @@ pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 # Plot results
 DMPlot(pbmc_small)
+}
 
 }
