@@ -34,6 +34,8 @@ NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_pr
 Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
 Eigen::VectorXd FastExpMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
+NumericVector RowSumOfSquares(const NumericMatrix x);
+NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 int IntersectLength(std::vector<int> a, std::vector<int> b);
 int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length);
 std::vector<int> ToVector(Eigen::VectorXd v1);

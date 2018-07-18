@@ -316,6 +316,34 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
   return(rowdisp);
 }
 
+/* Calculates the row sums of squared values without using additional memory */
+//[[Rcpp::export]]
+NumericVector RowSumOfSquares(const NumericMatrix x){
+  int nrow = x.nrow(), ncol = x.ncol();
+  NumericVector out(nrow);
+  
+  for (int i = 0; i < nrow; i++) {
+    double total = 0;
+    for (int j = 0; j < ncol; j++) {
+      total += pow(x(i, j), 2);
+    }
+    out[i] = total;
+  }
+  return out;
+}
+
+/* Calculates the variance of rows of a matrix */
+//[[Rcpp::export]]
+NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
+  NumericVector out(x.rows());
+  for(int i=0; i < x.rows(); ++i){
+    Eigen::ArrayXd r = x.row(i).array();
+    double rowMean = r.mean();
+    out[i] = (r - rowMean).square().sum() / (x.cols() - 1);
+  }
+  return out;
+}
+
 int IntersectLength(std::vector<int> a, std::vector<int> b){
   std::unordered_set<int> s(a.begin(), a.end());
   int intersect = count_if(b.begin(), b.end(), [&](int k) {return s.find(k) != s.end();});
@@ -331,3 +359,4 @@ std::vector<int> ToVector(Eigen::VectorXd v1){
   std::vector<int> v2(v1.data(), v1.data() + v1.size());
   return(v2);
 }
+
