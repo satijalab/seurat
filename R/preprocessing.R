@@ -377,6 +377,24 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
+#' Use regularized negative binomial regression to normalize UMI count data
+#' 
+#' This function calls sctransform::vst. The sctransform package is available at
+#' https://github.com/ChristophH/sctransform.
+#' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
+#'
+#' @param object A seurat object
+#' @param assay.use Name of assay to use
+#' @param do.correct.umi Place corrected UMI matrix in assay data slot
+#' @param variable.features.zscore Z-score threshold for calling features highly variable; 
+#' z-scores are based on variances of regression model pearson residuals of all features
+#' @param variable.features.n Use this many features as variable features after ranking by variance
+#' @param do.scale Whether to scale residuals to have unit variance
+#' @param do.center Whether to center residuals to have mean zero
+#' @param scale.max Max value after scaling and/or centering
+#' @param verbose Whether to print messages and progress bars
+#' @param ... Additional parameters passed to sctransform::vst
+#' 
 #' @export
 RegressRegNB <- function(
   object,
