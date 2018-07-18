@@ -361,26 +361,109 @@ NormalizeData.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  object <- switch(
-    EXPR = normalization.method,
-    'RegNB' = RegNB(object, assay.use, verbose, ...),
-    {
-      assay.data <- GetAssay(object = object, assay.use = assay.use)
-      assay.data <- NormalizeData(
-        object = assay.data,
-        normalization.method = normalization.method,
-        scale.factor = scale.factor,
-        verbose = verbose,
-        ...
-      )
-      object[[assay.use]] <- assay.data
-      object
-    }
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- NormalizeData(
+    object = assay.data,
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    verbose = verbose,
+    ...
   )
+  object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
     object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
   }
+  return(object)
+}
+
+#' @export
+RegressRegNB <- function(
+  object,
+  assay.use = NULL,
+  do.correct.umi = FALSE,
+  variable.features.zscore = 1,
+  variable.features.n = NULL,
+  do.scale = FALSE,
+  do.center = FALSE,
+  scale.max = .Machine$double.xmax,
+  verbose = TRUE,
+  ...
+) {
+  if (!requireNamespace('sctransform')) {
+    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.obj <- GetAssay(object = object, assay.use = assay.use)
+  umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
+  
+  vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
+  # cell_attr = NULL,
+  # latent_var = c('log_umi_per_gene'),
+  # batch_var = NULL,
+  # n_genes = 2000,
+  # n_cells = NULL,
+  # method = 'poisson',
+  # res_clip_range = c(-50, 50),
+  # bin_size = 256,
+  # min_cells = 5,
+  # return_cell_attr = FALSE,
+  # return_gene_attr = FALSE)
+  
+  # put corrected umi counts in data slot
+  if (do.correct.umi) {
+    if (verbose) {
+      message('Calculate corrected UMI matrix and place in data slot')
+    }
+    umi.corrected <- sctransform::denoise(x = vst.out) 
+    umi.corrected <- as(umi.corrected, 'dgCMatrix')
+    # skip SetAssayData.Assay because of restrictive dimension checks there
+    slot(object = assay.obj, name = 'data') <- umi.corrected
+    # assay.obj <- SetAssayData(
+    #   object = assay.obj,
+    #   slot = 'data',
+    #   new.data = umi.corrected
+    # )
+  }
+  
+  # set variable features
+  if (verbose) {
+    message('Set variable features')
+  }
+  feature.variance <- RowVar(vst.out$y)
+  names(feature.variance) <- rownames(vst.out$y)
+  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+  if (!is.null(variable.features.n)) {
+    top.features <- names(feature.variance)[1:variable.features.n]
+  } else {
+    feature.variance <- scale(feature.variance)[, 1]
+    top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
+  }
+  VariableFeatures(object = assay.obj) <- top.features
+  
+  scale.data <- vst.out$y
+  # re-scale the residuals
+  if (do.scale || do.center) {
+    if (verbose) {
+      message('Re-scale residuals')
+    }
+    scale.data <- FastRowScale(
+      mat = vst.out$y,
+      scale = do.scale,
+      center = do.center,
+      scale_max = scale.max,
+      display_progress = FALSE
+    )
+    dimnames(scale.data) <- dimnames(vst.out$y)
+  }
+  
+  assay.obj <- SetAssayData(
+    object = assay.obj,
+    slot = 'scale.data',
+    new.data = scale.data
+  )
+
+  object[[assay.use]] <- assay.obj
   return(object)
 }
 
