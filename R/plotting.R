@@ -811,6 +811,91 @@ CellPlot <- function(
   return(p)
 }
 
+#' Visualize Dimensional Reduction genes
+#'
+#' Visualize top genes associated with reduction components
+#'
+#' @param object Seurat object
+#' @param reduction.use Reduction technique to visualize results for
+#' @param dims.use Number of dimensions to display
+#' @param num.features Number of genes to display
+#' @param pt.color Color of points to use
+#' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
+#' the top genes ranked by the scores absolute values
+#' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param ... Ignored
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_point labs
+#' @export
+#'
+#' @examples
+#' VizDimReduction(object = pbmc_small)
+#'
+VizDimReduction <- function(
+  object,
+  reduction.use = "pca",
+  dims.use = 1:5,
+  num.features = 30,
+  pt.color = 'blue',
+  projected = FALSE,
+  nCol = NULL,
+  do.balanced = FALSE,
+  combine.plots = TRUE,
+  ...
+) {
+  if (is.null(x = nCol)) {
+    nCol <- 2
+    if (length(x = dims.use) == 1) {
+      nCol <- 1
+    }
+    if (length(x = dims.use) > 6) {
+      nCol <- 3
+    }
+    if (length(x = dims.use) > 9) {
+      nCol <- 4
+    }
+  }
+  loadings <- Loadings(object = object[[reduction.use]], projected = projected)
+  features.use <- lapply(
+    X = dims.use,
+    FUN = TopFeatures,
+    object = object[[reduction.use]],
+    num.features = num.features,
+    projected = projected,
+    do.balanced = do.balanced
+  )
+  features.use <- lapply(
+    X = features.use,
+    FUN = unlist,
+    use.names = FALSE
+  )
+  loadings <- loadings[unlist(x = features.use), dims.use, drop = FALSE]
+  names(x = features.use) <- colnames(x = loadings) <- as.character(x = dims.use)
+  plots <- lapply(
+    X = as.character(x = dims.use),
+    FUN = function(i) {
+      data.plot <- as.data.frame(x = loadings[features.use[[i]], i, drop = FALSE])
+      colnames(x = data.plot) <- paste0(Key(object = object[[reduction.use]]), i)
+      data.plot$feature <- rownames(x = data.plot)
+      plot <- ggplot(
+        data = data.plot,
+        mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
+      ) +
+        geom_point(col = pt.color) +
+        labs(y = NULL)
+      return(plot)
+    }
+  )
+  if (combine.plots) {
+    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
+  }
+  return(plots)
+}
+
 globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'

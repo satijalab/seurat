@@ -94,7 +94,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #' @importFrom graphics locator
 #' @importFrom SDMTools pnt.in.poly
 #
-PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
+PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
   npoints <- nrow(x = plot.data)
@@ -578,7 +578,6 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
 # @param combine.plots Combine plots using cowplot::plot_grid
 # @param ... Ignores
 #
-#' @importFrom cowplot plot_grid get_legend
 #
 ExIPlot <- function(
   object,
@@ -645,6 +644,7 @@ ExIPlot <- function(
 # Plot a single expression by identity on a plot
 #
 # @param feature Feature to plot
+# @param plot.type Make either a 'ridge' or 'violin' plot
 # @param data Data to plot
 # @param cell.ident Idents to use
 # @param do.sort Sort identity classes (on the x-axis) by the average
@@ -665,7 +665,8 @@ ExIPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
+#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin
+#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
 #
 SingleExIPlot <- function(
   feature,
