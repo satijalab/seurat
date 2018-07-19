@@ -2,74 +2,43 @@
 % Please edit documentation in R/plotting.R
 \name{DoHeatmap}
 \alias{DoHeatmap}
-\title{Gene expression heatmap}
+\title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, data.use = NULL, use.scaled = TRUE, cells.use = NULL,
-  genes.use = NULL, disp.min = -2.5, disp.max = 2.5, group.by = "ident",
-  group.order = NULL, draw.line = TRUE, col.low = "#FF00FF",
-  col.mid = "#000000", col.high = "#FFFF00", slim.col.label = FALSE,
-  remove.key = FALSE, rotate.key = FALSE, title = NULL, cex.col = 10,
-  cex.row = 10, group.label.loc = "bottom", group.label.rot = FALSE,
-  group.cex = 15, group.spacing = 0.15, assay.use = NULL)
+DoHeatmap(object, cells.use = NULL, features.use = NULL, disp.min = -2.5,
+  disp.max = 2.5, group.by = "ident", slot.use = "data",
+  assay.use = NULL, check.plot = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{data.use}{Option to pass in data to use in the heatmap. Default will pick from either
-object@data or object@scale.data depending on use.scaled parameter. Should have cells as columns
-and genes as rows.}
+\item{cells.use}{A vector of cells to plot}
 
-\item{use.scaled}{Whether to use the data or scaled data if data.use is NULL}
-
-\item{cells.use}{Cells to include in the heatmap (default is all cells)}
-
-\item{genes.use}{Genes to include in the heatmap (ordered)}
+\item{features.use}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
-\item{group.by}{Groups cells by this variable. Default is object@ident}
+\item{group.by}{Name of variable to group cells by}
 
-\item{group.order}{Order of groups from left to right in heatmap.}
+\item{slot.use}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
-\item{draw.line}{Draw vertical lines delineating different groups}
+\item{assay.use}{Assay to pull from}
 
-\item{col.low}{Color for lowest expression value}
+\item{check.plot}{Check that plotting will finish in a reasonable amount of time}
 
-\item{col.mid}{Color for mid expression value}
-
-\item{col.high}{Color for highest expression value}
-
-\item{slim.col.label}{display only the identity class name once for each group}
-
-\item{remove.key}{Removes the color key from the plot.}
-
-\item{rotate.key}{Rotate color scale horizantally}
-
-\item{title}{Title for plot}
-
-\item{cex.col}{Controls size of column labels (cells)}
-
-\item{cex.row}{Controls size of row labels (genes)}
-
-\item{group.label.loc}{Place group labels on bottom or top of plot.}
-
-\item{group.label.rot}{Whether to rotate the group label.}
-
-\item{group.cex}{Size of group label text}
-
-\item{group.spacing}{Controls amount of space between columns.}
-
-\item{assay.type}{to plot heatmap for (default is RNA)}
+\item{...}{Extra parameters passed to superheat}
 }
 \value{
-Returns a ggplot2 plot object
+Invisbly returns the final grob
 }
 \description{
-Draws a heatmap of single cell gene expression using ggplot2.
+Draws a heatmap of single cell feature expression using superheat
 }
 \examples{
 DoHeatmap(object = pbmc_small)
 
+}
+\seealso{
+\code{\link{superheat::superheat}}
 }
