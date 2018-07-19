@@ -4,13 +4,15 @@
 \alias{Read10X}
 \title{Load in data from 10X}
 \usage{
-Read10X(data.dir = NULL)
+Read10X(data.dir = NULL, gene.column = 2)
 }
 \arguments{
 \item{data.dir}{Directory containing the matrix.mtx, genes.tsv, and barcodes.tsv
 files provided by 10X. A vector or named vector can be given in order to load
 several data directories. If a named vector is given, the cell barcode names
 will be prefixed with the name.}
+
+\item{gene.column}{Specify which column of genes.tsv to use for gene names; default is 2}
 }
 \value{
 Returns a sparse matrix with rows and columns labeled
