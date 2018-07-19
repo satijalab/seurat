@@ -393,7 +393,7 @@ NormalizeData.Seurat <- function(
 #' @param do.center Whether to center residuals to have mean zero
 #' @param scale.max Max value after scaling and/or centering
 #' @param verbose Whether to print messages and progress bars
-#' @param ... Additional parameters passed to sctransform::vst
+#' @param ... Additional parameters passed to \code{sctransform::vst}
 #' 
 #' @export
 RegressRegNB <- function(
@@ -446,7 +446,7 @@ RegressRegNB <- function(
   
   # set variable features
   if (verbose) {
-    message('Set variable features')
+    message('Determine variable features')
   }
   feature.variance <- RowVar(vst.out$y)
   names(feature.variance) <- rownames(vst.out$y)
@@ -458,6 +458,9 @@ RegressRegNB <- function(
     top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
   }
   VariableFeatures(object = assay.obj) <- top.features
+  if (verbose) {
+    message('Set ', length(top.features), ' variable features')
+  }
   
   scale.data <- vst.out$y
   # re-scale the residuals
