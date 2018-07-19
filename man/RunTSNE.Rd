@@ -15,7 +15,7 @@
   dims.use = 1:5, features.use = NULL, seed.use = 1,
   tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
   distance.matrix = NULL, reduction.name = "tsne",
-  reduction.key = "tSNE_", ...)
+  reduction.key = "tSNE_", workflow.name = NULL, ...)
 
 RunTSNE(object, reduction.use, cells.use, seed.use, tsne.method, add.iter,
   dim.embed, reduction.key, ...)
@@ -60,6 +60,8 @@ the tSNE. Default is PCA}
 instead of data matrix (experimental)}
 
 \item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. tsne by default}
+
+\item{workflow.name}{Name of workflow}
 }
 \description{
 Run t-SNE dimensionality reduction on selected features. Has the option of

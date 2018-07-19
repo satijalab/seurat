@@ -20,8 +20,10 @@ No return value. Only prints to console.
 Print the parameters chosen for the latest stored diffusion map calculation.
 }
 \examples{
+\dontrun{
 # Run Diffusion on variable genes
 pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 PrintDMParams(object = pbmc_small)
+}
 
 }

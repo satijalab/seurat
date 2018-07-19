@@ -168,15 +168,18 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
-Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress = true){
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress = true){
   Progress p(mat.cols(), display_progress);
-  Eigen::MatrixXd std_mat(mat.rows(), mat.cols());
+  NumericMatrix std_mat(mat.rows(), mat.cols());
   for(int i=0; i < mat.cols(); ++i){
     p.increment();
     Eigen::ArrayXd r = mat.col(i).array();
     double colMean = r.mean();
     double colSdev = sqrt((r - colMean).square().sum() / (mat.rows() - 1));
-    std_mat.col(i) = (r - colMean) / colSdev;
+    NumericMatrix::Column new_col = std_mat(_, i);
+    for(int j=0; j < new_col.size(); j++) {
+      new_col[j] = (r[j] - colMean) / colSdev;
+    }
   }
   return std_mat;
 }
@@ -313,6 +316,34 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
   return(rowdisp);
 }
 
+/* Calculates the row sums of squared values without using additional memory */
+//[[Rcpp::export]]
+NumericVector RowSumOfSquares(const NumericMatrix x){
+  int nrow = x.nrow(), ncol = x.ncol();
+  NumericVector out(nrow);
+  
+  for (int i = 0; i < nrow; i++) {
+    double total = 0;
+    for (int j = 0; j < ncol; j++) {
+      total += pow(x(i, j), 2);
+    }
+    out[i] = total;
+  }
+  return out;
+}
+
+/* Calculates the variance of rows of a matrix */
+//[[Rcpp::export]]
+NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
+  NumericVector out(x.rows());
+  for(int i=0; i < x.rows(); ++i){
+    Eigen::ArrayXd r = x.row(i).array();
+    double rowMean = r.mean();
+    out[i] = (r - rowMean).square().sum() / (x.cols() - 1);
+  }
+  return out;
+}
+
 int IntersectLength(std::vector<int> a, std::vector<int> b){
   std::unordered_set<int> s(a.begin(), a.end());
   int intersect = count_if(b.begin(), b.end(), [&](int k) {return s.find(k) != s.end();});
@@ -328,3 +359,4 @@ std::vector<int> ToVector(Eigen::VectorXd v1){
   std::vector<int> v2(v1.data(), v1.data() + v1.size());
   return(v2);
 }
+

@@ -354,32 +354,137 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
-  # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("NormalizeData"))]
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  # object <- SetCalcParams(
-  #   object = object,
-  #   calculation = "NormalizeData",
-  #   ... = parameters.to.store
-  # )
-  object <- switch(
-    EXPR = normalization.method,
-    'RegNB' = RegNB(object, assay.use, verbose, ...),
-    {
-      assay.data <- GetAssay(object = object, assay.use = assay.use)
-      assay.data <- NormalizeData(
-        object = assay.data,
-        normalization.method = normalization.method,
-        scale.factor = scale.factor,
-        verbose = verbose,
-        ...
-      )
-      object[[assay.use]] <- assay.data
-      object
-    }
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- NormalizeData(
+    object = assay.data,
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    verbose = verbose,
+    ...
   )
+  object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
+  return(object)
+}
+
+#' Use regularized negative binomial regression to normalize UMI count data
+#' 
+#' This function calls sctransform::vst. The sctransform package is available at
+#' https://github.com/ChristophH/sctransform.
+#' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
+#'
+#' @param object A seurat object
+#' @param assay.use Name of assay to use
+#' @param do.correct.umi Place corrected UMI matrix in assay data slot
+#' @param variable.features.zscore Z-score threshold for calling features highly variable; 
+#' z-scores are based on variances of regression model pearson residuals of all features
+#' @param variable.features.n Use this many features as variable features after ranking by variance
+#' @param do.scale Whether to scale residuals to have unit variance
+#' @param do.center Whether to center residuals to have mean zero
+#' @param scale.max Max value after scaling and/or centering
+#' @param verbose Whether to print messages and progress bars
+#' @param ... Additional parameters passed to \code{sctransform::vst}
+#' 
+#' @export
+RegressRegNB <- function(
+  object,
+  assay.use = NULL,
+  do.correct.umi = FALSE,
+  variable.features.zscore = 1,
+  variable.features.n = NULL,
+  do.scale = FALSE,
+  do.center = FALSE,
+  scale.max = .Machine$double.xmax,
+  verbose = TRUE,
+  ...
+) {
+  if (!requireNamespace('sctransform')) {
+    stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.obj <- GetAssay(object = object, assay.use = assay.use)
+  umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
+  
+  vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
+  # cell_attr = NULL,
+  # latent_var = c('log_umi_per_gene'),
+  # batch_var = NULL,
+  # n_genes = 2000,
+  # n_cells = NULL,
+  # method = 'poisson',
+  # res_clip_range = c(-50, 50),
+  # bin_size = 256,
+  # min_cells = 5,
+  # return_cell_attr = FALSE,
+  # return_gene_attr = FALSE)
+  
+  # put corrected umi counts in data slot
+  if (do.correct.umi) {
+    if (verbose) {
+      message('Calculate corrected UMI matrix and place in data slot')
+    }
+    umi.corrected <- sctransform::denoise(x = vst.out) 
+    umi.corrected <- as(umi.corrected, 'dgCMatrix')
+    # skip SetAssayData.Assay because of restrictive dimension checks there
+    slot(object = assay.obj, name = 'data') <- umi.corrected
+    # assay.obj <- SetAssayData(
+    #   object = assay.obj,
+    #   slot = 'data',
+    #   new.data = umi.corrected
+    # )
+  }
+  
+  # set variable features
+  if (verbose) {
+    message('Determine variable features')
+  }
+  feature.variance <- RowVar(vst.out$y)
+  names(feature.variance) <- rownames(vst.out$y)
+  feature.variance <- sort(x = feature.variance, decreasing = TRUE)
+  if (!is.null(variable.features.n)) {
+    top.features <- names(feature.variance)[1:variable.features.n]
+  } else {
+    feature.variance <- scale(feature.variance)[, 1]
+    top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
+  }
+  VariableFeatures(object = assay.obj) <- top.features
+  if (verbose) {
+    message('Set ', length(top.features), ' variable features')
+  }
+  
+  scale.data <- vst.out$y
+  # re-scale the residuals
+  if (do.scale || do.center) {
+    if (verbose) {
+      message('Re-scale residuals')
+    }
+    scale.data <- FastRowScale(
+      mat = vst.out$y,
+      scale = do.scale,
+      center = do.center,
+      scale_max = scale.max,
+      display_progress = FALSE
+    )
+    dimnames(scale.data) <- dimnames(vst.out$y)
+  }
+  
+  assay.obj <- SetAssayData(
+    object = assay.obj,
+    slot = 'scale.data',
+    new.data = scale.data
+  )
+
+  object[[assay.use]] <- assay.obj
   return(object)
 }
 
@@ -793,6 +898,7 @@ ScaleData.Assay <- function(
 }
 
 #' @param assay.use Name of Assay to scale
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn ScaleData Scale a Seurat object
 #' @export
@@ -811,8 +917,12 @@ ScaleData.Seurat <- function(
   block.size = 1000,
   min.cells.to.block = 3000,
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   if (any(vars.to.regress %in% colnames(x = object[]))) {
@@ -837,6 +947,9 @@ ScaleData.Seurat <- function(
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -1037,6 +1150,7 @@ FindVariableFeatures.Assay <- function(
 
 #' @inheritParams FindVariableFeatures.Assay
 #' @param assay.use ...
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn FindVariableFeatures Find variable features in a Seurat object
 #' @export
@@ -1054,8 +1168,12 @@ FindVariableFeatures.Seurat <- function(
   dispersion.cutoff = c(1, Inf),
   selection.method = "dispersion",
   verbose = TRUE,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   assay.data <- FindVariableFeatures(
@@ -1068,10 +1186,14 @@ FindVariableFeatures.Seurat <- function(
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose,
     selection.method = selection.method,
+    num.features = num.features,
     ...
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 

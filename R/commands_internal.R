@@ -4,14 +4,14 @@
 #
 # @return returns the Seurat object with command stored
 #
-LogSeuratCommand <- function(object) {
+LogSeuratCommand <- function(object, return.command = FALSE) {
   time.stamp <- Sys.time()
   #capture function name
   command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
   command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
   call.string <- command.name
   command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
-  
+
   #capture function arguments
   argnames <- names(formals(sys.function(sys.parent(n = 1))))
   argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
@@ -34,7 +34,9 @@ LogSeuratCommand <- function(object) {
   command.name <- paste0(command.name, ".", assay.use, ".", reduction.use)
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
   command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-
+  if (return.command) {
+    return(command.name)
+  }
   # store results
   seurat.command <- new(
     Class = 'SeuratCommand',

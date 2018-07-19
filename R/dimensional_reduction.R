@@ -4,11 +4,11 @@ RunPCA.default <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -19,8 +19,8 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    pcs.compute <- min(pcs.compute, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = pcs.compute, ...)
+    compute.dims <- min(compute.dims, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = compute.dims, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -30,8 +30,8 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    pcs.compute <- min(pcs.compute, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = pcs.compute, ...)
+    compute.dims <- min(compute.dims, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
     if (weight.by.var) {
@@ -41,7 +41,7 @@ RunPCA.default <- function(
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:pcs.compute)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- MakeDimReducObject(
@@ -62,11 +62,11 @@ RunPCA.Assay <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
@@ -81,11 +81,11 @@ RunPCA.Assay <- function(
     object = data.use,
     assay.use = assay.use,
     pc.features = features.use,
-    pcs.compute = pcs.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
-    pcs.print = pcs.print,
+    print.dims = print.dims,
     features.print = features.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
@@ -96,6 +96,8 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param workflow.name Name of workflow
+#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -104,27 +106,32 @@ RunPCA.Seurat <- function(
   object,
   assay.use = NULL,
   features.use = NULL,
-  pcs.compute = 20,
+  compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  pcs.print = 1:5,
+  print.dims = 1:5,
   features.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   reduction.data <- RunPCA(
     object = assay.data,
     assay.use = assay.use,
     features.use = features.use,
-    pcs.compute = pcs.compute,
+    compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
+    print.dims = print.dims,
     feature.print = features.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
@@ -133,6 +140,9 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -452,6 +462,7 @@ RunTSNE.DimReduc <- function(
 #' @param features.use If set, run the tSNE on this subset of features
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
+#' @param workflow.name Name of workflow
 #'
 #' @describeIn RunTSNE Run tSNE on a Seurat object
 #' @export
@@ -470,8 +481,15 @@ RunTSNE.Seurat <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  workflow.name = NULL,
   ...
 ) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  if (length(dims.use) == 1 && !is.null(workflow.name)) {
+    dims.use <- 1:dims.use
+  }
   tsne.reduction <- if (tsne.method == 'Rtsne') {
     if (!is.null(x = distance.matrix)) {
       RunTSNE(
@@ -524,6 +542,13 @@ RunTSNE.Seurat <- function(
   }
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+    object <- UpdateWorkflow(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = command.name)
+  }
   return(object)
 }
 
@@ -947,6 +972,7 @@ RunCCA <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # As multi-set CCA requires more than two datasets, we will split our test object into
 #' # three just for this example
@@ -960,6 +986,7 @@ RunCCA <- function(
 #' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
 #' # Print results
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
+#' }
 #'
 RunMultiCCA <- function(
   object.list,
@@ -1110,6 +1137,12 @@ RunMultiCCA <- function(
 
 #' Run diffusion map
 #'
+#' NOTE: Prior to v2.3.4, this function used the R package diffusionMap to compute
+#' the diffusion map components. This package was being archived and thus
+#' RunDiffusion now uses the destiny package for the diffusion computations.
+#' Please be aware that this will result in different default values as the two
+#' underlying package implementations are different.
+#'
 #' @param object Seurat object
 #' @param cells.use Which cells to analyze (default, all cells)
 #' @param dims.use Which dimensions to use as input features
@@ -1118,21 +1151,26 @@ RunMultiCCA <- function(
 #' default
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
 #' diffusion map input. Default is PCA
-#' @param q.use Quantile to clip diffusion map components at. This addresses an issue where 1-2 cells will have extreme values that obscure all other points. 0.01 by default
+#' @param q.use Quantile to clip diffusion map components at. This addresses an
+#' issue where 1-2 cells will have extreme values that obscure all other points.
+#' 0.01 by default
 #' @param max.dim Max dimension to keep from diffusion calculation
 #' @param scale.clip Max/min value for scaled data. Default is 3
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. dm by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. DM by default
-#' @param ... Additional arguments to the diffuse call
+#' @param reduction.name dimensional reduction name, specifies the position in
+#' the object$dr list. dm by default
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. DM by default
+#' @param ... Additional arguments to the DiffusionMap call
 #'
 #' @return Returns a Seurat object with a diffusion map
 #'
-#' @import diffusionMap
+#' @importFrom utils installed.packages
 #' @importFrom stats dist quantile
 #'
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Run Diffusion on variable genes
 #' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
@@ -1140,6 +1178,7 @@ RunMultiCCA <- function(
 #' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
 #' # Plot results
 #' DMPlot(pbmc_small)
+#' }
 #'
 RunDiffusion <- function(
   object,
@@ -1154,6 +1193,10 @@ RunDiffusion <- function(
   reduction.key = "DM",
   ...
 ) {
+  # Check for destiny
+  if (!'destiny' %in% rownames(x = installed.packages())) {
+    stop("Please install destiny - learn more at https://bioconductor.org/packages/release/bioc/html/destiny.html")
+  }
   cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
     dim.code <- GetDimReduction(
@@ -1178,12 +1221,8 @@ RunDiffusion <- function(
                           ... = parameters.to.store)
   data.dist <- dist(data.use)
   data.diffusion <- data.frame(
-    diffuse(
-      D = data.dist,
-      neigen = max.dim,
-      maxdim = max.dim,
-      ...
-    )$X
+    destiny::DiffusionMap(data = as.matrix(data.dist),
+                          n_eigs = max.dim, ...)@eigenvectors
   )
   colnames(x = data.diffusion) <- paste0(reduction.key, 1:ncol(x = data.diffusion))
   rownames(x = data.diffusion) <- cells.use
@@ -1392,63 +1431,11 @@ RunPHATE <- function(
   return(object)
 }
 
-#' Run UMAP
-#'
-#' Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
-#' reduction technique. To run, you must first install the umap-learn python
-#' package (e.g. via pip install umap-learn). Details on this package can be
-#' found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
-#' discussion of the mathematics underlying UMAP, see the ArXiv paper here:
-#' \url{https://arxiv.org/abs/1802.03426}.
-#'
-#' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features, used only if
-#' \code{genes.use} is NULL
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
-#' UMAP input. Default is PCA
-#' @param genes.use If set, run UMAP on this subset of genes (instead of running on a
-#' set of reduced dimensions). Not set (NULL) by default
-#' @param assay.use Assay to pull data for when using \code{genes.use}
-#' @param max.dim Max dimension to keep from UMAP procedure.
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. umap by default
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. UMAP by default
-#' @param n_neighbors This determines the number of neighboring points used in
-#' local approximations of manifold structure. Larger values will result in more
-#' global structure being preserved at the loss of detailed local structure. In
-#' general this parameter should often be in the range 5 to 50.
-#' @param min_dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more
-#' evenly distributed, while smaller values allow the algorithm to optimise more
-#' accurately with regard to local structure. Sensible values are in the range
-#' 0.001 to 0.5.
-#' @param metric metric: This determines the choice of metric used to measure
-#' distance in the input space. A wide variety of metrics are already coded, and
-#' a user defined function can be passed as long as it has been JITd by numba.
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#' @param ... Additional arguments to the umap
-#'
-#' @return Returns a Seurat object containing a UMAP representation
-#'
-#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
-#'
-#' @importFrom reticulate import py_module_available py_set_seed
-#'
+#' @describeIn RunUMAP Run a UMAP on a Seurat object
 #' @export
+#' @method RunUMAP Seurat
 #'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' # Run UMAP map on first 5 PCs
-#' pbmc_small <- RunUMAP(object = pbmc_small, dims.use = 1:5)
-#' # Plot results
-#' DimPlot(object = pbmc_small, reduction.use = 'umap')
-#' }
-#'
-RunUMAP <- function(
+RunUMAP.Seurat <- function(
   object,
   cells.use = NULL,
   dims.use = 1:5,

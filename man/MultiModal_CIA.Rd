@@ -6,7 +6,7 @@
 \usage{
 MultiModal_CIA(object, assay.1 = "RNA", assay.2 = "CITE",
   features.1 = NULL, features.2 = NULL, num.axes = 20,
-  normalize.variance = T)
+  normalize.variance = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -43,8 +43,8 @@ Imports:
     dtw,
     SDMTools,
     plotly,
-    diffusionMap,
     Hmisc,
+    httr,
     tidyr,
     ggridges,
     metap,
@@ -111,6 +111,8 @@ Collate:
     'tSNE_project.R'
     'utilities.R'
     'utilities_internal.R'
+    'workflows.R'
+    'workflows_internal.R'
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
@@ -127,4 +129,5 @@ Suggests:
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
-    DESeq2
+    DESeq2,
+    destiny

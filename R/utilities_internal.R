@@ -437,6 +437,25 @@ SetIfNull <- function(x, default) {
   }
 }
 
+
+# Set a default value if an object is NOT null
+#
+# @param lhs An object to set if it's NOT null
+# @param rhs The value to provide if x is NOT null
+#
+# @return lhs if lhs is null, else rhs
+#
+# @author Hadley Wickham
+# @references https://adv-r.hadley.nz/functions.html#missing-arguments
+#
+`%iff%` <- function(lhs, rhs) {
+  if (!is.null(x = lhs)) {
+    return(rhs)
+  } else {
+    return(lhs)
+  }
+}
+
 # return average of all values greater than a threshold
 #
 # @param x Values
@@ -666,4 +685,22 @@ PackageCheck <- function(..., error = TRUE) {
     )
   }
   invisible(x = package.installed)
+}
+
+# Try to convert x to numeric, if NA's introduced return x as is
+
+ToNumeric <- function(x){
+  # check for x:y range
+  if(is.numeric(x)){
+    return(x)
+  }
+  if(length(x = unlist(x = strsplit(x = x, split = ":"))) == 2) {
+    num <- unlist(x = strsplit(x = x, split = ":"))
+    return(num[1]:num[2])
+  }
+  num <- suppressWarnings(expr = as.numeric(x = x))
+  if(!is.na(x = num)){
+   return(num)
+  }
+  return(x)
 }
