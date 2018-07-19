@@ -51,7 +51,7 @@ MakeSeuratObject <- function(
     min.genes = min.genes,
     is.expr = is.expr
   )
-  Key(object = assay.data) <- assay.use
+  Key(object = assay.data) <- paste0(tolower(x = assay.use), '_')
   assay.list <- list(assay.data)
   names(x = assay.list) <- assay.use
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
@@ -308,7 +308,7 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
           )[vars.use, cells.use, drop = FALSE]))
         }
       )
-      colnames(x = data.return) <- vars.use
+      colnames(x = data.return) <- paste0(key.use, vars.use)
       return(data.return)
     }
   )
@@ -486,11 +486,14 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'SeuratCommand' = 'commands',
       stop("Unknown object type: ", class(x = value))
     )
-    if (!all(colnames(x = value) == colnames(x = x))) {
+    if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
       stop("All cells in the object being added must match the cells in this object")
     }
     if (i %in% names(x = x) && class(x = value) != class(x = x[[i]])) {
       stop("This object already contains ", i, " as a ", class(x = x[[i]]), "; duplicate names are not allowed", call. = FALSE)
+    }
+    if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
+      Key(object = value) <- paste0(tolower(x = i), '_')
     }
     slot(object = x, name = slot.use)[[i]] <- value
     return(x)
