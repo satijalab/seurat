@@ -175,5 +175,41 @@ RunUMAP <- function(
   UseMethod(generic = 'RunUMAP', object = object)
 }
 
-
-
+#' Perform Canonical Correlation Analysis
+#'
+#' Runs a canonical correlation analysis using a diagonal implementation of CCA.
+#' For details about stored CCA calculation parameters, see
+#' \code{PrintCCAParams}.
+#' @param object1 First Seurat object
+#' @param object2 Second Seurat object.
+#' @param num.cc Number of canonical vectors to calculate
+#'
+#' @return Returns a combined Seurat object with the CCA results stored.
+#'
+#' @seealso \code{MergeSeurat}
+#'
+#' @export
+#' @importFrom irlba irlba
+#'
+#' @examples
+#' pbmc_small
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' # Print results
+#' PrintDim(pbmc_cca,reduction.type = 'cca')
+#'
+#' @rdname RunCCA
+#' @export RunCCA
+#'
+RunCCA <- function(
+  object1,
+  object2,
+  num.cc,
+  ...
+) {
+  UseMethod(generic = 'RunCCA', object = object1)
+}

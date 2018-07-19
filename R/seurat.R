@@ -192,7 +192,8 @@ Idents.Seurat <- function(object, ...) {
   }
   cells.use <- intersect(x = cells.use, y = colnames(x = object))
   cells.use <- match(x = cells.use, table = colnames(x = object))
-  idents.new <- if (value %in% colnames(x = object[])) {
+  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[]))
+  {
     unlist(x = object[value], use.names = FALSE)[cells.use]
   } else {
     if (is.list(x = value)) {
@@ -590,3 +591,81 @@ setMethod(
     invisible(x = NULL)
   }
 )
+
+#' @export
+#' @method merge Seurat
+#'
+merge.Seurat <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = FALSE,
+  project = "SeuratProject",
+  min.cells = 0,
+  min.genes = 0,
+  is.expr = 0
+) {
+  objects <- c(x, y)
+  if (!is.null(add.cell.ids)) {
+    if (length(x = add.cell.ids) != length(x = objects)) {
+      stop("Please provide a cell identifier for each object provided to merge")
+    }
+    for(i in 1:length(objects)) {
+      objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
+    }
+  }
+  assays.to.merge <- c()
+  for(i in 1:length(objects)) {
+    assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
+  }
+  assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
+  combined.assays <- list()
+  for(assay in assays.to.merge) {
+    assay1 <- objects[[1]][[assay]]
+    assay2 <- list()
+    for(i in 2:length(objects)) {
+      assay2[[i-1]] <- objects[[i]][[assay]]
+    }
+    combined.assays[[assay]] <- merge(
+      x = assay1,
+      y = assay2,
+      min.cells = min.cells,
+      min.genes = min.genes,
+      is.expr = is.expr,
+    )
+  }
+  # Merge the meta.data
+  # get rid of nUMI and nFeature_*
+  combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
+  new.idents <- c()
+  for(object in objects) {
+    old.meta.data <- object[]
+    old.meta.data$nUMI <- NULL
+    old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
+    if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
+      cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
+      combined.meta.data[, cols.to.add] <- NA
+    }
+    combined.meta.data[rownames(old.meta.data), colnames(old.meta.data)] <- old.meta.data
+    new.idents <- c(new.idents, as.vector(Idents(object = object)))
+  }
+  names(new.idents) <- rownames(combined.meta.data)
+  new.idents <- factor(new.idents)
+  merged.object <- new(
+    Class = 'Seurat',
+    assays = combined.assays,
+    meta.data = combined.meta.data,
+    active.assay = assays.to.merge[1],
+    active.ident = new.idents,
+    project.name = project,
+    version = packageVersion(pkg = 'Seurat')
+  )
+  merged.object['nUMI'] <- colSums(x = merged.object)
+  for(assay in assays.to.merge) {
+    merged.object[paste('nFeature', assay, sep = '_')] <-
+      colSums(x = GetAssayData(
+        object = merged.object,
+        assay = assay, slot = "raw.data") > is.expr)
+  }
+  return(merged.object)
+}
