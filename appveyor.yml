@@ -9,9 +9,12 @@ init:
 install:
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install phate"
+  - "%PYTHON%\\python.exe -m pip install scanpy"
   - ps: Bootstrap
 
 # Adapt as necessary starting from here
+
+platform: x64
 
 environment:
   global:

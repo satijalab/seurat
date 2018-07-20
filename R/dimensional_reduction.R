@@ -1149,6 +1149,9 @@ RunDiffusion <- function(
 #' pbmc_small <- RunPHATE(object = pbmc_small, gamma=0)
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
+#' } else { 
+#'   print(reticulate::py_config())
+#'   print(reticulate::py_module_available("anndata"))
 #' }
 #'
 RunPHATE <- function(

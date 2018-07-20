@@ -22,6 +22,10 @@ before_install:
   - chmod +x travis_setup.sh
   - ./travis_setup.sh
 
+before_script:
+  - Rscript py_install.R
+  - R -e "reticulate::py_config()"
+
 addons:
   apt:
     packages:
