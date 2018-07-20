@@ -1,150 +1,3 @@
-#' @include seurat.R
-NULL
-
-globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
-#' Merge Seurat Objects
-#'
-#' Merge two Seurat objects
-#'
-#' @param object1 First Seurat object to merge
-#' @param object2 Second Seurat object to merge
-#' @param project Project name (string)
-#' @param min.cells Include genes with detected expression in at least this
-#' many cells
-#' @param min.genes Include cells where at least this many genes are detected
-#' @param is.expr Expression threshold for 'detected' gene
-#' @param do.normalize Normalize the data after merging. Default is TRUE.
-#' If set, will perform the same normalization strategy as stored for the first object
-#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
-#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score). FALSE by default, so run ScaleData after merging.
-#' @param do.center In object@@scale.data, perform row-centering (gene-based
-#' centering). FALSE by default
-#' @param names.field For the initial identity class for each cell, choose this
-#' field from the cell's column name
-#' @param names.delim For the initial identity class for each cell, choose this
-#' delimiter from the cell's column name
-#' @param add.cell.id1 String passed to \code{\link{RenameCells}} for object1
-#' @param add.cell.id2 String passed to \code{\link{RenameCells}} for object1
-#'
-#' @return Merged Seurat object
-#'
-#' @import Matrix
-#' @importFrom dplyr full_join filter
-#'
-#' @export
-#'
-#' @examples
-#' # Split pbmc_small for this example
-#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
-#' pbmc1
-#' pbmc2 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[41:80])
-#' pbmc2
-#' # Merge pbmc1 and pbmc2 into one Seurat object
-#' pbmc_merged <- MergeSeurat(object1 = pbmc1, object2 = pbmc2)
-#' pbmc_merged
-#'
-MergeSeurat <- function(
-  object1,
-  object2,
-  project = NULL,
-  min.cells = 0,
-  min.genes = 0,
-  is.expr = 0,
-  do.normalize = TRUE,
-  scale.factor = 1e4,
-  do.scale = FALSE,
-  do.center = FALSE,
-  names.field = 1,
-  names.delim = "_",
-  add.cell.id1 = NULL,
-  add.cell.id2 = NULL
-) {
-  if (length(x = object1@raw.data) < 2) {
-    stop("First object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
-  }
-  if (length(x = object2@raw.data) < 2) {
-    stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
-  }
-  if (!missing(x = add.cell.id1)) {
-    object1 <- RenameCells(object1, add.cell.id = add.cell.id1, for.merge = TRUE)
-  }
-  if (!missing(x = add.cell.id2)) {
-    object2 <- RenameCells(object2, add.cell.id = add.cell.id2, for.merge = TRUE)
-  }
-  if (any(object1@cell.names %in% object2@cell.names)) {
-    stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
-  }
-  merged.raw.data <- RowMergeSparseMatrices(
-    mat1 = object1@raw.data[,object1@cell.names],
-    mat2 = object2@raw.data[,object2@cell.names]
-  )
-  object1@meta.data <- object1@meta.data[object1@cell.names, ]
-  object2@meta.data <- object2@meta.data[object2@cell.names, ]
-  project <- SetIfNull(x = project, default = object1@project.name)
-  object1@meta.data$cell.name <- rownames(x = object1@meta.data)
-  object2@meta.data$cell.name <- rownames(x = object2@meta.data)
-  merged.meta.data <- suppressMessages(
-    suppressWarnings(
-      full_join(x = object1@meta.data, y = object2@meta.data)
-    )
-  )
-  merged.object <- CreateSeuratObject(
-    raw.data = merged.raw.data,
-    project = project,
-    min.cells = min.cells,
-    min.genes = min.genes,
-    is.expr = is.expr,
-    normalization.method = NULL,
-    scale.factor = scale.factor,
-    do.scale = FALSE,
-    do.center = FALSE,
-    names.field = names.field,
-    names.delim = names.delim
-  )
-
-  if (do.normalize) {
-    normalization.method.use = GetCalcParam(
-      object = object1,
-      calculation = "NormalizeData",
-      parameter = "normalization.method"
-    )
-    scale.factor.use = GetCalcParam(
-      object = object1,
-      calculation = "NormalizeData",
-      parameter = "scale.factor"
-    )
-
-    if (is.null(normalization.method.use)) {
-      normalization.method.use="LogNormalize"
-      scale.factor.use=10000
-    }
-    merged.object <- NormalizeData(
-      object = merged.object,
-      assay.type = "RNA",
-      normalization.method=normalization.method.use,
-      scale.factor=scale.factor.use
-
-    )
-  }
-
-  if (do.scale | do.center) {
-    merged.object <- ScaleData(
-      object = merged.object,
-      do.scale = do.scale,
-      do.center = do.center
-    )
-  }
-
-  merged.meta.data %>% filter(
-    cell.name %in% merged.object@cell.names
-  ) -> merged.meta.data
-  rownames(x= merged.meta.data) <- merged.object@cell.names
-  merged.meta.data$cell.name <- NULL
-  merged.object@meta.data <- merged.meta.data
-  return(merged.object)
-}
-
 #' Add samples into existing Seurat object.
 #'
 #' @param object Seurat object
@@ -914,31 +767,48 @@ GetIdent <- function(object, uniq = TRUE, cells.use = NULL){
     }
 }
 
-#' Rename cells
+
+#' @describeIn RenameCells Rename cells in an Assay object
+#' @export
+#' @method RenameCells Assay
 #'
-#' Change the cell names in all the different parts of a Seurat object. Can
-#' be useful before combining multiple objects.
+RenameCells.Assay <- function(
+  object,
+  new.names = NULL
+) {
+  for (data.slot in c("raw.data", "data", "scale.data")) {
+    old.data <- GetAssayData(object = object, slot = data.slot)
+    if (ncol(x = old.data) == 0) {
+      next
+    }
+    colnames(slot(object = object, name = data.slot)) <- new.names
+  }
+  return(object)
+}
+
+#' @describeIn RenameCells Rename cells in a DimReduc object
+#' @export
+#' @method RenameCells DimReduc
 #'
-#' @param object Seurat object
-#' @param add.cell.id prefix to add cell names
-#' @param new.names vector of new cell names
+RenameCells.DimReduc <- function(
+  object,
+  new.names = NULL
+) {
+  old.data <- Embeddings(object = object)
+  rownames(old.data) <- new.names
+  slot(object = object, name = "cell.embeddings") <- old.data
+  return(object)
+}
+
 #' @param for.merge Only rename slots needed for merging Seurat objects.
 #' Currently only renames the raw.data and meta.data slots.
+#' @param add.cell.id prefix to add cell names
 #'
-#' @details
-#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
-#' \code{new.names} is set these will be used to replace existing names.
-#'
-#' @return Seurat object with new cell names
-#'
+#' @describeIn RenameCells Rename cells in a Seurat object
 #' @export
+#' @method RenameCells Seurat
 #'
-#' @examples
-#' head(pbmc_small@cell.names)
-#' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
-#' head(pbmc_small@cell.names)
-#'
-RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
+RenameCells.Seurat <- function(object, add.cell.id = NULL, new.names = NULL,
                         for.merge = FALSE) {
 
   if (missing(add.cell.id) && missing(new.names)) {
@@ -950,60 +820,46 @@ RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
   }
 
   if (!missing(add.cell.id)) {
-    new.cell.names <- paste(add.cell.id, object@cell.names, sep = "_")
-    new.rawdata.names <- paste(add.cell.id, colnames(object@raw.data), sep = "_")
+    new.cell.names <- paste(add.cell.id, colnames(x = object), sep = "_")
   } else {
-    if(ncol(object@raw.data) != ncol(object@data)) {
-      stop("raw.data contains a different number of cells than data")
-    }
-    if(any(colnames(object@raw.data) != colnames(object@data))){
-      stop("cells in raw.data are different than the cells in data")
-    }
-    if (length(new.names) == length(object@cell.names)) {
+    if (length(new.names) == ncol(object)) {
       new.cell.names <- new.names
-      new.rawdata.names <- new.names
     } else {
-      stop("the length of 'new.names' (", length(new.names), ") must be the ",
-           "same as the length of 'object@cell.names' (",
-           length(object@cell.names), ")")
+      stop("the length of 'new.names' (", length(x = new.names), ") must be the ",
+           "same as the number of cells (", ncol(x = object), ")")
     }
   }
-  colnames(object@raw.data) <- new.rawdata.names
-  rownames(object@meta.data) <- new.cell.names
-  object@cell.names <- new.cell.names
-
-  if (for.merge) {
-    return(object)
+  # rename in the assay objects
+  assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  for(assay in assays) {
+    slot(object = object, name = "assays")[[assay]] <- RenameCells(
+      object = object[[assay]],
+      new.names = new.cell.names
+    )
   }
-
-  colnames(object@data) <- new.cell.names
-
-  if (!is.null(object@scale.data)) {
-    colnames(object@scale.data) <- new.cell.names
+  # rename in the DimReduc objects
+  dimreducs <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  for(dr in dimreducs) {
+    object[[dr]] <- RenameCells(
+      object = object[[dr]],
+      new.names = new.cell.names
+    )
   }
-  names(object@ident) <- new.cell.names
+  # rename the active.idents
+  old.ids <- Idents(object = object)
+  names(old.ids) <- new.cell.names
+  Idents(object = object, cells.use = rownames(x = object[])) <- old.ids
 
-  if (length(object@dr) > 0) {
-    for (dr in names(object@dr)) {
-      rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
-    }
+  # rename the cell-level metadata
+  old.meta.data <- object[]
+  rownames(old.meta.data) <- new.cell.names
+  slot(object = object, name = "meta.data") <- old.meta.data
+
+  # rename the graphs
+  graphs <- FilterObjects(object = object, classes.keep = "Graph")
+  for(g in graphs) {
+    colnames(object[[g]]) <- new.cell.names
+    rownames(object[[g]]) <- new.cell.names
   }
-
-  if (nrow(object@snn) == length(new.cell.names)) {
-    colnames(object@snn) <- new.cell.names
-    rownames(object@snn) <- new.cell.names
-  }
-
-  if (!is.null(object@kmeans)) {
-    if (!is.null(object@kmeans@gene.kmeans.obj)) {
-      colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
-    }
-    if (!is.null(object@kmeans@cell.kmeans.obj)) {
-      names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
-    }
-  }
-
-  # rownames(object@spatial@mix.probs) <- new.cell.names
-
   return(object)
 }

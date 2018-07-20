@@ -94,7 +94,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #' @importFrom graphics locator
 #' @importFrom SDMTools pnt.in.poly
 #
-PointLocator <- function(plot, recolor=TRUE, dark.theme = FALSE, ...) {
+PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
   #   Convert the ggplot object to a data.frame
   plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
   npoints <- nrow(x = plot.data)
@@ -578,7 +578,6 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
 # @param combine.plots Combine plots using cowplot::plot_grid
 # @param ... Ignores
 #
-#' @importFrom cowplot plot_grid get_legend
 #
 ExIPlot <- function(
   object,
@@ -645,6 +644,7 @@ ExIPlot <- function(
 # Plot a single expression by identity on a plot
 #
 # @param feature Feature to plot
+# @param plot.type Make either a 'ridge' or 'violin' plot
 # @param data Data to plot
 # @param cell.ident Idents to use
 # @param do.sort Sort identity classes (on the x-axis) by the average
@@ -665,7 +665,8 @@ ExIPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
+#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin
+#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
 #
 SingleExIPlot <- function(
   feature,
@@ -954,6 +955,83 @@ SingleCorPlot <- function(
     p <- p + cols.scale
   }
   return(p)
+}
+
+# A single heatmap from superheat
+#
+# @param object Seurat object
+# @param cells.use A vector of cells to plot
+# @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
+# @param group.by Name of variable to group cells by
+# @param disp.min Minimum display value (all values below are clipped)
+# @param disp.max Maximum display value (all values above are clipped)
+# @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
+# @param assay.use Assay to pull from
+# @param check.plot Check that plotting will finish in a reasonable amount of time
+# @param ... Extra parameters passed to superheat
+#
+#' @importFrom utils menu
+#' @importFrom superheat superheat
+#
+SingleHeatmap <- function(
+  object,
+  cells.use = NULL,
+  features.use = NULL,
+  group.by = NULL,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  assay.use = NULL,
+  slot.use = 'data',
+  check.plot = FALSE,
+  ...
+) {
+  cells.use <- cells.use %||% colnames(x = object)
+  if (is.character(x = cells.use)) {
+    cells.use <- intersect(x = cells.use, y = colnames(x = object))
+  }
+  if (length(x = cells.use) == 0) {
+    stop("No cells given to cells.use present in object")
+  }
+  features.use <- features.use %||% rownames(x = object)
+  features.use <- rev(x = features.use)
+  data.use <- t(x = as.matrix(x = FetchData(
+    object = object,
+    vars.fetch = features.use,
+    cells.use = cells.use,
+    slot = slot.use
+  )))
+  if (check.plot && any(dim(x = data.use) > 700)) {
+    choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
+    if (choice != 1) {
+      return(invisible(x = NULL))
+    }
+  }
+  idents.use <- if (is.null(x = group.by) || group.by == "ident") {
+    Idents(object = object)[cells.use]
+  } else {
+    object[group.by, drop = TRUE][cells.use]
+  }
+  idents.use <- as.vector(x = idents.use)
+  angle.use <- if (max(nchar(x = idents.use)) > 1) {
+    45
+  } else {
+    NULL
+  }
+  if (slot.use != 'scale.data') {
+    disp.max <- ifelse(test = disp.max == 2.5, yes = 10, no = disp.max)
+  }
+  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
+  p <- superheat(
+    X = as.matrix(x = data.use),
+    membership.cols = idents.use,
+    pretty.order.rows = FALSE,
+    pretty.order.cols = TRUE,
+    print.plot = FALSE,
+    left.label.text.size = 3,
+    bottom.label.text.angle = angle.use,
+    ...
+  )
+  return(p$plot)
 }
 
 #remove legend title

@@ -135,7 +135,7 @@ Print.DimReduc <- function(
     stop(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
   }
   for (dim in dims) {
-    genes <- TopGenes(
+    features <- TopFeatures(
       object = object,
       dim.use = dim,
       num.features = num.features * 2,
@@ -143,19 +143,19 @@ Print.DimReduc <- function(
       do.balanced = TRUE
     )
    message(paste0(Key(object = object), dim))
-   pos.genes <- split(x = genes$pos.genes, f = ceiling(x = seq_along(along.with = genes$pos.genes) / 10))
-   message(paste0("Positive: "), paste(pos.genes[[1]], collapse = ", "))
-   pos.genes[[1]] <- NULL
-   if (length(x = pos.genes) > 0) {
-     for (i in pos.genes) {
+   pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
+   message(paste0("Positive: "), paste(pos.features[[1]], collapse = ", "))
+   pos.features[[1]] <- NULL
+   if (length(x = pos.features) > 0) {
+     for (i in pos.features) {
        message(paste0("\t  ", paste(i, collapse = ", ")))
      }
    }
-   neg.genes <- split(x = genes$neg.genes, f = ceiling(x = seq_along(along.with = genes$neg.genes) / 10))
-   message(paste0("Negative: "), paste(neg.genes[[1]], collapse = ", "))
-   neg.genes[[1]] <- NULL
-   if (length(x = neg.genes) > 0) {
-     for (i in neg.genes) {
+   neg.features <- split(x = features$negative, f = ceiling(x = seq_along(along.with = features$negative) / 10))
+   message(paste0("Negative: "), paste(neg.features[[1]], collapse = ", "))
+   neg.features[[1]] <- NULL
+   if (length(x = neg.features) > 0) {
+     for (i in neg.features) {
        message(paste0("\t  ", paste(i, collapse = ", ")))
      }
    }
@@ -163,28 +163,27 @@ Print.DimReduc <- function(
   }
 }
 
-
-#' Find genes with highest scores for a given dimensional reduction technique
+#' Find features with highest scores for a given dimensional reduction technique
 #'
-#' Return a list of genes with the strongest contribution to a set of components
+#' Return a list of features with the strongest contribution to a set of components
 #'
 #' @param object DimReduc object
 #' @param dim.use Dimension to use
-#' @param num.features Number of genes to return
+#' @param num.features Number of features to return
 #' @param projected Use the full PCA (projected PCA). Default i s FALSE
-#' @param do.balanced Return an equal number of genes with both + and - scores.
+#' @param do.balanced Return an equal number of features with both + and - scores.
 #'
-#' @return Returns a vector of genes
+#' @return Returns a vector of features
 #'
 #' @export
 #'
 #' @examples
 #' pbmc_small
-#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+#' TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca")
 #' # After projection:
-#' DimTopGenes(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+#' TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
 #'
-TopGenes <- function(
+TopFeatures <- function(
   object,
   dim.use = 1,
   num.features = 20,
@@ -192,18 +191,46 @@ TopGenes <- function(
   do.balanced = FALSE
 ) {
   loadings <- Loadings(object = object, projected = projected)[, dim.use, drop = FALSE]
-  if (do.balanced) {
-    num.features <- round(x = num.features / 2)
-    loadings <- loadings[order(loadings), , drop = FALSE]
-    pos.genes <- head(rownames(loadings), num.features)
-    neg.genes <- rev(tail(rownames(loadings), num.features))
-    genes <- list(pos.genes = pos.genes, neg.genes = neg.genes)
-  } else {
-    loadings <- loadings[rev(x = order(abs(x = loadings))), , drop = FALSE]
-    genes <- head(rownames(x = loadings), num.features)
-    genes <- genes[order(loadings[genes, ])]
-  }
-  return(genes)
+  return(Top(
+    data.use = loadings,
+    dim.use = dim.use,
+    num.use = num.features,
+    do.balanced = do.balanced
+  ))
+}
+
+#' Find cells with highest scores for a given dimensional reduction technique
+#'
+#' Return a list of genes with the strongest contribution to a set of components
+#'
+#' @param object DimReduc object
+#' @param dim.use Dimension to use
+#' @param num.cells Number of cells to return
+#' @param do.balanced Return an equal number of cells with both + and - scores.
+#'
+#' @return Returns a vector of cells
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' head(TopCells(object = pbmc_small, reduction.type = "pca"))
+#' # Can specify which dimension and how many cells to return
+#' TopCells(object = pbmc_small, reduction.type = "pca", dim.use = 2, num.cells = 5)
+#'
+TopCells <- function(
+  object,
+  dim.use = 1,
+  num.cells = 20,
+  do.balanced = FALSE
+) {
+  embeddings <- Embeddings(object = object)[, dim.use, drop = FALSE]
+  return(Top(
+    data.use = embeddings,
+    dim.use = dim.use,
+    num.use = num.cells,
+    do.balanced = do.balanced
+  ))
 }
 
 #' @importFrom ggplot2 ggplot aes

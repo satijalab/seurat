@@ -29,7 +29,7 @@ z-scores are based on variances of regression model pearson residuals of all fea
 
 \item{verbose}{Whether to print messages and progress bars}
 
-\item{...}{Additional parameters passed to sctransform::vst}
+\item{...}{Additional parameters passed to \code{sctransform::vst}}
 }
 \description{
 This function calls sctransform::vst. The sctransform package is available at

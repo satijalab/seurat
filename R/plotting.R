@@ -1,203 +1,176 @@
-globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
-#' Gene expression heatmap
+#' Feature expression heatmap
 #'
-#' Draws a heatmap of single cell gene expression using ggplot2.
+#' Draws a heatmap of single cell feature expression using superheat
 #'
 #' @param object Seurat object
-#' @param data.use Option to pass in data to use in the heatmap. Default will pick from either
-#' object@@data or object@@scale.data depending on use.scaled parameter. Should have cells as columns
-#' and genes as rows.
-#' @param use.scaled Whether to use the data or scaled data if data.use is NULL
-#' @param cells.use Cells to include in the heatmap (default is all cells)
-#' @param genes.use Genes to include in the heatmap (ordered)
+#' @param cells.use A vector of cells to plot
+#' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
-#' @param group.by Groups cells by this variable. Default is object@@ident
-#' @param group.order Order of groups from left to right in heatmap.
-#' @param draw.line Draw vertical lines delineating different groups
-#' @param col.low Color for lowest expression value
-#' @param col.mid Color for mid expression value
-#' @param col.high Color for highest expression value
-#' @param slim.col.label display only the identity class name once for each group
-#' @param remove.key Removes the color key from the plot.
-#' @param rotate.key Rotate color scale horizantally
-#' @param title Title for plot
-#' @param cex.col Controls size of column labels (cells)
-#' @param cex.row Controls size of row labels (genes)
-#' @param group.label.loc Place group labels on bottom or top of plot.
-#' @param group.label.rot Whether to rotate the group label.
-#' @param group.cex Size of group label text
-#' @param group.spacing Controls amount of space between columns.
-#' @param assay.type to plot heatmap for (default is RNA)
+#' @param group.by Name of variable to group cells by
+#' @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
+#' @param assay.use Assay to pull from
+#' @param check.plot Check that plotting will finish in a reasonable amount of time
+#' @param ... Extra parameters passed to superheat
 #'
-#' @return Returns a ggplot2 plot object
+#' @return Invisbly returns the final grob
 #'
-#' @importFrom dplyr %>%
-#' @importFrom reshape2 melt
-#'
+#' @importFrom grid grid.newpage grid.draw
 #' @export
+#'
+#' @seealso \code{\link{superheat::superheat}}
 #'
 #' @examples
 #' DoHeatmap(object = pbmc_small)
 #'
 DoHeatmap <- function(
   object,
-  data.use = NULL,
-  use.scaled = TRUE,
   cells.use = NULL,
-  genes.use = NULL,
+  features.use = NULL,
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
-  group.order = NULL,
-  draw.line = TRUE,
-  col.low = "#FF00FF",
-  col.mid = "#000000",
-  col.high = "#FFFF00",
-  slim.col.label = FALSE,
-  remove.key = FALSE,
-  rotate.key = FALSE,
-  title = NULL,
-  cex.col = 10,
-  cex.row = 10,
-  group.label.loc = "bottom",
-  group.label.rot = FALSE,
-  group.cex = 15,
-  group.spacing = 0.15,
-  assay.use = NULL
+  slot.use = 'data',
+  # group.order = NULL,
+  # draw.line = TRUE,
+  assay.use = NULL,
+  check.plot = FALSE,
+  ...
 ) {
-  data.use <- data.use %||% GetAssayData(
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay.use
+  features.use <- features.use %||% VariableFeatures(object = object)
+  plot.grob <- SingleHeatmap(
     object = object,
-    assay.use = assay.use,
-    slot = ifelse(test = use.scaled, yes = 'scale.data', no = 'data'
-    ))
-  cells.use <- cells.use %||% colnames(x = object)
-  cells.use <- intersect(x = cells.use, y = colnames(x = object))
-  if (length(x = cells.use) == 0) {
-    stop("No cells given to cells.use present in object")
-  }
-  genes.use <- genes.use %||% rownames(x = object)
-  genes.use <- intersect(x = genes.use, y = rownames(x = object))
-  if (length(x = genes.use) == 0) {
-    stop("No genes given to genes.use present in object")
-  }
-  if (is.null(x = group.by) || group.by == "ident") {
-    cells.ident <- Idents(object = object)[cells.use]
+    cells.use = cells.use,
+    features.use = features.use,
+    group.by = group.by,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    slot.use = slot.use,
+    check.plot = check.plot,
+    ...
+  )
+  grid.newpage()
+  grid.draw(x = plot.grob)
+  invisible(x = plot.grob)
+}
+
+#' Dimensional reduction heatmap
+#'
+#' Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
+#' principal component scores. Allows for nice visualization of sources of heterogeneity in the dataset.
+#'
+#' @inheritParams DoHeatmap
+#' @param assay.use A vector of assays to pull data from
+#' @param reduction.use Which dimmensional reduction to use
+#' @param dims.use Dimensions to plot
+#' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
+#' @param num.genes NUmber of genes to plot
+#' @param do.balanced Plot an equal number of genes with both + and - scores.
+#'
+#' @return Invisbly returns the final grob
+#'
+#' @importFrom utils menu
+#' @importFrom gridExtra arrangeGrob
+#' @importFrom grid grid.draw grid.newpage
+#' @export
+#'
+#' @seealso \code{\link{superheat::superheat}}
+#'
+#' @examples
+#' DimHeatmap(object = pbmc_small)
+#'
+DimHeatmap <- function(
+  object,
+  assay.use = NULL,
+  reduction.use = "pca",
+  dims.use = 1,
+  cells.use = NULL,
+  num.features = 30,
+  use.full = FALSE,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  slot.use = 'scale.data',
+  do.balanced = FALSE,
+  check.plot = TRUE,
+  ...
+) {
+  if (length(x = dims.use) > 1) {
+    num.row <- floor(x = length(x = dims.use) / 3.01) + 1
+    num.col <- length(x = dims.use) - num.row
   } else {
-    cells.ident <- factor(x = unlist(x = object[group.by], use.names = FALSE))
-    names(x = cells.ident) <- cells.use
+    num.col <- 1
   }
-  cells.ident <- factor(
-    x = cells.ident,
-    labels = intersect(x = levels(x = cells.ident), y = cells.ident)
-  )
-  data.use <- data.use[genes.use, cells.use, drop = FALSE]
-  if (!use.scaled) {
-    data.use <- as.matrix(x = data.use)
-    disp.max <- ifelse(test = disp.max == 2.5, yes = 10, no = disp.max)
+  plot.list <- vector(mode = 'list', length = length(x = dims.use))
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  if (!DefaultAssay(object = object[[reduction.use]]) %in% assay.use) {
+    warning("assay")
   }
-  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
-  data.use <- as.data.frame(x = t(x = data.use))
-  data.use$cell <- rownames(x = data.use)
-  colnames(x = data.use) <- make.unique(names = colnames(x = data.use))
-  data.use %>% melt(id.vars = "cell") -> data.use
-  names(x = data.use)[names(x = data.use) == 'variable'] <- 'gene'
-  names(x = data.use)[names(x = data.use) == 'value'] <- 'expression'
-  data.use$ident <- cells.ident[data.use$cell]
-  if (!is.null(x = group.order)) {
-    if (length(group.order) == length(levels(data.use$ident)) && all(group.order %in% levels(data.use$ident))) {
-      data.use$ident <- factor(data.use$ident, levels = group.order)
-    }
-    else {
-      stop("Invalid group.order")
-    }
-  }
-  data.use$gene <- with(
-    data = data.use,
-    expr = factor(x = gene, levels = rev(x = unique(x = data.use$gene)))
-  )
-  data.use$cell <- with(
-    data = data.use,
-    expr = factor(x = cell, levels = cells.use)
-  )
-  if (rotate.key) {
-    key.direction <- "horizontal"
-    key.title.pos <- "top"
-  } else {
-    key.direction <- "vertical"
-    key.title.pos <- "left"
-  }
-  heatmap <- ggplot(
-    data = data.use,
-    mapping = aes(x = cell, y = gene, fill = expression)
-  ) +
-    geom_tile() +
-    scale_fill_gradient2(
-      low = col.low,
-      mid = col.mid,
-      high = col.high,
-      name = "Expression",
-      guide = guide_colorbar(
-        direction = key.direction,
-        title.position = key.title.pos
-      )
-    ) +
-    scale_y_discrete(position = "right", labels = rev(genes.use)) +
-    theme(
-      axis.line = element_blank(),
-      axis.title.y = element_blank(),
-      axis.ticks.y = element_blank(),
-      strip.text.x = element_text(size = group.cex),
-      axis.text.y = element_text(size = cex.row),
-      axis.text.x = element_text(size = cex.col),
-      axis.title.x = element_blank()
+  if (is.numeric(x = cells.use)) {
+    cells.use <- lapply(
+      X = dims.use,
+      FUN = TopCells,
+      object = object[[reduction.use]],
+      num.cells = cells.use,
+      do.balanced = do.balanced
     )
-  if (slim.col.label) {
-    heatmap <- heatmap +
-      theme(
-        axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.line = element_blank(),
-        axis.title.y = element_blank(),
-        axis.ticks.y = element_blank()
-      )
-  } else {
-    heatmap <- heatmap + theme(axis.text.x = element_text(angle = 90))
   }
-  if (!is.null(x = group.by)) {
-    if (group.label.loc == "top") {
-      switch <- NULL
-    } else {
-      switch <- 'x'
+  cells.use <- cells.use %||% colnames(x = object)
+  if (!is.list(x = cells.use)) {
+    cells.use <- lapply(X = dims.use, FUN = function(...) cells.use)
+  }
+  features <- lapply(
+    X = dims.use,
+    FUN = TopFeatures,
+    object = object[[reduction.use]],
+    num.features = num.features,
+    do.balanced = do.balanced
+  )
+  features.all <- unique(x = unlist(x = features))
+  features.keyed <- lapply(
+    X = assay.use,
+    FUN = function(assay.name) {
+      features.use <- features.all[features.all %in% rownames(x = object[[assay.name]])]
+      if (length(x = features.use) > 0) {
+        return(paste0(Key(object = object[[assay.name]]), features.use))
+      }
     }
-    heatmap <- heatmap +
-      facet_grid(
-        facets = ~ident,
-        drop = TRUE,
-        space = "free",
-        scales = "free",
-        switch = switch
-      ) +
-      scale_x_discrete(expand = c(0, 0), drop = TRUE)
-    if (draw.line) {
-      panel.spacing <- unit(x = group.spacing, units = 'lines')
-    } else {
-      panel.spacing <- unit(x = 0, units = 'lines')
-    }
-    heatmap <- heatmap +
-      theme(strip.background = element_blank(), panel.spacing = panel.spacing)
-    if (group.label.rot) {
-      heatmap <- heatmap + theme(strip.text.x = element_text(angle = 90))
+  )
+  features.keyed <- Filter(f = Negate(f = is.null), x = features.keyed)
+  features.keyed <- unlist(x = features.keyed)
+  if (check.plot && any(c(length(x = features.keyed), length(x = cells.use[[1]])) > 700)) {
+    choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
+    if (choice != 1) {
+      return(invisible(x = NULL))
     }
   }
-  if (remove.key) {
-    heatmap <- heatmap + theme(legend.position = "none")
+  for (i in 1:length(x = dims.use)) {
+    dim.features <- features[[i]]
+    dim.features <- unlist(x = lapply(
+      X = dim.features,
+      FUN = function(feat) {
+        return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
+      }
+    ))
+    plot.list[[i]] <- SingleHeatmap(
+      object = object,
+      cells.use = cells.use[[i]],
+      features.use = dim.features,
+      disp.min = disp.min,
+      disp.max = disp.max,
+      slot.use = slot.use,
+      title = paste0(Key(object = object[[reduction.use]]), dims.use[i]),
+      ...
+    )
   }
-  if (!is.null(x = title)) {
-    heatmap <- heatmap + labs(title = title)
-  }
-  return(heatmap)
+  plot.grob <- arrangeGrob(
+    grobs = plot.list,
+    ncol = num.col
+  )
+  grid.newpage()
+  grid.draw(x = plot.grob)
+  invisible(x = plot.grob)
 }
 
 #' Single cell ridge plot
@@ -836,6 +809,91 @@ CellPlot <- function(
     ...
   )
   return(p)
+}
+
+#' Visualize Dimensional Reduction genes
+#'
+#' Visualize top genes associated with reduction components
+#'
+#' @param object Seurat object
+#' @param reduction.use Reduction technique to visualize results for
+#' @param dims.use Number of dimensions to display
+#' @param num.features Number of genes to display
+#' @param pt.color Color of points to use
+#' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
+#' @param nCol Number of columns to display
+#' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
+#' the top genes ranked by the scores absolute values
+#' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param ... Ignored
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_point labs
+#' @export
+#'
+#' @examples
+#' VizDimReduction(object = pbmc_small)
+#'
+VizDimReduction <- function(
+  object,
+  reduction.use = "pca",
+  dims.use = 1:5,
+  num.features = 30,
+  pt.color = 'blue',
+  projected = FALSE,
+  nCol = NULL,
+  do.balanced = FALSE,
+  combine.plots = TRUE,
+  ...
+) {
+  if (is.null(x = nCol)) {
+    nCol <- 2
+    if (length(x = dims.use) == 1) {
+      nCol <- 1
+    }
+    if (length(x = dims.use) > 6) {
+      nCol <- 3
+    }
+    if (length(x = dims.use) > 9) {
+      nCol <- 4
+    }
+  }
+  loadings <- Loadings(object = object[[reduction.use]], projected = projected)
+  features.use <- lapply(
+    X = dims.use,
+    FUN = TopFeatures,
+    object = object[[reduction.use]],
+    num.features = num.features,
+    projected = projected,
+    do.balanced = do.balanced
+  )
+  features.use <- lapply(
+    X = features.use,
+    FUN = unlist,
+    use.names = FALSE
+  )
+  loadings <- loadings[unlist(x = features.use), dims.use, drop = FALSE]
+  names(x = features.use) <- colnames(x = loadings) <- as.character(x = dims.use)
+  plots <- lapply(
+    X = as.character(x = dims.use),
+    FUN = function(i) {
+      data.plot <- as.data.frame(x = loadings[features.use[[i]], i, drop = FALSE])
+      colnames(x = data.plot) <- paste0(Key(object = object[[reduction.use]]), i)
+      data.plot$feature <- rownames(x = data.plot)
+      plot <- ggplot(
+        data = data.plot,
+        mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
+      ) +
+        geom_point(col = pt.color) +
+        labs(y = NULL)
+      return(plot)
+    }
+  )
+  if (combine.plots) {
+    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
+  }
+  return(plots)
 }
 
 globalVariables(names = 'Value', package = 'Seurat', add = TRUE)

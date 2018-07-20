@@ -64,3 +64,19 @@ Idents <- function(object, ... ) {
 "Idents<-" <- function(object, ..., value) {
   UseMethod(generic = 'Idents<-', object = object)
 }
+
+#' Merge Seurat Objects
+#'
+#' @param x Seurat object
+#' @param y Seurat object (or multiple Seurat objects)
+#' @param ... additional arguments
+#'
+#' @return Seurat object
+#'
+#' @rdname merge
+#' @export merge
+#'
+merge <- function(x, y, ... ) {
+  UseMethod(generic = 'merge', object = x)
+}
+
