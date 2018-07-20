@@ -4,7 +4,7 @@
 \alias{UpdateSeuratObject}
 \title{Update old Seurat object to accomodate new features}
 \usage{
-UpdateSeuratObject(object)
+UpdateSeuratObject(object, assay = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}
