@@ -106,110 +106,56 @@ MakeSparse <- function(object) {
 #' updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
 #' }
 #'
-UpdateSeuratObject <- function(object) {
+UpdateSeuratObject <- function(object, assay = 'RNA') {
   if (.hasSlot(object, "version")) {
-    if(packageVersion("Seurat") >= package_version("2.0.0")){
+    if(packageVersion("Seurat") >= package_version("3.0.0")){
       cat("Object representation is consistent with the most current Seurat version.\n")
       return(object)
     }
+  } else if(packageVersion("Seurat") >= package_version("2.0.0")){
+    seurat.version <- packageVersion("Seurat")
+    new.assay <- UpdateAssay(object, assay.name = assay)
+    assay.list <- list(new.assay)
+    names(assay.list) <- assay
+    for(i in names(object@assay)) {
+      assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay.name = i)
+    }
+    new.object <- new(
+      Class = "Seurat",
+      version = seurat.version,
+      assays = assay.list,
+      active.assay = assay
+    )
+    for(s in c('misc', 'calc.params', 'project.name')){
+      new.object <- FillSlot(
+        slot.name = s,
+        old.object = object,
+        new.object = new.object
+      )
+    }
+    return(new.object)
+  } else {
+    stop("Cannot convert version <2")
   }
-  seurat.version <- packageVersion("Seurat")
-  new.object <- new(
-    "seurat",
-    raw.data = object@raw.data,
-    version = seurat.version
+}
+
+#' Update Seurat assay
+#' 
+#' @param old.assay Seurat2 assay
+#' @param assay.name Name to store for assay in new object
+#' 
+UpdateAssay <- function(old.assay, assay.name){
+  new.assay <- new(
+    Class = 'Assay',
+    raw.data = as(old.assay@raw.data, 'dgCMatrix'),
+    data = as(old.assay@data, 'dgCMatrix'),
+    meta.features = old.assay@meta.data,
+    var.features = old.assay@var.genes,
+    cluster.tree = old.assay@cluster.tree,
+    kmeans = old.assay@kmeans,
+    key = paste0(assay.name, "_")
   )
-  new.slots <- slotNames(new.object)
-  for(s in new.slots){
-    new.object <- FillSlot(
-      slot.name = s,
-      old.object = object,
-      new.object = new.object
-    )
-  }
-  # Copy over old slots if they have info stored
-  if(length(object@kmeans.obj) > 0){
-    new.object@kmeans@gene.kmeans.obj <- object@kmeans.obj
-  }
-  if(length(object@kmeans.col) >0 ){
-    new.object@kmeans@cell.kmeans.obj <- object@kmeans.col
-  }
-  if(length(object@data.info) > 0){
-    new.object@meta.data <- object@data.info
-  }
-  if(length(object@mean.var) > 0){
-    new.object@hvg.info <- object@mean.var
-    colnames(new.object@hvg.info) <- c("gene.mean", "gene.dispersion", "gene.dispersion.scaled")
-    new.object@hvg.info <- new.object@hvg.info[order(
-      new.object@hvg.info$gene.dispersion,
-      decreasing = TRUE), ]
-  }
-  if(length(object@mix.probs) > 0 | length(object@mix.param) > 0 |
-     length(object@final.prob) > 0 | length(object@insitu.matrix) > 0) {
-    new.object@spatial <- new(
-      "spatial.info",
-      mix.probs = object@mix.probs,
-      mix.param = object@mix.param,
-      final.prob = object@final.prob,
-      insitu.matrix = object@insitu.matrix
-    )
-  }
-  # Conversion from development versions prior to 2.0.0
-  if ((.hasSlot(object, "dr"))) {
-    if (length(object@dr) > 0) {
-    for (i in 1:length(object@dr)) {
-      new.object@dr[[i]]@cell.embeddings <- object@dr[[i]]@rotation
-      new.object@dr[[i]]@gene.loadings <- object@dr[[i]]@x
-      new.object@dr[[i]]@gene.loadings.full <- object@dr[[i]]@x.full
-      new.object@dr[[i]]@sdev <- object@dr[[i]]@sdev
-      new.object@dr[[i]]@key <- object@dr[[i]]@key
-      new.object@dr[[i]]@misc <- object@dr[[i]]@misc
-    }
-    }
-  }
-  # Conversion from release versions prior to 2.0.0
-  # Slots to replace: pca.x, pca.rot, pca.x.full, tsne.rot, ica.rot, ica.x,
-  #                   tsne.rot
-  else{
-    pca.sdev <- object@pca.obj[[1]]$sdev
-    if (is.null(x = pca.sdev)) {
-      pca.sdev <- object@pca.obj[[1]]$d
-    }
-    pca.obj <- new(
-      Class = "dim.reduction",
-      gene.loadings = as.matrix(object@pca.x),
-      gene.loadings.full = as.matrix(object@pca.x.full),
-      cell.embeddings = as.matrix(object@pca.rot),
-      sdev = pca.sdev,
-      key = "PC"
-    )
-    new.object@dr$pca <- pca.obj
-    ica.obj <- new(
-      Class = "dim.reduction",
-      gene.loadings = as.matrix(object@ica.x),
-      cell.embeddings = as.matrix(object@ica.rot),
-      key = "IC"
-    )
-    new.object@dr$ica <- ica.obj
-    tsne.obj <- new(
-      Class = "dim.reduction",
-      cell.embeddings = as.matrix(object@tsne.rot),
-      key = "tSNE_"
-    )
-    new.object@dr$tsne <- tsne.obj
-  }
-  if ((.hasSlot(object, "snn.sparse"))) {
-    if (length(x = object@snn.sparse) == 1 && length(x = object@snn.dense) > 1) {
-      if (class(object@snn.dense) == "data.frame") {
-        object@snn.dense <- as.matrix(x = object@snn.dense)
-      }
-      new.object@snn <- as(object = object@snn.dense, Class = "dgCMatrix")
-    }
-    else{
-      new.object@snn <- object@snn.sparse
-    }
-  }
-  return(new.object)
+  return(new.assay)
 }
 
 #' Return a subset of rows for a matrix or data frame
