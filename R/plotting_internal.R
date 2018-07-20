@@ -1048,56 +1048,6 @@ SingleHeatmap <- function(
   return(p$plot)
 }
 
-#remove legend title
-no.legend.title <- theme(legend.title = element_blank())
-
-#set legend text
-SetLegendTextGG <- function(x = 12, y = "bold") {
-  return(theme(legend.text = element_text(size = x, face = y)))
-}
-
-#set legend point size
-SetLegendPointsGG <- function(x = 6) {
-  return(guides(colour = guide_legend(override.aes = list(size = x))))
-}
-
-#set x axis features
-SetXAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
-  return(theme(
-    axis.title.x = element_text(face = z, colour = y, size = x),
-    axis.text.x = element_text(angle = 90, vjust = 0.5, size = x2)
-  ))
-}
-
-#set y axis features
-SetYAxisGG <- function(x = 16, y = "#990000", z = "bold", x2 = 12) {
-  return(theme(
-    axis.title.y = element_text(face = z, colour = y, size = x),
-    axis.text.y = element_text(angle = 90, vjust = 0.5, size = x2)
-  ))
-}
-
-# Get a gradient legend for palette of colours
-#
-# @param palette A palette of colours in hexadecimal form
-# @param group An index matching the palette
-# This allows to give a name for the palette
-#
-# @return A grob object for the gradient legend
-#
-GetGradientLegend <- function(palette, group) {
-  # Plot for each palette a gradient legend
-  p <- ggplot(data = as.data.frame(palette), mapping = aes(x = NA, y = NA)) +
-    geom_point(mapping = aes(colour = 1:20)) +
-    scale_colour_gradientn(colours = palette, breaks = c(1, 20), label = c("Min", "Max"), name = group,
-                           guide = guide_colourbar(title.position = "top", title.hjust = 0.5, title.vjust = 0.5)) +
-    theme(legend.direction = "horizontal")
-  # Get legend from plot
-  l <- cowplot::get_legend(plot = p)
-  # Return legend grob
-  return(l)
-}
-
 #heatmap.2, but does not draw a key.
 #unclear if this is necessary, but valuable to have the function coded in for modifications
 #
