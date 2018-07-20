@@ -615,10 +615,11 @@ ProjectDim <- function(
   if (overwrite) {
     reduction <- SetDimReduc(
       object = reduction,
-      slot = "gene.loadings",
-      new.data = new.gene.loadings.full
+      slot = "feature.loadings",
+      new.data = new.feature.loadings.full
     )
   }
+  object[[reduction.use]] <- reduction
   if (verbose) {
     Print(
       object = reduction,
@@ -681,457 +682,334 @@ ProjectPCA <- function(
   ))
 }
 
-#' Perform Canonical Correlation Analysis
+#' @param standardize Standardize matrices - scales columns to have unit variance
+#' and mean 0
 #'
-#' Runs a canonical correlation analysis using a diagonal implementation of CCA.
-#' For details about stored CCA calculation parameters, see
-#' \code{PrintCCAParams}.
-#'
-#' @param object Seurat object
-#' @param object2 Optional second object. If object2 is passed, object1 will be
-#' considered as group1 and object2 as group2.
-#' @param group1 First set of cells (or IDs) for CCA
-#' @param group2 Second set of cells (or IDs) for CCA
-#' @param group.by Factor to group by (column vector stored in object@@meta.data)
-#' @param num.cc Number of canonical vectors to calculate
-#' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
-#' two objects are given, the default is the union of both variable gene sets
-#' that are also present in both objects.
-#' @param scale.data Use the scaled data from the object
-#' @param rescale.groups Rescale each set of cells independently
-#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
-#' passed, passed onto ScaleData in case with single object and rescale.groups
-#' set to TRUE)
-#'
-#' @return Returns Seurat object with the CCA stored in the @@dr$cca slot. If
-#' one object is passed, the same object is returned. If two are passed, a
-#' combined object is returned.
-#'
-#' @seealso \code{MergeSeurat}
-#'
+#' @describeIn RunCCA Run diagonal CCA on matrices
 #' @export
+#' @method RunCCA default
 #'
-#' @examples
-#' pbmc_small
-#' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
-#' pbmc1@meta.data$group <- "group1"
-#' pbmc2@meta.data$group <- "group2"
-#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
-#' # Print results
-#' PrintDim(pbmc_cca,reduction.type = 'cca')
-#'
-RunCCA <- function(
-  object,
+RunCCA.default <- function(
+  object1,
   object2,
-  group1,
-  group2,
-  group.by,
+  standardize = TRUE,
   num.cc = 20,
-  genes.use,
-  scale.data = TRUE,
-  rescale.groups = FALSE,
-  ...
+  verbose = TRUE
 ) {
-  if (! missing(x = object2) && (! missing(x = group1) || ! missing(x = group2))) {
-    warning("Both object2 and group set. Continuing with objects defining the groups")
+  set.seed(seed = 42)
+  cells1 <- colnames(object1)
+  cells2 <- colnames(object2)
+  if (standardize) {
+    object1 <- Standardize(mat = object1, display_progress = verbose)
+    object2 <- Standardize(mat = object2, display_progress = verbose)
   }
-  if (! missing(x = object2)) {
-    if (missing(x = genes.use)) {
-      genes.use <- union(x = object@var.genes, y = object2@var.genes)
-      if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run MeanVarPlot and retry")
-      }
-    }
-    if (scale.data) {
-      possible.genes <- intersect(
-        x = rownames(x = object@scale.data),
-        y = rownames(x = object2@scale.data)
-      )
-      genes.use <- genes.use[genes.use %in% possible.genes]
-      data.use1 <- object@scale.data[genes.use, ]
-      data.use2 <- object2@scale.data[genes.use, ]
-    } else {
-      possible.genes <- intersect(
-        x = rownames(object@data),
-        y = rownames(object2@data)
-      )
-      genes.use <- genes.use[genes.use %in% possible.genes]
-      data.use1 <- object@data[genes.use, ]
-      data.use2 <- object2@data[genes.use, ]
-    }
-    if (length(x = genes.use) == 0) {
-      stop("0 valid genes in genes.use")
-    }
-  } else {
-    if (missing(x = group1)) {
-      stop("group1 not set")
-    }
-    if (missing(x = group2)) {
-      stop("group2 not set")
-    }
-    if (! missing(x = group.by)) {
-      if (! group.by %in% colnames(x = object@meta.data)) {
-        stop("invalid group.by parameter")
-      }
-    }
-    if (missing(x = genes.use)) {
-      genes.use <- object@var.genes
-      if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run FindVariableGenes and retry or set genes.use")
-      }
-    }
-    if (missing(x = group.by)) {
-      cells.1 <- CheckGroup(object = object, group = group1, group.id = "group1")
-      cells.2 <- CheckGroup(object = object, group = group2, group.id = "group2")
-    } else {
-      object.current.ids <- object@ident
-      object <- SetAllIdent(object = object, id = group.by)
-      cells.1 <- CheckGroup(object = object, group = group1, group.id = "group1")
-      cells.2 <- CheckGroup(object = object, group = group2, group.id = "group2")
-      object <- SetIdent(
-        object = object,
-        cells.use = object@cell.names,
-        ident.use = object.current.ids
-      )
-    }
-    if (scale.data) {
-      if (rescale.groups) {
-        data.use1 <- ScaleData(
-          object = object,
-          data.use = object@data[genes.use, cells.1],
-          ...
-        )
-        data.use1 <- data.use1@scale.data
-        data.use2 <- ScaleData(
-          object = object,
-          data.use = object@data[genes.use, cells.2],
-          ...
-        )
-        data.use2 <- data.use2@scale.data
-      } else {
-        data.use1 <- object@scale.data[genes.use, cells.1]
-        data.use2 <- object@scale.data[genes.use, cells.2]
-      }
-    } else {
-      data.use1 <- object@data[genes.use, cells.1]
-      data.use2 <- object@data[genes.use, cells.2]
-    }
-  }
-  genes.use <- CheckGenes(data.use = data.use1, genes.use = genes.use)
-  genes.use <- CheckGenes(data.use = data.use2, genes.use = genes.use)
-  data.use1 <- data.use1[genes.use, ]
-  data.use2 <- data.use2[genes.use, ]
-
-  cat("Running CCA\n", file = stderr())
-
-  cca.results <- CanonCor(
-    mat1 = data.use1,
-    mat2 = data.use2,
-    standardize = TRUE,
-    k = num.cc
-  )
-  cca.data <- rbind(cca.results$u, cca.results$v)
+  #mat3 <- FastMatMult(m1 = t(x = mat1), m2 = mat2)
+  mat3 <- crossprod(x = object1, y = object2)
+  cca.svd <- irlba(A = mat3, nv = num.cc)
+  cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
-  rownames(cca.data) <- c(colnames(data.use1), colnames(data.use2))
+  rownames(cca.data) <- c(cells1, cells2)
   cca.data <- apply(cca.data, MARGIN = 2, function(x){
     if(sign(x[1]) == -1) {
       x <- x * -1
     }
     return(x)
   })
-  # wipe old CCA slot
-  object@dr$cca <- NULL
-  if (! missing(x = object2)) {
-    cat("Merging objects\n", file = stderr())
-    combined.object <- MergeSeurat(
-      object1 = object,
-      object2 = object2,
-      do.scale = FALSE,
-      do.center = FALSE,
-      ...
-    )
-    # to improve, to pull the same normalization and scale params as previously used
-    combined.object <- ScaleData(object = combined.object)
-    combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
-    combined.object@var.genes <- genes.use
-    if("add.cell.id1" %in% names(list(...)) && "add.cell.id2" %in% names(list(...))) {
-      o1.idx <- 1:length(object@cell.names)
-      o2.idx <- (length(object@cell.names) + 1):(length(object@cell.names) + length(object2@cell.names))
-      rownames(cca.data)[o1.idx] <-
-        paste0(list(...)$add.cell.id1, "_", rownames(cca.data)[o1.idx])
-      rownames(cca.data)[o2.idx] <-
-        paste0(list(...)$add.cell.id2, "_", rownames(cca.data)[o2.idx])
-    }
-    combined.object <- SetDimReduction(
-      object = combined.object,
-      reduction.type = "cca",
-      slot = "cell.embeddings",
-      new.data = cca.data
-    )
-    combined.object <- SetDimReduction(
-      object = combined.object,
-      reduction.type = "cca",
-      slot = "key",
-      new.data = "CC"
-    )
-    combined.object <- ProjectDim(
-      object = combined.object,
-      reduction.type = "cca",
-      do.print = FALSE
-    )
-    combined.object <- SetDimReduction(
-      object = combined.object,
-      reduction.type = "cca",
-      slot = "gene.loadings",
-      new.data = GetGeneLoadings(
-        object = combined.object,
-        reduction.type = "cca",
-        use.full = TRUE,
-        genes.use = genes.use
-      )
-    )
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    combined.object <- SetCalcParams(
-      object = combined.object,
-      calculation = "RunCCA",
-      ... = parameters.to.store
-    )
-    combined.object <- SetSingleCalcParam(
-      object = combined.object,
-      calculation = "RunCCA",
-      parameter = "object.project",
-      value = object@project.name
-    )
-    combined.object <- SetSingleCalcParam(
-      object = combined.object,
-      calculation = "RunCCA",
-      parameter = "object2.project",
-      value = object2@project.name
-    )
-    return(combined.object)
-  } else {
-    cca.data <- cca.data[object@cell.names, ]
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = "cca",
-      slot = "cell.embeddings",
-      new.data = cca.data
-    )
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = "cca",
-      slot = "key",
-      new.data = "CC"
-    )
-    object <- ProjectDim(
-      object = object,
-      reduction.type = "cca",
-      do.print = FALSE
-    )
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = "cca",
-      slot = "gene.loadings",
-      new.data = GetGeneLoadings(
-        object = object,
-        reduction.type = "cca",
-        use.full = TRUE,
-        genes.use = genes.use
-      )
-    )
-    object@scale.data[is.na(x = object@scale.data)] <- 0
-    parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunCCA"))]
-    object <- SetCalcParams(
-      object = object,
-      calculation = "RunCCA",
-      ... = parameters.to.store
-    )
-    return(object)
-  }
+
+  return(list(ccv = cca.data, d = cca.svd$d))
 }
 
-#' Perform Canonical Correlation Analysis with more than two groups
-#'
-#' Runs a canonical correlation analysis
-#'
-#' @param object.list List of Seurat objects
-#' @param genes.use Genes to use in mCCA.
-#' @param add.cell.ids Vector of strings to pass to \code{\link{RenameCells}} to
-#' give unique cell names
-#' @param niter Number of iterations to perform. Set by default to 25.
-#' @param num.ccs Number of canonical vectors to calculate
-#' @param standardize standardize scale.data matrices to be centered (mean zero)
-#' and scaled to have a standard deviation of 1.
-#'
-#' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
-#'
-#' @importFrom methods slot
-#'
+#' @param assay.use1 Assay to pull from in the first object
+#' @param assay.use1 Assay to pull from in the second object
+#' @param features.use Set of genes to use in CCA. Default is the union of both
+#' the variable features sets present in both objects.
+#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' merge the data matrices also.
+#' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
+#' scale every gene in the dataset which may impose a high memory cost.
+#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
+#' passed, passed onto ScaleData in case with single object and rescale.groups
+#' set to TRUE)
+#' @describeIn RunCCA Run CCA on a Seurat object
 #' @export
+#' @method RunCCA Seurat
 #'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' # As multi-set CCA requires more than two datasets, we will split our test object into
-#' # three just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:30])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[31:60])
-#' pbmc3 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[61:80])
-#' pbmc1@meta.data$group <- "group1"
-#' pbmc2@meta.data$group <- "group2"
-#' pbmc3@meta.data$group <- "group3"
-#' pbmc.list <- list(pbmc1, pbmc2, pbmc3)
-#' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
-#' # Print results
-#' PrintDim(pbmc_cca,reduction.type = 'cca')
-#' }
+RunCCA.Seurat <- function(
+  object1,
+  object2,
+  assay.use1 = NULL,
+  assay.use2 = NULL,
+  num.cc = 20,
+  features.use = NULL,
+  renormalize = TRUE,
+  compute.gene.loadings = TRUE,
+  add.cell.id1 = NULL,
+  add.cell.id2 = NULL,
+  verbose = TRUE,
+  ...
+) {
+  assay.use1 <- assay.use1 %||% DefaultAssay(object = object1)
+  assay.use2 <- assay.use2 %||% DefaultAssay(object = object2)
+
+  if(assay.use1 != assay.use2) {
+    stop("assay.use1 != assay.use2. Only unimodal data currently supported.")
+  }
+
+  if (is.null(x = features.use)) {
+    if (length(x = VariableFeatures(object = object1, assay.use = assay.use1)) == 0) {
+      stop(paste0("VariableFeatures not computed for the ", assay.use1, " assay in object1"))
+    }
+    if (length(x = VariableFeatures(object = object2, assay.use = assay.use2)) == 0) {
+      stop(paste0("VariableFeatures not computed for the ", assay.use2, " assay in object2"))
+    }
+    features.use <- union(x = VariableFeatures(object = object1), y = VariableFeatures(object = object2))
+    if (length(x = features.use) == 0) {
+      stop("Zero features in the union of the VariableFeature sets ")
+    }
+  }
+  data.use1 <- GetAssayData(object = object1, assay.use = assay.use1, slot = "scale.data")
+  data.use2 <- GetAssayData(object = object2, assay.use = assay.use2, slot = "scale.data")
+  features.use <- CheckFeatures(data.use = data.use1, features.use = features.use, object.name = "object1")
+  features.use <- CheckFeatures(data.use = data.use2, features.use = features.use, object.name = "object2")
+
+  if (length(x = features.use) < 50) {
+    warning("Fewer than 50 features used as input for CCA.")
+  }
+  if (verbose) {
+    message("Running CCA")
+  }
+  cca.results <- RunCCA(
+    object1 = data.use1[features.use, ],
+    object2 = data.use2[features.use, ],
+    standardize = TRUE,
+    num.cc = num.cc,
+    verbose = verbose
+  )
+  if (verbose) {
+   message("Merging objects")
+  }
+  combined.object <- merge(
+    x = object1,
+    y = object2,
+    ...
+  )
+  combined.object[['cca']] <- MakeDimReducObject(
+    cell.embeddings = cca.results$ccv,
+    assay.used = assay.use1,
+    key = "CC"
+  )
+
+  if (renormalize) {
+    combined.object <- NormalizeData(
+      object = combined.object,
+      assay.use = assay.use1,
+      normalization.method = object1[[paste0("NormalizeData.", assay.use1)]]$normalization.method,
+      scale.factor = object1[[paste0("NormalizeData.", assay.use1)]]$scale.factor
+    )
+    if (compute.gene.loadings) {
+      combined.object <- ScaleData(object = combined.object, ...)
+      combined.object <- ProjectDim(
+        object = combined.object,
+        reduction.use = "cca",
+        verbose = FALSE,
+        overwrite = TRUE)
+    }
+  }
+  return(combined.object)
+}
+
+#' @describeIn RunMultiCCA Run mCCA on a list of matrices
+#' @export
+#' @method RunMultiCCA default
 #'
-RunMultiCCA <- function(
+RunMultiCCA.default <- function(
   object.list,
-  genes.use,
-  add.cell.ids = NULL,
   niter = 25,
   num.ccs = 1,
-  standardize = TRUE
+  standardize = TRUE,
+  verbose = TRUE
 ) {
-  set.seed(42)
-  if(length(object.list) < 3){
-    stop("Must give at least 3 objects/matrices for MultiCCA")
-  }
-  mat.list <- list()
-  if(class(object.list[[1]]) == "seurat"){
-    if (missing(x = genes.use)) {
-      genes.use <- c()
-      for(obj in object.list){
-        genes.use <- c(genes.use, obj@var.genes)
-      }
-      genes.use <- unique(genes.use)
-      if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run MeanVarPlot and retry")
-      }
-    }
-    for(obj in object.list) {
-      genes.use <- CheckGenes(data.use = obj@scale.data, genes.use = genes.use)
-    }
-    for(i in 1:length(object.list)){
-      mat.list[[i]] <- object.list[[i]]@scale.data[genes.use, ]
+  cell.names <- c()
+  set.seed(seed = 42)
+  for(object in object.list) {
+    cell.names <- c(cell.names, colnames(x = object))
+    if (!class(x = object) %in% c("matrix", "dgCMatrix")) {
+      stop("Not all objects in object.list are matrices")
     }
   }
-  else{
-    stop("input data not Seurat objects")
-  }
-
-  if (!missing(add.cell.ids)) {
-    if (length(add.cell.ids) != length(object.list)) {
-      stop("add.cell.ids must have the same length as object.list")
-    }
-    object.list <- lapply(seq_along(object.list), function(i) {
-      RenameCells(object = object.list[[i]], add.cell.id = add.cell.ids[i])
-    })
-  }
-  names.list <- lapply(object.list, slot, name = "cell.names")
-  names.intersect <- Reduce(intersect, names.list)
-  if(length(names.intersect) > 0) {
-    stop("duplicate cell names detected, please set 'add.cell.ids'")
-  }
-
-  num.sets <- length(mat.list)
-  if(standardize){
+  num.sets <- length(x = object.list)
+  if (standardize){
     for (i in 1:num.sets){
-      mat.list[[i]] <- Standardize(mat.list[[i]], display_progress = F)
+      object.list[[i]] <- Standardize(object.list[[i]], display_progress = FALSE)
     }
   }
   ws <- list()
   for (i in 1:num.sets){
-    ws[[i]] <- irlba(mat.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = F]
+    ws[[i]] <- irlba(object.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = FALSE]
   }
   ws.init <- ws
   ws.final <- list()
   cors <- NULL
-  for(i in 1:length(ws)){
-    ws.final[[i]] <- matrix(0, nrow=ncol(mat.list[[i]]), ncol=num.ccs)
+  for(i in 1:length(x = ws)) {
+    ws.final[[i]] <- matrix(0, nrow = ncol(object.list[[i]]), ncol = num.ccs)
   }
   for (cc in 1:num.ccs){
-    print(paste0("Computing CC ", cc))
+    if (verbose) {
+      message("Computing CC", cc)
+    }
     ws <- list()
-    for (i in 1:length(ws.init)){
+    for (i in 1:length(x = ws.init)){
       ws[[i]] <- ws.init[[i]][, cc]
     }
     cur.iter <- 1
     crit.old <- -10
     crit <- -20
     storecrits <- NULL
-    while(cur.iter <= niter && abs(crit.old - crit)/abs(crit.old) > 0.001 && crit.old !=0){
+    while(cur.iter <= niter && abs(crit.old - crit)/abs(x = crit.old) > 0.001 && crit.old != 0){
       crit.old <- crit
-      crit <- GetCrit(mat.list, ws, num.sets)
+      crit <- GetCrit(mat.list = object.list, ws = ws, num.sets = num.sets)
       storecrits <- c(storecrits, crit)
       cur.iter <- cur.iter + 1
       for(i in 1:num.sets){
-        ws[[i]] <- UpdateW(mat.list, i, num.sets, ws, ws.final)
+        ws[[i]] <- UpdateW(mat.list = object.list, i = i, num.sets = num.sets, ws = ws, ws.final = ws.final)
       }
     }
-    for(i in 1:length(ws)){
+    for(i in 1:length(x = ws)){
       ws.final[[i]][, cc] <- ws[[i]]
     }
-    cors <- c(cors, GetCors(mat.list, ws, num.sets))
+    cors <- c(cors, GetCors(mat.list = object.list, ws = ws, num.sets = num.sets))
   }
-  results <- list(ws=ws.final, ws.init=ws.init, num.sets = num.sets, cors=cors)
-  combined.object <- object.list[[1]]
-  for(i in 2:length(object.list)){
-    combined.object <- MergeSeurat(object1 = combined.object, object2 = object.list[[i]], do.scale = F, do.center = F, do.normalize = F)
+  cca.data <- ws.final[[1]]
+  for(i in 2:length(x = object.list)){
+    cca.data <- rbind(cca.data, ws.final[[i]])
   }
-  combined.object <- NormalizeData(combined.object)
-  combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
-  combined.object <- ScaleData(object = combined.object)
-  combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
-  combined.object@var.genes <- genes.use
-  cca.data <- results$ws[[1]]
-  for(i in 2:length(object.list)){
-    cca.data <- rbind(cca.data, results$ws[[i]])
-  }
-  rownames(cca.data) <- colnames(combined.object@data)
+  rownames(cca.data) <- cell.names
   cca.data <- apply(cca.data, MARGIN = 2, function(x){
     if(sign(x[1]) == -1) {
       x <- x * -1
     }
     return(x)
   })
-  combined.object <- SetDimReduction(
-    object = combined.object,
-    reduction.type = "cca",
-    slot = "cell.embeddings",
-    new.data = cca.data
+  results <- list(
+    ccv = cca.data,
+    cors = cors
   )
-  combined.object <- SetDimReduction(
-    object = combined.object,
-    reduction.type = "cca",
-    slot = "key",
-    new.data = "CC"
-  )
-  combined.object <- ProjectDim(
-    object = combined.object,
-    reduction.type = "cca",
-    do.print = FALSE
-  )
-  combined.object <- SetDimReduction(
-    object = combined.object,
-    reduction.type = "cca",
-    slot = "gene.loadings",
-    new.data = GetGeneLoadings(
-      object = combined.object,
-      reduction.type = "cca",
-      use.full = TRUE,
-      genes.use = genes.use
+  return(results)
+}
+
+#' @param assay.use Assay to use
+#' @param features.use Set of genes to use in CCA. Default is the union of both
+#' the variable features sets present in both objects.
+#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' merge the data matrices also.
+#' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
+#' scale every gene in the dataset which may impose a high memory cost.
+#' @describeIn RunMultiCCA Run mCCA on a Seurat object
+#' @export
+#' @method RunMultiCCA Seurat
+#'
+RunMultiCCA.Seurat <- function(
+  object.list,
+  assay.use = NULL,
+  features.use = NULL,
+  add.cell.ids = NULL,
+  niter = 25,
+  num.ccs = 1,
+  standardize = TRUE,
+  renormalize = TRUE,
+  compute.gene.loadings = TRUE,
+  verbose = TRUE
+) {
+  set.seed(seed = 42)
+  for(object in object.list) {
+    if (class(x = object) != "Seurat") {
+      stop("Not all objects in object.list are Seurat objects")
+    }
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object.list[[1]])
+  for(object in object.list) {
+    assays <- FilterObjects(object = object, classes.keep = "Assay")
+    if (!assay.use %in% assays) {
+      stop(paste0(assay.use, " not present in all objects."))
+    }
+  }
+  if (is.null(x = features.use)) {
+    features.use <- c()
+    for(object in object.list) {
+      features.use <- c(features.use, VariableFeatures(object = object))
+    }
+    features.use <- unique(x = features.use)
+  }
+  for(i in 1:length(x = object.list)) {
+    features.use <- CheckFeatures(
+      data.use = GetAssayData(object = object.list[[i]], assay.use = assay.use, slot = "scale.data"),
+      features.use = features.use,
+      object.name = paste0("object", i)
     )
+  }
+  if (!is.null(x = add.cell.ids)) {
+    if (length(x = add.cell.ids) != length(x = object.list)) {
+      stop("add.cell.ids must have the same length as object.list")
+    }
+    object.list <- lapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) {
+        RenameCells(object = object.list[[x]], add.cell.id = add.cell.ids[x])
+      }
+    )
+  }
+  all.cell.names <- unlist(lapply(
+    X = 1:length(x = object.list),
+    FUN = function(x){
+      colnames(x = object.list[[x]])
+    })
   )
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunMultiCCA"))]
-  parameters.to.store$object.list <- NULL
-  combined.object <- SetCalcParams(object = combined.object,
-                                   calculation = "RunMultiCCA",
-                                   ... = parameters.to.store
+  if (anyDuplicated(x = all.cell.names)) {
+    stop("Duplicate cell names detected, please set 'add.cell.ids'")
+  }
+
+  mat.list <- list()
+  for(i in 1:length(x = object.list)) {
+    mat.list[[i]] <- GetAssayData(
+      object = object.list[[i]],
+      assay.use = assay.use,
+      slot = "scale.data"
+    )[features.use, ]
+  }
+  cca.results <- RunMultiCCA(
+    object.list = mat.list,
+    niter = niter,
+    num.ccs = num.ccs,
+    standardize = standardize,
+    verbose = verbose
   )
+  combined.object <- merge(
+    x = object.list[[1]],
+    y = object.list[2:length(x = object.list)]
+  )
+  combined.object[['cca']] <- MakeDimReducObject(
+    cell.embeddings = cca.results$ccv,
+    assay.used = assay.use,
+    key = "CC"
+  )
+  if (renormalize) {
+    combined.object <- NormalizeData(
+      object = combined.object,
+      assay.use = assay.use,
+      normalization.method = object.list[[1]][[paste0("NormalizeData.", assay.use)]]$normalization.method,
+      scale.factor = object.list[[1]][[paste0("NormalizeData.", assay.use)]]$scale.factor,
+      verbose = verbose
+    )
+    if (compute.gene.loadings) {
+      combined.object <- ScaleData(object = combined.object, verbose = verbose)
+      combined.object <- ProjectDim(
+        object = combined.object,
+        reduction.use = "cca",
+        verbose = FALSE,
+        overwrite = TRUE)
+    }
+  }
+  combined.object <- LogSeuratCommand(object = combined.object)
   return(combined.object)
 }
 

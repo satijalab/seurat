@@ -263,3 +263,55 @@ setMethod(
     }
   }
 )
+
+#' @export
+#' @method merge Assay
+#'
+merge.Assay <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  min.cells = 0,
+  min.genes = 0,
+  is.expr = 0,
+  merge.data = FALSE,
+  ...
+) {
+  assays <- c(x, y)
+  if (!is.null(add.cell.ids)) {
+    for(i in 1:length(assays)) {
+      assays[[i]] <- RenameCells(object = assays[[i]], new.names = add.cell.ids[i])
+    }
+  }
+  # Merge the raw.data
+  merged.raw <- GetAssayData(object = assays[[1]], slot = "raw.data")
+  for(i in 2:length(assays)) {
+    merged.raw <- RowMergeSparseMatrices(
+      mat1 = merged.raw,
+      mat2 = GetAssayData(object = assays[[i]], slot = "raw.data")
+    )
+  }
+  combined.assay <- MakeAssayObject(
+    raw.data = merged.raw,
+    min.cells = min.cells,
+    min.genes = min.genes,
+    is.expr = is.expr
+  )
+  if (merge.data) {
+    merged.data <- GetAssayData(object = assays[[1]], slot = "data")
+    for(i in 2:length(assays)) {
+      merged.data <- RowMergeSparseMatrices(
+        mat1 = merged.data,
+        mat2 = GetAssayData(object = assays[[i]], slot = "data")
+      )
+    }
+    # only keep cells that made it through raw.data filtering params
+    merged.data <- merged.data[, colnames(combined.assay)]
+    SetAssayData(
+      object = combined.assay,
+      slot = "data",
+      new.data = merged.data
+    )
+  }
+  return(combined.assay)
+}

@@ -111,43 +111,33 @@ CheckGroup <- function(object, group, group.id) {
   return(cells.use)
 }
 
-# Check that genes have non-zero variance
+# Check that features are present and have non-zero variance
 #
-# @param data.use   Gene expression matrix (genes are rows)
-# @param genes.use  Genes in expression matrix to check
+# @param data.use      Feature matrix (features are rows)
+# @param features.use  Features to check
+# @param object.name   Name of object for message printing
 #
-# @return           Returns a vector of genes that is the subset of genes.use
+# @return           Returns a vector of features that is the subset of features.use
 #                   that have non-zero variance
 #
-CheckGenes <- function(data.use, genes.use) {
-  genes.var <- apply(X = data.use[genes.use, ], MARGIN = 1, FUN = var)
-  genes.use <- genes.use[genes.var > 0]
-  genes.use <- genes.use[! is.na(x = genes.use)]
-  return(genes.use)
+CheckFeatures <- function(data.use, features.use, object.name) {
+  if (any(! features.use %in% rownames(data.use))) {
+    missing.features <- features.use[!features.use %in% rownames(data.use)]
+    stop(paste0("Following features are not scaled in ", object.name, " : ",
+                paste0(missing.features, collapse = ", ")))
+  }
+
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  no.var.features <- features.use[features.var == 0]
+  if(length(no.var.features) > 0) {
+    warning(paste0("The following features have zero variance in ", object.name, ": ",
+            paste0(no.var.features, collapse = ", ")))
+  }
+  features.use <- setdiff(features.use, no.var.features)
+  features.use <- features.use[! is.na(x = features.use)]
+  return(features.use)
 }
 
-# Run the diagonal canonical correlation procedure
-#
-# @param mat1         First matrix
-# @param mat2         Second matrix
-# @param standardize  Standardize matrices - scales columns to have unit
-#                     variance and mean 0
-# @param k            Number of canonical correlation vectors (CCs) to calculate
-#
-# @return             Returns the canonical correlation vectors - corresponding
-#                     to the left and right singular vectors after SVD - as well
-#                     as the singular values.
-#
-CanonCor <- function(mat1, mat2, standardize = TRUE, k = 20) {
-  set.seed(seed = 42)
-  if (standardize) {
-    mat1 <- Standardize(mat = mat1, display_progress = FALSE)
-    mat2 <- Standardize(mat = mat2, display_progress = FALSE)
-  }
-  mat3 <- FastMatMult(m1 = t(x = mat1), m2 = mat2)
-  cca.svd <- irlba(A = mat3, nv = k)
-  return(list(u = cca.svd$u, v = cca.svd$v, d = cca.svd$d))
-}
 
 # Calculate percent variance explained
 #

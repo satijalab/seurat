@@ -175,5 +175,89 @@ RunUMAP <- function(
   UseMethod(generic = 'RunUMAP', object = object)
 }
 
+#' Perform Canonical Correlation Analysis
+#'
+#' Runs a canonical correlation analysis using a diagonal implementation of CCA.
+#' For details about stored CCA calculation parameters, see
+#' \code{PrintCCAParams}.
+#' @param object1 First Seurat object
+#' @param object2 Second Seurat object.
+#' @param num.cc Number of canonical vectors to calculate
+#'
+#' @return Returns a combined Seurat object with the CCA results stored.
+#'
+#' @seealso \code{MergeSeurat}
+#'
+#' @export
+#' @importFrom irlba irlba
+#'
+#' @examples
+#' pbmc_small
+#' # As CCA requires two datasets, we will split our test object into two just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' # Print results
+#' PrintDim(pbmc_cca,reduction.type = 'cca')
+#'
+#' @rdname RunCCA
+#' @export RunCCA
+#'
+RunCCA <- function(
+  object1,
+  object2,
+  num.cc,
+  ...
+) {
+  UseMethod(generic = 'RunCCA', object = object1)
+}
 
-
+#' Perform Canonical Correlation Analysis with more than two groups
+#'
+#' Runs a canonical correlation analysis
+#'
+#' @param object.list List of Seurat objects
+#' @param niter Number of iterations to perform. Set by default to 25.
+#' @param num.ccs Number of canonical vectors to calculate
+#' @param standardize standardize scale.data matrices to be centered (mean zero)
+#' and scaled to have a standard deviation of 1.
+#'
+#' @return Returns a combined Seurat object with the CCA stored as a DimReduc
+#'
+#' @importFrom methods slot
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' # As multi-set CCA requires more than two datasets, we will split our test object into
+#' # three just for this example
+#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:30])
+#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[31:60])
+#' pbmc3 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[61:80])
+#' pbmc1@meta.data$group <- "group1"
+#' pbmc2@meta.data$group <- "group2"
+#' pbmc3@meta.data$group <- "group3"
+#' pbmc.list <- list(pbmc1, pbmc2, pbmc3)
+#' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
+#' # Print results
+#' PrintDim(pbmc_cca,reduction.type = 'cca')
+#' }
+#'
+RunMultiCCA <- function(
+  object.list,
+  features.use,
+  add.cell.ids,
+  niter,
+  num.ccs,
+  standardize,
+  verbose
+) {
+  if(length(x = object.list) < 3){
+    stop("Must give at least 3 objects for MultiCCA")
+  }
+  UseMethod(generic = 'RunMultiCCA', object = object.list[[1]])
+}
