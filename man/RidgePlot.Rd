@@ -36,7 +36,7 @@ expression of the attribute being potted}
 \item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
-A list of ggplot objects
+A ggplot object
 }
 \description{
 Draws a ridge plot of single cell data (gene expression, metrics, PC

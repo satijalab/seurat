@@ -41,7 +41,7 @@ expression of the attribute being potted}
 \item{...}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }
 \value{
-A list of ggplot objects
+A ggplot object
 }
 \description{
 Draws a violin plot of single cell data (gene expression, metrics, PC
