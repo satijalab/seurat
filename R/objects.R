@@ -1,9 +1,10 @@
-#' @importFrom methods setClass setOldClass
+#' @importFrom methods setClass setOldClass setClassUnion
 #' @importFrom Rcpp evalCpp
 #' @useDynLib Seurat
 NULL
 
 setOldClass(Classes = 'package_version')
+setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 
 #' The Assay Class
 #'
@@ -28,8 +29,8 @@ setOldClass(Classes = 'package_version')
 Assay <- setClass(
   Class = 'Assay',
   slots = c(
-    raw.data = 'dgCMatrix',
-    data = 'dgCMatrix',
+    raw.data = 'AnyMatrix',
+    data = 'AnyMatrix',
     scale.data = 'matrix',
     key = 'character',
     var.features = 'vector',
