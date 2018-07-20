@@ -301,14 +301,15 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
         'DimReduc' = object[[x]][[cells.use, vars.use, drop = FALSE]],
         'Assay' = {
           vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
-          t(x = as.matrix(x = GetAssayData(
+          data.vars <- t(x = as.matrix(x = GetAssayData(
             object = object,
             slot = slot,
             assay.use = x
           )[vars.use, cells.use, drop = FALSE]))
+          colnames(x = data.vars) <- paste0(key.use, vars.use)
+          data.vars
         }
       )
-      colnames(x = data.return) <- paste0(key.use, vars.use)
       return(data.return)
     }
   )
