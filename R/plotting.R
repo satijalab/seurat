@@ -193,7 +193,7 @@ DimHeatmap <- function(
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
-#' @return A list of ggplot objects
+#' @return A ggplot object
 #'
 #' @export
 #'
@@ -240,7 +240,7 @@ RidgePlot <- function(
 #' @param adjust.use Adjust parameter for geom_violin
 #' @param point.size.use Point size for geom_violin
 #'
-#' @return A list of ggplot objects
+#' @return A ggplot object
 #'
 #' @export
 #'
@@ -450,10 +450,7 @@ DotPlot <- function(
 #' @param dims.use Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
 #' @param cells.use Vector of cells to plot (default is all cells)
 #' @param pt.size Adjust point size for plotting
-# @param do.return Return a ggplot2 object (default : FALSE)
-# @param do.bare Do only minimal formatting (default : FALSE)
-#' @param cols.use Vector of colors, each color corresponds to an identity
-#' class. By default, ggplot assigns colors.
+#' @param cols.use Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors.
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
@@ -471,7 +468,7 @@ DotPlot <- function(
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
 #' pass a vector instead of a list. If set, colors selected cells to the color(s)
-#'in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
+#' in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
 #'  will also resize to the size(s) passed to \code{sizes.highlight}
 #' @param cols.highlight A vector of colors to highlight the cells as; will
 #' repeat to the length groups in cells.highlight
@@ -488,17 +485,11 @@ DotPlot <- function(
 #' @param na.value Color value for NA points when using custom scale.
 # @param ... Extra parameters to FeatureLocator for do.identify = TRUE
 #'
-#' @return If do.return==TRUE, returns a ggplot2 object. Otherwise, only
-#' graphical output.
-#'
-# @seealso \code{\link{FeatureLocator}}
-#'
-#' @import SDMTools
-#' @importFrom stats median
-#' @importFrom dplyr summarize group_by
-#' @importFrom png readPNG
+#' @return A ggplot object
 #'
 #' @export
+#'
+#' @seealso \code{\link{FeaturePlot}} \code{\link{FeatureMap}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
@@ -529,21 +520,27 @@ DimPlot <- function(
   png.arguments = c(10,10, 100),
   ...
 ) {
+  if (length(x = dims.use) != 2) {
+    stop("'dims.use' must be a two-length vector")
+  }
+  cells.use <- cells.use %||% colnames(x = object)
+  data.plot <- Embeddings(object = object[[reduction.use]])[cells.use, dims.use]
+  data.plot <- as.data.frame(x = data.plot)
+  dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
   group.by <- group.by %||% 'ident'
-  col.by <- switch(
+  data.plot[, group.by] <- switch(
     EXPR = group.by,
     'ident' = Idents(object = object),
     object[group.by, drop = TRUE]
   )
   if (!is.null(x = shape.by)) {
-    shape.by <- object[shape.by, drop = TRUE]
+    data.plot[, shape.by] <- object[shape.by, drop = TRUE]
   }
   plot <- SingleDimPlot(
-    object = object[[reduction.use]],
+    data.plot = data.plot,
     dims.use = dims.use,
-    col.by = col.by,
+    col.by = group.by,
     cols.use = cols.use,
-    cells.use = cells.use,
     pt.size = pt.size,
     shape.by = shape.by,
     plot.order = plot.order,
@@ -551,8 +548,7 @@ DimPlot <- function(
     label.size = label.size,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
-    sizes.highlight = sizes.highlight,
-    legend.title = group.by
+    sizes.highlight = sizes.highlight
   )
   return(plot)
 }
@@ -575,12 +571,13 @@ DimPlot <- function(
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #'
-#' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 scale_color_gradientn
-#'
 #' @return A ggplot object
 #'
+#' @importFrom RColorBrewer brewer.pal.info
+#' @importFrom ggplot2 scale_color_gradientn
 #' @export
+#'
+#' @seealso \code{\link{DimPlot}} \code{\link{FeatureMap}}
 #'
 #' @examples
 #' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
@@ -603,6 +600,10 @@ FeaturePlot <- function(
   na.value = 'grey50',
   combine.plots = TRUE
 ) {
+  if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
+    stop("'dims.use' must be a two-length integer vector")
+  }
+  dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
   nCol <- NULL
   if (is.null(x = nCol)) {
     nCol <- 2
@@ -616,8 +617,12 @@ FeaturePlot <- function(
       nCol <- 4
     }
   }
-  data.features <- FetchData(object = object, vars.fetch = features.plot)
-  features.plot <- colnames(x = data.features)
+  data.features <- FetchData(
+    object = object,
+    vars.fetch = c(dims.use, features.plot),
+    cells.use = cells.use
+  )
+  features.plot <- colnames(x = data.features)[3:ncol(x = data.features)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
       ifelse(
@@ -653,15 +658,14 @@ FeaturePlot <- function(
     yes = brewer.pal.info[cols.use, ]$maxcolors,
     no = length(x = cols.use)
   )
-  data.features <- sapply(
-    X = 1:ncol(x = data.features),
+  data.features[, 3:ncol(x = data.features)] <- sapply(
+    X = 3:ncol(x = data.features),
     FUN = function(index) {
       data.feature <- as.vector(x = data.features[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index], data.feature)
+      min.use <- SetQuantile(cutoff = min.cutoff[index - 2], data.feature)
+      max.use <- SetQuantile(cutoff = max.cutoff[index - 2], data.feature)
       data.feature[data.feature < min.use] <- min.use
       data.feature[data.feature > max.use] <- max.use
-
       if (brewer.gran == 2) {
         return(data.feature)
       }
@@ -676,20 +680,18 @@ FeaturePlot <- function(
       return(data.cut)
     }
   )
-  colnames(x = data.features) <- features.plot
+  colnames(x = data.features)[3:ncol(x = data.features)] <- features.plot
   rownames(x = data.features) <- colnames(x = object)
   plots <- vector(mode = 'list', length = length(x = features.plot))
-  for (i in 1:length(x = features.plot)) {
+  for (feature in features.plot) {
     p <- SingleDimPlot(
-      object = object[[reduction.use]],
+      data.plot = data.features[, c(dims.use, feature)],
       dims.use = dims.use,
-      col.by = as.vector(x = data.features[, i]),
+      col.by = feature,
       cols.use = cols.use,
-      cells.use = cells.use,
       pt.size = pt.size,
       do.label = do.label,
-      label.size = label.size,
-      legend.title = features.plot[i]
+      label.size = label.size
     )
     if (brewer.gran == 2) {
       suppressMessages(expr = p <- p + scale_color_gradientn(
@@ -697,12 +699,147 @@ FeaturePlot <- function(
         guide = 'colorbar'
       ))
     }
-    plots[[i]] <- p
+    plots[[which(x = features.plot == feature)]] <- p
   }
   if (combine.plots) {
     plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
   }
   return(plots)
+}
+
+#' Vizualization of multiple features
+#'
+#' Similar to FeaturePlot, however, also splits the plot by visualizing each
+#' identity class separately.
+#'
+#' Particularly useful for seeing if the same groups of cells co-exhibit a
+#' common feature (i.e. co-express a gene), even within an identity class. Best
+#' understood by example.
+#'
+#' @inheritParams FeaturePlot
+#' @param group.display Which identity classes to display (default is all identity classes)
+#' @param slot.use Dataset to use for plotting, choose from 'raw.data', 'data', or 'scale.data'
+#' @param scale.group Scale each group separately. Default is FALSE.
+#' @param horizontal rotate the plot such that the features are columns, groups are the rows
+#'
+#' @return A ggplot object
+#'
+#' @importFrom rlang !! sym
+#' @importFrom ggplot2 facet_grid vars theme_bw scale_color_gradient guide_colorbar
+#' @export
+#'
+#' @aliases FeatureHeatmap
+#' @seealso \code{\link{FeaturePlot}} \code{\link{DimPlot}}
+#'
+#' @examples
+#' pbmc_small
+#' FeatureMap(object = pbmc_small, features.plot = "PC1")
+#'
+FeatureMap <- function(
+  object,
+  features.plot,
+  dims.use = c(1, 2),
+  pt.size = 2,
+  cols.use = c("grey", "red"),
+  reduction.use = "tsne",
+  group.by = NULL,
+  group.display = NULL,
+  slot.use = 'data',
+  scale.group = FALSE,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  horizontal = FALSE
+) {
+  if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
+    stop("'dims.use' must be a two-length integer vector")
+  }
+  dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
+  idents.use <- if (is.null(x = group.by)) {
+    Idents(object = object)
+  } else {
+    object[group.by, drop = TRUE]
+  }
+  idents.use <- as.vector(x = idents.use)
+  names(x = idents.use) <- colnames(x = object)
+  group.display <- group.display %||% unique(x = idents.use)
+  group.display <- intersect(x = group.display, y = idents.use)
+  if (length(x = group.display) == 0) {
+    stop("No groups selected to display present in the object")
+  }
+  idents.use <- Filter(f = function(x) x %in% group.display, x = idents.use)
+  data.plot <- FetchData(
+    object = object,
+    vars.fetch = features.plot,
+    slot = slot.use,
+    cells.use = names(x = idents.use)
+  )
+  data.plot <- data.frame(
+    expression = unlist(x = data.plot, use.names = FALSE),
+    feature = unlist(x = lapply(X = features.plot, FUN = rep.int, times = length(x = idents.use))),
+    cell = rep.int(x = names(x = idents.use), times = length(x = features.plot)),
+    stringsAsFactors = FALSE
+  )
+  data.plot$ident <- idents.use[data.plot$cell]
+  data.plot$scaled.expression <- if (scale.group) {
+    unlist(x = apply(
+      X = expand.grid(unique(x = data.plot$feature), unique(x = data.plot$ident)),
+      MARGIN = 1,
+      FUN = function(x) {
+        return(scale(x = data.plot[data.plot$feature == x[1] & data.plot$ident == x[2], 'expression']))
+      }
+    ))
+  } else {
+    unlist(x = lapply(
+      X = unique(x = data.plot$feature),
+      FUN = function(x) {
+        return(scale(x = data.plot[data.plot$feature == x, 'expression']))
+      }
+    ))
+  }
+  data.plot <- suppressWarnings(expr = cbind(
+    data.plot,
+    Embeddings(object = object[[reduction.use]])[data.plot$cell, dims.use]
+  ))
+  min.cutoff <- ifelse(
+    test = is.na(x = min.cutoff),
+    yes = min(data.plot$scaled.expression),
+    no = min.cutoff
+  )
+  max.cutoff <- ifelse(
+    test = is.na(x = max.cutoff),
+    yes = max(data.plot$scaled.expression),
+    no = max.cutoff
+  )
+  min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.plot$scaled.expression)
+  max.cutoff <- SetQuantile(cutoff = max.cutoff, data = data.plot$scaled.expression)
+  data.plot$scaled.expression <- MinMax(
+    data = data.plot$scaled.expression,
+    min = min.cutoff,
+    max = max.cutoff
+  )
+  plot <- SingleDimPlot(
+    data.plot = data.plot,
+    dims.use = dims.use,
+    col.by = 'scaled.expression',
+    pt.size = pt.size
+  )
+  if (horizontal) {
+    row <- 'feature'
+    col <- 'ident'
+  } else {
+    row <- 'ident'
+    col <- 'feature'
+  }
+  plot <- plot +
+    facet_grid(rows = vars(!!sym(x = row)), cols = vars(!!sym(x = col))) +
+    theme_bw() +
+    NoGrid() +
+    scale_color_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(title = 'Scaled Expression')
+    )
+  return(plot)
 }
 
 #' Scatter plot of single cell data

@@ -22,8 +22,7 @@ DimPlot(object, reduction.use = "pca", dims.use = c(1, 2),
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
-\item{cols.use}{Vector of colors, each color corresponds to an identity
-class. By default, ggplot assigns colors.}
+\item{cols.use}{Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors.}
 
 \item{cells.use}{Vector of cells to plot (default is all cells)}
 
@@ -56,8 +55,7 @@ groups in cells.highlight}
 \item{na.value}{Color value for NA points when using custom scale.}
 }
 \value{
-If do.return==TRUE, returns a ggplot2 object. Otherwise, only
-graphical output.
+A ggplot object
 }
 \description{
 Graphs the output of a dimensional reduction technique (PCA by default).
@@ -66,4 +64,7 @@ Cells are colored by their identity class.
 \examples{
 DimPlot(object = pbmc_small)
 
+}
+\seealso{
+\code{\link{FeaturePlot}} \code{\link{FeatureMap}}
 }

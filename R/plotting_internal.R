@@ -792,15 +792,15 @@ SingleExIPlot <- function(
 # @param legend.title Title for legend
 # @param ... Ignored for now
 #
-#
-#' @importFrom ggplot2 ggplot aes_string scale_color_brewer scale_color_manual
+#' @importFrom ggplot2 ggplot aes_string labs geom_text
+#' scale_color_brewer scale_color_manual
 #
 SingleDimPlot <- function(
-  object,
+  data.plot,
   dims.use,
-  col.by,
+  col.by = NULL,
   cols.use = NULL,
-  cells.use = NULL,
+  # cells.use = NULL,
   pt.size = 1,
   shape.by = NULL,
   plot.order = NULL,
@@ -810,18 +810,26 @@ SingleDimPlot <- function(
   cols.highlight = 'red',
   sizes.highlight = 1,
   na.value = 'grey50',
-  legend.title = NULL,
+  # legend.title = NULL,
   ...
 ) {
   if (length(x = dims.use) != 2) {
-    stop("'dims.use' must be a two-length integer vector")
+    stop("'dims.use' must be a two-length vector")
   }
-  dims.plot <- colnames(x = Embeddings(object = object))[dims.use]
-  shape.plot <- if (is.null(x = shape.by)) {
-    NULL
-  } else {
-    'shape'
+  if (!is.data.frame(x = data.plot)) {
+    data.plot <- as.data.frame(x = data.plot)
   }
+  if (is.character(x = dims.use) && !all(dims.use %in% colnames(x = data.plot))) {
+    stop("")
+  } else if (is.numeric(x = dims.use)) {
+    dims.use <- colnames(x = data.plot)[dims.use]
+  }
+  # dims.plot <- colnames(x = Embeddings(object = object))[dims.use]
+  # shape.plot <- if (is.null(x = shape.by)) {
+  #   NULL
+  # } else {
+  #   'shape'
+  # }
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
@@ -832,35 +840,44 @@ SingleDimPlot <- function(
       pt.size = pt.size
     )
     plot.order <- highlight.info$plot.order
-    col.by <- highlight.info$highlight
+    data.plot$highlight <- highlight.info$highlight
+    col.by <- 'highlight'
     pt.size <- highlight.info$size
     cols.use <- highlight.info$color
   }
-  if (!is.null(x = plot.order)) {
+  if (!is.null(x = plot.order) && !is.null(x = col.by)) {
     plot.order <- rev(x = c(
       plot.order,
-      setdiff(x = unique(x = col.by), y = plot.order)
+      setdiff(x = unique(x = data.plot[, col.by]), y = plot.order)
     ))
-    col.by <- factor(x = col.by, levels = plot.order)
+    data.plot[, col.by] <- factor(x = data.plot[, col.by], levels = plot.order)
   }
-  p <- ggplot(
-    data = object,
-    colors = col.by,
-    rows.use = cells.use,
-    pt.shape = shape.by,
-    ...
-  ) +
+  if (!is.null(x = col.by) && !col.by %in% colnames(x = data.plot)) {
+    warning("Cannot find ", col.by, " in plotting data, not coloring plot")
+    col.by <- NULL
+  }
+  if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data.plot)) {
+    warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
+  }
+  # p <- ggplot(
+  #   data = object,
+  #   colors = col.by,
+  #   rows.use = cells.use,
+  #   pt.shape = shape.by,
+  #   ...
+  # ) +
+  p <- ggplot(data = data.plot) +
     geom_point(
       mapping = aes_string(
-        x = dims.plot[1],
-        y = dims.plot[2],
-        color = 'color',
-        shape = shape.plot
+        x = dims.use[1],
+        y = dims.use[2],
+        color = col.by,
+        shape = shape.by
       ),
       size = pt.size
-    )
-  if (do.label) {
-    labels <- MakeLabels(data.plot = p$data[, c(dims.plot, 'color')])
+    ) + labs(legend = col.by)
+  if (do.label && !is.null(x = col.by)) {
+    labels <- MakeLabels(data.plot = p$data[, c(dims.use, col.by)])
     p <- p +
       geom_point(
         data = labels,
@@ -880,9 +897,6 @@ SingleDimPlot <- function(
         ),
         size = label.size
       )
-  }
-  if (!is.null(x = legend.title)) {
-    p <- p + labs(color = legend.title)
   }
   if (!is.null(x = cols.use)) {
     cols.use <- if (length(x = cols.use) == 1) {
