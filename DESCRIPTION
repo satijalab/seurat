@@ -54,8 +54,7 @@ Imports:
     png,
     doSNOW,
     reticulate,
-    foreach,
-    hdf5r
+    foreach
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
@@ -96,6 +95,7 @@ Collate:
     'zfRenderSeurat.R'
 RoxygenNote: 6.0.1
 Suggests:
+    hdf5r,
     gdata,
     VGAM,
     tclust,

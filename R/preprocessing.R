@@ -245,15 +245,16 @@ Read10X <- function(data.dir = NULL,
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
 #' returns a list of sparse matrices (one per genome).
 #'
-#' @importFrom hdf5r H5File
-#'
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE){
   if(!file.exists(filename)){
     stop("File not found")
   }
-  infile <- H5File$new(filename)
+  if (!requireNamespace("hdf5r", quietly = TRUE)) {
+    stop("Please install the 'hdf5r' package")
+  }
+  infile <- hdf5r::H5File$new(filename)
   genomes <- names(infile)
   output <- list()
   for(genome in genomes){
