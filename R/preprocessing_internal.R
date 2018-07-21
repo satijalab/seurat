@@ -331,7 +331,7 @@ RegressOutNBreg <- function(
   } else {
     message('First step: Poisson regression (to get initial mean), and estimate theta per gene')
     message('Using ', length(x = genes.step1), ' genes')
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
     theta.estimate <- c()
     for (i in 1:max.bin) {
       genes.bin.regress <- genes.step1[bin.ind == i]

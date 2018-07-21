@@ -117,7 +117,7 @@ JackStraw <- function(
   opts <- list()
   if (display.progress) {
     # define progress bar function
-    pb <- txtProgressBar(min = 0, max = num.replicate, style = 3)
+    pb <- txtProgressBar(min = 0, max = num.replicate, style = 3, file = stderr())
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
     time_elapsed <- Sys.time()
