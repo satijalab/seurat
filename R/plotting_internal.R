@@ -1562,7 +1562,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
   scaled.data <- list()
   cc.embeds <- list()
   for (i in 1:num.groups) {
-    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    message("Rescaling group ", i)
     objects[[i]] <- ScaleData(object = objects[[i]], block.size = 5000,
                               display.progress = display.progress)
     objects[[i]] <- ProjectDim(
@@ -1583,7 +1583,7 @@ EvaluateCCs <- function(object, grouping.var, dims.eval, gene.num,
   }
   bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
   if (display.progress) {
-    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
+    message("Evaluating dims: ", paste(dims.eval, collapse = " "))
     pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3, file = stderr())
     pb.idx <- 0
   }

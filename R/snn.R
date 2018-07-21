@@ -100,7 +100,7 @@ BuildSNN <- function(
   # find the k-nearest neighbors for each single cell
   if (is.null(x = distance.matrix)) {
     if (print.output) {
-      cat("Computing nearest neighbor graph\n", file = stderr())
+      message("Computing nearest neighbor graph")
     }
     my.knn <- nn2(
         data = data.use,
@@ -110,7 +110,7 @@ BuildSNN <- function(
     nn.ranked <- my.knn$nn.idx
   } else {
     if (print.output) {
-      cat("Building SNN based on a provided distance matrix\n", file = stderr())
+      message("Building SNN based on a provided distance matrix")
     }
     n <- nrow(x = distance.matrix)
     k.for.nn <- k.param
@@ -123,7 +123,7 @@ BuildSNN <- function(
     nn.ranked <- knn.mat[, 1:k.param]
   }
   if (print.output) {
-    cat("Computing SNN\n", file = stderr())
+    message("Computing SNN")
   }
   if (save.SNN | is.null(filename)) {
     object@snn <- ComputeSNN(nn_ranked = nn.ranked,

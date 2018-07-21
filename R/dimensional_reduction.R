@@ -627,7 +627,7 @@ RunCCA <- function(
   data.use1 <- data.use1[genes.use, ]
   data.use2 <- data.use2[genes.use, ]
 
-  cat("Running CCA\n", file = stderr())
+  message("Running CCA")
 
   cca.results <- CanonCor(
     mat1 = data.use1,
@@ -647,7 +647,7 @@ RunCCA <- function(
   # wipe old CCA slot
   object@dr$cca <- NULL
   if (! missing(x = object2)) {
-    cat("Merging objects\n", file = stderr())
+    message("Merging objects")
     combined.object <- MergeSeurat(
       object1 = object,
       object2 = object2,

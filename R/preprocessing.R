@@ -668,7 +668,7 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
   }
   # call Rcpp function to normalize
   if (display.progress) {
-    cat("Performing log-normalization\n", file = stderr())
+    message("Performing log-normalization")
   }
   norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = display.progress)
   colnames(x = norm.data) <- colnames(x = data)

@@ -88,7 +88,7 @@ AlignSubspace <- function(
   cc.embeds <- list()
   for (i in 1:num.groups) {
     if (verbose){
-      cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+      message("Rescaling group ", i)
     }
     objects[[i]] <- ScaleData(object = objects[[i]], display.progress = verbose, ...)
     objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
@@ -116,7 +116,7 @@ AlignSubspace <- function(
   for (cc.use in dims.align) {
     for (g in 2:num.groups){
       if (verbose) {
-        cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
+        message("Aligning dimension ", cc.use)
       }
       genes.rank <- data.frame(
         rank(x = abs(x = cc.loadings[[1]][, cc.use])),
@@ -383,7 +383,7 @@ CalcVarExpRatio <- function(
   var.ratio <- data.frame()
   for (group in groups) {
     if (verbose) {
-      cat(paste("Calculating for", group, "\n"), file = stderr())
+      message("Calculating for ", group)
     }
     group.cells <- WhichCells(
       object = object,
@@ -391,11 +391,11 @@ CalcVarExpRatio <- function(
       accept.value = group
     )
     if (verbose) {
-      cat(paste("\t Separating", group, "cells\n"), file = stderr())
+      message("\t Separating ", group, " cells")
     }
     group.object <- SubsetData(object = object, cells.use = group.cells)
     if (verbose) {
-      cat("\t Running Dimensional Reduction \n", file = stderr())
+      message("\t Running Dimensional Reduction")
     }
     ldp.cca <- CalcLDProj(
       object = group.object,

@@ -716,14 +716,11 @@ FindConservedMarkers <- function(
     if (! is.null(x = ident.2)) {
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
-    cat(
-      paste0(
-        "Testing ",
-        ident.use.1,
-        " vs ",
-        paste(ident.use.2, collapse = ", "), "\n"
-      ),
-      file = stderr()
+    message(
+      "Testing ",
+      ident.use.1,
+      " vs ",
+      paste(ident.use.2, collapse = ", ")
     )
     if(!ident.use.2 %in% object@ident) {
       stop(paste0("Identity: ", ident.2, " not present in group ", level.use))
