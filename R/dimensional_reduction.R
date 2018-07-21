@@ -834,10 +834,13 @@ RunMultiCCA <- function(
       RenameCells(object = object.list[[i]], add.cell.id = add.cell.ids[i])
     })
   }
-  names.list <- lapply(object.list, slot, name = "cell.names")
-  names.intersect <- Reduce(intersect, names.list)
-  if(length(names.intersect) > 0) {
-    stop("duplicate cell names detected, please set 'add.cell.ids'")
+
+  names <- lapply(data, FUN = slot, name = "cell.names")
+  names <- unlist(names, use.names = FALSE)
+  dups <- unique(names[duplicated(names)])
+  if (length(dups) > 0) {
+    stop("Detected ", length(dups), " duplicate cell names, e.g. ",
+         paste(sQuote(head(dups)), collapse = ", "))
   }
 
   num.sets <- length(mat.list)
