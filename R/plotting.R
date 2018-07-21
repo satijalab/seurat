@@ -138,7 +138,7 @@ DoHeatmap <- function(
     expr = factor(x = cell, levels = cells.use)
   )
   # might be a solution if we want discrete interval units, makes the legend clunky though
-  #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = T)
+  #data.use$expression <- cut(data.use$expression, breaks = breaks, include.lowest = TRUE)
   #heatmap <- ggplot(data.use, aes(x = cell, y = gene, fill = expression)) + geom_tile() +
   #                  scale_fill_manual(values = PurpleAndYellow(), name= "Expression") +
   #                  scale_y_discrete(position = "right", labels = rev(genes.use)) +
@@ -320,7 +320,7 @@ VlnPlot <- function(
       nCol <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...), check.names = F)
+  data.use <- data.frame(FetchData(object = object, vars.all = features.plot, ...), check.names = FALSE)
   if (is.null(x = ident.include)) {
     cells.to.include <- object@cell.names
   } else {

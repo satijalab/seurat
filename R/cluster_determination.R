@@ -267,7 +267,7 @@ SetClusters <- function(object, clusters = NULL) {
 #'
 SaveClusters <- function(object, file) {
   my.clusters <- GetClusters(object = object)
-  write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = F)
+  write.table(my.clusters, file = file, sep="\t", quote = FALSE, row.names = FALSE)
 }
 
 #' Convert the cluster labels to a numeric representation

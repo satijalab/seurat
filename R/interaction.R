@@ -247,8 +247,8 @@ AddSamples <- function(
     min.genes = min.genes,
     is.expr = is.expr,
     scale.factor = scale.factor,
-    do.scale = F,
-    do.center = F,
+    do.scale = FALSE,
+    do.center = FALSE,
     names.field = names.field,
     names.delim = names.delim
   )
@@ -800,7 +800,7 @@ WhichCells <- function(
     if (length(x = data.use) == 0) {
       stop(paste("Error : ", id, " not found"))
     }
-    subset.data <- data.use[, subset.name, drop = F]
+    subset.data <- data.use[, subset.name, drop = FALSE]
     if(! is.null(x = accept.value)) {
       if (! all(accept.value %in% unique(x = subset.data[, 1]))) {
         bad.vals <- accept.value[! (accept.value %in% unique(x = subset.data[, 1]))]

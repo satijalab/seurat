@@ -843,12 +843,12 @@ RunMultiCCA <- function(
   num.sets <- length(mat.list)
   if(standardize){
     for (i in 1:num.sets){
-      mat.list[[i]] <- Standardize(mat.list[[i]], display_progress = F)
+      mat.list[[i]] <- Standardize(mat.list[[i]], display_progress = FALSE)
     }
   }
   ws <- list()
   for (i in 1:num.sets){
-    ws[[i]] <- irlba(mat.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = F]
+    ws[[i]] <- irlba(mat.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = FALSE]
   }
   ws.init <- ws
   ws.final <- list()
@@ -883,7 +883,7 @@ RunMultiCCA <- function(
   results <- list(ws=ws.final, ws.init=ws.init, num.sets = num.sets, cors=cors)
   combined.object <- object.list[[1]]
   for(i in 2:length(object.list)){
-    combined.object <- MergeSeurat(object1 = combined.object, object2 = object.list[[i]], do.scale = F, do.center = F, do.normalize = F)
+    combined.object <- MergeSeurat(object1 = combined.object, object2 = object.list[[i]], do.scale = FALSE, do.center = FALSE, do.normalize = FALSE)
   }
   combined.object <- NormalizeData(combined.object)
   combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)

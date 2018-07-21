@@ -424,6 +424,6 @@ HTOHeatmap <- function(
   if (!is.null(singlet.names)){
     levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
   } 
-  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
+  DoHeatmap(objmini,slim.col.label = TRUE, genes.use = singlet_id, assay.type = assay.type, cells.use = cells.ordered, group.label.rot = TRUE)
   
 }

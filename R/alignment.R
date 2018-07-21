@@ -76,7 +76,7 @@ AlignSubspace <- function(
                           ... = parameters.to.store)
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
-  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  levels.split <- names(x = sort(x = table(object@ident), decreasing = TRUE))
   num.groups <- length(levels.split)
   objects <- list()
   for (i in 1:num.groups){

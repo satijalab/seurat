@@ -78,7 +78,7 @@ GroupSingletons <- function(object, SNN) {
         connectivity[j] <- mean(x = subSNN)
       }
     }
-    m <- max(connectivity, na.rm = T)
+    m <- max(connectivity, na.rm = TRUE)
     mi <- which(x = connectivity == m, arr.ind = TRUE)
     closest_cluster <- sample(x = names(x = connectivity[mi]), 1)
     object <- SetIdent(

@@ -137,7 +137,7 @@ FindMarkers <- function(
   thresh.min <- 0
   data.temp1 <- round(
     x = apply(
-      X = data.use[genes.use, cells.1, drop = F],
+      X = data.use[genes.use, cells.1, drop = FALSE],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -148,7 +148,7 @@ FindMarkers <- function(
   )
   data.temp2 <- round(
     x = apply(
-      X = data.use[genes.use, cells.2, drop = F],
+      X = data.use[genes.use, cells.2, drop = FALSE],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -173,8 +173,8 @@ FindMarkers <- function(
     stop("No genes pass min.diff.pct threshold")
   }
   #gene selection (based on average difference)
-  data.1 <- apply(X = data.use[genes.use, cells.1, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = data.use[genes.use, cells.2, drop = F], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.1 <- apply(X = data.use[genes.use, cells.1, drop = FALSE], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.2 <- apply(X = data.use[genes.use, cells.2, drop = FALSE], MARGIN = 1, FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
   if (!only.pos) genes.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
   if (only.pos) genes.diff <- names(x = which(x = total.diff > logfc.threshold))

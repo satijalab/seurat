@@ -7,7 +7,7 @@ DifferentialLRT <- function(x, y, xmin = 0) {
   lrtY <- bimodLikData(x = y)
   lrtZ <- bimodLikData(x = c(x, y))
   lrt_diff <- 2 * (lrtX + lrtY - lrtZ)
-  return(pchisq(q = lrt_diff, df = 3, lower.tail = F))
+  return(pchisq(q = lrt_diff, df = 3, lower.tail = FALSE))
 }
 
 #internal function to run mcdavid et al. DE test

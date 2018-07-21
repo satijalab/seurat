@@ -601,7 +601,7 @@ ScaleData <- function(
     my.inds <- my.inds[my.inds <= length(x = genes.use)]
     if (class(x = data.use) == "dgCMatrix" | class(x = data.use) == "dgTMatrix") {
       data.scale <- FastSparseRowScale(
-        mat = data.use[genes.use[my.inds], , drop = F],
+        mat = data.use[genes.use[my.inds], , drop = FALSE],
         scale = do.scale,
         center = do.center,
         scale_max = scale.max,
@@ -609,7 +609,7 @@ ScaleData <- function(
       )
     } else {
       data.scale <- FastRowScale(
-        mat = as.matrix(x = data.use[genes.use[my.inds], , drop = F]),
+        mat = as.matrix(x = data.use[genes.use[my.inds], , drop = FALSE]),
         scale = do.scale,
         center = do.center,
         scale_max = scale.max,
@@ -860,7 +860,7 @@ FindVariableGenes <- function(
         my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
         my.inds <- my.inds[my.inds <= length(x = genes.use)]
         genes.iter <- genes.use[my.inds]
-        data.iter <- data[genes.iter, , drop = F]
+        data.iter <- data[genes.iter, , drop = FALSE]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
         if (display.progress) {
