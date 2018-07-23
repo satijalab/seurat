@@ -748,12 +748,12 @@ RunCCA.Seurat <- function(
   num.cc = 20,
   features.use = NULL,
   renormalize = FALSE,
-  rescale=TRUE,
+  rescale = FALSE,
   compute.gene.loadings = TRUE,
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
   verbose = TRUE,
-  use.cpp=TRUE,
+  use.cpp = TRUE,
   ...
 ) {
   assay.use1 <- assay.use1 %||% DefaultAssay(object = object1)
@@ -780,7 +780,7 @@ RunCCA.Seurat <- function(
   features.use <- CheckFeatures(data.use = data.use1, features.use = features.use, object.name = "object1")
   features.use <- CheckFeatures(data.use = data.use2, features.use = features.use, object.name = "object2")
 
-  
+
   if (length(x = features.use) < 50) {
     warning("Fewer than 50 features used as input for CCA.")
   }
@@ -791,8 +791,10 @@ RunCCA.Seurat <- function(
   data2 <- data.use2[features.use,]
   if (rescale) {
     if (verbose) message("Rescaling groups")
-    data1 <- FastRowScale(data1); dimnames(data1) <- list(features.use,colnames(object1))
-    data2 <- FastRowScale(data2); dimnames(data2) <- list(features.use,colnames(object2))
+    data1 <- FastRowScale(data1)
+    dimnames(data1) <- list(features.use, colnames(x = object1))
+    data2 <- FastRowScale(data2)
+    dimnames(data2) <- list(features.use, colnames(x = object2))
   }
   cca.results <- RunCCA(
     object1 = data1,
@@ -800,7 +802,7 @@ RunCCA.Seurat <- function(
     standardize = TRUE,
     num.cc = num.cc,
     verbose = verbose,
-    use.cpp=use.cpp
+    use.cpp = use.cpp
   )
   if (verbose) {
    message("Merging objects")
