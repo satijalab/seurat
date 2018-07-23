@@ -481,13 +481,14 @@ SubsetData.Seurat <- function(
     assay.use = assay.use,
     ident = ident.use,
     ident.remove = ident.remove,
+    subset.name = subset.name, 
     cells.use = cells.use,
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     low.threshold = low.threshold,
     high.threshold = high.threshold,
     accept.value = accept.value,
-    ... = ...
+    ...
   )
   # Subset all the Assays
   assays <- FilterObjects(object = object, classes.keep = 'Assay')
@@ -693,7 +694,7 @@ TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", ke
 SplitObject <- function(object,
                         attribute.1 = "ident",
                         ...) {
-  old_data <- FetchData(object = object, vars.all = attribute.1)[, 1]
+  old_data <- FetchData(object = object, vars.fetch = attribute.1)[, 1]
   old_levels <- unique(as.character(old_data))
   to_return <- list()
   for (i in old_levels) {
