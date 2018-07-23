@@ -378,7 +378,7 @@ NormalizeData.Seurat <- function(
 }
 
 #' Use regularized negative binomial regression to normalize UMI count data
-#' 
+#'
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
@@ -386,7 +386,7 @@ NormalizeData.Seurat <- function(
 #' @param object A seurat object
 #' @param assay.use Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.zscore Z-score threshold for calling features highly variable; 
+#' @param variable.features.zscore Z-score threshold for calling features highly variable;
 #' z-scores are based on variances of regression model pearson residuals of all features
 #' @param variable.features.n Use this many features as variable features after ranking by variance
 #' @param do.scale Whether to scale residuals to have unit variance
@@ -394,7 +394,7 @@ NormalizeData.Seurat <- function(
 #' @param scale.max Max value after scaling and/or centering
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
-#' 
+#'
 #' @export
 RegressRegNB <- function(
   object,
@@ -414,7 +414,7 @@ RegressRegNB <- function(
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay.use = assay.use)
   umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
-  
+
   vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
   # cell_attr = NULL,
   # latent_var = c('log_umi_per_gene'),
@@ -427,13 +427,13 @@ RegressRegNB <- function(
   # min_cells = 5,
   # return_cell_attr = FALSE,
   # return_gene_attr = FALSE)
-  
+
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
       message('Calculate corrected UMI matrix and place in data slot')
     }
-    umi.corrected <- sctransform::denoise(x = vst.out) 
+    umi.corrected <- sctransform::denoise(x = vst.out)
     umi.corrected <- as(umi.corrected, 'dgCMatrix')
     # skip SetAssayData.Assay because of restrictive dimension checks there
     slot(object = assay.obj, name = 'data') <- umi.corrected
@@ -443,7 +443,7 @@ RegressRegNB <- function(
     #   new.data = umi.corrected
     # )
   }
-  
+
   # set variable features
   if (verbose) {
     message('Determine variable features')
@@ -461,7 +461,7 @@ RegressRegNB <- function(
   if (verbose) {
     message('Set ', length(top.features), ' variable features')
   }
-  
+
   scale.data <- vst.out$y
   # re-scale the residuals
   if (do.scale || do.center) {
@@ -477,7 +477,7 @@ RegressRegNB <- function(
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-  
+
   assay.obj <- SetAssayData(
     object = assay.obj,
     slot = 'scale.data',
@@ -1132,7 +1132,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose,
     ...
   )
-  object[[names(x = hvf.info)]] <- list(hvf.info)
+  object[[names(x = hvf.info)]] <- hvf.info
   hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
   top.features <- switch(
     EXPR = selection.method,
