@@ -68,6 +68,7 @@ DoHeatmap <- function(
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
 #' @param num.genes NUmber of genes to plot
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
+#' @param num.col Number of columns.
 #'
 #' @return Invisbly returns the final grob
 #'
@@ -94,13 +95,15 @@ DimHeatmap <- function(
   slot.use = 'scale.data',
   do.balanced = FALSE,
   check.plot = TRUE,
+  num.col = NULL,
   ...
 ) {
-  if (length(x = dims.use) > 1) {
-    num.row <- floor(x = length(x = dims.use) / 3.01) + 1
-    num.col <- length(x = dims.use) - num.row
-  } else {
-    num.col <- 1
+  if (is.null(x = num.col)) {
+    if (length(x = dims.use) > 2) {
+      num.col <- 3
+    } else {
+      num.col <- length(x = dims.use)
+    }
   }
   plot.list <- vector(mode = 'list', length = length(x = dims.use))
   assay.use <- assay.use %||% DefaultAssay(object = object)
@@ -146,7 +149,7 @@ DimHeatmap <- function(
     }
   }
   for (i in 1:length(x = dims.use)) {
-    dim.features <- features[[i]]
+    dim.features <- unname(unlist(rev(features[[i]])))
     dim.features <- unlist(x = lapply(
       X = dim.features,
       FUN = function(feat) {
@@ -155,7 +158,7 @@ DimHeatmap <- function(
     ))
     plot.list[[i]] <- SingleHeatmap(
       object = object,
-      cells.use = cells.use[[i]],
+      cells.use = unname(unlist(cells.use[[i]])),
       features.use = dim.features,
       disp.min = disp.min,
       disp.max = disp.max,

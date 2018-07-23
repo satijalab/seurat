@@ -7,7 +7,7 @@
 DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
   cells.use = NULL, num.features = 30, use.full = FALSE,
   disp.min = -2.5, disp.max = 2.5, slot.use = "scale.data",
-  do.balanced = FALSE, check.plot = TRUE, ...)
+  do.balanced = FALSE, check.plot = TRUE, num.col = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -29,6 +29,8 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
 \item{do.balanced}{Plot an equal number of genes with both + and - scores.}
 
 \item{check.plot}{Check that plotting will finish in a reasonable amount of time}
+
+\item{num.col}{Number of columns.}
 
 \item{...}{Extra parameters passed to superheat}
 
