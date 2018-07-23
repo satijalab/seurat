@@ -630,6 +630,7 @@ merge.Seurat <- function(
     combined.assays[[assay]] <- merge(
       x = assay1,
       y = assay2,
+      merge.data = merge.data,
       min.cells = min.cells,
       min.genes = min.genes,
       is.expr = is.expr,

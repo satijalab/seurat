@@ -8,12 +8,13 @@
 \title{Perform Canonical Correlation Analysis}
 \usage{
 \method{RunCCA}{default}(object1, object2, standardize = TRUE, num.cc = 20,
-  verbose = TRUE)
+  verbose = FALSE, use.cpp = TRUE)
 
 \method{RunCCA}{Seurat}(object1, object2, assay.use1 = NULL,
   assay.use2 = NULL, num.cc = 20, features.use = NULL,
-  renormalize = TRUE, compute.gene.loadings = TRUE, add.cell.id1 = NULL,
-  add.cell.id2 = NULL, verbose = TRUE, ...)
+  renormalize = FALSE, rescale = FALSE, compute.gene.loadings = TRUE,
+  add.cell.id1 = NULL, add.cell.id2 = NULL, verbose = TRUE,
+  use.cpp = TRUE, ...)
 
 RunCCA(object1, object2, num.cc, ...)
 }
@@ -31,6 +32,8 @@ and mean 0}
 
 \item{features.use}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
+
+\item{rescale}{Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.}
 
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}

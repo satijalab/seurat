@@ -16,7 +16,7 @@ RegressRegNB(object, assay.use = NULL, do.correct.umi = FALSE,
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 
-\item{variable.features.zscore}{Z-score threshold for calling features highly variable; 
+\item{variable.features.zscore}{Z-score threshold for calling features highly variable;
 z-scores are based on variances of regression model pearson residuals of all features}
 
 \item{variable.features.n}{Use this many features as variable features after ranking by variance}

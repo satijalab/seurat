@@ -810,6 +810,7 @@ RunCCA.Seurat <- function(
   combined.object <- merge(
     x = object1,
     y = object2,
+    merge.data = TRUE,
     ...
   )
 
