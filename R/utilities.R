@@ -106,25 +106,25 @@ MakeSparse <- function(object) {
 #' updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
 #' }
 #'
-UpdateSeuratObject <- function(object, assay = 'RNA') {
+UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    if(package_version(object@version) >= package_version("3.0.0")){
+    if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
       message("Object representation is consistent with the most current Seurat version")
       return(object)
-    } else if(package_version(object@version) <= package_version("2.0.0")){
-    seurat.version <- packageVersion("Seurat")
-    new.assay <- UpdateAssay(object, assay.name = assay)
+    } else if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
+    seurat.version <- packageVersion(pkg = "Seurat")
+    new.assay <- UpdateAssay(old.assay = object, assay.use = "RNA")
     assay.list <- list(new.assay)
-    names(assay.list) <- assay
+    names(assay.list) <- "RNA"
     for(i in names(object@assay)) {
       assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay.name = i)
     }
-    new.dr <- UpdateDimReduction(old.dr = object@dr)
+    new.dr <- UpdateDimReduction(old.dr = object@dr, assay.use = "RNA")
     new.object <- new(
       Class = "Seurat",
       version = seurat.version,
       assays = assay.list,
-      active.assay = assay,
+      active.assay = "RNA",
       project.name = object@project.name,
       calc.params = object@calc.params,
       misc = object@misc %||% list(),
@@ -138,23 +138,23 @@ UpdateSeuratObject <- function(object, assay = 'RNA') {
   stop("Cannot convert version <2")
 }
 
-#' Update dimension reduction
-#' 
-#' @param old.dr Seurat2 dimension reduction slot
-#' 
-UpdateDimReduction <- function(old.dr){
+# Update dimension reduction
+#
+# @param old.dr Seurat2 dimension reduction slot
+#
+UpdateDimReduction <- function(old.dr, assay.use){
   new.dr <- list()
   for(i in names(old.dr)){
     cell.embeddings <- old.dr[[i]]@cell.embeddings %||% matrix()
     feature.loadings <- old.dr[[i]]@gene.loadings %||% matrix()
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
-    
+
     new.dr[[i]] <- new(
       Class = 'DimReduc',
       cell.embeddings = as(cell.embeddings, 'matrix'),
       feature.loadings = as(feature.loadings, 'matrix'),
-      assay.used = as(assay, 'character'),
+      assay.used = assay.use,
       stdev = as(stdev, 'numeric'),
       key = as(old.dr[[i]]@key, 'character'),
       jackstraw = old.dr[[i]]@jackstraw,
@@ -164,12 +164,12 @@ UpdateDimReduction <- function(old.dr){
   return(new.dr)
 }
 
-#' Update Seurat assay
-#' 
-#' @param old.assay Seurat2 assay
-#' @param assay.name Name to store for assay in new object
-#' 
-UpdateAssay <- function(old.assay, assay.name){
+# Update Seurat assay
+#
+# @param old.assay Seurat2 assay
+# @param assay.name Name to store for assay in new object
+#
+UpdateAssay <- function(old.assay, assay.use){
   new.assay <- new(
     Class = 'Assay',
     raw.data = as(old.assay@raw.data, 'dgCMatrix'),
@@ -178,7 +178,7 @@ UpdateAssay <- function(old.assay, assay.name){
     var.features = old.assay@var.genes,
     cluster.tree = old.assay@cluster.tree,
     kmeans = old.assay@kmeans,
-    key = paste0(assay.name, "_")
+    key = paste0(assay.use, "_")
   )
   return(new.assay)
 }
