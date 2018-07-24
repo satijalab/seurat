@@ -4,11 +4,11 @@
 \alias{RunCCA}
 \title{Perform Canonical Correlation Analysis}
 \usage{
-RunCCA(object, object2, group1, group2, group.by, num.cc = 20, genes.use,
-  scale.data = TRUE, rescale.groups = FALSE, ...)
+RunCCA(object, object2, group1, group2, group.by = "group", num.cc = 20,
+  genes.use, scale.data = TRUE, rescale.groups = FALSE, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{Seurat object (after running FilterCells, NormalizeData)}
 
 \item{object2}{Optional second object. If object2 is passed, object1 will be
 considered as group1 and object2 as group2.}
@@ -17,7 +17,7 @@ considered as group1 and object2 as group2.}
 
 \item{group2}{Second set of cells (or IDs) for CCA}
 
-\item{group.by}{Factor to group by (column vector stored in object@meta.data)}
+\item{group.by}{Factor to group by (column vector stored in object@meta.data), Defaults to "group".}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
@@ -25,7 +25,7 @@ considered as group1 and object2 as group2.}
 two objects are given, the default is the union of both variable gene sets
 that are also present in both objects.}
 
-\item{scale.data}{Use the scaled data from the object}
+\item{scale.data}{Use the scaled data from the object (requires ScaleData to be run)}
 
 \item{rescale.groups}{Rescale each set of cells independently}
 

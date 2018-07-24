@@ -490,7 +490,7 @@ ProjectPCA <- function(
 #' For details about stored CCA calculation parameters, see
 #' \code{PrintCCAParams}.
 #'
-#' @param object Seurat object
+#' @param object Seurat object (after running FilterCells, NormalizeData)
 #' @param object2 Optional second object. If object2 is passed, object1 will be
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
@@ -500,7 +500,7 @@ ProjectPCA <- function(
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
 #' two objects are given, the default is the union of both variable gene sets
 #' that are also present in both objects.
-#' @param scale.data Use the scaled data from the object
+#' @param scale.data Use the scaled data from the object (requires ScaleData to be run)
 #' @param rescale.groups Rescale each set of cells independently
 #' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
 #' passed, passed onto ScaleData in case with single object and rescale.groups
@@ -818,7 +818,8 @@ RunMultiCCA <- function(
   add.cell.ids = NULL,
   niter = 25,
   num.ccs = 1,
-  standardize = TRUE
+  standardize = TRUE,
+  ...
 ) {
   set.seed(42)
   if(length(object.list) < 3){

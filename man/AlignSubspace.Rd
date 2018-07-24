@@ -4,9 +4,9 @@
 \alias{AlignSubspace}
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
-AlignSubspace(object, reduction.type = "cca", grouping.var, dims.align,
-  num.possible.genes = 2000, num.genes = 30, show.plots = FALSE,
-  verbose = TRUE, ...)
+AlignSubspace(object, reduction.type = "cca", group.by = "group",
+  grouping.var, dims.align, num.possible.genes = 2000, num.genes = 30,
+  show.plots = FALSE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
