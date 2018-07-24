@@ -324,7 +324,16 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells.use, drop = FALSE])))
   )
-  data.fetched <- as.data.frame(x = data.fetched, row.names = cells.use)
+  data.fetched <- as.data.frame(
+    x = data.fetched,
+    row.names = cells.use,
+    stringsAsFactors = FALSE
+  )
+  data.order <- na.omit(object = pmatch(
+    x = vars.fetch,
+    table = colnames(x = data.fetched)
+  ))
+  data.fetched <- data.fetched[, data.order]
   return(data.fetched)
 }
 
@@ -630,6 +639,7 @@ merge.Seurat <- function(
     combined.assays[[assay]] <- merge(
       x = assay1,
       y = assay2,
+      merge.data = merge.data,
       min.cells = min.cells,
       min.genes = min.genes,
       is.expr = is.expr,

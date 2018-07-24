@@ -522,7 +522,10 @@ MakeLabels <- function(data.plot) {
 #
 CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
   plots.combined <- if (length(x = plot.list) > 1) {
-    if (!is.null(x = legend.position) && legend.position == 'none') {
+    if (!is.null(x = legend.position)) {
+      if (legend.position != 'none') {
+        legend <- get_legend(plot = plot.list[[1]] + theme(legend.position = legend.position))
+      }
       plot.list <- lapply(
         X = plot.list,
         FUN = function(x) {
@@ -531,22 +534,22 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
       )
     }
     plots.combined <- plot_grid(plotlist = plot.list, ncol = nCol)
-    if (!is.null(x = legend.position) && legend.position != 'none') {
-      legend <- get_legend(plot = plot.list[[1]] + theme(legend.position = legend.position))
-      if (legend.position == 'bottom') {
-        plots.combined <- plot_grid(
+    if (!is.null(x = legend.position)) {
+      plots.combined <- switch(
+        EXPR = legend.position,
+        'bottom' = plot_grid(
           plots.combined,
           legend,
           ncol = 1,
           rel_heights = c(1, 0.2)
-        )
-      } else if (legend.position == 'right') {
-        plots.combined <- plot_grid(
+        ),
+        'right' = plot_grid(
           plots.combined,
           legend,
           rel_widths = c(3, 0.3)
-        )
-      }
+        ),
+        plots.combined
+      )
     }
     plots.combined
   } else {
@@ -1046,6 +1049,44 @@ SingleHeatmap <- function(
     ...
   )
   return(p$plot)
+}
+
+# A single heatmap from ggplot2 using geom_raster
+#
+# @param object Seurat object
+# @param cells.use A vector of cells to plot
+# @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
+# @param group.by Name of variable to group cells by
+# @param disp.min Minimum display value (all values below are clipped)
+# @param disp.max Maximum display value (all values above are clipped)
+# @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
+# @param assay.use Assay to pull from
+# @param check.plot Check that plotting will finish in a reasonable amount of time
+# @param ... Extra parameters passed to superheat
+#
+#' @importFrom reshape2 melt
+#' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
+#' scale_fill_gradientn theme element_blank labs
+#
+SingleRasterMap <- function(
+  data.plot,
+  cell.order = NULL,
+  feature.order = NULL,
+  ...
+) {
+  data.plot <- melt(data = t(x = data.plot))
+  colnames(x = data.plot) <- c('Feature', 'Cell', 'Expression')
+  if (!is.null(x = feature.order)) {
+    levels(x = data.plot$Feature) <- feature.order
+  }
+  if (!is.null(x = cell.order)) {
+    levels(x = data.plot$Cell) <- cell.order
+  }
+  plot <- ggplot(data = data.plot) +
+    geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
+    theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+    labs(x = NULL, y = NULL, fill = NULL)
+  return(plot)
 }
 
 #heatmap.2, but does not draw a key.
