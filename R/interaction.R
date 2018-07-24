@@ -676,7 +676,7 @@ TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", ke
 #' patient-specific objects.
 #'
 #' @param object Seurat object
-#' @param attribute.1 Attribute for splitting. Default is "ident". Currently
+#' @param split.by Attribute for splitting. Default is "ident". Currently
 #' only supported for class-level (i.e. non-quantitative) attributes.
 #' @param \dots Additional parameters to pass to SubsetData
 #' @return A named list of Seurat objects, each containing a subset of cells
@@ -687,27 +687,31 @@ TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", ke
 #' @examples
 #' # Assign the test object a three level attribute
 #' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
-#' names(groups) <- pbmc_small@@cell.names
+#' names(groups) <- colnames(pbmc_small)
 #' pbmc_small <- AddMetaData(object = pbmc_small, metadata = groups, col.name = "group")
-#' obj.list <- SplitObject(pbmc_small, attribute.1 = "group")
+#' obj.list <- SplitObject(pbmc_small, split.by = "group")
 #'
 SplitObject <- function(object,
-                        attribute.1 = "ident",
+                        split.by = "ident",
                         ...) {
-  old_data <- FetchData(object = object, vars.fetch = attribute.1)[, 1]
-  old_levels <- unique(as.character(old_data))
-  to_return <- list()
-  for (i in old_levels) {
-    if (attribute.1=="ident") {
-      to_return[[i]] <- SubsetData(object = object, ident.use = i, ...)
+  if (split.by == 'ident') {
+    groupings <- Idents(object)
+  } else {
+    groupings <- FetchData(object = object, vars.fetch = split.by)[, 1]
+  }
+  groupings <- unique(as.character(groupings))
+  obj.list <- list()
+  for (i in groupings) {
+    if (split.by=="ident") {
+      obj.list[[i]] <- SubsetData(object = object, ident.use = i, ...)
     }
     else {
-      to_return[[i]] <- SubsetData(object = object,
-                                   subset.name = attribute.1,
+      obj.list[[i]] <- SubsetData(object = object,
+                                   subset.name = split.by,
                                    accept.value = i, ...)
     }
   }
-  return(to_return)
+  return(obj.list)
 }
 
 #' Sets identity class information to be a combination of two object attributes
