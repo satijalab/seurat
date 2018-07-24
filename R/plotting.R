@@ -131,17 +131,26 @@ DimHeatmap <- function(
     do.balanced = do.balanced
   )
   features.all <- unique(x = unlist(x = features))
-  features.keyed <- lapply(
-    X = assay.use,
-    FUN = function(assay.name) {
-      features.use <- features.all[features.all %in% rownames(x = object[[assay.name]])]
-      if (length(x = features.use) > 0) {
-        return(paste0(Key(object = object[[assay.name]]), features.use))
+  if (length(x = assay.use) > 1) {
+    features.keyed <- lapply(
+      X = assay.use,
+      FUN = function(assay.name) {
+        features.use <- features.all[features.all %in% rownames(x = object[[assay.name]])]
+        if (length(x = features.use) > 0) {
+          return(paste0(Key(object = object[[assay.name]]), features.use))
+        }
       }
-    }
+    )
+    features.keyed <- Filter(f = Negate(f = is.null), x = features.keyed)
+    features.keyed <- unlist(x = features.keyed)
+  } else {
+    features.keyed <- features.all
+  }
+  data.all <- FetchData(
+    object = object,
+    vars.fetch = features.keyed,
+    cells.use = unique(x = unlist(x = cells.use))
   )
-  features.keyed <- Filter(f = Negate(f = is.null), x = features.keyed)
-  features.keyed <- unlist(x = features.keyed)
   if (check.plot && any(c(length(x = features.keyed), length(x = cells.use[[1]])) > 700)) {
     choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
     if (choice != 1) {
@@ -149,31 +158,45 @@ DimHeatmap <- function(
     }
   }
   for (i in 1:length(x = dims.use)) {
-    dim.features <- unname(unlist(rev(features[[i]])))
+    dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
     dim.features <- unlist(x = lapply(
       X = dim.features,
       FUN = function(feat) {
         return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
       }
     ))
-    plot.list[[i]] <- SingleHeatmap(
-      object = object,
-      cells.use = unname(unlist(cells.use[[i]])),
-      features.use = dim.features,
-      disp.min = disp.min,
-      disp.max = disp.max,
-      slot.use = slot.use,
-      title = paste0(Key(object = object[[reduction.use]]), dims.use[i]),
-      ...
-    )
+    data.plot <- data.all[cells.use[[i]], dim.features]
+    plot.list[[i]] <- SingleRasterMap(data.plot = data.plot)
+    # print(dim(data.plot))
+    # print(data.plot[1:10, 1:4])
   }
-  plot.grob <- arrangeGrob(
-    grobs = plot.list,
-    ncol = num.col
-  )
-  grid.newpage()
-  grid.draw(x = plot.grob)
-  invisible(x = plot.grob)
+  return(plot.list)
+  # for (i in 1:length(x = dims.use)) {
+  #   dim.features <- unname(unlist(rev(features[[i]])))
+  #   dim.features <- unlist(x = lapply(
+  #     X = dim.features,
+  #     FUN = function(feat) {
+  #       return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
+  #     }
+  #   ))
+  #   plot.list[[i]] <- SingleHeatmap(
+  #     object = object,
+  #     cells.use = unname(unlist(cells.use[[i]])),
+  #     features.use = dim.features,
+  #     disp.min = disp.min,
+  #     disp.max = disp.max,
+  #     slot.use = slot.use,
+  #     title = paste0(Key(object = object[[reduction.use]]), dims.use[i]),
+  #     ...
+  #   )
+  # }
+  # plot.grob <- arrangeGrob(
+  #   grobs = plot.list,
+  #   ncol = num.col
+  # )
+  # grid.newpage()
+  # grid.draw(x = plot.grob)
+  # invisible(x = plot.grob)
 }
 
 #' Single cell ridge plot
