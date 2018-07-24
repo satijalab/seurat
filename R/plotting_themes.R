@@ -235,3 +235,25 @@ BoldTitle <- function(...) {
   )
   return(bold.theme)
 }
+
+#' @inheritParams SeuratThemes
+#'
+#' @importFrom ggplot2 theme element_rect
+#' @export
+#'
+#' @rdname SeuratThemes
+#' @aliases WhiteBackground
+#'
+WhiteBackground <- function(...) {
+  white.rect = element_rect(fill = 'white')
+  white.theme <- theme(
+    # Make the plot and panel backgrounds white
+    plot.background = white.rect,
+    panel.background = white.rect,
+    legend.key = white.rect,
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
+  return(white.theme)
+}

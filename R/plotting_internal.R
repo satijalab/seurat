@@ -668,8 +668,8 @@ ExIPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin
-#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous ylim
+#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin ylim
+#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous element_line
 #
 SingleExIPlot <- function(
   feature,
@@ -721,14 +721,14 @@ SingleExIPlot <- function(
     ""
   }
   y.max <- y.max %||% max(data[, feature])
-  plot <- ggplot(data = data, mapping = aes_string(fill = 'ident'))
-  plot <- plot + guides(fill = guide_legend(title = NULL)) +
+  p <- ggplot(data = data, mapping = aes_string(fill = 'ident')) +
+    guides(fill = guide_legend(title = NULL)) +
     NoGrid() +
     labs(title = feature.name)
-  plot <- switch(
+  p <- switch(
     EXPR = plot.type,
     'violin' = {
-      plot <- plot +
+      p <- p +
         geom_violin(
           scale = 'width',
           adjust = adjust.use,
@@ -736,15 +736,15 @@ SingleExIPlot <- function(
           mapping = aes_string(x = 'ident', y = 'feature')
         ) +
         labs(x = 'Identity', y = axis.label)
-      plot <- plot + if (y.log) {
+      p <- p + if (y.log) {
         scale_y_log10()
       } else {
         ylim(min(data[, feature]), y.max)
       }
-      plot
+      p
     },
     'ridge' = {
-      plot <- plot +
+      p <- p +
         geom_density_ridges(
           scale = 4,
           mapping = aes_string(x = 'feature', y = 'ident')
@@ -754,26 +754,26 @@ SingleExIPlot <- function(
         scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
         scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
       if (y.log) {
-        plot <- plot + scale_x_log10()
+        p <- p + scale_x_log10()
       }
-      plot
+      p
     },
     stop("Unknown plot type: ", plot.type)
   )
   if (!is.null(x = cols.use)) {
-    plot <- plot + scale_fill_manual(values = cols.use)
+    p <- p + scale_fill_manual(values = cols.use)
   }
-  return(plot)
+  p <- p + WhiteBackground(axis.line = element_line(colour = 'black'))
+  return(p)
 }
 
 # Plot a single dimension
 #
-# @param object A DimReduc object
+# @param data.plot Data to plot
 # @param dims.use A two-length numeric vector with dimensions to use
-# @param cells.use Vector of cells to plot (default is all cells)
 # @param pt.size Adjust point size for plotting
+# @param col.by ...
 # @param cols.use Vector of colors, each color corresponds to an identity class. By default, ggplot assigns colors.
-# @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param shape.by If NULL, all points are circles (default). You can specify any
 # cell attribute (that can be pulled with FetchData) allowing for both
 # different colors and different shapes on cells.
@@ -792,18 +792,16 @@ SingleExIPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
-# @param legend.title Title for legend
 # @param ... Ignored for now
 #
 #' @importFrom ggplot2 ggplot aes_string labs geom_text
-#' scale_color_brewer scale_color_manual
+#' scale_color_brewer scale_color_manual element_rect
 #
 SingleDimPlot <- function(
   data.plot,
   dims.use,
   col.by = NULL,
   cols.use = NULL,
-  # cells.use = NULL,
   pt.size = 1,
   shape.by = NULL,
   plot.order = NULL,
@@ -813,7 +811,6 @@ SingleDimPlot <- function(
   cols.highlight = 'red',
   sizes.highlight = 1,
   na.value = 'grey50',
-  # legend.title = NULL,
   ...
 ) {
   if (length(x = dims.use) != 2) {
@@ -827,12 +824,6 @@ SingleDimPlot <- function(
   } else if (is.numeric(x = dims.use)) {
     dims.use <- colnames(x = data.plot)[dims.use]
   }
-  # dims.plot <- colnames(x = Embeddings(object = object))[dims.use]
-  # shape.plot <- if (is.null(x = shape.by)) {
-  #   NULL
-  # } else {
-  #   'shape'
-  # }
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
@@ -862,13 +853,6 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data.plot)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
-  # p <- ggplot(
-  #   data = object,
-  #   colors = col.by,
-  #   rows.use = cells.use,
-  #   pt.shape = shape.by,
-  #   ...
-  # ) +
   p <- ggplot(data = data.plot) +
     geom_point(
       mapping = aes_string(
@@ -878,7 +862,7 @@ SingleDimPlot <- function(
         shape = shape.by
       ),
       size = pt.size
-    ) + labs(legend = col.by)
+    ) + labs(color = NULL)
   if (do.label && !is.null(x = col.by)) {
     labels <- MakeLabels(data.plot = p$data[, c(dims.use, col.by)])
     p <- p +
@@ -909,6 +893,7 @@ SingleDimPlot <- function(
     }
     p <- p + cols.use
   }
+  p <- p + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
   return(p)
 }
 
@@ -925,7 +910,7 @@ SingleDimPlot <- function(
 #' @importFrom stats cor
 #' @importFrom MASS kde2d
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
-#' scale_color_manual geom_tile guides
+#' scale_color_manual geom_tile guides element_rect
 #'
 SingleCorPlot <- function(
   data.plot,
@@ -971,6 +956,7 @@ SingleCorPlot <- function(
     }
     p <- p + cols.scale
   }
+  p <- p + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
   return(p)
 }
 
@@ -1091,12 +1077,13 @@ SingleRasterMap <- function(
   if (length(x = limits) != 2 && !is.numeric(x = limits)) {
     stop("limits' must be a two-length numeric vector")
   }
-  plot <- ggplot(data = data.plot) +
+  p <- ggplot(data = data.plot) +
     geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors) +
-    labs(x = NULL, y = NULL, fill = NULL)
-  return(plot)
+    labs(x = NULL, y = NULL, fill = NULL) +
+    WhiteBackground()
+  return(p)
 }
 
 SingleHeatmap3 <- function(

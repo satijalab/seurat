@@ -10,6 +10,7 @@
 \alias{BarePlot}
 \alias{RotatedAxis}
 \alias{BoldTitle}
+\alias{WhiteBackground}
 \title{Seurat Themes}
 \usage{
 SeuratTheme()
@@ -29,6 +30,8 @@ BarePlot()
 RotatedAxis(...)
 
 BoldTitle(...)
+
+WhiteBackground(...)
 }
 \arguments{
 \item{...}{Extra parameters to be passed to \code{theme}}
