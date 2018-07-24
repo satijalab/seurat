@@ -62,6 +62,7 @@ globalVariables(
 AlignSubspace <- function(
   object,
   reduction.type = "cca",
+  group.by = "group",
   grouping.var,
   dims.align,
   num.possible.genes = 2000,
@@ -75,6 +76,18 @@ AlignSubspace <- function(
                           calculation = paste0("AlignSubspace.", reduction.type),
                           ... = parameters.to.store)
   ident.orig <- object@ident
+  if(missing(grouping.var)) grouping.var <- NULL
+  if(is.null(group.by)){
+    if(is.null(grouping.var)){
+      group.by <- "group"
+      warning(paste("group.by must be specified as a column of", deparse(substitute(object@meta.data)), "
+                    please select a column from:
+                    ", paste(colnames(object@meta.data), collapse = " ")))
+    } else {
+      group.by <- grouping.var
+      .Deprecated("group.by", old = "grouping.var")
+    }
+  }
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
   num.groups <- length(levels.split)
