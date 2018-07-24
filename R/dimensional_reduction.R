@@ -496,6 +496,7 @@ ProjectPCA <- function(
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
 #' @param group.by Factor to group by (column vector stored in object@@meta.data), Defaults to "group".
+#' @param add.cell.id1,add.cell.id2 arguments to pass to MergeSeurat (if group.by not given)
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
 #' two objects are given, the default is the union of both variable gene sets
@@ -531,6 +532,8 @@ RunCCA <- function(
   group1,
   group2,
   group.by = "group",
+  add.cell.id1,
+  add.cell.id2,
   num.cc = 20,
   genes.use,
   scale.data = TRUE,

@@ -24,7 +24,8 @@ globalVariables(
 #'
 #' @param object Seurat object
 #' @param reduction.type Reduction to align scores for. Default is "cca".
-#' @param grouping.var Name of the grouping variable for which to align the scores
+#' @param group.by Name of the grouping variable for which to align the scores (column vector stored in object@@meta.data), Defaults to "group".
+#' @param grouping.var Name of the grouping variable for which to align the scores (Deprecated: please use group.by)
 #' @param dims.align Dims to align, default is all
 #' @param num.possible.genes Number of possible genes to search when choosing
 #' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime

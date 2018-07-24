@@ -13,7 +13,9 @@ AlignSubspace(object, reduction.type = "cca", group.by = "group",
 
 \item{reduction.type}{Reduction to align scores for. Default is "cca".}
 
-\item{grouping.var}{Name of the grouping variable for which to align the scores}
+\item{group.by}{Name of the grouping variable for which to align the scores (column vector stored in object@meta.data), Defaults to "group".}
+
+\item{grouping.var}{Name of the grouping variable for which to align the scores (Deprecated: please use group.by)}
 
 \item{dims.align}{Dims to align, default is all}
 

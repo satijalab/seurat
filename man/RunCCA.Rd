@@ -4,8 +4,9 @@
 \alias{RunCCA}
 \title{Perform Canonical Correlation Analysis}
 \usage{
-RunCCA(object, object2, group1, group2, group.by = "group", num.cc = 20,
-  genes.use, scale.data = TRUE, rescale.groups = FALSE, ...)
+RunCCA(object, object2, group1, group2, group.by = "group", add.cell.id1,
+  add.cell.id2, num.cc = 20, genes.use, scale.data = TRUE,
+  rescale.groups = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object (after running FilterCells, NormalizeData)}
@@ -18,6 +19,8 @@ considered as group1 and object2 as group2.}
 \item{group2}{Second set of cells (or IDs) for CCA}
 
 \item{group.by}{Factor to group by (column vector stored in object@meta.data), Defaults to "group".}
+
+\item{add.cell.id1, add.cell.id2}{arguments to pass to MergeSeurat (if group.by not given)}
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
