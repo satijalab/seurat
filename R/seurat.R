@@ -324,7 +324,13 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells.use, drop = FALSE])))
   )
-  data.fetched <- as.data.frame(x = data.fetched, row.names = cells.use)
+  vars.fetched <- names(x = data.fetched)
+  data.fetched <- as.data.frame(
+    x = data.fetched,
+    row.names = cells.use,
+    stringsAsFactors = FALSE
+  )
+  colnames(x = data.fetched) <- vars.fetched
   return(data.fetched)
 }
 
