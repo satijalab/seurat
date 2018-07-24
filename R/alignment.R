@@ -88,11 +88,19 @@ AlignSubspace <- function(
   if(missing(grouping.var)) grouping.var <- NULL
   if(is.null(group.by)){
     if(is.null(grouping.var)){
-      group.by <- "group"
-      warning(paste("group.by must be specified as a column of", 
-                    deparse(substitute(object@meta.data)), 
-                    "\n please select a column from:\n", 
-                    paste(colnames(object@meta.data), collapse = " ")))
+      if("group" %in% colnames(object@meta.data)){
+        group.by <- "group"
+        warning(paste("group.by must be specified as a column of", 
+                      deparse(substitute(object@meta.data)), 
+                      "\n please select a column from:\n", 
+                      paste(colnames(object@meta.data), collapse = " "),
+                      "\n trying group.by as \"group\""))
+      } else {
+        stop(paste("group.by must be specified as a column of", 
+                   deparse(substitute(object@meta.data)), 
+                   "\n please select a column from:\n", 
+                   paste(colnames(object@meta.data), collapse = " ")))
+      }
     } else {
       group.by <- grouping.var
       .Deprecated("group.by", old = "grouping.var")

@@ -530,7 +530,7 @@ RunCCA <- function(
   object2,
   group1,
   group2,
-  group.by,
+  group.by = "group",
   num.cc = 20,
   genes.use,
   scale.data = TRUE,
