@@ -5,7 +5,7 @@
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
 RunMultiCCA(object.list, genes.use, add.cell.ids = NULL, niter = 25,
-  num.ccs = 1, standardize = TRUE, ...)
+  num.ccs = 1, standardize = TRUE)
 }
 \arguments{
 \item{object.list}{List of Seurat objects}

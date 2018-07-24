@@ -823,8 +823,7 @@ RunMultiCCA <- function(
   add.cell.ids = NULL,
   niter = 25,
   num.ccs = 1,
-  standardize = TRUE,
-  ...
+  standardize = TRUE
 ) {
   set.seed(42)
   if(length(object.list) < 3){
