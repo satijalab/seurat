@@ -175,7 +175,7 @@ UpdateAssay <- function(old.assay, assay.use){
     Class = 'Assay',
     raw.data = as(old.assay@raw.data, 'dgCMatrix')[, cells.use],
     data = as(old.assay@data, 'dgCMatrix'),
-    scale.data = old.assay@scale.data,
+    scale.data = old.assay@scale.data %||% matrix(),
     meta.features = data.frame(),
     var.features = old.assay@var.genes,
     cluster.tree = old.assay@cluster.tree,

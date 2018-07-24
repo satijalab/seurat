@@ -337,7 +337,9 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
     table = vars.fetched
     # table = colnames(x = data.fetched)
   ))
-  data.fetched <- data.fetched[, data.order]
+  if (length(x = data.order) > 1) {
+    data.fetched <- data.fetched[, data.order]
+  }
   colnames(x = data.fetched) <- na.omit(object = vars.fetch[data.order])
   return(data.fetched)
 }
