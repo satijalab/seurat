@@ -76,18 +76,29 @@ AlignSubspace <- function(
                           calculation = paste0("AlignSubspace.", reduction.type),
                           ... = parameters.to.store)
   ident.orig <- object@ident
+  if(.hasSlot(object, "meta.data")){
+    if(is.data.frame(object@meta.data) || is.matrix(object@meta.data)){
+    } else {
+      object@meta.data <- as.data.frame(object@meta.data)
+      warning(paste(deparse(substitute(object@meta.data)), "is not a data.frame"))
+    }
+  } else {
+    stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData, RunCCA, or RunMultiCCA"))
+  }
   if(missing(grouping.var)) grouping.var <- NULL
   if(is.null(group.by)){
     if(is.null(grouping.var)){
       group.by <- "group"
-      warning(paste("group.by must be specified as a column of", deparse(substitute(object@meta.data)), "
-                    please select a column from:
-                    ", paste(colnames(object@meta.data), collapse = " ")))
+      warning(paste("group.by must be specified as a column of", 
+                    deparse(substitute(object@meta.data)), 
+                    "\n please select a column from:\n", 
+                    paste(colnames(object@meta.data), collapse = " ")))
     } else {
       group.by <- grouping.var
       .Deprecated("group.by", old = "grouping.var")
     }
   }
+    
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
   num.groups <- length(levels.split)
