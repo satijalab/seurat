@@ -160,7 +160,8 @@ DimHeatmap <- function(
   data.all <- FetchData(
     object = object,
     vars.fetch = features.keyed,
-    cells.use = unique(x = unlist(x = cells.use))
+    cells.use = unique(x = unlist(x = cells.use)),
+    slot = slot.use
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
