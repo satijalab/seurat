@@ -4,16 +4,18 @@
 \alias{AlignSubspace}
 \title{Align subspaces using dynamic time warping (DTW)}
 \usage{
-AlignSubspace(object, reduction.type = "cca", grouping.var, dims.align,
-  num.possible.genes = 2000, num.genes = 30, show.plots = FALSE,
-  verbose = TRUE, ...)
+AlignSubspace(object, reduction.type = "cca", group.by = "group",
+  grouping.var, dims.align, num.possible.genes = 2000, num.genes = 30,
+  show.plots = FALSE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{reduction.type}{Reduction to align scores for. Default is "cca".}
 
-\item{grouping.var}{Name of the grouping variable for which to align the scores}
+\item{group.by}{Name of the grouping variable for which to align the scores (column vector stored in object@meta.data), Defaults to "group".}
+
+\item{grouping.var}{Name of the grouping variable for which to align the scores (Deprecated: please use group.by)}
 
 \item{dims.align}{Dims to align, default is all}
 

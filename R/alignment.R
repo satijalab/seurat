@@ -24,7 +24,8 @@ globalVariables(
 #'
 #' @param object Seurat object
 #' @param reduction.type Reduction to align scores for. Default is "cca".
-#' @param grouping.var Name of the grouping variable for which to align the scores
+#' @param group.by Name of the grouping variable for which to align the scores (column vector stored in object@@meta.data), Defaults to "group".
+#' @param grouping.var Name of the grouping variable for which to align the scores (Deprecated: please use group.by)
 #' @param dims.align Dims to align, default is all
 #' @param num.possible.genes Number of possible genes to search when choosing
 #' genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
@@ -62,6 +63,7 @@ globalVariables(
 AlignSubspace <- function(
   object,
   reduction.type = "cca",
+  group.by = "group",
   grouping.var,
   dims.align,
   num.possible.genes = 2000,
@@ -75,6 +77,37 @@ AlignSubspace <- function(
                           calculation = paste0("AlignSubspace.", reduction.type),
                           ... = parameters.to.store)
   ident.orig <- object@ident
+  if(.hasSlot(object, "meta.data")){
+    if(is.data.frame(object@meta.data) || is.matrix(object@meta.data)){
+    } else {
+      object@meta.data <- as.data.frame(object@meta.data)
+      warning(paste(deparse(substitute(object@meta.data)), "is not a data.frame"))
+    }
+  } else {
+    stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData, RunCCA, or RunMultiCCA"))
+  }
+  if(missing(grouping.var)) grouping.var <- NULL
+  if(is.null(group.by)){
+    if(is.null(grouping.var)){
+      if("group" %in% colnames(object@meta.data)){
+        group.by <- "group"
+        warning(paste("group.by must be specified as a column of", 
+                      deparse(substitute(object@meta.data)), 
+                      "\n please select a column from:\n", 
+                      paste(colnames(object@meta.data), collapse = " "),
+                      "\n trying group.by as \"group\""))
+      } else {
+        stop(paste("group.by must be specified as a column of", 
+                   deparse(substitute(object@meta.data)), 
+                   "\n please select a column from:\n", 
+                   paste(colnames(object@meta.data), collapse = " ")))
+      }
+    } else {
+      group.by <- grouping.var
+      .Deprecated("group.by", old = "grouping.var")
+    }
+  }
+    
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
   num.groups <- length(levels.split)

@@ -490,17 +490,18 @@ ProjectPCA <- function(
 #' For details about stored CCA calculation parameters, see
 #' \code{PrintCCAParams}.
 #'
-#' @param object Seurat object
+#' @param object Seurat object (after running FilterCells, NormalizeData)
 #' @param object2 Optional second object. If object2 is passed, object1 will be
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
-#' @param group.by Factor to group by (column vector stored in object@@meta.data)
+#' @param group.by Factor to group by (column vector stored in object@@meta.data), Defaults to "group".
+#' @param add.cell.id1,add.cell.id2 arguments to pass to MergeSeurat (if group.by not given)
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
 #' two objects are given, the default is the union of both variable gene sets
 #' that are also present in both objects.
-#' @param scale.data Use the scaled data from the object
+#' @param scale.data Use the scaled data from the object (requires ScaleData to be run)
 #' @param rescale.groups Rescale each set of cells independently
 #' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
 #' passed, passed onto ScaleData in case with single object and rescale.groups
@@ -530,7 +531,9 @@ RunCCA <- function(
   object2,
   group1,
   group2,
-  group.by,
+  group.by = "group",
+  add.cell.id1,
+  add.cell.id2,
   num.cc = 20,
   genes.use,
   scale.data = TRUE,
@@ -574,9 +577,23 @@ RunCCA <- function(
     if (missing(x = group2)) {
       stop("group2 not set")
     }
-    if (! missing(x = group.by)) {
-      if (! group.by %in% colnames(x = object@meta.data)) {
-        stop("invalid group.by parameter")
+    if (! missing(x = add.cell.id1) || ! missing(x = add.cell.id2)) {
+      print("passing cell ids to MergeSeurat")
+    } else{
+      print("performing grouping by metadata")
+      if (! missing(x = group.by)) {
+        if(.hasSlot(object, "meta.data")){
+          if(is.data.frame(object@meta.data) || is.matrix(object@meta.data)){
+          } else {
+            object@meta.data <- as.data.frame(object@meta.data)
+            warning(paste(deparse(substitute(object@meta.data)), "is not a data.frame"))
+          }
+        } else {
+          stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData or specify group1 and group2"))
+        }
+        if (! group.by %in% colnames(x = object@meta.data)) {
+          stop("invalid group.by parameter")
+        }
       }
     }
     if (missing(x = genes.use)) {
@@ -614,6 +631,15 @@ RunCCA <- function(
         )
         data.use2 <- data.use2@scale.data
       } else {
+        if(.hasSlot(object, "scale.data")){
+          if(is.data.frame(object@scale.data) || is.matrix(object@scale.data)){
+          } else {
+            object@scale.data <- as.data.frame(object@scale.data)
+            warning(paste(deparse(substitute(object@scale.data)), "is not a data.frame"))
+          }
+        } else {
+          stop(paste("scaled data", deparse(substitute(object@scale.data)), "was not found \n Please run ScaleData or use the raw data: \n set scale.data = FALSE"))
+        }
         data.use1 <- object@scale.data[genes.use, cells.1]
         data.use2 <- object@scale.data[genes.use, cells.2]
       }
