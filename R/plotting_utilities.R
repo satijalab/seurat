@@ -144,9 +144,9 @@ HoverLocator <- function(
 #' @return A color palette for plotting
 #'
 #' @importFrom grDevices col2rgb rgb
-#'
 #' @export
 #'
+#' @rdname CustomPalette
 #' @examples
 #' myPalette <- CustomPalette()
 #' myPalette
@@ -182,44 +182,49 @@ CustomPalette <- function(
   return(rgb(red = r, green = g, blue = b))
 }
 
-#' A black and white color palette
-#'
-#' @param ... Extra parameters to CustomPalette
-#'
-#' @return A color palette
-#'
-#' @seealso \code{CustomPalette}
+#' @inheritParams CustomPalette
 #'
 #' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlackAndWhite
 #'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' plot(df, col = BlackAndWhite())
 #'
-BlackAndWhite <- function(...) {
-  return(CustomPalette(low = "white", high="black", ...))
+BlackAndWhite <- function(mid = NULL, k = 50) {
+  return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
 }
 
-#' A purple and yellow color palette
-#'
-#' @param ... Extra parameters to CustomPalette
-#'
-#' @return A color palette
-#'
-#' @seealso \code{CustomPalette}
+#' @inheritParams CustomPalette
 #'
 #' @export
 #'
+#' @rdname CustomPalette
+#' @aliases PurpleAndYellow
+#'
 #' @examples
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' plot(df, col = BlackAndWhite())
+#' plot(df, col = PurpleAndYellow())
 #'
-PurpleAndYellow <- function(...) {
-  return(CustomPalette(low = "magenta", high = "yellow", mid = "black", ...))
+PurpleAndYellow <- function(k = 50) {
+  return(CustomPalette(low = "magenta", high = "yellow", mid = "black", k = k))
 }
 
-BlueAndRed <- function(...) {
-  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", ...))
+#' @inheritParams CustomPalette
+#'
+#' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlueAndRed
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlueAndRed())
+#'
+BlueAndRed <- function(k = 50) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
 }
 
 # NEED TO TREAT PNG PACKAGE PROPERLY

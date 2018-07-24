@@ -2,9 +2,18 @@
 % Please edit documentation in R/plotting_utilities.R
 \name{CustomPalette}
 \alias{CustomPalette}
+\alias{BlackAndWhite}
+\alias{PurpleAndYellow}
+\alias{BlueAndRed}
 \title{Create a custom color palette}
 \usage{
 CustomPalette(low = "white", high = "red", mid = NULL, k = 50)
+
+BlackAndWhite(mid = NULL, k = 50)
+
+PurpleAndYellow(k = 50)
+
+BlueAndRed(k = 50)
 }
 \arguments{
 \item{low}{low color}
@@ -24,5 +33,14 @@ Creates a custom color palette based on low, middle, and high color values
 \examples{
 myPalette <- CustomPalette()
 myPalette
+
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+plot(df, col = BlackAndWhite())
+
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+plot(df, col = PurpleAndYellow())
+
+df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+plot(df, col = BlueAndRed())
 
 }

@@ -247,7 +247,7 @@ BoldTitle <- function(...) {
 WhiteBackground <- function(...) {
   white.rect = element_rect(fill = 'white')
   white.theme <- theme(
-    # Make the plot and panel backgrounds white
+    # Make the plot, panel, and legend key backgrounds white
     plot.background = white.rect,
     panel.background = white.rect,
     legend.key = white.rect,
