@@ -311,9 +311,11 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
           data.vars
         }
       )
+      data.return <- as.list(x = as.data.frame(x = data.return))
       return(data.return)
     }
   )
+  data.fetched <- unlist(x = data.fetched, recursive = FALSE)
   meta.vars <- vars.fetch[vars.fetch %in% colnames(x = object[])]
   data.fetched <- c(data.fetched, object[meta.vars][cells.use, , drop = FALSE])
   default.vars <- vars.fetch[vars.fetch %in% rownames(x = object)]
@@ -324,6 +326,7 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells.use, drop = FALSE])))
   )
+  vars.fetched <- names(x = data.fetched)
   data.fetched <- as.data.frame(
     x = data.fetched,
     row.names = cells.use,
@@ -331,9 +334,11 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
   )
   data.order <- na.omit(object = pmatch(
     x = vars.fetch,
-    table = colnames(x = data.fetched)
+    table = vars.fetched
+    # table = colnames(x = data.fetched)
   ))
   data.fetched <- data.fetched[, data.order]
+  colnames(x = data.fetched) <- na.omit(object = vars.fetch[data.order])
   return(data.fetched)
 }
 
