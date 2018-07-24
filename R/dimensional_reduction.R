@@ -586,7 +586,7 @@ RunCCA <- function(
             warning(paste(deparse(substitute(object@meta.data)), "is not a data.frame"))
           }
         } else {
-          stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData, RunCCA, or RunMultiCCA"))
+          stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData or specify group1 and group2"))
         }
         if (! group.by %in% colnames(x = object@meta.data)) {
           stop("invalid group.by parameter")
@@ -628,6 +628,15 @@ RunCCA <- function(
         )
         data.use2 <- data.use2@scale.data
       } else {
+        if(.hasSlot(object, "scale.data")){
+          if(is.data.frame(object@scale.data) || is.matrix(object@scale.data)){
+          } else {
+            object@scale.data <- as.data.frame(object@scale.data)
+            warning(paste(deparse(substitute(object@scale.data)), "is not a data.frame"))
+          }
+        } else {
+          stop(paste("scaled data", deparse(substitute(object@scale.data)), "was not found \n Please run ScaleData or use the raw data: \n set scale.data = FALSE"))
+        }
         data.use1 <- object@scale.data[genes.use, cells.1]
         data.use2 <- object@scale.data[genes.use, cells.2]
       }
