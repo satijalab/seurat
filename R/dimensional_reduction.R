@@ -495,7 +495,7 @@ ProjectPCA <- function(
 #' considered as group1 and object2 as group2.
 #' @param group1 First set of cells (or IDs) for CCA
 #' @param group2 Second set of cells (or IDs) for CCA
-#' @param group.by Factor to group by (column vector stored in object@@meta.data)
+#' @param group.by Factor to group by (column vector stored in object@@meta.data), Defaults to "group".
 #' @param num.cc Number of canonical vectors to calculate
 #' @param genes.use Set of genes to use in CCA. Default is object@@var.genes. If
 #' two objects are given, the default is the union of both variable gene sets
@@ -575,6 +575,15 @@ RunCCA <- function(
       stop("group2 not set")
     }
     if (! missing(x = group.by)) {
+      if(.hasSlot(object, "meta.data")){
+        if(is.data.frame(object@meta.data) || is.matrix(object@meta.data)){
+        } else {
+          object@meta.data <- as.data.frame(object@meta.data)
+          warning(paste(deparse(substitute(object@meta.data)), "is not a data.frame"))
+        }
+      } else {
+        stop(paste("metadata", deparse(substitute(object@meta.data)), "was not found \n Please run AddMetaData, RunCCA, or RunMultiCCA"))
+      }
       if (! group.by %in% colnames(x = object@meta.data)) {
         stop("invalid group.by parameter")
       }
