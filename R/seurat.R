@@ -324,13 +324,16 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells.use, drop = FALSE])))
   )
-  vars.fetched <- names(x = data.fetched)
   data.fetched <- as.data.frame(
     x = data.fetched,
     row.names = cells.use,
     stringsAsFactors = FALSE
   )
-  colnames(x = data.fetched) <- vars.fetched
+  data.order <- na.omit(object = pmatch(
+    x = vars.fetch,
+    table = colnames(x = data.fetched)
+  ))
+  data.fetched <- data.fetched[, data.order]
   return(data.fetched)
 }
 
