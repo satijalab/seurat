@@ -168,15 +168,18 @@ Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale = true, bool center
  Note: Doesn't handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
-Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress = true){
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress = true){
   Progress p(mat.cols(), display_progress);
-  Eigen::MatrixXd std_mat(mat.rows(), mat.cols());
+  NumericMatrix std_mat(mat.rows(), mat.cols());
   for(int i=0; i < mat.cols(); ++i){
     p.increment();
     Eigen::ArrayXd r = mat.col(i).array();
     double colMean = r.mean();
     double colSdev = sqrt((r - colMean).square().sum() / (mat.rows() - 1));
-    std_mat.col(i) = (r - colMean) / colSdev;
+    NumericMatrix::Column new_col = std_mat(_, i);
+    for(int j=0; j < new_col.size(); j++) {
+      new_col[j] = (r[j] - colMean) / colSdev;
+    }
   }
   return std_mat;
 }

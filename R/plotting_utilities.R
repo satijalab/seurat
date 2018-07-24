@@ -311,8 +311,8 @@ BlueAndRed <- function(...) {
 #' }
 AugmentPlot <- function(plot1, imgFile) {
   range.values <- c(
-    ggplot_build(plot = plot1)$layout$panel_ranges[[1]]$x.range,
-    ggplot_build(plot = plot1)$layout$panel_ranges[[1]]$y.range
+    ggplot_build(plot = plot1)$layout$panel_params[[1]]$x.range,
+    ggplot_build(plot = plot1)$layout$panel_params[[1]]$y.range
   )
   img <- readPNG(source = imgFile)
   p1mod <- plot1 + annotation_raster(

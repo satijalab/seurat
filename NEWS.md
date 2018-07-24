@@ -2,6 +2,16 @@
 All notable changes to Seurat will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 
+## [2.3.4] - 2018-07-13
+### Added
+- GetIdent function added to pull identity info
+
+### Changed
+- DiffusionMap dependency replaced with destiny to avoid archival
+- Java dependency removed and functionality rewritten in Rcpp 
+- Speed and efficiency improvements for Rcpp code
+- More robust duplicate handling in CellCycleScoring
+
 ## [2.3.3] - 2018-07-02
 ### Added
 - New HTOHeatmap function
@@ -12,7 +22,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 - Replaced FNN with RANN
 - Removed unused compiler flags
 - Moved several lightly-used packages from 'imports' to 'suggests'
-
 
 ## [2.3.2] - 2018-06-11
 ### Added

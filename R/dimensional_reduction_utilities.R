@@ -271,9 +271,11 @@ SetDimReduction <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' pbmc_small <- RunDiffusion(pbmc_small, genes.use = pbmc_small@var.genes)
 #' head(DMEmbed(object = pbmc_small))
+#' }
 #'
 DMEmbed <- function(
   object,

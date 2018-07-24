@@ -156,6 +156,7 @@ CreateSeuratObject <- function(
 #' files provided by 10X. A vector or named vector can be given in order to load
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
+#' @param gene.column Specify which column of genes.tsv to use for gene names; default is 2
 #'
 #' @return Returns a sparse matrix with rows and columns labeled
 #'
@@ -171,7 +172,8 @@ CreateSeuratObject <- function(
 #' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
 #' }
 #'
-Read10X <- function(data.dir = NULL){
+Read10X <- function(data.dir = NULL,
+                    gene.column = 2){
   full.data <- list()
   for (i in seq_along(data.dir)) {
     run <- data.dir[i]
@@ -212,7 +214,7 @@ Read10X <- function(data.dir = NULL){
         x = sapply(
           X = gene.names,
           FUN = ExtractField,
-          field = 2,
+          field = gene.column,
           delim = "\\t"
         )
       )

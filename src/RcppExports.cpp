@@ -90,12 +90,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // Standardize
-Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress);
+NumericMatrix Standardize(Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 RcppExport SEXP _Seurat_Standardize(SEXP matSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type mat(matSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(Standardize(mat, display_progress));
     return rcpp_result_gen;
@@ -177,6 +177,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// RunModularityClusteringCpp
+IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
+RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type SNN(SNNSEXP);
+    Rcpp::traits::input_parameter< int >::type modularityFunction(modularityFunctionSEXP);
+    Rcpp::traits::input_parameter< double >::type resolution(resolutionSEXP);
+    Rcpp::traits::input_parameter< int >::type algorithm(algorithmSEXP);
+    Rcpp::traits::input_parameter< int >::type nRandomStarts(nRandomStartsSEXP);
+    Rcpp::traits::input_parameter< int >::type nIterations(nIterationsSEXP);
+    Rcpp::traits::input_parameter< int >::type randomSeed(randomSeedSEXP);
+    Rcpp::traits::input_parameter< bool >::type printOutput(printOutputSEXP);
+    Rcpp::traits::input_parameter< std::string >::type edgefilename(edgefilenameSEXP);
+    rcpp_result_gen = Rcpp::wrap(RunModularityClusteringCpp(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename));
+    return rcpp_result_gen;
+END_RCPP
+}
 // ComputeSNN
 Eigen::SparseMatrix<double> ComputeSNN(Eigen::MatrixXd nn_ranked, double prune);
 RcppExport SEXP _Seurat_ComputeSNN(SEXP nn_rankedSEXP, SEXP pruneSEXP) {
@@ -230,6 +249,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
+    {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},

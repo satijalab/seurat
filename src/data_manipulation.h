@@ -30,7 +30,7 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, 
                                    double scale_max, bool display_progress);
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
 Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
-Eigen::MatrixXd Standardize(Eigen::MatrixXd mat, bool display_progress);
+NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
 Eigen::VectorXd FastExpMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
