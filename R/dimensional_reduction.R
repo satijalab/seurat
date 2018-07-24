@@ -694,17 +694,22 @@ RunCCA.default <- function(
   object2,
   standardize = TRUE,
   num.cc = 20,
-  verbose = TRUE
+  verbose = FALSE,
+  use.cpp=TRUE
 ) {
   set.seed(seed = 42)
   cells1 <- colnames(object1)
   cells2 <- colnames(object2)
   if (standardize) {
-    object1 <- Standardize(mat = object1, display_progress = verbose)
-    object2 <- Standardize(mat = object2, display_progress = verbose)
+    object1 <- Standardize(mat = object1, display_progress = FALSE)
+    object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
-  #mat3 <- FastMatMult(m1 = t(x = mat1), m2 = mat2)
-  mat3 <- crossprod(x = object1, y = object2)
+  if (use.cpp == TRUE) {
+    mat3 <- FastMatMult(m1 = t(x = object1), m2 = object2)
+  }
+  else {
+    mat3 <- crossprod(x = object1, y = object2)
+  }
   cca.svd <- irlba(A = mat3, nv = num.cc)
   cca.data <- rbind(cca.svd$u, cca.svd$v)
   colnames(x = cca.data) <- paste0("CC", 1:num.cc)
@@ -725,6 +730,7 @@ RunCCA.default <- function(
 #' the variable features sets present in both objects.
 #' @param renormlize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
+#' @param rescale Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.
 #' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
 #' scale every gene in the dataset which may impose a high memory cost.
 #' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
@@ -741,11 +747,13 @@ RunCCA.Seurat <- function(
   assay.use2 = NULL,
   num.cc = 20,
   features.use = NULL,
-  renormalize = TRUE,
+  renormalize = FALSE,
+  rescale = FALSE,
   compute.gene.loadings = TRUE,
   add.cell.id1 = NULL,
   add.cell.id2 = NULL,
   verbose = TRUE,
+  use.cpp = TRUE,
   ...
 ) {
   assay.use1 <- assay.use1 %||% DefaultAssay(object = object1)
@@ -772,18 +780,29 @@ RunCCA.Seurat <- function(
   features.use <- CheckFeatures(data.use = data.use1, features.use = features.use, object.name = "object1")
   features.use <- CheckFeatures(data.use = data.use2, features.use = features.use, object.name = "object2")
 
+
   if (length(x = features.use) < 50) {
     warning("Fewer than 50 features used as input for CCA.")
   }
   if (verbose) {
     message("Running CCA")
   }
+  data1 <- data.use1[features.use,]
+  data2 <- data.use2[features.use,]
+  if (rescale) {
+    if (verbose) message("Rescaling groups")
+    data1 <- FastRowScale(data1)
+    dimnames(data1) <- list(features.use, colnames(x = object1))
+    data2 <- FastRowScale(data2)
+    dimnames(data2) <- list(features.use, colnames(x = object2))
+  }
   cca.results <- RunCCA(
-    object1 = data.use1[features.use, ],
-    object2 = data.use2[features.use, ],
+    object1 = data1,
+    object2 = data2,
     standardize = TRUE,
     num.cc = num.cc,
-    verbose = verbose
+    verbose = verbose,
+    use.cpp = use.cpp
   )
   if (verbose) {
    message("Merging objects")
@@ -791,14 +810,17 @@ RunCCA.Seurat <- function(
   combined.object <- merge(
     x = object1,
     y = object2,
+    merge.data = TRUE,
     ...
   )
+
   combined.object[['cca']] <- MakeDimReducObject(
     cell.embeddings = cca.results$ccv,
     assay.used = assay.use1,
     key = "CC"
   )
-
+  combined.scale <- cbind(data1,data2)
+  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, assay.use = assay.use1,slot = "scale.data")
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
@@ -806,14 +828,13 @@ RunCCA.Seurat <- function(
       normalization.method = object1[[paste0("NormalizeData.", assay.use1)]]$normalization.method,
       scale.factor = object1[[paste0("NormalizeData.", assay.use1)]]$scale.factor
     )
-    if (compute.gene.loadings) {
-      combined.object <- ScaleData(object = combined.object, ...)
-      combined.object <- ProjectDim(
-        object = combined.object,
-        reduction.use = "cca",
-        verbose = FALSE,
-        overwrite = TRUE)
-    }
+  }
+  if (compute.gene.loadings) {
+    combined.object <- ProjectDim(
+      object = combined.object,
+      reduction.use = "cca",
+      verbose = FALSE,
+      overwrite = TRUE)
   }
   return(combined.object)
 }

@@ -170,9 +170,10 @@ UpdateDimReduction <- function(old.dr, assay.use){
 # @param assay.name Name to store for assay in new object
 #
 UpdateAssay <- function(old.assay, assay.use){
+  cells.use <- colnames(old.assay@data)
   new.assay <- new(
     Class = 'Assay',
-    raw.data = as(old.assay@raw.data, 'dgCMatrix'),
+    raw.data = as(old.assay@raw.data, 'dgCMatrix')[, cells.use],
     data = as(old.assay@data, 'dgCMatrix'),
     scale.data = old.assay@scale.data,
     meta.features = data.frame(),
