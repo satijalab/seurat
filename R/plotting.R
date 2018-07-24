@@ -7,15 +7,14 @@
 #' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
-#' @param group.by Name of variable to group cells by
+# @param group.by Name of variable to group cells by
 #' @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay.use Assay to pull from
 #' @param check.plot Check that plotting will finish in a reasonable amount of time
-#' @param ... Extra parameters passed to superheat
+#' @param ... Ignored for now
 #'
 #' @return Invisbly returns the final grob
 #'
-#' @importFrom grid grid.newpage grid.draw
 #' @export
 #'
 #' @seealso \code{\link{superheat::superheat}}
@@ -29,7 +28,7 @@ DoHeatmap <- function(
   features.use = NULL,
   disp.min = -2.5,
   disp.max = 2.5,
-  group.by = "ident",
+  # group.by = "ident",
   slot.use = 'data',
   # group.order = NULL,
   # draw.line = TRUE,
@@ -40,20 +39,32 @@ DoHeatmap <- function(
   assay.use <- assay.use %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay.use
   features.use <- features.use %||% VariableFeatures(object = object)
-  plot.grob <- SingleHeatmap(
-    object = object,
-    cells.use = cells.use,
-    features.use = features.use,
-    group.by = group.by,
-    disp.min = disp.min,
-    disp.max = disp.max,
-    slot.use = slot.use,
-    check.plot = check.plot,
-    ...
+  disp.max <- ifelse(
+    test = slot.use != 'scale.data',
+    yes = max(disp.max, 10),
+    no = disp.max
   )
-  grid.newpage()
-  grid.draw(x = plot.grob)
-  invisible(x = plot.grob)
+  data.plot <- FetchData(
+    object = object,
+    vars.fetch = features.use,
+    cells.use = cells.use,
+    slot = slot.use
+  )
+  return(SingleRasterMap(data.plot = data.plot))
+  # plot.grob <- SingleHeatmap(
+  #   object = object,
+  #   cells.use = cells.use,
+  #   features.use = features.use,
+  #   group.by = group.by,
+  #   disp.min = disp.min,
+  #   disp.max = disp.max,
+  #   slot.use = slot.use,
+  #   check.plot = check.plot,
+  #   ...
+  # )
+  # grid.newpage()
+  # grid.draw(x = plot.grob)
+  # invisible(x = plot.grob)
 }
 
 #' Dimensional reduction heatmap
@@ -66,15 +77,14 @@ DoHeatmap <- function(
 #' @param reduction.use Which dimmensional reduction to use
 #' @param dims.use Dimensions to plot
 #' @param cells.use A list of cells to plot. If numeric, just plots the top cells.
-#' @param num.genes NUmber of genes to plot
+#' @param num.features NUmber of genes to plot
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
-#' @param num.col Number of columns.
+#' @param num.col Number of columns to plot
+#' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
 #'
 #' @return Invisbly returns the final grob
 #'
 #' @importFrom utils menu
-#' @importFrom gridExtra arrangeGrob
-#' @importFrom grid grid.draw grid.newpage
 #' @export
 #'
 #' @seealso \code{\link{superheat::superheat}}
@@ -96,6 +106,7 @@ DimHeatmap <- function(
   do.balanced = FALSE,
   check.plot = TRUE,
   num.col = NULL,
+  combine.plots = TRUE,
   ...
 ) {
   if (is.null(x = num.col)) {
@@ -151,12 +162,14 @@ DimHeatmap <- function(
     vars.fetch = features.keyed,
     cells.use = unique(x = unlist(x = cells.use))
   )
-  if (check.plot && any(c(length(x = features.keyed), length(x = cells.use[[1]])) > 700)) {
-    choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
-    if (choice != 1) {
-      return(invisible(x = NULL))
-    }
-  }
+  data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
+  data.limits <- c(min(data.all), max(data.all))
+  # if (check.plot && any(c(length(x = features.keyed), length(x = cells.use[[1]])) > 700)) {
+  #   choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
+  #   if (choice != 1) {
+  #     return(invisible(x = NULL))
+  #   }
+  # }
   for (i in 1:length(x = dims.use)) {
     dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
     dim.features <- unlist(x = lapply(
@@ -166,9 +179,14 @@ DimHeatmap <- function(
       }
     ))
     data.plot <- data.all[cells.use[[i]], dim.features]
-    plot.list[[i]] <- SingleRasterMap(data.plot = data.plot)
-    # print(dim(data.plot))
-    # print(data.plot[1:10, 1:4])
+    plot.list[[i]] <- SingleRasterMap(data.plot = data.plot, limits = data.limits)
+  }
+  if (combine.plots) {
+    plot.list <- CombinePlots(
+      plot.list = plot.list,
+      nCol = num.col,
+      legend.position = 'right'
+    )
   }
   return(plot.list)
   # for (i in 1:length(x = dims.use)) {

@@ -7,7 +7,8 @@
 DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
   cells.use = NULL, num.features = 30, use.full = FALSE,
   disp.min = -2.5, disp.max = 2.5, slot.use = "scale.data",
-  do.balanced = FALSE, check.plot = TRUE, num.col = NULL, ...)
+  do.balanced = FALSE, check.plot = TRUE, num.col = NULL,
+  combine.plots = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +21,8 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
 
 \item{cells.use}{A list of cells to plot. If numeric, just plots the top cells.}
 
+\item{num.features}{NUmber of genes to plot}
+
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
@@ -30,11 +33,11 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
 
 \item{check.plot}{Check that plotting will finish in a reasonable amount of time}
 
-\item{num.col}{Number of columns.}
+\item{num.col}{Number of columns to plot}
 
-\item{...}{Extra parameters passed to superheat}
+\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
 
-\item{num.genes}{NUmber of genes to plot}
+\item{...}{Ignored for now}
 }
 \value{
 Invisbly returns the final grob

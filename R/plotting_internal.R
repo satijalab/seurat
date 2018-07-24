@@ -1072,8 +1072,13 @@ SingleRasterMap <- function(
   data.plot,
   cell.order = NULL,
   feature.order = NULL,
+  colors = PurpleAndYellow(),
+  disp.min = -2.5,
+  disp.max = 2.5,
+  limits = NULL,
   ...
 ) {
+  data.plot <- MinMax(data = data.plot, min = disp.min, max = disp.max)
   data.plot <- melt(data = t(x = data.plot))
   colnames(x = data.plot) <- c('Feature', 'Cell', 'Expression')
   if (!is.null(x = feature.order)) {
@@ -1082,11 +1087,23 @@ SingleRasterMap <- function(
   if (!is.null(x = cell.order)) {
     levels(x = data.plot$Cell) <- cell.order
   }
+  limits <- limits %||% c(min(data.plot$Expression), max(data.plot$Expression))
+  if (length(x = limits) != 2 && !is.numeric(x = limits)) {
+    stop("limits' must be a two-length numeric vector")
+  }
   plot <- ggplot(data = data.plot) +
     geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+    scale_fill_gradientn(limits = limits, colors = colors) +
     labs(x = NULL, y = NULL, fill = NULL)
   return(plot)
+}
+
+SingleHeatmap3 <- function(
+  data.plot,
+  ...
+) {
+  return(invisible(x = NULL))
 }
 
 #heatmap.2, but does not draw a key.
