@@ -1039,20 +1039,19 @@ SingleHeatmap <- function(
 
 # A single heatmap from ggplot2 using geom_raster
 #
-# @param object Seurat object
-# @param cells.use A vector of cells to plot
-# @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
-# @param group.by Name of variable to group cells by
+# @param data.plot A matrix or data frame with data to plot
+# @param cell.order ...
+# @param feature.order ...
+# @param colors A vector of colors to use
 # @param disp.min Minimum display value (all values below are clipped)
 # @param disp.max Maximum display value (all values above are clipped)
-# @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
-# @param assay.use Assay to pull from
-# @param check.plot Check that plotting will finish in a reasonable amount of time
-# @param ... Extra parameters passed to superheat
+# @param limits A two-length numeric vector with the limits for colors on the plot
+# @param group.by A vector to group cells by, should be one grouping identity per cell
+# @param ... Ignored
 #
 #' @importFrom reshape2 melt
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
-#' scale_fill_gradientn theme element_blank labs
+#' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend
 #
 SingleRasterMap <- function(
   data.plot,
@@ -1062,27 +1061,42 @@ SingleRasterMap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   limits = NULL,
+  group.by = NULL,
   ...
 ) {
   data.plot <- MinMax(data = data.plot, min = disp.min, max = disp.max)
   data.plot <- melt(data = t(x = data.plot))
   colnames(x = data.plot) <- c('Feature', 'Cell', 'Expression')
   if (!is.null(x = feature.order)) {
-    levels(x = data.plot$Feature) <- feature.order
+    data.plot$Feature <- factor(x = data.plot$Feature, levels = unique(x = feature.order))
   }
   if (!is.null(x = cell.order)) {
-    levels(x = data.plot$Cell) <- cell.order
+    data.plot$Cell <- factor(x = data.plot$Cell, levels = unique(x = cell.order))
+  }
+  if (!is.null(x = group.by)) {
+    data.plot$Identity <- unlist(x = lapply(
+      X = group.by,
+      FUN = rep.int,
+      times = length(x = unique(x = data.plot$Feature))
+    ))
   }
   limits <- limits %||% c(min(data.plot$Expression), max(data.plot$Expression))
-  if (length(x = limits) != 2 && !is.numeric(x = limits)) {
+  if (length(x = limits) != 2 || !is.numeric(x = limits)) {
     stop("limits' must be a two-length numeric vector")
   }
   p <- ggplot(data = data.plot) +
     geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors) +
-    labs(x = NULL, y = NULL, fill = NULL) +
+    labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground()
+  if (!is.null(x = group.by)) {
+    p <- p + geom_point(
+      mapping = aes_string(x = 'Cell', y = 'Feature', color = 'Identity'),
+      alpha = 0
+    ) +
+      guides(color = guide_legend(override.aes = list(alpha = 1)))
+  }
   return(p)
 }
 
@@ -1091,30 +1105,33 @@ SingleRasterMap <- function(
 # @param data.plot matrix of data to plot
 # @param cell.order optional vector of cell names to specify order in plot
 # @param plot.title Title for plot
-
+#
 SingleImageMap <- function(
   data.plot,
   cell.order = NULL,
   plot.title = NULL
 ) {
-  if (!is.null(cell.order)) {
+  if (!is.null(x = cell.order)) {
     data.plot <- data.plot[cell.order, ]
   }
-  par(mar=c(1,1,3,3))
+  par(mar = c(1,1,3,3))
   plot.new()
-  image(as.matrix(data.plot), axes = FALSE, add = TRUE, col = PurpleAndYellow())
-  axis(4, at=seq(0, 1, length = ncol(data.plot)),
-       labels = colnames(data.plot), las = 1, tick = FALSE,
-       mgp = c(0, -0.75, 0), cex.axis = 0.75)
-  title(plot.title)
-}
-
-
-SingleHeatmap3 <- function(
-  data.plot,
-  ...
-) {
-  return(invisible(x = NULL))
+  image(
+    x = as.matrix(x = data.plot),
+    axes = FALSE,
+    add = TRUE,
+    col = PurpleAndYellow()
+  )
+  axis(
+    side = 4,
+    at = seq(from = 0, to = 1, length = ncol(x = data.plot)),
+    labels = colnames(x = data.plot),
+    las = 1,
+    tick = FALSE,
+    mgp = c(0, -0.75, 0),
+    cex.axis = 0.75
+  )
+  title(main = plot.title)
 }
 
 #heatmap.2, but does not draw a key.
