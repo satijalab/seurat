@@ -615,7 +615,7 @@ merge.Seurat <- function(
   x = NULL,
   y = NULL,
   add.cell.ids = NULL,
-  merge.data = FALSE,
+  merge.data = TRUE,
   project = "SeuratProject",
   min.cells = 0,
   min.genes = 0,
