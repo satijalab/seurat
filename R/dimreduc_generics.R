@@ -80,6 +80,17 @@ Key <- function(object, ...) {
   UseMethod(generic = 'Key<-', object = object)
 }
 
+#' Get the standard deviations for an object
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @rdname Stdev
+#' @export Stdev
+#'
+Stdev <- function(object, ...) {
+  UseMethod(generic = 'Stdev', object = object)
+}
 
 #' Print the results of a dimensional reduction analysis
 #'
