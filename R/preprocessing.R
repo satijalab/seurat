@@ -1457,12 +1457,18 @@ FilterCells <- function(
   data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
   cells.use <- cells.use %||% colnames(x = object)
   for (i in seq(nrow(data.subsets))) {
-    cells.use <- WhichCells(
-      object = object,
-      cells.use = cells.use,
-      subset.name = data.subsets[i, 1],
-      low.threshold = data.subsets[i, 2],
-      high.threshold = data.subsets[i, 3]
+    cells.use <- tryCatch(
+      expr = WhichCells(
+        object = object,
+        cells.use = cells.use,
+        subset.name = data.subsets[i, 1],
+        low.threshold = data.subsets[i, 2],
+        high.threshold = data.subsets[i, 3]
+      ),
+      error = function(e) {
+        warning(e)
+        cells.use
+      }
     )
   }
   object <- SubsetData(object, cells.use = cells.use)

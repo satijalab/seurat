@@ -338,6 +338,16 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
     )[default.vars, cells.use, drop = FALSE])))
   )
   vars.fetched <- names(x = data.fetched)
+  vars.missing <- setdiff(x = vars.fetch, y = vars.fetched)
+  msg <- paste(
+    'he following variables requested were not found:',
+    paste(vars.missing, collapse = ', ')
+  )
+  if (length(x = vars.missing) == length(x = vars.fetch)) {
+    stop('None of t', msg)
+  } else if (length(x = vars.missing) > 0) {
+    warning('T', msg, immediate. = TRUE)
+  }
   data.fetched <- as.data.frame(
     x = data.fetched,
     row.names = cells.use,
