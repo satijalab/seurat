@@ -31,13 +31,11 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
 
 \item{do.balanced}{Plot an equal number of genes with both + and - scores.}
 
-\item{check.plot}{Check that plotting will finish in a reasonable amount of time}
-
 \item{num.col}{Number of columns to plot}
 
 \item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
 
-\item{plot.method}{Either "quick" for fast exploratory visualization or "gg" for slower 
+\item{plot.method}{Either "quick" for fast exploratory visualization or "gg" for slower
 plotting but returns ggplot objects that can be customized.}
 
 \item{...}{Ignored for now}

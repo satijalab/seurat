@@ -5,8 +5,8 @@
 \title{Feature expression heatmap}
 \usage{
 DoHeatmap(object, cells.use = NULL, features.use = NULL, disp.min = -2.5,
-  disp.max = 2.5, slot.use = "data", assay.use = NULL,
-  check.plot = FALSE, ...)
+  disp.max = 2.5, group.by = "ident", slot.use = "data",
+  group.bar = TRUE, assay.use = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -19,11 +19,13 @@ DoHeatmap(object, cells.use = NULL, features.use = NULL, disp.min = -2.5,
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
+\item{group.by}{Name of variable to group cells by}
+
 \item{slot.use}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
-\item{assay.use}{Assay to pull from}
+\item{group.bar}{Add a color bar showing group status for cells}
 
-\item{check.plot}{Check that plotting will finish in a reasonable amount of time}
+\item{assay.use}{Assay to pull from}
 
 \item{...}{Ignored for now}
 }
@@ -36,7 +38,4 @@ Draws a heatmap of single cell feature expression using superheat
 \examples{
 DoHeatmap(object = pbmc_small)
 
-}
-\seealso{
-\code{\link{superheat::superheat}}
 }

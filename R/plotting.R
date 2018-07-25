@@ -7,17 +7,18 @@
 #' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
-# @param group.by Name of variable to group cells by
+#' @param group.by Name of variable to group cells by
+#' @param group.bar Add a color bar showing group status for cells
 #' @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay.use Assay to pull from
-#' @param check.plot Check that plotting will finish in a reasonable amount of time
+# @param check.plot Check that plotting will finish in a reasonable amount of time
 #' @param ... Ignored for now
 #'
 #' @return Invisbly returns the final grob
 #'
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 annotation_raster coord_cartesian
 #' @export
-#'
-#' @seealso \code{\link{superheat::superheat}}
 #'
 #' @examples
 #' DoHeatmap(object = pbmc_small)
@@ -28,14 +29,16 @@ DoHeatmap <- function(
   features.use = NULL,
   disp.min = -2.5,
   disp.max = 2.5,
-  # group.by = "ident",
+  group.by = "ident",
   slot.use = 'data',
+  group.bar = TRUE,
   # group.order = NULL,
   # draw.line = TRUE,
   assay.use = NULL,
-  check.plot = FALSE,
+  # check.plot = FALSE,
   ...
 ) {
+  cells.use <- cells.use %||% colnames(x = object)
   assay.use <- assay.use %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay.use
   features.use <- features.use %||% VariableFeatures(object = object)
@@ -50,21 +53,35 @@ DoHeatmap <- function(
     cells.use = cells.use,
     slot = slot.use
   )
-  return(SingleRasterMap(data.plot = data.plot))
-  # plot.grob <- SingleHeatmap(
-  #   object = object,
-  #   cells.use = cells.use,
-  #   features.use = features.use,
-  #   group.by = group.by,
-  #   disp.min = disp.min,
-  #   disp.max = disp.max,
-  #   slot.use = slot.use,
-  #   check.plot = check.plot,
-  #   ...
-  # )
-  # grid.newpage()
-  # grid.draw(x = plot.grob)
-  # invisible(x = plot.grob)
+  group.by <- group.by %||% 'ident'
+  group.use <- switch(
+    EXPR = group.by,
+    'ident' = Idents(object = object),
+    object[group.by, drop = TRUE]
+  )
+  group.use <- factor(x = group.use[cells.use])
+  p <- SingleRasterMap(
+    data.plot = data.plot,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    cell.order = names(x = sort(x = group.use)),
+    group.by = group.use
+  )
+  if (group.bar) {
+    cols <- hue_pal()(length(x = levels(x = group.use)))
+    names(x = cols) <- levels(x = group.use)
+    y.pos <- length(x = features.use) + 0.75
+    y.adj <- 0.5
+    p <- p + annotation_raster(
+      raster = t(x = cols[sort(x = group.use)]),
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = y.pos,
+      ymax = y.pos + y.adj
+    ) +
+      coord_cartesian(ylim = c(0, y.pos + y.adj), clip = 'off')
+  }
+  return(p)
 }
 
 #' Dimensional reduction heatmap
@@ -81,7 +98,7 @@ DoHeatmap <- function(
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
 #' @param num.col Number of columns to plot
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
-#' @param plot.method Either "quick" for fast exploratory visualization or "gg" for slower 
+#' @param plot.method Either "quick" for fast exploratory visualization or "gg" for slower
 #' plotting but returns ggplot objects that can be customized.
 #'
 #' @return Invisbly returns the final grob
@@ -212,32 +229,6 @@ DimHeatmap <- function(
     )
   }
   return(plot.list)
-  # for (i in 1:length(x = dims.use)) {
-  #   dim.features <- unname(unlist(rev(features[[i]])))
-  #   dim.features <- unlist(x = lapply(
-  #     X = dim.features,
-  #     FUN = function(feat) {
-  #       return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
-  #     }
-  #   ))
-  #   plot.list[[i]] <- SingleHeatmap(
-  #     object = object,
-  #     cells.use = unname(unlist(cells.use[[i]])),
-  #     features.use = dim.features,
-  #     disp.min = disp.min,
-  #     disp.max = disp.max,
-  #     slot.use = slot.use,
-  #     title = paste0(Key(object = object[[reduction.use]]), dims.use[i]),
-  #     ...
-  #   )
-  # }
-  # plot.grob <- arrangeGrob(
-  #   grobs = plot.list,
-  #   ncol = num.col
-  # )
-  # grid.newpage()
-  # grid.draw(x = plot.grob)
-  # invisible(x = plot.grob)
 }
 
 #' Single cell ridge plot
