@@ -299,7 +299,18 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       key.use <- object.keys[x]
       data.return <- switch(
         EXPR = class(x = object[[x]]),
-        'DimReduc' = object[[x]][[cells.use, vars.use, drop = FALSE]],
+        'DimReduc' = {
+          vars.use <- grep(
+            pattern = paste0('^', key.use, '[[:digit:]]+$'),
+            x = vars.use,
+            value = TRUE
+          )
+          if (length(x = vars.use) > 0) {
+            object[[x]][[cells.use, vars.use, drop = FALSE]]
+          } else {
+            NULL
+          }
+        },
         'Assay' = {
           vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
           data.vars <- t(x = as.matrix(x = GetAssayData(
