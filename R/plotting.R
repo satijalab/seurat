@@ -684,6 +684,7 @@ FeaturePlot <- function(
       nCol <- 4
     }
   }
+  cells.use <- cells.use %||% colnames(object)
   data.features <- FetchData(
     object = object,
     vars.fetch = c(dims.use, features.plot),
@@ -748,7 +749,7 @@ FeaturePlot <- function(
     }
   )
   colnames(x = data.features)[3:ncol(x = data.features)] <- features.plot
-  rownames(x = data.features) <- colnames(x = object)
+  rownames(x = data.features) <- cells.use
   plots <- vector(mode = 'list', length = length(x = features.plot))
   for (feature in features.plot) {
     p <- SingleDimPlot(
