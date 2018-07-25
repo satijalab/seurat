@@ -1092,6 +1092,54 @@ VizDimReduction <- function(
   return(plots)
 }
 
+#' Quickly Pick Relevant Dimensions
+#'
+#' Plots the standard deviations (or approximate singular values if running PCAFast)
+#' of the principle components for easy identification of an elbow in the graph.
+#' This elbow often corresponds well with the significant dims and is much faster to run than
+#' Jackstraw
+#'
+#' @param object Seurat object
+#' @param reduction.use Reduction technique to plot standard deviation for
+#' @param dims.plot Number of dimensions to plot standard deviation for
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_point labs element_line
+#' @export
+#'
+#' @examples
+#' ElbowPlot(object = pbmc_small)
+#'
+ElbowPlot <- function(
+  object,
+  reduction.use = "pca",
+  dims.plot = 20,
+  xlab = "",
+  ylab = "",
+  title = ""
+) {
+  data.use <- Stdev(object = object, reduction.use = reduction.use)
+  if (length(data.use) == 0) {
+    stop(paste("No standard deviation info stored for", reduction.use))
+  }
+  if (dims.plot > length(x = data.use)) {
+    warning("The object only has information for ", length(x = data.use), " reductions")
+    dims.plot <- length(x = data.use)
+  }
+  dims.used <- paste0(
+    Key(object = object[[reduction.use]]),
+    c(1, dims.plot),
+    collapse = ' to '
+  )
+  stdev <- 'Standard Deviation'
+  p <- ggplot(data = data.frame(dims = 1:dims.plot, stdev = data.use[1:dims.plot])) +
+    geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
+    labs(x = dims.used, y = stdev, title = paste(stdev, dims.used, sep = ' of ')) +
+    WhiteBackground(axis.line = element_line(colour = 'black'))
+  return(p)
+}
+
 globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'

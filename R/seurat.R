@@ -1,5 +1,5 @@
 # Methods for Seurat objects
-#' @include objects.R seurat_generics.R assay_generics.R
+#' @include objects.R seurat_generics.R assay_generics.R dimreduc_generics.R
 #' @importFrom methods setMethod
 NULL
 
@@ -379,6 +379,16 @@ HVFInfo.Seurat <- function(object, assay.use = NULL, ...) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   return(HVFInfo(object = assay.data))
+}
+
+#' @param reduction.use Name of reduction to use
+#'
+#' @describeIn Stdev Get the standard deviations of a dimensional reduction from a Seurat object
+#' @export
+#' @method Stdev Seurat
+#'
+Stdev.Seurat <- function(object, reduction.use, ...) {
+  return(Stdev(object = object[[reduction.use]]))
 }
 
 #' @export

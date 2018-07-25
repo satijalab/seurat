@@ -66,16 +66,16 @@ Imports:
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate:
+Collate: 
     'RcppExports.R'
     'alignment.R'
+    'dimreduc_generics.R'
     'assay_generics.R'
     'seurat_generics.R'
     'objects.R'
     'seurat.R'
     'conversion.R'
     'as.R'
-    'dimreduc_generics.R'
     'assay.R'
     'cluster_determination.R'
     'cluster_determination_generics.R'

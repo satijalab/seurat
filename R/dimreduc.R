@@ -109,6 +109,14 @@ length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
 
+#' @describeIn Stdev Get the standard deviations from a DimReduc object
+#' @export
+#' @method Stdev DimReduc
+#'
+Stdev.DimReduc <- function(object) {
+  return(slot(object = object, name = 'stdev'))
+}
+
 #' @param dims Number of dimensions to display
 #' @param num.features Number of genes to display
 #' @param projected Use projected slot
