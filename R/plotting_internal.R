@@ -1086,6 +1086,30 @@ SingleRasterMap <- function(
   return(p)
 }
 
+# A single heatmap from base R using image
+#
+# @param data.plot matrix of data to plot
+# @param cell.order optional vector of cell names to specify order in plot
+# @param plot.title Title for plot
+
+SingleImageMap <- function(
+  data.plot,
+  cell.order = NULL,
+  plot.title = NULL
+) {
+  if (!is.null(cell.order)) {
+    data.plot <- data.plot[cell.order, ]
+  }
+  par(mar=c(1,1,3,3))
+  plot.new()
+  image(as.matrix(data.plot), axes = FALSE, add = TRUE, col = PurpleAndYellow())
+  axis(4, at=seq(0, 1, length = ncol(data.plot)),
+       labels = colnames(data.plot), las = 1, tick = FALSE,
+       mgp = c(0, -0.75, 0), cex.axis = 0.75)
+  title(plot.title)
+}
+
+
 SingleHeatmap3 <- function(
   data.plot,
   ...

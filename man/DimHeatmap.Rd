@@ -8,7 +8,7 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
   cells.use = NULL, num.features = 30, use.full = FALSE,
   disp.min = -2.5, disp.max = 2.5, slot.use = "scale.data",
   do.balanced = FALSE, check.plot = TRUE, num.col = NULL,
-  combine.plots = TRUE, ...)
+  combine.plots = TRUE, plot.method = c("quick", "gg"), ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -36,6 +36,9 @@ DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
 \item{num.col}{Number of columns to plot}
 
 \item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
+
+\item{plot.method}{Either "quick" for fast exploratory visualization or "gg" for slower 
+plotting but returns ggplot objects that can be customized.}
 
 \item{...}{Ignored for now}
 }

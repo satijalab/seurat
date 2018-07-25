@@ -81,6 +81,8 @@ DoHeatmap <- function(
 #' @param do.balanced Plot an equal number of genes with both + and - scores.
 #' @param num.col Number of columns to plot
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
+#' @param plot.method Either "quick" for fast exploratory visualization or "gg" for slower 
+#' plotting but returns ggplot objects that can be customized.
 #'
 #' @return Invisbly returns the final grob
 #'
@@ -107,8 +109,10 @@ DimHeatmap <- function(
   check.plot = TRUE,
   num.col = NULL,
   combine.plots = TRUE,
+  plot.method = c("quick", "gg"),
   ...
 ) {
+  plot.method <- match.arg(arg = plot.method)
   if (is.null(x = num.col)) {
     if (length(x = dims.use) > 2) {
       num.col <- 3
@@ -177,6 +181,11 @@ DimHeatmap <- function(
   #     return(invisible(x = NULL))
   #   }
   # }
+  if (plot.method == "quick") {
+    num.row <- floor(x = length(x = dims.use) / 3.01) + 1
+    orig_par <- par()$mfrow
+    par(mfrow = c(num.row, min(length(x = dims.use), 3)))
+  }
   for (i in 1:length(x = dims.use)) {
     dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
     dim.features <- rev(x = unlist(x = lapply(
@@ -186,7 +195,14 @@ DimHeatmap <- function(
       }
     )))
     data.plot <- data.all[cells.use[[i]], dim.features]
-    plot.list[[i]] <- SingleRasterMap(data.plot = data.plot, limits = data.limits)
+    if (plot.method == "quick") {
+      SingleImageMap(data.plot = data.plot, plot.title = paste0(Key(object = object[[reduction.use]]), i))
+    } else {
+      plot.list[[i]] <- SingleRasterMap(data.plot = data.plot, limits = data.limits)
+    }
+  }
+  if (plot.method == "quick") {
+    return(invisible(x = NULL))
   }
   if (combine.plots) {
     plot.list <- CombinePlots(
