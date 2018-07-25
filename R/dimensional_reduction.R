@@ -51,6 +51,9 @@ RunPCA.default <- function(
     stdev = sdev,
     key = reduction.key
   )
+  if (verbose) {
+    Print(object = reduction.data, dims = print.dims, num.features = features.print)
+  }
   return(reduction.data)
 }
 

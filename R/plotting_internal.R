@@ -1128,7 +1128,7 @@ SingleImageMap <- function(
     labels = colnames(x = data.plot),
     las = 1,
     tick = FALSE,
-    mgp = c(0, -0.75, 0),
+    mgp = c(0, -0.5, 0),
     cex.axis = 0.75
   )
   title(main = plot.title)
