@@ -533,7 +533,7 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
         }
       )
     }
-    plots.combined <- plot_grid(plotlist = plot.list, ncol = nCol)
+    plots.combined <- plot_grid(plotlist = plot.list, ncol = nCol, align = 'v')
     if (!is.null(x = legend.position)) {
       plots.combined <- switch(
         EXPR = legend.position,

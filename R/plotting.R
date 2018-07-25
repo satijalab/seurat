@@ -124,10 +124,16 @@ DimHeatmap <- function(
   if (is.numeric(x = cells.use)) {
     cells.use <- lapply(
       X = dims.use,
-      FUN = TopCells,
-      object = object[[reduction.use]],
-      num.cells = cells.use,
-      do.balanced = do.balanced
+      FUN = function(x){
+        cells <- TopCells(
+          object = object[[reduction.use]],
+          dim.use = x,
+          num.cells = cells.use,
+          do.balanced = do.balanced
+        )
+        cells$negative <- rev(x = cells$negative)
+        cells <- unlist(x = unname(obj = cells))
+      }
     )
   }
   cells.use <- cells.use %||% colnames(x = object)
@@ -173,12 +179,12 @@ DimHeatmap <- function(
   # }
   for (i in 1:length(x = dims.use)) {
     dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
-    dim.features <- unlist(x = lapply(
+    dim.features <- rev(x = unlist(x = lapply(
       X = dim.features,
       FUN = function(feat) {
         return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
       }
-    ))
+    )))
     data.plot <- data.all[cells.use[[i]], dim.features]
     plot.list[[i]] <- SingleRasterMap(data.plot = data.plot, limits = data.limits)
   }
