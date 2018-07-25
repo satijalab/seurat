@@ -1336,7 +1336,6 @@ RunPHATE <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
-  cells.use = NULL,
   dims.use = 1:5,
   reduction.use = 'pca',
   genes.use = NULL,
@@ -1357,35 +1356,9 @@ RunUMAP.Seurat <- function(
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
   if (is.null(x = genes.use)) {
-    dim.code <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.use,
-      slot = 'key'
-    )
-    dim.codes <- paste0(dim.code, dims.use)
-    data.use <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.use,
-      slot = 'cell.embeddings'
-    )
-    data.use <- data.use[cells.use, dim.codes, drop = FALSE]
-  } else {
-    data.use <- GetAssayData(object = object, assay.type = assay.use, slot = 'scale.data')
-    genes.use <- intersect(x = genes.use, y = rownames(x = data.use))
-    if (!length(x = genes.use)) {
-      stop("No genes found in the scale.data slot of assay ", assay.use)
-    }
-    data.use <- data.use[genes.use, cells.use, drop = FALSE]
-    data.use <- t(x = data.use)
+    data.use <- Embeddings(object[[reduction.use]])[,dims.use]
   }
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("RunUMAP"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "RunUMAP",
-    ... = parameters.to.store
-  )
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
     n_neighbors = as.integer(x = n_neighbors),
@@ -1395,18 +1368,12 @@ RunUMAP.Seurat <- function(
   )
   umap_output <- umap$fit_transform(as.matrix(x = data.use))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
-  rownames(x = umap_output) <- cells.use
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "cell.embeddings",
-    new.data = as.matrix(x = umap_output)
+  rownames(x = umap_output) <- colnames(object)
+  umap.reduction <- MakeDimReducObject(
+    cell.embeddings = umap_output,
+    key = reduction.key,
+    assay.used = assay.use
   )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "key",
-    new.data = reduction.key
-  )
+  object[[reduction.name]] <- umap.reduction
   return(object)
 }
