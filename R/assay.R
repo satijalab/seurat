@@ -274,7 +274,7 @@ merge.Assay <- function(
   min.cells = 0,
   min.genes = 0,
   is.expr = 0,
-  merge.data = FALSE,
+  merge.data = TRUE,
   ...
 ) {
   assays <- c(x, y)
@@ -307,7 +307,7 @@ merge.Assay <- function(
     }
     # only keep cells that made it through raw.data filtering params
     merged.data <- merged.data[, colnames(combined.assay)]
-    SetAssayData(
+    combined.assay <- SetAssayData(
       object = combined.assay,
       slot = "data",
       new.data = merged.data
