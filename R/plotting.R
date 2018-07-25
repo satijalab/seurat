@@ -213,7 +213,7 @@ DimHeatmap <- function(
     )))
     data.plot <- data.all[cells.use[[i]], dim.features]
     if (plot.method == "quick") {
-      SingleImageMap(data.plot = data.plot, plot.title = paste0(Key(object = object[[reduction.use]]), i))
+      SingleImageMap(data.plot = data.plot, plot.title = paste0(Key(object = object[[reduction.use]]), dims.use[i]))
     } else {
       plot.list[[i]] <- SingleRasterMap(data.plot = data.plot, limits = data.limits)
     }
