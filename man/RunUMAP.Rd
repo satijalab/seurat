@@ -6,11 +6,10 @@
 \alias{RunUMAP}
 \title{Run UMAP}
 \usage{
-\method{RunUMAP}{Seurat}(object, cells.use = NULL, dims.use = 1:5,
-  reduction.use = "pca", genes.use = NULL, assay.use = "RNA",
-  max.dim = 2L, reduction.name = "umap", reduction.key = "UMAP",
-  n_neighbors = 30L, min_dist = 0.3, metric = "correlation",
-  seed.use = 42, ...)
+\method{RunUMAP}{Seurat}(object, dims.use = 1:5, reduction.use = "pca",
+  genes.use = NULL, assay.use = "RNA", max.dim = 2L,
+  reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
+  min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
 
 RunUMAP(object, cells.use, dims.use, reduction.use, genes.use, assay.use,
   max.dim, reduction.name, reduction.key, n_neighbors, min_dist, metric,
@@ -18,8 +17,6 @@ RunUMAP(object, cells.use, dims.use, reduction.use, genes.use, assay.use,
 }
 \arguments{
 \item{object}{Seurat object}
-
-\item{cells.use}{Which cells to analyze (default, all cells)}
 
 \item{dims.use}{Which dimensions to use as input features, used only if
 \code{genes.use} is NULL}
@@ -59,6 +56,8 @@ a user defined function can be passed as long as it has been JITd by numba.}
 NULL will not set a seed.}
 
 \item{...}{Additional arguments to the umap}
+
+\item{cells.use}{Which cells to analyze (default, all cells)}
 }
 \value{
 Returns a Seurat object containing a UMAP representation
