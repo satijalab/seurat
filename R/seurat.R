@@ -652,6 +652,24 @@ setMethod(
 )
 
 #' @export
+#' @method subset Seurat
+#'
+subset.Seurat <- function(x, subset, ...) {
+  objects.use <- FilterObjects(object = object)
+  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  key.pattern <- paste0('^', object.keys, collapse = '|')
+  expr <- substitute(expr = subset)
+  expr.char <- as.character(x = expr)
+  expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+  vars.use <- which(
+    x = expr.char %in% rownames(x = object) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+  )
+  data.subset <- FetchData(object = x, vars.fetch = expr.char[vars.use])
+  data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+  return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
+}
+
+#' @export
 #' @method merge Seurat
 #'
 merge.Seurat <- function(
