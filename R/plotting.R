@@ -30,7 +30,7 @@ DoHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
-  slot.use = 'data',
+  slot.use = 'scale.data',
   group.bar = TRUE,
   # group.order = NULL,
   # draw.line = TRUE,
@@ -49,7 +49,7 @@ DoHeatmap <- function(
   )
   data.plot <- FetchData(
     object = object,
-    vars.fetch = features.use,
+    vars.fetch = rev(x = features.use),
     cells.use = cells.use,
     slot = slot.use
   )
@@ -82,6 +82,7 @@ DoHeatmap <- function(
     ) +
       coord_cartesian(ylim = c(0, y.max), clip = 'off')
   }
+  p <- p + theme(line = element_blank())
   return(p)
 }
 
