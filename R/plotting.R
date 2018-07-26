@@ -68,6 +68,7 @@ DoHeatmap <- function(
     group.by = group.use
   )
   if (group.bar) {
+    # TODO: Change group.bar to annotation.bar
     pbuild <- ggplot_build(plot = p)
     cols <- hue_pal()(length(x = levels(x = group.use)))
     names(x = cols) <- levels(x = group.use)
@@ -801,16 +802,16 @@ FeaturePlot <- function(
 FeatureMap <- function(
   object,
   features.plot,
-  dims.use = c(1, 2),
-  pt.size = 2,
-  cols.use = c("grey", "red"),
+  min.cutoff = NA,
+  max.cutoff = NA,
   reduction.use = "tsne",
+  dims.use = c(1, 2),
   group.by = NULL,
+  cols.use = c("grey", "red"),
+  pt.size = 2,
   group.display = NULL,
   slot.use = 'data',
   scale.group = FALSE,
-  min.cutoff = NA,
-  max.cutoff = NA,
   horizontal = FALSE
 ) {
   if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
@@ -913,9 +914,9 @@ FeatureMap <- function(
 #'
 #' @param object Seurat object
 #' @inheritParams FetchData
-#' @param gene1 First feature to plot. Typically gene expression but can also
+#' @param feature1 First feature to plot. Typically gene expression but can also
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
-#' @param gene2 Second feature to plot.
+#' @param feature2 Second feature to plot.
 #' @param cells.use Cells to include on the scatter plot.
 #' @param cols.use Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
@@ -929,12 +930,12 @@ FeatureMap <- function(
 #' @export
 #'
 #' @examples
-#' GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
+#' FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 #'
-GenePlot <- function(
+FeatureScatter <- function(
   object,
-  gene1,
-  gene2,
+  feature1,
+  feature2,
   cells.use = NULL,
   cols.use = NULL,
   slot.use = 'data',
@@ -947,7 +948,7 @@ GenePlot <- function(
   p <- SingleCorPlot(
     data.plot = FetchData(
       object = object,
-      vars.fetch = c(gene1, gene2),
+      vars.fetch = c(feature1, feature2),
       cells.use = cells.use,
       slot = slot.use
     ),
@@ -958,7 +959,7 @@ GenePlot <- function(
   )
   if (!is.null(x = span)) {
     p <- p + geom_smooth(
-      mapping = aes_string(x = gene1, y = gene2),
+      mapping = aes_string(x = feature1, y = feature2),
       method = 'loess',
       span = span
     )
@@ -968,13 +969,13 @@ GenePlot <- function(
 
 #' Cell-cell scatter plot
 #'
-#' Creates a plot of scatter plot of genes across two single cells. Pearson
+#' Creates a plot of scatter plot of features across two single cells. Pearson
 #' correlation between the two cells is displayed above the plot.
 #'
-#' @inheritParams GenePlot
+#' @inheritParams FeatureScatter
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
-#' @param features.use Genes to plot (default, all genes)
+#' @param features.use Features to plot (default, all features)
 #' @param \dots Extra parameters passed to kde2d
 #'
 #' @return A ggplot object
@@ -983,9 +984,9 @@ GenePlot <- function(
 #' @seealso \code{\link{MASS::kde2d}}
 #'
 #' @examples
-#' CellPlot(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
+#' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
-CellPlot <- function(
+CellScatter <- function(
   object,
   cell1,
   cell2,
@@ -1009,6 +1010,136 @@ CellPlot <- function(
     ...
   )
   return(p)
+}
+
+#' View variable features
+#'
+#' @inheritParams FeatureScatter
+#' @param assay.use Assay to pull from
+#'
+#' @importFrom ggplot2 labs
+#' @export
+#'
+#' @examples
+#' VariableFeaturePlot(object = pbmc_small)
+#'
+VariableFeaturePlot <- function(
+  object,
+  pt.size = 1,
+  assay.use = NULL,
+  # do.contour = TRUE,
+  # contour.lwd = 3,
+  # contour.col = "white",
+  # contour.lty = 2,
+  # x.low.cutoff = 0.1,
+  # x.high.cutoff = 8,
+  # y.cutoff = 1,
+  # y.high.cutoff = Inf
+  ...
+) {
+  hvf.info <- HVFInfo(object = object, assay.use = assay.use)[, c('mean', 'dispersion')]
+  var.features <- VariableFeatures(object = object, assay.use = assay.use)
+  p <- SingleCorPlot(
+    data.plot = hvf.info,
+    col.by = ifelse(
+      test = rownames(x = hvf.info) %in% var.features,
+      yes = 'yes',
+      no = 'no'
+    ),
+    cols.use = c('black', 'red'),
+    pt.size = pt.size
+  )
+  p <- p + NoLegend() +
+    labs(title = NULL, x = 'Average Expression', y = 'Dispersion')
+  return(p)
+  # pass.cutoff <- names(x = gene.mean)[which(
+  #   x = (
+  #     (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
+  #   ) &
+  #     (gene.dispersion.scaled > y.cutoff) &
+  #     (gene.dispersion.scaled < y.high.cutoff)
+  # )]
+  # if (do.spike) {
+  #   spike.genes <- rownames(x = SubsetRow(data = object@data, code = "^ERCC"))
+  # }
+  # if (plot.both) {
+  #   par(mfrow = c(1, 2))
+  #   smoothScatter(
+  #     x = gene.mean,
+  #     y = gene.dispersion,
+  #     pch = pch.use,
+  #     cex = cex.use,
+  #     col = col.use,
+  #     xlab = "Average expression",
+  #     ylab = "Dispersion",
+  #     nrpoints = Inf
+  #   )
+  #   if (do.contour) {
+  #     data.kde <- kde2d(x = gene.mean, y = gene.dispersion)
+  #     contour(
+  #       x = data.kde,
+  #       add = TRUE,
+  #       lwd = contour.lwd,
+  #       col = contour.col,
+  #       lty = contour.lty
+  #     )
+  #   }
+  #   if (do.spike) {
+  #     points(
+  #       x = gene.mean[spike.genes],
+  #       y = gene.dispersion[spike.genes],
+  #       pch = 16,
+  #       cex = cex.use,
+  #       col = spike.col.use
+  #     )
+  #   }
+  #   if (do.text) {
+  #     text(
+  #       x = gene.mean[pass.cutoff],
+  #       y = gene.dispersion[pass.cutoff],
+  #       labels = pass.cutoff,
+  #       cex = cex.text.use
+  #     )
+  #   }
+  # }
+  # smoothScatter(
+  #   x = gene.mean,
+  #   y = gene.dispersion.scaled,
+  #   pch = pch.use,
+  #   cex = cex.use,
+  #   col = col.use,
+  #   xlab = "Average expression",
+  #   ylab = "Dispersion",
+  #   nrpoints = Inf
+  # )
+  # if (do.contour) {
+  #   data.kde <- kde2d(x = gene.mean, y = gene.dispersion.scaled)
+  #   contour(
+  #     x = data.kde,
+  #     add = TRUE,
+  #     lwd = contour.lwd,
+  #     col = contour.col,
+  #     lty = contour.lty
+  #   )
+  # }
+  # if (do.spike) {
+  #   points(
+  #     x = gene.mean[spike.genes],
+  #     y = gene.dispersion.scaled[spike.genes],
+  #     pch = 16,
+  #     cex = cex.use,
+  #     col = spike.col.use,
+  #     nrpoints = Inf
+  #   )
+  # }
+  # if (do.text) {
+  #   text(
+  #     x = gene.mean[pass.cutoff],
+  #     y = gene.dispersion.scaled[pass.cutoff],
+  #     labels = pass.cutoff,
+  #     cex = cex.text.use
+  #   )
+  # }
 }
 
 #' Visualize Dimensional Reduction genes
