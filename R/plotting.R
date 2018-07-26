@@ -1079,7 +1079,7 @@ VizDimReduction <- function(
     FUN = function(i) {
       data.plot <- as.data.frame(x = loadings[features.use[[i]], i, drop = FALSE])
       colnames(x = data.plot) <- paste0(Key(object = object[[reduction.use]]), i)
-      data.plot$feature <- rownames(x = data.plot)
+      data.plot$feature <- factor(x = rownames(x = data.plot), levels = rownames(x = data.plot))
       plot <- ggplot(
         data = data.plot,
         mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
