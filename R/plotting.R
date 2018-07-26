@@ -30,7 +30,7 @@ DoHeatmap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
-  slot.use = 'data',
+  slot.use = 'scale.data',
   group.bar = TRUE,
   # group.order = NULL,
   # draw.line = TRUE,
@@ -49,7 +49,7 @@ DoHeatmap <- function(
   )
   data.plot <- FetchData(
     object = object,
-    vars.fetch = features.use,
+    vars.fetch = rev(x = features.use),
     cells.use = cells.use,
     slot = slot.use
   )
@@ -82,6 +82,7 @@ DoHeatmap <- function(
     ) +
       coord_cartesian(ylim = c(0, y.max), clip = 'off')
   }
+  p <- p + theme(line = element_blank())
   return(p)
 }
 
@@ -1130,15 +1131,10 @@ ElbowPlot <- function(
     warning("The object only has information for ", length(x = data.use), " reductions")
     dims.plot <- length(x = data.use)
   }
-  dims.used <- paste0(
-    Key(object = object[[reduction.use]]),
-    c(1, dims.plot),
-    collapse = ' to '
-  )
   stdev <- 'Standard Deviation'
   p <- ggplot(data = data.frame(dims = 1:dims.plot, stdev = data.use[1:dims.plot])) +
     geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
-    labs(x = dims.used, y = stdev, title = paste(stdev, dims.used, sep = ' of ')) +
+    labs(x = Key(object = object[[reduction.use]]), y = stdev) +
     WhiteBackground(axis.line = element_line(colour = 'black'))
   return(p)
 }
