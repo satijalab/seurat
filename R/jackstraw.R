@@ -58,7 +58,7 @@ JackStraw <- function(
     dims <- ncol(object)
     warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  reduc.features <- rownames(Loadings(object = object[[reduction.use]]))
+  reduc.features <- rownames(Loadings(object = object[[reduction.use]], projected = FALSE))
   if (length(x = reduc.features) < 3) {
     stop("Too few features")
   }
@@ -71,7 +71,7 @@ JackStraw <- function(
     )
   }
   assay.use <- assay.use %||% DefaultAssay(object = object)
-  loadings <- Loadings(object = object[[reduction.use]])
+  loadings <- Loadings(object = object[[reduction.use]], projected = FALSE)
   data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
   rev.pca <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$rev.pca
   weight.by.var <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$weight.by.var
