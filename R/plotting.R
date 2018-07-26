@@ -913,9 +913,9 @@ FeatureMap <- function(
 #'
 #' @param object Seurat object
 #' @inheritParams FetchData
-#' @param gene1 First feature to plot. Typically gene expression but can also
+#' @param feature1 First feature to plot. Typically gene expression but can also
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
-#' @param gene2 Second feature to plot.
+#' @param feature2 Second feature to plot.
 #' @param cells.use Cells to include on the scatter plot.
 #' @param cols.use Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
@@ -929,12 +929,12 @@ FeatureMap <- function(
 #' @export
 #'
 #' @examples
-#' GenePlot(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
+#' FeatureScatter(object = pbmc_small, gene1 = 'CD9', gene2 = 'CD3E')
 #'
-GenePlot <- function(
+FeatureScatter <- function(
   object,
-  gene1,
-  gene2,
+  feature1,
+  feature2,
   cells.use = NULL,
   cols.use = NULL,
   slot.use = 'data',
@@ -947,7 +947,7 @@ GenePlot <- function(
   p <- SingleCorPlot(
     data.plot = FetchData(
       object = object,
-      vars.fetch = c(gene1, gene2),
+      vars.fetch = c(feature1, feature2),
       cells.use = cells.use,
       slot = slot.use
     ),
@@ -958,7 +958,7 @@ GenePlot <- function(
   )
   if (!is.null(x = span)) {
     p <- p + geom_smooth(
-      mapping = aes_string(x = gene1, y = gene2),
+      mapping = aes_string(x = feature1, y = feature2),
       method = 'loess',
       span = span
     )
@@ -971,7 +971,7 @@ GenePlot <- function(
 #' Creates a plot of scatter plot of genes across two single cells. Pearson
 #' correlation between the two cells is displayed above the plot.
 #'
-#' @inheritParams GenePlot
+#' @inheritParams FeatureScatter
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features.use Genes to plot (default, all genes)
