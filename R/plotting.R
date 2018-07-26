@@ -1131,15 +1131,10 @@ ElbowPlot <- function(
     warning("The object only has information for ", length(x = data.use), " reductions")
     dims.plot <- length(x = data.use)
   }
-  dims.used <- paste0(
-    Key(object = object[[reduction.use]]),
-    c(1, dims.plot),
-    collapse = ' to '
-  )
   stdev <- 'Standard Deviation'
   p <- ggplot(data = data.frame(dims = 1:dims.plot, stdev = data.use[1:dims.plot])) +
     geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
-    labs(x = dims.used, y = stdev, title = paste(stdev, dims.used, sep = ' of ')) +
+    labs(x = Key(object = object[[reduction.use]]), y = stdev) +
     WhiteBackground(axis.line = element_line(colour = 'black'))
   return(p)
 }
