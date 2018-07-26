@@ -153,7 +153,9 @@ DimHeatmap <- function(
           num.cells = cells.use,
           do.balanced = do.balanced
         )
-        cells$negative <- rev(x = cells$negative)
+        if (do.balanced) {
+          cells$negative <- rev(x = cells$negative)
+        }
         cells <- unlist(x = unname(obj = cells))
       }
     )
