@@ -636,7 +636,7 @@ DimPlot <- function(
 #' @return A ggplot object
 #'
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 scale_color_gradientn
+#' @importFrom ggplot2 scale_color_gradientn labs
 #' @export
 #'
 #' @seealso \code{\link{DimPlot}} \code{\link{FeatureMap}}
@@ -755,7 +755,7 @@ FeaturePlot <- function(
       pt.size = pt.size,
       do.label = do.label,
       label.size = label.size
-    )
+    ) + labs(title = feature)
     if (brewer.gran == 2) {
       suppressMessages(expr = p <- p + scale_color_gradientn(
         colors = cols.use,
@@ -765,7 +765,7 @@ FeaturePlot <- function(
     plots[[which(x = features.plot == feature)]] <- p
   }
   if (combine.plots) {
-    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
+    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = 'none')
   }
   return(plots)
 }
