@@ -425,6 +425,103 @@ Stdev.Seurat <- function(object, reduction.use, ...) {
 }
 
 #' @export
+#' @method subset Seurat
+#'
+subset.Seurat <- function(x, subset, ...) {
+  objects.use <- FilterObjects(object = object)
+  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
+  key.pattern <- paste0('^', object.keys, collapse = '|')
+  expr <- substitute(expr = subset)
+  expr.char <- as.character(x = expr)
+  expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+  vars.use <- which(
+    x = expr.char %in% rownames(x = object) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+  )
+  data.subset <- FetchData(object = x, vars.fetch = expr.char[vars.use])
+  data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+  return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
+}
+
+#' @export
+#' @method merge Seurat
+#'
+merge.Seurat <- function(
+  x = NULL,
+  y = NULL,
+  add.cell.ids = NULL,
+  merge.data = TRUE,
+  project = "SeuratProject",
+  min.cells = 0,
+  min.genes = 0,
+  is.expr = 0
+) {
+  objects <- c(x, y)
+  if (!is.null(add.cell.ids)) {
+    if (length(x = add.cell.ids) != length(x = objects)) {
+      stop("Please provide a cell identifier for each object provided to merge")
+    }
+    for(i in 1:length(objects)) {
+      objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
+    }
+  }
+  assays.to.merge <- c()
+  for(i in 1:length(objects)) {
+    assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
+  }
+  assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
+  combined.assays <- list()
+  for(assay in assays.to.merge) {
+    assay1 <- objects[[1]][[assay]]
+    assay2 <- list()
+    for(i in 2:length(objects)) {
+      assay2[[i-1]] <- objects[[i]][[assay]]
+    }
+    combined.assays[[assay]] <- merge(
+      x = assay1,
+      y = assay2,
+      merge.data = merge.data,
+      min.cells = min.cells,
+      min.genes = min.genes,
+      is.expr = is.expr,
+    )
+  }
+  # Merge the meta.data
+  # get rid of nUMI and nFeature_*
+  combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
+  new.idents <- c()
+  for(object in objects) {
+    old.meta.data <- object[]
+    old.meta.data$nUMI <- NULL
+    old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
+    if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
+      cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
+      combined.meta.data[, cols.to.add] <- NA
+    }
+    combined.meta.data[rownames(old.meta.data), colnames(old.meta.data)] <- old.meta.data
+    new.idents <- c(new.idents, as.vector(Idents(object = object)))
+  }
+  names(new.idents) <- rownames(combined.meta.data)
+  new.idents <- factor(new.idents)
+  merged.object <- new(
+    Class = 'Seurat',
+    assays = combined.assays,
+    meta.data = combined.meta.data,
+    active.assay = assays.to.merge[1],
+    active.ident = new.idents,
+    project.name = project,
+    version = packageVersion(pkg = 'Seurat')
+  )
+  merged.object['nUMI'] <- colSums(x = merged.object)
+  for(assay in assays.to.merge) {
+    merged.object[paste('nFeature', assay, sep = '_')] <-
+      colSums(x = GetAssayData(
+        object = merged.object,
+        assay = assay, slot = "raw.data") > is.expr)
+  }
+  return(merged.object)
+}
+
+#' @export
 #' @method dimnames Seurat
 #'
 dimnames.Seurat <- function(x) {
@@ -444,13 +541,26 @@ dim.Seurat <- function(x) {
 names.Seurat <- function(x) {
   return(unlist(
     x = lapply(
-      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
+      X = c('assays', 'reductions', 'graphs'),
       FUN = function(n) {
         return(names(x = slot(object = x, name = n)))
       }
     ),
     use.names = FALSE
   ))
+}
+
+#' @importFrom utils .DollarNames
+#' @export
+#'
+'.DollarNames.Seurat' <- function(x, pattern = '') {
+  utils:::findMatches(pattern, colnames(x = x[]))
+}
+
+#' @export
+#'
+'$.Seurat' <- function(x, i, ...) {
+  return(x[i])
 }
 
 #' @export
@@ -650,100 +760,3 @@ setMethod(
     invisible(x = NULL)
   }
 )
-
-#' @export
-#' @method subset Seurat
-#'
-subset.Seurat <- function(x, subset, ...) {
-  objects.use <- FilterObjects(object = object)
-  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
-  key.pattern <- paste0('^', object.keys, collapse = '|')
-  expr <- substitute(expr = subset)
-  expr.char <- as.character(x = expr)
-  expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
-  vars.use <- which(
-    x = expr.char %in% rownames(x = object) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
-  )
-  data.subset <- FetchData(object = x, vars.fetch = expr.char[vars.use])
-  data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-  return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
-}
-
-#' @export
-#' @method merge Seurat
-#'
-merge.Seurat <- function(
-  x = NULL,
-  y = NULL,
-  add.cell.ids = NULL,
-  merge.data = TRUE,
-  project = "SeuratProject",
-  min.cells = 0,
-  min.genes = 0,
-  is.expr = 0
-) {
-  objects <- c(x, y)
-  if (!is.null(add.cell.ids)) {
-    if (length(x = add.cell.ids) != length(x = objects)) {
-      stop("Please provide a cell identifier for each object provided to merge")
-    }
-    for(i in 1:length(objects)) {
-      objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
-    }
-  }
-  assays.to.merge <- c()
-  for(i in 1:length(objects)) {
-    assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
-  }
-  assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
-  combined.assays <- list()
-  for(assay in assays.to.merge) {
-    assay1 <- objects[[1]][[assay]]
-    assay2 <- list()
-    for(i in 2:length(objects)) {
-      assay2[[i-1]] <- objects[[i]][[assay]]
-    }
-    combined.assays[[assay]] <- merge(
-      x = assay1,
-      y = assay2,
-      merge.data = merge.data,
-      min.cells = min.cells,
-      min.genes = min.genes,
-      is.expr = is.expr,
-    )
-  }
-  # Merge the meta.data
-  # get rid of nUMI and nFeature_*
-  combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
-  new.idents <- c()
-  for(object in objects) {
-    old.meta.data <- object[]
-    old.meta.data$nUMI <- NULL
-    old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
-    if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
-      cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
-      combined.meta.data[, cols.to.add] <- NA
-    }
-    combined.meta.data[rownames(old.meta.data), colnames(old.meta.data)] <- old.meta.data
-    new.idents <- c(new.idents, as.vector(Idents(object = object)))
-  }
-  names(new.idents) <- rownames(combined.meta.data)
-  new.idents <- factor(new.idents)
-  merged.object <- new(
-    Class = 'Seurat',
-    assays = combined.assays,
-    meta.data = combined.meta.data,
-    active.assay = assays.to.merge[1],
-    active.ident = new.idents,
-    project.name = project,
-    version = packageVersion(pkg = 'Seurat')
-  )
-  merged.object['nUMI'] <- colSums(x = merged.object)
-  for(assay in assays.to.merge) {
-    merged.object[paste('nFeature', assay, sep = '_')] <-
-      colSums(x = GetAssayData(
-        object = merged.object,
-        assay = assay, slot = "raw.data") > is.expr)
-  }
-  return(merged.object)
-}
