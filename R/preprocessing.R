@@ -1,153 +1,3 @@
-#' Initialize and setup the Seurat object
-#'
-#' Initializes the Seurat object and some optional filtering
-#' @param raw.data Raw input data
-#' @param project Project name (string)
-#' @param min.cells Include genes with detected expression in at least this
-#' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
-#' genes, create a new object with a lower cutoff.
-#' @param min.genes Include cells where at least this many genes are detected.
-#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
-#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
-#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
-#' values less than this will be set to 0 (though maintained in object@raw.data).
-#' @param normalization.method Method for cell normalization. Default is no normalization.
-#' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
-#' normalization method (i.e. LogNormalize) here directly.
-#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
-#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-#' can specify do.scale = TRUE (and do.center = TRUE) here.
-#' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
-#' @param names.field For the initial identity class for each cell, choose this field from the
-#' cell's column name
-#' @param names.delim For the initial identity class for each cell, choose this delimiter from the
-#' cell's column name
-#' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
-#' the rows are cell names, and the columns are additional metadata fields
-#' @param verbose display progress bar for normalization and/or scaling procedure.
-#' @param ... Ignored
-#'
-#' @return Returns a Seurat object with the raw data stored in object@@raw.data.
-#' object@@data, object@@meta.data, object@@ident, also initialized.
-#'
-#' @importFrom methods new
-#' @importFrom utils packageVersion
-#' @importFrom Matrix colSums rowSums
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_raw <- read.table(
-#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
-#'   as.is = TRUE
-#' )
-#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
-#' pbmc_small
-#'
-CreateSeuratObject <- function(
-  raw.data,
-  project = "SeuratProject",
-  min.cells = 0,
-  min.genes = 0,
-  is.expr = 0,
-  normalization.method = NULL,
-  scale.factor = 1e4,
-  do.scale = FALSE,
-  do.center = FALSE,
-  names.field = 1,
-  names.delim = "_",
-  meta.data = NULL,
-  verbose = TRUE,
-  ...
-) {
-  seurat.version <- packageVersion("Seurat")
-  object <- new(
-    Class = "seurat",
-    raw.data = raw.data,
-    is.expr = is.expr,
-    project.name = project,
-    version = seurat.version
-  )
-  # filter cells on number of genes detected
-  # modifies the raw.data slot as well now
-  object.raw.data <- object@raw.data
-  if (is.expr > 0) {
-    # suppress Matrix package note:
-    # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
-    # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
-    # "Matrix#ldenseMatrix#missing#replValue" would also be valid
-    suppressMessages(expr = object.raw.data[object.raw.data < is.expr] <- 0)
-  }
-  num.genes <- colSums(object.raw.data > is.expr)
-  num.mol <- colSums(object.raw.data)
-  cells.use <- names(x = num.genes[which(x = num.genes > min.genes)])
-  object@raw.data <- object@raw.data[, cells.use]
-  object@data <- object.raw.data[, cells.use]
-  # filter genes on the number of cells expressing
-  # modifies the raw.data slot as well now
-  genes.use <- rownames(object@data)
-  if (min.cells > 0) {
-    num.cells <- rowSums(object@data > 0)
-    genes.use <- names(x = num.cells[which(x = num.cells >= min.cells)])
-    object@raw.data <- object@raw.data[genes.use, ]
-    object@data <- object@data[genes.use, ]
-  }
-  object@ident <- factor(x = unlist(x = lapply(
-    X = colnames(x = object@data),
-    FUN = ExtractField,
-    field = names.field,
-    delim = names.delim
-  )))
-  names(x = object@ident) <- colnames(x = object@data)
-  object@cell.names <- names(x = object@ident)
-  # if there are more than 100 idents, set all idents to project name
-  ident.levels <- length(x = unique(x = object@ident))
-  if ((ident.levels > 100 || ident.levels == 0) || ident.levels == length(x = object@ident)) {
-    object <- SetIdent(object, ident.use = project)
-  }
-  nGene <- num.genes[cells.use]
-  nUMI <- num.mol[cells.use]
-  object@meta.data <- data.frame(nGene, nUMI)
-  if (!is.null(x = meta.data)) {
-    object <- AddMetaData(object = object, metadata = meta.data)
-  }
-  object@meta.data[["orig.ident"]] <- NULL
-  object@meta.data[names(object@ident), "orig.ident"] <- object@ident
-  if (!is.null(normalization.method)) {
-    object <- NormalizeData(
-      object = object,
-      assay.type = "RNA",
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      verbose = verbose
-    )
-  }
-  if (do.scale | do.center) {
-    object <- ScaleData(
-      object = object,
-      do.scale = do.scale,
-      do.center = do.center,
-      verbose = verbose
-    )
-  }
-  spatial.obj <- new(
-    Class = "spatial.info",
-    mix.probs = data.frame(nGene)
-  )
-  object@spatial <- spatial.obj
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals("CreateSeuratObject"))]
-  parameters.to.store$raw.data <- NULL
-  parameters.to.store$meta.data <- NULL
-  object <- SetCalcParams(
-    object = object,
-    calculation = "CreateSeuratObject",
-    ... = parameters.to.store
-  )
-
-  return(object)
-}
-
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
@@ -382,7 +232,7 @@ NormalizeData.Seurat <- function(
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate 
+#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
 #' results are saved in misc slot of seurat object.
 #'
 #' @param object A seurat object
@@ -416,7 +266,7 @@ RegressRegNB <- function(
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay.use = assay.use)
   umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
-  
+
   vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
   # cell_attr = NULL,
   # latent_var = c('log_umi_per_gene'),
@@ -490,7 +340,7 @@ RegressRegNB <- function(
     new.data = scale.data
   )
   object[[assay.use]] <- assay.obj
-  
+
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out

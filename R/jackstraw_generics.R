@@ -11,7 +11,6 @@
 #' @param nCol Number of columns
 #' @param score.thresh Threshold to use for the proportion test of PC
 #' significance (see Details)
-#' @param do.plot Show plot
 #'
 #' @return Returns a Seurat object
 #'

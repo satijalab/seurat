@@ -5,7 +5,7 @@ NULL
 
 #' Make a Seurat object
 #'
-#' @inheritParams MakeAssayObject
+#' @inheritParams CreateAssayObject
 #' @param project Project name
 #' @param assay.use Name of this assay
 #' @param normalization.method Method for cell normalization. Default is no normalization.
@@ -28,7 +28,7 @@ NULL
 #' @importFrom utils packageVersion
 #' @export
 #'
-MakeSeuratObject <- function(
+CreateSeuratObject <- function(
   raw.data,
   project = 'SeuratProject',
   assay.use = 'RNA',

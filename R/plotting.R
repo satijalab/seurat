@@ -1318,28 +1318,27 @@ JackStrawPlot <- function(
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
-  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
-  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
+  data.plot <- reshape2::melt(data = pAll, id.vars = "Contig")
+  colnames(x = data.plot) <- c("Contig", "PC", "Value")
   score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")[dims, ]
   if (nrow(score.df) == 0) {
     stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
   }
-  pAll.l$PC.Score <- rep(
-    x = paste0("PC ", score.df[ ,"PC"], " ", sprintf("%1.3g", score.df[ ,"Score"])),
-    each = length(x = unique(x = pAll.l$Contig))
+  data.plot$PC.Score <- rep(
+    x = paste0("PC ", score.df[ ,"PC"], ": ", sprintf("%1.3g", score.df[ ,"Score"])),
+    each = length(x = unique(x = data.plot$Contig))
   )
-  pAll.l$PC.Score <- factor(
-    x = pAll.l$PC.Score,
-    levels = paste0("PC ", score.df[, "PC"], " ", sprintf("%1.3g", score.df[, "Score"]))
+  data.plot$PC.Score <- factor(
+    x = data.plot$PC.Score,
+    levels = paste0("PC ", score.df[, "PC"], ": ", sprintf("%1.3g", score.df[, "Score"]))
   )
-  gp <- ggplot(data = pAll.l, mapping = aes(sample=Value)) +
+  gp <- ggplot(data = data.plot, mapping = aes(sample=Value, color = PC.Score)) +
     stat_qq(distribution = qunif) +
-    facet_wrap("PC.Score") +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
     xlim(0, plot.y.lim) +
     ylim(0, plot.x.lim) +
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
-    theme_bw()
+    guides(color = guide_legend(title= "PC: p-value"))
   return(gp)
 }
