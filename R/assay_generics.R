@@ -64,5 +64,5 @@ VariableFeatures <- function(object, ...) {
 #' @export HVFInfo
 #'
 HVFInfo <- function(object, ...) {
-  UseMethod(generic = 'GetHVFInfo', object = object)
+  UseMethod(generic = 'HVFInfo', object = object)
 }
