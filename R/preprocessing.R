@@ -382,6 +382,8 @@ NormalizeData.Seurat <- function(
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
+#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate 
+#' results are saved in misc slot of seurat object.
 #'
 #' @param object A seurat object
 #' @param assay.use Name of assay to use
@@ -414,7 +416,7 @@ RegressRegNB <- function(
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay.use = assay.use)
   umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
-
+  
   vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
   # cell_attr = NULL,
   # latent_var = c('log_umi_per_gene'),
@@ -448,8 +450,12 @@ RegressRegNB <- function(
   if (verbose) {
     message('Determine variable features')
   }
-  feature.variance <- RowVar(vst.out$y)
-  names(feature.variance) <- rownames(vst.out$y)
+  if ('residual_variance' %in% names(vst.out$gene_attr)) {
+    feature.variance <- setNames(vst.out$gene_attr$residual_variance, rownames(vst.out$gene_attr))
+  } else {
+    feature.variance <- RowVar(vst.out$y)
+    names(feature.variance) <- rownames(vst.out$y)
+  }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
   if (!is.null(variable.features.n)) {
     top.features <- names(feature.variance)[1:variable.features.n]
@@ -483,8 +489,11 @@ RegressRegNB <- function(
     slot = 'scale.data',
     new.data = scale.data
   )
-
   object[[assay.use]] <- assay.obj
+  
+  # save vst output (except y) in @misc slot
+  vst.out$y <- NULL
+  object@misc[['vst.out']] <- vst.out
   return(object)
 }
 
