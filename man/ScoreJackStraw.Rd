@@ -8,7 +8,7 @@
 \title{Compute Jackstraw scores significance.}
 \usage{
 \method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5,
-  score.thresh = 1e-05, do.plot = FALSE, ...)
+  score.thresh = 1e-05, ...)
 
 \method{ScoreJackStraw}{DimReduc}(object, dims = 1:5, score.thresh = 1e-05,
   do.plot = FALSE, ...)
@@ -24,7 +24,8 @@ ScoreJackStraw(object, slot, ...)
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
 
-\item{do.plot}{Show plot}
+\item{do.plot}{Show plot. To return ggplot object, use JackStrawPlot after
+running ScoreJackStraw.}
 
 \item{reduction.use}{Reduction associated with JackStraw to score}
 

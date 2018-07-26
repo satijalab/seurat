@@ -137,7 +137,6 @@ ScoreJackStraw.JackStrawData <- function(
   object,
   dims = 1:5,
   score.thresh = 1e-5,
-  do.plot = FALSE,
   ...
 ) {
   pAll <- GetJS(object = object, slot = "empirical.p.values")
@@ -163,7 +162,7 @@ ScoreJackStraw.JackStrawData <- function(
     if (is.null(x = score.df)) {
       score.df <- data.frame(PC = paste0("PC", i), Score = pc.score)
     } else {
-      score.df <- rbind(score.df, data.frame(PC = paste0("PC",i), Score = pc.score))
+      score.df <- rbind(score.df, data.frame(PC = paste0("PC", i), Score = pc.score))
     }
     if (is.null(x = qq.df)) {
       qq.df <- data.frame(x = q$x, y = q$y, PC = paste0("PC", i))
@@ -193,7 +192,6 @@ ScoreJackStraw.DimReduc <- function(
     object = GetDimReduc(object = object, slot = "jackstraw"),
     dims = dims,
     score.thresh = 1e-5,
-    do.plot = FALSE,
     ...
   )
   object <- SetDimReduc(object = object, slot = "jackstraw", new.data = jackstraw.data)
@@ -202,6 +200,8 @@ ScoreJackStraw.DimReduc <- function(
 
 #' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
 #' @param reduction.use Reduction associated with JackStraw to score
+#' @param do.plot Show plot. To return ggplot object, use JackStrawPlot after
+#' running ScoreJackStraw.
 #' @export
 #' @method ScoreJackStraw Seurat
 #'
@@ -218,6 +218,14 @@ ScoreJackStraw.Seurat <- function(
     dims = dims,
     ...
   )
+  if (do.plot) {
+    suppressWarnings(expr = print(JackStrawPlot(
+      object = object,
+      reduction.use = reduction.use,
+      dims = dims,
+      ...
+    )))
+  }
   object <- LogSeuratCommand(object = object)
   return(object)
 }
