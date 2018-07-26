@@ -35,6 +35,6 @@ z-scores are based on variances of regression model pearson residuals of all fea
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
 Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate 
+Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
 results are saved in misc slot of seurat object.
 }

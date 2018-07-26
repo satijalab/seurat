@@ -11,7 +11,7 @@ context("Object creation")
 fake.meta.data <- data.frame(rep(1, ncol(pbmc.test)))
 rownames(fake.meta.data) <- colnames(pbmc.test)
 colnames(fake.meta.data) <- "FMD"
-object <- MakeSeuratObject(raw.data = pbmc.test,
+object <- CreateSeuratObject(raw.data = pbmc.test,
                              normalization.method = "LogNormalize",
                              do.scale = T,
                              meta.data = fake.meta.data,
@@ -41,7 +41,7 @@ test_that("normalization and scaling run during object creation process", {
   expect_equal(GetAssayData(object = object, slot = "scale.data")[174, 80], 1.998957, tolerance = 1e-6)
 })
 
-object.filtered <- MakeSeuratObject(raw.data = pbmc.test,
+object.filtered <- CreateSeuratObject(raw.data = pbmc.test,
                      is.expr = 2,
                      min.cells = 3,
                      min.genes = 10)

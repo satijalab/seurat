@@ -19,7 +19,7 @@ NULL
 #'
 #' @export
 #'
-MakeAssayObject <- function(
+CreateAssayObject <- function(
   raw.data,
   min.cells = 0,
   min.genes = 0,
@@ -291,7 +291,7 @@ merge.Assay <- function(
       mat2 = GetAssayData(object = assays[[i]], slot = "raw.data")
     )
   }
-  combined.assay <- MakeAssayObject(
+  combined.assay <- CreateAssayObject(
     raw.data = merged.raw,
     min.cells = min.cells,
     min.genes = min.genes,
