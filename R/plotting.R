@@ -1015,9 +1015,10 @@ CellScatter <- function(
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
-#' @param assay.use Assay to pull from
+#' @param cols.use Colors to specify non-variable/variable status
+#' @param assay.use Assay to pull variable features from
 #'
-#' @importFrom ggplot2 labs
+#' @importFrom ggplot2 labs scale_color_manual
 #' @export
 #'
 #' @examples
@@ -1026,120 +1027,31 @@ CellScatter <- function(
 VariableFeaturePlot <- function(
   object,
   pt.size = 1,
-  assay.use = NULL,
-  # do.contour = TRUE,
-  # contour.lwd = 3,
-  # contour.col = "white",
-  # contour.lty = 2,
-  # x.low.cutoff = 0.1,
-  # x.high.cutoff = 8,
-  # y.cutoff = 1,
-  # y.high.cutoff = Inf
-  ...
+  cols.use = c('black', 'red'),
+  assay.use = NULL
 ) {
+  if (length(x = cols.use) != 2) {
+    stop("'cols.use' must be of length 2")
+  }
   hvf.info <- HVFInfo(object = object, assay.use = assay.use)[, c('mean', 'dispersion')]
   var.features <- VariableFeatures(object = object, assay.use = assay.use)
+  var.status <- ifelse(
+    test = rownames(x = hvf.info) %in% var.features,
+    yes = 'yes',
+    no = 'no'
+  )
   p <- SingleCorPlot(
     data.plot = hvf.info,
-    col.by = ifelse(
-      test = rownames(x = hvf.info) %in% var.features,
-      yes = 'yes',
-      no = 'no'
-    ),
-    cols.use = c('black', 'red'),
+    col.by = var.status,
     pt.size = pt.size
   )
-  p <- p + NoLegend() +
-    labs(title = NULL, x = 'Average Expression', y = 'Dispersion')
+  p <- p +
+    labs(title = NULL, x = 'Average Expression', y = 'Dispersion') +
+    scale_color_manual(
+      labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
+      values = cols.use
+    )
   return(p)
-  # pass.cutoff <- names(x = gene.mean)[which(
-  #   x = (
-  #     (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
-  #   ) &
-  #     (gene.dispersion.scaled > y.cutoff) &
-  #     (gene.dispersion.scaled < y.high.cutoff)
-  # )]
-  # if (do.spike) {
-  #   spike.genes <- rownames(x = SubsetRow(data = object@data, code = "^ERCC"))
-  # }
-  # if (plot.both) {
-  #   par(mfrow = c(1, 2))
-  #   smoothScatter(
-  #     x = gene.mean,
-  #     y = gene.dispersion,
-  #     pch = pch.use,
-  #     cex = cex.use,
-  #     col = col.use,
-  #     xlab = "Average expression",
-  #     ylab = "Dispersion",
-  #     nrpoints = Inf
-  #   )
-  #   if (do.contour) {
-  #     data.kde <- kde2d(x = gene.mean, y = gene.dispersion)
-  #     contour(
-  #       x = data.kde,
-  #       add = TRUE,
-  #       lwd = contour.lwd,
-  #       col = contour.col,
-  #       lty = contour.lty
-  #     )
-  #   }
-  #   if (do.spike) {
-  #     points(
-  #       x = gene.mean[spike.genes],
-  #       y = gene.dispersion[spike.genes],
-  #       pch = 16,
-  #       cex = cex.use,
-  #       col = spike.col.use
-  #     )
-  #   }
-  #   if (do.text) {
-  #     text(
-  #       x = gene.mean[pass.cutoff],
-  #       y = gene.dispersion[pass.cutoff],
-  #       labels = pass.cutoff,
-  #       cex = cex.text.use
-  #     )
-  #   }
-  # }
-  # smoothScatter(
-  #   x = gene.mean,
-  #   y = gene.dispersion.scaled,
-  #   pch = pch.use,
-  #   cex = cex.use,
-  #   col = col.use,
-  #   xlab = "Average expression",
-  #   ylab = "Dispersion",
-  #   nrpoints = Inf
-  # )
-  # if (do.contour) {
-  #   data.kde <- kde2d(x = gene.mean, y = gene.dispersion.scaled)
-  #   contour(
-  #     x = data.kde,
-  #     add = TRUE,
-  #     lwd = contour.lwd,
-  #     col = contour.col,
-  #     lty = contour.lty
-  #   )
-  # }
-  # if (do.spike) {
-  #   points(
-  #     x = gene.mean[spike.genes],
-  #     y = gene.dispersion.scaled[spike.genes],
-  #     pch = 16,
-  #     cex = cex.use,
-  #     col = spike.col.use,
-  #     nrpoints = Inf
-  #   )
-  # }
-  # if (do.text) {
-  #   text(
-  #     x = gene.mean[pass.cutoff],
-  #     y = gene.dispersion.scaled[pass.cutoff],
-  #     labels = pass.cutoff,
-  #     cex = cex.text.use
-  #   )
-  # }
 }
 
 #' Visualize Dimensional Reduction genes

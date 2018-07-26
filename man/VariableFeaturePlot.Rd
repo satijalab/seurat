@@ -4,16 +4,17 @@
 \alias{VariableFeaturePlot}
 \title{View variable features}
 \usage{
-VariableFeaturePlot(object, pt.size = 1, assay.use = NULL, ...)
+VariableFeaturePlot(object, pt.size = 1, cols.use = c("black", "red"),
+  assay.use = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
 
 \item{pt.size}{Size of the points on the plot}
 
-\item{assay.use}{Assay to pull from}
+\item{cols.use}{Colors to specify non-variable/variable status}
 
-\item{...}{Ignored for now}
+\item{assay.use}{Assay to pull variable features from}
 }
 \description{
 View variable features
