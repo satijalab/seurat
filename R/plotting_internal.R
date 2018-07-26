@@ -1074,11 +1074,7 @@ SingleRasterMap <- function(
     data.plot$Cell <- factor(x = data.plot$Cell, levels = unique(x = cell.order))
   }
   if (!is.null(x = group.by)) {
-    data.plot$Identity <- unlist(x = lapply(
-      X = group.by,
-      FUN = rep.int,
-      times = length(x = unique(x = data.plot$Feature))
-    ))
+    data.plot$Identity <- group.by[data.plot$Cell]
   }
   limits <- limits %||% c(min(data.plot$Expression), max(data.plot$Expression))
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {

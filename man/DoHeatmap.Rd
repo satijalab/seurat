@@ -4,16 +4,16 @@
 \alias{DoHeatmap}
 \title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, cells.use = NULL, features.use = NULL, disp.min = -2.5,
+DoHeatmap(object, features.use = NULL, cells.use = NULL, disp.min = -2.5,
   disp.max = 2.5, group.by = "ident", slot.use = "data",
   group.bar = TRUE, assay.use = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{cells.use}{A vector of cells to plot}
-
 \item{features.use}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
+
+\item{cells.use}{A vector of cells to plot}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 

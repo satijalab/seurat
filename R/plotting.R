@@ -3,8 +3,8 @@
 #' Draws a heatmap of single cell feature expression using superheat
 #'
 #' @param object Seurat object
-#' @param cells.use A vector of cells to plot
 #' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
+#' @param cells.use A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
 #' @param group.by Name of variable to group cells by
@@ -17,7 +17,7 @@
 #' @return Invisbly returns the final grob
 #'
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
 #' @export
 #'
 #' @examples
@@ -25,8 +25,8 @@
 #'
 DoHeatmap <- function(
   object,
-  cells.use = NULL,
   features.use = NULL,
+  cells.use = NULL,
   disp.min = -2.5,
   disp.max = 2.5,
   group.by = "ident",
@@ -68,18 +68,19 @@ DoHeatmap <- function(
     group.by = group.use
   )
   if (group.bar) {
+    pbuild <- ggplot_build(plot = p)
     cols <- hue_pal()(length(x = levels(x = group.use)))
     names(x = cols) <- levels(x = group.use)
-    y.pos <- length(x = features.use) + 0.75
-    y.adj <- 0.5
+    y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
+    y.max <- y.pos + 0.5
     p <- p + annotation_raster(
       raster = t(x = cols[sort(x = group.use)]),
       xmin = -Inf,
       xmax = Inf,
       ymin = y.pos,
-      ymax = y.pos + y.adj
+      ymax = y.max
     ) +
-      coord_cartesian(ylim = c(0, y.pos + y.adj), clip = 'off')
+      coord_cartesian(ylim = c(0, y.max), clip = 'off')
   }
   return(p)
 }
