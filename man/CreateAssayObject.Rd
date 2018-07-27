@@ -2,27 +2,31 @@
 % Please edit documentation in R/assay.R
 \name{CreateAssayObject}
 \alias{CreateAssayObject}
-\title{Make an Assay object}
+\title{Create an Assay object}
 \usage{
-CreateAssayObject(raw.data, min.cells = 0, min.genes = 0, is.expr = 0,
-  names.field = 1, names.delim = "_", ...)
+CreateAssayObject(raw.data, min.cells = 0, min.features = 0)
 }
 \arguments{
 \item{raw.data}{Raw input data}
 
-\item{min.cells}{Include genes with detected expression in at least this
-many cells. Will subset the raw.data matrix as well. To reintroduce excluded
-genes, create a new object with a lower cutoff.}
+\item{min.cells}{Include features detected in at least this many cells. Will subset the raw.data 
+matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}
 
-\item{min.genes}{Include cells where at least this many genes are detected.}
-
-\item{is.expr}{Expression threshold for 'detected' gene. For most datasets, particularly UMI
-datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
-based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
-values less than this will be set to 0 (though maintained in object@raw.data).}
-
-\item{...}{Ignored for now}
+\item{min.features}{Include cells where at least this many features are detected.}
 }
 \description{
-Make an Assay object
+Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the 
+input matrix is features x cells.
+}
+\details{
+Non-unique cell or feature names are not allowed. Please make unique before calling this function.
+}
+\examples{
+pbmc_raw <- read.table(
+  file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+  as.is = TRUE
+)
+pbmc_rna <- CreateAssayObject(raw.data = pbmc_raw)
+pbmc_rna
+
 }

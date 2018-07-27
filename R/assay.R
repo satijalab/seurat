@@ -4,43 +4,46 @@
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 NULL
 
-#' Make an Assay object
+#' Create an Assay object
+#' 
+#' Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the 
+#' input matrix is features x cells. 
+#' 
+#' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
 #'
 #' @param raw.data Raw input data
-#' @param min.cells Include genes with detected expression in at least this
-#' many cells. Will subset the raw.data matrix as well. To reintroduce excluded
-#' genes, create a new object with a lower cutoff.
-#' @param min.genes Include cells where at least this many genes are detected.
-#' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
-#' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
-#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
-#' values less than this will be set to 0 (though maintained in object@raw.data).
-#' @param ... Ignored for now
+#' @param min.cells Include features detected in at least this many cells. Will subset the raw.data 
+#' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
+#' @param min.features Include cells where at least this many features are detected.
 #'
 #' @export
+#'
+#'@examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_rna <- CreateAssayObject(raw.data = pbmc_raw)
+#' pbmc_rna
 #'
 CreateAssayObject <- function(
   raw.data,
   min.cells = 0,
-  min.genes = 0,
-  is.expr = 0,
-  names.field = 1,
-  names.delim = '_',
-  ...
+  min.features = 0
 ) {
+  # check that dimnames of input raw.data are unique
+  if (anyDuplicated(rownames(x = raw.data))) {
+    stop("Non-unique features (rownames) present in the input matrix")
+  }
+  if (anyDuplicated(colnames(x = raw.data))) {
+    stop("Non-unique cell names (colnames) present in the input matrix")
+  }
   if (!inherits(x = raw.data, what = 'dgCMatrix')) {
     raw.data <- as(object = as.matrix(x = raw.data), Class = 'dgCMatrix')
   }
-  if (is.expr > 0) {
-    # suppress Matrix package note:
-    # Note: method with signature 'CsparseMatrix#Matrix#missing#replValue' chosen for function '[<-',
-    # target signature 'dgCMatrix#lgeMatrix#missing#numeric'.
-    # "Matrix#ldenseMatrix#missing#replValue" would also be valid
-    suppressMessages(expr = raw.data[raw.data < is.expr] <- 0)
-  }
-  # Filter based on min.genes
-  num.genes <- colSums(x = raw.data > is.expr)
-  raw.data <- raw.data[, which(x = num.genes > min.genes)]
+  # Filter based on min.features
+  num.features <- colSums(x = raw.data)
+  raw.data <- raw.data[, which(x = num.features > min.features)]
   # filter genes on the number of cells expressing
   if (min.cells > 0) {
     num.cells <- rowSums(x = raw.data > 0)
@@ -272,7 +275,7 @@ merge.Assay <- function(
   y = NULL,
   add.cell.ids = NULL,
   min.cells = 0,
-  min.genes = 0,
+  min.features = 0,
   is.expr = 0,
   merge.data = TRUE,
   ...
@@ -294,7 +297,7 @@ merge.Assay <- function(
   combined.assay <- CreateAssayObject(
     raw.data = merged.raw,
     min.cells = min.cells,
-    min.genes = min.genes,
+    min.features = min.features,
     is.expr = is.expr
   )
   if (merge.data) {

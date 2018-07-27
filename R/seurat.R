@@ -3,53 +3,54 @@
 #' @importFrom methods setMethod
 NULL
 
-#' Make a Seurat object
+#' Create a Seurat object
+#' 
+#' Create a Seurat object from a feature (e.g. gene) expression matrix. The expected format of the 
+#' input matrix is features x cells. 
+#' 
+#' 
+#' Note: In previous versions (<3.0), this function also accepted a parameter to set the expression
+#' threshold for a 'detected' feature (gene). This functionality has been removed to simplify the 
+#' initialization process/assumptions. If you would still like to impose this threshold for your 
+#' particular dataset, simply filter the input expression matrix before calling this function.
 #'
 #' @inheritParams CreateAssayObject
-#' @param project Project name
-#' @param assay.use Name of this assay
-#' @param normalization.method Method for cell normalization. Default is no normalization.
-#' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
-#' normalization method (i.e. LogNormalize) here directly.
-#' @param scale.factor If normalizing on the cell level, this sets the scale factor.
-#' @param do.scale In object@@scale.data, perform row-scaling (gene-based
-#' z-score). FALSE by default. In this case, run ScaleData later in the workflow. As a shortcut, you
-#' can specify do.scale = TRUE (and do.center = TRUE) here.
-#' @param do.center In object@@scale.data, perform row-centering (gene-based centering)
+#' @param project Sets the project name for the Seurat object. 
+#' @param assay.use Name of the assay corresponding to the initial input data. 
 #' @param names.field For the initial identity class for each cell, choose this field from the
-#' cell's column name
+#' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set 
+#' names.field to 3 to set the initial identities to CELLTYPE. 
 #' @param names.delim For the initial identity class for each cell, choose this delimiter from the
-#' cell's column name
+#' cell's column name. E.g. If you cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
+#' separate the cell name into it's component parts for picking the relevant field. 
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
-#' the rows are cell names, and the columns are additional metadata fields
-#' @param display.progress display progress bar for normalization and/or scaling procedure.
-#' @param ... Ignored for now
+#' the rows are cell names, and the columns are additional metadata fields.
 #'
 #' @importFrom utils packageVersion
 #' @export
+#' 
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small
 #'
 CreateSeuratObject <- function(
   raw.data,
   project = 'SeuratProject',
   assay.use = 'RNA',
   min.cells = 0,
-  min.genes = 0,
-  is.expr = 0,
-  normalization.method = NULL,
-  scale.factor = 1e4,
-  do.scale = FALSE,
-  do.center = FALSE,
+  min.features = 0,
   names.field = 1,
   names.delim = "_",
-  meta.data = NULL,
-  display.progress = TRUE,
-  ...
+  meta.data = NULL
 ) {
-  assay.data <- MakeAssayObject(
+  assay.data <- CreateAssayObject(
     raw.data = raw.data,
     min.cells = min.cells,
-    min.genes = min.genes,
-    is.expr = is.expr
+    min.features = min.features  
   )
   Key(object = assay.data) <- paste0(tolower(x = assay.use), '_')
   assay.list <- list(assay.data)
@@ -80,24 +81,7 @@ CreateSeuratObject <- function(
   object['orig.ident'] <- idents
   # Calculate nUMI and nFeature
   object['nUMI'] <- colSums(x = object)
-  object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data > is.expr)
-  if (!is.null(normalization.method)) {
-    object <- NormalizeData(
-      object = object,
-      assay.use = assay.use,
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      display.progress = display.progress
-    )
-  }
-  if (do.scale || do.center) {
-    object <- ScaleData(
-      object = object,
-      do.scale = do.scale,
-      do.center = do.center,
-      display.progress = display.progress
-    )
-  }
+  object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data)
   if(!is.null(meta.data)){
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -452,8 +436,7 @@ merge.Seurat <- function(
   merge.data = TRUE,
   project = "SeuratProject",
   min.cells = 0,
-  min.genes = 0,
-  is.expr = 0
+  min.features = 0
 ) {
   objects <- c(x, y)
   if (!is.null(add.cell.ids)) {
@@ -481,7 +464,7 @@ merge.Seurat <- function(
       y = assay2,
       merge.data = merge.data,
       min.cells = min.cells,
-      min.genes = min.genes,
+      min.features = min.features,
       is.expr = is.expr,
     )
   }
