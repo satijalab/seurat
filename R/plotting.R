@@ -1232,7 +1232,11 @@ JackStrawPlot <- function(
   pAll$Contig <- rownames(x = pAll)
   data.plot <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = data.plot) <- c("Contig", "PC", "Value")
-  score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")[dims, ]
+  score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")
+  if(nrow(x = score.df) < max(dims)){
+    stop("Jackstraw procedure not scored for all the provided dims. Please run ScoreJackStraw.")
+  }
+  score.df <- score.df[dims, ]
   if (nrow(score.df) == 0) {
     stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
   }
