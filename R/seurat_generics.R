@@ -65,6 +65,24 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
+#' Get SeuratCommands
+#'
+#' Pull information on previously run commands in the Seurat object.
+#'
+#' @param object Seurat object
+#' @param command Name of the command to pull
+#' @param value Name of the parameter to pull the value for
+#'
+#' @return Either the SeuratCommand object or the paramter value
+#'
+#' @rdname Command
+#' @export Command
+#'
+"Command" <- function(object, command, ..., value) {
+  UseMethod(generic = 'Command', object = object)
+}
+
+
 #' Merge Seurat Objects
 #'
 #' Merge two or more objects.

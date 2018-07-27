@@ -136,8 +136,7 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
@@ -149,12 +148,12 @@ NormalizeData.default <- function(
       scale.factor = scale.factor,
       verbose = verbose
     ),
-    'genesCLR' = CustomNormalize(
+    'CLR' = CustomNormalize(
       data = object,
       custom_function = function(x) {
         return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
       },
-      across = 'genes'
+      across = 'features'
     ),
     stop("Unkown normalization method: ", normalization.method)
   )
@@ -179,8 +178,7 @@ NormalizeData.Assay <- function(
       object = GetAssayData(object = object, slot = 'raw.data'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      verbose = verbose,
-      ...
+      verbose = verbose
     )
   )
   return(object)
@@ -204,8 +202,7 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name = NULL,
-  ...
+  workflow.name = NULL
 ) {
   assay.use <- assay.use %||% DefaultAssay(object = object)
   if (!is.null(workflow.name)) {
