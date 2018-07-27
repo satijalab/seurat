@@ -81,7 +81,7 @@ CreateSeuratObject <- function(
   object['orig.ident'] <- idents
   # Calculate nUMI and nFeature
   object['nUMI'] <- colSums(x = object)
-  object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data)
+  object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data > 0)
   if(!is.null(meta.data)){
     object <- AddMetaData(object = object, metadata = meta.data)
   }
