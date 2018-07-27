@@ -408,6 +408,26 @@ Stdev.Seurat <- function(object, reduction.use, ...) {
   return(Stdev(object = object[[reduction.use]]))
 }
 
+#' @describeIn Command Get the SeuratCommands
+#' @export
+#' @method Command Seurat
+#'
+Command.Seurat <- function(object, command, value = NULL) {
+  commands <- slot(object = object, name = "commands")
+  if (is.null(x = commands[[command]])) {
+    stop(paste0(command, " has not been run or is not a valid command."))
+  }
+  command <- commands[[command]]
+  if (is.null(x = value)) {
+    return(command)
+  }
+  params <- slot(object = command, name = "params")
+  if (!value %in% names(x = params)) {
+    stop(paste0(value, " is not a valid parameter for ", slot(object = command, name = "name")))
+  }
+  return(params[[value]])
+}
+
 #' @export
 #' @method subset Seurat
 #'

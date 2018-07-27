@@ -4,28 +4,32 @@
 \alias{NormalizeData.Assay}
 \alias{NormalizeData.Seurat}
 \alias{NormalizeData}
-\title{Normalize Assay Data}
+\title{Normalize Data}
 \usage{
 \method{NormalizeData}{Assay}(object, normalization.method = "LogNormalize",
   scale.factor = 10000, verbose = TRUE, ...)
 
 \method{NormalizeData}{Seurat}(object, assay.use = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, workflow.name = NULL, ...)
+  verbose = TRUE, workflow.name = NULL)
 
-NormalizeData(object, normalization.method, scale.factor, verbose, ...)
+NormalizeData(object, normalization.method, scale.factor, verbose)
 }
 \arguments{
 \item{object}{An object}
 
-\item{normalization.method}{Method for normalization. Default is
-log-normalization (LogNormalize). More methods to be added very shortly.}
+\item{normalization.method}{Method for normalization.
+ \itemize{
+  \item{LogNormalize: }{Feature counts for each cell are divided by the total
+  counts for that cell and multiplied by the scale.factor. This is then
+  natural-log transformed using log1p.}
+  \item{CLR: }{Applies a centered log ratio transformation}
+}
+More methods to be added.}
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
-\item{verbose}{display progress bar for scaling procedure.}
-
-\item{...}{Arguments passed to other methods}
+\item{verbose}{display progress bar for normalization procedure.}
 
 \item{assay.use}{Name of assay to use}
 }
@@ -33,7 +37,7 @@ log-normalization (LogNormalize). More methods to be added very shortly.}
 Returns object after normalization
 }
 \description{
-Normalize Assay Data
+Normalize the count data present in a given assay.
 }
 \section{Methods (by class)}{
 \itemize{

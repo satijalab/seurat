@@ -1,11 +1,18 @@
-#' Normalize Assay Data
+#' Normalize Data
+#'
+#' Normalize the count data present in a given assay.
 #'
 #' @param object An object
-#' @param normalization.method Method for normalization. Default is
-#' log-normalization (LogNormalize). More methods to be added very shortly.
+#' @param normalization.method Method for normalization.
+#'  \itemize{
+#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. This is then
+#'   natural-log transformed using log1p.}
+#'   \item{CLR: }{Applies a centered log ratio transformation}
+#' }
+#' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param verbose display progress bar for scaling procedure.
-#' @param ... Arguments passed to other methods
+#' @param verbose display progress bar for normalization procedure.
 #'
 #' @return Returns object after normalization
 #'
@@ -16,8 +23,7 @@ NormalizeData <- function(
   object,
   normalization.method,
   scale.factor,
-  verbose,
-  ...
+  verbose
 ) {
   UseMethod(generic = 'NormalizeData', object = object)
 }

@@ -541,7 +541,7 @@ RegressOutNBregOld <- function(
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
-# @parm across Which way to we normalize? Choose form 'cells' or 'genes'
+# @parm across Which way to we normalize? Choose form 'cells' or 'features'
 #
 # @return Returns a matrix with the custom normalization
 #
@@ -558,8 +558,8 @@ CustomNormalize <- function(data, custom_function, across) {
   margin <- switch(
     EXPR = across,
     'cells' = 2,
-    'genes' = 1,
-    stop("'across' must be either 'cells' or 'genes'")
+    'features' = 1,
+    stop("'across' must be either 'cells' or 'features'")
   )
   norm.data <- apply(
     X = data,

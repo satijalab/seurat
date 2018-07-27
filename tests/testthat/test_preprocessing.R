@@ -58,22 +58,26 @@ context("NormalizeData")
 test_that("NormalizeData error handling", {
   expect_error(NormalizeData(object = object, assay.use = "FAKE"))
   expect_equal(GetAssayData(object = object, slot = "raw.data"),
-               GetAssayData(object = NormalizeData(object = object,
-                                                   normalization.method = NULL),
-                            slot = "data"))
+               GetAssayData(object = NormalizeData(
+                  object = object,
+                  normalization.method = NULL),
+                slot = "data"))
 })
 
-object <- NormalizeData(object = object, scale.factor = 1e6, display.progress = FALSE)
+object <- NormalizeData(object = object, verbose = FALSE)
 test_that("NormalizeData scales properly", {
-  expect_equal(GetAssayData(object = object, slot = "data")[2, 2], 9.304742, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 7.659003, tolerance = 1e-6)
-  #expect_equal(object@calc.params$NormalizeData$scale.factor, 1e6)
-  #expect_equal(object@calc.params$NormalizeData$normalization.method, "LogNormalize")
+  expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 9.567085, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 8.415309, tolerance = 1e-6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "scale.factor"), 1e6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = object@raw.data)
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "raw.data"))
 test_that("LogNormalize normalizes properly", {
-  expect_equal(LogNormalize(data = object@raw.data, display.progress = F), LogNormalize(data = as.data.frame(as.matrix(object@raw.data)), display.progress = F))
+  expect_equal(
+    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "raw.data"), verbose = FALSE),
+    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "raw.data"))), verbose = FALSE)
+  )
 })
 
 # Tests for ScaleData
