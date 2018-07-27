@@ -42,7 +42,7 @@ CreateAssayObject <- function(
     raw.data <- as(object = as.matrix(x = raw.data), Class = 'dgCMatrix')
   }
   # Filter based on min.features
-  num.features <- colSums(x = raw.data)
+  num.features <- colSums(x = raw.data > 0)
   raw.data <- raw.data[, which(x = num.features > min.features)]
   # filter genes on the number of cells expressing
   if (min.cells > 0) {

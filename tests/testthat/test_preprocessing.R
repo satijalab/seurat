@@ -12,19 +12,10 @@ fake.meta.data <- data.frame(rep(1, ncol(pbmc.test)))
 rownames(fake.meta.data) <- colnames(pbmc.test)
 colnames(fake.meta.data) <- "FMD"
 object <- CreateSeuratObject(raw.data = pbmc.test,
-                             normalization.method = "LogNormalize",
-                             do.scale = T,
-                             meta.data = fake.meta.data,
-                             # save.raw = F,
-                             display.progress = F)
+                             meta.data = fake.meta.data)
 test_that("object initialization actually creates seurat object", {
   expect_is(object, "Seurat")
 })
-
-# test_that("save.raw option handled properly", {
-#   expect_equal(dim(object@raw.data), c(1, 1))
-#   expect_equal(object@raw.data[1, 1], NA)
-# })
 
 test_that("meta.data slot generated correctly", {
   expect_equal(dim(object[]), c(80, 4))
@@ -34,26 +25,15 @@ test_that("meta.data slot generated correctly", {
   expect_equal(object["nUMI"][75:80, ], c(228, 527, 202, 157, 150, 233))
 })
 
-test_that("normalization and scaling run during object creation process", {
-  expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 4.968821, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object, slot = "data")[174, 80], 5.554937, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[2, 1], 1.917418, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object, slot = "scale.data")[174, 80], 1.998957, tolerance = 1e-6)
-})
+object.filtered <- CreateSeuratObject(
+  raw.data = pbmc.test,
+  min.cells = 10,
+  min.features = 30
+)
 
-object.filtered <- CreateSeuratObject(raw.data = pbmc.test,
-                     is.expr = 2,
-                     min.cells = 3,
-                     min.genes = 10)
-
-test_that("Expression threshold zeros out proper entries in expression matrix", {
-  expect_equal(nnzero(x = GetAssayData(object = object.filtered, slot = "data")), 1939)
-  expect_equal(nnzero(x = GetAssayData(object = object.filtered, slot = "raw.data")), 1939)
-})
-
-test_that("Genes are filtered out based on min.cells", {
-  expect_equal(nrow(GetAssayData(object = object.filtered, slot = "raw.data")), 162)
-  expect_equal(nrow(GetAssayData(object = object.filtered, slot = "data")), 162)
+test_that("Filtering handled properly", {
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "raw.data")), 162)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "raw.data")), 75)
 })
 
 # Tests for Read10X
