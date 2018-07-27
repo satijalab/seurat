@@ -4,31 +4,31 @@
 NULL
 
 #' Create a Seurat object
-#' 
-#' Create a Seurat object from a feature (e.g. gene) expression matrix. The expected format of the 
-#' input matrix is features x cells. 
-#' 
-#' 
+#'
+#' Create a Seurat object from a feature (e.g. gene) expression matrix. The expected format of the
+#' input matrix is features x cells.
+#'
+#'
 #' Note: In previous versions (<3.0), this function also accepted a parameter to set the expression
-#' threshold for a 'detected' feature (gene). This functionality has been removed to simplify the 
-#' initialization process/assumptions. If you would still like to impose this threshold for your 
+#' threshold for a 'detected' feature (gene). This functionality has been removed to simplify the
+#' initialization process/assumptions. If you would still like to impose this threshold for your
 #' particular dataset, simply filter the input expression matrix before calling this function.
 #'
 #' @inheritParams CreateAssayObject
-#' @param project Sets the project name for the Seurat object. 
-#' @param assay.use Name of the assay corresponding to the initial input data. 
+#' @param project Sets the project name for the Seurat object.
+#' @param assay.use Name of the assay corresponding to the initial input data.
 #' @param names.field For the initial identity class for each cell, choose this field from the
-#' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set 
-#' names.field to 3 to set the initial identities to CELLTYPE. 
+#' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set
+#' names.field to 3 to set the initial identities to CELLTYPE.
 #' @param names.delim For the initial identity class for each cell, choose this delimiter from the
 #' cell's column name. E.g. If you cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
-#' separate the cell name into it's component parts for picking the relevant field. 
+#' separate the cell name into it's component parts for picking the relevant field.
 #' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
 #' the rows are cell names, and the columns are additional metadata fields.
 #'
 #' @importFrom utils packageVersion
 #' @export
-#' 
+#'
 #' @examples
 #' pbmc_raw <- read.table(
 #'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
@@ -50,7 +50,7 @@ CreateSeuratObject <- function(
   assay.data <- CreateAssayObject(
     raw.data = raw.data,
     min.cells = min.cells,
-    min.features = min.features  
+    min.features = min.features
   )
   Key(object = assay.data) <- paste0(tolower(x = assay.use), '_')
   assay.list <- list(assay.data)
@@ -428,6 +428,7 @@ subset.Seurat <- function(x, subset, ...) {
 
 #' @export
 #' @method merge Seurat
+#' @describeIn merge Merge two (or more) Seurat objects
 #'
 merge.Seurat <- function(
   x = NULL,
@@ -464,8 +465,7 @@ merge.Seurat <- function(
       y = assay2,
       merge.data = merge.data,
       min.cells = min.cells,
-      min.features = min.features,
-      is.expr = is.expr,
+      min.features = min.features
     )
   }
   # Merge the meta.data
@@ -499,7 +499,7 @@ merge.Seurat <- function(
     merged.object[paste('nFeature', assay, sep = '_')] <-
       colSums(x = GetAssayData(
         object = merged.object,
-        assay = assay, slot = "raw.data") > is.expr)
+        assay = assay, slot = "raw.data") > 0)
   }
   return(merged.object)
 }

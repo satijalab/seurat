@@ -5,14 +5,14 @@
 NULL
 
 #' Create an Assay object
-#' 
-#' Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the 
-#' input matrix is features x cells. 
-#' 
+#'
+#' Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the
+#' input matrix is features x cells.
+#'
 #' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
 #'
 #' @param raw.data Raw input data
-#' @param min.cells Include features detected in at least this many cells. Will subset the raw.data 
+#' @param min.cells Include features detected in at least this many cells. Will subset the raw.data
 #' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
 #' @param min.features Include cells where at least this many features are detected.
 #'
@@ -269,6 +269,7 @@ setMethod(
 
 #' @export
 #' @method merge Assay
+#' @describeIn merge Merge two (or more) Assay objects
 #'
 merge.Assay <- function(
   x = NULL,
@@ -276,9 +277,7 @@ merge.Assay <- function(
   add.cell.ids = NULL,
   min.cells = 0,
   min.features = 0,
-  is.expr = 0,
-  merge.data = TRUE,
-  ...
+  merge.data = TRUE
 ) {
   assays <- c(x, y)
   if (!is.null(add.cell.ids)) {
@@ -297,8 +296,7 @@ merge.Assay <- function(
   combined.assay <- CreateAssayObject(
     raw.data = merged.raw,
     min.cells = min.cells,
-    min.features = min.features,
-    is.expr = is.expr
+    min.features = min.features
   )
   if (merge.data) {
     merged.data <- GetAssayData(object = assays[[1]], slot = "data")

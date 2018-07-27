@@ -9,13 +9,13 @@ CreateAssayObject(raw.data, min.cells = 0, min.features = 0)
 \arguments{
 \item{raw.data}{Raw input data}
 
-\item{min.cells}{Include features detected in at least this many cells. Will subset the raw.data 
+\item{min.cells}{Include features detected in at least this many cells. Will subset the raw.data
 matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are detected.}
 }
 \description{
-Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the 
+Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the
 input matrix is features x cells.
 }
 \details{

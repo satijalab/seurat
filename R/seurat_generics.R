@@ -67,11 +67,25 @@ Idents <- function(object, ... ) {
 
 #' Merge Seurat Objects
 #'
-#' @param x Seurat object
-#' @param y Seurat object (or multiple Seurat objects)
-#' @param ... additional arguments
+#' Merge two or more objects.
 #'
-#' @return Seurat object
+#' When merging Seurat objects, the merge procedure will merge the Assay level
+#' raw data and potentially the data slots (depending on the merge.data parameter).
+#' It will also merge the cell-level meta data that was stored with each object
+#' and preserve the cell identities that were active in the objects pre-merge.
+#' The merge will not preserve reductions, graphs or logged commands that were
+#' present in the original objects.
+#'
+#' @param x Object
+#' @param y Object (or a list of multiple objects)
+#' @param add.cell.ids A character vector of length(x = c(x, y)). Appends the
+#' corresponding values to the start of each objects' cell names.
+#' @param merge.data Merge the data slots instead of just merging the raw.data
+#' (which requires renormalization). This is recommended if the same normalization
+#' approach was applied to all objects.
+#' @inheritParams CreateSeuratObject
+#'
+#' @return Merged object
 #'
 #' @rdname merge
 #' @export merge
