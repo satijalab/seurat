@@ -10,18 +10,17 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #'
 #' The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
 #' as well as cluster information, variable features, and any other assay-specific metadata.
-#' Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression data.
+#' Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression 
+#' data.
 #'
 #' @slot raw.data Raw expression data
 #' @slot data Normalized expression data
 #' @slot scale.data Scaled expression data
-#' @slot key ...
-#' @slot hvf.info Output of mean/variability analysis for all features
+#' @slot key Key for the Assay
 #' @slot var.features Vector of features exhibiting high variance across single cells
-#' @slot meta.features Feature-level meteadata
-#' @slot cluster.tree ...
-#' @slot kmeans ...
-#'
+#' @slot meta.features Feature-level metadata
+#' @slot misc Utility slot for storing additional data associated with the assay
+#' 
 #' @name Assay
 #' @exportClass Assay
 #' @importClassesFrom Matrix dgCMatrix
@@ -35,8 +34,7 @@ Assay <- setClass(
     key = 'character',
     var.features = 'vector',
     meta.features = 'data.frame',
-    cluster.tree = 'ANY',
-    kmeans = 'ANY'
+    misc = 'ANY'
   )
 )
 

@@ -7,7 +7,8 @@
 \description{
 The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
 as well as cluster information, variable features, and any other assay-specific metadata.
-Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression data.
+Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression 
+data.
 }
 \section{Slots}{
 
@@ -18,16 +19,12 @@ Assays should contain single cell expression data such as RNA-seq, protein, or i
 
 \item{\code{scale.data}}{Scaled expression data}
 
-\item{\code{key}}{...}
-
-\item{\code{hvf.info}}{Output of mean/variability analysis for all features}
+\item{\code{key}}{Key for the Assay}
 
 \item{\code{var.features}}{Vector of features exhibiting high variance across single cells}
 
-\item{\code{meta.features}}{Feature-level meteadata}
+\item{\code{meta.features}}{Feature-level metadata}
 
-\item{\code{cluster.tree}}{...}
-
-\item{\code{kmeans}}{...}
+\item{\code{misc}}{Utility slot for storing additional data associated with the assay}
 }}
 
