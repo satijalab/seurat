@@ -285,28 +285,6 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
   return(rowmeans);
 }
 
-/* Calculates the row means of a sparse matrix */
-//[[Rcpp::export]]
-Eigen::VectorXd SparseRowMean(Eigen::SparseMatrix<double> mat, bool display_progress){
-  int ncols = mat.cols();
-  Eigen::VectorXd rowmeans(mat.rows());
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene means" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double rm = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      rm += (it.value());
-    }
-    rm = rm / ncols;
-    rowmeans[k] = (rm);
-  }
-  return(rowmeans);
-}
-
 /* Calculate the variance in non-logspace (return answer in non-logspace) */
 //[[Rcpp::export]]
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat,  bool display_progress){
@@ -412,17 +390,6 @@ NumericVector RowSumOfSquares(const NumericMatrix x){
   return out;
 }
 
-/* Calculates the mean of rows of a matrix */
-//[[Rcpp::export]]
-NumericVector RowMean(Eigen::Map<Eigen::MatrixXd> x){
-  NumericVector out(x.rows());
-  for(int i=0; i < x.rows(); ++i){
-    Eigen::ArrayXd r = x.row(i).array();
-    double rowMean = r.mean();
-    out[i] = rowMean;
-  }
-  return out;
-}
 
 /* Calculates the variance of rows of a matrix */
 //[[Rcpp::export]]

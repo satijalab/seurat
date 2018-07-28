@@ -49,10 +49,6 @@ FastExpMean <- function(mat, display_progress) {
     .Call('_Seurat_FastExpMean', PACKAGE = 'Seurat', mat, display_progress)
 }
 
-SparseRowMean <- function(mat, display_progress) {
-    .Call('_Seurat_SparseRowMean', PACKAGE = 'Seurat', mat, display_progress)
-}
-
 SparseRowVar <- function(mat, display_progress) {
     .Call('_Seurat_SparseRowVar', PACKAGE = 'Seurat', mat, display_progress)
 }
@@ -67,10 +63,6 @@ FastLogVMR <- function(mat, display_progress) {
 
 RowSumOfSquares <- function(x) {
     .Call('_Seurat_RowSumOfSquares', PACKAGE = 'Seurat', x)
-}
-
-RowMean <- function(x) {
-    .Call('_Seurat_RowMean', PACKAGE = 'Seurat', x)
 }
 
 RowVar <- function(x) {
