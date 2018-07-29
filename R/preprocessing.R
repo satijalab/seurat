@@ -1056,11 +1056,14 @@ FindVariableFeatures.Seurat <- function(
 FindVariableFeaturesNew.default <- function(
   object,
   loess.span = 0.3,
-  clip.max = 50,
+  clip.max = 'auto',
   verbose = TRUE
 ) {
   if (!inherits(x = object, 'dgCMatrix')) {
     object <- as(object = as.matrix(x = object), Class = 'dgCMatrix')
+  }
+  if (clip.max == 'auto') {
+    clip.max <- sqrt(ncol(object))
   }
   hvf.info <- data.frame(mean = rowMeans(x = object),
                          variance = SparseRowVar(mat = object, display_progress = verbose),
@@ -1079,7 +1082,8 @@ FindVariableFeaturesNew.default <- function(
 
 #' @param num.features Number of features to select as top variable features
 #' @param loess.span Loess span parameter used when fitting the variance-mean relationship
-#' @param clip.max After standardization values larger than clip.max will be set to clip.max
+#' @param clip.max After standardization values larger than clip.max will be set to clip.max;
+#' default is 'auto' which sets this value to the square root of the number of cells
 #' @param verbose Show progress bar for calculations
 #'
 #' @describeIn FindVariableFeaturesNew Find variable features in an Assay object
@@ -1090,7 +1094,7 @@ FindVariableFeaturesNew.Assay <- function(
   object,
   num.features = 1000,
   loess.span = 0.3,
-  clip.max = 50,
+  clip.max = 'auto',
   verbose = TRUE
 ) {
   hvf.info <- FindVariableFeaturesNew(
@@ -1119,7 +1123,7 @@ FindVariableFeaturesNew.Seurat <- function(
   assay.use = NULL,
   num.features = 1000,
   loess.span = 0.3,
-  clip.max = 50,
+  clip.max = 'auto',
   verbose = TRUE,
   workflow.name = NULL,
   ...

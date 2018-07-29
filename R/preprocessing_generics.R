@@ -88,7 +88,8 @@ FindVariableFeatures <- function(
 #' @param object An object
 #' @param num.features Number of features to select as top variable features
 #' @param loess.span Loess span parameter used when fitting the variance-mean relationship
-#' @param clip.max After standardization values larger than clip.max will be set to clip.max
+#' @param clip.max After standardization values larger than clip.max will be set to clip.max;
+#' default is 'auto' which sets this value to the square root of the number of cells
 #' @param verbose Show progress bar for calculations
 #'
 #' @rdname FindVariableFeaturesNew

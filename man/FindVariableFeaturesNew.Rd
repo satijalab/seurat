@@ -7,11 +7,11 @@
 \title{Find variable features}
 \usage{
 \method{FindVariableFeaturesNew}{Assay}(object, num.features = 1000,
-  loess.span = 0.3, clip.max = 50, verbose = TRUE)
+  loess.span = 0.3, clip.max = "auto", verbose = TRUE)
 
 \method{FindVariableFeaturesNew}{Seurat}(object, assay.use = NULL,
-  num.features = 1000, loess.span = 0.3, clip.max = 50, verbose = TRUE,
-  workflow.name = NULL, ...)
+  num.features = 1000, loess.span = 0.3, clip.max = "auto",
+  verbose = TRUE, workflow.name = NULL, ...)
 
 FindVariableFeaturesNew(object, num.features, loess.span, clip.max, verbose)
 }
@@ -22,7 +22,8 @@ FindVariableFeaturesNew(object, num.features, loess.span, clip.max, verbose)
 
 \item{loess.span}{Loess span parameter used when fitting the variance-mean relationship}
 
-\item{clip.max}{After standardization values larger than clip.max will be set to clip.max}
+\item{clip.max}{After standardization values larger than clip.max will be set to clip.max;
+default is 'auto' which sets this value to the square root of the number of cells}
 
 \item{verbose}{Show progress bar for calculations}
 
@@ -34,7 +35,8 @@ FindVariableFeaturesNew(object, num.features, loess.span, clip.max, verbose)
 
 \item{loess.span}{Loess span parameter used when fitting the variance-mean relationship}
 
-\item{clip.max}{After standardization values larger than clip.max will be set to clip.max}
+\item{clip.max}{After standardization values larger than clip.max will be set to clip.max;
+default is 'auto' which sets this value to the square root of the number of cells}
 
 \item{verbose}{Show progress bar for calculations}
 }
