@@ -37,6 +37,11 @@ Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
+Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat);
+Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
+                                Eigen::VectorXd mu, 
+                                Eigen::VectorXd sd,
+                                double vmax);
 NumericVector RowSumOfSquares(const NumericMatrix x);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 int IntersectLength(std::vector<int> a, std::vector<int> b);

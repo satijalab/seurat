@@ -168,8 +168,7 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   object <- SetAssayData(
     object = object,
@@ -213,8 +212,7 @@ NormalizeData.Seurat <- function(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
-    verbose = verbose,
-    ...
+    verbose = verbose
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)
@@ -1044,6 +1042,99 @@ FindVariableFeatures.Seurat <- function(
     selection.method = selection.method,
     num.features = num.features,
     ...
+  )
+  object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
+  return(object)
+}
+
+#' @export
+#'
+FindVariableFeaturesNew.default <- function(
+  object,
+  loess.span = 0.3,
+  clip.max = 50,
+  verbose = TRUE
+) {
+  if (!inherits(x = object, 'dgCMatrix')) {
+    object <- as(object = as.matrix(x = object), Class = 'dgCMatrix')
+  }
+  hvf.info <- data.frame(mean = rowMeans(x = object),
+                         variance = SparseRowVar(mat = object, display_progress = verbose),
+                         variance.expected = rep(0, nrow(object)),
+                         variance.standardized = rep(0, nrow(object)))
+  not.const <- hvf.info$variance > 0
+  fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
+  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+  # use c function to get variance after feature standardization
+  hvf.info$variance.standardized <- SparseRowVarStd(mat = object, 
+                                                    mu = hvf.info$mean, 
+                                                    sd = sqrt(hvf.info$variance.expected), 
+                                                    vmax = clip.max)
+  return(hvf.info)
+}
+
+#' @param num.features Number of features to select as top variable features
+#' @param loess.span Loess span parameter used when fitting the variance-mean relationship
+#' @param clip.max After standardization values larger than clip.max will be set to clip.max
+#' @param verbose Show progress bar for calculations
+#'
+#' @describeIn FindVariableFeaturesNew Find variable features in an Assay object
+#' @export
+#' @method FindVariableFeaturesNew Assay
+#'
+FindVariableFeaturesNew.Assay <- function(
+  object,
+  num.features = 1000,
+  loess.span = 0.3,
+  clip.max = 50,
+  verbose = TRUE
+) {
+  hvf.info <- FindVariableFeaturesNew(
+    object = GetAssayData(object = object, slot = 'raw.data'),
+    loess.span = loess.span,
+    clip.max = clip.max,
+    verbose = verbose
+  )
+  object[[names(x = hvf.info)]] <- hvf.info
+  hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+  top.features <- rownames(x = hvf.info)[1:num.features]
+  VariableFeatures(object = object) <- top.features
+  return(object)
+}
+
+#' @inheritParams FindVariableFeaturesNew.Assay
+#' @param assay.use Which assay to use
+#' @param workflow.name Name of workflow
+#'
+#' @describeIn FindVariableFeaturesNew Find variable features in a Seurat object
+#' @export
+#' @method FindVariableFeaturesNew Seurat
+#'
+FindVariableFeaturesNew.Seurat <- function(
+  object,
+  assay.use = NULL,
+  num.features = 1000,
+  loess.span = 0.3,
+  clip.max = 50,
+  verbose = TRUE,
+  workflow.name = NULL,
+  ...
+) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- FindVariableFeaturesNew(
+    object = assay.data,
+    num.features = num.features,
+    loess.span = loess.span,
+    clip.max = clip.max,
+    verbose = verbose
   )
   object[[assay.use]] <- assay.data
   object <- LogSeuratCommand(object = object)

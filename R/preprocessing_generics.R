@@ -77,6 +77,33 @@ FindVariableFeatures <- function(
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
+#' Find variable features
+#'
+#' Identifies features that are outliers on a 'mean variability plot'. First, fits a
+#' line to the relationship of log(variance) and log(mean) using local polynomial 
+#' regression (loess). Then standardizes the feature values using the observed mean and 
+#' expected variance (given by the fitted line). Feature variance is the calculated on 
+#' the standardized values after clipping to a maximum (default is 50).
+#'
+#' @param object An object
+#' @param num.features Number of features to select as top variable features
+#' @param loess.span Loess span parameter used when fitting the variance-mean relationship
+#' @param clip.max After standardization values larger than clip.max will be set to clip.max
+#' @param verbose Show progress bar for calculations
+#'
+#' @rdname FindVariableFeaturesNew
+#' @export FindVariableFeaturesNew
+#'
+FindVariableFeaturesNew <- function(
+  object,
+  num.features,
+  loess.span,
+  clip.max,
+  verbose
+) {
+  UseMethod(generic = 'FindVariableFeaturesNew', object = object)
+}
+
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,

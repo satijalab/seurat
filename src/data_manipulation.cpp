@@ -287,7 +287,7 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
 
 /* Calculate the variance in non-logspace (return answer in non-logspace) */
 //[[Rcpp::export]]
-Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat,  bool display_progress){
+Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
   int ncols = mat.cols();
   Eigen::VectorXd rowdisp(mat.rows());
   mat = mat.transpose();
@@ -312,6 +312,57 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat,  bool display_prog
     rowdisp[k] = v;
   }
   return(rowdisp);
+}
+
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
+  mat = mat.transpose();
+  Eigen::VectorXd allSds(mat.cols());
+  for (int k=0; k<mat.outerSize(); ++k){
+    double colMean = 0;
+    double colSdev = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+    {
+      colMean += it.value();
+    }
+    colMean = colMean / mat.rows();
+    int nZero = mat.rows();
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      nZero -= 1;
+      colSdev += pow(it.value() - colMean, 2);
+    }
+    colSdev += pow(colMean, 2) * nZero;
+    colSdev = sqrt(colSdev / (mat.rows() - 1));
+    allSds(k) = colSdev;
+  }
+  return(allSds);
+}
+
+/* standardize matrix rows using given mean and standard deviation,
+   clip values larger than vmax to vmax,
+   then return variance for each row */
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
+                                Eigen::VectorXd mu, 
+                                Eigen::VectorXd sd,
+                                double vmax){
+  mat = mat.transpose();
+  Eigen::VectorXd allVars(mat.cols());
+  allVars.fill(0);
+  
+  for (int k=0; k<mat.outerSize(); ++k){
+    if (sd(k) == 0) continue;
+    double colSum = 0;
+    int nZero = mat.rows();
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
+    {
+      nZero -= 1;
+      colSum += pow(std::min(vmax, (it.value() - mu(k)) / sd(k)), 2);
+    }
+    colSum += pow((0 - mu(k)) / sd(k), 2) * nZero;
+    allVars(k) = colSum / (mat.rows() - 1);
+  }
+  return(allVars);
 }
 
 /* Calculate the variance in non-logspace (return answer in non-logspace) */
