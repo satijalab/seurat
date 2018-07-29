@@ -314,6 +314,31 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progr
   return(rowdisp);
 }
 
+/* use this if you know the row means */
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowVar2(Eigen::SparseMatrix<double> mat, 
+                              Eigen::VectorXd mu,
+                              bool display_progress){
+  mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  Eigen::VectorXd allVars(mat.cols());
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double colSum = 0;
+    int nZero = mat.rows();
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
+      nZero -= 1;
+      colSum += pow(it.value() - mu(k), 2);
+    }
+    colSum += pow(mu(k), 2) * nZero;
+    allVars(k) = colSum / (mat.rows() - 1);
+  }
+  return(allVars);
+}
+
 //[[Rcpp::export]]
 Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
   mat = mat.transpose();

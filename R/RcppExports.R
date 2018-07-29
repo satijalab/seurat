@@ -53,6 +53,10 @@ SparseRowVar <- function(mat, display_progress) {
     .Call('_Seurat_SparseRowVar', PACKAGE = 'Seurat', mat, display_progress)
 }
 
+SparseRowVar2 <- function(mat, mu, display_progress) {
+    .Call('_Seurat_SparseRowVar2', PACKAGE = 'Seurat', mat, mu, display_progress)
+}
+
 SparseRowSd <- function(mat) {
     .Call('_Seurat_SparseRowSd', PACKAGE = 'Seurat', mat)
 }

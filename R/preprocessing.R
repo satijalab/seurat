@@ -1065,10 +1065,11 @@ FindVariableFeaturesNew.default <- function(
   if (clip.max == 'auto') {
     clip.max <- sqrt(ncol(object))
   }
-  hvf.info <- data.frame(mean = rowMeans(x = object),
-                         variance = SparseRowVar(mat = object, display_progress = verbose),
-                         variance.expected = rep(0, nrow(object)),
-                         variance.standardized = rep(0, nrow(object)))
+  hvf.info <- data.frame(mean = rowMeans(x = object))
+  hvf.info$variance = SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
+  hvf.info$variance.expected = 0
+  hvf.info$variance.standardized = 0
+  
   not.const <- hvf.info$variance > 0
   fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
   hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
