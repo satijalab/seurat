@@ -41,7 +41,8 @@ Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat);
 Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
                                 Eigen::VectorXd mu, 
                                 Eigen::VectorXd sd,
-                                double vmax);
+                                double vmax,
+                                bool display_progress);
 NumericVector RowSumOfSquares(const NumericMatrix x);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 int IntersectLength(std::vector<int> a, std::vector<int> b);

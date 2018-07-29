@@ -189,8 +189,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // SparseRowVarStd
-Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, Eigen::VectorXd mu, Eigen::VectorXd sd, double vmax);
-RcppExport SEXP _Seurat_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP) {
+Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, Eigen::VectorXd mu, Eigen::VectorXd sd, double vmax, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -198,7 +198,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type mu(muSEXP);
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
-    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax));
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax, display_progress));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -321,7 +322,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastExpMean", (DL_FUNC) &_Seurat_FastExpMean, 2},
     {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
     {"_Seurat_SparseRowSd", (DL_FUNC) &_Seurat_SparseRowSd, 1},
-    {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 4},
+    {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 5},
     {"_Seurat_FastExpVar", (DL_FUNC) &_Seurat_FastExpVar, 2},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_RowSumOfSquares", (DL_FUNC) &_Seurat_RowSumOfSquares, 1},

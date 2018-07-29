@@ -1076,7 +1076,8 @@ FindVariableFeaturesNew.default <- function(
   hvf.info$variance.standardized <- SparseRowVarStd(mat = object, 
                                                     mu = hvf.info$mean, 
                                                     sd = sqrt(hvf.info$variance.expected), 
-                                                    vmax = clip.max)
+                                                    vmax = clip.max,
+                                                    display_progress = verbose)
   return(hvf.info)
 }
 

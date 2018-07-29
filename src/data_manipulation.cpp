@@ -345,12 +345,19 @@ Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
 Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
                                 Eigen::VectorXd mu, 
                                 Eigen::VectorXd sd,
-                                double vmax){
+                                double vmax,
+                                bool display_progress){
   mat = mat.transpose();
   Eigen::VectorXd allVars(mat.cols());
   allVars.fill(0);
   
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  
   for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
     if (sd(k) == 0) continue;
     double colSum = 0;
     int nZero = mat.rows();
