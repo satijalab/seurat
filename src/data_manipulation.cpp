@@ -316,25 +316,25 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progr
 
 /* use this if you know the row means */
 //[[Rcpp::export]]
-Eigen::VectorXd SparseRowVar2(Eigen::SparseMatrix<double> mat, 
-                              Eigen::VectorXd mu,
-                              bool display_progress){
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
+                            NumericVector mu,
+                            bool display_progress){
   mat = mat.transpose();
   if(display_progress == true){
     Rcpp::Rcerr << "Calculating gene variances" << std::endl;
   }
   Progress p(mat.outerSize(), display_progress);
-  Eigen::VectorXd allVars(mat.cols());
+  NumericVector allVars = no_init(mat.cols());
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
     double colSum = 0;
     int nZero = mat.rows();
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
       nZero -= 1;
-      colSum += pow(it.value() - mu(k), 2);
+      colSum += pow(it.value() - mu[k], 2);
     }
-    colSum += pow(mu(k), 2) * nZero;
-    allVars(k) = colSum / (mat.rows() - 1);
+    colSum += pow(mu[k], 2) * nZero;
+    allVars[k] = colSum / (mat.rows() - 1);
   }
   return(allVars);
 }
@@ -367,32 +367,31 @@ Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
    clip values larger than vmax to vmax,
    then return variance for each row */
 //[[Rcpp::export]]
-Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
-                                Eigen::VectorXd mu, 
-                                Eigen::VectorXd sd,
-                                double vmax,
-                                bool display_progress){
-  mat = mat.transpose();
-  Eigen::VectorXd allVars(mat.cols());
-  allVars.fill(0);
-  
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
+                              NumericVector mu, 
+                              NumericVector sd,
+                              double vmax,
+                              bool display_progress){
   if(display_progress == true){
     Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
   }
   Progress p(mat.outerSize(), display_progress);
   
+  mat = mat.transpose();
+  NumericVector allVars(mat.cols());
+  
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
-    if (sd(k) == 0) continue;
+    if (sd[k] == 0) continue;
     double colSum = 0;
     int nZero = mat.rows();
     for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
     {
       nZero -= 1;
-      colSum += pow(std::min(vmax, (it.value() - mu(k)) / sd(k)), 2);
+      colSum += pow(std::min(vmax, (it.value() - mu[k]) / sd[k]), 2);
     }
-    colSum += pow((0 - mu(k)) / sd(k), 2) * nZero;
-    allVars(k) = colSum / (mat.rows() - 1);
+    colSum += pow((0 - mu[k]) / sd[k], 2) * nZero;
+    allVars[k] = colSum / (mat.rows() - 1);
   }
   return(allVars);
 }

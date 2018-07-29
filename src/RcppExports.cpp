@@ -178,13 +178,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // SparseRowVar2
-Eigen::VectorXd SparseRowVar2(Eigen::SparseMatrix<double> mat, Eigen::VectorXd mu, bool display_progress);
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, NumericVector mu, bool display_progress);
 RcppExport SEXP _Seurat_SparseRowVar2(SEXP matSEXP, SEXP muSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(SparseRowVar2(mat, mu, display_progress));
     return rcpp_result_gen;
@@ -202,14 +202,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // SparseRowVarStd
-Eigen::VectorXd SparseRowVarStd(Eigen::SparseMatrix<double> mat, Eigen::VectorXd mu, Eigen::VectorXd sd, double vmax, bool display_progress);
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sd, double vmax, bool display_progress);
 RcppExport SEXP _Seurat_SparseRowVarStd(SEXP matSEXP, SEXP muSEXP, SEXP sdSEXP, SEXP vmaxSEXP, SEXP display_progressSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< Eigen::VectorXd >::type sd(sdSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sd(sdSEXP);
     Rcpp::traits::input_parameter< double >::type vmax(vmaxSEXP);
     Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
     rcpp_result_gen = Rcpp::wrap(SparseRowVarStd(mat, mu, sd, vmax, display_progress));
