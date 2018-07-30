@@ -130,7 +130,8 @@ UpdateSeuratObject <- function(object) {
       misc = object@misc %||% list(),
       active.ident = object@ident,
       reductions = new.dr,
-      meta.data = object@meta.data
+      meta.data = object@meta.data,
+      tools = list()
     )
     return(new.object)
     }
