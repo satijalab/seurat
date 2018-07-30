@@ -83,101 +83,73 @@ test_that("LogNormalize normalizes properly", {
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
-object <- ScaleData(object, do.cpp = F, display.progress = F)
-test_that("Old R implementation (ScaleDataR) works properly", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
-})
-
-object <- ScaleData(object, display.progress = F)
+object <- ScaleData(object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is a sparse matrix", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
-object@data <- as.matrix(object@data)
-object <- ScaleData(object)
+object[["RNA"]] <- SetAssayData(
+  object = object[["RNA"]], 
+  slot = "data", 
+  new.data = as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+)
+object <- ScaleData(object = object)
 test_that("ScaleData returns expected values when input is not sparse", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
 # Tests for various regression techniques
 context("Regression")
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "linear")
+object <- ScaleData(
+  object = object,
+  vars.to.regress = "nUMI",
+  features.use = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "linear")
 
 test_that("Linear regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.6436435, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.09035383, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.2723782, tolerance = 1e-6)
 })
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "negbinom")
+object <- ScaleData(
+  object,
+  vars.to.regress = "nUMI",
+  features.use = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "negbinom")
 
 test_that("Negative binomial regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.4150756, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.6586565, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.4537495, tolerance = 1e-6)
-})
-
-object <- suppressWarnings(RegressOutNB(object = object,
-                                        latent.vars = "nUMI",
-                                        genes.regress = rownames(object@data)[1:10]))
-
-test_that("Other negative binomial regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.274358, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.5623909, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.3456492, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4122063, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.2937752, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.05029979, tolerance = 1e-6)
 })
 
 test_that("Regression error handling checks out", {
   expect_error(ScaleData(object, vars.to.regress = "nUMI", model.use = "not.a.model"))
 })
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "poisson")
+object <- ScaleData(
+  object,
+  vars.to.regress = "nUMI",
+  features.use = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "poisson")
 
 test_that("Poisson regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.6115097, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.5971585, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.4533085, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.97482, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], 0.2060544, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.05029484, tolerance = 1e-6)
 })
-
-if (detectCores() > 1) {
-  object <- ScaleData(object,
-  vars.to.regress = "nUMI",
-  genes.use = rownames(object@data)[1:10],
-  display.progress = F,
-  model.use = "linear",
-  do.par = TRUE,
-  num.cores = 2)
-
-  test_that("Parallelization works", {
-    expect_equal(dim(object@scale.data), c(10, 59))
-    expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
-    expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
-    expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
-  })
-}
 
 
 # Tests for SampleUMI
