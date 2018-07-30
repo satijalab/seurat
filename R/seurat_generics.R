@@ -81,12 +81,3 @@ Idents <- function(object, ... ) {
 "Command" <- function(object, command, ..., value) {
   UseMethod(generic = 'Command', object = object)
 }
-
-
-
-# @rdname merge
-# @export merge
-#
-# merge <- function(x, y, ... ) {
-#   UseMethod(generic = 'merge', object = x)
-# }

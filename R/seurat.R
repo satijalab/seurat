@@ -428,8 +428,23 @@ Command.Seurat <- function(object, command, value = NULL) {
   return(params[[value]])
 }
 
+#' Subset a Seurat object
+#'
+#' @param x Seurat object to be subsetted
+#' @param subset Logical expression indicating features/variables to keep
+#' @param ... Arguments passed to other methods
+#'
+#' @return A subsetted Seurat object
+#'
+#' @rdname subset.Seurat
+#' @aliases subset
+#' @seealso \code{\link{base::subset}}
+#'
 #' @export
 #' @method subset Seurat
+#'
+#' @examples
+#' subset(x = pbmc, subset = MS4A1 > 7)
 #'
 subset.Seurat <- function(x, subset, ...) {
   objects.use <- FilterObjects(object = x)

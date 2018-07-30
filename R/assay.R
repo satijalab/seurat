@@ -18,7 +18,7 @@ NULL
 #'
 #' @export
 #'
-#'@examples
+#' @examples
 #' pbmc_raw <- read.table(
 #'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
 #'   as.is = TRUE
