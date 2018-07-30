@@ -452,8 +452,8 @@ ScaleData.Assay <- function(
   verbose = TRUE,
   ...
 ) {
-  use.umi <- ifelse(test = model.use != 'linear', yes = use.umi, no = use.umi)
-  slot.use <- ifelse(test = use.umi, yes = 'matrix', no = 'data')
+  use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
+  slot.use <- ifelse(test = use.umi, yes = 'raw.data', no = 'data')
   features.use <- features.use %||% VariableFeatures(object)
   if (length(features.use) == 0) features.use <- rownames(GetAssayData(object = object, slot = slot.use))
   object <- SetAssayData(
@@ -796,14 +796,14 @@ FindVariableFeaturesNew.default <- function(
   hvf.info$variance = SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
   hvf.info$variance.expected = 0
   hvf.info$variance.standardized = 0
-  
+
   not.const <- hvf.info$variance > 0
   fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
   hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
   # use c function to get variance after feature standardization
-  hvf.info$variance.standardized <- SparseRowVarStd(mat = object, 
-                                                    mu = hvf.info$mean, 
-                                                    sd = sqrt(hvf.info$variance.expected), 
+  hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
+                                                    mu = hvf.info$mean,
+                                                    sd = sqrt(hvf.info$variance.expected),
                                                     vmax = clip.max,
                                                     display_progress = verbose)
   return(hvf.info)

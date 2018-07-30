@@ -91,8 +91,8 @@ test_that("ScaleData returns expected values when input is a sparse matrix", {
 })
 
 object[["RNA"]] <- SetAssayData(
-  object = object[["RNA"]], 
-  slot = "data", 
+  object = object[["RNA"]],
+  slot = "data",
   new.data = as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
 )
 object <- ScaleData(object = object)
@@ -128,9 +128,9 @@ object <- ScaleData(
 
 test_that("Negative binomial regression works as expected", {
   expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4122063, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.2937752, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.05029979, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.5888811, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.2553394, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1921429, tolerance = 1e-6)
 })
 
 test_that("Regression error handling checks out", {
@@ -146,80 +146,88 @@ object <- ScaleData(
 
 test_that("Poisson regression works as expected", {
   expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.97482, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], 0.2060544, tolerance = 1e-6)
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.05029484, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -1.011717, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], 0.05575307, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1662119, tolerance = 1e-6)
 })
 
 
 # Tests for SampleUMI
 # --------------------------------------------------------------------------------
-context("SampleUMI")
-
-downsampled.umis <- SampleUMI(object@raw.data, max.umi = 100, progress.bar = F)
-downsampled.umis.p.cell <- SampleUMI(object@raw.data, max.umi = seq(50, 630, 10), progress.bar = F, upsample = T)
-test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
-  expect_true(!any(colSums(downsampled.umis) < 80, colSums(downsampled.umis) > 120))
-  expect_error(SampleUMI(object@raw.data, max.umi = rep(1, 5)))
-  expect_true(!is.unsorted(colSums(downsampled.umis.p.cell)))
-})
+# context("SampleUMI")
+#
+# downsampled.umis <- SampleUMI(object@raw.data, max.umi = 100, progress.bar = F)
+# downsampled.umis.p.cell <- SampleUMI(object@raw.data, max.umi = seq(50, 630, 10), progress.bar = F, upsample = T)
+# test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
+#   expect_true(!any(colSums(downsampled.umis) < 80, colSums(downsampled.umis) > 120))
+#   expect_error(SampleUMI(object@raw.data, max.umi = rep(1, 5)))
+#   expect_true(!is.unsorted(colSums(downsampled.umis.p.cell)))
+# })
 
 # Tests for FindVariableGenes
 # --------------------------------------------------------------------------------
-context("FindVariableGenes")
-
-object <- FindVariableGenes(object, display.progress = F, do.cpp = F, do.plot = F)
-test_that("R implementation of FindVariableGenes returns expected values", {
-  expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-  expect_equal(length(object@var.genes), 10)
-  expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-  expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-  expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-  expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
-})
-
-object <- FindVariableGenes(object, display.progress = F, do.plot = F)
-test_that("C++ implementation of FindVariableGenes returns expected values", {
-  expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-  expect_equal(length(object@var.genes), 10)
-  expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-  expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-  expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-  expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
-  expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, mean.function = mean))
-  expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, dispersion.function = ExpSD))
-})
-
-var.genes <- FindVariableGenes(object, set.var.genes = F)
-test_that("Option to only return vector of genes works", {
-  expect_equal(length(var.genes), 10)
-  expect_equal(length(var.genes), length(object@var.genes))
-  expect_equal(var.genes[1:2], c("MS4A1", "CD2"))
-})
-
-object2 <- FindVariableGenes(object, display.progress = F, do.plot = F, do.recalc = FALSE)
-test_that("do.recalc doesn't change vector of variable genes", {
-  expect_equal(intersect(object@var.genes, object2@var.genes), object@var.genes)
-})
+# context("FindVariableGenes")
+#
+# object <- FindVariableGenes(object, display.progress = F, do.cpp = F, do.plot = F)
+# test_that("R implementation of FindVariableGenes returns expected values", {
+#   expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
+#   expect_equal(length(object@var.genes), 10)
+#   expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
+#   expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
+#   expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
+#   expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
+# })
+#
+# object <- FindVariableGenes(object, display.progress = F, do.plot = F)
+# test_that("C++ implementation of FindVariableGenes returns expected values", {
+#   expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
+#   expect_equal(length(object@var.genes), 10)
+#   expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
+#   expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
+#   expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
+#   expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
+#   expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, mean.function = mean))
+#   expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, dispersion.function = ExpSD))
+# })
+#
+# var.genes <- FindVariableGenes(object, set.var.genes = F)
+# test_that("Option to only return vector of genes works", {
+#   expect_equal(length(var.genes), 10)
+#   expect_equal(length(var.genes), length(object@var.genes))
+#   expect_equal(var.genes[1:2], c("MS4A1", "CD2"))
+# })
+#
+# object2 <- FindVariableGenes(object, display.progress = F, do.plot = F, do.recalc = FALSE)
+# test_that("do.recalc doesn't change vector of variable genes", {
+#   expect_equal(intersect(object@var.genes, object2@var.genes), object@var.genes)
+# })
 
 # Tests for FilterCells
 # --------------------------------------------------------------------------------
 context("FilterCells")
 
-object.filtered <- FilterCells(object, subset.names = c("nGene", "nUMI"), low.thresholds = c(20, 100))
+object.filtered <- FilterCells(
+  object = object,
+  subset.names = c("nFeature_RNA", "nUMI"),
+  low.thresholds = c(20, 100)
+)
 
 test_that("FilterCells low thresholds work properly", {
-  expect_equal(length(object.filtered@cell.names), 31)
-  expect_true(!any(object.filtered@meta.data$nGene < 20))
-  expect_true(!any(object.filtered@meta.data$nUMI < 100))
+  expect_equal(ncol(x = object.filtered), 62)
+  expect_true(!any(object.filtered["nFeature_RNA"] < 20))
+  expect_true(!any(object.filtered["nUMI"] < 100))
 })
 
-object.filtered <- FilterCells(object, subset.names = c("nGene", "nUMI"), high.thresholds = c(30, 300))
+object.filtered <- FilterCells(
+  object = object,
+  subset.names = c("nFeature_RNA", "nUMI"),
+  high.thresholds = c(50, 300)
+)
 
 test_that("FilterCells high thresholds work properly", {
-  expect_equal(length(object.filtered@cell.names), 38)
-  expect_true(!any(object.filtered@meta.data$nGene > 30))
-  expect_true(!any(object.filtered@meta.data$nUMI > 300))
+  expect_equal(ncol(x = object.filtered), 35)
+  expect_true(!any(object.filtered["nFeature_RNA"] > 50))
+  expect_true(!any(object.filtered["nUMI"] > 300))
 })
 
 test_that("FilterCells handles input correctly", {
