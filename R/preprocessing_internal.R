@@ -262,9 +262,9 @@ RegressOutMatrix <- function(
       'poisson' = residuals(object = glm(
         formula = fmla,
         family = 'poisson',
-        data = regression.mat,
+        data = regression.mat), 
         type = 'pearson'
-      )),
+      ),
       'negbinom' = NBResiduals(
         fmla = fmla,
         regression.mat = regression.mat,

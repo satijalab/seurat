@@ -130,7 +130,8 @@ UpdateSeuratObject <- function(object) {
       misc = object@misc %||% list(),
       active.ident = object@ident,
       reductions = new.dr,
-      meta.data = object@meta.data
+      meta.data = object@meta.data,
+      tools = list()
     )
     return(new.object)
     }
@@ -178,8 +179,6 @@ UpdateAssay <- function(old.assay, assay.use){
     scale.data = old.assay@scale.data %||% matrix(),
     meta.features = data.frame(),
     var.features = old.assay@var.genes,
-    cluster.tree = old.assay@cluster.tree,
-    kmeans = old.assay@kmeans,
     key = paste0(assay.use, "_")
   )
   return(new.assay)

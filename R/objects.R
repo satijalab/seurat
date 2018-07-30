@@ -115,7 +115,8 @@ Seurat <- setClass(
     misc = 'list',
     version = 'package_version',
     commands = 'list',
-    workflows = 'list'
+    workflows = 'list',
+    tools = 'list'
   )
 )
 

@@ -49,6 +49,26 @@ FastExpMean <- function(mat, display_progress) {
     .Call('_Seurat_FastExpMean', PACKAGE = 'Seurat', mat, display_progress)
 }
 
+SparseRowVar <- function(mat, display_progress) {
+    .Call('_Seurat_SparseRowVar', PACKAGE = 'Seurat', mat, display_progress)
+}
+
+SparseRowVar2 <- function(mat, mu, display_progress) {
+    .Call('_Seurat_SparseRowVar2', PACKAGE = 'Seurat', mat, mu, display_progress)
+}
+
+SparseRowSd <- function(mat) {
+    .Call('_Seurat_SparseRowSd', PACKAGE = 'Seurat', mat)
+}
+
+SparseRowVarStd <- function(mat, mu, sd, vmax, display_progress) {
+    .Call('_Seurat_SparseRowVarStd', PACKAGE = 'Seurat', mat, mu, sd, vmax, display_progress)
+}
+
+FastExpVar <- function(mat, display_progress) {
+    .Call('_Seurat_FastExpVar', PACKAGE = 'Seurat', mat, display_progress)
+}
+
 FastLogVMR <- function(mat, display_progress) {
     .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
 }
