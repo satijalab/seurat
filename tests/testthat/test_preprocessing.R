@@ -64,7 +64,7 @@ test_that("NormalizeData error handling", {
                 slot = "data"))
 })
 
-object <- NormalizeData(object = object, verbose = FALSE)
+object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6)
 test_that("NormalizeData scales properly", {
   expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 9.567085, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 8.415309, tolerance = 1e-6)
