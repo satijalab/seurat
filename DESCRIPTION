@@ -14,9 +14,11 @@ Authors@R: c(
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Remotes: github::satijalab/SeuratObject
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
+    SeuratObject,
     Matrix (>= 1.2.14),
 Imports:
     ape,
@@ -69,14 +71,8 @@ LazyData: true
 Collate: 
     'RcppExports.R'
     'alignment.R'
-    'dimreduc_generics.R'
-    'assay_generics.R'
-    'seurat_generics.R'
-    'objects.R'
-    'seurat.R'
     'conversion.R'
     'as.R'
-    'assay.R'
     'cluster_determination.R'
     'cluster_determination_generics.R'
     'cluster_determination_internal.R'
@@ -92,8 +88,6 @@ Collate:
     'dimensional_reduction_generics.R'
     'dimensional_reduction_internal.R'
     'dimensional_reduction_utilities.R'
-    'dimreduc.R'
-    'dimreduc_internal.R'
     'interaction.R'
     'interaction_generics.R'
     'jackstraw.R'
@@ -110,7 +104,6 @@ Collate:
     'preprocessing_internal.R'
     'printing_utilities.R'
     'scoring.R'
-    'seurat_internal.R'
     'snn.R'
     'snn_generics.R'
     'spatial.R'

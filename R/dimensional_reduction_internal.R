@@ -1,4 +1,4 @@
-#' @include seurat.R
+#' @import SeuratObject
 #' @importFrom methods setClass setMethod
 NULL
 # Set up dim.reduction class

@@ -7,10 +7,6 @@
 SetAssayDataOld(object, assay.type, slot, new.data)
 }
 \arguments{
-\item{object}{An object}
-
-\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data}
-
 \item{new.data}{New data to insert}
 }
 \value{

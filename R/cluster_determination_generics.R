@@ -1,4 +1,4 @@
-#' @include seurat.R
+#' @import SeuratObject
 NULL
 
 #' Cluster Determination
