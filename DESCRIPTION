@@ -88,7 +88,6 @@ Collate:
     'dimensional_reduction_generics.R'
     'dimensional_reduction_internal.R'
     'interaction.R'
-    'interaction_generics.R'
     'jackstraw.R'
     'jackstraw_generics.R'
     'jackstraw_internal.R'

@@ -139,256 +139,256 @@ AddSamples <- function(
   return(new.object)
 }
 
-#' Reorder identity classes
-#'
-#' Re-assigns the identity classes according to the average expression of a
-#' particular feature (i.e, gene expression, or PC score)
-#' Very useful after clustering, to re-order cells, for example, based on PC
-#' scores
-#'
-#' @param object Seurat object
-#' @param feature Feature to reorder on. Default is PC1
-#' @param rev Reverse ordering (default is FALSE)
-#' @param aggregate.fxn Function to evaluate each identity class based on
-#' (default is mean)
-#' @param reorder.numeric Rename all identity classes to be increasing numbers
-#' starting from 1 (default is FALSE)
-#' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
-#'
-#' @return A seurat object where the identity have been re-oredered based on the
-#' average.
-#'
-#' @export
-#'
-#' @examples
-#' head(x = pbmc_small@ident)
-#' pbmc_small <- ReorderIdent(object = pbmc_small)
-#' head(x = pbmc_small@ident)
-#'
-ReorderIdent <- function(
-  object,
-  feature = "PC1",
-  rev = FALSE,
-  aggregate.fxn = mean,
-  reorder.numeric = FALSE,
-  ...
-) {
-  ident.use <- object@ident
-  data.use <- FetchData(object = object, vars.all = feature, ...)[, 1]
-  revFxn <- Same
-  if (rev) {
-    revFxn <- function(x) {
-      return(max(x) + 1 - x)
-    }
-  }
-  names.sort <- names(
-    x = revFxn(
-      sort(
-        x = tapply(
-          X = data.use,
-          INDEX = (ident.use),
-          FUN = aggregate.fxn
-        )
-      )
-    )
-  )
-  ident.new <- factor(x = ident.use, levels = names.sort, ordered = TRUE)
-  if (reorder.numeric) {
-    ident.new <- factor(
-      x = revFxn(
-        rank(
-          tapply(
-            X = data.use,
-            INDEX = as.numeric(x = ident.new),
-            FUN = mean
-          )
-        )
-      )[as.numeric(ident.new)],
-      levels = 1:length(x = levels(x = ident.new)),
-      ordered = TRUE
-    )
-  }
-  names(x = ident.new) <- names(x = ident.use)
-  object@ident <- ident.new
-  return(object)
-}
+# #' Reorder identity classes
+# #'
+# #' Re-assigns the identity classes according to the average expression of a
+# #' particular feature (i.e, gene expression, or PC score)
+# #' Very useful after clustering, to re-order cells, for example, based on PC
+# #' scores
+# #'
+# #' @param object Seurat object
+# #' @param feature Feature to reorder on. Default is PC1
+# #' @param rev Reverse ordering (default is FALSE)
+# #' @param aggregate.fxn Function to evaluate each identity class based on
+# #' (default is mean)
+# #' @param reorder.numeric Rename all identity classes to be increasing numbers
+# #' starting from 1 (default is FALSE)
+# #' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
+# #'
+# #' @return A seurat object where the identity have been re-oredered based on the
+# #' average.
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' head(x = pbmc_small@ident)
+# #' pbmc_small <- ReorderIdent(object = pbmc_small)
+# #' head(x = pbmc_small@ident)
+# #'
+# ReorderIdent <- function(
+#   object,
+#   feature = "PC1",
+#   rev = FALSE,
+#   aggregate.fxn = mean,
+#   reorder.numeric = FALSE,
+#   ...
+# ) {
+#   ident.use <- object@ident
+#   data.use <- FetchData(object = object, vars.all = feature, ...)[, 1]
+#   revFxn <- Same
+#   if (rev) {
+#     revFxn <- function(x) {
+#       return(max(x) + 1 - x)
+#     }
+#   }
+#   names.sort <- names(
+#     x = revFxn(
+#       sort(
+#         x = tapply(
+#           X = data.use,
+#           INDEX = (ident.use),
+#           FUN = aggregate.fxn
+#         )
+#       )
+#     )
+#   )
+#   ident.new <- factor(x = ident.use, levels = names.sort, ordered = TRUE)
+#   if (reorder.numeric) {
+#     ident.new <- factor(
+#       x = revFxn(
+#         rank(
+#           tapply(
+#             X = data.use,
+#             INDEX = as.numeric(x = ident.new),
+#             FUN = mean
+#           )
+#         )
+#       )[as.numeric(ident.new)],
+#       levels = 1:length(x = levels(x = ident.new)),
+#       ordered = TRUE
+#     )
+#   }
+#   names(x = ident.new) <- names(x = ident.use)
+#   object@ident <- ident.new
+#   return(object)
+# }
 
-#' FastWhichCells
-#' Identify cells matching certain criteria (limited to character values)
-#' @param object Seurat object
-#' @param group.by Group cells in different ways (for example, orig.ident).
-#' Should be a column name in object@meta.data
-#' @param subset.value  Return cells matching this value
-#' @param invert invert cells to return.FALSE by default
-#'
-#' @export
-#'
-#' @examples
-#' FastWhichCells(object = pbmc_small, group.by = 'res.1', subset.value = 1)
-#'
-FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
-  object <- SetAllIdent(object = object, id = group.by)
-  cells.return <- WhichCells(object = object, ident = subset.value)
-  if (invert) {
-    cells.return <- setdiff(x = object@cell.names, y = cells.return)
-  }
-  return(cells.return)
-}
+# #' FastWhichCells
+# #' Identify cells matching certain criteria (limited to character values)
+# #' @param object Seurat object
+# #' @param group.by Group cells in different ways (for example, orig.ident).
+# #' Should be a column name in object@meta.data
+# #' @param subset.value  Return cells matching this value
+# #' @param invert invert cells to return.FALSE by default
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' FastWhichCells(object = pbmc_small, group.by = 'res.1', subset.value = 1)
+# #'
+# FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
+#   object <- SetAllIdent(object = object, id = group.by)
+#   cells.return <- WhichCells(object = object, ident = subset.value)
+#   if (invert) {
+#     cells.return <- setdiff(x = object@cell.names, y = cells.return)
+#   }
+#   return(cells.return)
+# }
 
-#' Switch identity class definition to another variable
-#'
-#' @param object Seurat object
-#' @param id Variable to switch identity class to (for example, 'DBclust.ident',
-#' the output of density clustering) Default is orig.ident - the original
-#' annotation pulled from the cell name.
-#'
-#' @return A Seurat object where object@@ident has been appropriately modified
-#'
-#' @export
-#'
-#' @examples
-#' head(x = pbmc_small@ident)
-#' pbmc_small <- SetAllIdent(object = pbmc_small, id = 'orig.ident')
-#' head(x = pbmc_small@ident)
-#'
-SetAllIdent <- function(object, id = NULL) {
-  id <- SetIfNull(x = id, default = "orig.ident")
-  if (id %in% colnames(x = object@meta.data)) {
-    cells.use <- rownames(x = object@meta.data)
-    ident.use <- object@meta.data[, id]
-    object <- SetIdent(
-      object = object,
-      cells.use = cells.use,
-      ident.use = ident.use
-    )
-  }
-  return(object)
-}
+# #' Switch identity class definition to another variable
+# #'
+# #' @param object Seurat object
+# #' @param id Variable to switch identity class to (for example, 'DBclust.ident',
+# #' the output of density clustering) Default is orig.ident - the original
+# #' annotation pulled from the cell name.
+# #'
+# #' @return A Seurat object where object@@ident has been appropriately modified
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' head(x = pbmc_small@ident)
+# #' pbmc_small <- SetAllIdent(object = pbmc_small, id = 'orig.ident')
+# #' head(x = pbmc_small@ident)
+# #'
+# SetAllIdent <- function(object, id = NULL) {
+#   id <- SetIfNull(x = id, default = "orig.ident")
+#   if (id %in% colnames(x = object@meta.data)) {
+#     cells.use <- rownames(x = object@meta.data)
+#     ident.use <- object@meta.data[, id]
+#     object <- SetIdent(
+#       object = object,
+#       cells.use = cells.use,
+#       ident.use = ident.use
+#     )
+#   }
+#   return(object)
+# }
 
-#' Rename one identity class to another
-#'
-#' Can also be used to join identity classes together (for example, to merge
-#' clusters).
-#'
-#' @param object Seurat object
-#' @param old.ident.name The old identity class (to be renamed)
-#' @param new.ident.name The new name to apply
-#'
-#' @return A Seurat object where object@@ident has been appropriately modified
-#'
-#' @export
-#'
-#' @examples
-#' head(x = pbmc_small@ident)
-#' pbmc_small <- RenameIdent(
-#'   object = pbmc_small,
-#'   old.ident.name = 0,
-#'   new.ident.name = 'cluster_0'
-#' )
-#' head(x = pbmc_small@ident)
-#'
-RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
-  if (!old.ident.name %in% object@ident) {
-    stop(paste("Error : ", old.ident.name, " is not a current identity class"))
-  }
-  new.levels <- old.levels <- levels(x = object@ident)
-  # new.levels <- old.levels
-  if (new.ident.name %in% old.levels) {
-    new.levels <- new.levels[new.levels != old.ident.name]
-  }
-  if (!(new.ident.name %in% old.levels)) {
-    new.levels[new.levels == old.ident.name] <- new.ident.name
-  }
-  ident.vector <- as.character(x = object@ident)
-  names(x = ident.vector) <- names(object@ident)
-  ident.vector[WhichCells(object = object, ident = old.ident.name)] <- new.ident.name
-  object@ident <- factor(x = ident.vector, levels = new.levels)
-  return(object)
-}
+# #' Rename one identity class to another
+# #'
+# #' Can also be used to join identity classes together (for example, to merge
+# #' clusters).
+# #'
+# #' @param object Seurat object
+# #' @param old.ident.name The old identity class (to be renamed)
+# #' @param new.ident.name The new name to apply
+# #'
+# #' @return A Seurat object where object@@ident has been appropriately modified
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' head(x = pbmc_small@ident)
+# #' pbmc_small <- RenameIdent(
+# #'   object = pbmc_small,
+# #'   old.ident.name = 0,
+# #'   new.ident.name = 'cluster_0'
+# #' )
+# #' head(x = pbmc_small@ident)
+# #'
+# RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
+#   if (!old.ident.name %in% object@ident) {
+#     stop(paste("Error : ", old.ident.name, " is not a current identity class"))
+#   }
+#   new.levels <- old.levels <- levels(x = object@ident)
+#   # new.levels <- old.levels
+#   if (new.ident.name %in% old.levels) {
+#     new.levels <- new.levels[new.levels != old.ident.name]
+#   }
+#   if (!(new.ident.name %in% old.levels)) {
+#     new.levels[new.levels == old.ident.name] <- new.ident.name
+#   }
+#   ident.vector <- as.character(x = object@ident)
+#   names(x = ident.vector) <- names(object@ident)
+#   ident.vector[WhichCells(object = object, ident = old.ident.name)] <- new.ident.name
+#   object@ident <- factor(x = ident.vector, levels = new.levels)
+#   return(object)
+# }
 
-#' Transfer identity class information (or meta data) from one object to another
-#'
-#' Transfers identity class information (or meta data) from one object to
-#' another, assuming the same cell barcode names are in each. Can be very useful
-#' if you have multiple Seurat objects that share a subset of underlying data.
-#'
-#' @param object.from Seurat object to transfer information from
-#' @param object.to Seurat object to transfer information onto
-#' @param data.to.transfer What data should be transferred over? Default is the
-#' identity class ("ident"), but can also include any column in
-#' object.from@@meta.data
-#' @param keep.existing For cells in object.to that are not present in
-#' object.from, keep existing data? TRUE by default. If FALSE, set to NA.
-#' @param add.cell.id1 Prefix to add (followed by an underscore) to cells in
-#'  object.from. NULL by default, in which case no prefix is added.
-#'
-#' @return A Seurat object where object@@ident or object@@meta.data has been
-#' appropriately modified
-#'
-#' @export
-#'
-#' @examples
-#' # Duplicate the test object and assign random new idents to transfer
-#' pbmc_small@@ident
-#' pbmc_small2 <- SetIdent(object = pbmc_small, cells.use = pbmc_small@@cell.names,
-#'  ident.use = sample(pbmc_small@@ident))
-#' pbmc_small2@@ident
-#' pbmc_small <- TransferIdent(object.from = pbmc_small2, object.to = pbmc_small)
-#' pbmc_small@@ident
-#'
-TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", keep.existing = TRUE, add.cell.id1 = NULL) {
-  old_data <- as.character(FetchData(object = object.from, vars.all = data.to.transfer)[, 1])
-  names(old_data) <- object.from@cell.names
-  if (data.to.transfer %in% c("ident", colnames(object.to@meta.data))) {
-    new_data <- FetchData(object = object.to, vars.all = data.to.transfer)
-    if (!keep.existing) {
-      new_data[, 1] <- "NA"
-    }
-    new_data <- as.character(new_data[, 1])
-  }
-  else {
-    new_data <- rep("NA", length(object.to@cell.names))
-  }
-  names(new_data) <- object.to@cell.names
-  if (!is.null(add.cell.id1)) {
-    names(old_data) <- paste(names(old_data), add.cell.id1, sep = "_")
-  }
-  new_data[names(old_data)] <- old_data
-  if (data.to.transfer == "ident") {
-    object.to <- SetIdent(object.to, cells.use = names(new_data), ident.use = new_data)
-  }
-  else {
-    object.to <- AddMetaData(object = object.to, metadata = new_data,col.name = data.to.transfer)
-  }
-  return(object.to)
-}
+# #' Transfer identity class information (or meta data) from one object to another
+# #'
+# #' Transfers identity class information (or meta data) from one object to
+# #' another, assuming the same cell barcode names are in each. Can be very useful
+# #' if you have multiple Seurat objects that share a subset of underlying data.
+# #'
+# #' @param object.from Seurat object to transfer information from
+# #' @param object.to Seurat object to transfer information onto
+# #' @param data.to.transfer What data should be transferred over? Default is the
+# #' identity class ("ident"), but can also include any column in
+# #' object.from@@meta.data
+# #' @param keep.existing For cells in object.to that are not present in
+# #' object.from, keep existing data? TRUE by default. If FALSE, set to NA.
+# #' @param add.cell.id1 Prefix to add (followed by an underscore) to cells in
+# #'  object.from. NULL by default, in which case no prefix is added.
+# #'
+# #' @return A Seurat object where object@@ident or object@@meta.data has been
+# #' appropriately modified
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' # Duplicate the test object and assign random new idents to transfer
+# #' pbmc_small@@ident
+# #' pbmc_small2 <- SetIdent(object = pbmc_small, cells.use = pbmc_small@@cell.names,
+# #'  ident.use = sample(pbmc_small@@ident))
+# #' pbmc_small2@@ident
+# #' pbmc_small <- TransferIdent(object.from = pbmc_small2, object.to = pbmc_small)
+# #' pbmc_small@@ident
+# #'
+# TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", keep.existing = TRUE, add.cell.id1 = NULL) {
+#   old_data <- as.character(FetchData(object = object.from, vars.all = data.to.transfer)[, 1])
+#   names(old_data) <- object.from@cell.names
+#   if (data.to.transfer %in% c("ident", colnames(object.to@meta.data))) {
+#     new_data <- FetchData(object = object.to, vars.all = data.to.transfer)
+#     if (!keep.existing) {
+#       new_data[, 1] <- "NA"
+#     }
+#     new_data <- as.character(new_data[, 1])
+#   }
+#   else {
+#     new_data <- rep("NA", length(object.to@cell.names))
+#   }
+#   names(new_data) <- object.to@cell.names
+#   if (!is.null(add.cell.id1)) {
+#     names(old_data) <- paste(names(old_data), add.cell.id1, sep = "_")
+#   }
+#   new_data[names(old_data)] <- old_data
+#   if (data.to.transfer == "ident") {
+#     object.to <- SetIdent(object.to, cells.use = names(new_data), ident.use = new_data)
+#   }
+#   else {
+#     object.to <- AddMetaData(object = object.to, metadata = new_data,col.name = data.to.transfer)
+#   }
+#   return(object.to)
+# }
 
-#' Sets identity class information to be a combination of two object attributes
-#'
-#' Combined two attributes to define identity classes. Very useful if, for
-#' example, you have multiple cell types and multiple replicates, and you want
-#' to group cells based on combinations of both.
-#'
-#' @param object Seurat object
-#' @param attribute.1 First attribute for combination. Default is "ident"
-#' @param attribute.2 Second attribute for combination. Default is "orig.ident"
-#' @return A Seurat object where object@@ident has been appropriately modified
-#'
-#' @export
-#'
-#' @examples
-#' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
-#' celltype <- sample(c("celltype1", "celltype2", "celltype3"), size = 80, replace = TRUE)
-#' new.metadata <- data.frame(groups = groups, celltype = celltype)
-#' rownames(new.metadata) <- pbmc_small@@cell.names
-#' pbmc_small <- AddMetaData(object = pbmc_small, metadata = new.metadata)
-#' pbmc_small <- CombineIdent(object = pbmc_small, attribute.1 = "celltype", attribute.2 = "groups")
-#' pbmc_small@@ident
-#'
-CombineIdent <- function(object, attribute.1 = "ident", attribute.2 = "orig.ident") {
-  old_data <- FetchData(object = object, vars.all = c(attribute.1, attribute.2))
-  new_ids <- sapply(X = 1:nrow(old_data), FUN = function(x){
-    paste(as.character(old_data[x, 1]), as.character(old_data[x, 2]), sep = "_")
-    })
-  object <- SetIdent(object = object,cells.use = object@cell.names, ident.use = new_ids)
-}
+# #' Sets identity class information to be a combination of two object attributes
+# #'
+# #' Combined two attributes to define identity classes. Very useful if, for
+# #' example, you have multiple cell types and multiple replicates, and you want
+# #' to group cells based on combinations of both.
+# #'
+# #' @param object Seurat object
+# #' @param attribute.1 First attribute for combination. Default is "ident"
+# #' @param attribute.2 Second attribute for combination. Default is "orig.ident"
+# #' @return A Seurat object where object@@ident has been appropriately modified
+# #'
+# #' @export
+# #'
+# #' @examples
+# #' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
+# #' celltype <- sample(c("celltype1", "celltype2", "celltype3"), size = 80, replace = TRUE)
+# #' new.metadata <- data.frame(groups = groups, celltype = celltype)
+# #' rownames(new.metadata) <- pbmc_small@@cell.names
+# #' pbmc_small <- AddMetaData(object = pbmc_small, metadata = new.metadata)
+# #' pbmc_small <- CombineIdent(object = pbmc_small, attribute.1 = "celltype", attribute.2 = "groups")
+# #' pbmc_small@@ident
+# #'
+# CombineIdent <- function(object, attribute.1 = "ident", attribute.2 = "orig.ident") {
+#   old_data <- FetchData(object = object, vars.all = c(attribute.1, attribute.2))
+#   new_ids <- sapply(X = 1:nrow(old_data), FUN = function(x){
+#     paste(as.character(old_data[x, 1]), as.character(old_data[x, 2]), sep = "_")
+#     })
+#   object <- SetIdent(object = object,cells.use = object@cell.names, ident.use = new_ids)
+# }
