@@ -511,7 +511,7 @@ MakeLabels <- function(data.plot) {
 # Combine ggplot2-based plots into a single plot
 #
 # @param plot.list A list of gg objects
-# @param nCol Number of columns
+# @param num.col Number of columns
 # @param legend.position Combine legends into a single legend
 # choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 # to leave legends as they are
@@ -520,7 +520,7 @@ MakeLabels <- function(data.plot) {
 #
 #' @importFrom cowplot plot_grid get_legend
 #
-CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
+CombinePlots <- function(plot.list, num.col, legend.position = NULL) {
   plots.combined <- if (length(x = plot.list) > 1) {
     if (!is.null(x = legend.position)) {
       if (legend.position != 'none') {
@@ -533,7 +533,7 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
         }
       )
     }
-    plots.combined <- plot_grid(plotlist = plot.list, ncol = nCol, align = 'v')
+    plots.combined <- plot_grid(plotlist = plot.list, ncol = num.col, align = 'v')
     if (!is.null(x = legend.position)) {
       plots.combined <- switch(
         EXPR = legend.position,
@@ -566,7 +566,7 @@ CombinePlots <- function(plot.list, nCol, legend.position = NULL) {
 # @param features.plot Features to plot (gene expression, metrics, PC scores,
 # anything that can be retreived by FetchData)
 # @param ident.include Which classes to include in the plot (default is all)
-# @param nCol Number of columns if multiple plots are displayed
+# @param num.col Number of columns if multiple plots are displayed
 # @param do.sort Sort identity classes (on the x-axis) by the average
 # expression of the attribute being potted
 # @param y.max Maximum y axis value
@@ -587,7 +587,7 @@ ExIPlot <- function(
   plot.type = 'violin',
   features.plot,
   ident.include = NULL,
-  nCol = NULL,
+  num.col = NULL,
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -598,11 +598,11 @@ ExIPlot <- function(
   combine.plots = TRUE,
   ...
 ) {
-  if (is.null(x = nCol)) {
+  if (is.null(x = num.col)) {
     if (length(x = features.plot) > 9) {
-      nCol <- 4
+      num.col <- 4
     } else {
-      nCol <- min(length(x = features.plot), 3)
+      num.col <- min(length(x = features.plot), 3)
     }
   }
   data.use <- FetchData(object = object, vars.fetch = features.plot)
@@ -639,7 +639,7 @@ ExIPlot <- function(
     }
   )
   if (combine.plots) {
-    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = 'none')
+    plots <- CombinePlots(plot.list = plots, num.colnum.colnCol, legend.position = 'none')
   }
   return(plots)
 }

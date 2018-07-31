@@ -4,7 +4,7 @@
 \alias{VlnPlot}
 \title{Single cell violin plot}
 \usage{
-VlnPlot(object, features.plot, ident.include = NULL, nCol = NULL,
+VlnPlot(object, features.plot, ident.include = NULL, num.col = NULL,
   do.sort = FALSE, y.max = NULL, same.y.lims = FALSE, adjust.use = 1,
   point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = FALSE,
   combine.plots = TRUE, ...)
@@ -17,7 +17,7 @@ anything that can be retreived by FetchData)}
 
 \item{ident.include}{Which classes to include in the plot (default is all)}
 
-\item{nCol}{Number of columns if multiple plots are displayed}
+\item{num.col}{Number of columns if multiple plots are displayed}
 
 \item{do.sort}{Sort identity classes (on the x-axis) by the average
 expression of the attribute being potted}

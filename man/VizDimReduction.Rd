@@ -5,8 +5,8 @@
 \title{Visualize Dimensional Reduction genes}
 \usage{
 VizDimReduction(object, reduction.use = "pca", dims.use = 1:5,
-  num.features = 30, pt.color = "blue", projected = FALSE, nCol = NULL,
-  do.balanced = FALSE, combine.plots = TRUE, ...)
+  num.features = 30, pt.color = "blue", projected = FALSE,
+  num.col = NULL, do.balanced = FALSE, combine.plots = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,7 +21,7 @@ VizDimReduction(object, reduction.use = "pca", dims.use = 1:5,
 
 \item{projected}{Use reduction values for full dataset (i.e. projected dimensional reduction values)}
 
-\item{nCol}{Number of columns to display}
+\item{num.col}{Number of columns to display}
 
 \item{do.balanced}{Return an equal number of genes with + and - scores. If FALSE (default), returns
 the top genes ranked by the scores absolute values}

@@ -229,7 +229,7 @@ DimHeatmap <- function(
   if (combine.plots) {
     plot.list <- CombinePlots(
       plot.list = plot.list,
-      nCol = num.col,
+      num.col = num.col,
       legend.position = 'right'
     )
   }
@@ -245,7 +245,7 @@ DimHeatmap <- function(
 #' @param features.plot Features to plot (gene expression, metrics, PC scores,
 #' anything that can be retreived by FetchData)
 #' @param ident.include Which classes to include in the plot (default is all)
-#' @param nCol Number of columns if multiple plots are displayed
+#' @param num.col Number of columns if multiple plots are displayed
 #' @param do.sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
 #' @param y.max Maximum y axis value
@@ -267,7 +267,7 @@ RidgePlot <- function(
   object,
   features.plot,
   ident.include = NULL,
-  nCol = NULL,
+  num.col = NULL,
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -282,7 +282,7 @@ RidgePlot <- function(
     plot.type = 'ridge',
     features.plot = features.plot,
     ident.include = ident.include,
-    nCol = nCol,
+    num.col = num.col,
     do.sort = do.sort,
     y.max = y.max,
     same.y.lims = same.y.lims,
@@ -314,7 +314,7 @@ VlnPlot <- function(
   object,
   features.plot,
   ident.include = NULL,
-  nCol = NULL,
+  num.col = NULL,
   do.sort = FALSE,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -331,7 +331,7 @@ VlnPlot <- function(
     plot.type = 'violin',
     features.plot = features.plot,
     ident.include = ident.include,
-    nCol = nCol,
+    num.col = num.col,
     do.sort = do.sort,
     y.max = y.max,
     same.y.lims = same.y.lims,
@@ -667,17 +667,17 @@ FeaturePlot <- function(
     stop("'dims.use' must be a two-length integer vector")
   }
   dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
-  nCol <- NULL
-  if (is.null(x = nCol)) {
-    nCol <- 2
+  num.col <- NULL
+  if (is.null(x = num.col)) {
+    num.col <- 2
     if (length(x = features.plot) == 1) {
-      nCol <- 1
+      num.col <- 1
     }
     if (length(x = features.plot) > 6) {
-      nCol <- 3
+      num.col <- 3
     }
     if (length(x = features.plot) > 9) {
-      nCol <- 4
+      num.col <- 4
     }
   }
   cells.use <- cells.use %||% colnames(object)
@@ -766,7 +766,7 @@ FeaturePlot <- function(
     plots[[which(x = features.plot == feature)]] <- p
   }
   if (combine.plots) {
-    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = 'none')
+    plots <- CombinePlots(plot.list = plots, num.col = num.col, legend.position = 'none')
   }
   return(plots)
 }
@@ -1064,7 +1064,7 @@ VariableFeaturePlot <- function(
 #' @param num.features Number of genes to display
 #' @param pt.color Color of points to use
 #' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
-#' @param nCol Number of columns to display
+#' @param num.col Number of columns to display
 #' @param do.balanced Return an equal number of genes with + and - scores. If FALSE (default), returns
 #' the top genes ranked by the scores absolute values
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
@@ -1085,21 +1085,21 @@ VizDimReduction <- function(
   num.features = 30,
   pt.color = 'blue',
   projected = FALSE,
-  nCol = NULL,
+  num.col = NULL,
   do.balanced = FALSE,
   combine.plots = TRUE,
   ...
 ) {
-  if (is.null(x = nCol)) {
-    nCol <- 2
+  if (is.null(x = num.col)) {
+    num.col <- 2
     if (length(x = dims.use) == 1) {
-      nCol <- 1
+      num.col <- 1
     }
     if (length(x = dims.use) > 6) {
-      nCol <- 3
+      num.col <- 3
     }
     if (length(x = dims.use) > 9) {
-      nCol <- 4
+      num.col <- 4
     }
   }
   loadings <- Loadings(object = object[[reduction.use]], projected = projected)
@@ -1134,7 +1134,7 @@ VizDimReduction <- function(
     }
   )
   if (combine.plots) {
-    plots <- CombinePlots(plot.list = plots, nCol = nCol, legend.position = NULL)
+    plots <- CombinePlots(plot.list = plots, num.col = num.col, legend.position = NULL)
   }
   return(plots)
 }
@@ -1209,7 +1209,8 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
 #' @importFrom reshape2 melt
-#' @importFrom stats qqplot runif prop.test qunif
+#' @importFrom ggplot2 ggplot aes stat_qq labs xlim ylim coord_flip
+#' geom_abline guides guide_legend
 #'
 #' @export
 #'
@@ -1224,7 +1225,7 @@ JackStrawPlot <- function(
   plot.y.lim = 0.3
 ) {
   pAll <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "empirical.p.values")
-  if (max(dims) > ncol(pAll)) {
+  if (max(dims) > ncol(x = pAll)) {
     stop("Max dimension is ", ncol(pAll), ".")
   }
   pAll <- pAll[, dims, drop = FALSE]
@@ -1233,7 +1234,7 @@ JackStrawPlot <- function(
   data.plot <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = data.plot) <- c("Contig", "PC", "Value")
   score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")
-  if(nrow(x = score.df) < max(dims)){
+  if (nrow(x = score.df) < max(dims)) {
     stop("Jackstraw procedure not scored for all the provided dims. Please run ScoreJackStraw.")
   }
   score.df <- score.df[dims, ]
@@ -1248,13 +1249,13 @@ JackStrawPlot <- function(
     x = data.plot$PC.Score,
     levels = paste0("PC ", score.df[, "PC"], ": ", sprintf("%1.3g", score.df[, "Score"]))
   )
-  gp <- ggplot(data = data.plot, mapping = aes(sample=Value, color = PC.Score)) +
+  gp <- ggplot(data = data.plot, mapping = aes(sample = Value, color = PC.Score)) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
     xlim(0, plot.y.lim) +
     ylim(0, plot.x.lim) +
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
-    guides(color = guide_legend(title= "PC: p-value"))
+    guides(color = guide_legend(title = "PC: p-value"))
   return(gp)
 }
