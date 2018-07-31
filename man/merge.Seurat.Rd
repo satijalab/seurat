@@ -21,13 +21,13 @@
 \item{add.cell.ids}{A character vector of length(x = c(x, y)). Appends the
 corresponding values to the start of each objects' cell names.}
 
-\item{merge.data}{Merge the data slots instead of just merging the raw.data
+\item{merge.data}{Merge the data slots instead of just merging the counts
 (which requires renormalization). This is recommended if the same normalization
 approach was applied to all objects.}
 
 \item{project}{Sets the project name for the Seurat object.}
 
-\item{min.cells}{Include features detected in at least this many cells. Will subset the raw.data
+\item{min.cells}{Include features detected in at least this many cells. Will subset the counts
 matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are detected.}
@@ -40,7 +40,7 @@ Merge two or more objects.
 }
 \details{
 When merging Seurat objects, the merge procedure will merge the Assay level
-raw data and potentially the data slots (depending on the merge.data parameter).
+counts and potentially the data slots (depending on the merge.data parameter).
 It will also merge the cell-level meta data that was stored with each object
 and preserve the cell identities that were active in the objects pre-merge.
 The merge will not preserve reductions, graphs or logged commands that were

@@ -11,8 +11,8 @@ NULL
 #'
 #' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
 #'
-#' @param raw.data Raw input data
-#' @param min.cells Include features detected in at least this many cells. Will subset the raw.data
+#' @param counts Unnormalized data such as raw counts or TPMs
+#' @param min.cells Include features detected in at least this many cells. Will subset the counts
 #' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
 #' @param min.features Include cells where at least this many features are detected.
 #'
@@ -23,38 +23,38 @@ NULL
 #'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
 #'   as.is = TRUE
 #' )
-#' pbmc_rna <- CreateAssayObject(raw.data = pbmc_raw)
+#' pbmc_rna <- CreateAssayObject(counts = pbmc_raw)
 #' pbmc_rna
 #'
 CreateAssayObject <- function(
-  raw.data,
+  counts,
   min.cells = 0,
   min.features = 0
 ) {
-  # check that dimnames of input raw.data are unique
-  if (anyDuplicated(rownames(x = raw.data))) {
+  # check that dimnames of input counts are unique
+  if (anyDuplicated(rownames(x = counts))) {
     stop("Non-unique features (rownames) present in the input matrix")
   }
-  if (anyDuplicated(colnames(x = raw.data))) {
+  if (anyDuplicated(colnames(x = counts))) {
     stop("Non-unique cell names (colnames) present in the input matrix")
   }
-  if (!inherits(x = raw.data, what = 'dgCMatrix')) {
-    raw.data <- as(object = as.matrix(x = raw.data), Class = 'dgCMatrix')
+  if (!inherits(x = counts, what = 'dgCMatrix')) {
+    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
   }
   # Filter based on min.features
-  num.features <- colSums(x = raw.data > 0)
-  raw.data <- raw.data[, which(x = num.features > min.features)]
+  num.features <- colSums(x = counts > 0)
+  counts <- counts[, which(x = num.features > min.features)]
   # filter genes on the number of cells expressing
   if (min.cells > 0) {
-    num.cells <- rowSums(x = raw.data > 0)
-    raw.data <- raw.data[which(x = num.cells >= min.cells), ]
+    num.cells <- rowSums(x = counts > 0)
+    counts <- counts[which(x = num.cells >= min.cells), ]
   }
   # Initialize meta.features
-  init.meta.features <- data.frame(row.names = rownames(x = raw.data))
+  init.meta.features <- data.frame(row.names = rownames(x = counts))
   assay <- new(
     Class = 'Assay',
-    raw.data = raw.data,
-    data = raw.data,
+    counts = counts,
+    data = counts,
     meta.features = init.meta.features
   )
   return(assay)
@@ -73,7 +73,7 @@ GetAssayData.Assay <- function(object, slot = 'data') {
 #' @method SetAssayData Assay
 #'
 SetAssayData.Assay <- function(object, slot, new.data) {
-  slots.use <- c('raw.data', 'data', 'scale.data')
+  slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
   }
@@ -162,33 +162,33 @@ merge.Assay <- function(
   merge.data = TRUE
 ) {
   assays <- c(x, y)
-  if (!is.null(add.cell.ids)) {
-    for(i in 1:length(assays)) {
+  if (!is.null(x = add.cell.ids)) {
+    for (i in 1:length(assays)) {
       assays[[i]] <- RenameCells(object = assays[[i]], new.names = add.cell.ids[i])
     }
   }
-  # Merge the raw.data
-  merged.raw <- GetAssayData(object = assays[[1]], slot = "raw.data")
-  for(i in 2:length(assays)) {
-    merged.raw <- RowMergeSparseMatrices(
-      mat1 = merged.raw,
-      mat2 = GetAssayData(object = assays[[i]], slot = "raw.data")
+  # Merge the counts
+  merged.counts <- GetAssayData(object = assays[[1]], slot = "counts")
+  for (i in 2:length(x = assays)) {
+    merged.counts <- RowMergeSparseMatrices(
+      mat1 = merged.counts,
+      mat2 = GetAssayData(object = assays[[i]], slot = "counts")
     )
   }
   combined.assay <- CreateAssayObject(
-    raw.data = merged.raw,
+    counts = merged.counts,
     min.cells = min.cells,
     min.features = min.features
   )
   if (merge.data) {
     merged.data <- GetAssayData(object = assays[[1]], slot = "data")
-    for(i in 2:length(assays)) {
+    for (i in 2:length(x = assays)) {
       merged.data <- RowMergeSparseMatrices(
         mat1 = merged.data,
         mat2 = GetAssayData(object = assays[[i]], slot = "data")
       )
     }
-    # only keep cells that made it through raw.data filtering params
+    # only keep cells that made it through counts filtering params
     merged.data <- merged.data[, colnames(combined.assay)]
     combined.assay <- SetAssayData(
       object = combined.assay,

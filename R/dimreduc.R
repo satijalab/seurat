@@ -310,10 +310,17 @@ ggplot.DimReduc <- function(
   return(Embeddings(object = x)[i, j, ...])
 }
 
+#' @describeIn DefaultAssay Get the name of the assay used to calculate this DimReduc
+#' @export
+#' @method DefaultAssay DimReduc
+#'
 DefaultAssay.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'assay.used'))
 }
 
+#' @export
+#' @method DefaultAssay<- DimReduc
+#'
 "DefaultAssay<-.DimReduc" <- function(object, ..., value) {
   slot(object = object, name = 'assay.used') <- value
   return(object)
@@ -353,7 +360,7 @@ setMethod(
   signature = 'DimReduc',
   definition = function(object) {
     projected.data <- slot(object = object, name = 'feature.loadings.projected')
-    projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1)
+    projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) %in% c(0, 1))
     cat(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',

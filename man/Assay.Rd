@@ -7,13 +7,13 @@
 \description{
 The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
 as well as cluster information, variable features, and any other assay-specific metadata.
-Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression 
+Assays should contain single cell expression data such as RNA-seq, protein, or imputed expression
 data.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{raw.data}}{Raw expression data}
+\item{\code{counts}}{Unnormalized data such as raw counts or TPMs}
 
 \item{\code{data}}{Normalized expression data}
 

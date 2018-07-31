@@ -4,18 +4,18 @@
 \alias{CreateSeuratObject}
 \title{Create a Seurat object}
 \usage{
-CreateSeuratObject(raw.data, project = "SeuratProject", assay.use = "RNA",
+CreateSeuratObject(counts, project = "SeuratProject", assay.use = "RNA",
   min.cells = 0, min.features = 0, names.field = 1, names.delim = "_",
   meta.data = NULL)
 }
 \arguments{
-\item{raw.data}{Raw input data}
+\item{counts}{Unnormalized data such as raw counts or TPMs}
 
 \item{project}{Sets the project name for the Seurat object.}
 
 \item{assay.use}{Name of the assay corresponding to the initial input data.}
 
-\item{min.cells}{Include features detected in at least this many cells. Will subset the raw.data
+\item{min.cells}{Include features detected in at least this many cells. Will subset the counts
 matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}
 
 \item{min.features}{Include cells where at least this many features are detected.}
@@ -46,7 +46,7 @@ pbmc_raw <- read.table(
   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
   as.is = TRUE
 )
-pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
 pbmc_small
 
 }

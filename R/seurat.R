@@ -34,11 +34,11 @@ NULL
 #'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
 #'   as.is = TRUE
 #' )
-#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' pbmc_small <- CreateSeuratObject(counts = pbmc_raw)
 #' pbmc_small
 #'
 CreateSeuratObject <- function(
-  raw.data,
+  counts,
   project = 'SeuratProject',
   assay.use = 'RNA',
   min.cells = 0,
@@ -48,7 +48,7 @@ CreateSeuratObject <- function(
   meta.data = NULL
 ) {
   assay.data <- CreateAssayObject(
-    raw.data = raw.data,
+    counts = counts,
     min.cells = min.cells,
     min.features = min.features
   )
@@ -58,7 +58,7 @@ CreateSeuratObject <- function(
   init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = raw.data),
+    X = colnames(x = counts),
     FUN = ExtractField,
     field = names.field,
     delim = names.delim
@@ -66,9 +66,9 @@ CreateSeuratObject <- function(
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
-    idents <- rep.int(x = factor(x = project), times = ncol(x = raw.data))
+    idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
   }
-  names(x = idents) <- colnames(x = raw.data)
+  names(x = idents) <- colnames(x = counts)
   object <- new(
     Class = 'Seurat',
     assays = assay.list,
@@ -81,7 +81,7 @@ CreateSeuratObject <- function(
   object['orig.ident'] <- idents
   # Calculate nUMI and nFeature
   object['nUMI'] <- colSums(x = object)
-  object[paste('nFeature', assay.use, sep = '_')] <- colSums(raw.data > 0)
+  object[paste('nFeature', assay.use, sep = '_')] <- colSums(counts > 0)
   if(!is.null(meta.data)){
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -466,7 +466,7 @@ subset.Seurat <- function(x, subset, ...) {
 #' Merge two or more objects.
 #'
 #' When merging Seurat objects, the merge procedure will merge the Assay level
-#' raw data and potentially the data slots (depending on the merge.data parameter).
+#' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
 #' The merge will not preserve reductions, graphs or logged commands that were
@@ -476,7 +476,7 @@ subset.Seurat <- function(x, subset, ...) {
 #' @param y Object (or a list of multiple objects)
 #' @param add.cell.ids A character vector of length(x = c(x, y)). Appends the
 #' corresponding values to the start of each objects' cell names.
-#' @param merge.data Merge the data slots instead of just merging the raw.data
+#' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
 #' @inheritParams CreateSeuratObject
@@ -558,7 +558,7 @@ merge.Seurat <- function(
     merged.object[paste('nFeature', assay, sep = '_')] <-
       colSums(x = GetAssayData(
         object = merged.object,
-        assay = assay, slot = "raw.data") > 0)
+        assay = assay, slot = "counts") > 0)
   }
   return(merged.object)
 }
