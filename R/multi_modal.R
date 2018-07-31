@@ -1,179 +1,3 @@
-#' @import SeuratObject
-#' @importFrom methods setClass setMethod
-NULL
-
-# Set up assay class to hold multimodal data sets
-
-assay <- setClass(
-  Class = "assay",
-  slots = list(
-    raw.data = "ANY",
-    data = "ANY",
-    scale.data = "ANY",
-    key = "character",
-    misc = "ANY",
-    var.genes = "vector",
-    mean.var = "data.frame"
-  )
-)
-
-setMethod(
-  f = 'show',
-  signature = 'assay',
-  definition = function(object) {
-    cat(
-      'Seurat assay data with',
-      nrow(x = object@data),
-      'measurements for',
-      ncol(x = object@data), 'cells\n'
-    )
-    if (length(x = object@var.genes) > 0) {
-      cat(
-        "Top 10 variable measurements:\n",
-        strwrap(x = paste(head(x = object@var.genes, n = 10L), collapse = ', '))
-      )
-    }
-  }
-)
-
-#' Accessor function for multimodal data
-#'
-#' Pull information for specified stored dimensional reduction analysis
-#'
-#' @param object Seurat object
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
-#'
-#' @return Returns assay data
-#'
-#' @importFrom methods slotNames
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' # Simulate CITE-Seq results
-#' df <- t(x = data.frame(
-#'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
-#'   row.names = pbmc_small@cell.names
-#' ))
-#' pbmc_small <- SetAssayData(
-#'   object = pbmc_small,
-#'   assay.type = 'CITE',
-#'   new.data = df,
-#'   slot = 'data'
-#' )
-#' GetAssayData(object = pbmc_small, assay.type = 'CITE', slot = 'data')
-#' }
-#'
-GetAssayDataOld <- function(object, assay.type = "RNA", slot = "data") {
-  if (assay.type == "RNA") {
-    if (slot == "raw.data") {
-      to.return <- object@raw.data
-    } else if (slot == "data") {
-      to.return <- object@data
-    } else if (slot == "scale.data") {
-      if (length(x = object@scale.data) == 0) {
-        stop("Object@scale.data has not been set. Run ScaleData() and then retry.")
-      }
-      to.return <- object@scale.data
-    }
-    if (is.null(x = to.return)) {
-      return(to.return)
-    }
-    #note that we check for this to avoid a long subset for large matrices if it can be avoided
-    if (length(x = object@cell.names) == ncol(to.return)) {
-      return(to.return)
-    }
-    return(to.return[, object@cell.names])
-  }
-  if (!(assay.type %in% names(object@assay))) {
-    stop(paste(assay.type, "data has not been added"))
-  }
-  if (!(slot %in% slotNames(eval(expr = parse(text = paste0("object@assay$", assay.type)))))) {
-    stop(paste(slot, "slot doesn't exist"))
-  }
-  to.return <- slot(object = object@assay[[assay.type]], name = slot)
-  if(is.null(to.return)){
-    stop(paste0("The ", slot, " for the ", assay.type, " assay is empty"))
-  }
-  if (length(x = object@cell.names) == ncol(x = to.return)) {
-    return(to.return)
-  }
-  return(to.return[, object@cell.names])
-}
-
-#' Assay Data Mutator Function
-#'
-#' Store information for specified assay, for multimodal analysis. new.data
-#' needs to have cells as the columns and measurement features (e.g. genes,
-#' proteins, etc ...) as rows. Additionally, all the cell names in the new.data
-#' must match the cell names in the object (object@@cell.names).
-#'
-#' @inheritParams GetAssayData
-#' @param new.data New data to insert
-#'
-#' @return Seurat object with updated slot
-#'
-#' @importFrom methods new slot<-
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' # Simulate CITE-Seq results
-#' df <- t(x = data.frame(
-#'   x = round(x = rnorm(n = 80, mean = 20, sd = 2)),
-#'   y = round(x = rbinom(n = 80, size = 100, prob = 0.2)),
-#'   row.names = pbmc_small@cell.names
-#' ))
-#' pbmc_small <- SetAssayData(
-#'   object = pbmc_small,
-#'   assay.type = 'CITE',
-#'   new.data = df,
-#'   slot = 'data'
-#' )
-#' pbmc_small@assay
-#' }
-#'
-SetAssayDataOld <- function(object, assay.type, slot, new.data) {
-  if (ncol(x = new.data) != length(x = object@cell.names)) {
-    stop("Wrong number of cells being added: should be ", length(x = object@cell.names))
-  } else if (!all(colnames(x = new.data) %in% object@cell.names)) {
-    stop("Cell names in new assay data matrix don't exactly match the cell names of the object")
-  }
-  new.data <- new.data[, match(x = object@cell.names, table = colnames(x = new.data))]
-  if (any(colnames(x = new.data) != object@cell.names)) {
-    stop("Please ensure cell names for assay data match exactly (including in order) the cell names in object@cell.names")
-  }
-  if (assay.type == "RNA") {
-    if (slot == "raw.data") {
-      (object@raw.data <- new.data)
-    } else if (slot == "data") {
-      (object@data <- new.data)
-    } else if (slot == "scale.data") {
-      (object@scale.data <- new.data)
-    }
-    return(object)
-  }
-  if (assay.type %in% names(object@assay)) {
-    eval(expr = parse(text = paste0("object@assay$", assay.type, "@", slot, "<- new.data")))
-  } else {
-    new.assay <- new(Class = "assay")
-    slot(object = new.assay, name = slot) <- new.data
-    object@assay <- c(object@assay, new.assay)
-    names(x = object@assay) <- c(
-      names(x = object@assay)[1:(length(x = object@assay) - 1)],
-      assay.type
-    )
-    # eval(expr = parse(text = paste0("new.assay@", slot, "<- new.data")))
-    # eval(expr = parse(text = paste0("object@assay$", assay.type, "<- new.assay")))
-  }
-  return(object)
-}
-
-
 #' Slim down a multi-species expression matrix, when only one species is primarily of interenst.
 #'
 #' Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
@@ -217,7 +41,6 @@ CollapseSpeciesExpressionMatrix <- function(
   final.matrix <- rbind(data.matrix.1, control.matrix.keep, data.matrix.3)
   return(final.matrix)
 }
-
 
 #' Demultiplex samples based on data from cell 'hashing'
 #'
@@ -370,10 +193,9 @@ HTODemux <- function(
   if (print.output) {
     print(x = table(object@meta.data$hto_classification_global))
   }
-  object=SetAllIdent(object = object,id = "hto_classification")
-  object=SetIdent(object,cells.use = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
-  object@meta.data$hash_ID=object@ident[rownames(object@meta.data)]
-
+  object <- SetAllIdent(object = object,id = "hto_classification")
+  object <- SetIdent(object,cells.use = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
+  object@meta.data$hash_ID <- object@ident[rownames(object@meta.data)]
   return(object)
 }
 
@@ -398,7 +220,7 @@ HTODemux <- function(
 #' object <- MultiModal_CCA(object,assay.1 = "RNA",assay.2 = "ADT")
 #' }
 
-MultiModal_CCA=function(
+MultiModal_CCA <- function(
   object,
   assay.1 = "RNA",
   assay.2 = "ADT",

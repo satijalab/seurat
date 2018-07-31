@@ -1,34 +1,3 @@
-#' @import SeuratObject
-#' @importFrom methods setClass setMethod
-NULL
-# Set up dim.reduction class
-
-dim.reduction <- setClass(
-  Class = "dim.reduction",
-  slots = list(
-    cell.embeddings = "matrix",
-    gene.loadings = "matrix",
-    gene.loadings.full = "matrix",
-    sdev = "numeric",
-    key = "character",
-    jackstraw = "ANY",
-    misc = "ANY"
-  )
-)
-
-setMethod(
-  f = 'show',
-  signature = 'dim.reduction',
-  definition = function(object) {
-    cat(
-      "A dimensional reduction object with key", object@key, '\n',
-      'Number of dimensions:', ncol(x = object@cell.embeddings), '\n',
-      'Projected dimensional reduction calculated:', !all(dim(object@gene.loadings.full) == 0), '\n',
-      'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
-    )
-  }
-)
-
 # Prep data for dimensional reduction
 #
 # Common checks and preparatory steps before running certain dimensional
@@ -37,13 +6,14 @@ setMethod(
 # @param object        Assay object
 # @param features.use  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
-
+#
+#' @importFrom SeuratObject GetAssayData VariableFeatures
+#
 PrepDR <- function(
   object,
   features.use = NULL
 ) {
-
-  if (length(VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
+  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
   }
   data.use <- GetAssayData(object = object, slot = "scale.data")
@@ -54,34 +24,6 @@ PrepDR <- function(
   features.use <- features.use[!is.na(x = features.use)]
   data.use <- data.use[features.use, ]
   return(data.use)
-}
-
-# Get the top genes associated with given dimensional reduction scores
-#
-# @param i            Dimension for which to pull genes
-# @param dim.scores   Matrix containing the dimensional reduction scores
-# @param do.balanced  Whether to pull genes associated with both large and small
-#                     scores (+/-)
-# @param num.genes    Number of genes to return
-
-GetTopGenes <- function(
-  i,
-  dim.scores,
-  do.balanced = FALSE,
-  num.genes = 30
-) {
-  if (do.balanced) {
-    num.genes <- round(x = num.genes / 2)
-    sx <- dim.scores[order(dim.scores[, i]), , drop = FALSE]
-    genes.1 <- (rownames(x = sx[1:num.genes, , drop = FALSE]))
-    genes.2 <- (rownames(x = sx[(nrow(x = sx) - num.genes + 1):nrow(x = sx), , drop = FALSE]))
-    return(c(genes.1, genes.2))
-  } else {
-    sx <- dim.scores[rev(x = order(abs(x = dim.scores[, i]))), ,drop = FALSE]
-    genes.1 <- (rownames(x = sx[1:num.genes, , drop = FALSE]))
-    genes.1 <- genes.1[order(dim.scores[genes.1, i])]
-    return(genes.1)
-  }
 }
 
 # Check group exists either as an ident or that all cells passed as vector are
@@ -121,23 +63,29 @@ CheckGroup <- function(object, group, group.id) {
 #                   that have non-zero variance
 #
 CheckFeatures <- function(data.use, features.use, object.name) {
-  if (any(! features.use %in% rownames(data.use))) {
+  if (any(!features.use %in% rownames(data.use))) {
     missing.features <- features.use[!features.use %in% rownames(data.use)]
-    stop(paste0("Following features are not scaled in ", object.name, " : ",
-                paste0(missing.features, collapse = ", ")))
+    stop(
+      "Following features are not scaled in ",
+      object.name,
+      ": ",
+      paste0(missing.features, collapse = ", ")
+    )
   }
-
   features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
   no.var.features <- features.use[features.var == 0]
-  if(length(no.var.features) > 0) {
-    warning(paste0("The following features have zero variance in ", object.name, ": ",
-            paste0(no.var.features, collapse = ", ")))
+  if (length(no.var.features) > 0) {
+    warning(
+      "The following features have zero variance in ",
+      object.name,
+      ": ",
+      paste0(no.var.features, collapse = ", ")
+    )
   }
-  features.use <- setdiff(features.use, no.var.features)
-  features.use <- features.use[! is.na(x = features.use)]
+  features.use <- setdiff(x = features.use, y = no.var.features)
+  features.use <- features.use[!is.na(x = features.use)]
   return(features.use)
 }
-
 
 # Calculate percent variance explained
 #
@@ -190,16 +138,18 @@ CalcProjectedVar <- function(
 # @param dims.use        Dimensions to use in calculation
 # @param genes.use       Genes to consider when calculating
 #
+#' @importFrom SeuratObject Embeddings Loadings
+#
 # @return                Returns a matrix with the low dimensional reconstruction
 #
 CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
-  if (missing(x = dims.use)){
-    dims.use <- 1:ncol(x = GetCellEmbeddings(
+  if (missing(x = dims.use)) {
+    dims.use <- 1:ncol(x = Embeddings(
       object = object,
       reduction.type = reduction.type
     ))
   }
-  x.vec <- GetGeneLoadings(
+  x.vec <- Loadings(
     object = object,
     reduction.type = reduction.type,
     dims.use = dims.use,
@@ -230,9 +180,9 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
 #
 GetCrit <- function(mat.list, ws, num.sets){
   crit <- 0
-  for(i in 2:num.sets){
-    for(j in 1:(i-1)){
-      crit <- crit + t(ws[[i]])%*%t(mat.list[[i]])%*%mat.list[[j]]%*%ws[[j]]
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      crit <- crit + t(ws[[i]]) %*% t(x = mat.list[[i]]) %*% mat.list[[j]] %*% ws[[j]]
     }
   }
   return(crit)
@@ -254,12 +204,12 @@ GetCrit <- function(mat.list, ws, num.sets){
 #
 UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
   tots <- 0
-  for(j in (1:num.sets)[-i]){
-    diagmat <- (t(ws.final[[i]])%*%t(mat.list[[i]]))%*%(mat.list[[j]]%*%ws.final[[j]])
-    diagmat[row(diagmat)!=col(diagmat)] <- 0
-    tots <- tots + t(mat.list[[i]])%*%(mat.list[[j]]%*%ws[[j]]) - ws.final[[i]]%*%(diagmat%*%(t(ws.final[[j]])%*%ws[[j]]))
+  for (j in (1:num.sets)[-i]) {
+    diagmat <- (t(x = ws.final[[i]]) %*% t(x = mat.list[[i]])) %*% (mat.list[[j]] %*% ws.final[[j]])
+    diagmat[row(x = diagmat) != col(x = diagmat)] <- 0
+    tots <- tots + t(x = mat.list[[i]]) %*% (mat.list[[j]] %*% ws[[j]]) - ws.final[[i]] %*% (diagmat %*% (t(x = ws.final[[j]]) %*% ws[[j]]))
   }
-  w <- tots/l2n(tots)
+  w <- tots / l2n(vec = tots)
   return(w)
 }
 
@@ -274,8 +224,8 @@ UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
 # @return returns the l2-norm.
 #
 l2n <- function(vec){
-  a <- sqrt(sum(vec^2))
-  if(a==0){
+  a <- sqrt(x = sum(vec ^ 2))
+  if (a == 0) {
     a <- .05
   }
   return(a)
@@ -295,10 +245,12 @@ l2n <- function(vec){
 #
 GetCors <- function(mat.list, ws, num.sets){
   cors <- 0
-  for(i in 2:num.sets){
-    for(j in 1:(i-1)){
-      thiscor  <-  cor(mat.list[[i]]%*%ws[[i]], mat.list[[j]]%*%ws[[j]])
-      if(is.na(thiscor)) thiscor <- 0
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      thiscor  <-  cor(x = mat.list[[i]] %*% ws[[i]], y = mat.list[[j]] %*% ws[[j]])
+      if (is.na(x = thiscor)) {
+        thiscor <- 0
+      }
       cors <- cors + thiscor
     }
   }
