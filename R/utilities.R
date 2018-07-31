@@ -494,7 +494,6 @@ AveragePCA <- function(object) {
 #' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
 #' @param use.scale Use scaled values for gene expression
 #' @param use.raw Use raw values for gene expression
-#' @inheritParams FetchData
 #' @param show.progress Show progress bar (default is T)
 #' @param ... Arguments to be passed to methods such as \code{Seurat}
 #'
