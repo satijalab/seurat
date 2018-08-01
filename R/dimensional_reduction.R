@@ -241,6 +241,9 @@ RunICA <- function(
   return(object)
 }
 
+#' @importFrom tsne tsne
+#' @importFrom Rtsne Rtsne
+#'
 #' @export
 #' @method RunTSNE matrix
 #'

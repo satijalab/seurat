@@ -307,16 +307,3 @@ SetJS.JackStrawData <- function(object, slot, new.data) {
   slot(object = object, name = slot) <- new.data
   return(object)
 }
-
-setMethod(
-  f = 'show',
-  signature = 'JackStrawData',
-  definition = function(object) {
-    empp <- GetJS(object = object, slot = "empirical.p.values")
-    scored <- GetJS(object = object, slot = "overall.p.values")
-    cat(
-      "A JackStrawData object simulated on", nrow(empp), "features for", ncol(empp), "dimensions.\n",
-      "Scored for:", nrow(scored), "dimensions."
-    )
-  }
-)

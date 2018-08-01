@@ -1,3 +1,7 @@
+#' @include package.R
+#'
+NULL
+
 globalVariables(names = 'i', package = 'Seurat', add = TRUE)
 # Regress out technical effects and cell cycle
 #
@@ -262,7 +266,7 @@ RegressOutMatrix <- function(
       'poisson' = residuals(object = glm(
         formula = fmla,
         family = 'poisson',
-        data = regression.mat), 
+        data = regression.mat),
         type = 'pearson'
       ),
       'negbinom' = NBResiduals(

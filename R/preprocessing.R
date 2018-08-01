@@ -1,3 +1,7 @@
+#' @include package.R
+#'
+NULL
+
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
@@ -18,7 +22,7 @@
 #' data_dir <- 'path/to/data/directory'
 #' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
 #' expression_matrix <- Read10X(data.dir = data_dir)
-#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' seurat_object = CreateSeuratObject(counts = expression_matrix)
 #' }
 #'
 Read10X <- function(data.dir = NULL){
@@ -105,7 +109,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
   genomes <- names(infile)
   output <- list()
   for(genome in genomes){
-    raw.data <- infile[[paste0(genome, '/data')]]
+    counts <- infile[[paste0(genome, '/data')]]
     indices <- infile[[paste0(genome, '/indices')]]
     indptr <- infile[[paste0(genome, '/indptr')]]
     shp <- infile[[paste0(genome, '/shape')]]
@@ -116,7 +120,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
     }
     barcodes <- infile[[paste0(genome, '/barcodes')]]
     sparse.mat <- sparseMatrix(i = indices[] + 1, p = indptr[],
-                               x = as.numeric(raw.data[]),
+                               x = as.numeric(counts[]),
                                dims = shp[], giveCsparse = FALSE)
     rownames(sparse.mat) <- gene_names
     colnames(sparse.mat) <- barcodes[]
@@ -174,7 +178,7 @@ NormalizeData.Assay <- function(
     object = object,
     slot = 'data',
     new.data = NormalizeData(
-      object = GetAssayData(object = object, slot = 'raw.data'),
+      object = GetAssayData(object = object, slot = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose
@@ -260,7 +264,7 @@ RegressRegNB <- function(
   }
   assay.use <- assay.use %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay.use = assay.use)
-  umi <- GetAssayData(object = assay.obj, slot = 'raw.data')
+  umi <- GetAssayData(object = assay.obj, slot = 'counts')
 
   vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
   # cell_attr = NULL,
@@ -453,7 +457,7 @@ ScaleData.Assay <- function(
   ...
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
-  slot.use <- ifelse(test = use.umi, yes = 'raw.data', no = 'data')
+  slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
   features.use <- features.use %||% VariableFeatures(object)
   if (length(features.use) == 0) features.use <- rownames(GetAssayData(object = object, slot = slot.use))
   object <- SetAssayData(
@@ -827,7 +831,7 @@ FindVariableFeaturesNew.Assay <- function(
   verbose = TRUE
 ) {
   hvf.info <- FindVariableFeaturesNew(
-    object = GetAssayData(object = object, slot = 'raw.data'),
+    object = GetAssayData(object = object, slot = 'counts'),
     loess.span = loess.span,
     clip.max = clip.max,
     verbose = verbose
