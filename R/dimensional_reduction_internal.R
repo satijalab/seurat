@@ -31,9 +31,8 @@ PrepDR <- function(
 #
 # @param object    Seurat object
 # @param group     Identity or vector of cell names
-# @param group.id  Corresponds to the the either group1 or group2 parameter from
-#                  RunCCA
-
+# @param group.id  Corresponds to the the either group1 or group2 parameter from RunCCA
+#
 CheckGroup <- function(object, group, group.id) {
   if (all(group %in% unique(x = object@ident))) {
     cells.use <- WhichCells(object = object, ident = group)

@@ -26,35 +26,3 @@
 ScoreJackStraw <- function(object, slot, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
-
-#' Get JackStrawData slot
-#'
-#' Accessor method for JackStrawData
-#'
-#' @param object JackStrawData object
-#' @param slot Name of slot to get
-#' @return Returns contents of specified slot
-
-#' @rdname GetJS
-#' @export GetJS
-#'
-GetJS <- function(object, slot, ...) {
-  UseMethod(generic = 'GetJS', object = object)
-}
-
-#' Set JackStrawData slot
-#'
-#' Mutator method for JackStrawData
-#'
-#' @param object JackStrawData object
-#' @param slot Name of slot to set
-#' @param new.data New data to replace slot with
-#' @return Returns JackStrawData object with modified slot
-#'
-#' @rdname SetJS
-#' @export SetJS
-#'
-SetJS <- function(object, slot, new.data, ...) {
-  UseMethod(generic = 'SetJS', object = object)
-}
-

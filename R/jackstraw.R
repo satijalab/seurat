@@ -49,16 +49,18 @@ JackStraw <- function(
   if (reduction.use != "pca") {
     stop("Only pca for reduction.use is currently supported")
   }
-  embeddings <- Embeddings(object = object[[reduction.use]])
-  if (dims > ncol(embeddings)) {
-    dims <- ncol(embeddings)
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  # embeddings <- Embeddings(object = object[[reduction.use]])
+  if (dims > length(x = object[[reduction.use]])) {
+    dims <- length(x = object[[reduction.use]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  if (dims > ncol(object)) {
-    dims <- ncol(object)
+  if (dims > ncol(x = object)) {
+    dims <- ncol(x = object)
     warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  reduc.features <- rownames(Loadings(object = object[[reduction.use]], projected = FALSE))
+  loadings <- Loadings(object = object[[reduction.use]], projected = FALSE)
+  reduc.features <- rownames(x = loadings)
   if (length(x = reduc.features) < 3) {
     stop("Too few features")
   }
@@ -70,24 +72,20 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  loadings <- Loadings(object = object[[reduction.use]], projected = FALSE)
   data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
-  rev.pca <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$rev.pca
-  weight.by.var <- slot(object = object[[paste0("RunPCA.", assay.use)]], name = "params")$weight.by.var
-
+  rev.pca <- object[[paste0('RunPCA.', assay.use)]]$rev.pca
+  weight.by.var <- object[[paste0('RunPCA.', assay.use)]]$weight.by.var
   ## TODO: Parallelization
-  fake.vals.raw <- lapply(X = 1:num.replicate, FUN = function(x) {
-    JackRandom(
-      scaled.data = data.use,
-      prop.use = prop.freq,
-      r1.use = 1,
-      r2.use = dims,
-      seed.use = x,
-      rev.pca = rev.pca,
-      weight.by.var = weight.by.var,
-      maxit = maxit
-    )}
+  fake.vals.raw <- lapply(
+    X = 1:num.replicate,
+    FUN = JackRandom,
+    scaled.data = data.use,
+    prop.use = prop.freq,
+    r1.use = 1,
+    r2.use = dims,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    maxit = maxit
   )
   fake.vals <- sapply(
     X = 1:dims,
@@ -100,7 +98,7 @@ JackStraw <- function(
       ))))
     }
   )
-  jackStraw.fakePC <- as.matrix(x = fake.vals)
+  fake.vals <- as.matrix(x = fake.vals)
   jackStraw.empP <- as.matrix(
     sapply(
       X = 1:dims,
@@ -120,15 +118,13 @@ JackStraw <- function(
     fake.reduction.scores = fake.vals,
     empirical.p.values.full = matrix()
   )
-  object[[reduction.use]] <- SetDimReduc(
-    object = object[[reduction.use]],
-    slot = "jackstraw",
-    new.data = jackstraw.obj
-  )
+  JS(object = object[[reduction.use]]) <- jackstraw.obj
   object <- LogSeuratCommand(object = object)
   return(object)
 }
 
+#' @importFrom stats prop.test
+#'
 #' @describeIn ScoreJackStraw Score JackStraw results given a JackStrawData
 #' @export
 #' @method ScoreJackStraw JackStrawData
@@ -139,16 +135,12 @@ ScoreJackStraw.JackStrawData <- function(
   score.thresh = 1e-5,
   ...
 ) {
-  pAll <- GetJS(object = object, slot = "empirical.p.values")
+  pAll <- JS(object = object, slot = "empirical.p.values")
   pAll <- pAll[, dims, drop = FALSE]
   pAll <- as.data.frame(pAll)
   pAll$Contig <- rownames(x = pAll)
-  pAll.l <- reshape2::melt(data = pAll, id.vars = "Contig")
-  colnames(x = pAll.l) <- c("Contig", "PC", "Value")
-  qq.df <- NULL
   score.df <- NULL
   for (i in dims) {
-    q <- qqplot(x = pAll[, i], y = runif(n = 1000), plot.it = FALSE)
     pc.score <- suppressWarnings(prop.test(
       x = c(
         length(x = which(x = pAll[, i] <= score.thresh)),
@@ -164,15 +156,10 @@ ScoreJackStraw.JackStrawData <- function(
     } else {
       score.df <- rbind(score.df, data.frame(PC = paste0("PC", i), Score = pc.score))
     }
-    if (is.null(x = qq.df)) {
-      qq.df <- data.frame(x = q$x, y = q$y, PC = paste0("PC", i))
-    } else {
-      qq.df <- rbind(qq.df, data.frame(x = q$x, y = q$y, PC = paste0("PC", i)))
-    }
   }
   score.df$PC <- dims
   score.df <- as.matrix(score.df)
-  object <- SetJS(object = object, slot = "overall.p.values", new.data = score.df)
+  JS(object = object, slot = 'overall') <- score.df
   return(object)
 }
 
@@ -187,14 +174,13 @@ ScoreJackStraw.DimReduc <- function(
   score.thresh = 1e-5,
   do.plot = FALSE,
   ...
-){
-  jackstraw.data <- ScoreJackStraw(
-    object = GetDimReduc(object = object, slot = "jackstraw"),
+) {
+  JS(object = object) <- ScoreJackStraw(
+    object = JS(object = object),
     dims = dims,
     score.thresh = 1e-5,
     ...
   )
-  object <- SetDimReduc(object = object, slot = "jackstraw", new.data = jackstraw.data)
   return(object)
 }
 
@@ -212,7 +198,7 @@ ScoreJackStraw.Seurat <- function(
   score.thresh = 1e-5,
   do.plot = FALSE,
   ...
-){
+) {
   object[[reduction.use]] <- ScoreJackStraw(
     object = object[[reduction.use]],
     dims = dims,
@@ -229,7 +215,6 @@ ScoreJackStraw.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
-
 
 #' Significant genes from a PCA
 #'
@@ -272,7 +257,7 @@ PCASigGenes <- function(
   }
   names(x = pvals.min) <- rownames(x = pvals.use)
   genes.use <- names(x = pvals.min)[pvals.min < pval.cut]
-  if (! is.null(x = max.per.pc)) {
+  if (!is.null(x = max.per.pc)) {
     pc.top.genes <- PCTopGenes(
       object = object,
       pc.use = pcs.use,
@@ -283,27 +268,4 @@ PCASigGenes <- function(
     genes.use <- intersect(x = pc.top.genes, y = genes.use)
   }
   return(genes.use)
-}
-
-
-#' @describeIn GetJS Get a slot for a given JackStrawData
-#' @export
-#' @method GetJS JackStrawData
-#'
-GetJS.JackStrawData <- function(object, slot) {
-  return(slot(object = object, name = slot))
-}
-
-#' @describeIn SetJS Set a slot for a given JackStrawData
-#' @export
-#' @method SetJS JackStrawData
-#'
-SetJS.JackStrawData <- function(object, slot, new.data) {
-  slots.use <- c("empirical.p.values", "fake.reduction.scores",
-                 "empirical.p.values.full", "overall.p.values")
-  if (!slot %in% slots.use) {
-    stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
-  }
-  slot(object = object, name = slot) <- new.data
-  return(object)
 }

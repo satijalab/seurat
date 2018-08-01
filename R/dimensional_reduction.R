@@ -101,6 +101,8 @@ RunPCA.Assay <- function(
 
 #' @param workflow.name Name of workflow
 #'
+#' @importFrom SeuratObject DefaultAssay GetAssay
+#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat

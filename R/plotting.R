@@ -1224,7 +1224,8 @@ JackStrawPlot <- function(
   plot.x.lim = 0.1,
   plot.y.lim = 0.3
 ) {
-  pAll <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "empirical.p.values")
+#   pAll <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "empirical.p.values")
+  pAll <- JS(object = object[[reduction.use]], slot = 'empirical')
   if (max(dims) > ncol(x = pAll)) {
     stop("Max dimension is ", ncol(pAll), ".")
   }
@@ -1233,7 +1234,8 @@ JackStrawPlot <- function(
   pAll$Contig <- rownames(x = pAll)
   data.plot <- reshape2::melt(data = pAll, id.vars = "Contig")
   colnames(x = data.plot) <- c("Contig", "PC", "Value")
-  score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")
+#   score.df <- GetJS(object = GetDimReduc(object = object[[reduction.use]], slot = "jackstraw"), slot = "overall.p.values")
+  score.df <- JS(object = object[[reduction.use]], slot = 'overall')
   if (nrow(x = score.df) < max(dims)) {
     stop("Jackstraw procedure not scored for all the provided dims. Please run ScoreJackStraw.")
   }

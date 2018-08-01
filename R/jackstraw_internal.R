@@ -46,7 +46,6 @@ EmpiricalP <- function(x, nullval) {
 }
 
 #internal
-#' @importFrom methods new
 #
 JackRandom <- function(
   scaled.data,
@@ -64,7 +63,7 @@ JackRandom <- function(
     size = nrow(x = scaled.data) * prop.use
   )
   # make sure that rand.genes is at least 3
-  if (length(x = rand.genes) < 3){
+  if (length(x = rand.genes) < 3) {
     rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
   }
   data.mod <- scaled.data

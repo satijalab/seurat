@@ -19,7 +19,6 @@ Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
     SeuratObject,
-    Matrix (>= 1.2.14),
 Imports:
     ape,
     cluster,
@@ -46,6 +45,7 @@ Imports:
     lars,
     lmtest,
     MASS,
+    Matrix (>= 1.2.14),
     metap,
     methods,
     mixtools,
@@ -68,7 +68,7 @@ Imports:
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
-Collate: 
+Collate:
     'RcppExports.R'
     'alignment.R'
     'conversion.R'
@@ -77,8 +77,6 @@ Collate:
     'cluster_determination_generics.R'
     'cluster_determination_internal.R'
     'cluster_validation.R'
-    'commands.R'
-    'commands_internal.R'
     'data.R'
     'deprecated_functions.R'
     'differential_expression.R'

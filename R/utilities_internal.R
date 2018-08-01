@@ -14,6 +14,56 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
+# Logs a command run, storing the name, timestamp, and argument list. Stores in
+# the Seurat object
+# @param object Name of Seurat object
+#
+#' @importFrom SeuratObject ExtractField
+#
+# @return returns the Seurat object with command stored
+#
+LogSeuratCommand <- function(object, return.command = FALSE) {
+  time.stamp <- Sys.time()
+  #capture function name
+  command.name <- as.character(deparse(sys.calls()[[sys.nframe() - 1]]))
+  command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+  call.string <- command.name
+  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  #capture function arguments
+  argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
+  argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
+  argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
+  params <- list()
+  p.env <- parent.frame(n = 1)
+  argnames <- intersect(x = argnames, y = ls(name = p.env))
+  # fill in params list
+  for (arg in argnames) {
+    param_value <- get(x = arg, envir = p.env)
+    #TODO Institute some check of object size?
+    params[[arg]] <- param_value
+  }
+  # check if function works on the Assay and/or the DimReduc Level
+  assay.use <- params[["assay.use"]]
+  reduction.use <- params[["reduction.use"]]
+  # rename function name to include Assay/DimReduc info
+  command.name <- paste(command.name, assay.use, reduction.use, sep = '.')
+  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
+  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
+  if (return.command) {
+    return(command.name)
+  }
+  # store results
+  seurat.command <- new(
+    Class = 'SeuratCommand',
+    name = command.name,
+    params = params,
+    time.stamp = time.stamp,
+    call.string = call.string
+  )
+  object[[command.name]] <- seurat.command
+  return(object)
+}
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
