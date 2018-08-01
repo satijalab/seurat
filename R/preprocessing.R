@@ -254,6 +254,9 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
     stop("File not found")
   }
   infile <- H5File$new(filename)
+  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+    stop("Only older (pre-3.0) 10X hdf5 files are supported.")
+  }
   genomes <- names(infile)
   output <- list()
   for(genome in genomes){
