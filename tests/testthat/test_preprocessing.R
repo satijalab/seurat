@@ -11,7 +11,7 @@ context("Object creation")
 fake.meta.data <- data.frame(rep(1, ncol(pbmc.test)))
 rownames(fake.meta.data) <- colnames(pbmc.test)
 colnames(fake.meta.data) <- "FMD"
-object <- CreateSeuratObject(raw.data = pbmc.test,
+object <- CreateSeuratObject(counts = pbmc.test,
                              meta.data = fake.meta.data)
 test_that("object initialization actually creates seurat object", {
   expect_is(object, "Seurat")
@@ -26,14 +26,14 @@ test_that("meta.data slot generated correctly", {
 })
 
 object.filtered <- CreateSeuratObject(
-  raw.data = pbmc.test,
+  counts = pbmc.test,
   min.cells = 10,
   min.features = 30
 )
 
 test_that("Filtering handled properly", {
-  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "raw.data")), 162)
-  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "raw.data")), 75)
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 162)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 75)
 })
 
 # Tests for Read10X
@@ -57,7 +57,7 @@ context("NormalizeData")
 
 test_that("NormalizeData error handling", {
   expect_error(NormalizeData(object = object, assay.use = "FAKE"))
-  expect_equal(GetAssayData(object = object, slot = "raw.data"),
+  expect_equal(GetAssayData(object = object, slot = "counts"),
                GetAssayData(object = NormalizeData(
                   object = object,
                   normalization.method = NULL),
@@ -72,11 +72,11 @@ test_that("NormalizeData scales properly", {
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "raw.data"))
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"))
 test_that("LogNormalize normalizes properly", {
   expect_equal(
-    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "raw.data"), verbose = FALSE),
-    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "raw.data"))), verbose = FALSE)
+    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
+    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE)
   )
 })
 

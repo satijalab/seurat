@@ -248,6 +248,16 @@ RegressOutMatrix <- function(
   vars.to.regress <- colnames(x = latent.data)
   fmla <- paste('GENE ~', paste(vars.to.regress, collapse = '+'))
   fmla <- as.formula(object = fmla)
+  if (model.use == "linear") {
+    # In this code, we'll repeatedly regress different Y against the same X
+    # (latent.data) in order to calculate residuals.  Rather that repeatedly
+    # call lm to do this, we'll avoid recalculating the QR decomposition for the
+    # latent.data matrix each time by reusing it after calculating it once
+    regression.mat <- cbind(latent.data, data.expr[1,])
+    colnames(regression.mat) <- c(colnames(x = latent.data), "GENE")
+    qr <- lm(fmla, data = regression.mat, qr = TRUE)$qr
+    rm(regression.mat)
+  }
   # Make results matrix
   data.resid <- matrix(
     nrow = nrow(x = data.expr),
@@ -262,7 +272,7 @@ RegressOutMatrix <- function(
     colnames(x = regression.mat) <- c(vars.to.regress, 'GENE')
     regression.mat <- switch(
       EXPR = model.use,
-      'linear' = lm(formula = fmla, data = regression.mat)$residuals,
+      'linear' = qr.resid(qr = qr, y = data.expr[x,]),
       'poisson' = residuals(object = glm(
         formula = fmla,
         family = 'poisson',
