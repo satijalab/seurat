@@ -19,9 +19,9 @@ AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
   if (display.progress) {
     cat("Reading files\n", file = stderr())
   }
-  tcc.mat <- read.table(file = tcc.counts, sep = "\t", header = TRUE,
-                        row.names = 1)
-  tcc.mat <- as(as.matrix(tcc.mat), "dgCMatrix")
+  tcc.mat <- read.table(file = tcc.counts)
+  tcc.mat <- sparseMatrix(i = tcc.mat$V2 + 1, j = tcc.mat$V1 +1, x = tcc.mat$V3)
+  tcc.mat <- as(tcc.mat, "dgCMatrix")
   tx.mat <- readRDS(file = tx.counts)
   tx.mat <- as(as.matrix(tx.mat$counts), "dgCMatrix")
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
