@@ -1,5 +1,8 @@
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
+#'
+#' @importFrom methods as
+#'
 #' @describeIn BuildSNN Build an SNN on a given matrix
 #' @export
 #' @method BuildSNN default
@@ -50,7 +53,7 @@ BuildSNN.default <- function(
   )
   rownames(x = snn.matrix) <- rownames(x = object)
   colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- as(object = snn.matrix, Class = "Graph")
+  snn.matrix <- methods::as(object = snn.matrix, Class = "Graph")
   return(snn.matrix)
 }
 
