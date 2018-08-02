@@ -502,9 +502,9 @@ MakeLabels <- function(data.plot) {
       return(apply(X = data.use, MARGIN = 2, FUN = median))
     }
   )
-  names(x = data.labels) <- unique(x = data.plot[, 3])
+  names(x = data.labels) <- as.character(unique(x = data.plot[, 3]))
   data.labels <- as.data.frame(x = t(x = as.data.frame(x = data.labels)))
-  data.labels[, colnames(x = data.plot)[3]] <- rownames(x = data.labels)
+  data.labels[, colnames(x = data.plot)[3]] <- as.character(unique(x = data.plot[, 3]))
   return(data.labels)
 }
 
@@ -670,7 +670,8 @@ ExIPlot <- function(
 #' @importFrom ggridges geom_density_ridges theme_ridges
 #' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin ylim
 #' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous element_line
-#
+#' @importFrom cowplot theme_cowplot
+#'
 SingleExIPlot <- function(
   feature,
   plot.type = 'violin',
@@ -763,7 +764,7 @@ SingleExIPlot <- function(
   if (!is.null(x = cols.use)) {
     p <- p + scale_fill_manual(values = cols.use)
   }
-  p <- p + WhiteBackground(axis.line = element_line(colour = 'black'))
+  p <- p + theme_cowplot()
   return(p)
 }
 
@@ -796,7 +797,8 @@ SingleExIPlot <- function(
 #
 #' @importFrom ggplot2 ggplot aes_string labs geom_text
 #' scale_color_brewer scale_color_manual element_rect
-#
+#' @importFrom cowplot theme_cowplot
+#'
 SingleDimPlot <- function(
   data.plot,
   dims.use,
@@ -893,7 +895,7 @@ SingleDimPlot <- function(
     }
     p <- p + cols.use
   }
-  p <- p + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
+  p <- p + theme_cowplot()
   return(p)
 }
 

@@ -927,6 +927,7 @@ FeatureMap <- function(
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 geom_smooth aes_string
+#' @importFrom cowplot theme_cowplot
 #' @export
 #'
 #' @examples
@@ -964,6 +965,7 @@ FeatureScatter <- function(
       span = span
     )
   }
+  p <- p + theme_cowplot()
   return(p)
 }
 
@@ -1073,6 +1075,7 @@ VariableFeaturePlot <- function(
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_point labs
+#' @importFrom cowplot theme_cowplot
 #' @export
 #'
 #' @examples
@@ -1129,7 +1132,7 @@ VizDimReduction <- function(
         mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
       ) +
         geom_point(col = pt.color) +
-        labs(y = NULL)
+        labs(y = NULL) + theme_cowplot()
       return(plot)
     }
   )
@@ -1153,6 +1156,7 @@ VizDimReduction <- function(
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_point labs element_line
+#' @importFrom cowplot theme_cowplot
 #' @export
 #'
 #' @examples
@@ -1178,7 +1182,7 @@ ElbowPlot <- function(
   p <- ggplot(data = data.frame(dims = 1:dims.plot, stdev = data.use[1:dims.plot])) +
     geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
     labs(x = Key(object = object[[reduction.use]]), y = stdev) +
-    WhiteBackground(axis.line = element_line(colour = 'black'))
+    theme_cowplot()
   return(p)
 }
 
@@ -1211,6 +1215,7 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' @importFrom reshape2 melt
 #' @importFrom ggplot2 ggplot aes stat_qq labs xlim ylim coord_flip
 #' geom_abline guides guide_legend
+#' @importFrom cowplot theme_cowplot
 #'
 #' @export
 #'
@@ -1258,6 +1263,7 @@ JackStrawPlot <- function(
     ylim(0, plot.x.lim) +
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
-    guides(color = guide_legend(title = "PC: p-value"))
+    guides(color = guide_legend(title = "PC: p-value")) +
+    theme_cowplot()
   return(gp)
 }
