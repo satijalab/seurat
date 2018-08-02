@@ -639,7 +639,7 @@ ExIPlot <- function(
     }
   )
   if (combine.plots) {
-    plots <- CombinePlots(plot.list = plots, num.colnum.colnCol, legend.position = 'none')
+    plots <- CombinePlots(plot.list = plots, num.col = num.col, legend.position = 'none')
   }
   return(plots)
 }
