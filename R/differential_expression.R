@@ -254,7 +254,7 @@ FindMarkers.Seurat <- function(
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
-    ident.1 <- WhichCells(object = object, ident = ident.1)
+    ident.1 <- WhichCells(object = object, ident.keep = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2)) > 1 &&
@@ -267,7 +267,7 @@ FindMarkers.Seurat <- function(
     if (is.null(x = ident.2)) {
       ident.2 <- setdiff(colnames(data.use), ident.1)
     } else {
-      ident.2 <- WhichCells(object = object, ident = ident.2)
+      ident.2 <- WhichCells(object = object, ident.keep = ident.2)
     }
   }
   if (!is.null(latent.vars)) {
