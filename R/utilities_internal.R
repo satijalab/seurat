@@ -31,6 +31,28 @@ Melt <- function(x) {
   ))
 }
 
+# Parenting parameters from one environment to the next
+#
+# This function allows one to modifiy a parameter in a parent environement
+# The primary use of this is to ensure logging functions store correct parameters
+# if they've been modified by a child function or method
+#
+# @param parent.find Regex pattern of name of parent function call to modify.
+# For example, this can be the class name for a method that was dispatched previously
+# @param param Name of parameter to modify
+# @param value Value to set for \code{param} in environement that matches \code{parent.find}
+#
+# @return No return, modifies parent environment directly
+#
+Parenting <- function(parent.find = 'Seurat', param, value) {
+  parent.index <- grep(pattern = parent.find, x = sys.calls())
+  if (length(x = parent.index) != 1) {
+    stop("Cannot find a parent environment called ", parent.find)
+  }
+  parent.environ <- sys.frame(which = parent.index)
+  parent.environ[[param]] <- value
+}
+
 # Logs a command run, storing the name, timestamp, and argument list. Stores in
 # the Seurat object
 # @param object Name of Seurat object
