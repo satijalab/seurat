@@ -111,7 +111,8 @@ Collate:
     'workflows.R'
     'workflows_internal.R'
     'zfRenderSeurat.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
+Encoding: UTF-8
 Suggests:
     gdata,
     VGAM,

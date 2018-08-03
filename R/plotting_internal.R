@@ -962,83 +962,6 @@ SingleCorPlot <- function(
   return(p)
 }
 
-# A single heatmap from superheat
-#
-# @param object Seurat object
-# @param cells.use A vector of cells to plot
-# @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
-# @param group.by Name of variable to group cells by
-# @param disp.min Minimum display value (all values below are clipped)
-# @param disp.max Maximum display value (all values above are clipped)
-# @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
-# @param assay.use Assay to pull from
-# @param check.plot Check that plotting will finish in a reasonable amount of time
-# @param ... Extra parameters passed to superheat
-#
-#' @importFrom utils menu
-#' @importFrom superheat superheat
-#
-SingleHeatmap <- function(
-  object,
-  cells.use = NULL,
-  features.use = NULL,
-  group.by = NULL,
-  disp.min = -2.5,
-  disp.max = 2.5,
-  assay.use = NULL,
-  slot.use = 'data',
-  check.plot = FALSE,
-  ...
-) {
-  cells.use <- cells.use %||% colnames(x = object)
-  if (is.character(x = cells.use)) {
-    cells.use <- intersect(x = cells.use, y = colnames(x = object))
-  }
-  if (length(x = cells.use) == 0) {
-    stop("No cells given to cells.use present in object")
-  }
-  features.use <- features.use %||% rownames(x = object)
-  features.use <- rev(x = features.use)
-  data.use <- t(x = as.matrix(x = FetchData(
-    object = object,
-    vars.fetch = features.use,
-    cells.use = cells.use,
-    slot = slot.use
-  )))
-  if (check.plot && any(dim(x = data.use) > 700)) {
-    choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
-    if (choice != 1) {
-      return(invisible(x = NULL))
-    }
-  }
-  idents.use <- if (is.null(x = group.by) || group.by == "ident") {
-    Idents(object = object)[cells.use]
-  } else {
-    object[group.by, drop = TRUE][cells.use]
-  }
-  idents.use <- as.vector(x = idents.use)
-  angle.use <- if (max(nchar(x = idents.use)) > 1) {
-    45
-  } else {
-    NULL
-  }
-  if (slot.use != 'scale.data') {
-    disp.max <- ifelse(test = disp.max == 2.5, yes = 10, no = disp.max)
-  }
-  data.use <- MinMax(data = data.use, min = disp.min, max = disp.max)
-  p <- superheat(
-    X = as.matrix(x = data.use),
-    membership.cols = idents.use,
-    pretty.order.rows = FALSE,
-    pretty.order.cols = TRUE,
-    print.plot = FALSE,
-    left.label.text.size = 3,
-    bottom.label.text.angle = angle.use,
-    ...
-  )
-  return(p$plot)
-}
-
 # A single heatmap from ggplot2 using geom_raster
 #
 # @param data.plot A matrix or data frame with data to plot
@@ -1067,7 +990,8 @@ SingleRasterMap <- function(
   ...
 ) {
   data.plot <- MinMax(data = data.plot, min = disp.min, max = disp.max)
-  data.plot <- melt(data = t(x = data.plot))
+  # data.plot <- melt(data = t(x = data.plot))
+  data.plot <- Melt(x = t(x = data.plot))
   colnames(x = data.plot) <- c('Feature', 'Cell', 'Expression')
   if (!is.null(x = feature.order)) {
     data.plot$Feature <- factor(x = data.plot$Feature, levels = unique(x = feature.order))

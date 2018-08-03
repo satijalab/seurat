@@ -184,10 +184,13 @@ ScoreJackStraw.DimReduc <- function(
   return(object)
 }
 
-#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
 #' @param reduction.use Reduction associated with JackStraw to score
-#' @param do.plot Show plot. To return ggplot object, use JackStrawPlot after
+#' @param do.plot Show plot. To return ggplot object, use \code{JackStrawPlot} after
 #' running ScoreJackStraw.
+#'
+#' @seealso \code{\link{JackStrawPlot}}
+#'
+#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
 #' @export
 #' @method ScoreJackStraw Seurat
 #'

@@ -14,6 +14,23 @@ RandomName <- function(length = 5L, ...) {
   return(paste(sample(x = letters, size = length, ...), collapse = ''))
 }
 
+# Melt a data frame
+#
+# @param x A data frame
+#
+# @return A molten data frame
+#
+Melt <- function(x) {
+  if (!is.data.frame(x = x)) {
+    x <- as.data.frame(x = x)
+  }
+  return(data.frame(
+    rows = rep.int(x = rownames(x = x), times = ncol(x = x)),
+    cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
+    vals = unlist(x = x, use.names = FALSE)
+  ))
+}
+
 # Logs a command run, storing the name, timestamp, and argument list. Stores in
 # the Seurat object
 # @param object Name of Seurat object

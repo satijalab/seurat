@@ -6,9 +6,8 @@
 #' of genes with a p-value below a particular threshold (score.thresh), compared with the
 #' proportion of genes expected under a uniform distribution of p-values.
 #'
-#' @param object Seurat plot
-#' @param PCs Which PCs to examine
-#' @param nCol Number of columns
+#' @param object An object
+#' @param dims Which dimensions to examine
 #' @param score.thresh Threshold to use for the proportion test of PC
 #' significance (see Details)
 #'
@@ -16,13 +15,9 @@
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
-#' @importFrom reshape2 melt
-#' @importFrom stats qqplot runif prop.test qunif
-#'
-#' @export
 #' @rdname ScoreJackStraw
 #' @export ScoreJackStraw
 #'
-ScoreJackStraw <- function(object, slot, ...) {
+ScoreJackStraw <- function(object, dims, score.thresh, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
