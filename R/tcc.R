@@ -14,16 +14,24 @@
 #' @importFrom Matrix rowSums
 #' @export
 #'
-AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
+
+#should modularize the reading of TCCs and transcripts
+AddTCC <- function(object, sample.names, tcc.counts, tx.counts = NULL, ec.map, gene.map,
                    min.ec.filter = 0, display.progress = TRUE){
   if (display.progress) {
     cat("Reading files\n", file = stderr())
   }
-  tcc.mat <- read.table(file = tcc.counts, sep = "\t", header = TRUE,
-                        row.names = 1)
-  tcc.mat <- as(as.matrix(tcc.mat), "dgCMatrix")
-  tx.mat <- readRDS(file = tx.counts)
-  tx.mat <- as(as.matrix(tx.mat$counts), "dgCMatrix")
+  tcc.mat <- read.table(file = tcc.counts)
+  tcc.mat <- sparseMatrix(i = tcc.mat$V1 + 1, j = tcc.mat$V2 +1, x = tcc.mat$V3)
+  tcc.mat <- as(tcc.mat, "dgCMatrix")
+  rownames(tcc.mat) = 0:(nrow(tcc.mat)-1)
+  colnames(tcc.mat) = sample.names
+  
+  #probably should not be readRDS
+  if (!is.null(tx.counts)) {
+	tx.mat <- readRDS(file = tx.counts)
+  	tx.mat <- as(as.matrix(tx.mat$counts), "dgCMatrix")
+  }
   ec.map <- as.matrix(read.table(file = ec.map, stringsAsFactors = FALSE,
                                  sep = "\t", row.names = 1))
   gene.map <- read.table(file = gene.map, stringsAsFactors = FALSE)
@@ -84,7 +92,7 @@ AddTCC <- function(object, tcc.counts, tx.counts, ec.map, gene.map,
   tcc <- new(
     Class = "tcc",
     tcc.raw = tcc.mat,
-    tx.raw = tx.mat,
+    #tx.raw = tx.mat,
     ec.to.tx.map = ec.to.tx.ht,
     tx.to.ec.map = tx.to.ec.ht,
     tx.to.gene.map = tx.to.gene.ht,
