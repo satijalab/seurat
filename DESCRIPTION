@@ -76,7 +76,6 @@ Collate:
     'cluster_determination_internal.R'
     'cluster_validation.R'
     'data.R'
-    'deprecated_functions.R'
     'differential_expression.R'
     'differential_expression_generics.R'
     'differential_expression_internal.R'
