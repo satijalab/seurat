@@ -1183,7 +1183,6 @@ ElbowPlot <- function(
   return(p)
 }
 
-globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #' JackStraw Plot
 #'
 #' Plots the results of the JackStraw analysis for PCA significance. For each
@@ -1209,9 +1208,9 @@ globalVariables(names = 'Value', package = 'Seurat', add = TRUE)
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
-#' @importFrom reshape2 melt
-#' @importFrom ggplot2 ggplot aes stat_qq labs xlim ylim coord_flip
-#' geom_abline guides guide_legend
+#' @importFrom SeuratObject JS
+#' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
+#' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
 #'
 #' @export
@@ -1231,9 +1230,8 @@ JackStrawPlot <- function(
     stop("Max dimension is ", ncol(pAll), ".")
   }
   pAll <- pAll[, dims, drop = FALSE]
-  pAll <- as.data.frame(pAll)
-  pAll$Contig <- rownames(x = pAll)
-  data.plot <- reshape2::melt(data = pAll, id.vars = "Contig")
+  pAll <- as.data.frame(x = pAll)
+  data.plot <- Melt(x = pAll)
   colnames(x = data.plot) <- c("Contig", "PC", "Value")
   score.df <- JS(object = object[[reduction.use]], slot = 'overall')
   if (nrow(x = score.df) < max(dims)) {
@@ -1251,7 +1249,7 @@ JackStrawPlot <- function(
     x = data.plot$PC.Score,
     levels = paste0("PC ", score.df[, "PC"], ": ", sprintf("%1.3g", score.df[, "Score"]))
   )
-  gp <- ggplot(data = data.plot, mapping = aes(sample = Value, color = PC.Score)) +
+  gp <- ggplot(data = data.plot, mapping = aes_string(sample = 'Value', color = 'PC.Score')) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
     xlim(0, plot.y.lim) +

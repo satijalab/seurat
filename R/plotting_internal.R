@@ -974,7 +974,6 @@ SingleCorPlot <- function(
 # @param group.by A vector to group cells by, should be one grouping identity per cell
 # @param ... Ignored
 #
-#' @importFrom reshape2 melt
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
 #' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend
 #
@@ -990,7 +989,6 @@ SingleRasterMap <- function(
   ...
 ) {
   data.plot <- MinMax(data = data.plot, min = disp.min, max = disp.max)
-  # data.plot <- melt(data = t(x = data.plot))
   data.plot <- Melt(x = t(x = data.plot))
   colnames(x = data.plot) <- c('Feature', 'Cell', 'Expression')
   if (!is.null(x = feature.order)) {

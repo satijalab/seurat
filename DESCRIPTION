@@ -55,7 +55,6 @@ Imports:
     RANN,
     RColorBrewer,
     Rcpp,
-    reshape2,
     reticulate,
     rlang,
     ROCR,
