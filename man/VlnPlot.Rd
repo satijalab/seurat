@@ -5,9 +5,9 @@
 \title{Single cell violin plot}
 \usage{
 VlnPlot(object, features.plot, ident.include = NULL, num.col = NULL,
-  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE, adjust.use = 1,
-  point.size.use = 1, cols.use = NULL, group.by = NULL, y.log = FALSE,
-  combine.plots = TRUE, ...)
+  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE,
+  adjust.use = 1, point.size.use = 1, cols.use = NULL,
+  group.by = NULL, y.log = FALSE, combine.plots = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -4,11 +4,12 @@
 \alias{DimHeatmap}
 \title{Dimensional reduction heatmap}
 \usage{
-DimHeatmap(object, assay.use = NULL, reduction.use = "pca", dims.use = 1,
-  cells.use = NULL, num.features = 30, use.full = FALSE,
-  disp.min = -2.5, disp.max = 2.5, slot.use = "scale.data",
-  do.balanced = FALSE, check.plot = TRUE, num.col = NULL,
-  combine.plots = TRUE, plot.method = c("quick", "gg"), ...)
+DimHeatmap(object, assay.use = NULL, reduction.use = "pca",
+  dims.use = 1, cells.use = NULL, num.features = 30,
+  use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
+  slot.use = "scale.data", do.balanced = FALSE, check.plot = TRUE,
+  num.col = NULL, combine.plots = TRUE, plot.method = c("quick",
+  "gg"), ...)
 }
 \arguments{
 \item{object}{Seurat object}

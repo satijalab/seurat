@@ -7,8 +7,8 @@
 FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   reduction.use = "tsne", dims.use = c(1, 2), group.by = NULL,
   cols.use = c("yellow", "red"), cells.use = NULL, pt.size = 1,
-  shape.by = NULL, plot.order = NULL, do.label = FALSE, label.size = 4,
-  na.value = "grey50", combine.plots = TRUE)
+  shape.by = NULL, plot.order = NULL, do.label = FALSE,
+  label.size = 4, na.value = "grey50", combine.plots = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

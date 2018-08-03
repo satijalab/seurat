@@ -4,12 +4,13 @@
 \alias{RunPHATE}
 \title{Run PHATE}
 \usage{
-RunPHATE(object, cells.use = NULL, genes.use = NULL, assay.type = "RNA",
-  max.dim = 2L, k = 15, alpha = 10, use.alpha = NA, n.landmark = 2000,
-  potential.method = "log", t = "auto", knn.dist.method = "euclidean",
-  mds.method = "metric", mds.dist.method = "euclidean", t.max = 100,
-  npca = 100, plot.optimal.t = FALSE, verbose = 1, n.jobs = 1,
-  seed.use = NA, reduction.name = "phate", reduction.key = "PHATE", ...)
+RunPHATE(object, cells.use = NULL, genes.use = NULL,
+  assay.type = "RNA", max.dim = 2L, k = 15, alpha = 10,
+  use.alpha = NA, n.landmark = 2000, potential.method = "log",
+  t = "auto", knn.dist.method = "euclidean", mds.method = "metric",
+  mds.dist.method = "euclidean", t.max = 100, npca = 100,
+  plot.optimal.t = FALSE, verbose = 1, n.jobs = 1, seed.use = NA,
+  reduction.name = "phate", reduction.key = "PHATE", ...)
 }
 \arguments{
 \item{object}{Seurat object}

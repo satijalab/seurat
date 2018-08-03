@@ -7,8 +7,8 @@
 \alias{RunCCA}
 \title{Perform Canonical Correlation Analysis}
 \usage{
-\method{RunCCA}{default}(object1, object2, standardize = TRUE, num.cc = 20,
-  verbose = FALSE, use.cpp = TRUE)
+\method{RunCCA}{default}(object1, object2, standardize = TRUE,
+  num.cc = 20, verbose = FALSE, use.cpp = TRUE)
 
 \method{RunCCA}{Seurat}(object1, object2, assay.use1 = NULL,
   assay.use2 = NULL, num.cc = 20, features.use = NULL,

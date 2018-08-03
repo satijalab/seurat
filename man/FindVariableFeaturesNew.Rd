@@ -13,7 +13,8 @@
   num.features = 1000, loess.span = 0.3, clip.max = "auto",
   verbose = TRUE, workflow.name = NULL, ...)
 
-FindVariableFeaturesNew(object, num.features, loess.span, clip.max, verbose)
+FindVariableFeaturesNew(object, num.features, loess.span, clip.max,
+  verbose)
 }
 \arguments{
 \item{object}{An object}

@@ -6,11 +6,12 @@
 \usage{
 DimPlot(object, reduction.use = "pca", dims.use = c(1, 2),
   group.by = NULL, cols.use = NULL, cells.use = NULL, pt.size = 1,
-  shape.by = NULL, plot.order = NULL, do.label = FALSE, label.size = 4,
-  cells.highlight = NULL, cols.highlight = "red", sizes.highlight = 1,
-  na.value = "grey50", do.hover = FALSE, data.hover = "ident",
-  do.identify = FALSE, no.legend = FALSE, vector.friendly = FALSE,
-  png.file = NULL, png.arguments = c(10, 10, 100), ...)
+  shape.by = NULL, plot.order = NULL, do.label = FALSE,
+  label.size = 4, cells.highlight = NULL, cols.highlight = "red",
+  sizes.highlight = 1, na.value = "grey50", do.hover = FALSE,
+  data.hover = "ident", do.identify = FALSE, no.legend = FALSE,
+  vector.friendly = FALSE, png.file = NULL, png.arguments = c(10, 10,
+  100), ...)
 }
 \arguments{
 \item{object}{Seurat object}

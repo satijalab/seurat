@@ -7,16 +7,19 @@
 \alias{BuildSNN}
 \title{SNN Graph Construction}
 \usage{
-\method{BuildSNN}{default}(object, distance.matrix = FALSE, k.param = 10,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE)
+\method{BuildSNN}{default}(object, distance.matrix = FALSE,
+  k.param = 10, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  force.recalc = FALSE)
 
 \method{BuildSNN}{Assay}(object, features.use = NULL, k.param = 10,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE)
+  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  force.recalc = FALSE)
 
-\method{BuildSNN}{Seurat}(object, assay.use = NULL, features.use = NULL,
-  reduction.use = "pca", dims.use = 1:10, k.param = 30,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL, workflow.name = NULL)
+\method{BuildSNN}{Seurat}(object, assay.use = NULL,
+  features.use = NULL, reduction.use = "pca", dims.use = 1:10,
+  k.param = 30, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  force.recalc = FALSE, do.plot = FALSE, graph.name = NULL,
+  workflow.name = NULL)
 
 BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
 }

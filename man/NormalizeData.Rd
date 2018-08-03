@@ -6,8 +6,9 @@
 \alias{NormalizeData}
 \title{Normalize Data}
 \usage{
-\method{NormalizeData}{Assay}(object, normalization.method = "LogNormalize",
-  scale.factor = 10000, verbose = TRUE)
+\method{NormalizeData}{Assay}(object,
+  normalization.method = "LogNormalize", scale.factor = 10000,
+  verbose = TRUE)
 
 \method{NormalizeData}{Seurat}(object, assay.use = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,

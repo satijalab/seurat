@@ -4,9 +4,9 @@
 \alias{DoHeatmap}
 \title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, features.use = NULL, cells.use = NULL, disp.min = -2.5,
-  disp.max = 2.5, group.by = "ident", slot.use = "scale.data",
-  group.bar = TRUE, assay.use = NULL, ...)
+DoHeatmap(object, features.use = NULL, cells.use = NULL,
+  disp.min = -2.5, disp.max = 2.5, group.by = "ident",
+  slot.use = "scale.data", group.bar = TRUE, assay.use = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}

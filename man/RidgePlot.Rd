@@ -5,8 +5,9 @@
 \title{Single cell ridge plot}
 \usage{
 RidgePlot(object, features.plot, ident.include = NULL, num.col = NULL,
-  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE, cols.use = NULL,
-  group.by = NULL, y.log = FALSE, combine.plots = TRUE, ...)
+  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE,
+  cols.use = NULL, group.by = NULL, y.log = FALSE,
+  combine.plots = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

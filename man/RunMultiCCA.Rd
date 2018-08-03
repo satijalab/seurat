@@ -11,9 +11,9 @@
   standardize = TRUE, verbose = TRUE)
 
 \method{RunMultiCCA}{Seurat}(object.list, assay.use = NULL,
-  features.use = NULL, add.cell.ids = NULL, niter = 25, num.ccs = 1,
-  standardize = TRUE, renormalize = TRUE, compute.gene.loadings = TRUE,
-  verbose = TRUE)
+  features.use = NULL, add.cell.ids = NULL, niter = 25,
+  num.ccs = 1, standardize = TRUE, renormalize = TRUE,
+  compute.gene.loadings = TRUE, verbose = TRUE)
 
 RunMultiCCA(object.list, features.use, add.cell.ids, niter, num.ccs,
   standardize, verbose)

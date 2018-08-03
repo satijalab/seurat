@@ -2,7 +2,6 @@
 % Please edit documentation in R/multi_modal.R, R/not_used_yet.R
 \name{MultiModal_CCA}
 \alias{MultiModal_CCA}
-\alias{MultiModal_CCA}
 \title{Canonical Correlation Analysis between modalities}
 \usage{
 MultiModal_CCA(object, assay.1 = "RNA", assay.2 = "CITE",

@@ -10,28 +10,26 @@
 \method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5,
   score.thresh = 1e-05, ...)
 
-\method{ScoreJackStraw}{DimReduc}(object, dims = 1:5, score.thresh = 1e-05,
-  do.plot = FALSE, ...)
-
-\method{ScoreJackStraw}{Seurat}(object, reduction.use = "pca", dims = 1:5,
+\method{ScoreJackStraw}{DimReduc}(object, dims = 1:5,
   score.thresh = 1e-05, do.plot = FALSE, ...)
 
-ScoreJackStraw(object, slot, ...)
+\method{ScoreJackStraw}{Seurat}(object, reduction.use = "pca",
+  dims = 1:5, score.thresh = 1e-05, do.plot = FALSE, ...)
+
+ScoreJackStraw(object, dims, score.thresh, ...)
 }
 \arguments{
-\item{object}{Seurat plot}
+\item{object}{An object}
+
+\item{dims}{Which dimensions to examine}
 
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
 
-\item{do.plot}{Show plot. To return ggplot object, use JackStrawPlot after
+\item{do.plot}{Show plot. To return ggplot object, use \code{JackStrawPlot} after
 running ScoreJackStraw.}
 
 \item{reduction.use}{Reduction associated with JackStraw to score}
-
-\item{PCs}{Which PCs to examine}
-
-\item{nCol}{Number of columns}
 }
 \value{
 Returns a Seurat object
@@ -52,6 +50,9 @@ proportion of genes expected under a uniform distribution of p-values.
 \item \code{Seurat}: Score JackStraw results given a Seurat object
 }}
 
+\seealso{
+\code{\link{JackStrawPlot}}
+}
 \author{
 Thanks to Omri Wurtzel for integrating with ggplot
 }
