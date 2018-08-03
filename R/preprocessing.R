@@ -631,52 +631,74 @@ SampleUMI <- function(
 #'
 FindVariableFeatures.default <- function(
   object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
   mean.function = FastExpMean,
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
-  if (!inherits(x = mean.function, what = 'function')) {
-    stop("'mean.function' must be a function")
-  }
-  if (!inherits(x = dispersion.function, what = 'function')) {
-    stop("'dispersion.function' must be a function")
-  }
   if (!inherits(x = object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
   }
   if (!inherits(x = object, what = 'dgCMatrix')) {
     object <- as(object = object, Class = 'dgCMatrix')
   }
-  feature.mean <- mean.function(object, verbose)
-  feature.dispersion <- dispersion.function(object, verbose)
-  names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
-  feature.dispersion[is.na(x = feature.dispersion)] <- 0
-  feature.mean[is.na(x = feature.mean)] <- 0
-  data.x.breaks <- switch(
-    EXPR = binning.method,
-    'equal_width' = num.bin,
-    'equal_frequency' = c(
-      -1,
-      quantile(
-        x = feature.mean[feature.mean > 0],
-        probs = seq.int(from = 0, to = 1, length.out = num.bin)
-      )
-    ),
-    stop("Unknown binning method: ", binning.method)
-  )
-  data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
-  names(x = data.x.bin) <- names(x = feature.mean)
-  mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
-  sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
-  feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
-    sd.y[as.numeric(x = data.x.bin)]
-  names(x = feature.dispersion.scaled) <- names(x = feature.mean)
-  hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
-  rownames(x = hvf.info) <- rownames(x = object)
-  colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+  if (selection.method == "vst") {
+    if (clip.max == 'auto') {
+      clip.max <- sqrt(ncol(object))
+    }
+    hvf.info <- data.frame(mean = rowMeans(x = object))
+    hvf.info$variance <- SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
+    hvf.info$variance.expected <- 0
+    hvf.info$variance.standardized <- 0
+
+    not.const <- hvf.info$variance > 0
+    fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
+    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+    # use c function to get variance after feature standardization
+    hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
+                                                      mu = hvf.info$mean,
+                                                      sd = sqrt(hvf.info$variance.expected),
+                                                      vmax = clip.max,
+                                                      display_progress = verbose)
+  } else {
+    if (!inherits(x = mean.function, what = 'function')) {
+      stop("'mean.function' must be a function")
+    }
+    if (!inherits(x = dispersion.function, what = 'function')) {
+      stop("'dispersion.function' must be a function")
+    }
+    feature.mean <- mean.function(object, verbose)
+    feature.dispersion <- dispersion.function(object, verbose)
+    names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+    feature.dispersion[is.na(x = feature.dispersion)] <- 0
+    feature.mean[is.na(x = feature.mean)] <- 0
+    data.x.breaks <- switch(
+      EXPR = binning.method,
+      'equal_width' = num.bin,
+      'equal_frequency' = c(
+        -1,
+        quantile(
+          x = feature.mean[feature.mean > 0],
+          probs = seq.int(from = 0, to = 1, length.out = num.bin)
+        )
+      ),
+      stop("Unknown binning method: ", binning.method)
+    )
+    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
+    names(x = data.x.bin) <- names(x = feature.mean)
+    mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
+    sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
+    feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+      sd.y[as.numeric(x = data.x.bin)]
+    names(x = feature.dispersion.scaled) <- names(x = feature.mean)
+    hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+    rownames(x = hvf.info) <- rownames(x = object)
+    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+  }
   return(hvf.info)
 }
 
@@ -686,7 +708,6 @@ FindVariableFeatures.default <- function(
 #' feature means
 #' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature dispersions
-#' @param selection.method How to choose top variable features, either 'mean.var.plot' or 'dispersion
 #'
 #' @describeIn FindVariableFeatures Find variable features in an Assay object
 #' @export
@@ -694,6 +715,9 @@ FindVariableFeatures.default <- function(
 #'
 FindVariableFeatures.Assay <- function(
   object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
   mean.function = FastExpMean,
   dispersion.function = FastLogVMR,
   num.bin = 20,
@@ -701,24 +725,31 @@ FindVariableFeatures.Assay <- function(
   num.features = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  selection.method = "mean.var.plot",
-  verbose = TRUE,
-  ...
+  verbose = TRUE
 ) {
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
+  slot <- "data"
+  if (selection.method == "vst") {
+    slot <- "counts"
+  }
   hvf.info <- FindVariableFeatures(
-    object = GetAssayData(object = object),
+    object = GetAssayData(object = object, slot = slot),
+    loess.span = loess.span,
+    clip.max = clip.max,
     mean.function = mean.function,
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
-    verbose = verbose,
-    ...
+    verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
-  hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+  if (selection.method == "vst"){
+    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+  } else {
+    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+  }
   top.features <- switch(
     EXPR = selection.method,
     'mean.var.plot' = {
@@ -727,6 +758,7 @@ FindVariableFeatures.Assay <- function(
       rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
     },
     'dispersion' = head(x = rownames(x = hvf.info), n = num.features),
+    'vst' = head(x = rownames(x = hvf.info), n = num.features),
     stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
@@ -734,7 +766,7 @@ FindVariableFeatures.Assay <- function(
 }
 
 #' @inheritParams FindVariableFeatures.Assay
-#' @param assay.use ...
+#' @param assay.use Assay to use
 #' @param workflow.name Name of workflow
 #'
 #' @describeIn FindVariableFeatures Find variable features in a Seurat object
@@ -744,6 +776,9 @@ FindVariableFeatures.Assay <- function(
 FindVariableFeatures.Seurat <- function(
   object,
   assay.use = NULL,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
   mean.function = FastExpMean,
   dispersion.function = FastLogVMR,
   num.bin = 20,
@@ -751,10 +786,8 @@ FindVariableFeatures.Seurat <- function(
   num.features = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  selection.method = "dispersion",
   verbose = TRUE,
-  workflow.name = NULL,
-  ...
+  workflow.name = NULL
 ) {
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
@@ -763,114 +796,16 @@ FindVariableFeatures.Seurat <- function(
   assay.data <- GetAssay(object = object, assay.use = assay.use)
   assay.data <- FindVariableFeatures(
     object = assay.data,
+    selection.method = selection.method,
+    loess.span = loess.span,
+    clip.max = clip.max,
     mean.function = mean.function,
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
+    num.features = num.features,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
-    verbose = verbose,
-    selection.method = selection.method,
-    num.features = num.features,
-    ...
-  )
-  object[[assay.use]] <- assay.data
-  object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
-  return(object)
-}
-
-#' @export
-#'
-FindVariableFeaturesNew.default <- function(
-  object,
-  loess.span = 0.3,
-  clip.max = 'auto',
-  verbose = TRUE
-) {
-  if (!inherits(x = object, 'dgCMatrix')) {
-    object <- as(object = as.matrix(x = object), Class = 'dgCMatrix')
-  }
-  if (clip.max == 'auto') {
-    clip.max <- sqrt(ncol(object))
-  }
-  hvf.info <- data.frame(mean = rowMeans(x = object))
-  hvf.info$variance = SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
-  hvf.info$variance.expected = 0
-  hvf.info$variance.standardized = 0
-
-  not.const <- hvf.info$variance > 0
-  fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
-  hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-  # use c function to get variance after feature standardization
-  hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
-                                                    mu = hvf.info$mean,
-                                                    sd = sqrt(hvf.info$variance.expected),
-                                                    vmax = clip.max,
-                                                    display_progress = verbose)
-  return(hvf.info)
-}
-
-#' @param num.features Number of features to select as top variable features
-#' @param loess.span Loess span parameter used when fitting the variance-mean relationship
-#' @param clip.max After standardization values larger than clip.max will be set to clip.max;
-#' default is 'auto' which sets this value to the square root of the number of cells
-#' @param verbose Show progress bar for calculations
-#'
-#' @describeIn FindVariableFeaturesNew Find variable features in an Assay object
-#' @export
-#' @method FindVariableFeaturesNew Assay
-#'
-FindVariableFeaturesNew.Assay <- function(
-  object,
-  num.features = 1000,
-  loess.span = 0.3,
-  clip.max = 'auto',
-  verbose = TRUE
-) {
-  hvf.info <- FindVariableFeaturesNew(
-    object = GetAssayData(object = object, slot = 'counts'),
-    loess.span = loess.span,
-    clip.max = clip.max,
-    verbose = verbose
-  )
-  object[[names(x = hvf.info)]] <- hvf.info
-  hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
-  top.features <- rownames(x = hvf.info)[1:num.features]
-  VariableFeatures(object = object) <- top.features
-  return(object)
-}
-
-#' @inheritParams FindVariableFeaturesNew.Assay
-#' @param assay.use Which assay to use
-#' @param workflow.name Name of workflow
-#'
-#' @describeIn FindVariableFeaturesNew Find variable features in a Seurat object
-#' @export
-#' @method FindVariableFeaturesNew Seurat
-#'
-FindVariableFeaturesNew.Seurat <- function(
-  object,
-  assay.use = NULL,
-  num.features = 1000,
-  loess.span = 0.3,
-  clip.max = 'auto',
-  verbose = TRUE,
-  workflow.name = NULL,
-  ...
-) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  assay.data <- FindVariableFeaturesNew(
-    object = assay.data,
-    num.features = num.features,
-    loess.span = loess.span,
-    clip.max = clip.max,
     verbose = verbose
   )
   object[[assay.use]] <- assay.data
