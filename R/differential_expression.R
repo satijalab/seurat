@@ -1395,7 +1395,8 @@ WilcoxDETest <- function(
 #' @param ambig Allow ambiguously mapping TCCs/Txs?  (default is FALSE)
 #'
 #' @return Returns a matrix with the p-value results
-#'
+#
+
 #' @export
 #'
 
@@ -1404,8 +1405,6 @@ LRDETest <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   genes.to.test = NULL,
-  ecs.to.test = NULL,
-  txs.to.test = NULL,
   use.tcc = FALSE,
   use.tx = FALSE,
   transcript.threshold = 0.9,
@@ -1422,87 +1421,63 @@ LRDETest <- function(
     stop("Please provide vector of cell names for cells.2")
   }
   # if no genes/tccs/txs given to test, test all genes in object
-  if (is.null(genes.to.test) & is.null(ecs.to.test) & is.null(txs.to.test)) {
+  if (is.null(genes.to.test)) {
     genes.to.test <- rownames(object@data)
   }
-  if (length(which(c(!is.null(genes.to.test), !is.null(ecs.to.test), !is.null(txs.to.test)))) > 1) {
-    stop("Specify only one of the following: genes.to.test, ecs.to.test, txs.to.test")
-  }
 
+  #should also check that genes.to.use are in tx to gene map and/or AssayData?
   cells.use <- c(cells.1, cells.2)
   mysapply <- if (display.progress) {pbsapply} else {sapply}
   data.groups <- data.frame(group = c(rep("group1", length(cells.1)), rep("group2", length(cells.2))),
                             row.names = cells.use)
 
+  #always testing genes, maybe should get genes from ec.to.gene map instead of the Assay Data?.
   if(! is.null(genes.to.test)) {
     results <- data.frame(GENE = genes.to.test)
-  } else if (! is.null(ecs.to.test)) {
-    use.tcc <- TRUE
-    results <- data.frame(EC = ecs.to.test)
-  } else if (! is.null(txs.to.test)) {
-    use.tx <- TRUE
-    results <- data.frame(TX = txs.to.test)
+  }
+  else
+  {
+    stop('Error - no genes are available to test')
   }
 
   if(use.tcc){
     if(display.progress) {
       message("Running LR on TCCs")
     }
-    if(!is.null(genes.to.test)) {
-      results$tcc_p_val <- mysapply(
-        X = genes.to.test,
-        FUN = function(gene) {
-          tccs.use <- GeneToECMap(object = object, gene = gene, ambig = ambig)
-          data.test <- as.matrix(t(object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), cells.use, drop = FALSE]))
-          return(LRLRTest(data.groups, data.test))
-        }
-      )
-    } else {
-      results$tcc_p_val <- mysapply(
-        X = ecs.to.test,
-        FUN = function(ec) {
-          data.test <- as.matrix(object@tcc@tcc.raw[match(ec, rownames(object@tcc@tcc.raw)), cells.use])
-          return(LRLRTest(data.groups, data.test))
-        }
-      )
-    }
+    results$tcc_p_val <- mysapply(
+      X = genes.to.test,
+      FUN = function(gene) {
+        tccs.use <- GeneToECMap(object = object, gene = gene, ambig = ambig)
+        data.test <- as.matrix(t(object@tcc@tcc.raw[match(tccs.use, rownames(object@tcc@tcc.raw)), cells.use, drop = FALSE]))
+        return(LRLRTest(data.groups, data.test))
+      }
+    )
   }
 
   if(use.tx){
     if(display.progress) {
       message("Running LR using TXs")
     }
-    if(!is.null(genes.to.test)) {
-      results$tx_p_val <- mysapply(
-        X = genes.to.test,
-        FUN = function(gene) {
-          tx.use <- GeneToTIDMap(object = object, gene = gene, ambig = ambig)
-          # assumes cells are in same order in tx.counts as in tcc.counts
-          cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
-          data.test <- as.matrix(t(object@tcc@tx.raw[match(tx.use, rownames(object@tcc@tx.raw)), cells.use, drop = FALSE]))
-          tx.keep <- names(which(apply(data.test, 2, function(x) sum(x == 0) <= transcript.threshold * length(cells.use))))
-          if(length(tx.keep) == 0) {
-            return(1)
-          }
-          data.test <- data.test[, tx.keep]
-          return(LRLRTest(data.groups, data.test))
+    results$tx_p_val <- mysapply(
+      X = genes.to.test,
+      FUN = function(gene) {
+        tx.use <- GeneToTIDMap(object = object, gene = gene, ambig = ambig)
+        # assumes cells are in same order in tx.counts as in tcc.counts
+        cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
+        data.test <- as.matrix(t(object@tcc@tx.raw[match(tx.use, rownames(object@tcc@tx.raw)), cells.use, drop = FALSE]))
+        tx.keep <- names(which(apply(data.test, 2, function(x) sum(x == 0) <= transcript.threshold * length(cells.use))))
+        if(length(tx.keep) == 0) {
+          return(1)
         }
-      )
-    } else {
-      results$tx_p_val <- mysapply(
-        X = txs.to.test,
-        FUN = function(tx) {
-          # assumes cells are in same order in tx.counts as in tcc.counts
-          cells.use <- match(cells.use, colnames(object@tcc@tcc.raw))
-          data.test <- as.matrix(object@tcc@tx.raw[match(tx, rownames(object@tcc@tx.raw)), cells.use])
-          return(LRLRTest(data.groups, data.test))
-        }
-      )
-    }
+      data.test <- data.test[, tx.keep]
+      return(LRLRTest(data.groups, data.test))
+      }
+    )
   }
+
   if(!use.tx & !use.tcc) {
     if(display.progress) {
-      message("Running LR using genes")
+      message("Running LR using gene counts")
     }
     results$gene_p_val <- mysapply(
       X = genes.to.test,
