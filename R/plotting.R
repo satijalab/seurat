@@ -930,6 +930,8 @@ FeatureMap <- function(
 #' @importFrom cowplot theme_cowplot
 #' @export
 #'
+#' @aliases GenePlot
+#'
 #' @examples
 #' FeatureScatter(object = pbmc_small, feature1 = 'CD9', feature2 = 'CD3E')
 #'
@@ -985,6 +987,8 @@ FeatureScatter <- function(
 #' @export
 #' @seealso \code{\link{MASS::kde2d}}
 #'
+#' @aliases CellPlot
+#'
 #' @examples
 #' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
@@ -1022,6 +1026,8 @@ CellScatter <- function(
 #'
 #' @importFrom ggplot2 labs scale_color_manual
 #' @export
+#'
+#' @aliases VariableGenePlot
 #'
 #' @examples
 #' VariableFeaturePlot(object = pbmc_small)

@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{FeatureScatter}
 \alias{FeatureScatter}
+\alias{GenePlot}
 \title{Scatter plot of single cell data}
 \usage{
 FeatureScatter(object, feature1, feature2, cells.use = NULL,

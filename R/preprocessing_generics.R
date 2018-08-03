@@ -65,6 +65,8 @@ NormalizeData <- function(
 #' @rdname FindVariableFeatures
 #' @export FindVariableFeatures
 #'
+#' @aliases FindVariableGenes
+#'
 FindVariableFeatures <- function(
   object,
   mean.function,
@@ -80,9 +82,9 @@ FindVariableFeatures <- function(
 #' Find variable features
 #'
 #' Identifies features that are outliers on a 'mean variability plot'. First, fits a
-#' line to the relationship of log(variance) and log(mean) using local polynomial 
-#' regression (loess). Then standardizes the feature values using the observed mean and 
-#' expected variance (given by the fitted line). Feature variance is the calculated on 
+#' line to the relationship of log(variance) and log(mean) using local polynomial
+#' regression (loess). Then standardizes the feature values using the observed mean and
+#' expected variance (given by the fitted line). Feature variance is the calculated on
 #' the standardized values after clipping to a maximum (default is 50).
 #'
 #' @param object An object

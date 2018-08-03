@@ -4,6 +4,7 @@
 \alias{FindVariableFeatures.Assay}
 \alias{FindVariableFeatures.Seurat}
 \alias{FindVariableFeatures}
+\alias{FindVariableGenes}
 \title{Find variable features}
 \usage{
 \method{FindVariableFeatures}{Assay}(object, mean.function = FastExpMean,

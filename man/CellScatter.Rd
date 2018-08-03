@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{CellScatter}
 \alias{CellScatter}
+\alias{CellPlot}
 \title{Cell-cell scatter plot}
 \usage{
 CellScatter(object, cell1, cell2, features.use = NULL, cols.use = NULL,

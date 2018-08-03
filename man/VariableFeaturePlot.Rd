@@ -2,6 +2,7 @@
 % Please edit documentation in R/plotting.R
 \name{VariableFeaturePlot}
 \alias{VariableFeaturePlot}
+\alias{VariableGenePlot}
 \title{View variable features}
 \usage{
 VariableFeaturePlot(object, pt.size = 1, cols.use = c("black", "red"),

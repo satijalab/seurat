@@ -43,9 +43,9 @@ default is 'auto' which sets this value to the square root of the number of cell
 }
 \description{
 Identifies features that are outliers on a 'mean variability plot'. First, fits a
-line to the relationship of log(variance) and log(mean) using local polynomial 
-regression (loess). Then standardizes the feature values using the observed mean and 
-expected variance (given by the fitted line). Feature variance is the calculated on 
+line to the relationship of log(variance) and log(mean) using local polynomial
+regression (loess). Then standardizes the feature values using the observed mean and
+expected variance (given by the fitted line). Feature variance is the calculated on
 the standardized values after clipping to a maximum (default is 50).
 }
 \section{Methods (by class)}{
