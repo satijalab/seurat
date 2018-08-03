@@ -316,7 +316,7 @@ Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progr
 
 /* use this if you know the row means */
 //[[Rcpp::export]]
-NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
+NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
                             NumericVector mu,
                             bool display_progress){
   mat = mat.transpose();
@@ -367,19 +367,17 @@ Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
    clip values larger than vmax to vmax,
    then return variance for each row */
 //[[Rcpp::export]]
-NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
-                              NumericVector mu, 
+NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
+                              NumericVector mu,
                               NumericVector sd,
                               double vmax,
                               bool display_progress){
   if(display_progress == true){
     Rcpp::Rcerr << "Calculating feature variances of standardized and clipped values" << std::endl;
   }
-  Progress p(mat.outerSize(), display_progress);
-  
   mat = mat.transpose();
   NumericVector allVars(mat.cols());
-  
+  Progress p(mat.outerSize(), display_progress);
   for (int k=0; k<mat.outerSize(); ++k){
     p.increment();
     if (sd[k] == 0) continue;
@@ -461,7 +459,7 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
 NumericVector RowSumOfSquares(const NumericMatrix x){
   int nrow = x.nrow(), ncol = x.ncol();
   NumericVector out(nrow);
-  
+
   for (int i = 0; i < nrow; i++) {
     double total = 0;
     for (int j = 0; j < ncol; j++) {
