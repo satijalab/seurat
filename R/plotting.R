@@ -1270,6 +1270,7 @@ JackStrawPlot <- function(
 }
 
 #Sets the parameter value for a plotting function as default for an object
+# Quick example :   pbmc <- FixPlotParam(pbmc,"FeaturePlot","pt.size","0.1")
 FixPlotParam <- function(object, function.name, param.name, param.value) {
   if ("PlotParams" %in% names(object@misc)) {
     object@misc[["PlotParams"]][paste(function.name, param.name, sep=":")] <- param.value
