@@ -568,6 +568,7 @@ CombinePlots <- function(plot.list, num.col, legend.position = NULL) {
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
 # @param y.log plot Y axis on log scale
 # @param combine.plots Combine plots using cowplot::plot_grid
+# @param plot.counts Use non-normalized counts data for plotting
 # @param ... Ignores
 #
 #
@@ -585,6 +586,7 @@ ExIPlot <- function(
   group.by = NULL,
   y.log = FALSE,
   combine.plots = TRUE,
+  plot.counts = FALSE,
   ...
 ) {
   if (is.null(x = num.col)) {
@@ -594,7 +596,11 @@ ExIPlot <- function(
       num.col <- min(length(x = features.plot), 3)
     }
   }
-  data.use <- FetchData(object = object, vars.fetch = features.plot)
+  slot.use = "data"
+  if (plot.counts == TRUE) {
+    slot.use = "counts"
+  }
+  data.use <- FetchData(object = object, vars.fetch = features.plot,slot = slot.use)
   if (is.null(x = ident.include)) {
     cells.use <- colnames(x = object)
   } else {

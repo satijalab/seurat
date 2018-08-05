@@ -254,6 +254,7 @@ DimHeatmap <- function(
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.log plot Y axis on log scale
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param plot.counts Use non-normalized counts data for plotting
 #' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
 #'
 #' @return A ggplot object
@@ -275,6 +276,7 @@ RidgePlot <- function(
   group.by = NULL,
   y.log = FALSE,
   combine.plots = TRUE,
+  plot.counts = FALSE,
   ...
 ) {
   return(ExIPlot(
@@ -290,6 +292,7 @@ RidgePlot <- function(
     group.by = group.by,
     y.log = y.log,
     combine.plots = combine.plots,
+    plot.counts = plot.counts,
     ...
   ))
 }
@@ -324,6 +327,7 @@ VlnPlot <- function(
   group.by = NULL,
   y.log = FALSE,
   combine.plots = TRUE,
+  plot.counts = FALSE,
   ...
 ) {
   return(ExIPlot(
@@ -341,6 +345,7 @@ VlnPlot <- function(
     group.by = group.by,
     y.log = y.log,
     combine.plots = combine.plots,
+    plot.counts = plot.counts,
     ...
   ))
 }
@@ -924,6 +929,7 @@ FeatureMap <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
+#' @param plot.counts Use non-normalized counts data for plotting
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -943,12 +949,16 @@ FeatureScatter <- function(
   feature2,
   cells.use = NULL,
   cols.use = NULL,
-  slot.use = 'data',
   pt.size = 1,
   shape.by = NULL,
   span = NULL,
+  plot.counts = FALSE,
   ...
 ) {
+  slot.use = "data"
+  if (plot.counts == TRUE) {
+    slot.use = "counts"
+  }
   cells.use <- cells.use %||% colnames(x = object)
   p <- SingleCorPlot(
     data.plot = FetchData(
