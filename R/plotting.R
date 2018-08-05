@@ -583,6 +583,7 @@ DimPlot <- function(
   png.arguments = c(10,10, 100),
   ...
 ) {
+  ReadPlotParams(object)
   if (length(x = dims.use) != 2) {
     stop("'dims.use' must be a two-length vector")
   }
@@ -663,6 +664,7 @@ FeaturePlot <- function(
   na.value = 'grey50',
   combine.plots = TRUE
 ) {
+  ReadPlotParams(object)
   if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
     stop("'dims.use' must be a two-length integer vector")
   }
@@ -1266,3 +1268,17 @@ JackStrawPlot <- function(
     theme_cowplot()
   return(gp)
 }
+
+#Sets the parameter value for a plotting function as default for an object
+FixPlotParam <- function(object, function.name, param.name, param.value) {
+  if ("PlotParams" %in% names(object@misc)) {
+    object@misc[["PlotParams"]][paste(function.name, param.name, sep=":")] <- param.value
+  }  
+  else {
+    plotParamsList=list()
+    plotParamsList[paste(function.name, param.name, sep=":")] <- param.value
+    object@misc[["PlotParams"]] <- plotParamsList
+  }
+  return(object)
+}
+
