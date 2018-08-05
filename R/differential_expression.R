@@ -209,10 +209,10 @@ FindMarkers.default <- function(
 }
 
 
-#' @param assay.use Assay to use in differential expression testing
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
+#' @param assay.use Assay to use in differential expression testing
 #'
 #' @describeIn FindMarkers Run differential expression test on a Seurat object
 #' @export
@@ -220,9 +220,9 @@ FindMarkers.default <- function(
 #'
 FindMarkers.Seurat <- function(
   object,
-  assay.use = NULL,
   ident.1 = NULL,
   ident.2 = NULL,
+  assay.use = NULL,
   features.use = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
