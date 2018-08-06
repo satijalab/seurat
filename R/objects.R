@@ -6,7 +6,10 @@
 #'
 NULL
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Class definitions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 setOldClass(Classes = 'package_version')
 setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 
@@ -261,7 +264,9 @@ seurat <- setClass(
   )
 )
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Add Metadata
 #'
@@ -495,7 +500,7 @@ CreateSeuratObject <- function(
   # Calculate nUMI and nFeature
   object['nUMI'] <- Matrix::colSums(x = object)
   object[paste('nFeature', assay.use, sep = '_')] <- Matrix::colSums(counts > 0)
-  if(!is.null(meta.data)){
+  if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
   return(object)
@@ -736,7 +741,9 @@ TopCells <- function(
   ))
 }
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @describeIn Command Get the SeuratCommands
 #' @export
@@ -1545,7 +1552,9 @@ WhichCells.Seurat <- function(
   return(cells.use)
 }
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @export
 #'
@@ -1966,7 +1975,9 @@ subset.Seurat <- function(x, subset, ...) {
   return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
 }
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setMethod(
   f = '[<-',
@@ -2266,14 +2277,6 @@ setMethod(
   }
 )
 
-# show method for seurat
-#
-# @param object A Seurat object
-# @name show
-# @aliases show,seurat-method
-# @docType methods
-# @rdname show-methods
-#
 setMethod(
   f = 'show',
   signature = 'seurat',
@@ -2282,7 +2285,9 @@ setMethod(
   }
 )
 
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Get the names of objects within a Seurat object that are of a certain class
 #
