@@ -1,3 +1,52 @@
+#' SNN Graph Construction
+#'
+#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
+#' first determine the k-nearest neighbors of each cell. We use this knn graph
+#' to construct the SNN graph by calculating the neighborhood overlap
+#' (Jaccard index) between every cell and its k.param nearest neighbors.
+#'
+#' @param object Seurat object
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
+#' @param verbose Whether or not to print output to the console
+#' @param force.recalc Force recalculation of SNN.
+#'
+#' @importFrom RANN nn2
+#' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
+#' @importFrom Matrix sparseMatrix
+#' @return Returns the object with object@@snn filled
+#'
+#' @examples
+#' pbmc_small
+#' # Compute an SNN on the gene expression level
+#' pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
+#'
+#' # More commonly, we build the SNN on a dimensionally reduced form of the data
+#' # such as the first 10 principle components.
+#'
+#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
+#'
+#' @rdname BuildSNN
+#' @export BuildSNN
+#'
+BuildSNN <- function(
+  object,
+  k.param,
+  prune.SNN,
+  nn.eps,
+  verbose,
+  force.recalc,
+  ...
+) {
+  UseMethod(generic = 'BuildSNN', object = object)
+}
+
 #' Get SeuratCommands
 #'
 #' Pull information on previously run commands in the Seurat object.
@@ -51,6 +100,59 @@ DefaultAssay <- function(object, ...) {
 #'
 Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
+}
+
+#' Cluster Determination
+#'
+#' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
+#' optimization based clustering algorithm. First calculate k-nearest neighbors
+#' and construct the SNN graph. Then optimize the modularity function to
+#' determine clusters. For a full description of the algorithms, see Waltman and
+#' van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
+#' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
+#' optimizer code in Rcpp!
+#'
+#' @param object Seurat object
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
+#' @param n.start Number of random starts.
+#' @param n.iter Maximal number of iterations per random start.
+#' @param random.seed Seed of the random number generator.
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
+#' @param verbose Print output
+#'
+#' @importFrom Matrix sparseMatrix
+#' @importFrom methods .hasSlot
+#' @importFrom igraph plot.igraph graph.adjlist
+#'
+#' @return Returns a Seurat object and optionally the SNN matrix,
+#'         object idents have been updated with new cluster info
+#'
+#' @export
+#'
+#' @rdname FindClusters
+#' @export FindClusters
+#'
+FindClusters <- function(
+  object,
+  modularity.fxn,
+  resolution,
+  algorithm,
+  n.start,
+  n.iter,
+  random.seed,
+  temp.file.location,
+  edge.file.name,
+  verbose,
+  ...
+) {
+  UseMethod(generic = 'FindClusters', object = object)
 }
 
 #' Gene expression markers of identity classes
