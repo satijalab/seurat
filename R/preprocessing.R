@@ -1,6 +1,117 @@
-#' @include package.R
+#' @include generics.R
 #'
 NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Return a subset of the Seurat object
+#'
+#' Creates a Seurat object containing only a subset of the cells in the
+#' original object. Takes either a list of cells to use as a subset, or a
+#' parameter (for example, a gene), to subset on.
+#'
+#' @param object Seurat object
+#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
+#' @param high.thresholds High cutoffs for the parameters (default is Inf)
+#' @param cells.use A vector of cell names to use as a subset
+#'
+#' @return Returns a Seurat object containing only the relevant subset of cells
+#'
+#' @export
+#'
+#' @examples
+#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' pbmc_filtered <- FilterCells(
+#'   object = pbmc_small,
+#'   subset.names = 'LTB',
+#'   high.thresholds = 6
+#' )
+#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
+#'
+FilterCells <- function(
+  object,
+  subset.names,
+  low.thresholds,
+  high.thresholds,
+  cells.use = NULL
+) {
+  if (missing(x = low.thresholds)) {
+    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
+  }
+  if (missing(x = high.thresholds)) {
+    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
+  }
+  length.check <- sapply(
+    X = list(subset.names, low.thresholds, high.thresholds),
+    FUN = length
+  )
+  if (length(x = unique(x = length.check)) != 1) {
+    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
+  }
+  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
+  cells.use <- cells.use %||% colnames(x = object)
+  for (i in seq(nrow(data.subsets))) {
+    cells.use <- tryCatch(
+      expr = WhichCells(
+        object = object,
+        cells.use = cells.use,
+        subset.name = data.subsets[i, 1],
+        low.threshold = data.subsets[i, 2],
+        high.threshold = data.subsets[i, 3]
+      ),
+      error = function(e) {
+        warning(e)
+        cells.use
+      }
+    )
+  }
+  object <- SubsetData(object, cells.use = cells.use)
+  object <- LogSeuratCommand(object)
+  return(object)
+}
+
+#' Normalize raw data
+#'
+#' Normalize count data per cell and transform to log scale
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the data. Default is 1e4
+#' @param verbose Print progress
+#'
+#' @return Returns a matrix with the normalize and log transformed data
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- LogNormalize(data = mat)
+#' mat_norm
+#'
+LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
+  if (class(x = data) == "data.frame") {
+    data <- as.matrix(x = data)
+  }
+  if (class(x = data) != "dgCMatrix") {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  # call Rcpp function to normalize
+  if (verbose) {
+    cat("Performing log-normalization\n", file = stderr())
+  }
+  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
+  colnames(x = norm.data) <- colnames(x = data)
+  rownames(x = norm.data) <- rownames(x = data)
+  return(norm.data)
+}
 
 #' Load in data from 10X
 #'
@@ -134,98 +245,6 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
   }
 }
 
-#' @export
-#'
-NormalizeData.default <- function(
-  object,
-  normalization.method = "LogNormalize",
-  scale.factor = 1e4,
-  verbose = TRUE
-) {
-  if (is.null(x = normalization.method)) {
-    return(object)
-  }
-  normalized.data <- switch(
-    EXPR = normalization.method,
-    'LogNormalize' = LogNormalize(
-      data = object,
-      scale.factor = scale.factor,
-      verbose = verbose
-    ),
-    'CLR' = CustomNormalize(
-      data = object,
-      custom_function = function(x) {
-        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-      },
-      across = 'features'
-    ),
-    stop("Unkown normalization method: ", normalization.method)
-  )
-  return(normalized.data)
-}
-
-#' @describeIn NormalizeData Normalize data in an Assay object
-#' @export
-#' @method NormalizeData Assay
-#'
-NormalizeData.Assay <- function(
-  object,
-  normalization.method = "LogNormalize",
-  scale.factor = 1e4,
-  verbose = TRUE
-) {
-  object <- SetAssayData(
-    object = object,
-    slot = 'data',
-    new.data = NormalizeData(
-      object = GetAssayData(object = object, slot = 'counts'),
-      normalization.method = normalization.method,
-      scale.factor = scale.factor,
-      verbose = verbose
-    )
-  )
-  return(object)
-}
-
-#' @param assay.use Name of assay to use
-#'
-#' @describeIn NormalizeData Normalize data in a Seurat object
-#' @export
-#' @method NormalizeData Seurat
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' pmbc_small <- NormalizeData(object = pbmc_small)
-#' }
-#'
-NormalizeData.Seurat <- function(
-  object,
-  assay.use = NULL,
-  normalization.method = "LogNormalize",
-  scale.factor = 1e4,
-  verbose = TRUE,
-  workflow.name = NULL
-) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  assay.data <- NormalizeData(
-    object = assay.data,
-    normalization.method = normalization.method,
-    scale.factor = scale.factor,
-    verbose = verbose
-  )
-  object[[assay.use]] <- assay.data
-  object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
-  return(object)
-}
-
 #' Use regularized negative binomial regression to normalize UMI count data
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
@@ -343,6 +362,342 @@ RegressRegNB <- function(
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
+  return(object)
+}
+
+#' Sample UMI
+#'
+#' Downsample each cell to a specified number of UMIs. Includes
+#' an option to upsample cells below specified UMI as well.
+#'
+#' @param data Matrix with the raw count data
+#' @param max.umi Number of UMIs to sample to
+#' @param upsample Upsamples all cells with fewer than max.umi
+#' @param progress.bar Display the progress bar
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @return Matrix with downsampled data
+#'
+#' @export
+#'
+#' @examples
+#' raw_data = as.matrix(x = pbmc_small@raw.data)
+#' downsampled = SampleUMI(data = raw_data)
+#' head(x = downsampled)
+#'
+SampleUMI <- function(
+  data,
+  max.umi = 1000,
+  upsample = FALSE,
+  progress.bar = FALSE
+) {
+  data <- as(data, "dgCMatrix")
+  if (length(x = max.umi) == 1) {
+    return(
+      RunUMISampling(
+        data = data,
+        sample_val = max.umi,
+        upsample = upsample,
+        display_progress = progress.bar
+      )
+    )
+  } else if (length(x = max.umi) != ncol(x = data)) {
+    stop("max.umi vector not equal to number of cells")
+  }
+  new_data = RunUMISamplingPerCell(
+    data = data,
+    sample_val = max.umi,
+    upsample = upsample,
+    display_progress = progress.bar
+  )
+  dimnames(new_data) <- dimnames(data)
+  return(new_data)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for Seurat-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @export
+#'
+FindVariableFeatures.default <- function(
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  verbose = TRUE
+) {
+  if (!inherits(x = object, 'Matrix')) {
+    object <- as(object = as.matrix(x = object), Class = 'Matrix')
+  }
+  if (!inherits(x = object, what = 'dgCMatrix')) {
+    object <- as(object = object, Class = 'dgCMatrix')
+  }
+  if (selection.method == "vst") {
+    if (clip.max == 'auto') {
+      clip.max <- sqrt(ncol(object))
+    }
+    hvf.info <- data.frame(mean = rowMeans(x = object))
+    hvf.info$variance <- SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
+    hvf.info$variance.expected <- 0
+    hvf.info$variance.standardized <- 0
+
+    not.const <- hvf.info$variance > 0
+    fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
+    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
+    # use c function to get variance after feature standardization
+    hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
+                                                      mu = hvf.info$mean,
+                                                      sd = sqrt(hvf.info$variance.expected),
+                                                      vmax = clip.max,
+                                                      display_progress = verbose)
+  } else {
+    if (!inherits(x = mean.function, what = 'function')) {
+      stop("'mean.function' must be a function")
+    }
+    if (!inherits(x = dispersion.function, what = 'function')) {
+      stop("'dispersion.function' must be a function")
+    }
+    feature.mean <- mean.function(object, verbose)
+    feature.dispersion <- dispersion.function(object, verbose)
+    names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
+    feature.dispersion[is.na(x = feature.dispersion)] <- 0
+    feature.mean[is.na(x = feature.mean)] <- 0
+    data.x.breaks <- switch(
+      EXPR = binning.method,
+      'equal_width' = num.bin,
+      'equal_frequency' = c(
+        -1,
+        quantile(
+          x = feature.mean[feature.mean > 0],
+          probs = seq.int(from = 0, to = 1, length.out = num.bin)
+        )
+      ),
+      stop("Unknown binning method: ", binning.method)
+    )
+    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
+    names(x = data.x.bin) <- names(x = feature.mean)
+    mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
+    sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
+    feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
+      sd.y[as.numeric(x = data.x.bin)]
+    names(x = feature.dispersion.scaled) <- names(x = feature.mean)
+    hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
+    rownames(x = hvf.info) <- rownames(x = object)
+    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
+  }
+  return(hvf.info)
+}
+
+#' @param num.features Number of features to select as top variable features;
+#' only used when \code{selection.method = 'dispersion'}
+#' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
+#' feature means
+#' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
+#' feature dispersions
+#'
+#' @describeIn FindVariableFeatures Find variable features in an Assay object
+#' @export
+#' @method FindVariableFeatures Assay
+#'
+FindVariableFeatures.Assay <- function(
+  object,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  num.features = 1000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE
+) {
+  if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
+    stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
+  }
+  slot <- "data"
+  if (selection.method == "vst") {
+    slot <- "counts"
+  }
+  hvf.info <- FindVariableFeatures(
+    object = GetAssayData(object = object, slot = slot),
+    loess.span = loess.span,
+    clip.max = clip.max,
+    mean.function = mean.function,
+    dispersion.function = dispersion.function,
+    num.bin = num.bin,
+    binning.method = binning.method,
+    verbose = verbose
+  )
+  object[[names(x = hvf.info)]] <- hvf.info
+  if (selection.method == "vst"){
+    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
+  } else {
+    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+  }
+  top.features <- switch(
+    EXPR = selection.method,
+    'mean.var.plot' = {
+      means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
+      dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
+      rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
+    },
+    'dispersion' = head(x = rownames(x = hvf.info), n = num.features),
+    'vst' = head(x = rownames(x = hvf.info), n = num.features),
+    stop("Unkown selection method: ", selection.method)
+  )
+  VariableFeatures(object = object) <- top.features
+  return(object)
+}
+
+#' @inheritParams FindVariableFeatures.Assay
+#' @param assay.use Assay to use
+#' @param workflow.name Name of workflow
+#'
+#' @describeIn FindVariableFeatures Find variable features in a Seurat object
+#' @export
+#' @method FindVariableFeatures Seurat
+#'
+FindVariableFeatures.Seurat <- function(
+  object,
+  assay.use = NULL,
+  selection.method = "vst",
+  loess.span = 0.3,
+  clip.max = 'auto',
+  mean.function = FastExpMean,
+  dispersion.function = FastLogVMR,
+  num.bin = 20,
+  binning.method = "equal_width",
+  num.features = 1000,
+  mean.cutoff = c(0.1, 8),
+  dispersion.cutoff = c(1, Inf),
+  verbose = TRUE,
+  workflow.name = NULL
+) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- FindVariableFeatures(
+    object = assay.data,
+    selection.method = selection.method,
+    loess.span = loess.span,
+    clip.max = clip.max,
+    mean.function = mean.function,
+    dispersion.function = dispersion.function,
+    num.bin = num.bin,
+    binning.method = binning.method,
+    num.features = num.features,
+    mean.cutoff = mean.cutoff,
+    dispersion.cutoff = dispersion.cutoff,
+    verbose = verbose
+  )
+  object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
+  return(object)
+}
+
+#' @export
+#'
+NormalizeData.default <- function(
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  verbose = TRUE
+) {
+  if (is.null(x = normalization.method)) {
+    return(object)
+  }
+  normalized.data <- switch(
+    EXPR = normalization.method,
+    'LogNormalize' = LogNormalize(
+      data = object,
+      scale.factor = scale.factor,
+      verbose = verbose
+    ),
+    'CLR' = CustomNormalize(
+      data = object,
+      custom_function = function(x) {
+        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+      },
+      across = 'features'
+    ),
+    stop("Unkown normalization method: ", normalization.method)
+  )
+  return(normalized.data)
+}
+
+#' @describeIn NormalizeData Normalize data in an Assay object
+#' @export
+#' @method NormalizeData Assay
+#'
+NormalizeData.Assay <- function(
+  object,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  verbose = TRUE
+) {
+  object <- SetAssayData(
+    object = object,
+    slot = 'data',
+    new.data = NormalizeData(
+      object = GetAssayData(object = object, slot = 'counts'),
+      normalization.method = normalization.method,
+      scale.factor = scale.factor,
+      verbose = verbose
+    )
+  )
+  return(object)
+}
+
+#' @param assay.use Name of assay to use
+#'
+#' @describeIn NormalizeData Normalize data in a Seurat object
+#' @export
+#' @method NormalizeData Seurat
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' pmbc_small <- NormalizeData(object = pbmc_small)
+#' }
+#'
+NormalizeData.Seurat <- function(
+  object,
+  assay.use = NULL,
+  normalization.method = "LogNormalize",
+  scale.factor = 1e4,
+  verbose = TRUE,
+  workflow.name = NULL
+) {
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- NormalizeData(
+    object = assay.data,
+    normalization.method = normalization.method,
+    scale.factor = scale.factor,
+    verbose = verbose
+  )
+  object[[assay.use]] <- assay.data
+  object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
@@ -538,349 +893,242 @@ ScaleData.Seurat <- function(
   return(object)
 }
 
-#' Normalize raw data
-#'
-#' Normalize count data per cell and transform to log scale
-#'
-#' @param data Matrix with the raw count data
-#' @param scale.factor Scale the data. Default is 1e4
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the normalize and log transformed data
-#'
-#' @import Matrix
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Normalize raw data
+#
+# Normalize count data per cell and transform to centered log ratio
+#
+# @param data Matrix with the raw count data
+# @param custom_function A custom normalization function
+# @parm across Which way to we normalize? Choose form 'cells' or 'features'
+#
+# @return Returns a matrix with the custom normalization
+#
 #' @importFrom methods as
-#'
-#' @export
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat
-#' mat_norm <- LogNormalize(data = mat)
-#' mat_norm
-#'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
+# @import Matrix
+#
+CustomNormalize <- function(data, custom_function, across) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
   if (class(x = data) != "dgCMatrix") {
     data <- as(object = data, Class = "dgCMatrix")
   }
-  # call Rcpp function to normalize
-  if (verbose) {
-    cat("Performing log-normalization\n", file = stderr())
+  margin <- switch(
+    EXPR = across,
+    'cells' = 2,
+    'features' = 1,
+    stop("'across' must be either 'cells' or 'features'")
+  )
+  norm.data <- apply(
+    X = data,
+    MARGIN = margin,
+    FUN = custom_function)
+  if (margin == 1) {
+    norm.data = t(x = norm.data)
   }
-  norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
   return(norm.data)
 }
 
-#' Sample UMI
-#'
-#' Downsample each cell to a specified number of UMIs. Includes
-#' an option to upsample cells below specified UMI as well.
-#'
-#' @param data Matrix with the raw count data
-#' @param max.umi Number of UMIs to sample to
-#' @param upsample Upsamples all cells with fewer than max.umi
-#' @param progress.bar Display the progress bar
-#'
-#' @import Matrix
-#' @importFrom methods as
-#'
-#' @return Matrix with downsampled data
-#'
-#' @export
-#'
-#' @examples
-#' raw_data = as.matrix(x = pbmc_small@raw.data)
-#' downsampled = SampleUMI(data = raw_data)
-#' head(x = downsampled)
-#'
-SampleUMI <- function(
-  data,
-  max.umi = 1000,
-  upsample = FALSE,
-  progress.bar = FALSE
+# Regress out techincal effects and cell cycle from a matrix
+#
+# Remove unwanted effects from scale.data
+#
+# @parm data.expr An expression matrix to regress the effects of latent.data out of
+# should be the complete expression matrix in genes x cells
+# @param latent.data A matrix or data.frame of latent variables, should be cells x latent variables,
+# the colnames should be the variables to regress
+# @param features.regress An integer vector representing the indices of the genes to run regression on
+# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
+# @param use.umi Regress on UMI count data
+# @param verbose Display a progress bar
+#
+#' @importFrom stats as.formula
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
+RegressOutMatrix <- function(
+  data.expr,
+  latent.data = NULL,
+  features.regress = NULL,
+  model.use = NULL,
+  use.umi = FALSE,
+  verbose = TRUE,
+  ...
 ) {
-  data <- as(data, "dgCMatrix")
-  if (length(x = max.umi) == 1) {
-    return(
-      RunUMISampling(
-        data = data,
-        sample_val = max.umi,
-        upsample = upsample,
-        display_progress = progress.bar
+  # Do we bypass regression and simply return data.expr?
+  bypass <- vapply(
+    X = list(latent.data, model.use),
+    FUN = is.null,
+    FUN.VALUE = logical(length = 1L)
+  )
+  if (any(bypass)) {
+    return(data.expr)
+  }
+  # Check model.use
+  possible.models <- c("linear", "poisson", "negbinom")
+  if (!model.use %in% possible.models) {
+    stop(paste(
+      model.use,
+      "is not a valid model. Please use one the following:",
+      paste0(possible.models, collapse = ", ")
+    ))
+  }
+  # Check features.regress
+  if (is.null(x = features.regress)) {
+    features.regress <- 1:nrow(x = data.expr)
+  }
+  if (is.character(x = features.regress)) {
+    features.regress <- intersect(x = features.regress, y = rownames(x = data.expr))
+    if (length(x = features.regress) == 0) {
+      stop("Cannot use features that are beyond the scope of data.expr")
+    }
+  } else if (max(features.regress) > nrow(x = data.expr)) {
+    stop("Cannot use features that are beyond the scope of data.expr")
+  }
+  # Check dataset dimensions
+  if (nrow(x = latent.data) != ncol(x = data.expr)) {
+    stop("Uneven number of cells between latent data and expression data")
+  }
+  use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
+  # Create formula for regression
+  vars.to.regress <- colnames(x = latent.data)
+  fmla <- paste('GENE ~', paste(vars.to.regress, collapse = '+'))
+  fmla <- as.formula(object = fmla)
+  if (model.use == "linear") {
+    # In this code, we'll repeatedly regress different Y against the same X
+    # (latent.data) in order to calculate residuals.  Rather that repeatedly
+    # call lm to do this, we'll avoid recalculating the QR decomposition for the
+    # latent.data matrix each time by reusing it after calculating it once
+    regression.mat <- cbind(latent.data, data.expr[1,])
+    colnames(regression.mat) <- c(colnames(x = latent.data), "GENE")
+    qr <- lm(fmla, data = regression.mat, qr = TRUE)$qr
+    rm(regression.mat)
+  }
+  # Make results matrix
+  data.resid <- matrix(
+    nrow = nrow(x = data.expr),
+    ncol = ncol(x = data.expr)
+  )
+  if (verbose) {
+    pb <- txtProgressBar(char = '=', style = 3)
+  }
+  for (i in 1:length(x = features.regress)) {
+    x <- features.regress[i]
+    regression.mat <- cbind(latent.data, data.expr[x, ])
+    colnames(x = regression.mat) <- c(vars.to.regress, 'GENE')
+    regression.mat <- switch(
+      EXPR = model.use,
+      'linear' = qr.resid(qr = qr, y = data.expr[x,]),
+      'poisson' = residuals(object = glm(
+        formula = fmla,
+        family = 'poisson',
+        data = regression.mat),
+        type = 'pearson'
+      ),
+      'negbinom' = NBResiduals(
+        fmla = fmla,
+        regression.mat = regression.mat,
+        gene = x
       )
     )
-  } else if (length(x = max.umi) != ncol(x = data)) {
-    stop("max.umi vector not equal to number of cells")
+    data.resid[i, ] <- regression.mat
+    if (verbose) {
+      setTxtProgressBar(pb = pb, value = i / length(x = features.regress))
+    }
   }
-  new_data = RunUMISamplingPerCell(
-    data = data,
-    sample_val = max.umi,
-    upsample = upsample,
-    display_progress = progress.bar
-  )
-  dimnames(new_data) <- dimnames(data)
-  return(new_data)
+  if (verbose) {
+    close(con = pb)
+  }
+  if (use.umi) {
+    data.resid <- log1p(x = sweep(
+      x = data.resid,
+      MARGIN = 1,
+      STATS = apply(X = data.resid, MARGIN = 1, FUN = min),
+      FUN = '-'
+    ))
+  }
+  dimnames(x = data.resid) <- dimnames(x = data.expr)
+  return(data.resid)
 }
 
-#' @export
-#'
-FindVariableFeatures.default <- function(
+# Regress out technical effects and cell cycle using regularized Negative Binomial regression
+#
+# Remove unwanted effects from umi data and set scale.data to Pearson residuals
+# Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
+#
+# @param object Seurat object
+# @param latent.vars effects to regress out
+# @param genes.regress gene to run regression for (default is all genes)
+# @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
+#
+# @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
+#
+#' @import Matrix
+#' @import parallel
+#' @importFrom stats glm residuals
+#' @importFrom MASS theta.ml negative.binomial
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
+RegressOutNB <- function(
   object,
-  selection.method = "vst",
-  loess.span = 0.3,
-  clip.max = 'auto',
-  mean.function = FastExpMean,
-  dispersion.function = FastLogVMR,
-  num.bin = 20,
-  binning.method = "equal_width",
-  verbose = TRUE
+  latent.vars,
+  genes.regress = NULL,
+  pr.clip.range = c(-30, 30),
+  min.theta = 0.01
 ) {
-  if (!inherits(x = object, 'Matrix')) {
-    object <- as(object = as.matrix(x = object), Class = 'Matrix')
-  }
-  if (!inherits(x = object, what = 'dgCMatrix')) {
-    object <- as(object = object, Class = 'dgCMatrix')
-  }
-  if (selection.method == "vst") {
-    if (clip.max == 'auto') {
-      clip.max <- sqrt(ncol(object))
-    }
-    hvf.info <- data.frame(mean = rowMeans(x = object))
-    hvf.info$variance <- SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
-    hvf.info$variance.expected <- 0
-    hvf.info$variance.standardized <- 0
-
-    not.const <- hvf.info$variance > 0
-    fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
-    hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
-    # use c function to get variance after feature standardization
-    hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
-                                                      mu = hvf.info$mean,
-                                                      sd = sqrt(hvf.info$variance.expected),
-                                                      vmax = clip.max,
-                                                      display_progress = verbose)
-  } else {
-    if (!inherits(x = mean.function, what = 'function')) {
-      stop("'mean.function' must be a function")
-    }
-    if (!inherits(x = dispersion.function, what = 'function')) {
-      stop("'dispersion.function' must be a function")
-    }
-    feature.mean <- mean.function(object, verbose)
-    feature.dispersion <- dispersion.function(object, verbose)
-    names(x = feature.mean) <- names(x = feature.dispersion) <- rownames(x = object)
-    feature.dispersion[is.na(x = feature.dispersion)] <- 0
-    feature.mean[is.na(x = feature.mean)] <- 0
-    data.x.breaks <- switch(
-      EXPR = binning.method,
-      'equal_width' = num.bin,
-      'equal_frequency' = c(
-        -1,
-        quantile(
-          x = feature.mean[feature.mean > 0],
-          probs = seq.int(from = 0, to = 1, length.out = num.bin)
+  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
+  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
+  cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
+  latent.data <- FetchData(object = object, vars.all = latent.vars)
+  message(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
+  theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
+  message('Second run NB regression with fixed theta')
+  bin.size <- 128
+  bin.ind <- ceiling(1:length(genes.regress)/bin.size)
+  max.bin <- max(bin.ind)
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
+  pr <- c()
+  for (i in 1:max.bin) {
+    genes.bin.regress <- genes.regress[bin.ind == i]
+    bin.pr.lst <- parallel::mclapply(
+      X = genes.bin.regress,
+      FUN = function(j) {
+        fit <- 0
+        try(
+          expr = fit <- glm(
+            cm[j, ] ~ .,
+            data = latent.data,
+            family = MASS::negative.binomial(theta = theta.fit[j])
+          ),
+          silent=TRUE
         )
-      ),
-      stop("Unknown binning method: ", binning.method)
-    )
-    data.x.bin <- cut(x = feature.mean, breaks = data.x.breaks)
-    names(x = data.x.bin) <- names(x = feature.mean)
-    mean.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = mean)
-    sd.y <- tapply(X = feature.dispersion, INDEX = data.x.bin, FUN = sd)
-    feature.dispersion.scaled <- (feature.dispersion - mean.y[as.numeric(x = data.x.bin)]) /
-      sd.y[as.numeric(x = data.x.bin)]
-    names(x = feature.dispersion.scaled) <- names(x = feature.mean)
-    hvf.info <- data.frame(feature.mean, feature.dispersion, feature.dispersion.scaled)
-    rownames(x = hvf.info) <- rownames(x = object)
-    colnames(x = hvf.info) <- c('mean', 'dispersion', 'dispersion.scaled')
-  }
-  return(hvf.info)
-}
-
-#' @param num.features Number of features to select as top variable features;
-#' only used when \code{selection.method = 'dispersion'}
-#' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
-#' feature means
-#' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
-#' feature dispersions
-#'
-#' @describeIn FindVariableFeatures Find variable features in an Assay object
-#' @export
-#' @method FindVariableFeatures Assay
-#'
-FindVariableFeatures.Assay <- function(
-  object,
-  selection.method = "vst",
-  loess.span = 0.3,
-  clip.max = 'auto',
-  mean.function = FastExpMean,
-  dispersion.function = FastLogVMR,
-  num.bin = 20,
-  binning.method = "equal_width",
-  num.features = 1000,
-  mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf),
-  verbose = TRUE
-) {
-  if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
-    stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
-  }
-  slot <- "data"
-  if (selection.method == "vst") {
-    slot <- "counts"
-  }
-  hvf.info <- FindVariableFeatures(
-    object = GetAssayData(object = object, slot = slot),
-    loess.span = loess.span,
-    clip.max = clip.max,
-    mean.function = mean.function,
-    dispersion.function = dispersion.function,
-    num.bin = num.bin,
-    binning.method = binning.method,
-    verbose = verbose
-  )
-  object[[names(x = hvf.info)]] <- hvf.info
-  if (selection.method == "vst"){
-    hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
-  } else {
-    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
-  }
-  top.features <- switch(
-    EXPR = selection.method,
-    'mean.var.plot' = {
-      means.use <- (hvf.info[, 1] > mean.cutoff[1]) & (hvf.info[, 1] < mean.cutoff[2])
-      dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
-      rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
-    },
-    'dispersion' = head(x = rownames(x = hvf.info), n = num.features),
-    'vst' = head(x = rownames(x = hvf.info), n = num.features),
-    stop("Unkown selection method: ", selection.method)
-  )
-  VariableFeatures(object = object) <- top.features
-  return(object)
-}
-
-#' @inheritParams FindVariableFeatures.Assay
-#' @param assay.use Assay to use
-#' @param workflow.name Name of workflow
-#'
-#' @describeIn FindVariableFeatures Find variable features in a Seurat object
-#' @export
-#' @method FindVariableFeatures Seurat
-#'
-FindVariableFeatures.Seurat <- function(
-  object,
-  assay.use = NULL,
-  selection.method = "vst",
-  loess.span = 0.3,
-  clip.max = 'auto',
-  mean.function = FastExpMean,
-  dispersion.function = FastLogVMR,
-  num.bin = 20,
-  binning.method = "equal_width",
-  num.features = 1000,
-  mean.cutoff = c(0.1, 8),
-  dispersion.cutoff = c(1, Inf),
-  verbose = TRUE,
-  workflow.name = NULL
-) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  assay.data <- FindVariableFeatures(
-    object = assay.data,
-    selection.method = selection.method,
-    loess.span = loess.span,
-    clip.max = clip.max,
-    mean.function = mean.function,
-    dispersion.function = dispersion.function,
-    num.bin = num.bin,
-    binning.method = binning.method,
-    num.features = num.features,
-    mean.cutoff = mean.cutoff,
-    dispersion.cutoff = dispersion.cutoff,
-    verbose = verbose
-  )
-  object[[assay.use]] <- assay.data
-  object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
-  return(object)
-}
-
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object Seurat object
-#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
-#' @param high.thresholds High cutoffs for the parameters (default is Inf)
-#' @param cells.use A vector of cell names to use as a subset
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @export
-#'
-#' @examples
-#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
-#' pbmc_filtered <- FilterCells(
-#'   object = pbmc_small,
-#'   subset.names = 'LTB',
-#'   high.thresholds = 6
-#' )
-#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
-#'
-FilterCells <- function(
-  object,
-  subset.names,
-  low.thresholds,
-  high.thresholds,
-  cells.use = NULL
-) {
-  if (missing(x = low.thresholds)) {
-    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
-  }
-  if (missing(x = high.thresholds)) {
-    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
-  }
-  length.check <- sapply(
-    X = list(subset.names, low.thresholds, high.thresholds),
-    FUN = length
-  )
-  if (length(x = unique(x = length.check)) != 1) {
-    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
-  }
-  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells.use <- cells.use %||% colnames(x = object)
-  for (i in seq(nrow(data.subsets))) {
-    cells.use <- tryCatch(
-      expr = WhichCells(
-        object = object,
-        cells.use = cells.use,
-        subset.name = data.subsets[i, 1],
-        low.threshold = data.subsets[i, 2],
-        high.threshold = data.subsets[i, 3]
-      ),
-      error = function(e) {
-        warning(e)
-        cells.use
+        if (class(fit)[1] == 'numeric') {
+          message(
+            sprintf(
+              'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
+              theta.fit[j],
+              j
+            )
+          )
+          res <- scale(log10(cm[j, ] + 1))[, 1]
+        } else {
+          res <- residuals(fit, type = 'pearson')
+        }
+        return(res)
       }
     )
+    pr <- rbind(pr, do.call(rbind, bin.pr.lst))
+    setTxtProgressBar(pb, i)
   }
-  object <- SubsetData(object, cells.use = cells.use)
-  object <- LogSeuratCommand(object)
+  close(pb)
+  dimnames(x = pr) <- dimnames(x = cm)
+  pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
+  pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
+  object@scale.data <- pr
   return(object)
 }
