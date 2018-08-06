@@ -14,8 +14,8 @@
   latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
   pseudocount.use = 1, ...)
 
-\method{FindMarkers}{Seurat}(object, assay.use = NULL, ident.1 = NULL,
-  ident.2 = NULL, features.use = NULL, logfc.threshold = 0.25,
+\method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
+  assay.use = NULL, features.use = NULL, logfc.threshold = 0.25,
   test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
   verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
@@ -102,12 +102,12 @@ calculating logFC. 1 by default.}
 
 \item{\dots}{Additional parameters to pass to specific DE functions}
 
-\item{assay.use}{Assay to use in differential expression testing}
-
 \item{ident.1}{Identity class to define markers for}
 
 \item{ident.2}{A second identity class for comparison. If NULL (default) -
 use all other cells for comparison.}
+
+\item{assay.use}{Assay to use in differential expression testing}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses
 pbapply to do this)}

@@ -736,6 +736,7 @@ FindVariableFeatures.Assay <- function(
   }
   hvf.info <- FindVariableFeatures(
     object = GetAssayData(object = object, slot = slot),
+    selection.method = selection.method,
     loess.span = loess.span,
     clip.max = clip.max,
     mean.function = mean.function,

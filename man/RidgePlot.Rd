@@ -7,7 +7,7 @@
 RidgePlot(object, features.plot, ident.include = NULL, num.col = NULL,
   do.sort = FALSE, y.max = NULL, same.y.lims = FALSE,
   cols.use = NULL, group.by = NULL, y.log = FALSE,
-  combine.plots = TRUE, ...)
+  combine.plots = TRUE, plot.counts = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +33,8 @@ expression of the attribute being potted}
 \item{y.log}{plot Y axis on log scale}
 
 \item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{plot.counts}{Use non-normalized counts data for plotting}
 
 \item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }

@@ -6,8 +6,8 @@
 \title{Scatter plot of single cell data}
 \usage{
 FeatureScatter(object, feature1, feature2, cells.use = NULL,
-  cols.use = NULL, slot.use = "data", pt.size = 1, shape.by = NULL,
-  span = NULL, ...)
+  cols.use = NULL, pt.size = 1, shape.by = NULL, span = NULL,
+  plot.counts = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +26,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{shape.by}{Ignored for now}
 
 \item{span}{Spline span in loess function call, if \code{NULL}, no spline added}
+
+\item{plot.counts}{Use non-normalized counts data for plotting}
 
 \item{...}{Ignored for now}
 }
