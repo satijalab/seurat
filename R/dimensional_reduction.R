@@ -1,419 +1,197 @@
-#' @export
-#'
-RunPCA.default <- function(
-  object,
-  assay.use = NULL,
-  features.use = NULL,
-  compute.dims = 20,
-  rev.pca = FALSE,
-  weight.by.var = TRUE,
-  verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
-  reduction.name = "pca",
-  reduction.key = "PC",
-  seed.use = 42,
-  ...
-) {
-  if (!is.null(x = seed.use)) {
-    set.seed(seed = seed.use)
-  }
-  if (rev.pca) {
-    compute.dims <- min(compute.dims, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = compute.dims, ...)
-    sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
-    if (weight.by.var) {
-      feature.loadings <- pca.results$u %*% diag(pca.results$d)
-    } else{
-      feature.loadings <- pca.results$u
-    }
-    cell.embeddings <- pca.results$v
-  }
-  else {
-    compute.dims <- min(compute.dims, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
-    feature.loadings <- pca.results$v
-    sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-    if (weight.by.var) {
-      cell.embeddings <- pca.results$u %*% diag(pca.results$d)
-    } else {
-      cell.embeddings <- pca.results$u
-    }
-  }
-  rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
-  rownames(x = cell.embeddings) <- colnames(x = object)
-  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
-  reduction.data <- MakeDimReducObject(
-    cell.embeddings = cell.embeddings,
-    feature.loadings = feature.loadings,
-    assay.used = assay.use,
-    stdev = sdev,
-    key = reduction.key
-  )
-  if (verbose) {
-    Print(object = reduction.data, dims = print.dims, num.features = features.print)
-  }
-  return(reduction.data)
-}
+#' @include generics.R
+NULL
 
-#' @describeIn RunPCA Run a PCA on an Assay object
-#' @export
-#' @method RunPCA Assay
-#'
-RunPCA.Assay <- function(
-  object,
-  assay.use = NULL,
-  features.use = NULL,
-  compute.dims = 20,
-  rev.pca = FALSE,
-  weight.by.var = TRUE,
-  verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
-  reduction.name = "pca",
-  reduction.key = "PC",
-  seed.use = 42,
-  ...
-) {
-  data.use <- PrepDR(
-    object = object,
-    features.use = features.use
-  )
-  reduction.data <- RunPCA(
-    object = data.use,
-    assay.use = assay.use,
-    pc.features = features.use,
-    compute.dims = compute.dims,
-    rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
-    verbose = verbose,
-    print.dims = print.dims,
-    features.print = features.print,
-    reduction.name = reduction.name,
-    reduction.key = reduction.key,
-    seed.use = seed.use,
-    ...
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  )
-  return(reduction.data)
-}
-
-#' @param workflow.name Name of workflow
+#' Determine statistical significance of PCA scores.
 #'
-#' @importFrom SeuratObject DefaultAssay GetAssay
-#'
-#' @describeIn RunPCA Run a PCA on a Seurat object
-#' @export
-#' @method RunPCA Seurat
-#'
-RunPCA.Seurat <- function(
-  object,
-  assay.use = NULL,
-  features.use = NULL,
-  compute.dims = 20,
-  rev.pca = FALSE,
-  weight.by.var = TRUE,
-  verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
-  reduction.name = "pca",
-  reduction.key = "PC",
-  seed.use = 42,
-  workflow.name = NULL,
-  ...
-) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  reduction.data <- RunPCA(
-    object = assay.data,
-    assay.use = assay.use,
-    features.use = features.use,
-    compute.dims = compute.dims,
-    rev.pca = rev.pca,
-    weight.by.var = weight.by.var,
-    verbose = verbose,
-    print.dims = print.dims,
-    feature.print = features.print,
-    reduction.name = reduction.name,
-    reduction.key = reduction.key,
-    seed.use = seed.use,
-    ...
-  )
-  object[[reduction.name]] <- reduction.data
-  object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
-  return(object)
-}
-
-#' Run Independent Component Analysis on gene expression
-#'
-#' Run fastica algorithm from the ica package for ICA dimensionality reduction.
-#' For details about stored ICA calculation parameters, see
-#' \code{PrintICAParams}.
+#' Randomly permutes a subset of data, and calculates projected PCA scores for
+#' these 'random' genes. Then compares the PCA scores for the 'random' genes
+#' with the observed PCA scores to determine statistical signifance. End result
+#' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object
-#' @param ic.genes Genes to use as input for ICA. Default is object@@var.genes
-#' @param ics.compute Number of ICs to compute
-#' @param use.imputed Run ICA on imputed values (FALSE by default)
-#' @param rev.ica By default, computes the dimensional reduction on the cell x
-#' gene matrix. Setting to true will compute it on the transpose (gene x cell
-#' matrix).
-#' @param print.results Print the top genes associated with each dimension
-#' @param ics.print ICs to print genes for
-#' @param genes.print Number of genes to print for each IC
-#' @param ica.function ICA function from ica package to run (options: icafast,
-#' icaimax, icajade)
-#' @param seed.use Random seed to use for fastica
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. ica by default
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. IC by default
-#' @param \dots Additional arguments to be passed to fastica
+#' @param reduction.use DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.
+#' @param assay.use Assay used to calculate reduction.
+#' @param dims Number of PCs to compute significance for
+#' @param num.replicate Number of replicate samplings to perform
+#' @param prop.freq Proportion of the data to randomly permute for each
+#' replicate
+#' @param verbose Print progress bar showing the number of replicates
+#' that have been processed.
+#' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
+#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
+#' represents p-values for each gene in the PCA analysis. If ProjectPCA is
+#' subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+#' represents p-values for all genes.
+#'
+#' @import doSNOW
 #' @importFrom methods new
-#' @importFrom ica icafast icaimax icajade
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
-#' @return Returns Seurat object with an ICA calculation stored in
-#' object@@dr$ica
+#' @references Inspired by Chung et al, Bioinformatics (2014)
 #'
 #' @export
 #'
 #' @examples
-#' pbmc_small
-#' # Run ICA on variable genes (default)
-#' pbmc_small <- RunICA(pbmc_small, ics.compute=5)
-#' # Run ICA on different gene set (in this case all genes)
-#' pbmc_small <- RunICA(pbmc_small, ic.genes = rownames(pbmc_small@data))
-#' # Plot results
-#' ICAPlot(pbmc_small)
+#' \dontrun{
+#' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
+#' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+#' }
 #'
-RunICA <- function(
-  object,
-  ic.genes = NULL,
-  ics.compute = 50,
-  use.imputed = FALSE,
-  rev.ica = FALSE,
-  print.results = TRUE,
-  ics.print = 1:5,
-  genes.print = 50,
-  ica.function = "icafast",
-  seed.use = 1,
-  reduction.name = "ica",
-  reduction.key = "IC",
-  ...
-) {
-  data.use <- PrepDR(
-    object = object,
-    genes.use = ic.genes,
-    use.imputed = use.imputed)
-  set.seed(seed = seed.use)
-  ics.compute <- min(ics.compute, ncol(x = data.use))
-  ica.fxn <- eval(parse(text = ica.function))
-  if (rev.ica) {
-    ica.results <- ica.fxn(data.use, nc = ics.compute,...)
-    cell.embeddings <- ica.results$M
-  } else {
-    ica.results <- ica.fxn(t(x = data.use), nc = ics.compute,...)
-    cell.embeddings <- ica.results$S
-  }
-  gene.loadings <- (as.matrix(x = data.use ) %*% as.matrix(x = cell.embeddings))
-  colnames(x = gene.loadings) <- paste0(reduction.key, 1:ncol(x = gene.loadings))
-  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
-  ica.obj <- new(
-    Class = "dim.reduction",
-    gene.loadings = gene.loadings,
-    cell.embeddings = cell.embeddings,
-    sdev = sqrt(x = ica.results$vafs),
-    key = "IC"
-  )
-
-  eval(expr = parse(text = paste0("object@dr$", reduction.name, "<- ica.obj")))
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("ICA"))]
-  object <- SetCalcParams(object = object, calculation = "ICA", ... = parameters.to.store)
-  if(is.null(object@calc.params$ICA$ic.genes)){
-    object@calc.params$ICA$ic.genes <- rownames(data.use)
-  }
-  if(print.results){
-    PrintDim(object = object, dims.print = ics.print, genes.print = genes.print,reduction.type = reduction.name)
-  }
-  return(object)
-}
-
-#' @importFrom tsne tsne
-#' @importFrom Rtsne Rtsne
-#'
-#' @export
-#' @method RunTSNE matrix
-#'
-RunTSNE.matrix <- function(
-  object,
-  assay.use = NULL,
-  seed.use = 1,
-  tsne.method = "Rtsne",
-  add.iter = 0,
-  dim.embed = 2,
-  distance.matrix = NULL,
-  reduction.name = "tsne",
-  reduction.key = "tSNE_",
-  ...
-) {
-  set.seed(seed = seed.use)
-  tsne.data <- switch(
-    EXPR = tsne.method,
-    'Rtsne' = Rtsne(
-      X = object,
-      dims = dim.embed,
-      ... # PCA/is_distance
-    )$Y,
-    'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
-    'tsne' = tsne(X = object, k = dim.embed, ...),
-    stop("Invalid tSNE method: please choose from 'Rtsne', 'FIt-SNE', or 'tsne'")
-  )
-  if (add.iter > 0) {
-    tsne.data <- tsne(
-      X = object,
-      intial_config = as.matrix(x = tsne.data),
-      max_iter = add.iter,
-      ...
-    )
-  }
-  colnames(x = tsne.data) <- paste0(reduction.key, 1:ncol(x = tsne.data))
-  rownames(x = tsne.data) <- rownames(x = object)
-  tsne.reduction <- MakeDimReducObject(
-    cell.embeddings = tsne.data,
-    key = reduction.key,
-    assay.used = assay.use
-  )
-  return(tsne.reduction)
-}
-
-#' @param dims.use Which dimensions to use as input features
-#'
-#' @describeIn RunTSNE Run tSNE on a DimReduc object
-#' @export
-#' @method RunTSNE DimReduc
-#'
-RunTSNE.DimReduc <- function(
-  object,
-  cells.use = NULL,
-  dims.use = 1:5,
-  seed.use = 1,
-  tsne.method = "Rtsne",
-  add.iter = 0,
-  dim.embed = 2,
-  reduction.key = "tSNE_",
-  ...
-) {
-  tsne.reduction <- RunTSNE(
-    object = object[[, dims.use]],
-    assay.use = DefaultAssay(object = object),
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    ...
-  )
-  return(tsne.reduction)
-}
-
-#' @param distance.matrix If set, runs tSNE on the given distance matrix
-#' instead of data matrix (experimental)
-#' @param features.use If set, run the tSNE on this subset of features
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
-#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
-#' @param workflow.name Name of workflow
-#'
-#' @describeIn RunTSNE Run tSNE on a Seurat object
-#' @export
-#' @method RunTSNE Seurat
-#'
-RunTSNE.Seurat <- function(
+JackStraw <- function(
   object,
   reduction.use = "pca",
-  cells.use = NULL,
-  dims.use = 1:5,
-  features.use = NULL,
-  seed.use = 1,
-  tsne.method = "Rtsne",
-  add.iter = 0,
-  dim.embed = 2,
-  distance.matrix = NULL,
-  reduction.name = "tsne",
-  reduction.key = "tSNE_",
-  workflow.name = NULL,
-  ...
+  assay.use = NULL,
+  dims = 20,
+  num.replicate = 100,
+  prop.freq = 0.01,
+  verbose = TRUE,
+  maxit = 1000
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  if (reduction.use != "pca") {
+    stop("Only pca for reduction.use is currently supported")
   }
-  if (length(dims.use) == 1 && !is.null(workflow.name)) {
-    dims.use <- 1:dims.use
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  # embeddings <- Embeddings(object = object[[reduction.use]])
+  if (dims > length(x = object[[reduction.use]])) {
+    dims <- length(x = object[[reduction.use]])
+    warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  tsne.reduction <- if (tsne.method == 'Rtsne') {
-    if (!is.null(x = distance.matrix)) {
-      RunTSNE(
-        object = as.matrix(x = distance.matrix),
-        assay.use = DefaultAssay(object = object),
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        is_distance = TRUE,
-        ...
-      )
-    } else if (!is.null(x = features.use)) {
-      RunTSNE(
-        object = as.matrix(x = GetAssayData(object = object)[features.use, ]),
-        assay.use = DefaultAssay(object = object),
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        pca = FALSE,
-        ...
-      )
-    } else {
-      RunTSNE(
-        object = object[[reduction.use]],
-        dims.use = dims.use,
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        pca = FALSE,
-        ...
-      )
-    }
-  } else {
-    RunTSNE(
-      object = object[[reduction.use]],
-      dims.use = dims.use,
-      seed.use = seed.use,
-      tsne.method = tsne.method,
-      add.iter = add.iter,
-      dim.embed = dim.embed,
-      reduction.key = reduction.key,
-      ...
+  if (dims > ncol(x = object)) {
+    dims <- ncol(x = object)
+    warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
+  }
+  loadings <- Loadings(object = object[[reduction.use]], projected = FALSE)
+  reduc.features <- rownames(x = loadings)
+  if (length(x = reduc.features) < 3) {
+    stop("Too few features")
+  }
+  if (length(x = reduc.features) * prop.freq < 3) {
+    warning(
+      "Number of variable genes given ",
+      prop.freq,
+      " as the prop.freq is low. Consider including more variable genes and/or increasing prop.freq. ",
+      "Continuing with 3 genes in every random sampling."
     )
   }
-  object[[reduction.name]] <- tsne.reduction
+  data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
+  rev.pca <- object[[paste0('RunPCA.', assay.use)]]$rev.pca
+  weight.by.var <- object[[paste0('RunPCA.', assay.use)]]$weight.by.var
+  ## TODO: Parallelization
+  fake.vals.raw <- lapply(
+    X = 1:num.replicate,
+    FUN = JackRandom,
+    scaled.data = data.use,
+    prop.use = prop.freq,
+    r1.use = 1,
+    r2.use = dims,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    maxit = maxit
+  )
+  fake.vals <- sapply(
+    X = 1:dims,
+    FUN = function(x) {
+      return(as.numeric(x = unlist(x = lapply(
+        X = 1:num.replicate,
+        FUN = function(y) {
+          return(fake.vals.raw[[y]][, x])
+        }
+      ))))
+    }
+  )
+  fake.vals <- as.matrix(x = fake.vals)
+  jackStraw.empP <- as.matrix(
+    sapply(
+      X = 1:dims,
+      FUN = function(x) {
+        return(unlist(x = lapply(
+          X = abs(loadings[, x]),
+          FUN = EmpiricalP,
+          nullval = abs(fake.vals[,x])
+        )))
+      }
+    )
+  )
+  colnames(x = jackStraw.empP) <- paste0("PC", 1:ncol(x = jackStraw.empP))
+  jackstraw.obj <- new(
+    Class = "JackStrawData",
+    empirical.p.values  = jackStraw.empP,
+    fake.reduction.scores = fake.vals,
+    empirical.p.values.full = matrix()
+  )
+  JS(object = object[[reduction.use]]) <- jackstraw.obj
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-    object <- UpdateWorkflow(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = command.name)
-  }
   return(object)
+}
+
+#' Significant genes from a PCA
+#'
+#' Returns a set of genes, based on the JackStraw analysis, that have
+#' statistically significant associations with a set of PCs.
+#'
+#' @param object Seurat object
+#' @param pcs.use PCS to use.
+#' @param pval.cut P-value cutoff
+#' @param use.full Use the full list of genes (from the projected PCA). Assumes
+#' that \code{ProjectDim} has been run. Currently, must be set to FALSE.
+#' @param max.per.pc Maximum number of genes to return per PC. Used to avoid genes from one PC dominating the entire analysis.
+#'
+#' @return A vector of genes whose p-values are statistically significant for
+#' at least one of the given PCs.
+#'
+#' @export
+#'
+#' @seealso \code{\link{ProjectDim}} \code{\link{JackStraw}}
+#'
+#' @examples
+#' PCASigGenes(pbmc_small, pcs.use = 1:2)
+#'
+PCASigGenes <- function(
+  object,
+  pcs.use,
+  pval.cut = 0.1,
+  use.full = FALSE,
+  max.per.pc = NULL
+) {
+  # pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values
+  empirical.use <- ifelse(test = use.full, yes = 'full', no = 'empirical')
+  pvals.use <- JS.DimReduc(object = object[['pca']], slot = empirical.use)
+  # pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings")
+  # pcx.use <- Loadings.DimReduc(object = object[['pca']], projected = use.full)
+  if (length(x = pcs.use) == 1) {
+    pvals.min <- pvals.use[, pcs.use]
+  }
+  if (length(x = pcs.use) > 1) {
+    pvals.min <- apply(X = pvals.use[, pcs.use], MARGIN = 1, FUN = min)
+  }
+  names(x = pvals.min) <- rownames(x = pvals.use)
+  features.use <- names(x = pvals.min)[pvals.min < pval.cut]
+  if (!is.null(x = max.per.pc)) {
+    top.features <- TopFeatures(
+      object = object[['pca']],
+      dim.use = pcs.use,
+      num.features = max.per.pc,
+      projected = use.full,
+      do.balanced = FALSE
+    )
+    features.use <- intersect(x = top.features, y = features.use)
+  }
+  # if (!is.null(x = max.per.pc)) {
+  #   pc.top.genes <- PCTopGenes(
+  #     object = object,
+  #     pc.use = pcs.use,
+  #     num.genes = max.per.pc,
+  #     use.full = use.full,
+  #     do.balanced = FALSE
+  #   )
+  #   genes.use <- intersect(x = pc.top.genes, y = genes.use)
+  # }
+  return(features.use)
 }
 
 #' Project Dimensional reduction onto full dataset
@@ -422,7 +200,6 @@ RunTSNE.Seurat <- function(
 #' of genes) and projects this onto the entire dataset (all genes). Note that
 #' the cell loadings will remain unchanged, but now there are gene loadings for
 #' all genes.
-#'
 #'
 #' @param object Seurat object
 #' @param reduction.use Reduction to use
@@ -496,55 +273,9 @@ ProjectDim <- function(
   return(object)
 }
 
-
-#' Project Principal Components Analysis onto full dataset
-#'
-#' Takes a pre-computed PCA (typically calculated on a subset of genes) and
-#' projects this onto the entire dataset (all genes). Note that the cell
-#' loadings remains unchanged, but now there are gene loading scores for all
-#' genes.
-#'
-#' @param object Seurat object
-#' @param do.print Print top genes associated with the projected PCs
-#' @param pcs.print Number of PCs to print genes for
-#' @param pcs.store Number of PCs to store (default is 30)
-#' @param genes.print Number of genes with highest/lowest loadings to print for
-#' each PC
-#' @param replace.pc Replace the existing PCA (overwite
-#' object@@dr$pca@gene.loadings), not done by default.
-#' @param do.center Center the dataset prior to projection (should be set to TRUE)
-#'
-#' @return Returns Seurat object with the projected PCA values in
-#' object@@dr$pca@gene.loadings.full
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#' pbmc_small <- ProjectPCA(pbmc_small)
-#' # Vizualize top projected genes in heatmap
-#' PCHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE)
-#'
-ProjectPCA <- function(
-  object,
-  do.print = TRUE,
-  pcs.print = 1:5,
-  pcs.store = 30,
-  genes.print = 30,
-  replace.pc = FALSE,
-  do.center = FALSE
-) {
-  return(ProjectDim(
-    object,
-    reduction.type = "pca",
-    dims.print = pcs.print,
-    genes.print = 30,
-    replace.dim = replace.pc,
-    do.center = do.center,
-    do.print = do.print,
-    dims.store = pcs.store
-  ))
-}
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
@@ -678,7 +409,7 @@ RunCCA.Seurat <- function(
     ...
   )
 
-  combined.object[['cca']] <- MakeDimReducObject(
+  combined.object[['cca']] <- CreateDimReducObject(
     cell.embeddings = cca.results$ccv,
     assay.used = assay.use1,
     key = "CC"
@@ -872,7 +603,7 @@ RunMultiCCA.Seurat <- function(
     x = object.list[[1]],
     y = object.list[2:length(x = object.list)]
   )
-  combined.object[['cca']] <- MakeDimReducObject(
+  combined.object[['cca']] <- CreateDimReducObject(
     cell.embeddings = cca.results$ccv,
     assay.used = assay.use,
     key = "CC"
@@ -898,299 +629,329 @@ RunMultiCCA.Seurat <- function(
   return(combined.object)
 }
 
-#' Run diffusion map
-#'
-#' NOTE: Prior to v2.3.4, this function used the R package diffusionMap to compute
-#' the diffusion map components. This package was being archived and thus
-#' RunDiffusion now uses the destiny package for the diffusion computations.
-#' Please be aware that this will result in different default values as the two
-#' underlying package implementations are different.
-#'
-#' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features
-#' @param genes.use If set, run the diffusion map procedure on this subset of
-#' genes (instead of running on a set of reduced dimensions). Not set (NULL) by
-#' default
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
-#' diffusion map input. Default is PCA
-#' @param q.use Quantile to clip diffusion map components at. This addresses an
-#' issue where 1-2 cells will have extreme values that obscure all other points.
-#' 0.01 by default
-#' @param max.dim Max dimension to keep from diffusion calculation
-#' @param scale.clip Max/min value for scaled data. Default is 3
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. dm by default
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. DM by default
-#' @param ... Additional arguments to the DiffusionMap call
-#'
-#' @return Returns a Seurat object with a diffusion map
-#'
-#' @importFrom utils installed.packages
-#' @importFrom stats dist quantile
-#'
 #' @export
 #'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' # Run Diffusion on variable genes
-#' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
-#' # Run Diffusion map on first 10 PCs
-#' pbmc_small <- RunDiffusion(pbmc_small,genes.use = pbmc_small@var.genes)
-#' # Plot results
-#' DMPlot(pbmc_small)
-#' }
-#'
-RunDiffusion <- function(
+RunPCA.default <- function(
   object,
-  cells.use = NULL,
-  dims.use = 1:5,
-  genes.use = NULL,
-  reduction.use = 'pca',
-  q.use = 0.01,
-  max.dim = 2,
-  scale.clip = 10,
-  reduction.name = "dm",
-  reduction.key = "DM",
+  assay.use = NULL,
+  features.use = NULL,
+  compute.dims = 20,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  print.dims = 1:5,
+  features.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC",
+  seed.use = 42,
   ...
 ) {
-  # Check for destiny
-  if (!'destiny' %in% rownames(x = installed.packages())) {
-    stop("Please install destiny - learn more at https://bioconductor.org/packages/release/bioc/html/destiny.html")
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
   }
-  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
-  if (is.null(x = genes.use)) {
-    dim.code <- GetDimReduction(
-      object = object,
-      reduction.type = reduction.use,
-      slot = 'key'
-    )
-    dim.codes <- paste0(dim.code, dims.use)
-    data.use <- FetchData(object = object, vars.all = dim.codes)
+  if (rev.pca) {
+    compute.dims <- min(compute.dims, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = compute.dims, ...)
+    sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
+    if (weight.by.var) {
+      feature.loadings <- pca.results$u %*% diag(pca.results$d)
+    } else{
+      feature.loadings <- pca.results$u
+    }
+    cell.embeddings <- pca.results$v
   }
-  if (! is.null(x = genes.use)) {
-    genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
-    data.use <- MinMax(
-      data = t(x = object@data[genes.use, cells.use]),
-      min = -1 * scale.clip,
-      max = scale.clip
-    )
+  else {
+    compute.dims <- min(compute.dims, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
+    feature.loadings <- pca.results$v
+    sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
+    if (weight.by.var) {
+      cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+    } else {
+      cell.embeddings <- pca.results$u
+    }
   }
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunDiffusion"))]
-  object <- SetCalcParams(object = object,
-                          calculation = "RunDiffusion",
-                          ... = parameters.to.store)
-  data.dist <- dist(data.use)
-  data.diffusion <- data.frame(
-    destiny::DiffusionMap(data = as.matrix(data.dist),
-                          n_eigs = max.dim, ...)@eigenvectors
+  rownames(x = feature.loadings) <- rownames(x = object)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
+  rownames(x = cell.embeddings) <- colnames(x = object)
+  colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
+  reduction.data <- CreateDimReducObject(
+    cell.embeddings = cell.embeddings,
+    feature.loadings = feature.loadings,
+    assay.used = assay.use,
+    stdev = sdev,
+    key = reduction.key
   )
-  colnames(x = data.diffusion) <- paste0(reduction.key, 1:ncol(x = data.diffusion))
-  rownames(x = data.diffusion) <- cells.use
-  for (i in 1:max.dim) {
-    x <- data.diffusion[,i]
-    x <- MinMax(
-      data = x,
-      min = quantile(x = x, probs = q.use),
-      quantile(x = x, probs = 1-q.use)
-    )
-    data.diffusion[, i] <- x
+  if (verbose) {
+    Print(object = reduction.data, dims = print.dims, num.features = features.print)
   }
-  object <- SetDimReduction(
+  return(reduction.data)
+}
+
+#' @describeIn RunPCA Run a PCA on an Assay object
+#' @export
+#' @method RunPCA Assay
+#'
+RunPCA.Assay <- function(
+  object,
+  assay.use = NULL,
+  features.use = NULL,
+  compute.dims = 20,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  print.dims = 1:5,
+  features.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
     object = object,
-    reduction.type = reduction.name,
-    slot = "cell.embeddings",
-    new.data = as.matrix(x = data.diffusion)
+    features.use = features.use
   )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "key",
-    new.data = "DM"
+  reduction.data <- RunPCA(
+    object = data.use,
+    assay.use = assay.use,
+    pc.features = features.use,
+    compute.dims = compute.dims,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    print.dims = print.dims,
+    features.print = features.print,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+
   )
+  return(reduction.data)
+}
+
+#' @param workflow.name Name of workflow
+#'
+#' @importFrom SeuratObject DefaultAssay GetAssay
+#'
+#' @describeIn RunPCA Run a PCA on a Seurat object
+#' @export
+#' @method RunPCA Seurat
+#'
+RunPCA.Seurat <- function(
+  object,
+  assay.use = NULL,
+  features.use = NULL,
+  compute.dims = 20,
+  rev.pca = FALSE,
+  weight.by.var = TRUE,
+  verbose = TRUE,
+  print.dims = 1:5,
+  features.print = 30,
+  reduction.name = "pca",
+  reduction.key = "PC",
+  seed.use = 42,
+  workflow.name = NULL,
+  ...
+) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  reduction.data <- RunPCA(
+    object = assay.data,
+    assay.use = assay.use,
+    features.use = features.use,
+    compute.dims = compute.dims,
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = verbose,
+    print.dims = print.dims,
+    feature.print = features.print,
+    reduction.name = reduction.name,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
+  }
   return(object)
 }
 
-#' Run PHATE
+#' @importFrom tsne tsne
+#' @importFrom Rtsne Rtsne
 #'
-#' PHATE is a data reduction method specifically designed for visualizing
-#' **high** dimensional data in **low** dimensional spaces.
-#' To run, you must first install the `phate` python
-#' package (e.g. via pip install phate). Details on this package can be
-#' found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For a more in depth
-#' discussion of the mathematics underlying PHATE, see the bioRxiv paper here:
-#' \url{https://www.biorxiv.org/content/early/2017/12/01/120378}.
-#'
-#' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param genes.use If set, run PHATE on this subset of genes.
-#' Not set (NULL) by default
-#' @param assay.type Assay to pull data for (default: 'RNA')
-#' @param max.dim Total number of dimensions to embed in PHATE.
-#' @param k int, optional, default: 15
-#' number of nearest neighbors on which to build kernel
-#' @param alpha int, optional, default: 10
-#' sets decay rate of kernel tails.
-#' If NA, alpha decaying kernel is not used
-#' @param use.alpha boolean, default: NA
-#' forces the use of alpha decaying kernel
-#' If NA, alpha decaying kernel is used for small inputs
-#' (n_samples < n_landmark) and not used otherwise
-#' @param n.landmark int, optional, default: 2000
-#' number of landmarks to use in fast PHATE
-#' @param potential.method string, optional, default: 'log'
-#' choose from 'log' and 'sqrt'
-#' which transformation of the diffusional operator is used
-#' to compute the diffusion potential
-#' @param t int, optional, default: 'auto'
-#' power to which the diffusion operator is powered
-#' sets the level of diffusion
-#' @param knn.dist.method string, optional, default: 'euclidean'.
-#' The desired distance function for calculating pairwise distances on the data.
-#' If 'precomputed', `data` is treated as a
-#' (n_samples, n_samples) distance or affinity matrix
-#' @param mds.method string, optional, default: 'metric'
-#' choose from 'classic', 'metric', and 'nonmetric'
-#' which MDS algorithm is used for dimensionality reduction
-#' @param mds.dist.method string, optional, default: 'euclidean'
-#' recommended values: 'euclidean' and 'cosine'
-#' @param t.max int, optional, default: 100.
-#' Maximum value of t to test for automatic t selection.
-#' @param npca int, optional, default: 100
-#' Number of principal components to use for calculating
-#' neighborhoods. For extremely large datasets, using
-#' n_pca < 20 allows neighborhoods to be calculated in
-#' log(n_samples) time.
-#' @param plot.optimal.t boolean, optional, default: FALSE
-#' If TRUE, produce a plot showing the Von Neumann Entropy
-#' curve for automatic t selection.
-#' @param verbose `int` or `boolean`, optional (default : 1)
-#' If `TRUE` or `> 0`, print verbose updates.
-#' @param n.jobs `int`, optional (default: 1)
-#' The number of jobs to use for the computation.
-#' If -1 all CPUs are used. If 1 is given, no parallel computing code is
-#' used at all, which is useful for debugging.
-#' For n_jobs below -1, (n.cpus + 1 + n.jobs) are used. Thus for
-#' n_jobs = -2, all CPUs but one are used
-#' @param seed.use int or `NA`, random state (default: `NA`)
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. phate by default
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. PHATE by default
-#' @param ... Additional arguments for `phateR::phate`
-#'
-#' @return Returns a Seurat object containing a PHATE representation
-#'
-#' @importFrom utils installed.packages
 #' @export
+#' @method RunTSNE matrix
 #'
-#' @references Moon K, van Dijk D, Wang Z, Burkhardt D, Chen W, van den Elzen A,
-#' Hirn M, Coifman R, Ivanova N, Wolf G and Krishnaswamy S (2017).
-#' "Visualizing Transitions and Structure for High Dimensional Data
-#' Exploration." _bioRxiv_, pp. 120378. doi: 10.1101/120378
-#' (URL: http://doi.org/10.1101/120378),
-#' <URL: https://www.biorxiv.org/content/early/2017/12/01/120378>.
-#' @examples
-#' if (reticulate::py_module_available("phate")) {
-#'
-#' # Load data
-#' pbmc_small
-#'
-#' # Run PHATE with default parameters
-#' pbmc_small <- RunPHATE(object = pbmc_small)
-#' # Plot results
-#' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#'
-#' # Try smaller `k` for a small dataset, and larger `t` for a noisy embedding
-#' pbmc_small <- RunPHATE(object = pbmc_small, k = 4, t = 12)
-#' # Plot results
-#' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#'1
-#' # For increased emphasis on local structure, use sqrt potential
-#' pbmc_small <- RunPHATE(object = pbmc_small, potential.method='sqrt')
-#' # Plot results
-#' DimPlot(object = pbmc_small, reduction.use = 'phate')
-#' }
-#'
-RunPHATE <- function(
+RunTSNE.matrix <- function(
   object,
-  cells.use = NULL,
-  genes.use = NULL,
-  assay.type = 'RNA',
-  max.dim = 2L,
-  k = 15,
-  alpha = 10,
-  use.alpha = NA,
-  n.landmark = 2000,
-  potential.method = "log",
-  t = "auto",
-  knn.dist.method = "euclidean",
-  mds.method = "metric",
-  mds.dist.method = "euclidean",
-  t.max = 100,
-  npca = 100,
-  plot.optimal.t = FALSE,
-  verbose = 1,
-  n.jobs = 1,
-  seed.use = NA,
-  reduction.name = "phate",
-  reduction.key = "PHATE",
+  assay.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
   ...
 ) {
-  if (!'phateR' %in% rownames(x = installed.packages())) {
-    stop("Please install phateR")
-  }
-  data.use <- GetAssayData(object, assay.type = assay.type, slot = "scale.data")
-  if (!is.null(x = cells.use)) {
-    data.use <- data.use[, cells.use]
-  }
-  if (!is.null(x = genes.use)) {
-    data.use <- data.use[genes.use, ]
-  }
-  data.use <- t(x = data.use)
-  parameters.to.store <- as.list(x = environment(), all = TRUE)[names(x = formals(fun = "RunPHATE"))]
-  object <- SetCalcParams(
-    object = object,
-    calculation = "RunPHATE",
-    ... = parameters.to.store
+  set.seed(seed = seed.use)
+  tsne.data <- switch(
+    EXPR = tsne.method,
+    'Rtsne' = Rtsne(
+      X = object,
+      dims = dim.embed,
+      ... # PCA/is_distance
+    )$Y,
+    'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
+    'tsne' = tsne(X = object, k = dim.embed, ...),
+    stop("Invalid tSNE method: please choose from 'Rtsne', 'FIt-SNE', or 'tsne'")
   )
-  phate_output <- phateR::phate(
-    data.use,
-    ndim = max.dim,
-    k = k,
-    alpha = alpha,
-    use.alpha = alpha,
-    n.landmark = n.landmark,
-    potential.method = potential.method,
-    t = t,
-    knn.dist.method = knn.dist.method,
-    init = NULL,
-    mds.method = mds.method,
-    mds.dist.method = mds.dist.method,
-    t.max = t.max,
-    npca = npca,
-    plot.optimal.t = plot.optimal.t,
-    verbose = verbose,
-    n.jobs = n.jobs,
-    seed = seed.use,
+  if (add.iter > 0) {
+    tsne.data <- tsne(
+      X = object,
+      intial_config = as.matrix(x = tsne.data),
+      max_iter = add.iter,
+      ...
+    )
+  }
+  colnames(x = tsne.data) <- paste0(reduction.key, 1:ncol(x = tsne.data))
+  rownames(x = tsne.data) <- rownames(x = object)
+  tsne.reduction <- CreateDimReducObject(
+    cell.embeddings = tsne.data,
+    key = reduction.key,
+    assay.used = assay.use
+  )
+  return(tsne.reduction)
+}
+
+#' @param dims.use Which dimensions to use as input features
+#'
+#' @describeIn RunTSNE Run tSNE on a DimReduc object
+#' @export
+#' @method RunTSNE DimReduc
+#'
+RunTSNE.DimReduc <- function(
+  object,
+  cells.use = NULL,
+  dims.use = 1:5,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+) {
+  tsne.reduction <- RunTSNE(
+    object = object[[, dims.use]],
+    assay.use = DefaultAssay(object = object),
+    seed.use = seed.use,
+    tsne.method = tsne.method,
+    add.iter = add.iter,
+    dim.embed = dim.embed,
+    reduction.key = reduction.key,
     ...
   )
-  phate_output <- as.matrix(x = phate_output)
-  colnames(x = phate_output) <- paste0(reduction.key, 1:ncol(x = phate_output))
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "cell.embeddings",
-    new.data = phate_output
-  )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = reduction.name,
-    slot = "key",
-    new.data = reduction.key
-  )
+  return(tsne.reduction)
+}
+
+#' @param distance.matrix If set, runs tSNE on the given distance matrix
+#' instead of data matrix (experimental)
+#' @param features.use If set, run the tSNE on this subset of features
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
+#' @param workflow.name Name of workflow
+#'
+#' @describeIn RunTSNE Run tSNE on a Seurat object
+#' @export
+#' @method RunTSNE Seurat
+#'
+RunTSNE.Seurat <- function(
+  object,
+  reduction.use = "pca",
+  cells.use = NULL,
+  dims.use = 1:5,
+  features.use = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  distance.matrix = NULL,
+  reduction.name = "tsne",
+  reduction.key = "tSNE_",
+  workflow.name = NULL,
+  ...
+) {
+  if (!is.null(workflow.name)) {
+    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
+  }
+  if (length(dims.use) == 1 && !is.null(workflow.name)) {
+    dims.use <- 1:dims.use
+  }
+  tsne.reduction <- if (tsne.method == 'Rtsne') {
+    if (!is.null(x = distance.matrix)) {
+      RunTSNE(
+        object = as.matrix(x = distance.matrix),
+        assay.use = DefaultAssay(object = object),
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        is_distance = TRUE,
+        ...
+      )
+    } else if (!is.null(x = features.use)) {
+      RunTSNE(
+        object = as.matrix(x = GetAssayData(object = object)[features.use, ]),
+        assay.use = DefaultAssay(object = object),
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        pca = FALSE,
+        ...
+      )
+    } else {
+      RunTSNE(
+        object = object[[reduction.use]],
+        dims.use = dims.use,
+        seed.use = seed.use,
+        tsne.method = tsne.method,
+        add.iter = add.iter,
+        dim.embed = dim.embed,
+        reduction.key = reduction.key,
+        pca = FALSE,
+        ...
+      )
+    }
+  } else {
+    RunTSNE(
+      object = object[[reduction.use]],
+      dims.use = dims.use,
+      seed.use = seed.use,
+      tsne.method = tsne.method,
+      add.iter = add.iter,
+      dim.embed = dim.embed,
+      reduction.key = reduction.key,
+      ...
+    )
+  }
+  object[[reduction.name]] <- tsne.reduction
+  object <- LogSeuratCommand(object = object)
+  if (!is.null(workflow.name)) {
+    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+    object <- UpdateWorkflow(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = command.name)
+  }
   return(object)
 }
 
@@ -1233,7 +994,7 @@ RunUMAP.Seurat <- function(
   umap_output <- umap$fit_transform(as.matrix(x = data.use))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
   rownames(x = umap_output) <- colnames(object)
-  umap.reduction <- MakeDimReducObject(
+  umap.reduction <- CreateDimReducObject(
     cell.embeddings = umap_output,
     key = reduction.key,
     assay.used = assay.use
@@ -1241,3 +1002,467 @@ RunUMAP.Seurat <- function(
   object[[reduction.name]] <- umap.reduction
   return(object)
 }
+
+#' @importFrom stats prop.test
+#'
+#' @describeIn ScoreJackStraw Score JackStraw results given a JackStrawData
+#' @export
+#' @method ScoreJackStraw JackStrawData
+#'
+ScoreJackStraw.JackStrawData <- function(
+  object,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  ...
+) {
+  pAll <- JS(object = object, slot = "empirical.p.values")
+  pAll <- pAll[, dims, drop = FALSE]
+  pAll <- as.data.frame(pAll)
+  pAll$Contig <- rownames(x = pAll)
+  score.df <- NULL
+  for (i in dims) {
+    pc.score <- suppressWarnings(prop.test(
+      x = c(
+        length(x = which(x = pAll[, i] <= score.thresh)),
+        floor(x = nrow(x = pAll) * score.thresh)
+      ),
+      n = c(nrow(pAll), nrow(pAll))
+    )$p.val)
+    if (length(x = which(x = pAll[, i] <= score.thresh)) == 0) {
+      pc.score <- 1
+    }
+    if (is.null(x = score.df)) {
+      score.df <- data.frame(PC = paste0("PC", i), Score = pc.score)
+    } else {
+      score.df <- rbind(score.df, data.frame(PC = paste0("PC", i), Score = pc.score))
+    }
+  }
+  score.df$PC <- dims
+  score.df <- as.matrix(score.df)
+  JS(object = object, slot = 'overall') <- score.df
+  return(object)
+}
+
+
+#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @export
+#' @method ScoreJackStraw DimReduc
+#'
+ScoreJackStraw.DimReduc <- function(
+  object,
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+) {
+  JS(object = object) <- ScoreJackStraw(
+    object = JS(object = object),
+    dims = dims,
+    score.thresh = 1e-5,
+    ...
+  )
+  return(object)
+}
+
+#' @param reduction.use Reduction associated with JackStraw to score
+#' @param do.plot Show plot. To return ggplot object, use \code{JackStrawPlot} after
+#' running ScoreJackStraw.
+#'
+#' @seealso \code{\link{JackStrawPlot}}
+#'
+#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
+#' @export
+#' @method ScoreJackStraw Seurat
+#'
+ScoreJackStraw.Seurat <- function(
+  object,
+  reduction.use = "pca",
+  dims = 1:5,
+  score.thresh = 1e-5,
+  do.plot = FALSE,
+  ...
+) {
+  object[[reduction.use]] <- ScoreJackStraw(
+    object = object[[reduction.use]],
+    dims = dims,
+    ...
+  )
+  if (do.plot) {
+    suppressWarnings(expr = print(JackStrawPlot(
+      object = object,
+      reduction.use = reduction.use,
+      dims = dims,
+      ...
+    )))
+  }
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Prep data for dimensional reduction
+#
+# Common checks and preparatory steps before running certain dimensional
+# reduction techniques
+#
+# @param object        Assay object
+# @param features.use  Features to use as input for the dimensional reduction technique.
+#                      Default is variable features
+#
+#
+PrepDR <- function(
+  object,
+  features.use = NULL
+) {
+  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
+    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
+  }
+  data.use <- GetAssayData(object = object, slot = "scale.data")
+  features.use <- features.use %||% VariableFeatures(object = object)
+  features.use <- unique(x = features.use[features.use %in% rownames(x = data.use)])
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  features.use <- features.use[features.var > 0]
+  features.use <- features.use[!is.na(x = features.use)]
+  data.use <- data.use[features.use, ]
+  return(data.use)
+}
+
+# Check that features are present and have non-zero variance
+#
+# @param data.use      Feature matrix (features are rows)
+# @param features.use  Features to check
+# @param object.name   Name of object for message printing
+#
+# @return           Returns a vector of features that is the subset of features.use
+#                   that have non-zero variance
+#
+CheckFeatures <- function(data.use, features.use, object.name) {
+  if (any(!features.use %in% rownames(data.use))) {
+    missing.features <- features.use[!features.use %in% rownames(data.use)]
+    stop(
+      "Following features are not scaled in ",
+      object.name,
+      ": ",
+      paste0(missing.features, collapse = ", ")
+    )
+  }
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  no.var.features <- features.use[features.var == 0]
+  if (length(no.var.features) > 0) {
+    warning(
+      "The following features have zero variance in ",
+      object.name,
+      ": ",
+      paste0(no.var.features, collapse = ", ")
+    )
+  }
+  features.use <- setdiff(x = features.use, y = no.var.features)
+  features.use <- features.use[!is.na(x = features.use)]
+  return(features.use)
+}
+
+# Calculate percent variance explained
+#
+# Projects dataset onto the orthonormal space defined by some dimensional
+# reduction technique (e.g. PCA, CCA) and calculates the percent of the
+# variance in gene expression explained by each cell in that lower dimensional
+# space.
+#
+# @param object          Seurat object
+# @param reduction.type  Name of the reduction to use for the projection
+# @param dims.use        Vector of dimensions to project onto (default is the
+#                        1:number stored for given technique)
+# @param genes.use       vector of genes to use in calculation
+#
+# @return                Returns a Seurat object wih the variance in gene
+#                        expression explained by each cell in a low dimensional
+#                        space stored as metadata.
+#
+CalcProjectedVar <- function(
+  object,
+  low.dim.data,
+  reduction.type = "pca",
+  dims.use,
+  genes.use
+) {
+  if (missing(x = low.dim.data)) {
+    low.dim.data <- CalcLDProj(
+      object = object,
+      reduction.type = reduction.type,
+      dims.use = dims.use,
+      genes.use = genes.use
+    )
+  }
+  projected.var <- apply(X = low.dim.data, MARGIN = 2, FUN = var)
+  calc.name <- paste0(reduction.type, ".var")
+  object <- AddMetaData(
+    object = object,
+    metadata = projected.var,
+    col.name = calc.name
+  )
+  return(object)
+}
+
+# Calculate a low dimensional projection of the data. First forms an orthonormal
+# basis of the gene loadings via QR decomposition, projects the data onto that
+# basis, and reconstructs the data using on the dimensions specified.
+#
+# @param object          Seurat object
+# @param reduction.type  Type of dimensional reduction to use
+# @param dims.use        Dimensions to use in calculation
+# @param genes.use       Genes to consider when calculating
+#
+#' @importFrom SeuratObject Embeddings Loadings
+#
+# @return                Returns a matrix with the low dimensional reconstruction
+#
+CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
+  if (missing(x = dims.use)) {
+    dims.use <- 1:ncol(x = Embeddings(
+      object = object,
+      reduction.type = reduction.type
+    ))
+  }
+  x.vec <- Loadings(
+    object = object,
+    reduction.type = reduction.type,
+    dims.use = dims.use,
+    genes.use = genes.use
+  )
+  # form orthonormal basis via QR
+  x.norm <- qr.Q(qr = qr(x = x.vec))
+  data.use <- object@scale.data[rownames(x.vec), ]
+  # project data onto othronormal basis
+  projected.data <- t(x = data.use) %*% x.norm
+  # reconstruct data using only dims specified
+  low.dim.data <- x.norm %*% t(x = projected.data)
+  return(low.dim.data)
+}
+
+# MultiCCA helper function - calculates critical value (when to stop iterating
+# in the while loop)
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return returns updated critical value
+#
+GetCrit <- function(mat.list, ws, num.sets){
+  crit <- 0
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      crit <- crit + t(ws[[i]]) %*% t(x = mat.list[[i]]) %*% mat.list[[j]] %*% ws[[j]]
+    }
+  }
+  return(crit)
+}
+
+# MultiCCA helper function - updates W
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param i index of current matrix
+# @param num.sets number of datasets
+# @param ws initial vector of projection vectors
+# @param ws.final final vector of projection vectors
+#
+# @return returns updated w value
+#
+UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
+  tots <- 0
+  for (j in (1:num.sets)[-i]) {
+    diagmat <- (t(x = ws.final[[i]]) %*% t(x = mat.list[[i]])) %*% (mat.list[[j]] %*% ws.final[[j]])
+    diagmat[row(x = diagmat) != col(x = diagmat)] <- 0
+    tots <- tots + t(x = mat.list[[i]]) %*% (mat.list[[j]] %*% ws[[j]]) - ws.final[[i]] %*% (diagmat %*% (t(x = ws.final[[j]]) %*% ws[[j]]))
+  }
+  w <- tots / L2Norm(vec = tots)
+  return(w)
+}
+
+# Calculates the l2-norm of a vector
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/PMD.R}
+#
+# @param vec numeric vector
+#
+# @return returns the l2-norm.
+#
+L2Norm <- function(vec){
+  a <- sqrt(x = sum(vec ^ 2))
+  if (a == 0) {
+    a <- .05
+  }
+  return(a)
+}
+
+# MultiCCA helper function - calculates correlation
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices to calculate correlation
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return total correlation
+#
+GetCors <- function(mat.list, ws, num.sets){
+  cors <- 0
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      thiscor  <-  cor(x = mat.list[[i]] %*% ws[[i]], y = mat.list[[j]] %*% ws[[j]])
+      if (is.na(x = thiscor)) {
+        thiscor <- 0
+      }
+      cors <- cors + thiscor
+    }
+  }
+  return(cors)
+}
+
+# FIt-SNE helper function for calling fast_tsne from R
+#
+# Based on Kluger Lab code on https://github.com/ChristophH/FIt-SNE
+# commit ec25f1b36598a2d21869d10a258ac366a12f0b05
+#
+#' @importFrom utils file_test
+#
+fftRtsne <- function(
+  X,
+  dims = 2,
+  perplexity = 30,
+  theta = 0.5,
+  check_duplicates = TRUE,
+  max_iter = 1000,
+  fft_not_bh = TRUE,
+  ann_not_vptree = TRUE,
+  stop_lying_iter = 250,
+  exaggeration_factor = 12.0,
+  no_momentum_during_exag = FALSE,
+  start_late_exag_iter = -1.0,
+  late_exag_coeff = 1.0,
+  n_trees = 50,
+  search_k = -1,
+  rand_seed = -1,
+  nterms = 3,
+  intervals_per_integer = 1,
+  min_num_intervals = 50,
+  data_path = NULL,
+  result_path = NULL,
+  fast_tsne_path = NULL,
+  nthreads = getOption('mc.cores', default = 1),
+  ...
+) {
+  if (is.null(x = data_path)) {
+    data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
+  }
+  if (is.null(x = result_path)) {
+    result_path <- tempfile(pattern = 'fftRtsne_result_', fileext = '.dat')
+  }
+  if (is.null(x = fast_tsne_path)) {
+    fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE)
+    if (length(x = fast_tsne_path) == 0) {
+      stop("no fast_tsne_path specified and fast_tsne binary is not in the search path")
+    }
+  }
+  fast_tsne_path <- normalizePath(path = fast_tsne_path)
+  if (!file_test(op = '-x', x = fast_tsne_path)) {
+    stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
+  }
+  is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
+    return(abs(x = x - round(x = x)) < tol)
+  }
+  if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
+    stop("Incorrect theta.")
+  }
+  if (nrow(x = X) - 1 < 3 * perplexity) {
+    stop("Perplexity is too large.")
+  }
+  if (!is.matrix(x = X)) {
+    stop("Input X is not a matrix")
+  }
+  if (!(max_iter > 0)) {
+    stop("Incorrect number of iterations.")
+  }
+  if (!is.wholenumber(x = stop_lying_iter) || stop_lying_iter < 0) {
+    stop("stop_lying_iter should be a positive integer")
+  }
+  if (!is.numeric(x = exaggeration_factor)) {
+    stop("exaggeration_factor should be numeric")
+  }
+  if (!is.wholenumber(x = dims) || dims <= 0) {
+    stop("Incorrect dimensionality.")
+  }
+  if (search_k == -1) {
+    search_k = n_trees * perplexity * 3
+  }
+  # if (fft_not_bh) {
+  #   nbody_algo <- 2
+  # } else {
+  #   nbody_algo <- 1
+  # }
+  nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
+  # if (ann_not_vptree) {
+  #   knn_algo <- 1
+  # }else{
+  #   knn_algo <- 2
+  # }
+  knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
+  tX = c(t(x = X))
+  f <- file(data_path, "wb")
+  n = nrow(x = X)
+  D = ncol(x = X)
+  writeBin(object = as.integer(x = n), con = f, size = 4)
+  writeBin(object = as.integer(x = D), con = f, size = 4)
+  writeBin(object = as.numeric(x = 0.5), con = f, size = 8) #theta
+  writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
+  writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
+  writeBin(object = as.integer(x = max_iter), con = f, size = 4)
+  writeBin(object = as.integer(x = stop_lying_iter), con = f, size = 4)
+  writeBin(object = as.integer(x = -1), con = f, size = 4) #K
+  writeBin(object = as.numeric(x = -30.0), con = f, size = 8) #sigma
+  writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
+  writeBin(object = as.integer(x = knn_algo), con = f, size = 4)
+  writeBin(object = as.numeric(x = exaggeration_factor), con = f, size = 8) #compexag
+  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4)
+  writeBin(object = as.integer(x = n_trees), con = f, size = 4)
+  writeBin(object = as.integer(x = search_k), con = f, size = 4)
+  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4)
+  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8)
+  writeBin(object = as.integer(x = nterms), con =  f, size = 4)
+  writeBin(object = as.numeric(x = intervals_per_integer), con =  f, size = 8)
+  writeBin(object = as.integer(x = min_num_intervals), con =  f, size = 4)
+  tX = c(t(x = X))
+  writeBin(object = tX, con = f)
+  writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
+  close(f)
+  flag <- system2(command = fast_tsne_path, args = c(data_path, result_path, nthreads))
+  if (flag != 0) {
+    stop('tsne call failed');
+  }
+  f <- file(description = result_path, open = "rb")
+  initialError <- readBin(f, integer(), n = 1, size = 8)
+  n <- readBin(con = f, what = integer(), n = 1, size = 4)
+  d <- readBin(con = f, what = integer(), n = 1, size = 4)
+  Y <- readBin(con = f, what = numeric(), n = n * d)
+  Yout <- t(x = matrix(data = Y, nrow = d))
+  close(f)
+  file.remove(data_path)
+  file.remove(result_path)
+  return(Yout)
+}
+
