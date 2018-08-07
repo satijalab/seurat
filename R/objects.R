@@ -885,8 +885,7 @@ Idents.Seurat <- function(object, ...) {
   }
   cells.use <- intersect(x = cells.use, y = colnames(x = object))
   cells.use <- match(x = cells.use, table = colnames(x = object))
-  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[]))
-  {
+  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[])) {
     unlist(x = object[value], use.names = FALSE)[cells.use]
   } else {
     if (is.list(x = value)) {

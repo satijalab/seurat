@@ -75,6 +75,170 @@ FilterCells <- function(
   return(object)
 }
 
+#' Demultiplex samples based on data from cell 'hashing'
+#'
+#' Assign sample-of-origin for each cell, annotate doublets.
+#'
+#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.
+#' @param assay.type Name of the Hashtag assay (HTO by default)
+#' @param positive_quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
+#' @param init_centers Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
+#' @param k_function Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
+#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
+#' @param cluster_nstarts nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default
+#' @param verbose Prints the output
+#'
+#' @return The Seurat object with the following demultiplexed information stored in the meta data:
+#' \item{hash_maxID}{Name of hashtag with the highest signal}
+#' \item{hash_secondID}{Name of hashtag with the second highest signal}
+#' \item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
+#' \item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+#' \item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
+#' \item{hash_ID}{Classification result where doublet IDs are collapsed}
+#'
+#' @importFrom cluster clara
+#' @importFrom Matrix colSums
+#' @importFrom fitdistrplus fitdist
+#' @importFrom stats pnbinom kmeans
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- HTODemux(object)
+#' }
+#'
+HTODemux <- function(
+  object,
+  assay.use = "HTO",
+  positive_quantile = 0.99,
+  init_centers = NULL,
+  cluster_nstarts = 100,
+  k_function = "clara",
+  nsamples = 100,
+  verbose = TRUE
+) {
+  #initial clustering
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  hash_data <- GetAssayData(object = object, assay.use = assay.use)
+  hash_raw_data <- GetAssayData(
+    object = object,
+    assay.use = assay.use,
+    slot = 'counts'
+    # slot = "raw.data"
+  )[, colnames(x = object)]
+  hash_raw_data <- as.matrix(x = hash_raw_data)
+  # ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
+  ncenters <- init_centers %||% nrow(x = hash_data) + 1
+  if (k_function == "kmeans") {
+    hto_init_clusters <- kmeans(
+      x = t(x = GetAssayData(object = object, assay.use = assay.use)),
+      centers = ncenters,
+      nstart = cluster_nstarts
+    )
+    #identify positive and negative signals for all HTO
+    Idents(object = object, cells.use = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
+    # object <- SetIdent(
+    #   object = object,
+    #   cells.use = names(hto_init_clusters$cluster),
+    #   ident.use = hto_init_clusters$cluster
+    # )
+  } else {
+    #use fast k-medoid clustering
+    hto_init_clusters <- clara(
+      x = t(x = GetAssayData(object = object, assay.use = assay.use)),
+      k = ncenters,
+      samples = nsamples
+    )
+    #identify positive and negative signals for all HTO
+    Idents(object = object, cells.use = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
+    # object <- SetIdent(
+    #   object = object,
+    #   cells.use = names(x = hto_init_clusters$clustering),
+    #   ident.use = hto_init_clusters$clustering
+    # )
+  }
+  #average hto signals per cluster
+  #work around so we don't average all the RNA levels which takes time
+  object2 <- object
+  object2@data <- object2@data[1:10, ]
+  hto_averages <- AverageExpression(
+    object = object2,
+    return.seurat = TRUE,
+    show.progress = FALSE
+  )
+  average_hto <- GetAssayData(
+    object = hto_averages,
+    assay.use = assay.use,
+    slot = "raw.data"
+  )
+  #create a matrix to store classification result
+  hto_discrete <- GetAssayData(object = object, assay.use = assay.use)
+  hto_discrete[hto_discrete > 0] <- 0
+  # for each HTO, we will use the minimum cluster for fitting
+  for (hto_iter in rownames(x = hash_data)) {
+    hto_values <- hash_raw_data[hto_iter, object@cell.names]
+    #commented out if we take all but the top cluster as background
+    #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
+    hto_values_use <- hto_values[WhichCells(object = object, ident = which.min(x = average_hto[hto_iter, ])
+    )]
+
+    hto_fit <- fitdist(hto_values_use, "nbinom")
+    hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
+    hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
+    if (verbose) {
+      print(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
+    }
+  }
+  # now assign cells to HTO based on discretized values
+  num_hto_positive <- colSums(x = hto_discrete)
+  hto_classification_global <- num_hto_positive
+  hto_classification_global[num_hto_positive == 0] <- "Negative"
+  hto_classification_global[num_hto_positive == 1] <- "Singlet"
+  hto_classification_global[num_hto_positive > 1] <- "Doublet"
+  donor_id = rownames(x = hash_data)
+  hash_max <- apply(X = hash_data, MARGIN = 2, FUN = max)
+  hash_maxID <- apply(X = hash_data, MARGIN = 2, FUN = which.max)
+  hash_second <- apply(X = hash_data, MARGIN = 2, FUN = MaxN, N = 2)
+  hash_maxID <- as.character(x = donor_id[sapply(
+    X = 1:ncol(x = hash_data),
+    FUN = function(x) {
+      return(which(x = hash_data[, x] == hash_max[x])[1])
+    }
+  )])
+  hash_secondID <- as.character(x = donor_id[sapply(
+    X = 1:ncol(x = hash_data),
+    FUN = function(x) {
+      return(which(x = hash_data[, x] == hash_second[x])[1])
+    }
+  )])
+  hash_margin <- hash_max - hash_second
+  doublet_id <- sapply(
+    X = 1:length(x = hash_maxID),
+    FUN = function(x) {
+      return(paste(sort(c(hash_maxID[x], hash_secondID[x])), collapse = "_"))
+    }
+  )
+  # doublet_names <- names(x = table(doublet_id))[-1] # Not used
+  hto_classification <- hto_classification_global
+  hto_classification[hto_classification_global == "Negative"] <- "Negative"
+  hto_classification[hto_classification_global == "Singlet"] <- hash_maxID[which(x = hto_classification_global == "Singlet")]
+  hto_classification[hto_classification_global == "Doublet"] <- doublet_id[which(x = hto_classification_global == "Doublet")]
+  classification_metadata <- data.frame(
+    hash_maxID,
+    hash_secondID, hash_margin,
+    hto_classification,
+    hto_classification_global
+  )
+  object <- AddMetaData(object = object, metadata = classification_metadata)
+  if (verbose) {
+    print(x = table(object@meta.data$hto_classification_global))
+  }
+  object <- SetAllIdent(object = object,id = "hto_classification")
+  object <- SetIdent(object,cells.use = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
+  object@meta.data$hash_ID <- object@ident[rownames(object@meta.data)]
+  return(object)
+}
+
 #' Normalize raw data
 #'
 #' Normalize count data per cell and transform to log scale
@@ -933,6 +1097,33 @@ CustomNormalize <- function(data, custom_function, across) {
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
   return(norm.data)
+}
+
+#
+#' @importFrom stats residuals
+#
+NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
+  fit <- 0
+  try(
+    fit <- glm.nb(
+      formula = fmla,
+      data = regression.mat
+    ),
+    silent = TRUE)
+  if (class(fit)[1] == 'numeric') {
+    message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
+    resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
+    mode <- 'scale'
+  } else {
+    resid <- residuals(fit, type = 'pearson')
+    mode = 'nbreg'
+  }
+  do.return <- list(resid = resid, mode = mode)
+  if (return.mode) {
+    return(do.return)
+  } else {
+    return(do.return$resid)
+  }
 }
 
 # Regress out techincal effects and cell cycle from a matrix

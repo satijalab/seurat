@@ -240,6 +240,59 @@ DimHeatmap <- function(
   return(plot.list)
 }
 
+#' Hashtag oligo heatmap
+#'
+#' Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.
+#'
+#' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().
+#' @param hto.classification The naming for object@meta.data slot with classification result from HTODemux().
+#' @param global.classification The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.
+#' @param assay.type Hashtag assay name.
+#' @param num.cells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
+#' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
+#' @param ... Additional arguments for DoHeatmap().
+#'
+#' @return Returns a ggplot2 plot object.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- HTODemux(object)
+#' HTOHeatmap(object)
+#' }
+#'
+HTOHeatmap <- function(
+  object,
+  hto.classification = "hto_classification",
+  global.classification = "hto_classification_global",
+  assay.type = "HTO",
+  num.cells = 5000,
+  singlet.names = NULL,
+  ...
+) {
+
+  object <- SetAllIdent(object,id = hto.classification)
+  objmini <- SubsetData(object,cells.use = sample(object@cell.names,num.cells))
+
+  metadata_use <- objmini@meta.data
+  singlet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Singlet",hto.classification])))
+  doublet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Doublet",hto.classification])))
+
+  heatmap_levels <- c(singlet_id,doublet_id,"Negative")
+  objmini <- SetIdent(objmini,FastWhichCells(objmini,group.by = global.classification,"Doublet"),"Multiplet")
+
+  objmini@ident <- factor(objmini@ident, c(singlet_id,"Multiplet","Negative"))
+  cells.ordered=as.character(unlist(sapply(heatmap_levels,function(x) sample(FastWhichCells(objmini,group.by = hto.classification,x)))))
+  objmini <- ScaleData(objmini,assay.type = assay.type,display.progress = FALSE)
+
+  if (!is.null(singlet.names)){
+    levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
+  }
+  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
+
+}
+
 #' Single cell ridge plot
 #'
 #' Draws a ridge plot of single cell data (gene expression, metrics, PC

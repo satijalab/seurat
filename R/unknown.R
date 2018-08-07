@@ -1801,3 +1801,2184 @@ Hbeta <- function(D, beta) {
   P <- P / sumP
   return(list(H, P, flagP))
 }
+
+# Function to map values in a vector `v` as defined in `from`` to the values
+# defined in `to`.
+#
+# @param v     vector of values to map
+# @param from  vector of original values
+# @param to    vector of values to map original values to (should be of equal
+#              length as from)
+# @return      returns vector of mapped values
+#
+MapVals <- function(v, from, to) {
+  if (length(from) != length(to)) {
+    stop("from and to vectors are not the equal length.")
+  }
+  vals.to.match <- match(v, from)
+  vals.to.match.idx  <- !is.na(vals.to.match)
+  v[vals.to.match.idx] <- to[vals.to.match[vals.to.match.idx]]
+  return(v)
+}
+
+# Fills slot in new object with equivalent slot in old object if it still exists
+#
+# @param slot.name   slot to fill
+# @param old.object  object to get slot value from
+# @param new.slot    object to set slot value in
+#
+#' @importFrom methods slot slot<-
+#
+# @return            returns new object with slot filled
+#
+FillSlot <- function(slot.name, old.object, new.object) {
+  new.slot <- tryCatch(
+    {
+      slot(object = old.object, name = slot.name)
+    },
+    error = function(err){
+      return(NULL)
+    }
+  )
+  if (!is.null(x = new.slot)) {
+    slot(new.object, slot.name) <- new.slot
+  }
+  return(new.object)
+}
+
+# Use Fisher's method (Fisher's combined probability test) to combine p-values
+# into single statistic
+#
+# @param pvals vector of p-values
+#
+# @returns integrated value
+#
+#' @importFrom stats pchisq
+#
+FisherIntegrate <- function(pvals) {
+  return(1 - pchisq(q = -2 * sum(log(x = pvals)), df = 2 * length(x = pvals)))
+}
+
+# Set CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param time store time of calculation as well
+# @param ...  Parameters for the calculation
+#
+# @return object with the calc.param slot modified to either append this
+# calculation or replace the previous instance of calculation with
+# a new list of parameters
+#
+SetCalcParams <- function(object, calculation, time = TRUE, ...) {
+  object@calc.params[calculation] <- list(...)
+  object@calc.params[[calculation]]$object <- NULL
+  object@calc.params[[calculation]]$object2 <- NULL
+  if(time) {
+    object@calc.params[[calculation]]$time <- Sys.time()
+  }
+  return(object)
+}
+
+# Delete CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation to remove
+#
+# @return object with the calc.param slot modified to remove this
+# calculation
+#
+RemoveCalcParams <- function(object, calculation){
+  object@calc.params[calculation] <- NULL
+  return(object)
+}
+
+# Set Single CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param parameter  Parameter for the calculation to set
+# @param value  Value of parameter to set
+#
+# @return object with the calc.param slot modified to either append this
+# calculation or replace the previous instance of calculation with
+# a new list of parameters
+#
+SetSingleCalcParam <- function(object, calculation, parameter, value) {
+  object@calc.params[[calculation]][parameter] <- value
+  return(object)
+}
+
+# Get CalcParam information
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+# @param parameter  Parameter for the calculation to pull
+#
+# @return parameter value for given calculation
+#
+GetCalcParam <- function(object, calculation, parameter){
+  if(parameter == "time"){
+    return(object@calc.params[[calculation]][parameter][[1]])
+  }
+  return(unname(unlist(object@calc.params[[calculation]][parameter])))
+}
+
+# Get All CalcParam information for given calculation
+#
+# @param object      A Seurat object
+# @param calculation The name of the calculation that was done
+#
+# @return list of parameter values for given calculation
+#
+GetAllCalcParam <- function(object, calculation){
+  return(object@calc.params[[calculation]])
+}
+
+# Has any info been stored for the given calculation?
+#
+# @param object A Seurat object
+# @param calculation The name of the calculation to look for info about
+#
+# @return Returns a boolean - whether or not there is any info about given calc
+# stored
+#
+CalcInfoExists <- function(object, calculation){
+  return(!is.null(object@calc.params[[calculation]]))
+}
+
+# Return vector of whitespace
+#
+# @param n length of whitespace vector to return
+#
+# @return vector of whitespace
+#
+FillWhiteSpace <- function(n){
+  if(n <= 0){
+    n <- 1
+  }
+  return(paste0(rep(" ", n), collapse = ""))
+}
+
+# return average of all values greater than a threshold
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The mean of x where x > min
+#
+MeanGreaterThan <- function(x, min = 0) {
+  return(mean(x = x[x > min]))
+}
+
+# return variance of all values greater than a threshold
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The variance of x where x > min
+#
+#' @importFrom stats var
+#
+VarianceGreaterThan <- function(x, min = 0) {
+  return(var(x = x[x > min]))
+}
+
+# calculate the coefficient of variation
+#
+# @param x Values to calculate the coefficient of variation
+#
+# @return The coefficient of variation of x
+#
+#' @importFrom stats sd
+#
+CoefVar <- function(x) {
+  return(sd(x = x) / mean(x = x))
+}
+
+# return la count of all values greater than a threshold
+#
+# @param x Values
+# @param min Minimum threshold
+#
+# @return The length of x where x > min
+#
+CountGreaterThan <- function(x, min = 0) {
+  return(sum(x > min))
+}
+
+# Weighted Euclidean Distance
+#
+# @param x Dataset 1
+# @param y Dataset 2
+# @param w Weights
+#
+# @return The Weighted Euclidian Distance (numeric)
+#
+WeightedEuclideanDistance <- function(x, y, w) {
+  v.dist <- sum(sqrt(x = w * (x - y) ^ 2))
+  return(v.dist)
+}
+
+# Function to get all the descendants on a tree left of a given node
+#
+# @param tree  Tree object (from ape package)
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants left of the given node
+#
+GetLeftDescendants <- function(tree, node) {
+  daughters <- tree$edge[which(tree$edge[, 1] == node), 2]
+  if (daughters[1] <= (tree$Nnode+1)) {
+    return(daughters[1])
+  }
+  daughter.use <- GetDescendants(tree, daughters[1])
+  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
+  return(daughter.use)
+}
+
+# Function to get all the descendants on a tree right of a given node
+#
+# @param tree  Tree object (from ape package)
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants right of the given node
+#
+GetRightDescendants <- function(tree, node) {
+  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
+  if (daughters[2] <= (tree$Nnode + 1)) {
+    return(daughters[2])
+  }
+  daughter.use <- GetDescendants(tree = tree, node = daughters[2])
+  daughter.use <- daughter.use[daughter.use <= (tree$Nnode + 1)]
+  return(daughter.use)
+}
+
+# Function to get all the descendants on a tree of a given node
+#
+# @param tree  Tree object (from ape package)
+# @param node  Internal node in the tree
+#
+# @return      Returns all descendants of the given node
+#
+GetDescendants <- function(tree, node, curr = NULL) {
+  if (is.null(x = curr)) {
+    curr <- vector()
+  }
+  daughters <- tree$edge[which(x = tree$edge[, 1] == node), 2]
+  curr <- c(curr, daughters)
+  w <- which(x = daughters >= length(x = tree$tip))
+  if (length(x = w) > 0) {
+    for (i in 1:length(x = w)) {
+      curr <- GetDescendants(tree = tree, node = daughters[w[i]], curr = curr)
+    }
+  }
+  return(curr)
+}
+
+# Depth first traversal path of a given tree
+#
+# @param tree              Tree object (from ape package)
+# @param node              Internal node in the tree
+# @param path              Path through the tree (for recursion)
+# @param include.children  Include children in the output path
+# @param only.children     Only include children in the output path
+# @return                  Returns a vector representing the depth first
+#                          traversal path
+#
+DFT <- function(
+  tree,
+  node,
+  path = NULL,
+  include.children = FALSE,
+  only.children = FALSE
+) {
+  if (only.children) {
+    include.children = TRUE
+  }
+  children <- which(x = tree$edge[, 1] == node)
+  child1 <- tree$edge[children[1], 2]
+  child2 <- tree$edge[children[2], 2]
+  if (child1 %in% tree$edge[, 1]) {
+    if(! only.children){
+      path <- c(path, child1)
+    }
+    path <- DFT(
+      tree = tree,
+      node = child1,
+      path = path,
+      include.children = include.children,
+      only.children = only.children
+    )
+  } else {
+    if (include.children) {
+      path <-c(path, child1)
+    }
+  }
+  if (child2 %in% tree$edge[, 1]) {
+    if (! only.children) {
+      path <- c(path, child2)
+    }
+    path <- DFT(
+      tree = tree,
+      node = child2,
+      path = path,
+      include.children = include.children,
+      only.children = only.children
+    )
+  } else {
+    if (include.children) {
+      path <- c(path, child2)
+    }
+  }
+  return(path)
+}
+
+# Function to check whether a given node in a tree has a child (leaf node)
+#
+# @param tree   Tree object (from ape package)
+# @param node   Internal node in the tree
+#
+# @return       Returns a Boolean of whether the given node is connected to a
+#               terminal leaf node
+
+NodeHasChild <- function(tree, node) {
+  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
+  return(any(children %in% tree$edge[, 2] && ! children %in% tree$edge[, 1]))
+}
+
+# Function to check whether a given node in a tree has only children(leaf nodes)
+#
+# @param tree   Tree object (from ape package)
+# @param node   Internal node in the tree
+#
+# @return       Returns a Boolean of whether the given node is connected to only
+#               terminal leaf nodes
+
+NodeHasOnlyChildren <- function(tree, node) {
+  children <- tree$edge[which(x = tree$edge[, 1] == node), ][, 2]
+  return(! any(children %in% tree$edge[, 1]))
+}
+
+# Function to return all internal (non-terminal) nodes in a given tree
+#
+# @param tree   Tree object (from ape package)
+#
+# @return       Returns a vector of all internal nodes for the given tree
+#
+GetAllInternalNodes <- function(tree) {
+  return(c(tree$edge[1, 1], DFT(tree = tree, node = tree$edge[1, 1])))
+}
+
+#' Shuffle a vector
+#' @param x A vector
+#' @return A vector with the same values of x, just in random order
+#' @export
+#'
+#' @examples
+#' v <- seq(10)
+#' v2 <- Shuffle(x = v)
+#' v2
+#'
+Shuffle <- function(x) {
+  return(x[base::sample.int(
+    n = base::length(x = x),
+    size = base::length(x = x),
+    replace = FALSE
+  )])
+}
+
+#' Remove data from a table
+#'
+#' This function will remove any rows from a data frame or matrix
+#' that contain certain values
+#'
+#' @param to.remove A vector of values that indicate removal
+#' @param data A data frame or matrix
+#'
+#' @return A data frame or matrix with values removed by row
+#'
+#' @export
+#'
+#' @examples
+#' df <- data.frame(
+#'   x = rnorm(n = 100, mean = 20, sd = 2),
+#'   y = rbinom(n = 100, size = 100, prob = 0.2)
+#' )
+#' nrow(x = df)
+#' nrow (x = RemoveFromTable(to.remove = 20, data = df))
+#'
+RemoveFromTable <- function(to.remove, data) {
+  remove.indecies <- apply(
+    X = data,
+    MARGIN = 2,
+    FUN = function(col) {
+      return(which(x = col %in% to.remove))
+    }
+  )
+  remove.indecies <- unlist(x = remove.indecies)
+  remove.indecies <- as.numeric(x = remove.indecies)
+  if (length(x = remove.indecies) == 0) {
+    return(data)
+  } else {
+    return(data[-remove.indecies, ])
+  }
+}
+
+#' Make object sparse
+#'
+#' Converts stored data matrices to sparse matrices to save space. Converts
+#' object@@raw.data and object@@data to sparse matrices.
+#' @param object Seurat object
+#'
+#' @return Returns a seurat object with data converted to sparse matrices.
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_raw <- read.table(
+#'   file = system.file('extdata', 'pbmc_raw.txt', package = 'Seurat'),
+#'   as.is = TRUE
+#' )
+#' pbmc_small <- CreateSeuratObject(raw.data = pbmc_raw)
+#' class(x = pbmc_small@raw.data)
+#' pbmc_small <- MakeSparse(object = pbmc_small)
+#' class(x = pbmc_small@raw.data)
+#'
+MakeSparse <- function(object) {
+  if (class(object@raw.data) == "data.frame") {
+    object@raw.data <- as.matrix(x = object@raw.data)
+  }
+  if (class(object@data) == "data.frame") {
+    object@data <- as.matrix(x = object@data)
+  }
+  object@raw.data <- as(object = object@raw.data, Class = "dgCMatrix")
+  object@data <- as(object = object@data, Class = "dgCMatrix")
+  return(object)
+}
+
+#' Independently shuffle values within each row of a matrix
+#'
+#' Creates a matrix where correlation structure has been removed, but overall values are the same
+#'
+#' @param x Matrix to shuffle
+#'
+#' @return Returns a scrambled matrix, where each row is shuffled independently
+#'
+#' @importFrom stats runif
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+#' mat
+#' MatrixRowShuffle(x = mat)
+#'
+MatrixRowShuffle <- function(x) {
+  x2 <- x
+  x2 <- t(x = x)
+  ind <- order(c(col(x = x2)), runif(n = length(x = x2)))
+  x2 <- matrix(
+    data = x2[ind],
+    nrow = nrow(x = x),
+    ncol = ncol(x = x),
+    byrow = TRUE
+  )
+  return(x2)
+}
+
+#' Return a subset of columns for a matrix or data frame
+#'
+#' @param data Matrix or data frame with column names
+#' @param code Pattern for matching within column names
+#' @param invert Invert the search?
+#'
+#' @return Returns a subset of data. If invert = TRUE, returns data where colnames
+#' do not contain code, otherwise returns data where colnames contain code
+#'
+#' @export
+#'
+#' @examples
+#' head(as.matrix(SubsetColumn(data = pbmc_small@raw.data, code = 'ATGC'))[, 1:4])
+#'
+SubsetColumn <- function(data, code, invert = FALSE) {
+  return(data[, grep(pattern = code, x = colnames(x = data), invert = invert)])
+}
+
+#' Return a subset of rows for a matrix or data frame
+#'
+#' @param data Matrix or data frame with row names
+#' @param code Pattern for matching within row names
+#' @param invert Invert the search?
+#'
+#' @return Returns a subset of data. If invert = TRUE, returns data where rownames
+#' do not contain code, otherwise returns data where rownames contain code
+#'
+#' @export
+#'
+#' @examples
+#' cd_genes <- SubsetRow(data = pbmc_small@raw.data, code = 'CD')
+#' head(as.matrix(cd_genes)[, 1:4])
+#'
+SubsetRow <- function(data, code, invert = FALSE) {
+  return(data[grep(pattern = code, x = rownames(x = data), invert = invert), ])
+}
+
+#' Probability of detection by identity class
+#'
+#' For each gene, calculates the probability of detection for each identity
+#' class.
+#'
+#' @param object Seurat object
+#' @param thresh.min Minimum threshold to define 'detected' (log-scale)
+#'
+#' @return Returns a matrix with genes as rows, identity classes as columns.
+#'
+#' @export
+#'
+#' @examples
+#' head(AverageDetectionRate(object = pbmc_small))
+#'
+AverageDetectionRate <- function(object, thresh.min = 0) {
+  ident.use <- object@ident
+  data.all <- data.frame(row.names = rownames(x = object@data))
+  for (i in sort(x = unique(x = ident.use))) {
+    temp.cells <- WhichCells(object = object, ident = i)
+    data.temp <- apply(
+      X = object@data[, temp.cells],
+      MARGIN = 1,
+      FUN = function(x) {
+        return(sum(x > thresh.min)/length(x = x))
+      }
+    )
+    data.all <- cbind(data.all, data.temp)
+    colnames(x = data.all)[ncol(x = data.all)] <- i
+  }
+  colnames(x = data.all) <- sort(x = unique(x = ident.use))
+  return(data.all)
+}
+
+#' Average PCA scores by identity class
+#'
+#' Returns the PCA scores for an 'average' single cell in each identity class
+#'
+#' @param object Seurat object
+#'
+#' @return Returns a matrix with genes as rows, identity classes as columns
+#'
+#' @export
+#'
+#' @examples
+#'
+#' head(AveragePCA(object = pbmc_small))
+#'
+AveragePCA <- function(object) {
+  ident.use <- object@ident
+  embeddings <- GetDimReduction(
+    object = object,
+    reduction.type = 'pca',
+    slot = 'cell.embeddings'
+  )
+  data.all <- NULL
+  for (i in levels(x = ident.use)) {
+    temp.cells <- WhichCells(object = object, ident = i)
+    if (length(x = temp.cells) == 1) {
+      data.temp <- apply(
+        X = data.frame((embeddings[c(temp.cells, temp.cells), ])),
+        MARGIN = 2,
+        FUN = mean
+      )
+    }
+    if (length(x = temp.cells) > 1) {
+      data.temp <- apply(
+        X = embeddings[temp.cells, ],
+        MARGIN = 2,
+        FUN = mean
+      )
+    }
+    data.all <- cbind(data.all, data.temp)
+    colnames(x = data.all)[ncol(x = data.all)] <- i
+  }
+  return(data.all)
+}
+
+#' Merge childen of a node
+#'
+#' Merge the childen of a node into a single identity class
+#'
+#' @param object Seurat object
+#' @param node.use Merge children of this node
+#' @param rebuild.tree Rebuild cluster tree after the merge?
+#' @param ... Extra parameters to BuildClusterTree, used only if rebuild.tree = TRUE
+#'
+#' @seealso \code{BuildClusterTree}
+#'
+#' @export
+#'
+#' @examples
+#' PlotClusterTree(object = pbmc_small)
+#' pbmc_small <- MergeNode(object = pbmc_small, node.use = 7, rebuild.tree = TRUE)
+#' PlotClusterTree(object = pbmc_small)
+#'
+MergeNode <- function(object, node.use, rebuild.tree = FALSE, ...) {
+  object.tree <- object@cluster.tree[[1]]
+  node.children <- DFT(
+    tree = object.tree,
+    node = node.use,
+    include.children = TRUE
+  )
+  node.children <- intersect(x = node.children, y = levels(x = object@ident))
+  children.cells <- WhichCells(object = object, ident = node.children)
+  if (length(x = children.cells > 0)) {
+    object <- SetIdent(
+      object = object,
+      cells.use = children.cells,
+      ident.use = min(node.children)
+    )
+  }
+  if (rebuild.tree) {
+    object <- BuildClusterTree(object = object, ...)
+  }
+  return(object)
+}
+
+#' Calculate smoothed expression values
+#'
+#' Smooths expression values across the k-nearest neighbors based on dimensional reduction
+#'
+#' @inheritParams FeaturePlot
+#' @inheritParams AddImputedScore
+#' @param genes.fit Genes to calculate smoothed values for
+#' @param dim.1 Dimension 1 to use for dimensional reduction
+#' @param dim.2 Dimension 2 to use for dimensional reduction
+#' @param reduction.use Dimensional reduction to use
+#' @param k k-param for k-nearest neighbor calculation. 30 by default
+#' @param do.log Whether to perform smoothing in log space. Default is false.
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
+#'
+#' @importFrom RANN nn2
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- AddSmoothedScore(object = pbmc_small, genes.fit = "MS4A1", reduction.use = "pca")
+#'
+AddSmoothedScore <- function(
+  object,
+  genes.fit = NULL,
+  dim.1 = 1,
+  dim.2 = 2,
+  reduction.use = "tsne",
+  k = 30,
+  do.log = FALSE,
+  do.print = FALSE,
+  nn.eps = 0
+) {
+  genes.fit <- SetIfNull(x = genes.fit, default = object@var.genes)
+  genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
+  dim.code <- GetDimReduction(
+    object = object,
+    reduction.type = reduction.use,
+    slot = 'key'
+  )
+  dim.codes <- paste0(dim.code, c(dim.1, dim.2))
+  data.plot <- FetchData(object = object, vars.all = dim.codes)
+  # knn.smooth <- get.knn(data = data.plot, k = k)$nn.index
+  knn.smooth <- nn2(data = data.plot, k = k, searchtype = 'standard', eps = nn.eps)$nn.idx
+  avg.fxn <- ifelse(test = do.log, yes = mean, no = ExpMean)
+  lasso.fits <- data.frame(t(x = sapply(
+    X = genes.fit,
+    FUN = function(g) {
+      return(unlist(x = lapply(
+        X = 1:nrow(x = data.plot),
+        FUN = function(y) {
+          avg.fxn(as.numeric(x = object@data[g, knn.smooth[y, ]]))
+        }
+      )))
+    }
+  )))
+  colnames(x = lasso.fits) <- rownames(x = data.plot)
+  genes.old <- genes.fit[genes.fit %in% rownames(x = object@imputed)]
+  genes.new <- genes.fit[!genes.fit %in% rownames(x = object@imputed)]
+  if (length(x = genes.old) > 0) {
+    object@imputed[genes.old, ] <- lasso.fits[genes.old, ]
+  }
+  object@imputed <- rbind(object@imputed, lasso.fits[genes.new, ])
+  return(object)
+}
+
+#' Calculate imputed expression values
+#'
+#' Uses L1-constrained linear models (LASSO) to impute single cell gene
+#' expression values.
+#'
+#' @param object Seurat object
+#' @param genes.use A vector of genes (predictors) that can be used for
+#' building the LASSO models.
+#' @param genes.fit A vector of genes to impute values for
+#' @param s.use Maximum number of steps taken by the algorithm (lower values
+#' indicate a greater degree of smoothing)
+#' @param do.print Print progress (output the name of each gene after it has
+#' been imputed).
+#' @param gram The use.gram argument passed to lars
+#'
+#' @return Returns a Seurat object where the imputed values have been added to
+#' object@@imputed
+#'
+#' @import lars
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- AddImputedScore(object = pbmc_small, genes.fit = "MS4A1")
+#'
+AddImputedScore <- function(
+  object,
+  genes.use = NULL,
+  genes.fit = NULL,
+  s.use = 20,
+  do.print = FALSE,
+  gram = TRUE
+) {
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  genes.fit <- SetIfNull(x = genes.fit, default = object@var.genes)
+  genes.use <- genes.use[genes.use %in% rownames(x = object@data)]
+  genes.fit <- genes.fit[genes.fit %in% rownames(x = object@data)]
+  lasso.input <- t(x = object@data[genes.use, ])
+  lasso.fits <- data.frame(t(
+    x = sapply(
+      X = genes.fit,
+      FUN = function(x) {
+        return(
+          LassoFxn(
+            lasso.input = as.matrix(t(x = object@data[genes.use[genes.use != x], ])),
+            genes.obs = object@data[x, ],
+            s.use = s.use,
+            gene.name = x,
+            do.print = do.print,
+            gram = gram
+          )
+        )
+      }
+    )
+  ))
+  genes.old <- genes.fit[genes.fit %in% rownames(x = object@imputed)]
+  genes.new <- genes.fit[! (genes.fit %in% rownames(x = object@imputed))]
+  if (length(x = genes.old) > 0) {
+    object@imputed[genes.old, ] <- lasso.fits[genes.old, ]
+  }
+  object@imputed <- rbind(object@imputed, lasso.fits[genes.new, ])
+  return(object)
+}
+
+#' GenesInCluster
+#'
+#' After k-means analysis, previously run with DoKMeans, returns a set of genes associated with each cluster
+#'
+#' @param object Seurat object. Assumes DoKMeans has already been run
+#' @param cluster.num K-means cluster(s) to return genes for
+#' @param max.genes max number of genes to return
+#' @return A vector of genes who are members in the cluster.num k-means cluster(s)
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small
+#' # Cluster on genes only
+#' pbmc_small <- DoKMeans(object = pbmc_small, k.genes = 3)
+#' pbmc_small <- GenesInCluster(object = pbmc_small, cluster.num = 1)
+#'
+GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
+  toReturn <- unlist(
+    x = lapply(
+      X = cluster.num,
+      FUN = function(x) {
+        return(head(
+          x = sort(x = names(x = which(x = object@kmeans@gene.kmeans.obj$cluster==x))),
+          n = max.genes
+        ))
+      }
+    )
+  )
+  return(toReturn)
+}
+#' Find gene terms from Enrichr
+#'
+#' Fing gene terms from Enrichr and return the XML information
+#'
+#' @param QueryGene A gene to query on Enrichr
+#'
+#' @export
+#' @importFrom httr GET status_code content
+#'
+#' @return An XML document with information on the queried gene
+#'
+FindGeneTerms <- function(QueryGene = NULL) {
+  if (is.null(x = QueryGene)) {
+    stop("Missing query gene")
+  }
+  path.use <- "Enrichr/genemap"
+  api.get <- GET(
+    url = "http://amp.pharm.mssm.edu/",
+    path = path.use,
+    query = list(gene = QueryGene)
+  )
+  api.status <- status_code(x = api.get)
+  if (api.status != 200) {
+    stop("Error searching for terms")
+  }
+  api.data <- content(x = api.get)
+  return (api.data)
+}
+
+# Run t-distributed Stochastic Neighbor Embedding
+#
+# Run t-SNE dimensionality reduction on selected features. Has the option of running in a reduced
+# dimensional space (i.e. spectral tSNE, recommended), or running based on a set of genes
+#
+# @param object Seurat object
+# @param cells.use Which cells to analyze (default, all cells)
+# @param dims.use Which dimensions to use as input features
+# @param k.seed Random seed for the t-SNE
+# @param do.fast If TRUE, uses the Barnes-hut implementation, which runs
+# faster, but is less flexible
+# @param add.iter If an existing tSNE has already been computed, uses the
+# current tSNE to seed the algorithm and then adds additional iterations on top of this
+# @param genes.use If set, run the tSNE on this subset of genes
+# (instead of running on a set of reduced dimensions). Not set (NULL) by default
+# @param reduction.use Which dimensional reduction (PCA or ICA) to use for the tSNE. Default is PCA
+# @param dim_embed The dimensional space of the resulting tSNE embedding (default is 2).
+# For example, set to 3 for a 3d tSNE
+# @param q.use Quantile to use
+# @param max.dim Max dimension to keep from diffusion calculation
+# @param scale.clip Max/min value for scaled data. Default is 3
+# @param ... Additional arguments to the tSNE call. Most commonly used is
+# perplexity (expected number of neighbors default is 30)
+#
+# @return Returns a Seurat object with a tSNE embedding in object@@tsne_rot
+#
+# @import Rtsne
+# @import tsne
+#
+# Not currently supported
+#
+AddTSNE <- function(
+  object,
+  cells.use = NULL,
+  pcs.use = 1:10,
+  do.plot = TRUE,
+  k.seed = 1,
+  add.iter = 1000,
+  ...
+) {
+  cells.use <- SetIfNull(x = cells.use, default = colnames(x = object@data))
+  data.use <- object@pca.rot[cells.use, pcs.use]
+  #data.dist=as.dist(mahalanobis.dist(data.use))
+  set.seed(seed = k.seed)
+  data.tsne <- data.frame(
+    tsne(
+      X = data.use,
+      initial_config = as.matrix(x = object@tsne.rot[cells.use,]),
+      max_iter = add.iter,
+      ...
+    )
+  )
+  colnames(x = data.tsne) <- paste0("tSNE_", 1:ncol(data.tsne))
+  rownames(x = data.tsne) <- cells.use
+  object@tsne.rot <- data.tsne
+  return(object)
+}
+
+#calculate true positives, used in AUC
+calcTP <- function(cutoff, data, score, real, nTP) {
+  return(length(x = which(x = (data[, score] > cutoff) & (data[, real] > 0))) / nTP)
+}
+
+#calculate false positives, used in AUC
+calcFP <- function(cutoff, data, score, real, nFP) {
+  return(length(x = which(x = (data[, score] > cutoff) & (data[, real] == 0))) / nFP)
+}
+
+#i do not believe we use this function, but leaving it in to be safe
+auc <- function(data, score, real, n = 20) {
+  totalPos <- length(x = which(x = data[, real] == 1))
+  totalNeg <- length(x = which(x = data[, real] == 0))
+  scores <- data[, score]
+  data$myScore <- (scores + min(scores)) / (max(scores) + min(scores))
+  tp <- unlist(x = lapply(
+    X = seq(from = -0.0001, to = 0.9999, by = 1 / n),
+    FUN = calcTP,
+    data = data,
+    score = "myScore",
+    real = real,
+    nTP = totalPos
+  ))
+  fp <- unlist(x = lapply(
+    X = seq(from = -0.0001, to = 0.9999, by = 1 / n),
+    FUN = calcFP,
+    data = data,
+    score = "myScore",
+    real = real,
+    nFP = totalNeg
+  ))
+  plot(x = c(fp, 1), y = c(tp, 1), xlim = c(0, 1), ylim = c(0, 1))
+  x1 <- c(1, fp)
+  x2 <- c(1, tp)
+  print(
+    sum(diff(x = rev(x = x2)) * diff(x = rev(x = x1))) /
+      2 + sum(diff(x = rev(x = x1)) * rev(x = x2[-1]))
+  )
+  return(list(c(1, fp), c(1, tp)))
+}
+
+#useful with FindAllMarkers, not ready for main package yet
+returnTopX <- function(data, group.by, n.return, col.return = NA) {
+  to.ret <- c()
+  levels.use=unique(group.by); if (is.factor(group.by)) levels.use=levels(group.by)
+  if (!is.na(col.return)) return(unlist(lapply(levels.use, function(x) head(data[group.by==x,col.return],n.return)))) else {
+    return(unlist(lapply(levels.use, function(x) head(rownames(data[group.by==x,])))))
+  }
+}
+
+#i like this, but not used too much yet
+genes.ca.range <- function(object, my.min, my.max) {
+  ca <- AverageDetectionRate(object = object)
+  ca.min <- apply(X = ca, MARGIN = 1, FUN = min)
+  ca.max <- apply(X = ca, MARGIN = 1, FUN = max)
+  genes.1 <- names(x = ca.min[ca.min < my.max])
+  genes.2 <- names(x = ca.max[ca.max > my.min])
+  return(intersect(x = genes.1, y = genes.2))
+}
+
+# # Not currently supported, but a cool function for QC
+# CalcNoiseModels <- function(
+#   object,
+#   cell.ids = NULL,
+#   trusted.genes = NULL,
+#   n.bin = 20,
+#   drop.expr = 1
+# ) {
+#   object@drop.expr <- drop.expr
+#   cell.ids <- SetIfNull(x = cell.ids, default = 1:ncol(x = object@data))
+#   trusted.genes <- SetIfNull(x = trusted.genes, default = rownames(x = object@data))
+#   trusted.genes <- trusted.genes[trusted.genes %in% rownames(x = object@data)]
+#   object@trusted.genes <- trusted.genes
+#   data <- object@data[trusted.genes, ]
+#   idents <- data.frame(data[, 1])
+#   code_humpAvg <- apply(X = data, MARGIN = 1, FUN = MeanGreaterThan, min = object@drop.expr)
+#   code_humpAvg[code_humpAvg > 9] <- 9
+#   code_humpAvg[is.na(x = code_humpAvg)] <- 0
+#   idents$code_humpAvg <- code_humpAvg
+#   data[data > object@drop.expr] <- 1
+#   data[data < object@drop.expr] <- 0
+#   data$bin <- cut(x = code_humpAvg, breaks = n.bin)
+#   data$avg <- code_humpAvg
+#   rownames(x = idents) <- rownames(x = data)
+#   my.coefs <- data.frame(t(x = pbsapply(
+#     X = colnames(x = data[1:(ncol(x = data) - 2)]),
+#     FUN = getAB,
+#     data = data,
+#     data2 = idents,
+#     status = "code",
+#     code2 = "humpAvg",
+#     hasBin = TRUE,
+#     doPlot = FALSE
+#   )))
+#   colnames(x = my.coefs) <- c("a", "b")
+#   object@drop.coefs <- my.coefs
+#   return(object)
+# }
+
+# Visualize expression/dropout curve
+#
+# Plot the probability of detection vs average expression of a gene.
+#
+# Assumes that this 'noise' model has been precomputed with CalcNoiseModels
+#
+# @param object Seurat object
+# @param cell.ids Cells to use
+# @param col.use Color code or name
+# @param lwd.use Line width for curve
+# @param do.new Create a new plot (default) or add to existing
+# @param x.lim Maximum value for X axis
+# @param \dots Additional arguments to pass to lines function
+# @return Returns no value, displays a plot
+#
+# PlotNoiseModel <- function(
+#   object,
+#   cell.ids = c(1, 2),
+#   col.use = 'black',
+#   lwd.use = 2,
+#   do.new = TRUE,
+#   x.lim = 10,
+#   ...
+# ) {
+#   cell.coefs <- object@drop.coefs[cell.ids,]
+#   if (do.new) {
+#     plot(
+#       x = 1,
+#       y = 1,
+#       pch = 16,
+#       type = 'n',
+#       xlab = 'Average expression',
+#       ylab = 'Probability of detection',
+#       xlim = c(0, x.lim),
+#       ylim =c(0, 1)
+#     )
+#   }
+#   unlist(
+#     x = lapply(
+#       X = 1:length(x = cell.ids),
+#       FUN = function(y) {
+#         x.vals <- seq(from = 0, to = x.lim, by = 0.05)
+#         y.vals <- unlist(x = lapply(
+#           X = x.vals,
+#           FUN = calc.drop.prob,
+#           a = cell.coefs[y, 1],
+#           b = cell.coefs[y, 2])
+#         )
+#         lines(
+#           x = x.vals,
+#           y = y.vals,
+#           lwd = lwd.use,
+#           col = col.use,
+#           ...
+#         )
+#       }
+#     )
+#   )
+# }
+
+# Deleted, but used in regression.sig (which was kept)...
+vsubc <- function(data,code) {
+  return(data[grep(pattern = code, x = names(x = data))])
+}
+
+regression.sig <- function(x, score, data, latent, code = "rsem") {
+  if (var(x = as.numeric(x = SubsetColumn(data = data, code = code)[x, ])) == 0) {
+    return(0)
+  }
+  latent <- latent[grep(pattern = code, x = names(x = data))]
+  data <- rbind(SubsetColumn(data = data, code = code), vsubc(data = score, code = code))
+  rownames(x = data)[nrow(x = data)] <- "score"
+  data2 <- data[c(x, "score"), ]
+  rownames(x = data2)[1] <- "fac"
+  if (length(x = unique(x = latent)) > 1) {
+    mylm <- lm(formula = score ~ fac + latent, data = data.frame(t(x = data2)))
+  } else {
+    mylm <- lm(formula = score ~ fac, data = data.frame(t(x = data2)))
+  }
+  return(coef(object = summary(object = mylm))["fac", 3])
+}
+
+# Documentation
+# @export
+#
+RemovePC <- function(object, pcs.remove, use.full = FALSE, ...) {
+  data.old <- object@data
+  pcs.use <- setdiff(x = 1:ncol(x = object@pca.obj[[1]]$rotation), y = pcs.remove)
+  if (use.full) {
+    data.x <- as.matrix(
+      x = object@pca.x.full[, intersect(
+        x = pcs.use,
+        y = 1:ncol(x = object@pca.x.full)
+      )]
+    )
+  } else {
+    data.x <- as.matrix(x = object@pca.obj[[1]]$x[, pcs.use])
+  }
+  data.1 <- data.x %*% t(x = as.matrix(x = object@pca.obj[[1]]$rotation[, pcs.use]))
+  data.2 <- sweep(
+    x = data.1,
+    MARGIN = 2,
+    STATS = colMeans(x = object@scale.data),
+    FUN = "+"
+  )
+  data.3 <- sweep(
+    x = data.2,
+    MARGIN = 1,
+    STATS = apply(X = object@data[rownames(x = data.2), ], MARGIN = 1, FUN = sd),
+    FUN = "*"
+  )
+  data.3 <- sweep(
+    X = data.3,
+    MARGIN = 1,
+    STATS = apply(X = object@data[rownames(x = data.2), ], MARGIN = 1, FUN = mean),
+    FUN = "+"
+  )
+  object@scale.data <- (data.2)
+  data.old <- data.old[rownames(x = data.3), ]
+  data.4 <- data.3
+  data.4[data.old == 0] <- 0
+  data.4[data.4 < 0] <- 0
+  object@data[rownames(x = data.4), ] <- data.frame(data.4)
+  return(object)
+}
+
+# Documentation
+# @export
+#
+CalinskiPlot <- function(
+  object,
+  pcs.use,
+  pval.cut = 0.1,
+  gene.max = 15,
+  col.max = 25,
+  use.full = TRUE
+) {
+  if (length(x = pcs.use) == 1) {
+    pvals.min <- object@jackStraw.empP.full[, pcs.use]
+  } else if (length(x = pcs.use) > 1) {
+    pvals.min <- apply(
+      X = object@jackStraw.empP.full[, pcs.use],
+      MARGIN = 1,
+      FUN = min
+    )
+  }
+  names(x = pvals.min) <- rownames(x = object@jackStraw.empP.full)
+  genes.use <- names(x = pvals.min)[pvals.min < pval.cut]
+  genes.use <- genes.use[genes.use %in% rownames(do.NULL = object@scale.data)]
+  par(mfrow = c(1, 2))
+  mydata <- object@scale.data[genes.use, ]
+  wss <- (nrow(x = mydata) - 1) * sum(apply(X = mydata, MARGIN = 2, FUN = var))
+  for (i in 1:gene.max) {
+    wss[i] <- sum(kmeans(x = mydata, centers=i)$withinss)
+  }
+  plot(
+    x = 1:gene.max,
+    y = wss,
+    type = "b",
+    xlab= "Number of Clusters for Genes",
+    ylab = "Within groups sum of squares"
+  )
+  mydata <- t(x = object@scale.data[genes.use, ])
+  wss <- (nrow(x = mydata) - 1) * sum(apply(X = mydata, MARGIN = 2, FUN = var))
+  for (i in 1:col.max) {
+    wss[i] <- sum(kmeans(x = mydata, centers = i)$withinss)
+  }
+  plot(
+    x = 1:col.max,
+    y = wss,
+    type = "b",
+    xlab = "Number of Clusters for Cells",
+    ylab = "Within groups sum of squares"
+  )
+  ResetPar()
+  return(object)
+}
+
+# Documentation
+# #' @export
+# #' @importFrom stats cor kmeans
+# #' @importFrom NMF aheatmap
+#
+# CellCorMatrix <- function(
+#   object,
+#   cor.genes = NULL,
+#   cell.inds = NULL,
+#   do.k = FALSE,
+#   k.seed = 1,
+#   k.num = 4,
+#   vis.low = (-1),
+#   vis.high = 1,
+#   vis.one = 0.8,
+#   pcs.use = 1:3,
+#   col.use = pyCols
+# ) {
+#   cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+#   cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+#   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+#   data.cor <- object@scale.data[cor.genes, cell.inds]
+#   cor.matrix <- cor(x = data.cor)
+#   set.seed(seed = k.seed)
+#   kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+#   if (do.k) {
+#     cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+#   }
+#   kmeans.names <- rownames(x = cor.matrix)
+#   row.annot <- data.frame(
+#     cbind(
+#       kmeans.cor$cluster[kmeans.names],
+#       object@pca.rot[kmeans.names, pcs.use]
+#     )
+#   )
+#   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+#   cor.matrix[cor.matrix == 1] <- vis.one
+#   cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
+#   object@kmeans.cell <- list(kmeans.cor)
+#   if (do.k) {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       Rowv = NA,
+#       Colv = NA,
+#       annRow = row.annot
+#     )
+#   } else {
+#     heatmap.2(
+#       x = cor.matrix,
+#       trace = "none",
+#       Rowv = NA,
+#       Colv = NA,
+#       col = pyCols
+#     )
+#   }
+#   return(object)
+# }
+
+# Documentation
+# #' @export
+#
+# GeneCorMatrix <- function(
+#   object,
+#   cor.genes = NULL,
+#   cell.inds = NULL,
+#   do.k = FALSE,
+#   k.seed = 1,
+#   k.num = 4,
+#   vis.low = (-1),
+#   vis.high = 1,
+#   vis.one = 0.8,
+#   pcs.use = 1:3,
+#   col.use = pyCols
+# ) {
+#   cor.genes <- SetIfNull(x = cor.genes, default = object@var.genes)
+#   cell.inds <- SetIfNull(x = cell.inds, default = colnames(x = object@data))
+#   cor.genes <- cor.genes[cor.genes %in% rownames(x = object@data)]
+#   data.cor <- object@data[cor.genes, cell.inds]
+#   cor.matrix <- cor(x = t(x = data.cor))
+#   set.seed(seed = k.seed)
+#   kmeans.cor <- kmeans(x = cor.matrix, centers = k.num)
+#   cor.matrix <- cor.matrix[order(kmeans.cor$cluster), order(kmeans.cor$cluster)]
+#   kmeans.names <- rownames(x = cor.matrix)
+#   row.annot <- data.frame(
+#     cbind(
+#       kmeans.cor$cluster[kmeans.names],
+#       object@pca.x[kmeans.names, pcs.use]
+#     )
+#   )
+#   colnames(x = row.annot) <- c("K", paste0("PC", pcs.use))
+#   cor.matrix[cor.matrix == 1] <- vis.one
+#   cor.matrix <- MinMax(data = cor.matrix, min = vis.low, max = vis.high)
+#   object@kmeans.gene <- list(kmeans.cor)
+#   if (do.k) {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       Rowv = NA,
+#       Colv = NA,
+#       annRow = row.annot
+#     )
+#   } else {
+#     aheatmap(
+#       x = cor.matrix,
+#       col = col.use,
+#       annRow = row.annot
+#     )
+#   }
+#   return(object)
+# }
+
+
+#   Documentation
+ProjectSamples <- function(object, new.samples) {
+  genes.use <- rownames(x = object@data)
+  genes.pca <- rownames(x = object@pca.x)
+  data.project <- object@scale.data[genes.pca, ]
+  data.project[is.na(x = data.project)] <- 0
+  new.rot = t(x = data.project) %*% as.matrix(x = object@pca.x)
+  scale.vec = apply(
+    X = new.rot,
+    MARGIN = 2,
+    FUN = function(x) {
+      return(sqrt(x = sum(x ^ 2)))
+    }
+  )
+  new.rot.scale <- scale(x = new.rot, center = FALSE, scale = scale.vec)
+  object@pca.rot <- as.data.frame(x = new.rot.scale)
+  return(object)
+}
+
+# Documentation
+#Cool, but not supported right now
+SpatialDe <- function(object, marker.cells, genes.use = NULL) {
+  embed.map <- object@tsne.rot
+  mult.use <- 2
+  mult.use.far <- 10
+  if ((mult.use.far * length(x = marker.cells)) > nrow(x = embed.map)) {
+    mult.use.far <- 1
+    mult.use <- 1
+  }
+  genes.use <- SetIfNull(x = genes.use, default = object@var.genes)
+  marker.pos <- apply(X = embed.map[marker.cells, ], MARGIN = 2, FUN = mean)
+  embed.map <- rbind(embed.map, marker.pos)
+  rownames(x = embed.map)[nrow(x = embed.map)] <- "marker"
+  embed.dist <- sort(x = as.matrix(x = dist(x = (embed.map)))["marker", ])
+  embed.diff <- names(x = embed.dist[! (names(x = embed.dist) %in% marker.cells)][1:(mult.use * length(x = marker.cells))][-1])
+  embed.diff.far <- names(x = embed.dist[! (names(x = embed.dist) %in% marker.cells)][1:(mult.use.far * length(x = marker.cells))][-1])
+  diff.genes <- rownames(
+    x = subset(
+      x = DiffExpTest(
+        object = object,
+        cells.1 = marker.cells,
+        cells.2 = embed.diff,
+        genes.use = genes.use
+      ),
+      subset = p_val < (1e-5)
+    )
+  )
+  diff.genes <- subset(
+    x = DiffExpTest(
+      object = object,
+      cells.1 = marker.cells,
+      cells.2 = embed.diff,
+      genes.use = diff.genes
+    ),
+    subset = p_val<(1e-10)
+  )
+  return(diff.genes)
+}
+
+#' Identify potential genes associated with batch effects
+#'
+#' Test for genes whose expression value is strongly predictive of batch (based
+#' on ROC classification). Important note: Assumes that the 'batch' of each
+#' cell is assigned to the cell's identity class (will be improved in a future
+#' release)
+#'
+#' @param object Seurat object
+#' @param idents.use Batch names to test
+#' @param genes.use Gene list to test
+#' @param auc.cutoff Minimum AUC needed to qualify as a 'batch gene'
+#' @param thresh.use Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) in any one batch
+#'
+#' @return Returns a list of genes that are strongly correlated with batch.
+#'
+#' @export
+#'
+BatchGene <- function(
+  object,
+  idents.use,
+  genes.use = NULL,
+  auc.cutoff = 0.6,
+  thresh.use = 0
+) {
+  batch.genes <- c()
+  genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@data))
+  for (ident in idents.use) {
+    cells.1 <- names(x = object@ident)[object@ident == ident]
+    cells.2 <- names(x = object@ident)[object@ident != ident]
+    if ((length(x = cells.1) < 5) | (length(x = cells.2) < 5)) {
+      break
+    }
+    markers.ident <- MarkerTest(
+      object = object,
+      cells.1 = cells.1,
+      cells.2 = cells.2,
+      genes.use = genes.use,
+      print.bar = thresh.use
+    )
+    batch.genes <- unique(
+      x = c(
+        batch.genes,
+        rownames(x = subset(x = markers.ident, subset = myAUC > auc.cutoff))
+      )
+    )
+  }
+  return(batch.genes)
+}
+
+
+
+# Documentation
+#multicore version of jackstraw
+#DOES NOT WORK WITH WINDOWS
+# @export
+#
+JackStrawMC <- function(
+  object,
+  num.pc = 30,
+  num.replicate = 100,
+  prop.freq = 0.01,
+  do.print = FALSE,
+  num.cores = 8
+) {
+  pc.genes <- rownames(x = object@pca.x)
+  if (length(x = pc.genes) < 200) {
+    prop.freq <- max(prop.freq, 0.015)
+  }
+  md.x <- as.matrix(x = object@pca.x)
+  md.rot <- as.matrix(x = object@pca.rot)
+  if (do.print) {
+    fake.pcVals.raw <- mclapply(
+      X = 1:num.replicate,
+      FUN = function(x) {
+        print(x)
+        return(JackRandom(
+          scaled.data = object@scale.data[pc.genes, ],
+          prop.use = prop.freq,
+          r1.use = 1,
+          r2.use = num.pc,
+          seed.use = x
+        ))
+      },
+      mc.cores = num.cores
+    )
+  } else {
+    fake.pcVals.raw <- mclapply(
+      X = 1:num.replicate,
+      FUN = function(x) {
+        return(JackRandom(
+          scaled.data = object@scale.data[pc.genes, ],
+          prop.use = prop.freq,
+          r1.use = 1,
+          r2.use = num.pc,
+          seed.use=x
+        ))
+      }, mc.cores = num.cores
+    )
+  }
+  fake.pcVals <- simplify2array(
+    x = mclapply(
+      X = 1:num.pc,
+      FUN = function(x) {
+        return(as.numeric(x = unlist(x = lapply(
+          X = 1:num.replicate,
+          FUN = function(y) {
+            return(fake.pcVals.raw[[y]][, x])
+          }
+        ))))
+      },
+      mc.cores = num.cores
+    )
+  )
+  object@jackStraw.fakePC <- data.frame(fake.pcVals)
+  object@jackStraw.empP <- data.frame(
+    simplify2array(
+      x = mclapply(
+        X = 1:num.pc,
+        FUN = function(x) {
+          return(unlist(x = lapply(
+            X = abs(md.x[, x]),
+            FUN = EmpiricalP,
+            nullval = abs(x = fake.pcVals[, x])
+          )))
+        },
+        mc.cores = num.cores
+      )
+    )
+  )
+  colnames(x = object@jackStraw.empP) <- paste0("PC", 1:ncol(x = object@jackStraw.empP))
+  return(object)
+}
+
+
+# # Documentation
+# JackStrawFull <- function(
+#   object,
+#   num.pc = 5,
+#   num.replicate = 100,
+#   prop.freq = 0.01
+# ) {
+#   pc.genes <- rownames(x = object@pca.x)
+#   if (length(x = pc.genes) < 200) {
+#     prop.freq <- max(prop.freq, 0.015)
+#   }
+#   md.x <- as.matrix(x = object@pca.x)
+#   md.rot <- as.matrix(x = object@pca.rot)
+#   real.fval <- sapply(
+#     X = 1:num.pc,
+#     FUN = function(x) {
+#       return(unlist(x = lapply(
+#         X = pc.genes,
+#         FUN = JackF,
+#         r1 = x,
+#         r2 = x,
+#         x = md.x,
+#         rot = md.rot
+#       )))
+#     }
+#   )
+#   rownames(x = real.fval) <- pc.genes
+#   object@real.fval <- data.frame(real.fval)
+#   fake.fval <- sapply(
+#     X = 1:num.pc,
+#     FUN = function(x) {
+#       return(unlist(x = replicate(
+#         n = num.replicate,
+#         expr = JackstrawF(
+#           prop = prop.freq,
+#           data = object@scale.data[pc.genes, ],
+#           myR1 = x,
+#           myR2 = x
+#         ),
+#         simplify = FALSE
+#       )))
+#     }
+#   )
+#   rownames(x = fake.fval) <- 1:nrow(x = fake.fval)
+#   object@fake.fval <- data.frame(fake.fval)
+#   object@emp.pval <- data.frame(
+#     sapply(
+#       X = 1:num.pc,
+#       FUN = function(x) {
+#         return(unlist(x = lapply(
+#           X = object@real.fval[, x],
+#           FUN = EmpiricalP,
+#           nullval = object@fake.fval[, x]
+#         )))
+#       }
+#     )
+#   )
+#   rownames(x = object@emp.pval) <- pc.genes
+#   colnames(x = object@emp.pval) <- paste0("PC", 1:ncol(x = object@emp.pval),)
+#   return(object)
+# }
+
+# Documentation
+# #' @export
+#
+# JackStrawPermutationTest <- function(
+#   object,
+#   genes.use = NULL,
+#   num.iter = 100,
+#   thresh.use = 0.05,
+#   do.print = TRUE,
+#   k.seed = 1
+# ) {
+#   genes.use <- SetIfNull(x = genes.use, default = rownames(x = object@pca.x))
+#   genes.use <- intersect(x = genes.use, y = rownames(x = object@scale.data))
+#   data.use <- t(x = as.matrix(x = object@scale.data[genes.use, ]))
+#   if (do.print) {
+#     print(paste("Running", num.iter, "iterations"))
+#   }
+#   pa.object <- permutationPA(
+#     data.use,
+#     B = num.iter,
+#     threshold = thresh.use,
+#     verbose = do.print,
+#     seed = k.seed
+#   )
+#   if (do.print) {
+#     cat("\n\n")
+#   }
+#   if (do.print) {
+#     print(paste("JackStraw returns", pa.object$r, "significant components"))
+#   }
+#   return(pa.object)
+# }
+
+#' Run Canonical Correlation Analysis (CCA) on multimodal data
+#'
+#' CCA finds a shared correlation structure betwen two different datasets, enabling integrated downstream analysis
+#'
+#' @param object Seurat object
+#' @param assay.1 First assay for multimodal analysis. Default is RNA
+#' @param assay.2 Second assay for multimodal analysis. Default is CITE for CITE-Seq analysis.
+#' @param features.1 Features of assay 1 to consider (default is variable genes)
+#' @param features.2 Features of assay 2 to consider (default is all features, i.e. for CITE-Seq, all antibodies)
+#' @param num.cc Number of canonical correlations to compute and store. Default is 20, but will calculate less if either assay has <20 features.
+#' @param normalize.variance Z-score the embedding of each CC to 1, so each CC contributes equally in downstream analysis (default is T)
+#'
+#' @return Returns object after CCA, with results stored in dimensional reduction cca.assay1 (ie. cca.RNA) and cca.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cca.RNA")
+#'
+#' @export
+#'
+MultiModal_CCA <- function(
+  object,
+  assay.1 = "RNA",
+  assay.2 = "CITE",
+  features.1 = NULL,
+  features.2 = NULL,
+  num.cc = 20,
+  normalize.variance = TRUE
+) {
+  #first pull out data, define features
+  data.1 <- GetAssayData(
+    object = object,
+    assay.type = assay.1,
+    slot = "scale.data"
+  )
+  data.2 <- GetAssayData(
+    object = object,
+    assay.type = assay.2,
+    slot = "scale.data"
+  )
+  if (is.null(x = features.1)) {
+    if ((assay.1 == "RNA") && length(x = object@var.genes) > 0) {
+      features.1 <- object@var.genes
+    } else {
+      features.1 <- rownames(x = data.1)
+    }
+  }
+  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
+  data.1 <- t(x = data.1[features.1, ])
+  data.2 <- t(x = data.2[features.2, ])
+  num.cc <- min(20, min(length(x = features.1), length(x = features.2)))
+  cca.data <- list(data.1, data.2)
+  names(x = cca.data) <- c(assay.1, assay.2)
+  # now run CCA
+  out <- CanonCor(mat1 = cca.data[[1]],
+                  mat2 = cca.data[[2]],
+                  standardize = TRUE,
+                  k = num.cc)
+  cca.output <- list(out$u, out$v)
+  embeddings.cca <- list()
+  for (i in 1:length(x = cca.data)) {
+    assay.use <- names(x = cca.data)[i]
+    rownames(x = cca.output[[i]]) <- colnames(x = cca.data[[i]])
+    embeddings.cca[[i]] <- cca.data[[i]] %*% cca.output[[i]]
+    colnames(x = embeddings.cca[[i]]) <- paste0(
+      assay.use,
+      "CC",
+      1:ncol(x = embeddings.cca[[i]])
+    )
+    colnames(x = cca.output[[i]]) <- colnames(x = embeddings.cca[[i]])
+    if (normalize.variance) {
+      embeddings.cca[[i]] <- scale(x = embeddings.cca[[i]])
+    }
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "cell.embeddings",
+      new.data = embeddings.cca[[i]]
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "key",
+      new.data = paste0(assay.use, "CC")
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste0(assay.use, "CCA"),
+      slot = "x",
+      new.data =  cca.output[[i]]
+    )
+  }
+  return(object)
+}
+
+#' Run coinertia analysis on multimodal data
+#'
+#' CIA finds a shared correlation structure betwen two different datasets, enabling integrated downstream analysis
+#'
+#' @param object Seurat object
+#' @param assay.1 First assay for multimodal analysis. Default is RNA
+#' @param assay.2 Second assay for multimodal analysis. Default is CITE for CITE-Seq analysis.
+#' @param features.1 Features of assay 1 to consider (default is variable genes)
+#' @param features.2 Features of assay 2 to consider (default is all features, i.e. for CITE-Seq, all antibodies)
+#' @param num.axes Number of principal axes to compute and store. Default is 20, but will calculate less if either assay has <20 features.
+#' @param normalize.variance Return the normalized row scares, so each aexis contributes equally in downstream analysis (default is T)
+#'
+#' @importFrom utils installed.packages
+#'
+#' @return Returns object after CIA, with results stored in dimensional reduction cia.assay1 (ie. cia.RNA) and cia.assay2. For example, results can be visualized using DimPlot(object,reduction.use="cia.RNA")
+#'
+#' @export
+#'
+MultiModal_CIA <- function(
+  object,
+  assay.1 = "RNA",
+  assay.2 = "CITE",
+  features.1 = NULL,
+  features.2 = NULL,
+  num.axes = 20,
+  normalize.variance = TRUE
+) {
+  if (!'made4' %in% rownames(x = installed.packages())) {
+    stop("Please install made4")
+  }
+  #first pull out data, define features
+  data.1 <- GetAssayData(
+    object = object,
+    assay.type = assay.1,
+    slot = "scale.data"
+  )
+  data.2 <- GetAssayData(
+    object = object,
+    assay.type = assay.2,
+    slot = "scale.data"
+  )
+  if (is.null(x = features.1)) {
+    if ((assay.1 == "RNA") && length(x = object@var.genes) > 0) {
+      features.1 <- object@var.genes
+    } else {
+      features.1 <- rownames(x = data.1)
+    }
+  }
+  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
+  data.1 <- t(x = data.1[features.1, ])
+  data.2 <- t(x = data.2[features.2, ])
+  num.axes <- min(20, min(length(x = features.1), length(x = features.2)))
+  cia.data <- list(data.1, data.2)
+  names(x = cia.data) <- c(assay.1, assay.2)
+  # now run cia
+  out <- made4::cia(
+    df1 = t(x = cia.data[[1]]),
+    df2 = t(x = cia.data[[2]]),
+    cia.nf = num.axes
+  )
+  out <- out$coinertia
+  cia.output <- list(as.matrix(x = out$c1), as.matrix(x = out$l1))
+  embeddings.cia.norm <- list(as.matrix(x = out$mX), as.matrix(x = out$mY))
+  embeddings.cia <- list(as.matrix(x = out$lX), as.matrix(x = out$lY))
+  for (i in 1:length(x = cia.data)) {
+    assay.use <- names(x = cia.data)[i]
+    #rownames(cia.output[[i]])=colnames(cia.data[[i]])
+    if (normalize.variance) {
+      embeddings.cia[[i]] <- (embeddings.cia.norm[[i]])
+    }
+    colnames(x = embeddings.cia[[i]]) <- paste0(
+      assay.use,
+      "CI",
+      1:ncol(x = embeddings.cia[[i]])
+    )
+    colnames(x = cia.output[[i]]) <- colnames(x = embeddings.cia[[i]])
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste("cia", assay.use, sep="_"),
+      slot = "cell.embeddings",
+      new.data = embeddings.cia[[i]]
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste("cia", assay.use, sep="_"),
+      slot = "key",
+      new.data = paste0(assay.use," CI")
+    )
+    object <- SetDimReduction(
+      object = object,
+      reduction.type = paste("cia", assay.use, sep="_"),
+      slot = "x",
+      new.data =  cia.output[[i]]
+    )
+  }
+  return(object)
+}
+
+#' Reorder identity classes
+#'
+#' Re-assigns the identity classes according to the average expression of a
+#' particular feature (i.e, gene expression, or PC score)
+#' Very useful after clustering, to re-order cells, for example, based on PC
+#' scores
+#'
+#' @param object Seurat object
+#' @param feature Feature to reorder on. Default is PC1
+#' @param rev Reverse ordering (default is FALSE)
+#' @param aggregate.fxn Function to evaluate each identity class based on
+#' (default is mean)
+#' @param reorder.numeric Rename all identity classes to be increasing numbers
+#' starting from 1 (default is FALSE)
+#' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
+#'
+#' @return A seurat object where the identity have been re-oredered based on the
+#' average.
+#'
+#' @export
+#'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- ReorderIdent(object = pbmc_small)
+#' head(x = pbmc_small@ident)
+#'
+ReorderIdent <- function(
+  object,
+  feature = "PC1",
+  rev = FALSE,
+  aggregate.fxn = mean,
+  reorder.numeric = FALSE,
+  ...
+) {
+  ident.use <- object@ident
+  data.use <- FetchData(object = object, vars.all = feature, ...)[, 1]
+  revFxn <- Same
+  if (rev) {
+    revFxn <- function(x) {
+      return(max(x) + 1 - x)
+    }
+  }
+  names.sort <- names(
+    x = revFxn(
+      sort(
+        x = tapply(
+          X = data.use,
+          INDEX = (ident.use),
+          FUN = aggregate.fxn
+        )
+      )
+    )
+  )
+  ident.new <- factor(x = ident.use, levels = names.sort, ordered = TRUE)
+  if (reorder.numeric) {
+    ident.new <- factor(
+      x = revFxn(
+        rank(
+          tapply(
+            X = data.use,
+            INDEX = as.numeric(x = ident.new),
+            FUN = mean
+          )
+        )
+      )[as.numeric(ident.new)],
+      levels = 1:length(x = levels(x = ident.new)),
+      ordered = TRUE
+    )
+  }
+  names(x = ident.new) <- names(x = ident.use)
+  object@ident <- ident.new
+  return(object)
+}
+
+#' FastWhichCells
+#' Identify cells matching certain criteria (limited to character values)
+#' @param object Seurat object
+#' @param group.by Group cells in different ways (for example, orig.ident).
+#' Should be a column name in object@meta.data
+#' @param subset.value  Return cells matching this value
+#' @param invert invert cells to return.FALSE by default
+#'
+#' @export
+#'
+#' @examples
+#' FastWhichCells(object = pbmc_small, group.by = 'res.1', subset.value = 1)
+#'
+FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
+  object <- SetAllIdent(object = object, id = group.by)
+  cells.return <- WhichCells(object = object, ident = subset.value)
+  if (invert) {
+    cells.return <- setdiff(x = object@cell.names, y = cells.return)
+  }
+  return(cells.return)
+}
+
+#' Switch identity class definition to another variable
+#'
+#' @param object Seurat object
+#' @param id Variable to switch identity class to (for example, 'DBclust.ident',
+#' the output of density clustering) Default is orig.ident - the original
+#' annotation pulled from the cell name.
+#'
+#' @return A Seurat object where object@@ident has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- SetAllIdent(object = pbmc_small, id = 'orig.ident')
+#' head(x = pbmc_small@ident)
+#'
+SetAllIdent <- function(object, id = NULL) {
+  id <- SetIfNull(x = id, default = "orig.ident")
+  if (id %in% colnames(x = object@meta.data)) {
+    cells.use <- rownames(x = object@meta.data)
+    ident.use <- object@meta.data[, id]
+    object <- SetIdent(
+      object = object,
+      cells.use = cells.use,
+      ident.use = ident.use
+    )
+  }
+  return(object)
+}
+
+#' Rename one identity class to another
+#'
+#' Can also be used to join identity classes together (for example, to merge
+#' clusters).
+#'
+#' @param object Seurat object
+#' @param old.ident.name The old identity class (to be renamed)
+#' @param new.ident.name The new name to apply
+#'
+#' @return A Seurat object where object@@ident has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' head(x = pbmc_small@ident)
+#' pbmc_small <- RenameIdent(
+#'   object = pbmc_small,
+#'   old.ident.name = 0,
+#'   new.ident.name = 'cluster_0'
+#' )
+#' head(x = pbmc_small@ident)
+#'
+RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
+  if (!old.ident.name %in% object@ident) {
+    stop(paste("Error : ", old.ident.name, " is not a current identity class"))
+  }
+  new.levels <- old.levels <- levels(x = object@ident)
+  new.levels <- old.levels
+  if (new.ident.name %in% old.levels) {
+    new.levels <- new.levels[new.levels != old.ident.name]
+  }
+  if (!(new.ident.name %in% old.levels)) {
+    new.levels[new.levels == old.ident.name] <- new.ident.name
+  }
+  ident.vector <- as.character(x = object@ident)
+  names(x = ident.vector) <- names(object@ident)
+  ident.vector[WhichCells(object = object, ident = old.ident.name)] <- new.ident.name
+  object@ident <- factor(x = ident.vector, levels = new.levels)
+  return(object)
+}
+
+#' Transfer identity class information (or meta data) from one object to another
+#'
+#' Transfers identity class information (or meta data) from one object to
+#' another, assuming the same cell barcode names are in each. Can be very useful
+#' if you have multiple Seurat objects that share a subset of underlying data.
+#'
+#' @param object.from Seurat object to transfer information from
+#' @param object.to Seurat object to transfer information onto
+#' @param data.to.transfer What data should be transferred over? Default is the
+#' identity class ("ident"), but can also include any column in
+#' object.from@@meta.data
+#' @param keep.existing For cells in object.to that are not present in
+#' object.from, keep existing data? TRUE by default. If FALSE, set to NA.
+#' @param add.cell.id1 Prefix to add (followed by an underscore) to cells in
+#'  object.from. NULL by default, in which case no prefix is added.
+#'
+#' @return A Seurat object where object@@ident or object@@meta.data has been
+#' appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' Duplicate the test object and assign random new idents to transfer
+#' pbmc_small@@ident
+#' pbmc_small2 <- SetIdent(object = pbmc_small, cells.use = pbmc_small@@cell.names,
+#'  ident.use = sample(pbmc_small@@ident))
+#' pbmc_small2@@ident
+#' pbmc_small <- TransferIdent(object.from = pbmc_small2, object.to = pbmc_small)
+#' pbmc_small@@ident
+#'
+TransferIdent <- function(object.from, object.to, data.to.transfer = "ident", keep.existing = TRUE, add.cell.id1 = NULL) {
+  old_data <- as.character(FetchData(object = object.from, vars.all = data.to.transfer)[, 1])
+  names(old_data) <- object.from@cell.names
+  if (data.to.transfer %in% c("ident", colnames(object.to@meta.data))) {
+    new_data <- FetchData(object = object.to, vars.all = data.to.transfer)
+    if (!keep.existing) {
+      new_data[, 1] <- "NA"
+    }
+    new_data <- as.character(new_data[, 1])
+  }
+  else {
+    new_data <- rep("NA", length(object.to@cell.names))
+  }
+  names(new_data) <- object.to@cell.names
+  if (!is.null(add.cell.id1)) {
+    names(old_data) <- paste(names(old_data), add.cell.id1, sep = "_")
+  }
+  new_data[names(old_data)] <- old_data
+  if (data.to.transfer == "ident") {
+    object.to <- SetIdent(object.to, cells.use = names(new_data), ident.use = new_data)
+  }
+  else {
+    object.to <- AddMetaData(object = object.to, metadata = new_data,col.name = data.to.transfer)
+  }
+  return(object.to)
+}
+
+#' Sets identity class information to be a combination of two object attributes
+#'
+#' Combined two attributes to define identity classes. Very useful if, for
+#' example, you have multiple cell types and multiple replicates, and you want
+#' to group cells based on combinations of both.
+#'
+#' @param object Seurat object
+#' @param attribute.1 First attribute for combination. Default is "ident"
+#' @param attribute.2 Second attribute for combination. Default is "orig.ident"
+#' @return A Seurat object where object@@ident has been appropriately modified
+#'
+#' @export
+#'
+#' @examples
+#' groups <- sample(c("group1", "group2", "group3"), size = 80, replace = TRUE)
+#' celltype <- sample(c("celltype1", "celltype2", "celltype3"), size = 80, replace = TRUE)
+#' new.metadata <- data.frame(groups = groups, celltype = celltype)
+#' rownames(new.metadata) <- pbmc_small@@cell.names
+#' pbmc_small <- AddMetaData(object = pbmc_small, metadata = new.metadata)
+#' pbmc_small <- CombineIdent(object = pbmc_small, attribute.1 = "celltype", attribute.2 = "groups")
+#' pbmc_small@@ident
+#'
+CombineIdent <- function(object, attribute.1 = "ident", attribute.2 = "orig.ident") {
+  old_data <- FetchData(object = object, vars.all = c(attribute.1, attribute.2))
+  new_ids <- sapply(X = 1:nrow(old_data), FUN = function(x){
+    paste(as.character(old_data[x, 1]), as.character(old_data[x, 2]), sep = "_")
+  })
+  object <- SetIdent(object = object,cells.use = object@cell.names, ident.use = new_ids)
+}
+
+#' Add samples into existing Seurat object.
+#'
+#' @param object Seurat object
+#' @param project Project name (string)
+#' @param new.data Data matrix for samples to be added
+#' @param min.cells Include genes with detected expression in at least this
+#' many cells
+#' @param min.genes Include cells where at least this many genes are detected
+#' @param is.expr Expression threshold for 'detected' gene
+#' @param do.normalize Normalize the data after merging. Default is TRUE.
+#' If set, will perform the same normalization strategy as stored in the object
+#' @param scale.factor scale factor in the log normalization
+#' @param do.scale In object@@scale.data, perform row-scaling (gene-based z-score)
+#' @param do.center In object@@scale.data, perform row-centering (gene-based
+#' centering)
+#' @param names.field For the initial identity class for each cell, choose this
+#' field from the cell's column name
+#' @param names.delim For the initial identity class for each cell, choose this
+#' delimiter from the cell's column name
+#' @param meta.data Additional metadata to add to the Seurat object. Should be
+#' a data frame where the rows are cell names, and the columns are additional
+#' metadata fields
+#' @param add.cell.id String to be appended to the names of all cells in
+#' new.data. E.g. if add.cell.id = "rep1", "cell1" becomes "cell1.rep1"
+#'
+#' @import Matrix
+#' @importFrom dplyr full_join
+#'
+#' @export
+#'
+#' @examples
+#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[1:40])
+#' pbmc1
+#' pbmc2 <- SubsetData(object = pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+#' pbmc2_data <- pbmc2@data
+#' dim(pbmc2_data)
+#' pbmc_added <- AddSamples(object = pbmc1, new.data = pbmc2_data)
+#' pbmc_added
+#'
+AddSamples <- function(
+  object,
+  new.data,
+  project = NULL,
+  min.cells = 0,
+  min.genes = 0,
+  is.expr = 0,
+  do.normalize = TRUE,
+  scale.factor = 1e4,
+  do.scale = FALSE,
+  do.center = FALSE,
+  names.field = 1,
+  names.delim = "_",
+  meta.data = NULL,
+  add.cell.id = NULL
+) {
+  if (length(x = object@raw.data) < 2) {
+    stop("Object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
+  }
+  if (!missing(x = add.cell.id)) {
+    colnames(x = new.data) <- paste(
+      add.cell.id,
+      colnames(x = new.data),
+      sep = "_"
+    )
+  }
+  if (any(colnames(x = new.data) %in% object@cell.names)) {
+    stop("Duplicate cell names, please provide 'add.cell.id' for unique names")
+  }
+  combined.data <- RowMergeSparseMatrices(
+    mat1 = object@raw.data[, object@cell.names],
+    mat2 = new.data
+  )
+  if (is.null(x = meta.data)) {
+    filler <- matrix(NA, nrow = ncol(new.data), ncol = ncol(object@meta.data))
+    rownames(filler) <- colnames(new.data)
+    colnames(filler) <- colnames(object@meta.data)
+    filler <- as.data.frame(filler)
+    combined.meta.data <- rbind(object@meta.data, filler)
+  } else {
+    combined.meta.data <- suppressMessages(
+      suppressWarnings(
+        full_join(x = object@meta.data, y = meta.data)
+      )
+    )
+  }
+  combined.meta.data$nGene <- NULL
+  combined.meta.data$nUMI <- NULL
+  if (!is.null(x = add.cell.id)) {
+    combined.meta.data$orig.ident <- factor(
+      x = combined.meta.data$orig.ident,
+      levels = c(levels(x = combined.meta.data$orig.ident), add.cell.id)
+    )
+    combined.meta.data[colnames(new.data), ] <- add.cell.id
+  }
+  project <- SetIfNull(x = project, default = object@project.name)
+  new.object <- CreateSeuratObject(
+    raw.data = combined.data,
+    project = project,
+    min.cells = min.cells,
+    min.genes = min.genes,
+    is.expr = is.expr,
+    scale.factor = scale.factor,
+    do.scale = F,
+    do.center = F,
+    names.field = names.field,
+    names.delim = names.delim
+  )
+  if (do.normalize) {
+    normalization.method.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "normalization.method"
+    )
+    scale.factor.use = GetCalcParam(
+      object = object,
+      calculation = "NormalizeData",
+      parameter = "scale.factor"
+    )
+    if (is.null(x = normalization.method.use)) {
+      normalization.method.use <- "LogNormalize"
+      scale.factor.use <- 10000
+    }
+    new.object <- NormalizeData(
+      object = new.object,
+      assay.type = "RNA",
+      normalization.method = normalization.method.use,
+      scale.factor = scale.factor.use
+    )
+  }
+  if (do.scale | do.center) {
+    new.object <- ScaleData(
+      object = new.object,
+      do.scale = do.scale,
+      do.center = do.center
+    )
+  }
+  new.object@meta.data$orig.ident <- NULL
+  new.object@meta.data <- cbind(new.object@meta.data, combined.meta.data)
+  return(new.object)
+}
+
+# add values in log-space
+#
+# @param x Values
+#
+# @return values added in log space
+#
+LogAdd <- function(x) {
+  mpi <- max(x)
+  return(mpi + log(x = sum(exp(x = x - mpi))))
+}
+
+# Set a default value if an object is null
+#
+# @param x An object to set if it's null
+# @param default The value to provide if x is null
+#
+# @return default if x is null, else x
+#
+SetIfNull <- function(x, default) {
+  if (is.null(x = x)) {
+    return(default)
+  } else {
+    return(x)
+  }
+}
