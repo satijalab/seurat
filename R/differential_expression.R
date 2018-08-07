@@ -1,3 +1,247 @@
+#' @include generics.R
+#'
+NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+globalVariables(
+  names = c('myAUC', 'p_val', 'avg_logFC'),
+  package = 'Seurat',
+  add = TRUE
+)
+#' Gene expression markers for all identity classes
+#'
+#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
+#'
+#' @inheritParams FindMarkers
+#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
+#'
+#' @return Matrix containing a ranked list of putative markers, and associated
+#' statistics (p-values, ROC score, etc.)
+#'
+#' @export
+#' @examples
+#' all_markers <- FindAllMarkers(object = pbmc_small)
+#' head(x = all_markers)
+#'
+FindAllMarkers <- function(
+  object,
+  assay.use = NULL,
+  features.use = NULL,
+  logfc.threshold = 0.25,
+  test.use = "wilcox",
+  min.pct = 0.1,
+  min.diff.pct = -Inf,
+  verbose = TRUE,
+  only.pos = FALSE,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  latent.vars = NULL,
+  min.cells.feature = 3,
+  min.cells.group = 3,
+  pseudocount.use = 1,
+  return.thresh = 1e-2,
+  ...
+) {
+  if ((test.use == "roc") && (return.thresh == 1e-2)) {
+    return.thresh <- 0.7
+  }
+  idents.all <- sort(x = unique(x = Idents(object = object)))
+  genes.de <- list()
+  for (i in 1:length(x = idents.all)) {
+    genes.de[[i]] <- tryCatch(
+      {
+        FindMarkers(
+          object = object,
+          assay.use = assay.use,
+          ident.1 = idents.all[i],
+          ident.2 = NULL,
+          features.use = features.use,
+          logfc.threshold = logfc.threshold,
+          test.use = test.use,
+          min.pct = min.pct,
+          min.diff.pct = min.diff.pct,
+          verbose = verbose,
+          only.pos = only.pos,
+          max.cells.per.ident = max.cells.per.ident,
+          random.seed = random.seed,
+          latent.vars = latent.vars,
+          min.cells.feature = min.cells.feature,
+          min.cells.group = min.cells.group,
+          pseudocount.use = pseudocount.use,
+          ...
+        )
+      },
+      error = function(cond){
+        return(NULL)
+      }
+    )
+    if (verbose) {
+      message(paste("Calculating cluster", idents.all[i]))
+    }
+  }
+  gde.all <- data.frame()
+  for (i in 1:length(x = idents.all)) {
+    if (is.null(x = unlist(x = genes.de[i]))) {
+      next
+    }
+    gde <- genes.de[[i]]
+    if (nrow(x = gde) > 0) {
+      if (test.use == "roc") {
+        gde <- subset(
+          x = gde,
+          subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
+        )
+      } else {
+        gde <- gde[order(gde$p_val, -gde$avg_logFC), ]
+        gde <- subset(x = gde, subset = p_val < return.thresh)
+      }
+      if (nrow(x = gde) > 0) {
+        gde$cluster <- idents.all[i]
+        gde$gene <- rownames(x = gde)
+      }
+      if (nrow(x = gde) > 0) {
+        gde.all <- rbind(gde.all, gde)
+      }
+    }
+  }
+  if ((only.pos) && nrow(gde.all) > 0) {
+    return(subset(x = gde.all, subset = avg_logFC > 0))
+  }
+  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
+  if (nrow(gde.all) == 0) {
+    warning("No DE genes identified.")
+  }
+  return(gde.all)
+}
+
+#' Finds markers that are conserved between the two groups
+#'
+#' @param object Seurat object
+#' @param ident.1 Identity class to define markers for
+#' @param ident.2 A second identity class for comparison. If NULL (default) -
+#' use all other cells for comparison.
+#' @param grouping.var grouping variable
+#' @param assay.type Type of assay to fetch data for (default is RNA)
+#' @param meta.method method for combining p-values. Should be a function from
+#' the metap package (NOTE: pass the function, not a string)
+#' @param \dots parameters to pass to FindMarkers
+#'
+#' @return Matrix containing a ranked list of putative conserved markers, and
+#' associated statistics (p-values within each group and a combined p-value
+#' (such as Fishers combined p-value or others from the MetaDE package),
+#' percentage of cells expressing the marker, average differences)
+#'
+#' @import metap
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' pbmc_small
+#' # Create a simulated grouping variable
+#' pbmc_small@meta.data$groups <- sample(
+#'   x = c("g1", "g2"),
+#'   size = length(x = pbmc_small@cell.names),
+#'   replace = TRUE
+#' )
+#' FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
+#' }
+#'
+FindConservedMarkers <- function(
+  object,
+  ident.1,
+  ident.2 = NULL,
+  grouping.var,
+  assay.type = "RNA",
+  meta.method = minimump,
+  ...
+) {
+  if(class(meta.method) != "function") {
+    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
+  }
+  object.var <- FetchData(object = object, vars.all = grouping.var)
+  object <- SetIdent(
+    object = object,
+    cells.use = object@cell.names,
+    ident.use = paste(object@ident, object.var[, 1], sep = "_")
+  )
+  levels.split <- names(x = sort(x = table(object.var[, 1])))
+  num.groups <- length(levels.split)
+  cells <- list()
+  for (i in 1:num.groups) {
+    cells[[i]] <- rownames(
+      x = object.var[object.var[, 1] == levels.split[i], , drop = FALSE]
+    )
+  }
+  marker.test <- list()
+  # do marker tests
+  for (i in 1:num.groups) {
+    level.use <- levels.split[i]
+    ident.use.1 <- paste(ident.1, level.use, sep = "_")
+    if(!ident.use.1 %in% object@ident) {
+      stop(paste0("Identity: ", ident.1, " not present in group ", level.use))
+    }
+    cells.1 <- WhichCells(object = object, ident = ident.use.1)
+    if (is.null(x = ident.2)) {
+      cells.2 <- setdiff(x = cells[[i]], y = cells.1)
+      ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
+      if (length(x = ident.use.2) == 0) {
+        stop(paste("Only one identity class present:", ident.1))
+      }
+    }
+    if (! is.null(x = ident.2)) {
+      ident.use.2 <- paste(ident.2, level.use, sep = "_")
+    }
+    cat(
+      paste0(
+        "Testing ",
+        ident.use.1,
+        " vs ",
+        paste(ident.use.2, collapse = ", "), "\n"
+      ),
+      file = stderr()
+    )
+    if(!ident.use.2 %in% object@ident) {
+      stop(paste0("Identity: ", ident.2, " not present in group ", level.use))
+    }
+    marker.test[[i]] <- FindMarkers(
+      object = object,
+      assay.type = assay.type,
+      ident.1 = ident.use.1,
+      ident.2 = ident.use.2,
+      ...
+    )
+  }
+  genes.conserved <- Reduce(intersect, lapply(marker.test, FUN = function(x) rownames(x)))
+  markers.conserved <- list()
+  for (i in 1:num.groups) {
+    markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
+    colnames(x = markers.conserved[[i]]) <- paste(
+      levels.split[i],
+      colnames(x = markers.conserved[[i]]),
+      sep="_"
+    )
+  }
+  markers.combined <- Reduce(cbind, markers.conserved)
+  pval.codes <- paste(levels.split, "p_val", sep = "_")
+  markers.combined$max_pval <- apply(
+    X = markers.combined[, pval.codes],
+    MARGIN = 1,
+    FUN = max
+  )
+  combined.pval <- data.frame(cp = apply(X = markers.combined[, pval.codes], MARGIN = 1, FUN = function(x) meta.method(x)$p))
+  colnames(combined.pval) <- paste0(as.character(formals()$meta.method), "_p_val")
+  markers.combined <- cbind(markers.combined, combined.pval)
+  markers.combined <- markers.combined[order(markers.combined[,paste0(as.character(formals()$meta.method), "_p_val")]), ]
+  return(markers.combined)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for Seurat-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
 #'
@@ -299,550 +543,771 @@ FindMarkers.Seurat <- function(
   return(de.results)
 }
 
-globalVariables(
-  names = c('myAUC', 'p_val', 'avg_logFC'),
-  package = 'Seurat',
-  add = TRUE
-)
-#' Gene expression markers for all identity classes
-#'
-#' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
-#'
-#' @inheritParams FindMarkers
-#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
-#'
-#' @return Matrix containing a ranked list of putative markers, and associated
-#' statistics (p-values, ROC score, etc.)
-#'
-#' @export
-#' @examples
-#' all_markers <- FindAllMarkers(object = pbmc_small)
-#' head(x = all_markers)
-#'
-FindAllMarkers <- function(
-  object,
-  assay.use = NULL,
-  features.use = NULL,
-  logfc.threshold = 0.25,
-  test.use = "wilcox",
-  min.pct = 0.1,
-  min.diff.pct = -Inf,
-  verbose = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  latent.vars = NULL,
-  min.cells.feature = 3,
-  min.cells.group = 3,
-  pseudocount.use = 1,
-  return.thresh = 1e-2,
-  ...
-) {
-  if ((test.use == "roc") && (return.thresh == 1e-2)) {
-    return.thresh <- 0.7
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# internal function to calculate AUC values
+#
+AUCMarkerTest <- function(data1, data2, mygenes, print.bar = TRUE) {
+  myAUC <- unlist(x = lapply(
+    X = mygenes,
+    FUN = function(x) {
+      return(DifferentialAUC(
+        x = as.numeric(x = data1[x, ]),
+        y = as.numeric(x = data2[x, ])
+      ))
+    }
+  ))
+  myAUC[is.na(x = myAUC)] <- 0
+  if (print.bar) {
+    iterate.fxn <- pblapply
+  } else {
+    iterate.fxn <- lapply
   }
-  idents.all <- sort(x = unique(x = Idents(object = object)))
-  genes.de <- list()
-  for (i in 1:length(x = idents.all)) {
-    genes.de[[i]] <- tryCatch(
-      {
-        FindMarkers(
-          object = object,
-          assay.use = assay.use,
-          ident.1 = idents.all[i],
-          ident.2 = NULL,
-          features.use = features.use,
-          logfc.threshold = logfc.threshold,
-          test.use = test.use,
-          min.pct = min.pct,
-          min.diff.pct = min.diff.pct,
-          verbose = verbose,
-          only.pos = only.pos,
-          max.cells.per.ident = max.cells.per.ident,
-          random.seed = random.seed,
-          latent.vars = latent.vars,
-          min.cells.feature = min.cells.feature,
-          min.cells.group = min.cells.group,
-          pseudocount.use = pseudocount.use,
-          ...
+  avg_diff <- unlist(x = iterate.fxn(
+    X = mygenes,
+    FUN = function(x) {
+      return(
+        ExpMean(
+          x = as.numeric(x = data1[x, ])
+        ) - ExpMean(
+          x = as.numeric(x = data2[x, ])
         )
-      },
-      error = function(cond){
-        return(NULL)
-      }
-    )
-    if (verbose) {
-      message(paste("Calculating cluster", idents.all[i]))
+      )
     }
-  }
-  gde.all <- data.frame()
-  for (i in 1:length(x = idents.all)) {
-    if (is.null(x = unlist(x = genes.de[i]))) {
-      next
-    }
-    gde <- genes.de[[i]]
-    if (nrow(x = gde) > 0) {
-      if (test.use == "roc") {
-        gde <- subset(
-          x = gde,
-          subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
-        )
-      } else {
-        gde <- gde[order(gde$p_val, -gde$avg_logFC), ]
-        gde <- subset(x = gde, subset = p_val < return.thresh)
-      }
-      if (nrow(x = gde) > 0) {
-        gde$cluster <- idents.all[i]
-        gde$gene <- rownames(x = gde)
-      }
-      if (nrow(x = gde) > 0) {
-        gde.all <- rbind(gde.all, gde)
-      }
-    }
-  }
-  if ((only.pos) && nrow(gde.all) > 0) {
-    return(subset(x = gde.all, subset = avg_logFC > 0))
-  }
-  rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
-  if (nrow(gde.all) == 0) {
-    warning("No DE genes identified.")
-  }
-  return(gde.all)
+  ))
+  toRet <- data.frame(cbind(myAUC, avg_diff), row.names = mygenes)
+  toRet <- toRet[rev(x = order(toRet$myAUC)), ]
+  return(toRet)
 }
 
-#' Gene expression markers of identity classes defined by a phylogenetic clade
-#'
-#' Finds markers (differentially expressed genes) based on a branching point (node) in
-#' the phylogenetic tree. Markers that define clusters in the left branch are positive markers.
-#' Markers that define the right branch are negative markers.
-#'
-#' @inheritParams FindMarkers
-#' @param node The node in the phylogenetic tree to use as a branch point
-#' @param tree.use Can optionally pass the tree to be used. Default uses the tree in object@@cluster.tree
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param ... Additional arguments passed to FindMarkers
-#'
-#' @return Matrix containing a ranked list of putative markers, and associated
-#' statistics (p-values, ROC score, etc.)
-#'
-#' @export
-#'
-#' @examples
-#' FindMarkersNode(pbmc_small, 5)
-#'
-FindMarkersNode <- function(
-  object,
-  node,
-  tree.use = NULL,
-  genes.use = NULL,
-  logfc.threshold = 0.25,
-  test.use = "wilcox",
-  assay.type = "RNA",
+#internal function to run mcdavid et al. DE test
+#
+#' @importFrom stats sd dnorm
+#
+bimodLikData <- function(x, xmin = 0) {
+  x1 <- x[x <= xmin]
+  x2 <- x[x > xmin]
+  xal <- MinMax(
+    data = length(x = x2) / length(x = x),
+    min = 1e-5,
+    max = (1 - 1e-5)
+  )
+  likA <- length(x = x1) * log(x = 1 - xal)
+  if (length(x = x2) < 2) {
+    mysd <- 1
+  } else {
+    mysd <- sd(x = x2)
+  }
+  likB <- length(x = x2) *
+    log(x = xal) +
+    sum(dnorm(x = x2, mean = mean(x = x2), sd = mysd, log = TRUE))
+  return(likA + likB)
+}
+
+# Differential expression using DESeq2
+#
+# Identifies differentially expressed genes between two groups of cells using
+# DESeq2
+#
+# @references Love MI, Huber W and Anders S (2014). "Moderated estimation of
+# fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
+# https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+# @param data.use Data matrix to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param verbose Print a progress bar
+# @param ... Extra parameters to pass to DESeq2::results
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @details
+# This test does not support pre-filtering of genes based on average difference
+# (or percent detection rate) between cell groups. However, genes may be
+# pre-filtered based on their minimum detection rate (min.pct) across both cell
+# groups. To use this method, please install DESeq2, using the instructions at
+#  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+DESeq2DETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
   ...
 ) {
-  data.use <- GetAssayData(
-    object = object,
-    assay.type = assay.type
+  if (!'DESeq2' %in% rownames(x = installed.packages())) {
+    stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  group.info$wellKey <- rownames(x = group.info)
+  dds1 <- DESeq2::DESeqDataSetFromMatrix(
+    countData = data.use,
+    colData = group.info,
+    design = ~ group
   )
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
-  tree <- SetIfNull(x = tree.use, default = object@cluster.tree[[1]])
-  ident.order <- tree$tip.label
-  nodes.1 <- ident.order[GetLeftDescendants(tree = tree, node = node)]
-  nodes.2 <- ident.order[GetRightDescendants(tree = tree, node = node)]
-  #print(nodes.1)
-  #print(nodes.2)
-  to.return <- FindMarkers(
-    object = object,
-    assay.type = assay.type,
-    ident.1 = nodes.1,
-    ident.2 = nodes.2,
-    genes.use = genes.use,
-    logfc.threshold = logfc.threshold,
-    test.use = test.use,
+  dds1 <- DESeq2::estimateSizeFactors(object = dds1)
+  dds1 <- DESeq2::estimateDispersions(object = dds1, fitType = "local")
+  dds1 <- DESeq2::nbinomWaldTest(object = dds1)
+  res <- DESeq2::results(
+    object = dds1,
+    contrast = c("group", "Group1", "Group2"),
+    alpha = 0.05,
     ...
+  )
+  to.return <- data.frame(p_val = res$pvalue, row.names = rownames(res))
+  return(to.return)
+}
+
+# internal function to calculate AUC values
+#' @importFrom ROCR prediction performance
+#'
+DifferentialAUC <- function(x, y) {
+  prediction.use <- prediction(
+    predictions = c(x, y),
+    labels = c(rep(x = 1, length(x = x)), rep(x = 0, length(x = y))),
+    label.ordering = 0:1
+  )
+  perf.use <- performance(prediction.obj = prediction.use, measure = "auc")
+  auc.use <- round(x = perf.use@y.values[[1]], digits = 3)
+  return(auc.use)
+}
+
+#internal function to run mcdavid et al. DE test
+#
+#' @importFrom stats pchisq
+#
+DifferentialLRT <- function(x, y, xmin = 0) {
+  lrtX <- bimodLikData(x = x)
+  lrtY <- bimodLikData(x = y)
+  lrtZ <- bimodLikData(x = c(x, y))
+  lrt_diff <- 2 * (lrtX + lrtY - lrtZ)
+  return(pchisq(q = lrt_diff, df = 3, lower.tail = F))
+}
+
+#internal function to run Tobit DE test
+#
+#' @importFrom stats pchisq logLik
+#
+DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
+  my.df <- data.frame(
+    c(x1, x2),
+    c(rep(x = 0, length(x = x1)), rep(x = 1, length(x = x2)))
+  )
+  colnames(x = my.df) <- c("Expression", "Stat")
+  #model.v1=vgam(Expression~1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v1 <- TobitFitter(
+    x = my.df,
+    modelFormulaStr = "Expression~1",
+    lower = lower,
+    upper = upper
+  )
+  #model.v2=vgam(Expression~Stat+1,family = tobit(Lower = lower,Upper = upper),data = my.df)
+  model.v2 <- TobitFitter(
+    x = my.df,
+    modelFormulaStr = "Expression~Stat+1",
+    lower = lower,
+    upper = upper
+  )
+  # if (is.null(x = model.v1) == FALSE && is.null(x = model.v2) == FALSE) {
+  if (! is.null(x = model.v1) && ! is.null(x = model.v2)) {
+    p <- pchisq(
+      q = 2 * (logLik(object = model.v2) - logLik(object = model.v1)),
+      df = 1,
+      lower.tail = FALSE
+    )
+  } else {
+    p <- 1
+  }
+  return(p)
+}
+
+# Likelihood ratio test for zero-inflated data
+#
+# Identifies differentially expressed genes between two groups of cells using
+# the LRT model proposed in McDavid et al, Bioinformatics, 2013
+#
+# @inheritParams FindMarkers
+# @param object Seurat object
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param assay.type Type of assay to fetch data for (default is RNA)
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @export
+# @examples
+# pbmc_small
+# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+DiffExpTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(x = data.use),
+      FUN = function(x) {
+        return(DifferentialLRT(
+          x = as.numeric(x = data.use[x, cells.1]),
+          y = as.numeric(x = data.use[x, cells.2])
+        ))
+      }
+    )
+  )
+  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  return(to.return)
+}
+
+# Differential expression testing using Student's t-test
+#
+# Identify differentially expressed genes between two groups of cells using
+# the Student's t-test
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @importFrom stats t.test
+# @importFrom pbapply pblapply
+#
+# @export
+#
+# @examples
+# pbmc_small
+# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+DiffTTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(data.use),
+      FUN = function(x) {
+        t.test(x = data.use[x, cells.1], y = data.use[x, cells.2])$p.value
+      }
+    )
+  )
+  to.return <- data.frame(p_val,row.names = rownames(data.use))
+  return(to.return)
+}
+
+# Tests for UMI-count based data
+#
+# Identifies differentially expressed genes between two groups of cells using
+# either a negative binomial or poisson generalized linear model
+#
+# @param data.use Data to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param min.cells Minimum number of cells threshold
+# @param latent.vars Latent variables to test
+# @param test.use parameterizes the glm
+# @param verbose Print progress bar
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+#' @importFrom MASS glm.nb
+#' @importFrom pbapply pbapply
+#' @importFrom stats var as.formula
+#
+# @export
+#
+#@examples
+# pbmc_small
+# # Note, not recommended for particularly small datasets - expect warnings
+# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+GLMDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  min.cells = 3,
+  latent.vars = NULL,
+  test.use = NULL,
+  verbose = TRUE
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars <- cbind(group.info, latent.vars)
+  latent.var.names <- colnames(latent.vars)
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- unlist(
+    x = mysapply(
+      X = 1:nrow(data.use),
+      FUN = function(x) {
+        latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
+        # check that gene is expressed in specified number of cells in one group
+        if (sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells ||
+            sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells) {
+          warning(paste0(
+            "Skipping gene --- ",
+            x,
+            ". Fewer than ",
+            min.cells,
+            " in at least one of the two clusters."
+          ))
+          return(2)
+        }
+        # check that variance between groups is not 0
+        if (var(x = latent.vars$GENE) == 0) {
+          warning(paste0(
+            "Skipping gene -- ",
+            x,
+            ". No variance in expression between the two clusters."
+          ))
+          return(2)
+        }
+        fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.var.names, collapse = "+")))
+        p.estimate <- 2
+        if(test.use == "negbinom"){
+          try(
+            expr = p.estimate <- summary(
+              object = glm.nb(formula = fmla, data = latent.vars)
+            )$coef[2, 4],
+            silent = TRUE
+          )
+          return(p.estimate)
+        } else if (test.use == "poisson"){
+          return(
+            summary(
+              object = glm(
+                formula = fmla,
+                data = latent.vars,
+                family = "poisson"
+              )
+            )$coef[2,4]
+          )
+        }
+      }
+    )
+  )
+  features.keep <- rownames(data.use)
+  if (length(x = which(x = p_val == 2)) > 0){
+    features.keep <- features.keep[-which(x = p_val == 2)]
+    p_val <- p_val[! p_val == 2]
+  }
+  to.return <- data.frame(p_val, row.names = features.keep)
+  return(to.return)
+}
+
+# Documentation
+#
+LRDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE,
+  ...
+) {
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  data.use <- data.use[, rownames(group.info)]
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = data.use),
+    FUN = function(x) {
+      model1 <- glm(group.info$group ~ data.use[x, ], family = "binomial")
+      model2 <- glm(group.info$group ~ 1, family = "binomial")
+      lrtest <- lrtest(model1, model2)
+      return(lrtest$Pr[2])
+    }
+  )
+  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  return(to.return)
+}
+
+# ROC-based marker discovery
+#
+# Identifies 'markers' of gene expression using ROC analysis. For each gene,
+# evaluates (using AUC) a classifier built on that gene alone, to classify
+# between two groups of cells.
+#
+# An AUC value of 1 means that expression values for this gene alone can
+# perfectly classify the two groupings (i.e. Each of the cells in cells.1
+# exhibit a higher level than each of the cells in cells.2). An AUC value of 0
+# also means there is perfect classification, but in the other direction. A
+# value of 0.5 implies that the gene has no predictive power to classify the
+# two groups.
+#
+# @return Returns a 'predictive power' (abs(AUC-0.5)) ranked matrix of
+# putative differentially expressed genes.
+#
+# @export
+#
+# @examples
+# pbmc_small
+# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+MarkerTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  to.return <- AUCMarkerTest(
+    data1 = data.use[, cells.1],
+    data2 = data.use[, cells.2],
+    mygenes = rownames(data.use),
+    print.bar = verbose
+  )
+  to.return$power <- abs(x = to.return$myAUC - 0.5) * 2
+  return(to.return)
+}
+
+# Differential expression using MAST
+#
+# Identifies differentially expressed genes between two groups of cells using
+# a hurdle model tailored to scRNA-seq data. Utilizes the MAST package to run
+# the DE testing.
+#
+# @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
+# Analysis of Single Cell Transcriptomics. R package version 1.2.1.
+# https://github.com/RGLab/MAST/
+#
+# @param data.use Data to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param latent.vars Confounding variables to adjust for in DE test. Default is
+# "nUMI", which adjusts for cellular depth (i.e. cellular detection rate). For
+# non-UMI based data, set to nGene instead.
+# @param verbose print output
+# @param \dots Additional parameters to zero-inflated regression (zlm) function
+# in MAST
+# @details
+# To use this method, please install MAST, using instructions at https://github.com/RGLab/MAST/
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+#' @importFrom stats relevel
+#' @importFrom utils installed.packages
+#
+# @export
+#
+# @examples
+# \dontrun{
+#   pbmc_small
+#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+MASTDETest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  latent.vars = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # Check for MAST
+  if (!'MAST' %in% rownames(x = installed.packages())) {
+    stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
+  }
+  if (length(x = latent.vars) > 0) {
+    latent.vars <- scale(x = latent.vars)
+  }
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  latent.vars.names <- c("condition", colnames(latent.vars))
+  latent.vars <- cbind(latent.vars, group.info)
+  latent.vars$wellKey <- rownames(x = latent.vars)
+  fdat <- data.frame(rownames(x = data.use))
+  colnames(x = fdat)[1] <- "primerid"
+  rownames(x = fdat) <- fdat[, 1]
+  sca <- MAST::FromMatrix(
+    exprsArray = as.matrix(x = data.use),
+    cData = latent.vars,
+    fData = fdat
+  )
+  cond <- factor(x = SummarizedExperiment::colData(sca)$group)
+  cond <- relevel(x = cond, ref = "Group1")
+  SummarizedExperiment::colData(sca)$condition <- cond
+  fmla <- as.formula(
+    object = paste0(" ~ ", paste(latent.vars.names, collapse = "+"))
+  )
+  zlmCond <- MAST::zlm(formula = fmla, sca = sca, ...)
+  summaryCond <- summary(object = zlmCond, doLRT = 'conditionGroup2')
+  summaryDt <- summaryCond$datatable
+  # fcHurdle <- merge(
+  #   summaryDt[contrast=='conditionGroup2' & component=='H', .(primerid, `Pr(>Chisq)`)], #hurdle P values
+  #   summaryDt[contrast=='conditionGroup2' & component=='logFC', .(primerid, coef, ci.hi, ci.lo)], by='primerid'
+  # ) #logFC coefficients
+  # fcHurdle[,fdr:=p.adjust(`Pr(>Chisq)`, 'fdr')]
+  p_val <- summaryDt[summaryDt[, "component"] == "H", 4]
+  genes.return <- summaryDt[summaryDt[, "component"] == "H", 1]
+  # p_val <- subset(summaryDt, component == "H")[, 4]
+  # genes.return <- subset(summaryDt, component == "H")[, 1]
+  to.return <- data.frame(p_val, row.names = genes.return)
+  return(to.return)
+}
+
+# compare two negative binomial regression models
+# model one uses only common factors (com.fac)
+# model two additionally uses group factor (grp.fac)
+#
+#' @importFrom stats glm anova coef
+#
+NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
+  tab <- as.matrix(x = table(y > 0, latent.data[, grp.fac]))
+  freqs <- tab['TRUE', ] / apply(X = tab, MARGIN = 2, FUN = sum)
+  fit2 <- 0
+  fit4 <- 0
+  try(
+    expr = fit2 <- glm(
+      formula = y ~ .,
+      data = latent.data[, com.fac, drop = FALSE],
+      family = MASS::negative.binomial(theta = theta)
+    ),
+    silent=TRUE
+  )
+  try(
+    fit4 <- glm(
+      formula = y ~ .,
+      data = latent.data[, c(com.fac, grp.fac)],
+      family = MASS::negative.binomial(theta = theta)
+    ),
+    silent = TRUE
+  )
+  if (class(x = fit2)[1] == 'numeric' | class(x = fit4)[1] == 'numeric') {
+    message('One of the glm.nb calls failed')
+    return(c(rep(x = NA, 5), freqs))
+  }
+  pval <- anova(fit2, fit4, test = 'Chisq')$'Pr(>Chi)'[2]
+  foi <- 2 + length(x = com.fac)
+  log2.fc <- log2(x = 1 / exp(x = coef(object = fit4)[foi]))
+  ret <- c(
+    fit2$deviance,
+    fit4$deviance,
+    pval,
+    coef(object = fit4)[foi],
+    log2.fc,
+    freqs
+  )
+  names(x = ret) <- c(
+    'dev1',
+    'dev2',
+    'pval',
+    'coef',
+    'log2.fc',
+    'freq1',
+    'freq2'
+  )
+  return(ret)
+}
+
+# given a UMI count matrix, estimate NB theta parameter for each gene
+# and use fit of relationship with mean to assign regularized theta to each gene
+#
+#' @importFrom stats glm loess poisson
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
+RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) {
+  genes.regress <- rownames(x = cm)
+  bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
+  max.bin <- max(bin.ind)
+  message('Running Poisson regression (to get initial mean), and theta estimation per gene')
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
+  theta.estimate <- c()
+  for (i in 1:max.bin) {
+    genes.bin.regress <- genes.regress[bin.ind == i]
+    bin.theta.estimate <- unlist(
+      x = parallel::mclapply(
+        X = genes.bin.regress,
+        FUN = function(j) {
+          return(as.numeric(x = MASS::theta.ml(
+            y = cm[j, ],
+            mu = glm(
+              formula = cm[j, ] ~ .,
+              data = latent.data,
+              family = poisson
+            )$fitted
+          )))
+        }
+      ),
+      use.names = FALSE
+    )
+    theta.estimate <- c(theta.estimate, bin.theta.estimate)
+    setTxtProgressBar(pb = pb, value = i)
+  }
+  close(con = pb)
+  UMI.mean <- apply(X = cm, MARGIN = 1, FUN = mean)
+  var.estimate <- UMI.mean + (UMI.mean ^ 2) / theta.estimate
+  for (span in c(1/3, 1/2, 3/4, 1)) {
+    fit <- loess(
+      formula = log10(x = var.estimate) ~ log10(x = UMI.mean),
+      span = span
+    )
+    if (! any(is.na(x = fit$fitted))) {
+      message(sprintf(
+        'Used loess with span %1.2f to fit mean-variance relationship\n',
+        span
+      ))
+      break
+    }
+  }
+  if (any(is.na(x = fit$fitted))) {
+    stop('Problem when fitting NB gene variance in RegularizedTheta - NA values were fitted.')
+  }
+  theta.fit <- (UMI.mean ^ 2) / ((10 ^ fit$fitted) - UMI.mean)
+  names(x = theta.fit) <- genes.regress
+  to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
+  if (any(to.fix)) {
+    message(
+      'Fitted theta below ',
+      min.theta,
+      ' for ',
+      sum(to.fix),
+      ' genes, setting them to ',
+      min.theta
+    )
+    theta.fit[to.fix] <- min.theta
+  }
+  return(theta.fit)
+}
+
+#internal function to run Tobit DE test
+TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
+  p_val <- unlist(x = lapply(
+    X = mygenes,
+    FUN = function(x) {
+      return(DifferentialTobit(
+        x1 = as.numeric(x = data1[x, ]),
+        x2 = as.numeric(x = data2[x, ])
+      ))}
+  ))
+  p_val[is.na(x = p_val)] <- 1
+  if (print.bar) {
+    iterate.fxn <- pblapply
+  } else {
+    iterate.fxn <- lapply
+  }
+  toRet <- data.frame(p_val, row.names = mygenes)
+  return(toRet)
+}
+
+#internal function to run Tobit DE test
+#credit to Cole Trapnell for this
+#
+#' @importFrom stats as.formula
+#
+TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf) {
+  PackageCheck('VGAM')
+  tryCatch(
+    expr = return(suppressWarnings(expr = VGAM::vgam(
+      formula = as.formula(object = modelFormulaStr),
+      family = VGAM::tobit(Lower = lower, Upper = upper),
+      data = x
+    ))),
+    #warning = function(w) { FM_fit },
+    error = function(e) { NULL }
+  )
+}
+
+# Differential expression testing using Tobit models
+#
+# Identifies differentially expressed genes between two groups of cells using
+# Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# genes.
+#
+# @export
+#
+# @examples
+# pbmc_small
+# \dontrun{
+# TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# }
+#
+TobitTest <- function(
+  data.use,
+  cells.1,
+  cells.2,
+  verbose = TRUE
+) {
+  to.return <- TobitDiffExpTest(
+    data1 = data.use[, cells.1],
+    data2 = data.use[, cells.2],
+    mygenes = rownames(data.use),
+    print.bar = verbose
   )
   return(to.return)
 }
 
-globalVariables(names = c('myAUC', 'p_val'), package = 'Seurat', add = TRUE)
-#' Find all markers for a node
-#'
-#' This function finds markers for all splits at or below the specified node
-#'
-#' @param object Seurat object. Must have object@@cluster.tree slot filled. Use BuildClusterTree() if not.
-#' @param node Node from which to start identifying split markers, default is top node.
-#' @param genes.use Genes to test. Default is to use all genes
-#' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells.
-#' @param test.use Denotes which test to use. Seurat currently implements
-#' "bimod" (likelihood-ratio test for single cell gene expression, McDavid et
-#' al., Bioinformatics, 2013, default), "roc" (standard AUC classifier), "t"
-#' (Students t-test), and "tobit" (Tobit-test for differential gene expression,
-#' as in Trapnell et al., Nature Biotech, 2014), 'poisson', and 'negbinom'.
-#' The latter two options should only be used on UMI datasets, and assume an underlying
-#' poisson or negative-binomial distribution.
-#' @param min.pct - only test genes that are detected in a minimum fraction of min.pct cells
-#' in either of the two populations. Meant to speed up the function by not testing genes that are very infrequently expression
-#' @param min.diff.pct - only test genes that show a minimum difference in the fraction of detection between the two groups. Set to -Inf by default
-#' @param only.pos Only return positive markers (FALSE by default)
-#' @param print.bar Print a progress bar once expression testing begins (uses pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number. Default is no downsampling.
-#' @param random.seed Random seed for downsampling
-#' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
-#' @param do.print Print status updates
-#' @param min.cells.gene Minimum number of cells expressing the gene in at least one
-#' of the two groups, currently only used for poisson and negative binomial tests
-#' @param min.cells.group Minimum number of cells in one of the groups
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param \dots Additional parameters to pass to specific DE functions
-#'
-#' @return Returns a dataframe with a ranked list of putative markers for each node and associated statistics
-#'
-#' @importFrom ape drop.tip
-#'
-#' @export
-#'
-#' @examples
-#' pbmc_small
-#'
-#' FindAllMarkersNode(pbmc_small)
-#'
-FindAllMarkersNode <- function(
-  object,
-  node = NULL,
-  genes.use = NULL,
-  logfc.threshold = 0.25,
-  test.use = "wilcox",
-  min.pct = 0.1,
-  min.diff.pct = 0.05,
-  print.bar = TRUE,
-  only.pos = FALSE,
-  max.cells.per.ident = Inf,
-  return.thresh = 1e-2,
-  do.print = FALSE,
-  random.seed = 1,
-  min.cells.gene = 3,
-  min.cells.group = 3,
-  assay.type = "RNA",
-  ...
-) {
-  if (length(object@cluster.tree) == 0) {
-    stop("Tree hasn't been built yet. Run BuildClusterTree to build.")
-  }
-  data.use <- GetAssayData(object = object,assay.type = assay.type,slot = "data")
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = data.use))
-  node <- SetIfNull(x = node, default = object@cluster.tree[[1]]$edge[1, 1])
-  tree.use <- object@cluster.tree[[1]]
-  descendants <- DFT(tree = tree.use, node = node, path = NULL, include.children = TRUE)
-  all.children <- sort(x = tree.use$edge[,2][!tree.use$edge[,2] %in% tree.use$edge[,1]])
-  descendants <- MapVals(v = descendants, from = all.children, to = tree.use$tip.label)
-  drop.children <- setdiff(tree.use$tip.label, descendants)
-  keep.children <- setdiff(tree.use$tip.label, drop.children)
-  orig.nodes <- c(node, as.numeric(setdiff(descendants, keep.children)))
-  tree.use <- drop.tip(tree.use, drop.children)
-  new.nodes <- unique(tree.use$edge[,1])
-  if ((test.use == 'roc') && (return.thresh == 1e-2)) {
-    return.thresh <- 0.7
-  }
-  genes.de <- list()
-  for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
-    genes.de[[i]] <- FindMarkersNode(
-      object = object,
-      assay.type = assay.type,
-      node = i,
-      tree.use = tree.use,
-      genes.use = genes.use,
-      logfc.threshold = logfc.threshold,
-      test.use = test.use,
-      min.pct = min.pct,
-      min.diff.pct = min.diff.pct,
-      print.bar = print.bar,
-      only.pos = only.pos,
-      max.cells.per.ident = max.cells.per.ident,
-      random.seed = random.seed,
-      min.cells.gene = min.cells.gene,
-      min.cells.group = min.cells.group
-    )
-    if (do.print) {
-      message(paste("Calculating node", i))
-    }
-  }
-  gde.all <- data.frame()
-  for (i in ((tree.use$Nnode + 2):max(tree.use$edge))) {
-    if (is.null(x = unlist(x = genes.de[i]))) {
-      next
-    }
-    gde <- genes.de[[i]]
-    if (nrow(x = gde) > 0) {
-      if (test.use == 'roc') {
-        gde <- subset(
-          x = gde,
-          subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
-        )
-      }
-      if ( (test.use == 'bimod') || (test.use == 't')) {
-        gde <- gde[order(gde$p_val,-gde$avg_logFC), ]
-        gde <- subset(x = gde, subset = p_val < return.thresh)
-      }
-      if (nrow(x = gde) > 0) {
-        gde$cluster <- i
-        gde$gene <- rownames(x = gde)
-      }
-      if (nrow(x = gde) > 0) {
-        gde.all <- rbind(gde.all,gde)
-      }
-    }
-  }
-  gde.all$cluster <- MapVals(
-    v = gde.all$cluster,
-    from = new.nodes,
-    to = orig.nodes
-  )
-  return(gde.all)
-}
-
-#' Finds markers that are conserved between the two groups
-#'
-#' @param object Seurat object
-#' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) -
-#' use all other cells for comparison.
-#' @param grouping.var grouping variable
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#' @param meta.method method for combining p-values. Should be a function from
-#' the metap package (NOTE: pass the function, not a string)
-#' @param \dots parameters to pass to FindMarkers
-#'
-#' @return Matrix containing a ranked list of putative conserved markers, and
-#' associated statistics (p-values within each group and a combined p-value
-#' (such as Fishers combined p-value or others from the MetaDE package),
-#' percentage of cells expressing the marker, average differences)
-#'
-#' @import metap
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' # Create a simulated grouping variable
-#' pbmc_small@meta.data$groups <- sample(
-#'   x = c("g1", "g2"),
-#'   size = length(x = pbmc_small@cell.names),
-#'   replace = TRUE
-#' )
-#' FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
-#' }
-#'
-FindConservedMarkers <- function(
-  object,
-  ident.1,
-  ident.2 = NULL,
-  grouping.var,
-  assay.type = "RNA",
-  meta.method = minimump,
-  ...
-) {
-  if(class(meta.method) != "function") {
-    stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
-  }
-  object.var <- FetchData(object = object, vars.all = grouping.var)
-  object <- SetIdent(
-    object = object,
-    cells.use = object@cell.names,
-    ident.use = paste(object@ident, object.var[, 1], sep = "_")
-  )
-  levels.split <- names(x = sort(x = table(object.var[, 1])))
-  num.groups <- length(levels.split)
-  cells <- list()
-  for (i in 1:num.groups) {
-    cells[[i]] <- rownames(
-      x = object.var[object.var[, 1] == levels.split[i], , drop = FALSE]
-    )
-  }
-  marker.test <- list()
-  # do marker tests
-  for (i in 1:num.groups) {
-    level.use <- levels.split[i]
-    ident.use.1 <- paste(ident.1, level.use, sep = "_")
-    if(!ident.use.1 %in% object@ident) {
-      stop(paste0("Identity: ", ident.1, " not present in group ", level.use))
-    }
-    cells.1 <- WhichCells(object = object, ident = ident.use.1)
-    if (is.null(x = ident.2)) {
-      cells.2 <- setdiff(x = cells[[i]], y = cells.1)
-      ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
-      if (length(x = ident.use.2) == 0) {
-        stop(paste("Only one identity class present:", ident.1))
-      }
-    }
-    if (! is.null(x = ident.2)) {
-      ident.use.2 <- paste(ident.2, level.use, sep = "_")
-    }
-    cat(
-      paste0(
-        "Testing ",
-        ident.use.1,
-        " vs ",
-        paste(ident.use.2, collapse = ", "), "\n"
-      ),
-      file = stderr()
-    )
-    if(!ident.use.2 %in% object@ident) {
-      stop(paste0("Identity: ", ident.2, " not present in group ", level.use))
-    }
-    marker.test[[i]] <- FindMarkers(
-      object = object,
-      assay.type = assay.type,
-      ident.1 = ident.use.1,
-      ident.2 = ident.use.2,
-      ...
-    )
-  }
-  genes.conserved <- Reduce(intersect, lapply(marker.test, FUN = function(x) rownames(x)))
-  markers.conserved <- list()
-  for (i in 1:num.groups) {
-    markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
-    colnames(x = markers.conserved[[i]]) <- paste(
-      levels.split[i],
-      colnames(x = markers.conserved[[i]]),
-      sep="_"
-    )
-  }
-  markers.combined <- Reduce(cbind, markers.conserved)
-  pval.codes <- paste(levels.split, "p_val", sep = "_")
-  markers.combined$max_pval <- apply(
-    X = markers.combined[, pval.codes],
-    MARGIN = 1,
-    FUN = max
-  )
-  combined.pval <- data.frame(cp = apply(X = markers.combined[, pval.codes], MARGIN = 1, FUN = function(x) meta.method(x)$p))
-  colnames(combined.pval) <- paste0(as.character(formals()$meta.method), "_p_val")
-  markers.combined <- cbind(markers.combined, combined.pval)
-  markers.combined <- markers.combined[order(markers.combined[,paste0(as.character(formals()$meta.method), "_p_val")]), ]
-  return(markers.combined)
-}
-
-
-#' Negative binomial test for UMI-count based data (regularized version)
-#'
-#' Identifies differentially expressed genes between two groups of cells using
-#' a likelihood ratio test of negative binomial generalized linear models where
-#' the overdispersion parameter theta is determined by pooling information
-#' across genes.
-#'
-#' @inheritParams FindMarkers
-#' @param object Seurat object
-#' @param cells.1 Group 1 cells
-#' @param cells.2 Group 2 cells
-#' @param genes.use Genes to use for test
-#' @param latent.vars Latent variables to test
-#' @param print.bar Print progress bar
-#' @param min.cells Minimum number of cells threshold
-#' @param assay.type Type of assay to fetch data for (default is RNA)
-#'
-#' @return Returns a p-value ranked data frame of test results.
-#'
-#' @importFrom stats p.adjust
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#'
-#' @export
-#'
-#' @examples
-#' # Note, not recommended for particularly small datasets - expect warnings
-#' NegBinomDETest(
-#'   object = pbmc_small,
-#'   cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#'   cells.2 = WhichCells(object = pbmc_small, ident = 2)
-#' )
-#'
-NegBinomRegDETest <- function(
-  object,
+# Differential expression using Wilcoxon Rank Sum
+#
+# Identifies differentially expressed genes between two groups of cells using
+# a Wilcoxon Rank Sum test
+#
+# @param data.use Data matrix to test
+# @param cells.1 Group 1 cells
+# @param cells.2 Group 2 cells
+# @param verbose Print a progress bar
+# @param ... Extra parameters passed to wilcox.test
+#
+# @return Returns a p-value ranked matrix of putative differentially expressed
+# features
+#
+#' @importFrom pbapply pbsapply
+#' @importFrom stats wilcox.test
+#
+# @export
+#
+# @examples
+# pbmc_small
+# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
+#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#
+WilcoxDETest <- function(
+  data.use,
   cells.1,
   cells.2,
-  genes.use = NULL,
-  latent.vars = NULL,
-  print.bar = TRUE,
-  min.cells = 3,
-  assay.type = "RNA"
+  verbose = TRUE,
+  ...
 ) {
-  if (!is.null(genes.use)) {
-    message('Make sure that genes.use contains mostly genes that are not expected to be
-             differentially expressed to allow unbiased theta estimation')
-  }
-  genes.use <- SetIfNull(x = genes.use, default = rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data")))
-  # check that the gene made it through the any filtering that was done
-  genes.use <- genes.use[genes.use %in% rownames(x = GetAssayData(object = object,assay.type = assay.type,slot = "data"))]
-  message(
-    sprintf(
-      'NegBinomRegDETest for %d genes and %d and %d cells',
-      length(x = genes.use),
-      length(x = cells.1),
-      length(x = cells.2)
-    )
+  group.info <- data.frame(row.names = c(cells.1, cells.2))
+  group.info[cells.1, "group"] <- "Group1"
+  group.info[cells.2, "group"] <- "Group2"
+  group.info[, "group"] <- factor(x = group.info[, "group"])
+  data.use <- data.use[, rownames(group.info)]
+  mysapply <- if (verbose) {pbsapply} else {sapply}
+  p_val <- mysapply(
+    X = 1:nrow(x = data.use),
+    FUN = function(x) {
+      return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
+    }
   )
-  grp.fac <- factor(
-    x = c(
-      rep.int(x = 'A', times = length(x = cells.1)),
-      rep.int(x = 'B', times = length(x = cells.2))
-    )
-  )
-  to.test.data <- GetAssayData(object = object,assay.type = assay.type,slot = "raw.data")[genes.use, c(cells.1, cells.2), drop = FALSE]
-  message('Calculating mean per gene per group')
-  above.threshold <- pmax(
-    apply(X = to.test.data[, cells.1] > 0, MARGIN = 1, FUN = mean),
-    apply(X = to.test.data[, cells.2] > 0, MARGIN = 1, FUN = mean)
-  ) >= 0.02
-  message(
-    sprintf(
-      '%d genes are detected in at least 2%% of the cells in at least one of the groups and will be tested',
-      sum(above.threshold)
-    )
-  )
-  genes.use <- genes.use[above.threshold]
-  to.test.data <- to.test.data[genes.use, , drop = FALSE]
-  my.latent <- FetchData(
-    object = object,
-    vars.all = latent.vars,
-    cells.use = c(cells.1, cells.2),
-    use.raw = TRUE
-  )
-  to.test <- data.frame(my.latent, row.names = c(cells.1, cells.2))
-  message(paste('Latent variables are', paste(latent.vars, collapse = " ")))
-  # get regularized theta (ignoring group factor)
-  theta.fit <- RegularizedTheta(
-    cm = to.test.data,
-    latent.data = to.test,
-    min.theta = 0.01,
-    bin.size = 128
-  )
-  message('Running NB regression model comparison')
-  to.test$NegBinomRegDETest.group <- grp.fac
-  bin.size <- 128
-  bin.ind <- ceiling(1:length(x = genes.use) / bin.size)
-  max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
-  res <- c()
-  for (i in 1:max.bin) {
-    genes.bin.use <- genes.use[bin.ind == i]
-    bin.out.lst <- parallel::mclapply(
-      X = genes.bin.use,
-      FUN = function(j) {
-        return(NBModelComparison(
-          y = to.test.data[j, ],
-          theta = theta.fit[j],
-          latent.data = to.test,
-          com.fac = latent.vars,
-          grp.fac = 'NegBinomRegDETest.group'
-        ))
-      }
-    )
-    res <- rbind(res, do.call(rbind, bin.out.lst))
-    setTxtProgressBar(pb = pb, value = i)
-  }
-  close(pb)
-  rownames(res) <- genes.use
-  res <- as.data.frame(x = res)
-  res$adj.pval <- p.adjust(p = res$pval, method='fdr')
-  res <- res[order(res$pval, -abs(x = res$log2.fc)), ]
-  return(res)
+  return(data.frame(p_val, row.names = rownames(data.use)))
 }
