@@ -842,8 +842,6 @@ RunPCA.Assay <- function(
 
 #' @param workflow.name Name of workflow
 #'
-#' @importFrom SeuratObject DefaultAssay GetAssay
-#'
 #' @describeIn RunPCA Run a PCA on a Seurat object
 #' @export
 #' @method RunPCA Seurat
@@ -1326,8 +1324,6 @@ CalcProjectedVar <- function(
 # @param reduction.type  Type of dimensional reduction to use
 # @param dims.use        Dimensions to use in calculation
 # @param genes.use       Genes to consider when calculating
-#
-#' @importFrom SeuratObject Embeddings Loadings
 #
 # @return                Returns a matrix with the low dimensional reconstruction
 #

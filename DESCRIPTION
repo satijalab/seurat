@@ -18,7 +18,6 @@ Remotes: github::satijalab/SeuratObject
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
-    SeuratObject,
 Imports:
     ape,
     cluster,

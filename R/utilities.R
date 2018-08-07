@@ -688,8 +688,6 @@ LengthCheck <- function(values, cutoff = 0) {
 # the Seurat object
 # @param object Name of Seurat object
 #
-#' @importFrom SeuratObject ExtractField
-#
 # @return returns the Seurat object with command stored
 #
 LogSeuratCommand <- function(object, return.command = FALSE) {

@@ -5,12 +5,12 @@
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
-RunUMAP(object, cells.use, dims.use, reduction.use, genes.use, assay.use,
-  max.dim, reduction.name, reduction.key, n_neighbors, min_dist, metric,
-  seed.use, ...)
+RunUMAP(object, cells.use, dims.use, reduction.use, features.use,
+  assay.use, max.dim, reduction.name, reduction.key, n_neighbors, min_dist,
+  metric, seed.use, ...)
 
 \method{RunUMAP}{Seurat}(object, dims.use = 1:5, reduction.use = "pca",
-  genes.use = NULL, assay.use = "RNA", max.dim = 2L,
+  features.use = NULL, assay.use = "RNA", max.dim = 2L,
   reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
   min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
 }
@@ -25,7 +25,7 @@ RunUMAP(object, cells.use, dims.use, reduction.use, genes.use, assay.use,
 \item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the
 UMAP input. Default is PCA}
 
-\item{genes.use}{If set, run UMAP on this subset of genes (instead of running on a
+\item{features.use}{If set, run UMAP on this subset of features (instead of running on a
 set of reduced dimensions). Not set (NULL) by default}
 
 \item{assay.use}{Assay to pull data for when using \code{genes.use}}

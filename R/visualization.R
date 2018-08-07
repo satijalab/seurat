@@ -1297,7 +1297,6 @@ ElbowPlot <- function(
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
-#' @importFrom SeuratObject JS
 #' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
 #' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
