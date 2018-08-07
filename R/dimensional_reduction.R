@@ -1223,7 +1223,7 @@ RunUMAP.Seurat <- function(
   if (is.null(x = features.use)) {
     data.use <- Embeddings(object[[reduction.use]])[,dims.use]
   } else {
-    data.use <- GetAssayData(object = object, slot = data, assay.use = assay.use)[features.use, ]
+    data.use <- GetAssayData(object = object, slot = 'data', assay.use = assay.use)[features.use, ]
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
