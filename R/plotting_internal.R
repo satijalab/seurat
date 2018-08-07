@@ -886,7 +886,7 @@ SingleDimPlot <- function(
     cols.use <- if (length(x = cols.use) == 1) {
       scale_color_brewer(palette = cols.use)
     } else {
-      scale_color_manual(values = cols.use, na.value = na.value)
+      scale_color_gradientn(colors = cols.use, na.value = na.value)
     }
     p <- p + cols.use
   }
