@@ -1202,7 +1202,7 @@ RunUMAP.Seurat <- function(
   object,
   dims.use = 1:5,
   reduction.use = 'pca',
-  genes.use = NULL,
+  features.use = NULL,
   assay.use = 'RNA',
   max.dim = 2L,
   reduction.name = "umap",
@@ -1220,8 +1220,10 @@ RunUMAP.Seurat <- function(
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  if (is.null(x = genes.use)) {
+  if (is.null(x = features.use)) {
     data.use <- Embeddings(object[[reduction.use]])[,dims.use]
+  } else {
+    data.use <- GetAssayData(object = object, slot = data, assay.use = assay.use)[features.use, ]
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(

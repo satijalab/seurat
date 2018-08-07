@@ -112,7 +112,7 @@ RunTSNE <- function(
 #' \code{genes.use} is NULL
 #' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
-#' @param genes.use If set, run UMAP on this subset of genes (instead of running on a
+#' @param features.use If set, run UMAP on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default
 #' @param assay.use Assay to pull data for when using \code{genes.use}
 #' @param max.dim Max dimension to keep from UMAP procedure.
@@ -161,7 +161,7 @@ RunUMAP <- function(
   cells.use,
   dims.use,
   reduction.use,
-  genes.use,
+  features.use,
   assay.use,
   max.dim ,
   reduction.name,
