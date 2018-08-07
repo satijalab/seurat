@@ -1,3 +1,19 @@
+#' @rdname Convert
+#' @export as.SingleCellExperiment
+#' @aliases as.SingleCellExperiment
+#'
+as.SingleCellExperiment <- function(from) {
+  UseMethod(generic = 'as.SingleCellExperiment', object = from)
+}
+
+#' @rdname Convert
+#' @export as.seurat
+#' @aliases as.seurat
+#'
+as.seurat <- function(from) {
+  UseMethod(generic = 'as.seurat', object = from)
+}
+
 #' SNN Graph Construction
 #'
 #' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
@@ -62,6 +78,25 @@ BuildSNN <- function(
 #'
 Command <- function(object, command, ..., value) {
   UseMethod(generic = 'Command', object = object)
+}
+
+#' Convert Seurat objects to other classes and vice versa
+#'
+#' Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
+#' SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
+#' and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
+#'
+#' @param from Object to convert from
+#' @param to Class of object to convert to
+#' @param ... Arguments passed to and from other methods
+#'
+#' @return An object of class \code{to}
+#'
+#' @rdname Convert
+#' @export Convert
+#'
+Convert <- function(from, ...) {
+  UseMethod(generic = 'Convert', object = from)
 }
 
 #' Get the default assay
