@@ -125,6 +125,7 @@ RunPCA.seurat <- function(
 #' @param gene.means Path to gene means dataset
 #' @param gene.variance Path to gene variance dataset
 #' @param scale.data Path to scaled data matrix
+#' @param cell.names Path to cell names dataset
 #' @param ngene Number of variable genes to use
 #' @param overwrite Overwrite preexisting results
 #' @param display.progress Show progress bars
@@ -156,6 +157,7 @@ RunPCA.loom <- function(
   gene.variance = 'row_attrs/gene_dispersion',
   var.genes = 'row_attrs/var_genes',
   scale.data = 'layers/scale_data',
+  cell.names = 'col_attrs/cell_names',
   ngene = NULL,
   overwrite = FALSE,
   display.progress = TRUE,
@@ -200,7 +202,9 @@ RunPCA.loom <- function(
       genes.use = pc.genes,
       chunk.size = cells.initial,
       do.sparse = FALSE,
-      display.progress = display.progress
+      display.progress = display.progress,
+      cell.names = cell.names,
+      gene.names = gene.names
     )
     if (cells.use <= cells.initial) {
       # Small number of cells, just use irlba
@@ -295,7 +299,9 @@ RunPCA.loom <- function(
           genes.use = pc.genes,
           chunk.size = chunk.size,
           do.sparse = FALSE,
-          display.progress = display.progress
+          display.progress = display.progress,
+          cell.names = cell.names,
+          gene.names = gene.names
         )
         data <- object[[scale.data]][chunk.indices, pc.genes]
         cell.embeddings[chunk.indices, ] <- data %*% pca$vectors
@@ -363,7 +369,7 @@ RunPCA.loom <- function(
       }
     }
     colnames(x = pc.values) <- paste0("PC", 1:ncol(x = pc.values))
-    rownames(pc.values) <- object[['col_attrs/cell_names']][]
+    rownames(pc.values) <- object[[cell.names]][]
     pc.values <- pc.values[, 1:pcs.compute]
     gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
     rownames(gene.loadings) <- rownames(covariance.mat)

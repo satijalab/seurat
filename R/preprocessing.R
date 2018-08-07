@@ -1062,11 +1062,11 @@ FindVariableGenes.loom <- function(
 #' @export
 #' @method GetVariableGenes loom
 #'
-GetVariableGenes.loom <- function(object) {
+GetVariableGenes.loom <- function(object, row.names = "gene_names") {
   hvg.info <- object$get.attribute.df(
     MARGIN = 1,
     attribute.names = c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled'),
-    row.names = 'gene_names'
+    row.names = row.names
   )
   hvg.info$index <- 1:nrow(x = hvg.info)
   colnames(x = hvg.info) <- gsub(
