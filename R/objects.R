@@ -1008,6 +1008,18 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot.use))
 }
 
+#' @describeIn Loadings Add projected feature loadings to a DimReduc object
+#' @export
+#' @method Loadings<- DimReduc
+#'
+"Loadings<-.DimReduc" <- function(object, ..., value) {
+  if (nrow(x = value) != length(x = object)) {
+    stop("New feature loadings must have the dimensions as currently calculated")
+  }
+  slot(object = object, name = 'feature.loadings.projected') <- value
+  return(object)
+}
+
 #' @describeIn Misc Get miscellaneous data from a Seurat object
 #' @export
 #' @method Misc Seurat
@@ -1764,6 +1776,51 @@ dimnames.DimReduc <- function(x) {
 #'
 dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
+}
+
+#' @importFrom ggplot2 ggplot aes
+#' @export
+#'
+ggplot.DimReduc <- function(
+  data = NULL,
+  type = 'embeddings',
+  colors = NULL,
+  projected = NULL,
+  rows.use = NULL,
+  pt.size = NULL,
+  pt.shape = NULL,
+  mapping = aes(), ...,
+  environment = parent.frame()
+) {
+  data.plot <- if (type == 'embeddings') {
+    Embeddings(object = data)
+  } else if (type == 'loadings') {
+    Loadings(object = data, projected = projected)
+  } else {
+    stop("'type' must be either 'embeddings' or 'loadings'")
+  }
+  data.plot <- as.data.frame(x = data.plot)
+  if (!is.null(x = colors)) {
+    if (!is.null(x = names(x = colors))) {
+      colors <- colors[colnames(x = data)]
+    }
+    data.plot$color <- colors
+  }
+  if (!is.null(x = pt.size)) {
+    data.plot$size <- pt.size
+  }
+  if (!is.null(x = pt.shape)) {
+    data.plot$shape <- pt.shape
+  }
+  if (!is.null(x = rows.use)) {
+    data.plot <- data.plot[rows.use, , drop = FALSE]
+  }
+  return(ggplot(
+    data = data.plot,
+    mapping = mapping,
+    ...,
+    environment = environment
+  ))
 }
 
 #' @export

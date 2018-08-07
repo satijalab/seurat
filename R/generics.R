@@ -570,6 +570,18 @@ Key <- function(object, ...) {
   UseMethod(generic = 'Key', object = object)
 }
 
+#' Set a key
+#'
+#' @inheritParams Key
+#' @param value Key value
+#'
+#' @rdname Key
+#' @export Key<-
+#'
+"Key<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Key<-', object = object)
+}
+
 #' Get feature loadings
 #'
 #' @param object An object
@@ -583,16 +595,16 @@ Loadings <- function(object, projected, ...) {
   UseMethod(generic = 'Loadings', object = object)
 }
 
-#' Set a key
+#' Add feature loadings
 #'
-#' @inheritParams Key
-#' @param value Key value
+#' @inheritParams Loadings
+#' @param value Feature loadings to add
 #'
-#' @rdname Key
-#' @export Key<-
+#' @rdname Loadings
+#' @export Loadings<-
 #'
-"Key<-" <- function(object, ..., value) {
-  UseMethod(generic = 'Key<-', object = object)
+"Loadings<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Loadings<-', object = object)
 }
 
 #' Access miscellaneous data

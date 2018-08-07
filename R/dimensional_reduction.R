@@ -161,7 +161,7 @@ PCASigGenes <- function(
 ) {
   # pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values
   empirical.use <- ifelse(test = use.full, yes = 'full', no = 'empirical')
-  pvals.use <- JS.DimReduc(object = object[['pca']], slot = empirical.use)
+  pvals.use <- JS(object = object[['pca']], slot = empirical.use)
   # pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings")
   # pcx.use <- Loadings.DimReduc(object = object[['pca']], projected = use.full)
   if (length(x = pcs.use) == 1) {
@@ -233,7 +233,8 @@ ProjectDim <- function(
   verbose = TRUE
 ) {
   reduction <- object[[reduction.use]]
-  assay.use <- assay.use %||% GetDimReduc(object = reduction, slot = "assay.used")
+  # assay.use <- assay.use %||% GetDimReduc(object = reduction, slot = "assay.used")
+  assay.use <- assay.use %||% DefaultAssay(object = reduction)
   data.use <- GetAssayData(
     object = object,
     assay.us = assay.use,
@@ -242,25 +243,27 @@ ProjectDim <- function(
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
   }
-  cell.embeddings <- GetDimReduc(
-    object = reduction,
-    slot = "cell.embeddings"
-  )
+  cell.embeddings <- Embeddings(object = reduction)
+  # cell.embeddings <- GetDimReduc(
+  #   object = reduction,
+  #   slot = "cell.embeddings"
+  # )
   new.feature.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
   rownames(x = new.feature.loadings.full) <- rownames(x = data.use)
   colnames(x = new.feature.loadings.full) <- colnames(x = cell.embeddings)
-  reduction <- SetDimReduc(
-    object = reduction,
-    slot = "feature.loadings.projected",
-    new.data = new.feature.loadings.full
-  )
-  if (overwrite) {
-    reduction <- SetDimReduc(
-      object = reduction,
-      slot = "feature.loadings",
-      new.data = new.feature.loadings.full
-    )
-  }
+  Loadings(object = reduction) <- new.feature.loadings.full
+  # reduction <- SetDimReduc(
+  #   object = reduction,
+  #   slot = "feature.loadings.projected",
+  #   new.data = new.feature.loadings.full
+  # )
+  # if (overwrite) {
+  #   reduction <- SetDimReduc(
+  #     object = reduction,
+  #     slot = "feature.loadings",
+  #     new.data = new.feature.loadings.full
+  #   )
+  # }
   object[[reduction.use]] <- reduction
   if (verbose) {
     Print(
