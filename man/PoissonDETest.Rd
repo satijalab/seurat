@@ -4,8 +4,9 @@
 \alias{PoissonDETest}
 \title{Poisson test for UMI-count based data}
 \usage{
-PoissonDETest(object, cells.1, cells.2, min.cells = 3, genes.use = NULL,
-  latent.vars = NULL, print.bar = TRUE, assay.type = "RNA")
+PoissonDETest(object, cells.1, cells.2, min.cells = 3,
+  genes.use = NULL, latent.vars = NULL, print.bar = TRUE,
+  assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}

@@ -18,16 +18,16 @@ Convert(from, ...)
   chunk.size = 1000, overwrite = FALSE, display.progress = TRUE,
   anndata.raw = "raw.data", anndata.X = "data", ...)
 
-\method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
-  data.slot = "logcounts", ...)
+\method{Convert}{SingleCellExperiment}(from, to,
+  raw.data.slot = "counts", data.slot = "logcounts", ...)
 
 \method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)
 
 \method{Convert}{loom}(from, to, raw.data = "matrix",
-  gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names",
-  norm.data = "layers/norm_data", scale.data = "layers/scale_data",
-  gene.means = "row_attrs/gene.mean",
+  gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names", norm.data = "layers/norm_data",
+  scale.data = "layers/scale_data", gene.means = "row_attrs/gene.mean",
   gene.dispersion = "row_attrs/gene.dispersion",
   gene.scaled = "row_attrs/gene.dispersion.scaled",
   var.genes = "row_attrs/var_genes")

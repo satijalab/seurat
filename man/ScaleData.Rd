@@ -9,17 +9,19 @@
 ScaleData(object, ...)
 
 \method{ScaleData}{seurat}(object, genes.use = NULL, data.use = NULL,
-  vars.to.regress, model.use = "linear", use.umi = FALSE, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
-  do.cpp = TRUE, check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
+  vars.to.regress, model.use = "linear", use.umi = FALSE,
+  do.scale = TRUE, do.center = TRUE, scale.max = 10,
+  block.size = 1000, min.cells.to.block = 3000,
+  display.progress = TRUE, assay.type = "RNA", do.cpp = TRUE,
+  check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
 
 \method{ScaleData}{loom}(object, genes.use = "row_attrs/var_genes",
   name = "scale_data", vars.to.regress = NULL, model.use = "linear",
-  use.umi = FALSE, do.scale = TRUE, do.center = TRUE, scale.max = 10,
-  chunk.size = 1000, normalized.data = "layers/norm_data",
-  overwrite = FALSE, display.progress = TRUE, dtype = h5types$float,
-  chunk.dims = c(256, 256))
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
+  scale.max = 10, chunk.size = 1000,
+  normalized.data = "layers/norm_data", overwrite = FALSE,
+  display.progress = TRUE, dtype = h5types$float, chunk.dims = c(256,
+  256))
 }
 \arguments{
 \item{object}{Object to scale}

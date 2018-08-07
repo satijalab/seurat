@@ -5,9 +5,9 @@
 \title{Principal component heatmap}
 \usage{
 PCHeatmap(object, pc.use = 1, cells.use = NULL, num.genes = 30,
-  use.full = FALSE, disp.min = -2.5, disp.max = 2.5, do.return = FALSE,
-  col.use = PurpleAndYellow(), use.scale = TRUE, do.balanced = FALSE,
-  remove.key = FALSE, label.columns = NULL, ...)
+  use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
+  do.return = FALSE, col.use = PurpleAndYellow(), use.scale = TRUE,
+  do.balanced = FALSE, remove.key = FALSE, label.columns = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object.}

@@ -6,8 +6,8 @@
 \usage{
 DoKMeans(object, genes.use = NULL, k.genes = NULL, k.cells = 0,
   k.seed = 1, do.plot = FALSE, data.cut = 2.5,
-  k.cols = PurpleAndYellow(), set.ident = TRUE, do.constrained = FALSE,
-  assay.type = "RNA", ...)
+  k.cols = PurpleAndYellow(), set.ident = TRUE,
+  do.constrained = FALSE, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}

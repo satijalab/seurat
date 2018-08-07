@@ -4,8 +4,8 @@
 \alias{MASTDETest}
 \title{Differential expression using MAST}
 \usage{
-MASTDETest(object, cells.1, cells.2, genes.use = NULL, latent.vars = NULL,
-  assay.type = "RNA", ...)
+MASTDETest(object, cells.1, cells.2, genes.use = NULL,
+  latent.vars = NULL, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}

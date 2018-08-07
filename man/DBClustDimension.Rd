@@ -4,8 +4,9 @@
 \alias{DBClustDimension}
 \title{Perform spectral density clustering on single cells}
 \usage{
-DBClustDimension(object, dim.1 = 1, dim.2 = 2, reduction.use = "tsne",
-  G.use = NULL, set.ident = TRUE, seed.use = 1, ...)
+DBClustDimension(object, dim.1 = 1, dim.2 = 2,
+  reduction.use = "tsne", G.use = NULL, set.ident = TRUE,
+  seed.use = 1, ...)
 }
 \arguments{
 \item{object}{Seurat object}

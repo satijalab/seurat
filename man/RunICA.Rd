@@ -4,10 +4,10 @@
 \alias{RunICA}
 \title{Run Independent Component Analysis on gene expression}
 \usage{
-RunICA(object, ic.genes = NULL, ics.compute = 50, use.imputed = FALSE,
-  rev.ica = FALSE, print.results = TRUE, ics.print = 1:5,
-  genes.print = 50, ica.function = "icafast", seed.use = 1,
-  reduction.name = "ica", reduction.key = "IC", ...)
+RunICA(object, ic.genes = NULL, ics.compute = 50,
+  use.imputed = FALSE, rev.ica = FALSE, print.results = TRUE,
+  ics.print = 1:5, genes.print = 50, ica.function = "icafast",
+  seed.use = 1, reduction.name = "ica", reduction.key = "IC", ...)
 }
 \arguments{
 \item{object}{Seurat object}
