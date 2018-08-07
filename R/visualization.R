@@ -1,95 +1,6 @@
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Plotting functions
+# Heatmaps
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' Feature expression heatmap
-#'
-#' Draws a heatmap of single cell feature expression using superheat
-#'
-#' @param object Seurat object
-#' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
-#' @param cells.use A vector of cells to plot
-#' @param disp.min Minimum display value (all values below are clipped)
-#' @param disp.max Maximum display value (all values above are clipped)
-#' @param group.by Name of variable to group cells by
-#' @param group.bar Add a color bar showing group status for cells
-#' @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
-#' @param assay.use Assay to pull from
-# @param check.plot Check that plotting will finish in a reasonable amount of time
-#' @param ... Ignored for now
-#'
-#' @return Invisbly returns the final grob
-#'
-#' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
-#' @export
-#'
-#' @examples
-#' DoHeatmap(object = pbmc_small)
-#'
-DoHeatmap <- function(
-  object,
-  features.use = NULL,
-  cells.use = NULL,
-  disp.min = -2.5,
-  disp.max = 2.5,
-  group.by = "ident",
-  slot.use = 'scale.data',
-  group.bar = TRUE,
-  # group.order = NULL,
-  # draw.line = TRUE,
-  assay.use = NULL,
-  # check.plot = FALSE,
-  ...
-) {
-  cells.use <- cells.use %||% colnames(x = object)
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  DefaultAssay(object = object) <- assay.use
-  features.use <- features.use %||% VariableFeatures(object = object)
-  disp.max <- ifelse(
-    test = slot.use != 'scale.data',
-    yes = max(disp.max, 10),
-    no = disp.max
-  )
-  data.plot <- FetchData(
-    object = object,
-    vars.fetch = rev(x = features.use),
-    cells.use = cells.use,
-    slot = slot.use
-  )
-  group.by <- group.by %||% 'ident'
-  group.use <- switch(
-    EXPR = group.by,
-    'ident' = Idents(object = object),
-    object[group.by, drop = TRUE]
-  )
-  group.use <- factor(x = group.use[cells.use])
-  p <- SingleRasterMap(
-    data.plot = data.plot,
-    disp.min = disp.min,
-    disp.max = disp.max,
-    cell.order = names(x = sort(x = group.use)),
-    group.by = group.use
-  )
-  if (group.bar) {
-    # TODO: Change group.bar to annotation.bar
-    pbuild <- ggplot_build(plot = p)
-    cols <- hue_pal()(length(x = levels(x = group.use)))
-    names(x = cols) <- levels(x = group.use)
-    y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-    y.max <- y.pos + 0.5
-    p <- p + annotation_raster(
-      raster = t(x = cols[sort(x = group.use)]),
-      xmin = -Inf,
-      xmax = Inf,
-      ymin = y.pos,
-      ymax = y.max
-    ) +
-      coord_cartesian(ylim = c(0, y.max), clip = 'off')
-  }
-  p <- p + theme(line = element_blank())
-  return(p)
-}
 
 #' Dimensional reduction heatmap
 #'
@@ -240,6 +151,95 @@ DimHeatmap <- function(
   return(plot.list)
 }
 
+#' Feature expression heatmap
+#'
+#' Draws a heatmap of single cell feature expression using superheat
+#'
+#' @param object Seurat object
+#' @param features.use A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
+#' @param cells.use A vector of cells to plot
+#' @param disp.min Minimum display value (all values below are clipped)
+#' @param disp.max Maximum display value (all values above are clipped)
+#' @param group.by Name of variable to group cells by
+#' @param group.bar Add a color bar showing group status for cells
+#' @param slot.use Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
+#' @param assay.use Assay to pull from
+# @param check.plot Check that plotting will finish in a reasonable amount of time
+#' @param ... Ignored for now
+#'
+#' @return Invisbly returns the final grob
+#'
+#' @importFrom scales hue_pal
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
+#' @export
+#'
+#' @examples
+#' DoHeatmap(object = pbmc_small)
+#'
+DoHeatmap <- function(
+  object,
+  features.use = NULL,
+  cells.use = NULL,
+  disp.min = -2.5,
+  disp.max = 2.5,
+  group.by = "ident",
+  slot.use = 'scale.data',
+  group.bar = TRUE,
+  # group.order = NULL,
+  # draw.line = TRUE,
+  assay.use = NULL,
+  # check.plot = FALSE,
+  ...
+) {
+  cells.use <- cells.use %||% colnames(x = object)
+  assay.use <- assay.use %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay.use
+  features.use <- features.use %||% VariableFeatures(object = object)
+  disp.max <- ifelse(
+    test = slot.use != 'scale.data',
+    yes = max(disp.max, 10),
+    no = disp.max
+  )
+  data.plot <- FetchData(
+    object = object,
+    vars.fetch = rev(x = features.use),
+    cells.use = cells.use,
+    slot = slot.use
+  )
+  group.by <- group.by %||% 'ident'
+  group.use <- switch(
+    EXPR = group.by,
+    'ident' = Idents(object = object),
+    object[group.by, drop = TRUE]
+  )
+  group.use <- factor(x = group.use[cells.use])
+  p <- SingleRasterMap(
+    data.plot = data.plot,
+    disp.min = disp.min,
+    disp.max = disp.max,
+    cell.order = names(x = sort(x = group.use)),
+    group.by = group.use
+  )
+  if (group.bar) {
+    # TODO: Change group.bar to annotation.bar
+    pbuild <- ggplot_build(plot = p)
+    cols <- hue_pal()(length(x = levels(x = group.use)))
+    names(x = cols) <- levels(x = group.use)
+    y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
+    y.max <- y.pos + 0.5
+    p <- p + annotation_raster(
+      raster = t(x = cols[sort(x = group.use)]),
+      xmin = -Inf,
+      xmax = Inf,
+      ymin = y.pos,
+      ymax = y.max
+    ) +
+      coord_cartesian(ylim = c(0, y.max), clip = 'off')
+  }
+  p <- p + theme(line = element_blank())
+  return(p)
+}
+
 #' Hashtag oligo heatmap
 #'
 #' Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.
@@ -292,6 +292,10 @@ HTOHeatmap <- function(
   DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
 
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Expression by identity plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Single cell ridge plot
 #'
@@ -407,162 +411,9 @@ VlnPlot <- function(
   ))
 }
 
-#' Dot plot visualization
-#'
-#' Intuitive way of visualizing how feature expression changes across different
-#' identity classes (clusters). The size of the dot encodes the percentage of
-#' cells within a class, while the color encodes the AverageExpression level of
-#' cells within a class (blue is high).
-#'
-#' @param object Seurat object
-#' @param features.plot Input vector of features
-#' @param cols.use Colors to plot, can pass a single character giving the name of
-#' a palette from \code{RColorBrewer::brewer.pal.info}
-#' @param col.min Minimum scaled average expression threshold (everything smaller
-#'  will be set to this)
-#' @param col.max Maximum scaled average expression threshold (everything larger
-#' will be set to this)
-#' @param dot.min The fraction of cells at which to draw the smallest dot
-#' (default is 0). All cell groups with less than this expressing the given
-#' gene will have no dot drawn.
-#' @param dot.scale Scale the size of the points, similar to cex
-#' @param scale.by Scale the size of the points by 'size' or by 'radius'
-#' @param scale.min Set lower limit for scaling, use NA for default
-#' @param scale.max Set upper limit for scaling, use NA for default
-#' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)
-#'
-#' @return A ggplot object
-#'
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank
-#' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
-#' @export
-#'
-#' @aliases SplitDotPlotGG
-#' @seealso \code{RColorBrewer::brewer.pal.info}
-#'
-#' @examples
-#' cd_genes <- c("CD247", "CD3E", "CD9")
-#' DotPlot(object = pbmc_small, features.plot = cd_genes)
-#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
-#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
-#'
-DotPlot <- function(
-  object,
-  features.plot,
-  cols.use = c("lightgrey", "blue"),
-  col.min = -2.5,
-  col.max = 2.5,
-  dot.min = 0,
-  dot.scale = 6,
-  scale.by = 'radius',
-  scale.min = NA,
-  scale.max = NA,
-  group.by = NULL,
-  split.by = NULL
-) {
-  scale.func <- switch(
-    EXPR = scale.by,
-    'size' = scale_size,
-    'radius' = scale_radius,
-    stop("'scale.by' must be either 'size' or 'radius'")
-  )
-  data.features <- FetchData(object = object, vars.fetch = features.plot)
-  data.features$id <- if (is.null(x = group.by)) {
-    Idents(object = object)
-  } else {
-    object[group.by, drop = TRUE]
-  }
-  data.features$id <- as.vector(x = data.features$id)
-  if (!is.null(x = split.by)) {
-    splits <- object[split.by, drop = TRUE]
-    if (length(x = unique(x = splits)) > length(x = cols.use)) {
-      stop("Not enought colors for the number of groups")
-    }
-    cols.use <- cols.use[1:length(x = unique(x = splits))]
-    names(x = cols.use) <- unique(x = splits)
-    data.features$id <- paste(data.features$id, splits, sep = '_')
-  }
-  data.plot <- lapply(
-    X = unique(x = data.features$id),
-    FUN = function(ident) {
-      data.use <- data.features[data.features$id == ident, 1:(ncol(x = data.features) - 1), drop = FALSE]
-      avg.exp <- apply(
-        X = data.use,
-        MARGIN = 2,
-        FUN = function(x) {
-          return(mean(x = expm1(x = x)))
-        }
-      )
-      pct.exp <- apply(X = data.use, MARGIN = 2, FUN = PercentAbove, threshold = 0)
-      return(list(avg.exp = avg.exp, pct.exp = pct.exp))
-    }
-  )
-  names(x = data.plot) <- unique(x = data.features$id)
-  data.plot <- lapply(
-    X = names(x = data.plot),
-    FUN = function(x) {
-      data.use <- as.data.frame(x = data.plot[[x]])
-      data.use$features.plot <- rownames(x = data.use)
-      data.use$id <- x
-      return(data.use)
-    }
-  )
-  data.plot <- do.call(what = 'rbind', args = data.plot)
-  avg.exp.scaled <- sapply(
-    X = unique(x = data.plot$features.plot),
-    FUN = function(x) {
-      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
-      data.use <- scale(x = data.use)
-      data.use <- MinMax(data = data.use, min = col.min, max = col.max)
-      return(data.use)
-    }
-  )
-  avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
-  if (!is.null(x = split.by)) {
-    avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
-  }
-  data.plot$avg.exp.scaled <- avg.exp.scaled
-  data.plot$features.plot <- factor(
-    x = data.plot$features.plot,
-    levels = rev(x = features.plot)
-  )
-  data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
-  data.plot$pct.exp <- data.plot$pct.exp * 100
-  if (!is.null(x = split.by)) {
-    splits.use <- vapply(
-      X = strsplit(x = data.plot$id, split = '_'),
-      FUN = '[[',
-      FUN.VALUE = character(length = 1L),
-      2
-    )
-    data.plot$colors <- mapply(
-      FUN = function(color, value) {
-        return(colorRampPalette(colors = c('grey', color))(20)[value])
-      },
-      color = cols.use[splits.use],
-      value = avg.exp.scaled
-    )
-  }
-  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
-
-  p <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
-    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
-    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
-    theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
-    guides(size = guide_legend(title = 'Percent Expressed'))
-  if (!is.null(x = split.by)) {
-    p <- p + scale_color_identity()
-  } else if (length(x = cols.use) == 1) {
-    p <- p + scale_color_distiller(palette = cols.use)
-  } else {
-    p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
-  }
-  if (is.null(x = split.by)) {
-    p <- p + guides(color = guide_colorbar(title = 'Average Expression'))
-  }
-  return(p)
-}
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Dimensional reduction plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #' Dimensional reduction plot
 #'
@@ -676,6 +527,141 @@ DimPlot <- function(
     cols.highlight = cols.highlight,
     sizes.highlight = sizes.highlight
   )
+  return(plot)
+}
+
+#' Vizualization of multiple features
+#'
+#' Similar to FeaturePlot, however, also splits the plot by visualizing each
+#' identity class separately.
+#'
+#' Particularly useful for seeing if the same groups of cells co-exhibit a
+#' common feature (i.e. co-express a gene), even within an identity class. Best
+#' understood by example.
+#'
+#' @inheritParams FeaturePlot
+#' @param group.display Which identity classes to display (default is all identity classes)
+#' @param slot.use Dataset to use for plotting, choose from 'raw.data', 'data', or 'scale.data'
+#' @param scale.group Scale each group separately. Default is FALSE.
+#' @param horizontal rotate the plot such that the features are columns, groups are the rows
+#'
+#' @return A ggplot object
+#'
+#' @importFrom rlang !! sym
+#' @importFrom ggplot2 facet_grid vars theme_bw scale_color_gradient guide_colorbar
+#' @export
+#'
+#' @aliases FeatureHeatmap
+#' @seealso \code{\link{FeaturePlot}} \code{\link{DimPlot}}
+#'
+#' @examples
+#' pbmc_small
+#' FeatureMap(object = pbmc_small, features.plot = "PC1")
+#'
+FeatureMap <- function(
+  object,
+  features.plot,
+  min.cutoff = NA,
+  max.cutoff = NA,
+  reduction.use = "tsne",
+  dims.use = c(1, 2),
+  group.by = NULL,
+  cols.use = c("grey", "red"),
+  pt.size = 2,
+  group.display = NULL,
+  slot.use = 'data',
+  scale.group = FALSE,
+  horizontal = FALSE
+) {
+  if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
+    stop("'dims.use' must be a two-length integer vector")
+  }
+  dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
+  idents.use <- if (is.null(x = group.by)) {
+    Idents(object = object)
+  } else {
+    object[group.by, drop = TRUE]
+  }
+  idents.use <- as.vector(x = idents.use)
+  names(x = idents.use) <- colnames(x = object)
+  group.display <- group.display %||% unique(x = idents.use)
+  group.display <- intersect(x = group.display, y = idents.use)
+  if (length(x = group.display) == 0) {
+    stop("No groups selected to display present in the object")
+  }
+  idents.use <- Filter(f = function(x) x %in% group.display, x = idents.use)
+  data.plot <- FetchData(
+    object = object,
+    vars.fetch = features.plot,
+    slot = slot.use,
+    cells.use = names(x = idents.use)
+  )
+  data.plot <- data.frame(
+    expression = unlist(x = data.plot, use.names = FALSE),
+    feature = unlist(x = lapply(X = features.plot, FUN = rep.int, times = length(x = idents.use))),
+    cell = rep.int(x = names(x = idents.use), times = length(x = features.plot)),
+    stringsAsFactors = FALSE
+  )
+  data.plot$ident <- idents.use[data.plot$cell]
+  data.plot$scaled.expression <- if (scale.group) {
+    unlist(x = apply(
+      X = expand.grid(unique(x = data.plot$feature), unique(x = data.plot$ident)),
+      MARGIN = 1,
+      FUN = function(x) {
+        return(scale(x = data.plot[data.plot$feature == x[1] & data.plot$ident == x[2], 'expression']))
+      }
+    ))
+  } else {
+    unlist(x = lapply(
+      X = unique(x = data.plot$feature),
+      FUN = function(x) {
+        return(scale(x = data.plot[data.plot$feature == x, 'expression']))
+      }
+    ))
+  }
+  data.plot <- suppressWarnings(expr = cbind(
+    data.plot,
+    Embeddings(object = object[[reduction.use]])[data.plot$cell, dims.use]
+  ))
+  min.cutoff <- ifelse(
+    test = is.na(x = min.cutoff),
+    yes = min(data.plot$scaled.expression),
+    no = min.cutoff
+  )
+  max.cutoff <- ifelse(
+    test = is.na(x = max.cutoff),
+    yes = max(data.plot$scaled.expression),
+    no = max.cutoff
+  )
+  min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.plot$scaled.expression)
+  max.cutoff <- SetQuantile(cutoff = max.cutoff, data = data.plot$scaled.expression)
+  data.plot$scaled.expression <- MinMax(
+    data = data.plot$scaled.expression,
+    min = min.cutoff,
+    max = max.cutoff
+  )
+  plot <- SingleDimPlot(
+    data.plot = data.plot,
+    dims.use = dims.use,
+    col.by = 'scaled.expression',
+    pt.size = pt.size
+  )
+  if (horizontal) {
+    row <- 'feature'
+    col <- 'ident'
+  } else {
+    row <- 'ident'
+    col <- 'feature'
+  }
+  plot <- plot +
+    facet_grid(rows = vars(!!sym(x = row)), cols = vars(!!sym(x = col))) +
+    theme_bw() +
+    NoGrid() +
+    scale_color_gradient(
+      low = cols.use[1],
+      high = cols.use[2],
+      guide = guide_colorbar(title = 'Scaled Expression')
+    )
   return(plot)
 }
 
@@ -835,139 +821,55 @@ FeaturePlot <- function(
   return(plots)
 }
 
-#' Vizualization of multiple features
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Scatter plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Cell-cell scatter plot
 #'
-#' Similar to FeaturePlot, however, also splits the plot by visualizing each
-#' identity class separately.
+#' Creates a plot of scatter plot of features across two single cells. Pearson
+#' correlation between the two cells is displayed above the plot.
 #'
-#' Particularly useful for seeing if the same groups of cells co-exhibit a
-#' common feature (i.e. co-express a gene), even within an identity class. Best
-#' understood by example.
-#'
-#' @inheritParams FeaturePlot
-#' @param group.display Which identity classes to display (default is all identity classes)
-#' @param slot.use Dataset to use for plotting, choose from 'raw.data', 'data', or 'scale.data'
-#' @param scale.group Scale each group separately. Default is FALSE.
-#' @param horizontal rotate the plot such that the features are columns, groups are the rows
+#' @inheritParams FeatureScatter
+#' @param cell1 Cell 1 name
+#' @param cell2 Cell 2 name
+#' @param features.use Features to plot (default, all features)
+#' @param \dots Extra parameters passed to kde2d
 #'
 #' @return A ggplot object
 #'
-#' @importFrom rlang !! sym
-#' @importFrom ggplot2 facet_grid vars theme_bw scale_color_gradient guide_colorbar
 #' @export
+#' @seealso \code{\link{MASS::kde2d}}
 #'
-#' @aliases FeatureHeatmap
-#' @seealso \code{\link{FeaturePlot}} \code{\link{DimPlot}}
+#' @aliases CellPlot
 #'
 #' @examples
-#' pbmc_small
-#' FeatureMap(object = pbmc_small, features.plot = "PC1")
+#' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 #'
-FeatureMap <- function(
+CellScatter <- function(
   object,
-  features.plot,
-  min.cutoff = NA,
-  max.cutoff = NA,
-  reduction.use = "tsne",
-  dims.use = c(1, 2),
-  group.by = NULL,
-  cols.use = c("grey", "red"),
-  pt.size = 2,
-  group.display = NULL,
-  slot.use = 'data',
-  scale.group = FALSE,
-  horizontal = FALSE
+  cell1,
+  cell2,
+  features.use = NULL,
+  cols.use = NULL,
+  pt.size = 1,
+  ...
 ) {
-  if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
-    stop("'dims.use' must be a two-length integer vector")
-  }
-  dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
-  idents.use <- if (is.null(x = group.by)) {
-    Idents(object = object)
-  } else {
-    object[group.by, drop = TRUE]
-  }
-  idents.use <- as.vector(x = idents.use)
-  names(x = idents.use) <- colnames(x = object)
-  group.display <- group.display %||% unique(x = idents.use)
-  group.display <- intersect(x = group.display, y = idents.use)
-  if (length(x = group.display) == 0) {
-    stop("No groups selected to display present in the object")
-  }
-  idents.use <- Filter(f = function(x) x %in% group.display, x = idents.use)
+  features.use <- features.use %||% rownames(x = object)
   data.plot <- FetchData(
     object = object,
-    vars.fetch = features.plot,
-    slot = slot.use,
-    cells.use = names(x = idents.use)
+    vars.fetch = features.use,
+    cells.use = c(cell1, cell2)
   )
-  data.plot <- data.frame(
-    expression = unlist(x = data.plot, use.names = FALSE),
-    feature = unlist(x = lapply(X = features.plot, FUN = rep.int, times = length(x = idents.use))),
-    cell = rep.int(x = names(x = idents.use), times = length(x = features.plot)),
-    stringsAsFactors = FALSE
-  )
-  data.plot$ident <- idents.use[data.plot$cell]
-  data.plot$scaled.expression <- if (scale.group) {
-    unlist(x = apply(
-      X = expand.grid(unique(x = data.plot$feature), unique(x = data.plot$ident)),
-      MARGIN = 1,
-      FUN = function(x) {
-        return(scale(x = data.plot[data.plot$feature == x[1] & data.plot$ident == x[2], 'expression']))
-      }
-    ))
-  } else {
-    unlist(x = lapply(
-      X = unique(x = data.plot$feature),
-      FUN = function(x) {
-        return(scale(x = data.plot[data.plot$feature == x, 'expression']))
-      }
-    ))
-  }
-  data.plot <- suppressWarnings(expr = cbind(
-    data.plot,
-    Embeddings(object = object[[reduction.use]])[data.plot$cell, dims.use]
-  ))
-  min.cutoff <- ifelse(
-    test = is.na(x = min.cutoff),
-    yes = min(data.plot$scaled.expression),
-    no = min.cutoff
-  )
-  max.cutoff <- ifelse(
-    test = is.na(x = max.cutoff),
-    yes = max(data.plot$scaled.expression),
-    no = max.cutoff
-  )
-  min.cutoff <- SetQuantile(cutoff = min.cutoff, data = data.plot$scaled.expression)
-  max.cutoff <- SetQuantile(cutoff = max.cutoff, data = data.plot$scaled.expression)
-  data.plot$scaled.expression <- MinMax(
-    data = data.plot$scaled.expression,
-    min = min.cutoff,
-    max = max.cutoff
-  )
-  plot <- SingleDimPlot(
+  data.plot <- as.data.frame(x = t(x = data.plot))
+  p <- SingleCorPlot(
     data.plot = data.plot,
-    dims.use = dims.use,
-    col.by = 'scaled.expression',
-    pt.size = pt.size
+    cols.use = cols.use,
+    pt.size = pt.size,
+    smooth = TRUE,
+    ...
   )
-  if (horizontal) {
-    row <- 'feature'
-    col <- 'ident'
-  } else {
-    row <- 'ident'
-    col <- 'feature'
-  }
-  plot <- plot +
-    facet_grid(rows = vars(!!sym(x = row)), cols = vars(!!sym(x = col))) +
-    theme_bw() +
-    NoGrid() +
-    scale_color_gradient(
-      low = cols.use[1],
-      high = cols.use[2],
-      guide = guide_colorbar(title = 'Scaled Expression')
-    )
-  return(plot)
+  return(p)
 }
 
 #' Scatter plot of single cell data
@@ -1040,53 +942,6 @@ FeatureScatter <- function(
   return(p)
 }
 
-#' Cell-cell scatter plot
-#'
-#' Creates a plot of scatter plot of features across two single cells. Pearson
-#' correlation between the two cells is displayed above the plot.
-#'
-#' @inheritParams FeatureScatter
-#' @param cell1 Cell 1 name
-#' @param cell2 Cell 2 name
-#' @param features.use Features to plot (default, all features)
-#' @param \dots Extra parameters passed to kde2d
-#'
-#' @return A ggplot object
-#'
-#' @export
-#' @seealso \code{\link{MASS::kde2d}}
-#'
-#' @aliases CellPlot
-#'
-#' @examples
-#' CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
-#'
-CellScatter <- function(
-  object,
-  cell1,
-  cell2,
-  features.use = NULL,
-  cols.use = NULL,
-  pt.size = 1,
-  ...
-) {
-  features.use <- features.use %||% rownames(x = object)
-  data.plot <- FetchData(
-    object = object,
-    vars.fetch = features.use,
-    cells.use = c(cell1, cell2)
-  )
-  data.plot <- as.data.frame(x = t(x = data.plot))
-  p <- SingleCorPlot(
-    data.plot = data.plot,
-    cols.use = cols.use,
-    pt.size = pt.size,
-    smooth = TRUE,
-    ...
-  )
-  return(p)
-}
-
 #' View variable features
 #'
 #' @inheritParams FeatureScatter
@@ -1128,6 +983,167 @@ VariableFeaturePlot <- function(
       labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
       values = cols.use
     )
+  return(p)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Other plotting functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Dot plot visualization
+#'
+#' Intuitive way of visualizing how feature expression changes across different
+#' identity classes (clusters). The size of the dot encodes the percentage of
+#' cells within a class, while the color encodes the AverageExpression level of
+#' cells within a class (blue is high).
+#'
+#' @param object Seurat object
+#' @param features.plot Input vector of features
+#' @param cols.use Colors to plot, can pass a single character giving the name of
+#' a palette from \code{RColorBrewer::brewer.pal.info}
+#' @param col.min Minimum scaled average expression threshold (everything smaller
+#'  will be set to this)
+#' @param col.max Maximum scaled average expression threshold (everything larger
+#' will be set to this)
+#' @param dot.min The fraction of cells at which to draw the smallest dot
+#' (default is 0). All cell groups with less than this expressing the given
+#' gene will have no dot drawn.
+#' @param dot.scale Scale the size of the points, similar to cex
+#' @param scale.by Scale the size of the points by 'size' or by 'radius'
+#' @param scale.min Set lower limit for scaling, use NA for default
+#' @param scale.max Set upper limit for scaling, use NA for default
+#' @param group.by Factor to group the cells by
+#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)
+#'
+#' @return A ggplot object
+#'
+#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank
+#' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
+#' @export
+#'
+#' @aliases SplitDotPlotGG
+#' @seealso \code{RColorBrewer::brewer.pal.info}
+#'
+#' @examples
+#' cd_genes <- c("CD247", "CD3E", "CD9")
+#' DotPlot(object = pbmc_small, features.plot = cd_genes)
+#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
+#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
+#'
+DotPlot <- function(
+  object,
+  features.plot,
+  cols.use = c("lightgrey", "blue"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  scale.by = 'radius',
+  scale.min = NA,
+  scale.max = NA,
+  group.by = NULL,
+  split.by = NULL
+) {
+  scale.func <- switch(
+    EXPR = scale.by,
+    'size' = scale_size,
+    'radius' = scale_radius,
+    stop("'scale.by' must be either 'size' or 'radius'")
+  )
+  data.features <- FetchData(object = object, vars.fetch = features.plot)
+  data.features$id <- if (is.null(x = group.by)) {
+    Idents(object = object)
+  } else {
+    object[group.by, drop = TRUE]
+  }
+  data.features$id <- as.vector(x = data.features$id)
+  if (!is.null(x = split.by)) {
+    splits <- object[split.by, drop = TRUE]
+    if (length(x = unique(x = splits)) > length(x = cols.use)) {
+      stop("Not enought colors for the number of groups")
+    }
+    cols.use <- cols.use[1:length(x = unique(x = splits))]
+    names(x = cols.use) <- unique(x = splits)
+    data.features$id <- paste(data.features$id, splits, sep = '_')
+  }
+  data.plot <- lapply(
+    X = unique(x = data.features$id),
+    FUN = function(ident) {
+      data.use <- data.features[data.features$id == ident, 1:(ncol(x = data.features) - 1), drop = FALSE]
+      avg.exp <- apply(
+        X = data.use,
+        MARGIN = 2,
+        FUN = function(x) {
+          return(mean(x = expm1(x = x)))
+        }
+      )
+      pct.exp <- apply(X = data.use, MARGIN = 2, FUN = PercentAbove, threshold = 0)
+      return(list(avg.exp = avg.exp, pct.exp = pct.exp))
+    }
+  )
+  names(x = data.plot) <- unique(x = data.features$id)
+  data.plot <- lapply(
+    X = names(x = data.plot),
+    FUN = function(x) {
+      data.use <- as.data.frame(x = data.plot[[x]])
+      data.use$features.plot <- rownames(x = data.use)
+      data.use$id <- x
+      return(data.use)
+    }
+  )
+  data.plot <- do.call(what = 'rbind', args = data.plot)
+  avg.exp.scaled <- sapply(
+    X = unique(x = data.plot$features.plot),
+    FUN = function(x) {
+      data.use <- data.plot[data.plot$features.plot == x, 'avg.exp']
+      data.use <- scale(x = data.use)
+      data.use <- MinMax(data = data.use, min = col.min, max = col.max)
+      return(data.use)
+    }
+  )
+  avg.exp.scaled <- as.vector(x = t(x = avg.exp.scaled))
+  if (!is.null(x = split.by)) {
+    avg.exp.scaled <- as.numeric(x = cut(x = avg.exp.scaled, breaks = 20))
+  }
+  data.plot$avg.exp.scaled <- avg.exp.scaled
+  data.plot$features.plot <- factor(
+    x = data.plot$features.plot,
+    levels = rev(x = features.plot)
+  )
+  data.plot$pct.exp[data.plot$pct.exp < dot.min] <- NA
+  data.plot$pct.exp <- data.plot$pct.exp * 100
+  if (!is.null(x = split.by)) {
+    splits.use <- vapply(
+      X = strsplit(x = data.plot$id, split = '_'),
+      FUN = '[[',
+      FUN.VALUE = character(length = 1L),
+      2
+    )
+    data.plot$colors <- mapply(
+      FUN = function(color, value) {
+        return(colorRampPalette(colors = c('grey', color))(20)[value])
+      },
+      color = cols.use[splits.use],
+      value = avg.exp.scaled
+    )
+  }
+  color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+
+  p <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
+    geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
+    scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
+    theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
+    guides(size = guide_legend(title = 'Percent Expressed'))
+  if (!is.null(x = split.by)) {
+    p <- p + scale_color_identity()
+  } else if (length(x = cols.use) == 1) {
+    p <- p + scale_color_distiller(palette = cols.use)
+  } else {
+    p <- p + scale_color_gradient(low = cols.use[1], high = cols.use[2])
+  }
+  if (is.null(x = split.by)) {
+    p <- p + guides(color = guide_colorbar(title = 'Average Expression'))
+  }
   return(p)
 }
 
@@ -1874,126 +1890,56 @@ WhiteBackground <- function(...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Create a scatterplot with data from a ggplot2 scatterplot
+# Blend two or more colors together
 #
-# @param plot.data The original ggplot2 scatterplot data
-# This is taken from ggplot2::ggplot_build
-# @param dark.theme Plot using a dark theme
-# @param smooth Use a smooth scatterplot instead of a standard scatterplot
-# @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
+# @param ... Two or more colors to blend together
+# These can be in a vector or standalone
+# @param as.rgb Return in RGB form, otherwise return in hexadecimal form
 #
-#' @importFrom graphics axis plot smoothScatter
+# @return The blended color in RGB form (1 x 3 matrix) or hexadecimal form
 #
-PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
-  #   Do we use a smooth scatterplot?
-  #   Take advantage of functions as first class objects
-  #   to dynamically choose normal vs smooth scatterplot
-  myplot <- ifelse(test = smooth, yes = smoothScatter, no = plot)
-  if (dark.theme) {
-    par(bg = 'black')
-    axes = FALSE
-    col.lab = 'white'
-  } else {
-    axes = 'TRUE'
-    col.lab = 'black'
+#' @importFrom grDevices rgb col2rgb
+#
+BlendColors <- function(..., as.rgb = FALSE) {
+  #   Assemble the arguments passed into a character vector
+  colors <- as.character(x = c(...))
+  if (length(x = colors) < 2) {
+    stop("Please provide two or more colors to blend")
   }
-  myplot(
-    plot.data[, c(1, 2)],
-    col = plot.data$color,
-    pch = plot.data$pch,
-    cex = vapply(
-      X = plot.data$cex,
-      FUN = function(x) {
-        return(max(x / 2, 0.5))
-      },
-      FUN.VALUE = numeric(1)
-    ),
-    axes = axes,
-    col.lab = col.lab,
-    col.main = col.lab,
-    ...
-  )
-  if (dark.theme) {
-    axis(
-      side = 1,
-      at = NULL,
-      labels = TRUE,
-      col.axis = col.lab,
-      col = col.lab
-    )
-    axis(
-      side = 2,
-      at = NULL,
-      labels = TRUE,
-      col.axis = col.lab,
-      col = col.lab
-    )
+  #   Check for hexadecimal values for automatic alpha blending
+  alpha.value <- 255
+  if (sum(sapply(X = colors, FUN = grepl, pattern = '^#')) != 0) {
+    hex <- colors[which(x = grepl(pattern = '^#', x = colors))]
+    hex.length <- sapply(X = hex, FUN = nchar)
+    #   9-character hexadecimal values specify alpha levels
+    if (9 %in% hex.length) {
+      hex.alpha <- hex[which(x = hex.length == 9)]
+      hex.vals <- sapply(X = hex.alpha, FUN = substr, start = 8, stop = 9)
+      dec.vals <- sapply(X = hex.vals, FUN = strtoi, base = 16)
+      dec.vals <- dec.vals / 255 # Convert to 0:1 scale for calculations
+      alpha.value <- dec.vals[1]
+      #   Blend alpha levels, going top-down
+      for (val in dec.vals[-1]) {
+        alpha.value <- alpha.value + (val * (1 - alpha.value))
+      }
+      alpha.value <- alpha.value * 255 # Convert back to 0:255 scale
+    }
   }
-}
-
-# Convert a ggplot2 scatterplot to base R graphics
-#
-# @param plot A ggplot2 scatterplot
-# @param do.plot Create the plot with base R graphics
-# @param ... Extra parameters passed to PlotBuild
-#
-# @return A dataframe with the data that created the ggplot2 scatterplot
-#
-#' @importFrom ggplot2 ggplot_build
-#
-GGpointToBase <- function(plot, do.plot = TRUE, ...) {
-  plot.build <- ggplot_build(plot = plot)
-  build.data <- plot.build$data[[1]]
-  plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
-  names(x = plot.data) <- c(
-    plot.build$plot$labels$x,
-    plot.build$plot$labels$y,
-    'color',
-    'pch',
-    'cex'
-  )
-  if (do.plot) {
-    PlotBuild(plot.data = plot.data, ...)
+  #   Convert to a 3 by `length(colors)` matrix of RGB values
+  rgb.vals <- sapply(X = colors, FUN = col2rgb)
+  if (nrow(x = rgb.vals) != 3) {
+    rgb.vals <- t(x = rgb.vals)
   }
-  return(plot.data)
-}
-
-# Locate points on a plot and return them
-#
-# @param plot A ggplot2 plot
-# @param recolor Do we recolor the plot to highlight selected points?
-# @param dark.theme Plot using a dark theme
-# @param ... Exptra parameters to PlotBuild
-#
-# @return A dataframe of x and y coordinates for points selected
-#
-#' @importFrom graphics locator
-#' @importFrom SDMTools pnt.in.poly
-#
-PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
-  #   Convert the ggplot object to a data.frame
-  plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
-  npoints <- nrow(x = plot.data)
-  cat("Click around the cluster of points you wish to select\n")
-  cat("ie. select the vertecies of a shape around the cluster you\n")
-  cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
-  polygon <- locator(n = npoints, type = 'l')
-  polygon <- data.frame(polygon)
-  #   pnt.in.poly returns a data.frame of points
-  points.all <- pnt.in.poly(
-    pnts = plot.data[, c(1, 2)],
-    poly.pnts = polygon
-  )
-  #   Find the located points
-  points.located <- points.all[which(x = points.all$pip == 1), ]
-  #   If we're recoloring, do the recolor
-  if (recolor) {
-    no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
-    points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
-    plot.data$color <- points.all$color
-    PlotBuild(plot.data = plot.data, dark.theme = dark.theme, ...)
+  #   Blend together using the additive method
+  #   Basically, resulting colors are the mean of the component colors
+  blend <- as.matrix(x = rowMeans(x = rgb.vals))
+  dimnames(x = blend) <- list(c('red', 'green', 'blue'), 'blend')
+  #   If we're returning RGB values, convert to matrix, just like col2rgb
+  #   Otherwise, return as hexadecimal; can be used directly for plotting
+  if (!as.rgb) {
+    blend <- rgb(t(x = blend), alpha = alpha.value, maxColorValue = 255)
   }
-  return(points.located[, c(1, 2)])
+  return(blend)
 }
 
 # TODO Integrate BlendPlot into SingleDimPlot
@@ -2193,187 +2139,6 @@ BlendPlot <- function(
   return(p)
 }
 
-# Blend two or more colors together
-#
-# @param ... Two or more colors to blend together
-# These can be in a vector or standalone
-# @param as.rgb Return in RGB form, otherwise return in hexadecimal form
-#
-# @return The blended color in RGB form (1 x 3 matrix) or hexadecimal form
-#
-#' @importFrom grDevices rgb col2rgb
-#
-BlendColors <- function(..., as.rgb = FALSE) {
-  #   Assemble the arguments passed into a character vector
-  colors <- as.character(x = c(...))
-  if (length(x = colors) < 2) {
-    stop("Please provide two or more colors to blend")
-  }
-  #   Check for hexadecimal values for automatic alpha blending
-  alpha.value <- 255
-  if (sum(sapply(X = colors, FUN = grepl, pattern = '^#')) != 0) {
-    hex <- colors[which(x = grepl(pattern = '^#', x = colors))]
-    hex.length <- sapply(X = hex, FUN = nchar)
-    #   9-character hexadecimal values specify alpha levels
-    if (9 %in% hex.length) {
-      hex.alpha <- hex[which(x = hex.length == 9)]
-      hex.vals <- sapply(X = hex.alpha, FUN = substr, start = 8, stop = 9)
-      dec.vals <- sapply(X = hex.vals, FUN = strtoi, base = 16)
-      dec.vals <- dec.vals / 255 # Convert to 0:1 scale for calculations
-      alpha.value <- dec.vals[1]
-      #   Blend alpha levels, going top-down
-      for (val in dec.vals[-1]) {
-        alpha.value <- alpha.value + (val * (1 - alpha.value))
-      }
-      alpha.value <- alpha.value * 255 # Convert back to 0:255 scale
-    }
-  }
-  #   Convert to a 3 by `length(colors)` matrix of RGB values
-  rgb.vals <- sapply(X = colors, FUN = col2rgb)
-  if (nrow(x = rgb.vals) != 3) {
-    rgb.vals <- t(x = rgb.vals)
-  }
-  #   Blend together using the additive method
-  #   Basically, resulting colors are the mean of the component colors
-  blend <- as.matrix(x = rowMeans(x = rgb.vals))
-  dimnames(x = blend) <- list(c('red', 'green', 'blue'), 'blend')
-  #   If we're returning RGB values, convert to matrix, just like col2rgb
-  #   Otherwise, return as hexadecimal; can be used directly for plotting
-  if (!as.rgb) {
-    blend <- rgb(t(x = blend), alpha = alpha.value, maxColorValue = 255)
-  }
-  return(blend)
-}
-
-# Find the quantile of a data
-#
-# Converts a quantile in character form to a number regarding some data
-# String form for a quantile is represented as a number prefixed with 'q'
-# For example, 10th quantile is 'q10' while 2nd quantile is 'q2'
-#
-# Will only take a quantile of non-zero data values
-#
-# @param cutoff The cutoff to turn into a quantile
-# @param data The data to turn find the quantile of
-#
-# @return The numerical representation of the quantile
-#
-#' @importFrom stats quantile
-#
-SetQuantile <- function(cutoff, data) {
-  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
-    this.quantile <- as.numeric(x = sub(
-      pattern = 'q',
-      replacement = '',
-      x = as.character(x = cutoff)
-    )) / 100
-    data <- unlist(x = data)
-    data <- data[data > 0]
-    cutoff <- quantile(x = data, probs = this.quantile)
-  }
-  return(as.numeric(x = cutoff))
-}
-
-# Set highlight information
-#
-# @param cells.highlight Cells to highlight
-# @param cells.all A character vector of all cell names
-# @param sizes.highlight Sizes of cells to highlight
-# @param cols.highlight Colors to highlight cells as
-# @param col.base Base color to use for unselected cells
-# @param pt.size Size of unselected cells
-#
-# @return A list will cell highlight information
-# \describe{
-#   \item{plot.order}{An order to plot cells in}
-#   \item{highlight}{A vector giving group information for each cell}
-#   \item{size}{A vector giving size information for each cell}
-#   \item{color}{Colors for highlighting in the order of plot.order}
-# }
-#
-SetHighlight <- function(
-  cells.highlight,
-  cells.all,
-  sizes.highlight,
-  cols.highlight,
-  col.base = 'black',
-  pt.size = 1
-) {
-  if (is.character(x = cells.highlight)) {
-    cells.highlight <- list(cells.highlight)
-  } else if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
-    cells.highlight <- as.list(x = cells.highlight)
-  }
-  cells.highlight <- lapply(
-    X = cells.highlight,
-    FUN = function(cells) {
-      cells.return <- if (is.character(x = cells)) {
-        cells[cells %in% cells.all]
-      } else {
-        cells <- as.numeric(x = cells)
-        cells <- cells[cells <= length(x = cells.all)]
-        cells.all[cells]
-      }
-      return(cells.return)
-    }
-  )
-  cells.highlight <- Filter(f = length, x = cells.highlight)
-  names.highlight <- if (is.null(x = names(x = cells.highlight))) {
-    paste0('Group_', 1L:length(x = cells.highlight))
-  } else {
-    names(x = cells.highlight)
-  }
-  sizes.highlight <- rep_len(
-    x = sizes.highlight,
-    length.out = length(x = cells.highlight)
-  )
-  cols.highlight <- c(
-    col.base,
-    rep_len(x = cols.highlight, length.out = length(x = cells.highlight))
-  )
-  size <- rep_len(x = pt.size, length.out = length(x = cells.all))
-  highlight <- rep_len(x = NA_character_, length.out = length(x = cells.all))
-  if (length(x = cells.highlight) > 0) {
-    for (i in 1:length(x = cells.highlight)) {
-      cells.check <- cells.highlight[[i]]
-      index.check <- match(x = cells.check, cells.all)
-      highlight[index.check] <- names.highlight[i]
-      size[index.check] <- sizes.highlight[i]
-    }
-  }
-  plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
-  plot.order[is.na(x = plot.order)] <- 'Unselected'
-  highlight[is.na(x = highlight)] <- 'Unselected'
-  highlight <- as.factor(x = highlight)
-  return(list(
-    plot.order = plot.order,
-    highlight = highlight,
-    size = size,
-    color = cols.highlight
-  ))
-}
-
-# Make label information for ggplot2-based scatter plots
-#
-# @param data.plot A three-column data frame (accessed with \code{plot$data})
-# The first column should be the X axis, the second the Y, and the third should be grouping information
-#
-# @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
-#
-MakeLabels <- function(data.plot) {
-  data.labels <- lapply(
-    X = unique(x = data.plot[, 3]),
-    FUN = function(group) {
-      data.use <- data.plot[data.plot[, 3] == group, 1:2]
-      return(apply(X = data.use, MARGIN = 2, FUN = median))
-    }
-  )
-  names(x = data.labels) <- as.character(unique(x = data.plot[, 3]))
-  data.labels <- as.data.frame(x = t(x = as.data.frame(x = data.labels)))
-  data.labels[, colnames(x = data.plot)[3]] <- as.character(unique(x = data.plot[, 3]))
-  return(data.labels)
-}
-
 # Combine ggplot2-based plots into a single plot
 #
 # @param plot.list A list of gg objects
@@ -2422,6 +2187,127 @@ CombinePlots <- function(plot.list, num.col, legend.position = NULL) {
     plot.list[[1]]
   }
   return(plots.combined)
+}
+
+globalVariables(
+  names = 'cc',
+  package = 'Seurat',
+  add = TRUE
+)
+# Evaluate CCs
+#
+# Looks at the biweight midcorrelation of the Xth gene across the specified CCs
+# for each group in the grouping.var.
+#
+# @param object A Seurat object
+# @param grouping.var Grouping variable specified in alignment procedure
+# @param dims.eval dimensions to evalutate the bicor for
+# @param gene.num Xth gene to look at bicor for
+# @param num.possible.genes Number of possible genes to search when choosing
+# genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
+# but may result in metagenes constructed on fewer than num.genes genes.
+# @param display.progress Show progress bar
+#
+EvaluateCCs <- function(
+  object,
+  grouping.var,
+  dims.eval,
+  gene.num,
+  num.possible.genes,
+  display.progress
+) {
+  reduction.type <-  "cca"
+  ident.orig <- object@ident
+  object <- SetAllIdent(object = object, id = grouping.var)
+  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  num.groups <- length(levels.split)
+  objects <- list()
+  for (i in 1:num.groups) {
+    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
+  }
+  object@ident <- ident.orig
+  cc.loadings <- list()
+  scaled.data <- list()
+  cc.embeds <- list()
+  for (i in 1:num.groups) {
+    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
+    objects[[i]] <- ScaleData(
+      object = objects[[i]],
+      block.size = 5000,
+      display.progress = display.progress
+    )
+    objects[[i]] <- ProjectDim(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      do.print = FALSE
+    )
+    cc.loadings[[i]] <- GetGeneLoadings(
+      object = objects[[i]],
+      reduction.type = reduction.type,
+      use.full = TRUE
+    )
+    cc.embeds[[i]] <- GetCellEmbeddings(
+      object = objects[[i]],
+      reduction.type = reduction.type
+    )
+    scaled.data[[i]] <- objects[[i]]@scale.data
+  }
+  bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
+  if (display.progress) {
+    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
+    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
+    pb.idx <- 0
+  }
+  for (cc.use in dims.eval) {
+    bc.gene.g1 <- c()
+    for (g in 2:num.groups) {
+      if (display.progress) {
+        pb.idx <- pb.idx + 1
+        setTxtProgressBar(pb, pb.idx)
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
+        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
+        cc.loadings[[1]][, cc.use],
+        cc.loadings[[g]][, cc.use]
+      )
+      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
+      bicors <- list()
+      for (i in c(1, g)) {
+        cc.vals <- cc.embeds[[i]][, cc.use]
+        bicors[[i]] <- sapply(
+          X = genes.top,
+          FUN = function(x) {
+            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
+          }
+        )
+      }
+      genes.rank <- data.frame(
+        rank(x = abs(x = bicors[[1]])),
+        rank(x = abs(x = bicors[[g]])),
+        bicors[[1]],
+        bicors[[g]]
+      )
+      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
+      # genes must be correlated in same direction in both datasets
+      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
+      bc.gene[cc.use, g] <- mean(abs(genes.rank[1:gene.num, 4]))
+      bc.gene.g1 <- c(bc.gene.g1, mean(abs(genes.rank[1:gene.num, 3])))
+    }
+    bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
+  }
+  if (display.progress) {
+    close(pb)
+  }
+  colnames(bc.gene) <- levels.split
+  bc.gene <- as.data.frame(bc.gene)
+  bc.gene$cc <- 1:nrow(bc.gene)
+  bc.gene <- gather(bc.gene, key = "Group",  value = "bicor", -cc)
+  return(bc.gene)
 }
 
 # Plot feature expression by identity
@@ -2516,127 +2402,382 @@ ExIPlot <- function(
   return(plots)
 }
 
-# Plot a single expression by identity on a plot
+# Documentation needed
+#Sets the parameter value for a plotting function as default for an object
+# @param object ...
+# @param function.name ...
+# @param param.name ...
+# @param param.value ...
 #
-# @param feature Feature to plot
-# @param plot.type Make either a 'ridge' or 'violin' plot
-# @param data Data to plot
-# @param cell.ident Idents to use
-# @param do.sort Sort identity classes (on the x-axis) by the average
-# expression of the attribute being potted
-# @param y.max Maximum Y value to plot
-# @param size.x.use X axis title font size
-# @param size.y.use Y axis title font size
-# @param adjust.use Adjust parameter for geom_violin
-# @param point.size.use Point size for geom_violin
-# @param cols.use Colors to use for plotting
-# @param gene.names
-# @param y.log plot Y axis on log scale
-# @param ... Ignored
+# Quick example :   pbmc <- FixPlotParam(pbmc,"FeaturePlot","pt.size","0.1")
 #
-# @return A ggplot-based Expression-by-Identity plot
+FixPlotParam <- function(object, function.name, param.name, param.value) {
+  if ("PlotParams" %in% names(object@misc)) {
+    object@misc[["PlotParams"]][paste(function.name, param.name, sep=":")] <- param.value
+  }
+  else {
+    plotParamsList=list()
+    plotParamsList[paste(function.name, param.name, sep=":")] <- param.value
+    object@misc[["PlotParams"]] <- plotParamsList
+  }
+  return(object)
+}
+
+# Convert a ggplot2 scatterplot to base R graphics
 #
-# @import ggplot2
-#' @importFrom stats rnorm
-#' @importFrom utils globalVariables
-#' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin ylim
-#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous element_line
-#' @importFrom cowplot theme_cowplot
-#'
-SingleExIPlot <- function(
-  feature,
-  plot.type = 'violin',
-  data,
-  cell.ident,
-  do.sort,
-  y.max,
-  size.title.use,
-  adjust.use,
-  point.size.use,
-  cols.use,
-  feature.names,
-  y.log,
-  ...
-) {
-  set.seed(seed = 42)
-  feature.name <- colnames(x = data)
-  feature <- colnames(x = data) <- "feature"
-  data$ident <- cell.ident
-  if (do.sort) {
-    data$ident <- factor(
-      x = data$ident,
-      levels = names(x = rev(x = sort(x = tapply(
-        X = data[, feature],
-        INDEX = data$ident,
-        FUN = mean
-      ))))
+# @param plot A ggplot2 scatterplot
+# @param do.plot Create the plot with base R graphics
+# @param ... Extra parameters passed to PlotBuild
+#
+# @return A dataframe with the data that created the ggplot2 scatterplot
+#
+#' @importFrom ggplot2 ggplot_build
+#
+GGpointToBase <- function(plot, do.plot = TRUE, ...) {
+  plot.build <- ggplot_build(plot = plot)
+  build.data <- plot.build$data[[1]]
+  plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
+  names(x = plot.data) <- c(
+    plot.build$plot$labels$x,
+    plot.build$plot$labels$y,
+    'color',
+    'pch',
+    'cex'
+  )
+  if (do.plot) {
+    PlotBuild(plot.data = plot.data, ...)
+  }
+  return(plot.data)
+}
+
+# Make label information for ggplot2-based scatter plots
+#
+# @param data.plot A three-column data frame (accessed with \code{plot$data})
+# The first column should be the X axis, the second the Y, and the third should be grouping information
+#
+# @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
+#
+MakeLabels <- function(data.plot) {
+  data.labels <- lapply(
+    X = unique(x = data.plot[, 3]),
+    FUN = function(group) {
+      data.use <- data.plot[data.plot[, 3] == group, 1:2]
+      return(apply(X = data.use, MARGIN = 2, FUN = median))
+    }
+  )
+  names(x = data.labels) <- as.character(unique(x = data.plot[, 3]))
+  data.labels <- as.data.frame(x = t(x = as.data.frame(x = data.labels)))
+  data.labels[, colnames(x = data.plot)[3]] <- as.character(unique(x = data.plot[, 3]))
+  return(data.labels)
+}
+
+# Create a scatterplot with data from a ggplot2 scatterplot
+#
+# @param plot.data The original ggplot2 scatterplot data
+# This is taken from ggplot2::ggplot_build
+# @param dark.theme Plot using a dark theme
+# @param smooth Use a smooth scatterplot instead of a standard scatterplot
+# @param ... Extra parameters passed to graphics::plot or graphics::smoothScatter
+#
+#' @importFrom graphics axis plot smoothScatter
+#
+PlotBuild <- function(plot.data, dark.theme = FALSE, smooth = FALSE, ...) {
+  #   Do we use a smooth scatterplot?
+  #   Take advantage of functions as first class objects
+  #   to dynamically choose normal vs smooth scatterplot
+  myplot <- ifelse(test = smooth, yes = smoothScatter, no = plot)
+  if (dark.theme) {
+    par(bg = 'black')
+    axes = FALSE
+    col.lab = 'white'
+  } else {
+    axes = 'TRUE'
+    col.lab = 'black'
+  }
+  myplot(
+    plot.data[, c(1, 2)],
+    col = plot.data$color,
+    pch = plot.data$pch,
+    cex = vapply(
+      X = plot.data$cex,
+      FUN = function(x) {
+        return(max(x / 2, 0.5))
+      },
+      FUN.VALUE = numeric(1)
+    ),
+    axes = axes,
+    col.lab = col.lab,
+    col.main = col.lab,
+    ...
+  )
+  if (dark.theme) {
+    axis(
+      side = 1,
+      at = NULL,
+      labels = TRUE,
+      col.axis = col.lab,
+      col = col.lab
+    )
+    axis(
+      side = 2,
+      at = NULL,
+      labels = TRUE,
+      col.axis = col.lab,
+      col = col.lab
     )
   }
-  if (y.log) {
-    noise <- rnorm(n = length(x = data[, feature])) / 200
-    data[, feature] <- data[, feature] + 1
-  } else {
-    noise <- rnorm(n = length(x = data[, feature])) / 100000
-  }
-  if (all(data[, feature] == data[, feature][1])) {
-    warning(paste0("All cells have the same value of ", feature, "."))
-  } else{
-    data[, feature] <- data[, feature] + noise
-  }
-  axis.label <- if (feature %in% feature.names) {
-    if (y.log) {
-      "Log Expression level"
-    } else {
-      "Expression level"
-    }
-  } else {
-    ""
-  }
-  y.max <- y.max %||% max(data[, feature])
-  p <- ggplot(data = data, mapping = aes_string(fill = 'ident')) +
-    guides(fill = guide_legend(title = NULL)) +
-    NoGrid() +
-    labs(title = feature.name)
-  p <- switch(
-    EXPR = plot.type,
-    'violin' = {
-      p <- p +
-        geom_violin(
-          scale = 'width',
-          adjust = adjust.use,
-          trim = TRUE,
-          mapping = aes_string(x = 'ident', y = 'feature')
-        ) +
-        labs(x = 'Identity', y = axis.label)
-      p <- p + if (y.log) {
-        scale_y_log10()
-      } else {
-        ylim(min(data[, feature]), y.max)
-      }
-      p
-    },
-    'ridge' = {
-      p <- p +
-        geom_density_ridges(
-          scale = 4,
-          mapping = aes_string(x = 'feature', y = 'ident')
-        ) +
-        theme_ridges() +
-        labs(x = axis.label, y = 'Identity') + #, title = feature.name) +
-        scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
-        scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-      if (y.log) {
-        p <- p + scale_x_log10()
-      }
-      p
-    },
-    stop("Unknown plot type: ", plot.type)
+}
+
+# Locate points on a plot and return them
+#
+# @param plot A ggplot2 plot
+# @param recolor Do we recolor the plot to highlight selected points?
+# @param dark.theme Plot using a dark theme
+# @param ... Exptra parameters to PlotBuild
+#
+# @return A dataframe of x and y coordinates for points selected
+#
+#' @importFrom graphics locator
+#' @importFrom SDMTools pnt.in.poly
+#
+PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
+  #   Convert the ggplot object to a data.frame
+  plot.data <- GGpointToBase(plot = plot, dark.theme = dark.theme, ...)
+  npoints <- nrow(x = plot.data)
+  cat("Click around the cluster of points you wish to select\n")
+  cat("ie. select the vertecies of a shape around the cluster you\n")
+  cat("are interested in. Press <Esc> when finished (right click for R-terminal users)\n\n")
+  polygon <- locator(n = npoints, type = 'l')
+  polygon <- data.frame(polygon)
+  #   pnt.in.poly returns a data.frame of points
+  points.all <- pnt.in.poly(
+    pnts = plot.data[, c(1, 2)],
+    poly.pnts = polygon
   )
-  if (!is.null(x = cols.use)) {
-    p <- p + scale_fill_manual(values = cols.use)
+  #   Find the located points
+  points.located <- points.all[which(x = points.all$pip == 1), ]
+  #   If we're recoloring, do the recolor
+  if (recolor) {
+    no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
+    points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
+    plot.data$color <- points.all$color
+    PlotBuild(plot.data = plot.data, dark.theme = dark.theme, ...)
   }
-  p <- p + theme_cowplot()
+  return(points.located[, c(1, 2)])
+}
+
+# Documentation needed
+#
+# @param object ...
+# @param workflow.name ...
+# @param depth ...
+#
+ReadPlotParams <- function(object, workflow.name, depth = 1) {
+  if (!("PlotParams" %in% names(object@misc))) {
+    return()
+  }
+  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-depth]]))
+  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
+  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+  param.list <- names(formals(fun = sys.function(sys.parent(depth))))
+  paramsList <- slot(object = object, name = "misc")[["PlotParams"]]
+  p.env <- parent.frame(depth)
+  for(i in names(paramsList)) {
+    split_arr <- unlist(strsplit(x = i,split = ":"))
+    function.name <- split_arr[1]
+    param.name <- split_arr[2]
+    param.value <- paramsList[[i]]
+    if ((function.name == command.name) && (param.name %in% param.list)) {
+      assign(x = param.name,
+             value = param.value,
+             envir = p.env)
+    }
+  }
+  # overwrite any arguments passed in on the command line
+  argnames <- sys.call(which = depth)
+  argList <- as.list(argnames[-1])
+  args_ignore <- c("", "object", "workflow.name")
+  args_use <- setdiff(x = names(argList), y = args_ignore)
+  for(i in args_use) {
+    if(as.character(unlist(argList[i])[[1]]) == "F") {
+      arg.val <- FALSE
+    } else if(as.character(unlist(argList[i])[[1]]) == "T") {
+      arg.val <- TRUE
+    } else {
+      arg.val <- unlist(argList[i])[[1]]
+    }
+    assign(x = i, value = arg.val, envir = p.env)
+  }
+}
+
+# Set highlight information
+#
+# @param cells.highlight Cells to highlight
+# @param cells.all A character vector of all cell names
+# @param sizes.highlight Sizes of cells to highlight
+# @param cols.highlight Colors to highlight cells as
+# @param col.base Base color to use for unselected cells
+# @param pt.size Size of unselected cells
+#
+# @return A list will cell highlight information
+# \describe{
+#   \item{plot.order}{An order to plot cells in}
+#   \item{highlight}{A vector giving group information for each cell}
+#   \item{size}{A vector giving size information for each cell}
+#   \item{color}{Colors for highlighting in the order of plot.order}
+# }
+#
+SetHighlight <- function(
+  cells.highlight,
+  cells.all,
+  sizes.highlight,
+  cols.highlight,
+  col.base = 'black',
+  pt.size = 1
+) {
+  if (is.character(x = cells.highlight)) {
+    cells.highlight <- list(cells.highlight)
+  } else if (is.data.frame(x = cells.highlight) || !is.list(x = cells.highlight)) {
+    cells.highlight <- as.list(x = cells.highlight)
+  }
+  cells.highlight <- lapply(
+    X = cells.highlight,
+    FUN = function(cells) {
+      cells.return <- if (is.character(x = cells)) {
+        cells[cells %in% cells.all]
+      } else {
+        cells <- as.numeric(x = cells)
+        cells <- cells[cells <= length(x = cells.all)]
+        cells.all[cells]
+      }
+      return(cells.return)
+    }
+  )
+  cells.highlight <- Filter(f = length, x = cells.highlight)
+  names.highlight <- if (is.null(x = names(x = cells.highlight))) {
+    paste0('Group_', 1L:length(x = cells.highlight))
+  } else {
+    names(x = cells.highlight)
+  }
+  sizes.highlight <- rep_len(
+    x = sizes.highlight,
+    length.out = length(x = cells.highlight)
+  )
+  cols.highlight <- c(
+    col.base,
+    rep_len(x = cols.highlight, length.out = length(x = cells.highlight))
+  )
+  size <- rep_len(x = pt.size, length.out = length(x = cells.all))
+  highlight <- rep_len(x = NA_character_, length.out = length(x = cells.all))
+  if (length(x = cells.highlight) > 0) {
+    for (i in 1:length(x = cells.highlight)) {
+      cells.check <- cells.highlight[[i]]
+      index.check <- match(x = cells.check, cells.all)
+      highlight[index.check] <- names.highlight[i]
+      size[index.check] <- sizes.highlight[i]
+    }
+  }
+  plot.order <- sort(x = unique(x = highlight), na.last = TRUE)
+  plot.order[is.na(x = plot.order)] <- 'Unselected'
+  highlight[is.na(x = highlight)] <- 'Unselected'
+  highlight <- as.factor(x = highlight)
+  return(list(
+    plot.order = plot.order,
+    highlight = highlight,
+    size = size,
+    color = cols.highlight
+  ))
+}
+
+# Find the quantile of a data
+#
+# Converts a quantile in character form to a number regarding some data
+# String form for a quantile is represented as a number prefixed with 'q'
+# For example, 10th quantile is 'q10' while 2nd quantile is 'q2'
+#
+# Will only take a quantile of non-zero data values
+#
+# @param cutoff The cutoff to turn into a quantile
+# @param data The data to turn find the quantile of
+#
+# @return The numerical representation of the quantile
+#
+#' @importFrom stats quantile
+#
+SetQuantile <- function(cutoff, data) {
+  if (grepl(pattern = '^q[0-9]{1,2}$', x = as.character(x = cutoff), perl = TRUE)) {
+    this.quantile <- as.numeric(x = sub(
+      pattern = 'q',
+      replacement = '',
+      x = as.character(x = cutoff)
+    )) / 100
+    data <- unlist(x = data)
+    data <- data[data > 0]
+    cutoff <- quantile(x = data, probs = this.quantile)
+  }
+  return(as.numeric(x = cutoff))
+}
+
+# A single correlation plot
+#
+# @param data.plot A data frame with two columns to be plotted
+# @param col.by A vector or factor of values to color the plot by
+# @param cols.use An optional vector of colors to use
+# @param pt.size Point size for the plot
+# @param smooth Make a smoothed scatter plot
+# @param legend.title Optional legend title
+# @param ... Extra parameters to MASS::kde2d
+#
+#' @importFrom stats cor
+#' @importFrom MASS kde2d
+#' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
+#' scale_color_manual geom_tile guides element_rect
+#'
+SingleCorPlot <- function(
+  data.plot,
+  col.by = NULL,
+  cols.use = NULL,
+  pt.size = 1,
+  smooth = FALSE,
+  legend.title = NULL,
+  na.value = 'grey50',
+  ...
+) {
+  names.plot <- colnames(x = data.plot)
+  plot.cor <- round(x = cor(x = data.plot[, 1], y = data.plot[, 2]), digits = 2)
+  if (!is.null(x = col.by)) {
+    data.plot$colors <- col.by
+  }
+  p <- ggplot(
+    data = data.plot,
+    mapping = aes_string(x = names.plot[1], y = names.plot[2])
+  ) +
+    labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
+  if (!is.null(x = col.by)) {
+    p <- p + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
+  } else {
+    p <- p + geom_point(size = pt.size)
+  }
+  if (smooth) {
+    density <- kde2d(x = data.plot[, 1], y = data.plot[, 2], ...)
+    density <- data.frame(
+      x = unlist(x = lapply(X = density$x, FUN = rep.int, times = length(x = density$x))),
+      y = rep.int(x = density$y, times = length(x = density$y)),
+      z = unlist(x = as.data.frame(x = density$z))
+    )
+    p <- p + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
+      guides(fill = FALSE)
+  }
+  if (!is.null(x = cols.use)) {
+    cols.scale <- if (length(x = cols.use) == 1 &&
+                      cols.use %in% rownames(RColorBrewer::brewer.pal.info)) {
+      scale_color_brewer(palette = cols.use)
+    } else {
+      scale_color_manual(values = cols.use, na.value = na.value)
+    }
+    p <- p + cols.scale
+  }
+  p <- p + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
   return(p)
 }
 
@@ -2771,67 +2912,162 @@ SingleDimPlot <- function(
   return(p)
 }
 
-# A single correlation plot
+# Plot a single expression by identity on a plot
 #
-# @param data.plot A data frame with two columns to be plotted
-# @param col.by A vector or factor of values to color the plot by
-# @param cols.use An optional vector of colors to use
-# @param pt.size Point size for the plot
-# @param smooth Make a smoothed scatter plot
-# @param legend.title Optional legend title
-# @param ... Extra parameters to MASS::kde2d
+# @param feature Feature to plot
+# @param plot.type Make either a 'ridge' or 'violin' plot
+# @param data Data to plot
+# @param cell.ident Idents to use
+# @param do.sort Sort identity classes (on the x-axis) by the average
+# expression of the attribute being potted
+# @param y.max Maximum Y value to plot
+# @param size.x.use X axis title font size
+# @param size.y.use Y axis title font size
+# @param adjust.use Adjust parameter for geom_violin
+# @param point.size.use Point size for geom_violin
+# @param cols.use Colors to use for plotting
+# @param gene.names
+# @param y.log plot Y axis on log scale
+# @param ... Ignored
 #
-#' @importFrom stats cor
-#' @importFrom MASS kde2d
-#' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
-#' scale_color_manual geom_tile guides element_rect
+# @return A ggplot-based Expression-by-Identity plot
+#
+# @import ggplot2
+#' @importFrom stats rnorm
+#' @importFrom utils globalVariables
+#' @importFrom ggridges geom_density_ridges theme_ridges
+#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin ylim
+#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous element_line
+#' @importFrom cowplot theme_cowplot
 #'
-SingleCorPlot <- function(
-  data.plot,
-  col.by = NULL,
-  cols.use = NULL,
-  pt.size = 1,
-  smooth = FALSE,
-  legend.title = NULL,
-  na.value = 'grey50',
+SingleExIPlot <- function(
+  feature,
+  plot.type = 'violin',
+  data,
+  cell.ident,
+  do.sort,
+  y.max,
+  size.title.use,
+  adjust.use,
+  point.size.use,
+  cols.use,
+  feature.names,
+  y.log,
   ...
 ) {
-  names.plot <- colnames(x = data.plot)
-  plot.cor <- round(x = cor(x = data.plot[, 1], y = data.plot[, 2]), digits = 2)
-  if (!is.null(x = col.by)) {
-    data.plot$colors <- col.by
-  }
-  p <- ggplot(
-    data = data.plot,
-    mapping = aes_string(x = names.plot[1], y = names.plot[2])
-  ) +
-    labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
-  if (!is.null(x = col.by)) {
-    p <- p + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
-  } else {
-    p <- p + geom_point(size = pt.size)
-  }
-  if (smooth) {
-    density <- kde2d(x = data.plot[, 1], y = data.plot[, 2], ...)
-    density <- data.frame(
-      x = unlist(x = lapply(X = density$x, FUN = rep.int, times = length(x = density$x))),
-      y = rep.int(x = density$y, times = length(x = density$y)),
-      z = unlist(x = as.data.frame(x = density$z))
+  set.seed(seed = 42)
+  feature.name <- colnames(x = data)
+  feature <- colnames(x = data) <- "feature"
+  data$ident <- cell.ident
+  if (do.sort) {
+    data$ident <- factor(
+      x = data$ident,
+      levels = names(x = rev(x = sort(x = tapply(
+        X = data[, feature],
+        INDEX = data$ident,
+        FUN = mean
+      ))))
     )
-    p <- p + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
-      guides(fill = FALSE)
   }
-  if (!is.null(x = cols.use)) {
-    cols.scale <- if (length(x = cols.use) == 1 &&
-                    cols.use %in% rownames(RColorBrewer::brewer.pal.info)) {
-        scale_color_brewer(palette = cols.use)
+  if (y.log) {
+    noise <- rnorm(n = length(x = data[, feature])) / 200
+    data[, feature] <- data[, feature] + 1
+  } else {
+    noise <- rnorm(n = length(x = data[, feature])) / 100000
+  }
+  if (all(data[, feature] == data[, feature][1])) {
+    warning(paste0("All cells have the same value of ", feature, "."))
+  } else{
+    data[, feature] <- data[, feature] + noise
+  }
+  axis.label <- if (feature %in% feature.names) {
+    if (y.log) {
+      "Log Expression level"
     } else {
-      scale_color_manual(values = cols.use, na.value = na.value)
+      "Expression level"
     }
-    p <- p + cols.scale
+  } else {
+    ""
   }
-  p <- p + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
+  y.max <- y.max %||% max(data[, feature])
+  p <- ggplot(data = data, mapping = aes_string(fill = 'ident')) +
+    guides(fill = guide_legend(title = NULL)) +
+    NoGrid() +
+    labs(title = feature.name)
+  p <- switch(
+    EXPR = plot.type,
+    'violin' = {
+      p <- p +
+        geom_violin(
+          scale = 'width',
+          adjust = adjust.use,
+          trim = TRUE,
+          mapping = aes_string(x = 'ident', y = 'feature')
+        ) +
+        labs(x = 'Identity', y = axis.label)
+      p <- p + if (y.log) {
+        scale_y_log10()
+      } else {
+        ylim(min(data[, feature]), y.max)
+      }
+      p
+    },
+    'ridge' = {
+      p <- p +
+        geom_density_ridges(
+          scale = 4,
+          mapping = aes_string(x = 'feature', y = 'ident')
+        ) +
+        theme_ridges() +
+        labs(x = axis.label, y = 'Identity') + #, title = feature.name) +
+        scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
+        scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
+      if (y.log) {
+        p <- p + scale_x_log10()
+      }
+      p
+    },
+    stop("Unknown plot type: ", plot.type)
+  )
+  if (!is.null(x = cols.use)) {
+    p <- p + scale_fill_manual(values = cols.use)
+  }
+  p <- p + theme_cowplot()
   return(p)
+}
+
+# A single heatmap from base R using image
+#
+# @param data.plot matrix of data to plot
+# @param cell.order optional vector of cell names to specify order in plot
+# @param plot.title Title for plot
+#
+SingleImageMap <- function(
+  data.plot,
+  cell.order = NULL,
+  plot.title = NULL
+) {
+  if (!is.null(x = cell.order)) {
+    data.plot <- data.plot[cell.order, ]
+  }
+  par(mar = c(1,1,3,3))
+  plot.new()
+  image(
+    x = as.matrix(x = data.plot),
+    axes = FALSE,
+    add = TRUE,
+    col = PurpleAndYellow()
+  )
+  axis(
+    side = 4,
+    at = seq(from = 0, to = 1, length = ncol(x = data.plot)),
+    labels = colnames(x = data.plot),
+    las = 1,
+    tick = FALSE,
+    mgp = c(0, -0.5, 0),
+    cex.axis = 0.75
+  )
+  title(main = plot.title)
 }
 
 # A single heatmap from ggplot2 using geom_raster
@@ -2890,224 +3126,4 @@ SingleRasterMap <- function(
       guides(color = guide_legend(override.aes = list(alpha = 1)))
   }
   return(p)
-}
-
-# A single heatmap from base R using image
-#
-# @param data.plot matrix of data to plot
-# @param cell.order optional vector of cell names to specify order in plot
-# @param plot.title Title for plot
-#
-SingleImageMap <- function(
-  data.plot,
-  cell.order = NULL,
-  plot.title = NULL
-) {
-  if (!is.null(x = cell.order)) {
-    data.plot <- data.plot[cell.order, ]
-  }
-  par(mar = c(1,1,3,3))
-  plot.new()
-  image(
-    x = as.matrix(x = data.plot),
-    axes = FALSE,
-    add = TRUE,
-    col = PurpleAndYellow()
-  )
-  axis(
-    side = 4,
-    at = seq(from = 0, to = 1, length = ncol(x = data.plot)),
-    labels = colnames(x = data.plot),
-    las = 1,
-    tick = FALSE,
-    mgp = c(0, -0.5, 0),
-    cex.axis = 0.75
-  )
-  title(main = plot.title)
-}
-
-globalVariables(
-  names = 'cc',
-  package = 'Seurat',
-  add = TRUE
-)
-# Evaluate CCs
-#
-# Looks at the biweight midcorrelation of the Xth gene across the specified CCs
-# for each group in the grouping.var.
-#
-# @param object A Seurat object
-# @param grouping.var Grouping variable specified in alignment procedure
-# @param dims.eval dimensions to evalutate the bicor for
-# @param gene.num Xth gene to look at bicor for
-# @param num.possible.genes Number of possible genes to search when choosing
-# genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
-# but may result in metagenes constructed on fewer than num.genes genes.
-# @param display.progress Show progress bar
-#
-EvaluateCCs <- function(
-  object,
-  grouping.var,
-  dims.eval,
-  gene.num,
-  num.possible.genes,
-  display.progress
-) {
-  reduction.type <-  "cca"
-  ident.orig <- object@ident
-  object <- SetAllIdent(object = object, id = grouping.var)
-  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
-  num.groups <- length(levels.split)
-  objects <- list()
-  for (i in 1:num.groups) {
-    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
-  }
-  object@ident <- ident.orig
-  cc.loadings <- list()
-  scaled.data <- list()
-  cc.embeds <- list()
-  for (i in 1:num.groups) {
-    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(
-      object = objects[[i]],
-      block.size = 5000,
-      display.progress = display.progress
-    )
-    objects[[i]] <- ProjectDim(
-      object = objects[[i]],
-      reduction.type = reduction.type,
-      do.print = FALSE
-    )
-    cc.loadings[[i]] <- GetGeneLoadings(
-      object = objects[[i]],
-      reduction.type = reduction.type,
-      use.full = TRUE
-    )
-    cc.embeds[[i]] <- GetCellEmbeddings(
-      object = objects[[i]],
-      reduction.type = reduction.type
-    )
-    scaled.data[[i]] <- objects[[i]]@scale.data
-  }
-  bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
-  if (display.progress) {
-    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
-    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
-    pb.idx <- 0
-  }
-  for (cc.use in dims.eval) {
-    bc.gene.g1 <- c()
-    for (g in 2:num.groups) {
-      if (display.progress) {
-        pb.idx <- pb.idx + 1
-        setTxtProgressBar(pb, pb.idx)
-      }
-      genes.rank <- data.frame(
-        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
-        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
-        cc.loadings[[1]][, cc.use],
-        cc.loadings[[g]][, cc.use]
-      )
-      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
-      bicors <- list()
-      for (i in c(1, g)) {
-        cc.vals <- cc.embeds[[i]][, cc.use]
-        bicors[[i]] <- sapply(
-          X = genes.top,
-          FUN = function(x) {
-            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
-          }
-        )
-      }
-      genes.rank <- data.frame(
-        rank(x = abs(x = bicors[[1]])),
-        rank(x = abs(x = bicors[[g]])),
-        bicors[[1]],
-        bicors[[g]]
-      )
-      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
-      # genes must be correlated in same direction in both datasets
-      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      bc.gene[cc.use, g] <- mean(abs(genes.rank[1:gene.num, 4]))
-      bc.gene.g1 <- c(bc.gene.g1, mean(abs(genes.rank[1:gene.num, 3])))
-    }
-    bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
-  }
-  if (display.progress) {
-    close(pb)
-  }
-  colnames(bc.gene) <- levels.split
-  bc.gene <- as.data.frame(bc.gene)
-  bc.gene$cc <- 1:nrow(bc.gene)
-  bc.gene <- gather(bc.gene, key = "Group",  value = "bicor", -cc)
-  return(bc.gene)
-}
-
-# Documentation needed
-#Sets the parameter value for a plotting function as default for an object
-# @param object ...
-# @param function.name ...
-# @param param.name ...
-# @param param.value ...
-#
-# Quick example :   pbmc <- FixPlotParam(pbmc,"FeaturePlot","pt.size","0.1")
-#
-FixPlotParam <- function(object, function.name, param.name, param.value) {
-  if ("PlotParams" %in% names(object@misc)) {
-    object@misc[["PlotParams"]][paste(function.name, param.name, sep=":")] <- param.value
-  }
-  else {
-    plotParamsList=list()
-    plotParamsList[paste(function.name, param.name, sep=":")] <- param.value
-    object@misc[["PlotParams"]] <- plotParamsList
-  }
-  return(object)
-}
-
-# Documentation needed
-#
-# @param object ...
-# @param workflow.name ...
-# @param depth ...
-#
-ReadPlotParams <- function(object, workflow.name, depth = 1) {
-  if (!("PlotParams" %in% names(object@misc))) {
-    return()
-  }
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-depth]]))
-  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  param.list <- names(formals(fun = sys.function(sys.parent(depth))))
-  paramsList <- slot(object = object, name = "misc")[["PlotParams"]]
-  p.env <- parent.frame(depth)
-  for(i in names(paramsList)) {
-    split_arr <- unlist(strsplit(x = i,split = ":"))
-    function.name <- split_arr[1]
-    param.name <- split_arr[2]
-    param.value <- paramsList[[i]]
-    if ((function.name == command.name) && (param.name %in% param.list)) {
-      assign(x = param.name,
-           value = param.value,
-           envir = p.env)
-    }
-  }
-  # overwrite any arguments passed in on the command line
-  argnames <- sys.call(which = depth)
-  argList <- as.list(argnames[-1])
-  args_ignore <- c("", "object", "workflow.name")
-  args_use <- setdiff(x = names(argList), y = args_ignore)
-  for(i in args_use) {
-    if(as.character(unlist(argList[i])[[1]]) == "F") {
-      arg.val <- FALSE
-    } else if(as.character(unlist(argList[i])[[1]]) == "T") {
-      arg.val <- TRUE
-    } else {
-      arg.val <- unlist(argList[i])[[1]]
-    }
-    assign(x = i, value = arg.val, envir = p.env)
-  }
 }
