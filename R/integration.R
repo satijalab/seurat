@@ -1,3 +1,11 @@
+#' @include generics.R
+#'
+NULL
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Functions
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 globalVariables(
   names = c('alignment.index1', 'dups', 'cc_data2'),
   package = 'Seurat',
@@ -71,9 +79,11 @@ AlignSubspace <- function(
   ...
 ) {
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("AlignSubspace"))]
-  object <- SetCalcParams(object = object,
-                          calculation = paste0("AlignSubspace.", reduction.type),
-                          ... = parameters.to.store)
+  # object <- SetCalcParams(
+  #   object = object,
+  #   calculation = paste0("AlignSubspace.", reduction.type),
+  #   ... = parameters.to.store
+  # )
   ident.orig <- object@ident
   object <- SetAllIdent(object = object, id = grouping.var)
   levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
@@ -475,3 +485,11 @@ CalcVarExpRatio <- function(
   object@meta.data$cell.name <- NULL
   return(object)
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for Seurat-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
