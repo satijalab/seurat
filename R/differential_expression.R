@@ -390,12 +390,6 @@ FindMarkers.default <- function(
       cells.2 = cells.2,
       verbose = verbose
     ),
-    'tobit' = TobitTest(
-      data.use = object[features.use, c(cells.1, cells.2)],
-      cells.1 = cells.1,
-      cells.2 = cells.2,
-      verbose = verbose
-    ),
     'negbinom' = GLMDETest(
       data.use = object[features.use, c(cells.1, cells.2)],
       cells.1 = cells.1,
@@ -697,43 +691,6 @@ DifferentialLRT <- function(x, y, xmin = 0) {
   lrtZ <- bimodLikData(x = c(x, y))
   lrt_diff <- 2 * (lrtX + lrtY - lrtZ)
   return(pchisq(q = lrt_diff, df = 3, lower.tail = F))
-}
-
-#internal function to run Tobit DE test
-#
-#' @importFrom stats pchisq logLik
-#
-DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
-  my.df <- data.frame(
-    c(x1, x2),
-    c(rep(x = 0, length(x = x1)), rep(x = 1, length(x = x2)))
-  )
-  colnames(x = my.df) <- c("Expression", "Stat")
-  #model.v1=vgam(Expression~1,family = tobit(Lower = lower,Upper = upper),data = my.df)
-  model.v1 <- TobitFitter(
-    x = my.df,
-    modelFormulaStr = "Expression~1",
-    lower = lower,
-    upper = upper
-  )
-  #model.v2=vgam(Expression~Stat+1,family = tobit(Lower = lower,Upper = upper),data = my.df)
-  model.v2 <- TobitFitter(
-    x = my.df,
-    modelFormulaStr = "Expression~Stat+1",
-    lower = lower,
-    upper = upper
-  )
-  # if (is.null(x = model.v1) == FALSE && is.null(x = model.v2) == FALSE) {
-  if (! is.null(x = model.v1) && ! is.null(x = model.v2)) {
-    p <- pchisq(
-      q = 2 * (logLik(object = model.v2) - logLik(object = model.v1)),
-      df = 1,
-      lower.tail = FALSE
-    )
-  } else {
-    p <- 1
-  }
-  return(p)
 }
 
 # Likelihood ratio test for zero-inflated data
@@ -1194,76 +1151,6 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
     theta.fit[to.fix] <- min.theta
   }
   return(theta.fit)
-}
-
-#internal function to run Tobit DE test
-TobitDiffExpTest <- function(data1, data2, mygenes, print.bar) {
-  p_val <- unlist(x = lapply(
-    X = mygenes,
-    FUN = function(x) {
-      return(DifferentialTobit(
-        x1 = as.numeric(x = data1[x, ]),
-        x2 = as.numeric(x = data2[x, ])
-      ))}
-  ))
-  p_val[is.na(x = p_val)] <- 1
-  if (print.bar) {
-    iterate.fxn <- pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
-  toRet <- data.frame(p_val, row.names = mygenes)
-  return(toRet)
-}
-
-#internal function to run Tobit DE test
-#credit to Cole Trapnell for this
-#
-#' @importFrom stats as.formula
-#
-TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf) {
-  PackageCheck('VGAM')
-  tryCatch(
-    expr = return(suppressWarnings(expr = VGAM::vgam(
-      formula = as.formula(object = modelFormulaStr),
-      family = VGAM::tobit(Lower = lower, Upper = upper),
-      data = x
-    ))),
-    #warning = function(w) { FM_fit },
-    error = function(e) { NULL }
-  )
-}
-
-# Differential expression testing using Tobit models
-#
-# Identifies differentially expressed genes between two groups of cells using
-# Tobit models, as proposed in Trapnell et al., Nature Biotechnology, 2014
-#
-# @return Returns a p-value ranked matrix of putative differentially expressed
-# genes.
-#
-# @export
-#
-# @examples
-# pbmc_small
-# \dontrun{
-# TobitTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
-# }
-#
-TobitTest <- function(
-  data.use,
-  cells.1,
-  cells.2,
-  verbose = TRUE
-) {
-  to.return <- TobitDiffExpTest(
-    data1 = data.use[, cells.1],
-    data2 = data.use[, cells.2],
-    mygenes = rownames(data.use),
-    print.bar = verbose
-  )
-  return(to.return)
 }
 
 # Differential expression using Wilcoxon Rank Sum
