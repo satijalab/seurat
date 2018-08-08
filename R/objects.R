@@ -1743,7 +1743,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #'
 "Loadings<-.DimReduc" <- function(object, projected = TRUE, ..., value) {
   slot.use <- ifelse(
-    test = proejcted,
+    test = projected,
     yes = 'feature.loadings.projected',
     no = 'feature.loadings'
   )
