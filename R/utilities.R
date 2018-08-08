@@ -552,6 +552,29 @@ ExpVar <- function(x) {
   return(log1p(var(expm1(x))))
 }
 
+#' Extract delimiter information from a string.
+#'
+#' Parses a string (usually a cell name) and extracts fields based on a delimiter
+#'
+#' @param string String to parse.
+#' @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
+#' @param delim Delimiter to use, set to underscore by default.
+#'
+#' @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
+#'
+#' @export
+#'
+#' @examples
+#' ExtractField(string = 'Hello World', field = 1, delim = '_')
+#'
+ExtractField <- function(string, field = 1, delim = "_") {
+  fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
+  if (length(x = fields) == 1) {
+    return(strsplit(x = string, split = delim)[[1]][field])
+  }
+  return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
+}
+
 #' Calculate the variance to mean ratio of logged values
 #'
 #' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
