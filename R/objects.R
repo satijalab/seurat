@@ -1741,11 +1741,12 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' @export
 #' @method Loadings<- DimReduc
 #'
-"Loadings<-.DimReduc" <- function(object, ..., value) {
-  if (nrow(x = value) != length(x = object)) {
-    stop("New feature loadings must have the dimensions as currently calculated")
+"Loadings<-.DimReduc" <- function(object, projected = FALSE, ..., value) {
+  slot.use <- "feature.loadings"
+  if (projected) {
+    slot.use <- "feature.loadings.projected"
   }
-  slot(object = object, name = 'feature.loadings.projected') <- value
+  slot(object = object, name = slot.use) <- value
   return(object)
 }
 
