@@ -18,6 +18,7 @@ Remotes: github::satijalab/SeuratObject
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
+    methods,
 Imports:
     ape,
     cluster,
@@ -46,7 +47,6 @@ Imports:
     MASS,
     Matrix (>= 1.2.14),
     metap,
-    methods,
     mixtools,
     parallel,
     pbapply,
