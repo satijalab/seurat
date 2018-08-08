@@ -942,30 +942,37 @@ BlockCov.loom <- function(
   }
   batch1 <- object[[mat]][batch.indices[[1]], rows.use]
   c1 <- cov(x = batch1)
-  m1 <- colMeans(x = batch1)
-  m.mat <- matrix(nrow = ncol(x = batch1), ncol = ncol(x = batch1))
-  n1 <- nrow(x = batch1)
-  update.cov <- list(cov_mat = m.mat, c1 = c1, n1 = n1, m1 = m1)
-  if (display.progress) {
-    pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
-  }
-  for (i in 2:length(x = batch)) {
-    current.batch <- object[[mat]][batch.indices[[i]], rows.use]
-    update.cov <- UpdateCov(
-      batch_mat = current.batch,
-      cov_mat = update.cov[["cov_mat"]],
-      c1 = update.cov[["c1"]],
-      n1 = update.cov[["n1"]],
-      m1 = update.cov[["m1"]]
-    )
+  
+  # If there's only one batch, then directly get covariance matrix c1 without
+  # going through the updating loop
+  if (length(batch) == 1) {
+    final.cov <- c1
+  } else if (length(batch) >= 2) {
+    m1 <- colMeans(x = batch1)
+    m.mat <- matrix(nrow = ncol(x = batch1), ncol = ncol(x = batch1))
+    n1 <- nrow(x = batch1)
+    update.cov <- list(cov_mat = m.mat, c1 = c1, n1 = n1, m1 = m1)
     if (display.progress) {
-      setTxtProgressBar(pb = pb, value = i)
+      pb <- txtProgressBar(min = 0, max = length(x = batch), style = 3)
     }
+    for (i in 2:length(x = batch)) {
+      current.batch <- object[[mat]][batch.indices[[i]], rows.use]
+      update.cov <- UpdateCov(
+        batch_mat = current.batch,
+        cov_mat = update.cov[["cov_mat"]],
+        c1 = update.cov[["c1"]],
+        n1 = update.cov[["n1"]],
+        m1 = update.cov[["m1"]]
+      )
+      if (display.progress) {
+        setTxtProgressBar(pb = pb, value = i)
+      }
+    }
+    if (display.progress) {
+      close(con = pb)
+    }
+    final.cov <- update.cov[["c1"]]
   }
-  if (display.progress) {
-    close(con = pb)
-  }
-  final.cov <- update.cov[["c1"]]
   rownames(x = final.cov) <- object[[row.names]][rows.use]
   colnames(x = final.cov) <- object[[row.names]][rows.use]
   return(final.cov)
