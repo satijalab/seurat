@@ -552,29 +552,6 @@ ExpVar <- function(x) {
   return(log1p(var(expm1(x))))
 }
 
-#' Extract delimiter information from a string.
-#'
-#' Parses a string (usually a cell name) and extracts fields based on a delimiter
-#'
-#' @param string String to parse.
-#' @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
-#' @param delim Delimiter to use, set to underscore by default.
-#'
-#' @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
-#'
-#' @export
-#'
-#' @examples
-#' ExtractField(string = 'Hello World', field = 1, delim = '_')
-#'
-ExtractField <- function(string, field = 1, delim = "_") {
-  fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
-  if (length(x = fields) == 1) {
-    return(strsplit(x = string, split = delim)[[1]][field])
-  }
-  return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
-}
-
 #' Calculate the variance to mean ratio of logged values
 #'
 #' Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
@@ -657,6 +634,29 @@ MinMax <- function(data, min, max) {
   } else {
     return(lhs)
   }
+}
+
+# Extract delimiter information from a string.
+#
+# Parses a string (usually a cell name) and extracts fields based on a delimiter
+#
+# @param string String to parse.
+# @param field Integer(s) indicating which field(s) to extract. Can be a vector multiple numbers.
+# @param delim Delimiter to use, set to underscore by default.
+#
+# @return A new string, that parses out the requested fields, and (if multiple), rejoins them with the same delimiter
+#
+# @export
+#
+# @examples
+# ExtractField(string = 'Hello World', field = 1, delim = '_')
+#
+ExtractField <- function(string, field = 1, delim = "_") {
+  fields <- as.numeric(x = unlist(x = strsplit(x = as.character(x = field), split = ",")))
+  if (length(x = fields) == 1) {
+    return(strsplit(x = string, split = delim)[[1]][field])
+  }
+  return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
 # Documentation
@@ -753,6 +753,36 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   )
   object[[command.name]] <- seurat.command
   return(object)
+}
+
+# Independently shuffle values within each row of a matrix
+#
+# Creates a matrix where correlation structure has been removed, but overall values are the same
+#
+# @param x Matrix to shuffle
+#
+# @return Returns a scrambled matrix, where each row is shuffled independently
+#
+# @importFrom stats runif
+#
+# @export
+#
+# @examples
+# mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+# mat
+# MatrixRowShuffle(x = mat)
+#
+MatrixRowShuffle <- function(x) {
+  x2 <- x
+  x2 <- t(x = x)
+  ind <- order(c(col(x = x2)), runif(n = length(x = x2)))
+  x2 <- matrix(
+    data = x2[ind],
+    nrow = nrow(x = x),
+    ncol = ncol(x = x),
+    byrow = TRUE
+  )
+  return(x2)
 }
 
 # Reverse the vector x and return the value at the Nth index. If N is larger

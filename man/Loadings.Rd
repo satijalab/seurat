@@ -13,7 +13,7 @@ Loadings(object, ...) <- value
 
 \method{Loadings}{DimReduc}(object, projected = NULL, ...)
 
-\method{Loadings}{DimReduc}(object, ...) <- value
+\method{Loadings}{DimReduc}(object, projected = TRUE, ...) <- value
 }
 \arguments{
 \item{object}{An object}
