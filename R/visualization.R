@@ -682,6 +682,8 @@ FeatureMap <- function(
 #' @param reduction.use Which dimensionality reduction to use. Default is
 #' "tsne", can also be "pca", or "ica", assuming these are precomputed.
 #' @param combine.plots Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param num.col Number of columns to use
+#' @param coord.fixed Use cartesian coordinates with a fixed aspect ratio
 #'
 #' @return A ggplot object
 #'
@@ -710,14 +712,15 @@ FeaturePlot <- function(
   do.label = FALSE,
   label.size = 4,
   na.value = 'grey50',
-  combine.plots = TRUE
+  combine.plots = TRUE,
+  num.col = NULL,
+  coord.fixed = FALSE
 ) {
   ReadPlotParams(object)
   if (length(x = dims.use) != 2 || !is.numeric(x = dims.use)) {
     stop("'dims.use' must be a two-length integer vector")
   }
   dims.use <- paste0(Key(object = object[[reduction.use]]), dims.use)
-  num.col <- NULL
   if (is.null(x = num.col)) {
     num.col <- 2
     if (length(x = features.plot) == 1) {
@@ -812,6 +815,9 @@ FeaturePlot <- function(
         colors = cols.use,
         guide = 'colorbar'
       ))
+    }
+    if (coord.fixed) {
+      p <- p + coord_fixed()
     }
     plots[[which(x = features.plot == feature)]] <- p
   }
