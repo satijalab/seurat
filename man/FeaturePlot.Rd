@@ -8,7 +8,8 @@ FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
   reduction.use = "tsne", dims.use = c(1, 2), group.by = NULL,
   cols.use = c("yellow", "red"), cells.use = NULL, pt.size = 1,
   shape.by = NULL, plot.order = NULL, do.label = FALSE,
-  label.size = 4, na.value = "grey50", combine.plots = TRUE)
+  label.size = 4, na.value = "grey50", combine.plots = TRUE,
+  num.col = NULL, coord.fixed = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -49,6 +50,10 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 \item{na.value}{Color value for NA points when using custom scale.}
 
 \item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{num.col}{Number of columns to use}
+
+\item{coord.fixed}{Use cartesian coordinates with a fixed aspect ratio}
 }
 \value{
 A ggplot object
