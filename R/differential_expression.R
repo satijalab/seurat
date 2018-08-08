@@ -360,8 +360,8 @@ FindMarkers.default <- function(
     }
   }
   # perform DE
-  if (!(test.use %in% c('negbinom', 'poisson', 'MAST')) && !is.null(x = latent.vars)) {
-    warning("'latent.vars' is only used for 'negbinom', 'poisson', and 'MAST' tests")
+  if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
+    warning("'latent.vars' is only used for 'negbinom', 'poisson', 'LR', and 'MAST' tests")
   }
   de.results <- switch(
     EXPR = test.use,
@@ -425,6 +425,7 @@ FindMarkers.default <- function(
       data.use = object[features.use, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
+      latent.vars = latent.vars,
       verbose = verbose
     ),
     stop("Unknown test: ", test.use)
@@ -873,12 +874,22 @@ GLMDETest <- function(
   return(to.return)
 }
 
-# Documentation
+# Perform differential expression testing using a logistic regression framework
+#
+# Constructs a logistic regression model predicting group membership based on a
+# given feature and compares this to a null model with a likelihood ratio test.
+#
+# @param data.use expression matrix
+# @param cells.1 Vector of cells in group 1
+# @param cells2. Vector of cells in group 2
+# @param latent.vars Latent variables to include in model
+# @param verbose Print messages
 #
 LRDETest <- function(
   data.use,
   cells.1,
   cells.2,
+  latent.vars = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -887,12 +898,15 @@ LRDETest <- function(
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(group.info)]
+  latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   mysapply <- if (verbose) {pbsapply} else {sapply}
   p_val <- mysapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
-      model1 <- glm(group.info$group ~ data.use[x, ], family = "binomial")
-      model2 <- glm(group.info$group ~ 1, family = "binomial")
+      model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
+      fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
+      model1 <- glm(formula = fmla, data = model.data, family = "binomial")
+      model2 <- glm(model.data$group ~ 1, family = "binomial")
       lrtest <- lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
