@@ -755,6 +755,36 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   return(object)
 }
 
+# Independently shuffle values within each row of a matrix
+#
+# Creates a matrix where correlation structure has been removed, but overall values are the same
+#
+# @param x Matrix to shuffle
+#
+# @return Returns a scrambled matrix, where each row is shuffled independently
+#
+# @importFrom stats runif
+#
+# @export
+#
+# @examples
+# mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
+# mat
+# MatrixRowShuffle(x = mat)
+#
+MatrixRowShuffle <- function(x) {
+  x2 <- x
+  x2 <- t(x = x)
+  ind <- order(c(col(x = x2)), runif(n = length(x = x2)))
+  x2 <- matrix(
+    data = x2[ind],
+    nrow = nrow(x = x),
+    ncol = ncol(x = x),
+    byrow = TRUE
+  )
+  return(x2)
+}
+
 # Reverse the vector x and return the value at the Nth index. If N is larger
 # than the length of the vector, return the last value in the reversed vector.
 #

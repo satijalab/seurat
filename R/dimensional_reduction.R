@@ -1213,65 +1213,38 @@ ScoreJackStraw.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Prep data for dimensional reduction
+# Calculate a low dimensional projection of the data. First forms an orthonormal
+# basis of the gene loadings via QR decomposition, projects the data onto that
+# basis, and reconstructs the data using on the dimensions specified.
 #
-# Common checks and preparatory steps before running certain dimensional
-# reduction techniques
+# @param object          Seurat object
+# @param reduction.type  Type of dimensional reduction to use
+# @param dims.use        Dimensions to use in calculation
+# @param genes.use       Genes to consider when calculating
 #
-# @param object        Assay object
-# @param features.use  Features to use as input for the dimensional reduction technique.
-#                      Default is variable features
+# @return                Returns a matrix with the low dimensional reconstruction
 #
-#
-PrepDR <- function(
-  object,
-  features.use = NULL
-) {
-  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
-    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
+CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
+  if (missing(x = dims.use)) {
+    dims.use <- 1:ncol(x = Embeddings(
+      object = object,
+      reduction.type = reduction.type
+    ))
   }
-  data.use <- GetAssayData(object = object, slot = "scale.data")
-  features.use <- features.use %||% VariableFeatures(object = object)
-  features.use <- unique(x = features.use[features.use %in% rownames(x = data.use)])
-  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
-  features.use <- features.use[features.var > 0]
-  features.use <- features.use[!is.na(x = features.use)]
-  data.use <- data.use[features.use, ]
-  return(data.use)
-}
-
-# Check that features are present and have non-zero variance
-#
-# @param data.use      Feature matrix (features are rows)
-# @param features.use  Features to check
-# @param object.name   Name of object for message printing
-#
-# @return           Returns a vector of features that is the subset of features.use
-#                   that have non-zero variance
-#
-CheckFeatures <- function(data.use, features.use, object.name) {
-  if (any(!features.use %in% rownames(data.use))) {
-    missing.features <- features.use[!features.use %in% rownames(data.use)]
-    stop(
-      "Following features are not scaled in ",
-      object.name,
-      ": ",
-      paste0(missing.features, collapse = ", ")
-    )
-  }
-  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
-  no.var.features <- features.use[features.var == 0]
-  if (length(no.var.features) > 0) {
-    warning(
-      "The following features have zero variance in ",
-      object.name,
-      ": ",
-      paste0(no.var.features, collapse = ", ")
-    )
-  }
-  features.use <- setdiff(x = features.use, y = no.var.features)
-  features.use <- features.use[!is.na(x = features.use)]
-  return(features.use)
+  x.vec <- Loadings(
+    object = object,
+    reduction.type = reduction.type,
+    dims.use = dims.use,
+    genes.use = genes.use
+  )
+  # form orthonormal basis via QR
+  x.norm <- qr.Q(qr = qr(x = x.vec))
+  data.use <- object@scale.data[rownames(x.vec), ]
+  # project data onto othronormal basis
+  projected.data <- t(x = data.use) %*% x.norm
+  # reconstruct data using only dims specified
+  low.dim.data <- x.norm %*% t(x = projected.data)
+  return(low.dim.data)
 }
 
 # Calculate percent variance explained
@@ -1316,130 +1289,43 @@ CalcProjectedVar <- function(
   return(object)
 }
 
-# Calculate a low dimensional projection of the data. First forms an orthonormal
-# basis of the gene loadings via QR decomposition, projects the data onto that
-# basis, and reconstructs the data using on the dimensions specified.
+# Check that features are present and have non-zero variance
 #
-# @param object          Seurat object
-# @param reduction.type  Type of dimensional reduction to use
-# @param dims.use        Dimensions to use in calculation
-# @param genes.use       Genes to consider when calculating
+# @param data.use      Feature matrix (features are rows)
+# @param features.use  Features to check
+# @param object.name   Name of object for message printing
 #
-# @return                Returns a matrix with the low dimensional reconstruction
+# @return           Returns a vector of features that is the subset of features.use
+#                   that have non-zero variance
 #
-CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
-  if (missing(x = dims.use)) {
-    dims.use <- 1:ncol(x = Embeddings(
-      object = object,
-      reduction.type = reduction.type
-    ))
+CheckFeatures <- function(data.use, features.use, object.name) {
+  if (any(!features.use %in% rownames(data.use))) {
+    missing.features <- features.use[!features.use %in% rownames(data.use)]
+    stop(
+      "Following features are not scaled in ",
+      object.name,
+      ": ",
+      paste0(missing.features, collapse = ", ")
+    )
   }
-  x.vec <- Loadings(
-    object = object,
-    reduction.type = reduction.type,
-    dims.use = dims.use,
-    genes.use = genes.use
-  )
-  # form orthonormal basis via QR
-  x.norm <- qr.Q(qr = qr(x = x.vec))
-  data.use <- object@scale.data[rownames(x.vec), ]
-  # project data onto othronormal basis
-  projected.data <- t(x = data.use) %*% x.norm
-  # reconstruct data using only dims specified
-  low.dim.data <- x.norm %*% t(x = projected.data)
-  return(low.dim.data)
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  no.var.features <- features.use[features.var == 0]
+  if (length(no.var.features) > 0) {
+    warning(
+      "The following features have zero variance in ",
+      object.name,
+      ": ",
+      paste0(no.var.features, collapse = ", ")
+    )
+  }
+  features.use <- setdiff(x = features.use, y = no.var.features)
+  features.use <- features.use[!is.na(x = features.use)]
+  return(features.use)
 }
 
-# MultiCCA helper function - calculates critical value (when to stop iterating
-# in the while loop)
-#
-# Modified from PMA package
-# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
-# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
-#
-# @param mat.list list of matrices
-# @param ws vector of projection vectors
-# @param num.sets number of datasets
-#
-# @return returns updated critical value
-#
-GetCrit <- function(mat.list, ws, num.sets){
-  crit <- 0
-  for (i in 2:num.sets) {
-    for (j in 1:(i - 1)) {
-      crit <- crit + t(ws[[i]]) %*% t(x = mat.list[[i]]) %*% mat.list[[j]] %*% ws[[j]]
-    }
-  }
-  return(crit)
-}
-
-# MultiCCA helper function - updates W
-#
-# Modified from PMA package
-# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
-# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
-#
-# @param mat.list list of matrices
-# @param i index of current matrix
-# @param num.sets number of datasets
-# @param ws initial vector of projection vectors
-# @param ws.final final vector of projection vectors
-#
-# @return returns updated w value
-#
-UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
-  tots <- 0
-  for (j in (1:num.sets)[-i]) {
-    diagmat <- (t(x = ws.final[[i]]) %*% t(x = mat.list[[i]])) %*% (mat.list[[j]] %*% ws.final[[j]])
-    diagmat[row(x = diagmat) != col(x = diagmat)] <- 0
-    tots <- tots + t(x = mat.list[[i]]) %*% (mat.list[[j]] %*% ws[[j]]) - ws.final[[i]] %*% (diagmat %*% (t(x = ws.final[[j]]) %*% ws[[j]]))
-  }
-  w <- tots / L2Norm(vec = tots)
-  return(w)
-}
-
-# Calculates the l2-norm of a vector
-#
-# Modified from PMA package
-# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
-# @references \url{https://github.com/cran/PMA/blob/master/R/PMD.R}
-#
-# @param vec numeric vector
-#
-# @return returns the l2-norm.
-#
-L2Norm <- function(vec){
-  a <- sqrt(x = sum(vec ^ 2))
-  if (a == 0) {
-    a <- .05
-  }
-  return(a)
-}
-
-# MultiCCA helper function - calculates correlation
-#
-# Modified from PMA package
-# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
-# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
-#
-# @param mat.list list of matrices to calculate correlation
-# @param ws vector of projection vectors
-# @param num.sets number of datasets
-#
-# @return total correlation
-#
-GetCors <- function(mat.list, ws, num.sets){
-  cors <- 0
-  for (i in 2:num.sets) {
-    for (j in 1:(i - 1)) {
-      thiscor  <-  cor(x = mat.list[[i]] %*% ws[[i]], y = mat.list[[j]] %*% ws[[j]])
-      if (is.na(x = thiscor)) {
-        thiscor <- 0
-      }
-      cors <- cors + thiscor
-    }
-  }
-  return(cors)
+#internal
+EmpiricalP <- function(x, nullval) {
+  return(sum(nullval > x) / length(x = nullval))
 }
 
 # FIt-SNE helper function for calling fast_tsne from R
@@ -1574,3 +1460,157 @@ fftRtsne <- function(
   return(Yout)
 }
 
+# MultiCCA helper function - calculates correlation
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices to calculate correlation
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return total correlation
+#
+GetCors <- function(mat.list, ws, num.sets){
+  cors <- 0
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      thiscor  <-  cor(x = mat.list[[i]] %*% ws[[i]], y = mat.list[[j]] %*% ws[[j]])
+      if (is.na(x = thiscor)) {
+        thiscor <- 0
+      }
+      cors <- cors + thiscor
+    }
+  }
+  return(cors)
+}
+
+# MultiCCA helper function - calculates critical value (when to stop iterating
+# in the while loop)
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param ws vector of projection vectors
+# @param num.sets number of datasets
+#
+# @return returns updated critical value
+#
+GetCrit <- function(mat.list, ws, num.sets){
+  crit <- 0
+  for (i in 2:num.sets) {
+    for (j in 1:(i - 1)) {
+      crit <- crit + t(ws[[i]]) %*% t(x = mat.list[[i]]) %*% mat.list[[j]] %*% ws[[j]]
+    }
+  }
+  return(crit)
+}
+
+#internal
+#
+JackRandom <- function(
+  scaled.data,
+  prop.use = 0.01,
+  r1.use = 1,
+  r2.use = 5,
+  seed.use = 1,
+  rev.pca = FALSE,
+  weight.by.var = weight.by.var,
+  maxit = 1000
+) {
+  set.seed(seed = seed.use)
+  rand.genes <- sample(
+    x = rownames(x = scaled.data),
+    size = nrow(x = scaled.data) * prop.use
+  )
+  # make sure that rand.genes is at least 3
+  if (length(x = rand.genes) < 3) {
+    rand.genes <- sample(x = rownames(x = scaled.data), size = 3)
+  }
+  data.mod <- scaled.data
+  data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
+  temp.object <- RunPCA(
+    object = data.mod,
+    assay.use = "temp",
+    pcs.compute = r2.use,
+    features.use = rownames(x = data.mod),
+    rev.pca = rev.pca,
+    weight.by.var = weight.by.var,
+    verbose = FALSE,
+    maxit = maxit
+  )
+  return(Loadings(temp.object)[rand.genes, r1.use:r2.use])
+}
+
+# Calculates the l2-norm of a vector
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/PMD.R}
+#
+# @param vec numeric vector
+#
+# @return returns the l2-norm.
+#
+L2Norm <- function(vec){
+  a <- sqrt(x = sum(vec ^ 2))
+  if (a == 0) {
+    a <- .05
+  }
+  return(a)
+}
+
+# Prep data for dimensional reduction
+#
+# Common checks and preparatory steps before running certain dimensional
+# reduction techniques
+#
+# @param object        Assay object
+# @param features.use  Features to use as input for the dimensional reduction technique.
+#                      Default is variable features
+#
+#
+PrepDR <- function(
+  object,
+  features.use = NULL
+) {
+  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
+    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
+  }
+  data.use <- GetAssayData(object = object, slot = "scale.data")
+  features.use <- features.use %||% VariableFeatures(object = object)
+  features.use <- unique(x = features.use[features.use %in% rownames(x = data.use)])
+  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
+  features.use <- features.use[features.var > 0]
+  features.use <- features.use[!is.na(x = features.use)]
+  data.use <- data.use[features.use, ]
+  return(data.use)
+}
+
+# MultiCCA helper function - updates W
+#
+# Modified from PMA package
+# @references Witten, Tibshirani, and Hastie, Biostatistics 2009
+# @references \url{https://github.com/cran/PMA/blob/master/R/MultiCCA.R}
+#
+# @param mat.list list of matrices
+# @param i index of current matrix
+# @param num.sets number of datasets
+# @param ws initial vector of projection vectors
+# @param ws.final final vector of projection vectors
+#
+# @return returns updated w value
+#
+UpdateW <- function(mat.list, i, num.sets, ws, ws.final){
+  tots <- 0
+  for (j in (1:num.sets)[-i]) {
+    diagmat <- (t(x = ws.final[[i]]) %*% t(x = mat.list[[i]])) %*% (mat.list[[j]] %*% ws.final[[j]])
+    diagmat[row(x = diagmat) != col(x = diagmat)] <- 0
+    tots <- tots + t(x = mat.list[[i]]) %*% (mat.list[[j]] %*% ws[[j]]) - ws.final[[i]] %*% (diagmat %*% (t(x = ws.final[[j]]) %*% ws[[j]]))
+  }
+  w <- tots / L2Norm(vec = tots)
+  return(w)
+}

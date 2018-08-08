@@ -2260,36 +2260,6 @@ MakeSparse <- function(object) {
   return(object)
 }
 
-#' Independently shuffle values within each row of a matrix
-#'
-#' Creates a matrix where correlation structure has been removed, but overall values are the same
-#'
-#' @param x Matrix to shuffle
-#'
-#' @return Returns a scrambled matrix, where each row is shuffled independently
-#'
-#' @importFrom stats runif
-#'
-#' @export
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 20, prob = 0.2 ), nrow = 5)
-#' mat
-#' MatrixRowShuffle(x = mat)
-#'
-MatrixRowShuffle <- function(x) {
-  x2 <- x
-  x2 <- t(x = x)
-  ind <- order(c(col(x = x2)), runif(n = length(x = x2)))
-  x2 <- matrix(
-    data = x2[ind],
-    nrow = nrow(x = x),
-    ncol = ncol(x = x),
-    byrow = TRUE
-  )
-  return(x2)
-}
-
 #' Return a subset of columns for a matrix or data frame
 #'
 #' @param data Matrix or data frame with column names
