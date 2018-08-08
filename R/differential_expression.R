@@ -903,10 +903,17 @@ LRDETest <- function(
   p_val <- mysapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
-      model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-      fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
+      if(is.null(x = latent.vars)) {
+        model.data <- cbind(GENE = data.use[x, ], group.info)
+        fmla <- as.formula(paste0("group  ~ GENE"))
+        fmla2 <- as.formula("group ~ 1")
+      } else {
+        model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
+        fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
+        fmla2 <- as.formula(paste0("group ~ ", paste(colnames(x = latent.vars), collapse = "+")))
+      }
       model1 <- glm(formula = fmla, data = model.data, family = "binomial")
-      model2 <- glm(model.data$group ~ 1, family = "binomial")
+      model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
       lrtest <- lrtest(model1, model2)
       return(lrtest$Pr[2])
     }
