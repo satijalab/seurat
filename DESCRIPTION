@@ -75,7 +75,6 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
-    'unknown.R'
     'utilities.R'
     'visualization.R'
     'zfRenderSeurat.R'
