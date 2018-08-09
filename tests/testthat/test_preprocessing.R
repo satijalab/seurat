@@ -152,55 +152,65 @@ test_that("Poisson regression works as expected", {
 })
 
 
-# Tests for SampleUMI
-# --------------------------------------------------------------------------------
-# context("SampleUMI")
-#
-# downsampled.umis <- SampleUMI(object@raw.data, max.umi = 100, progress.bar = F)
-# downsampled.umis.p.cell <- SampleUMI(object@raw.data, max.umi = seq(50, 630, 10), progress.bar = F, upsample = T)
-# test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
-#   expect_true(!any(colSums(downsampled.umis) < 80, colSums(downsampled.umis) > 120))
-#   expect_error(SampleUMI(object@raw.data, max.umi = rep(1, 5)))
-#   expect_true(!is.unsorted(colSums(downsampled.umis.p.cell)))
-# })
+#Tests for SampleUMI
+#--------------------------------------------------------------------------------
+context("SampleUMI")
 
-# Tests for FindVariableGenes
+downsampled.umis <- SampleUMI(
+  data = GetAssayData(object = object, slot = "counts"),
+  max.umi = 100,
+  verbose = FALSE
+)
+downsampled.umis.p.cell <- SampleUMI(
+  data = GetAssayData(object = object, slot = "counts"),
+  max.umi = seq(50, 840, 10),
+  verbose = FALSE,
+  upsample = TRUE
+)
+test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
+  expect_true(!any(colSums(x = downsampled.umis) < 30, colSums(x = downsampled.umis) > 120))
+  expect_error(SampleUMI(data = GetAssayData(object = object, slot = "raw.data"), max.umi = rep(1, 5)))
+  expect_true(!is.unsorted(x = colSums(x = downsampled.umis.p.cell)))
+  expect_error(SampleUMI(
+    data = GetAssayData(object = object, slot = "counts"),
+    max.umi = seq(50, 900, 10),
+    verbose = FALSE,
+    upsample = TRUE
+  ))
+})
+
+# Tests for FindVariableFeautres
 # --------------------------------------------------------------------------------
-# context("FindVariableGenes")
-#
-# object <- FindVariableGenes(object, display.progress = F, do.cpp = F, do.plot = F)
-# test_that("R implementation of FindVariableGenes returns expected values", {
-#   expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-#   expect_equal(length(object@var.genes), 10)
-#   expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-#   expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-#   expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-#   expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
-# })
-#
-# object <- FindVariableGenes(object, display.progress = F, do.plot = F)
-# test_that("C++ implementation of FindVariableGenes returns expected values", {
-#   expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-#   expect_equal(length(object@var.genes), 10)
-#   expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-#   expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-#   expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-#   expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
-#   expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, mean.function = mean))
-#   expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, dispersion.function = ExpSD))
-# })
-#
-# var.genes <- FindVariableGenes(object, set.var.genes = F)
-# test_that("Option to only return vector of genes works", {
-#   expect_equal(length(var.genes), 10)
-#   expect_equal(length(var.genes), length(object@var.genes))
-#   expect_equal(var.genes[1:2], c("MS4A1", "CD2"))
-# })
-#
-# object2 <- FindVariableGenes(object, display.progress = F, do.plot = F, do.recalc = FALSE)
-# test_that("do.recalc doesn't change vector of variable genes", {
-#   expect_equal(intersect(object@var.genes, object2@var.genes), object@var.genes)
-# })
+context("FindVariableFeatures")
+
+object <- FindVariableFeatures(object = object, selection.method = "mean.var.plot", verbose = FALSE)
+test_that("mean.var.plot selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PTGDR", "SATB1", "ZNF330", "S100B"))
+  expect_equal(length(x = VariableFeatures(object = object)), 20)
+  expect_equal(HVFInfo(object = object[["RNA"]])$mean[1:2], c(8.328927, 8.444462), tolerance = 1e6)
+  expect_equal(HVFInfo(object = object[["RNA"]])$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]])$dispersion.scaled[1:2]), c(0.1113214, -0.1113214), tolerance = 1e6)
+})
+
+object <- FindVariableFeatures(object, selection.method = "dispersion", verbose = FALSE)
+test_that("dispersion selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PCMT1", "PPBP", "LYAR", "VDAC3"))
+  expect_equal(length(x = VariableFeatures(object = object)), 230)
+  expect_equal(HVFInfo(object = object[["RNA"]])$mean[1:2], c(8.328927, 8.444462), tolerance = 1e6)
+  expect_equal(HVFInfo(object = object[["RNA"]])$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]])$dispersion.scaled[1:2]), c(0.1113214, -0.1113214), tolerance = 1e6)
+  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]])[VariableFeatures(object = object), "dispersion"])))
+})
+
+object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+test_that("vst selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PPBP", "IGLL5", "VDAC3", "CD1C"))
+  expect_equal(length(x = VariableFeatures(object = object)), 230)
+  expect_equal(unname(object[["RNA"]][["variance", drop = TRUE]][1:2]), c(1.0251582, 1.2810127), tolerance = 1e6)
+  expect_equal(unname(object[["RNA"]][["variance.expected", drop = TRUE]][1:2]), c(1.1411616, 2.7076228), tolerance = 1e6)
+  expect_equal(unname(object[["RNA"]][["variance.standardized", drop = TRUE]][1:2]), c(0.8983463, 0.4731134), tolerance = 1e6)
+  expect_true(!is.unsorted(rev(object[["RNA"]][["variance.standardized", drop = TRUE]][VariableFeatures(object = object)])))
+})
 
 # Tests for FilterCells
 # --------------------------------------------------------------------------------
