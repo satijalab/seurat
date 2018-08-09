@@ -1018,6 +1018,57 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.
   return(object)
 }
 
+#' Update old Seurat object to accomodate new features
+#'
+#' Updates Seurat objects to new structure for storing data/calculations.
+#'
+#' @param object Seurat object
+#'
+#' @return Returns a Seurat object compatible with latest changes
+#'
+#' @importFrom utils packageVersion
+#' @importFrom methods .hasSlot new slotNames as
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' updated_seurat_object = UpdateSeuratObject(object = old_seurat_object)
+#' }
+#'
+UpdateSeuratObject <- function(object) {
+  if (.hasSlot(object, "version")) {
+    if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
+      message("Object representation is consistent with the most current Seurat version")
+      return(object)
+    } else if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
+      seurat.version <- packageVersion(pkg = "Seurat")
+      new.assay <- UpdateAssay(old.assay = object, assay.use = "RNA")
+      assay.list <- list(new.assay)
+      names(assay.list) <- "RNA"
+      for(i in names(object@assay)) {
+        assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay.use = i)
+      }
+      new.dr <- UpdateDimReduction(old.dr = object@dr, assay.use = "RNA")
+      new.object <- new(
+        Class = "Seurat",
+        version = seurat.version,
+        assays = assay.list,
+        active.assay = "RNA",
+        project.name = object@project.name,
+        calc.params = object@calc.params,
+        misc = object@misc %||% list(),
+        active.ident = object@ident,
+        reductions = new.dr,
+        meta.data = object@meta.data,
+        tools = list()
+      )
+      return(new.object)
+    }
+  }
+  stop("Cannot convert version <2")
+}
+
 #' Output status of each command in the workflow
 #'
 #' For each command in the workflow, indicate whether it is up-to-date.
@@ -3205,6 +3256,60 @@ Top <- function(
   }
   return(top)
 }
+
+# Update Seurat assay
+#
+# @param old.assay Seurat2 assay
+# @param assay.use Name to store for assay in new object
+#
+UpdateAssay <- function(old.assay, assay.use){
+  cells.use <- colnames(old.assay@data)
+  counts <- old.assay@raw.data
+  data <- old.assay@data
+  if (!inherits(x = counts, what = 'dgCMatrix')) {
+    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+  }
+  if (!inherits(x = data, what = 'dgCMatrix')) {
+    data <- as(object = as.matrix(x = data), Class = 'dgCMatrix')
+  }
+  new.assay <- new(
+    Class = 'Assay',
+    counts = counts[, cells.use],
+    data = data,
+    scale.data = old.assay@scale.data %||% matrix(),
+    meta.features = data.frame(row.names = rownames(x = counts)),
+    var.features = old.assay@var.genes,
+    key = paste0(assay.use, "_")
+  )
+  return(new.assay)
+}
+
+# Update dimension reduction
+#
+# @param old.dr Seurat2 dimension reduction slot
+#
+UpdateDimReduction <- function(old.dr, assay.use){
+  new.dr <- list()
+  for(i in names(old.dr)){
+    cell.embeddings <- old.dr[[i]]@cell.embeddings %||% matrix()
+    feature.loadings <- old.dr[[i]]@gene.loadings %||% matrix()
+    stdev <- old.dr[[i]]@sdev %||% numeric()
+    misc <- old.dr[[i]]@misc %||% list()
+
+    new.dr[[i]] <- new(
+      Class = 'DimReduc',
+      cell.embeddings = as(cell.embeddings, 'matrix'),
+      feature.loadings = as(feature.loadings, 'matrix'),
+      assay.used = assay.use,
+      stdev = as(stdev, 'numeric'),
+      key = as(old.dr[[i]]@key, 'character'),
+      jackstraw = old.dr[[i]]@jackstraw,
+      misc = as(misc, 'list')
+    )
+  }
+  return(new.dr)
+}
+
 
 # UpdateWorkflow
 #
