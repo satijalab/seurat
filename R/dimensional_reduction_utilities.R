@@ -7,7 +7,9 @@
 GetDimReduction.seurat <- function(
   object,
   reduction.type = "pca",
-  slot = "gene.loadings"
+  slot = "gene.loadings",
+  gene.names = 'row_attrs/gene_names', # I added this so when it won't throw an error
+  cell.names = 'col_attrs/cell_names'  # when a Seurat object is passed in DoTSNE; these arguments won't be evaluated
 ) {
   if (!(reduction.type %in% names(object@dr))) {
     stop(paste(reduction.type, " dimensional reduction has not been computed"))

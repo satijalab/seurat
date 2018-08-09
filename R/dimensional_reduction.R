@@ -212,7 +212,7 @@ RunPCA.loom <- function(
         cat("Smaller number of cells than required for online PCA\n")
         cat("Running standard PCA instead\n")
       }
-      pca.results <- irlba(A = t(x = data), nv = pcs.compute, ...)
+      pca.results <- irlba(A = data, nv = pcs.compute, ...)
       gene.loadings <- pca.results$u
       cell.embeddings <- pca.results$v
       sdev <- pca.results$d / sqrt(x = max(1, ncol(x = data) - 1))
@@ -547,8 +547,10 @@ RunTSNE.seurat <- function(
   return(object)
 }
 
+#' @param gene.names Dataset name for gene names in loom object
+#' @param cell.names Dataset name for cell names in loom object
 #' @param overwrite Overwrite existing data? Used only for loom objects
-#'
+#' 
 #' @describeIn RunTSNE Run TSNE on a loom file
 #' @export
 #' @method RunTSNE loom
@@ -566,6 +568,8 @@ RunTSNE.loom <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names",
   overwrite = FALSE,
   ...
 ) {
@@ -583,6 +587,8 @@ RunTSNE.loom <- function(
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     overwrite = overwrite,
+    gene.names = gene.names,
+    cell.names = cell.names,
     ...
   )
   invisible(x = object)

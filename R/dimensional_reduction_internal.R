@@ -112,6 +112,8 @@ DoTSNE <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names",
   overwrite = FALSE,
   ...
 ) {
@@ -123,7 +125,9 @@ DoTSNE <- function(
     data.use <- GetDimReduction(
       object = object,
       reduction.type = reduction.use,
-      slot = "cell.embeddings"
+      slot = "cell.embeddings",
+      gene.names = gene.names,
+      cell.names = cell.names
     )[, dims.use]
   } else {
     data.use <- t(x = PrepDR(
