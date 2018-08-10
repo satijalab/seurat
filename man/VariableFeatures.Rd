@@ -15,12 +15,11 @@ VariableFeatures(object, ...) <- value
 
 \method{VariableFeatures}{Assay}(object, ...)
 
-\method{VariableFeatures}{Seurat}(object, assay.use = NULL, ...)
+\method{VariableFeatures}{Seurat}(object, assay = NULL, ...)
 
 \method{VariableFeatures}{Assay}(object, ...) <- value
 
-\method{VariableFeatures}{Seurat}(object, assay.use = NULL,
-  ...) <- value
+\method{VariableFeatures}{Seurat}(object, assay = NULL, ...) <- value
 }
 \arguments{
 \item{object}{An object}
@@ -29,7 +28,7 @@ VariableFeatures(object, ...) <- value
 
 \item{value}{A character vector of variable features}
 
-\item{assay.use}{Name of assay to pull variable features for}
+\item{assay}{Name of assay to pull variable features for}
 }
 \description{
 Get and set variable feature information

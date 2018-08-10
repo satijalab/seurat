@@ -9,11 +9,11 @@ TopCells(object, dim = 1, ncells = 20, balanced = FALSE)
 \arguments{
 \item{object}{DimReduc object}
 
+\item{balanced}{Return an equal number of cells with both + and - scores.}
+
 \item{dim.use}{Dimension to use}
 
 \item{num.cells}{Number of cells to return}
-
-\item{do.balanced}{Return an equal number of cells with both + and - scores.}
 }
 \value{
 Returns a vector of cells

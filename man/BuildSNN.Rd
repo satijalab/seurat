@@ -13,15 +13,14 @@ BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
   k.param = 10, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE)
 
-\method{BuildSNN}{Assay}(object, features.use = NULL, k.param = 10,
+\method{BuildSNN}{Assay}(object, features = NULL, k.param = 10,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE)
 
-\method{BuildSNN}{Seurat}(object, assay.use = NULL,
-  features.use = NULL, reduction.use = "pca", dims.use = 1:10,
-  k.param = 30, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE, do.plot = FALSE, graph.name = NULL,
-  workflow.name = NULL)
+\method{BuildSNN}{Seurat}(object, assay = NULL, features = NULL,
+  reduction = "pca", dims = 1:10, k.param = 30, prune.SNN = 1/15,
+  nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
+  do.plot = FALSE, graph.name = NULL, workflow.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -44,16 +43,16 @@ default of 0.0 implies exact nearest neighbor search}
 \item{distance.matrix}{Boolean value of whether the provided matrix is a
 distance matrix}
 
-\item{features.use}{A vector of feature names to use in construction of SNN
+\item{features}{A vector of feature names to use in construction of SNN
 graph if building directly based on data rather than a dimensionally reduced
 representation (i.e. PCs).}
 
-\item{assay.use}{Assay to use in construction of SNN}
+\item{assay}{Assay to use in construction of SNN}
 
-\item{reduction.use}{Name of dimensional reduction technique to use in
+\item{reduction}{Name of dimensional reduction technique to use in
 construction of SNN graph. (e.g. "pca", "ica")}
 
-\item{dims.use}{A vector of the dimensions to use in construction of the SNN
+\item{dims}{A vector of the dimensions to use in construction of the SNN
 graph (e.g. To use the first 10 PCs, pass 1:10)}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
@@ -63,11 +62,11 @@ assay.name_snn.}
 
 \item{workflow.name}{Name of workflow}
 
-\item{features.use}{Features to use as input for building the SNN}
+\item{features}{Features to use as input for building the SNN}
 
-\item{reduction.use}{Reduction to use as input for building the SNN}
+\item{reduction}{Reduction to use as input for building the SNN}
 
-\item{dims.use}{Dimensions of reduction to use as input}
+\item{dims}{Dimensions of reduction to use as input}
 }
 \value{
 Returns the object with object@snn filled
@@ -95,6 +94,6 @@ pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
 # More commonly, we build the SNN on a dimensionally reduced form of the data
 # such as the first 10 principle components.
 
-pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
+pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims = 1:10)
 
 }

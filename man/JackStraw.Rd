@@ -4,16 +4,16 @@
 \alias{JackStraw}
 \title{Determine statistical significance of PCA scores.}
 \usage{
-JackStraw(object, reduction.use = "pca", assay.use = NULL, dims = 20,
+JackStraw(object, reduction = "pca", assay = NULL, dims = 20,
   num.replicate = 100, prop.freq = 0.01, verbose = TRUE,
   maxit = 1000)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.}
+\item{reduction}{DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.}
 
-\item{assay.use}{Assay used to calculate reduction.}
+\item{assay}{Assay used to calculate reduction.}
 
 \item{dims}{Number of PCs to compute significance for}
 

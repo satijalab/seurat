@@ -14,14 +14,14 @@ FindVariableFeatures(object, selection.method, loess.span, clip.max,
 \method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
   loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
   dispersion.function = FastLogVMR, num.bin = 20,
-  binning.method = "equal_width", num.features = 1000,
+  binning.method = "equal_width", nfeatures = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
   verbose = TRUE)
 
-\method{FindVariableFeatures}{Seurat}(object, assay.use = NULL,
+\method{FindVariableFeatures}{Seurat}(object, assay = NULL,
   selection.method = "vst", loess.span = 0.3, clip.max = "auto",
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
-  num.bin = 20, binning.method = "equal_width", num.features = 1000,
+  num.bin = 20, binning.method = "equal_width", nfeatures = 1000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
   verbose = TRUE, workflow.name = NULL)
 }
@@ -72,7 +72,7 @@ methods are:
 
 \item{verbose}{show progress bar for calculations}
 
-\item{num.features}{Number of features to select as top variable features;
+\item{nfeatures}{Number of features to select as top variable features;
 only used when \code{selection.method = 'dispersion'}}
 
 \item{mean.cutoff}{A two-length numeric vector with low- and high-cutoffs for
@@ -81,7 +81,7 @@ feature means}
 \item{dispersion.cutoff}{A two-length numeric vector with low- and high-cutoffs for
 feature dispersions}
 
-\item{assay.use}{Assay to use}
+\item{assay}{Assay to use}
 
 \item{workflow.name}{Name of workflow}
 }

@@ -11,11 +11,10 @@ RunCCA(object1, object2, num.cc, ...)
 \method{RunCCA}{default}(object1, object2, standardize = TRUE,
   num.cc = 20, verbose = FALSE, use.cpp = TRUE)
 
-\method{RunCCA}{Seurat}(object1, object2, assay.use1 = NULL,
-  assay.use2 = NULL, num.cc = 20, features.use = NULL,
-  renormalize = FALSE, rescale = FALSE, compute.gene.loadings = TRUE,
-  add.cell.id1 = NULL, add.cell.id2 = NULL, verbose = TRUE,
-  use.cpp = TRUE, ...)
+\method{RunCCA}{Seurat}(object1, object2, assay1 = NULL, assay2 = NULL,
+  num.cc = 20, features = NULL, renormalize = FALSE,
+  rescale = FALSE, compute.gene.loadings = TRUE, add.cell.id1 = NULL,
+  add.cell.id2 = NULL, verbose = TRUE, use.cpp = TRUE, ...)
 }
 \arguments{
 \item{object1}{First Seurat object}
@@ -31,9 +30,9 @@ set to TRUE)}
 \item{standardize}{Standardize matrices - scales columns to have unit variance
 and mean 0}
 
-\item{assay.use1}{Assay to pull from in the first object}
+\item{assay1}{Assay to pull from in the first object}
 
-\item{features.use}{Set of genes to use in CCA. Default is the union of both
+\item{features}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
 
 \item{rescale}{Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.}
@@ -41,7 +40,7 @@ the variable features sets present in both objects.}
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
 
-\item{assay.use1}{Assay to pull from in the second object}
+\item{assay1}{Assay to pull from in the second object}
 
 \item{renormlize}{Renormalize raw data after merging the objects. If FALSE,
 merge the data matrices also.}
@@ -64,8 +63,8 @@ For details about stored CCA calculation parameters, see
 \examples{
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
-pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[41:80])
 pbmc1@meta.data$group <- "group1"
 pbmc2@meta.data$group <- "group2"
 pbmc_cca <- RunCCA(pbmc1,pbmc2)

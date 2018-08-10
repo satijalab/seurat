@@ -6,21 +6,21 @@
 \alias{RunMultiCCA.Seurat}
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
-RunMultiCCA(object.list, features.use, add.cell.ids, niter, num.ccs,
+RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs,
   standardize, verbose)
 
 \method{RunMultiCCA}{default}(object.list, niter = 25, num.ccs = 1,
   standardize = TRUE, verbose = TRUE)
 
-\method{RunMultiCCA}{Seurat}(object.list, assay.use = NULL,
-  features.use = NULL, add.cell.ids = NULL, niter = 25,
-  num.ccs = 1, standardize = TRUE, renormalize = TRUE,
+\method{RunMultiCCA}{Seurat}(object.list, assay = NULL,
+  features = NULL, add.cell.ids = NULL, niter = 25, num.ccs = 1,
+  standardize = TRUE, renormalize = TRUE,
   compute.gene.loadings = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{object.list}{List of Seurat objects}
 
-\item{features.use}{Set of genes to use in CCA. Default is the union of both
+\item{features}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
 
 \item{niter}{Number of iterations to perform. Set by default to 25.}
@@ -30,7 +30,7 @@ the variable features sets present in both objects.}
 \item{standardize}{standardize scale.data matrices to be centered (mean zero)
 and scaled to have a standard deviation of 1.}
 
-\item{assay.use}{Assay to use}
+\item{assay}{Assay to use}
 
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
@@ -56,9 +56,9 @@ Runs a canonical correlation analysis
 pbmc_small
 # As multi-set CCA requires more than two datasets, we will split our test object into
 # three just for this example
-pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:30])
-pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[31:60])
-pbmc3 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[61:80])
+pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:30])
+pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[31:60])
+pbmc3 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[61:80])
 pbmc1@meta.data$group <- "group1"
 pbmc2@meta.data$group <- "group2"
 pbmc3@meta.data$group <- "group3"

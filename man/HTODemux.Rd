@@ -4,7 +4,7 @@
 \alias{HTODemux}
 \title{Demultiplex samples based on data from cell 'hashing'}
 \usage{
-HTODemux(object, assay.use = "HTO", positive_quantile = 0.99,
+HTODemux(object, assay = "HTO", positive_quantile = 0.99,
   init_centers = NULL, cluster_nstarts = 100, k_function = "clara",
   nsamples = 100, verbose = TRUE)
 }

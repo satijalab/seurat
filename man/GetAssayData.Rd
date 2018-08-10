@@ -10,8 +10,7 @@ GetAssayData(object, slot, ...)
 
 \method{GetAssayData}{Assay}(object, slot = "data")
 
-\method{GetAssayData}{Seurat}(object, slot = "data", assay.use = NULL,
-  ...)
+\method{GetAssayData}{Seurat}(object, slot = "data", assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -20,7 +19,7 @@ GetAssayData(object, slot, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{assay.use}{Name of assay to pull data from}
+\item{assay}{Name of assay to pull data from}
 }
 \value{
 Returns assay data

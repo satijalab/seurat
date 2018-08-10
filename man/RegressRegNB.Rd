@@ -4,7 +4,7 @@
 \alias{RegressRegNB}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-RegressRegNB(object, assay.use = NULL, do.correct.umi = FALSE,
+RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
   variable.features.zscore = 1, variable.features.n = NULL,
   do.scale = FALSE, do.center = FALSE,
   scale.max = .Machine$double.xmax, verbose = TRUE, ...)
@@ -12,7 +12,7 @@ RegressRegNB(object, assay.use = NULL, do.correct.umi = FALSE,
 \arguments{
 \item{object}{A seurat object}
 
-\item{assay.use}{Name of assay to use}
+\item{assay}{Name of assay to use}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 

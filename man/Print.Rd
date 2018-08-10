@@ -7,7 +7,7 @@
 \usage{
 Print(object, ...)
 
-\method{Print}{DimReduc}(object, dims = 1:5, num.features = 20,
+\method{Print}{DimReduc}(object, dims = 1:5, nfeatures = 20,
   projected = FALSE)
 }
 \arguments{
@@ -15,7 +15,7 @@ Print(object, ...)
 
 \item{dims}{Number of dimensions to display}
 
-\item{num.features}{Number of genes to display}
+\item{nfeatures}{Number of genes to display}
 
 \item{projected}{Use projected slot}
 }

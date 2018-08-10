@@ -10,14 +10,14 @@ Stdev(object, ...)
 
 \method{Stdev}{DimReduc}(object)
 
-\method{Stdev}{Seurat}(object, reduction.use, ...)
+\method{Stdev}{Seurat}(object, reduction, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{reduction.use}{Name of reduction to use}
+\item{reduction}{Name of reduction to use}
 }
 \description{
 Get the standard deviations for an object

@@ -15,8 +15,8 @@ ScoreJackStraw(object, dims, score.thresh, ...)
 \method{ScoreJackStraw}{DimReduc}(object, dims = 1:5,
   score.thresh = 1e-05, do.plot = FALSE, ...)
 
-\method{ScoreJackStraw}{Seurat}(object, reduction.use = "pca",
-  dims = 1:5, score.thresh = 1e-05, do.plot = FALSE, ...)
+\method{ScoreJackStraw}{Seurat}(object, reduction = "pca", dims = 1:5,
+  score.thresh = 1e-05, do.plot = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -29,7 +29,7 @@ significance (see Details)}
 \item{do.plot}{Show plot. To return ggplot object, use \code{JackStrawPlot} after
 running ScoreJackStraw.}
 
-\item{reduction.use}{Reduction associated with JackStraw to score}
+\item{reduction}{Reduction associated with JackStraw to score}
 }
 \value{
 Returns a Seurat object

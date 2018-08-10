@@ -10,14 +10,14 @@ HVFInfo(object, ...)
 
 \method{HVFInfo}{Assay}(object, ...)
 
-\method{HVFInfo}{Seurat}(object, assay.use = NULL, ...)
+\method{HVFInfo}{Seurat}(object, assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{assay.use}{Name of assay to pull highly variable feature information for}
+\item{assay}{Name of assay to pull highly variable feature information for}
 }
 \value{
 A dataframe with feature means, dispersion, and scaled dispersion

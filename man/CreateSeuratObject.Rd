@@ -4,16 +4,16 @@
 \alias{CreateSeuratObject}
 \title{Create a Seurat object}
 \usage{
-CreateSeuratObject(counts, project = "SeuratProject",
-  assay.use = "RNA", min.cells = 0, min.features = 0,
-  names.field = 1, names.delim = "_", meta.data = NULL)
+CreateSeuratObject(counts, project = "SeuratProject", assay = "RNA",
+  min.cells = 0, min.features = 0, names.field = 1,
+  names.delim = "_", meta.data = NULL)
 }
 \arguments{
 \item{counts}{Unnormalized data such as raw counts or TPMs}
 
 \item{project}{Sets the project name for the Seurat object.}
 
-\item{assay.use}{Name of the assay corresponding to the initial input data.}
+\item{assay}{Name of the assay corresponding to the initial input data.}
 
 \item{min.cells}{Include features detected in at least this many cells. Will subset the counts
 matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}

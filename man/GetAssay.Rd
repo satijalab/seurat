@@ -5,14 +5,14 @@
 \alias{GetAssay.Seurat}
 \title{Get an assay from an object}
 \usage{
-GetAssay(object, assay.use, ...)
+GetAssay(object, assay, ...)
 
-\method{GetAssay}{Seurat}(object, assay.use = NULL)
+\method{GetAssay}{Seurat}(object, assay = NULL)
 }
 \arguments{
 \item{object}{An object}
 
-\item{assay.use}{Assay to get}
+\item{assay}{Assay to get}
 
 \item{...}{Arguments passed to other methods}
 }

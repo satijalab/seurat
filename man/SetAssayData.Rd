@@ -11,7 +11,7 @@ SetAssayData(object, slot, new.data, ...)
 \method{SetAssayData}{Assay}(object, slot, new.data)
 
 \method{SetAssayData}{Seurat}(object, slot = "data", new.data,
-  assay.use = NULL, ...)
+  assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -22,7 +22,7 @@ SetAssayData(object, slot, new.data, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{assay.use}{Name of assay whose data should be set}
+\item{assay}{Name of assay whose data should be set}
 }
 \value{
 object with the assay data set

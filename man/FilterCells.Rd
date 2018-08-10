@@ -5,7 +5,7 @@
 \title{Filter out cells from a Seurat object}
 \usage{
 FilterCells(object, subset.names, low.thresholds, high.thresholds,
-  cells.use = NULL)
+  cells = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,7 +18,7 @@ using FetchData}
 
 \item{high.thresholds}{High cutoffs for the parameters (default is Inf)}
 
-\item{cells.use}{A vector of cell names to use as a subset}
+\item{cells}{A vector of cell names to use as a subset}
 }
 \value{
 Returns a Seurat object containing only the relevant subset of cells
@@ -28,8 +28,8 @@ Creates a Seurat object containing only a subset of the cells in the
 original object. Takes a vector of variables on which to subset along with
 corresponding low and high threshold values for each variable, returning an
 object contain only cells that pass the specified filters. You can also
-restrict the filtering to only a subset of cells using cells.use (i.e. only
-keep cells that BOTH pass the filters and are in the cells.use list).
+restrict the filtering to only a subset of cells using cells (i.e. only
+keep cells that BOTH pass the filters and are in the cells list).
 }
 \examples{
 head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))

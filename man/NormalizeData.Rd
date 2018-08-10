@@ -12,7 +12,7 @@ NormalizeData(object, normalization.method, scale.factor, verbose)
   normalization.method = "LogNormalize", scale.factor = 10000,
   verbose = TRUE)
 
-\method{NormalizeData}{Seurat}(object, assay.use = NULL,
+\method{NormalizeData}{Seurat}(object, assay = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
   verbose = TRUE, workflow.name = NULL)
 }
@@ -32,7 +32,7 @@ More methods to be added.}
 
 \item{verbose}{display progress bar for normalization procedure.}
 
-\item{assay.use}{Name of assay to use}
+\item{assay}{Name of assay to use}
 }
 \value{
 Returns object after normalization

@@ -4,7 +4,7 @@
 \alias{FindAllMarkers}
 \title{Gene expression markers for all identity classes}
 \usage{
-FindAllMarkers(object, assay.use = NULL, features.use = NULL,
+FindAllMarkers(object, assay = NULL, features = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
   max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
@@ -14,9 +14,9 @@ FindAllMarkers(object, assay.use = NULL, features.use = NULL,
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay.use}{Assay to use in differential expression testing}
+\item{assay}{Assay to use in differential expression testing}
 
-\item{features.use}{Genes to test. Default is to use all genes}
+\item{features}{Genes to test. Default is to use all genes}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25

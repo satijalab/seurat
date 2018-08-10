@@ -9,12 +9,12 @@
 RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
   features.print, reduction.name, reduction.key, seed.use, ...)
 
-\method{RunPCA}{Assay}(object, assay.use = NULL, features.use = NULL,
+\method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
   compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
   verbose = TRUE, print.dims = 1:5, features.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
 
-\method{RunPCA}{Seurat}(object, assay.use = NULL, features.use = NULL,
+\method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
   compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
   verbose = TRUE, print.dims = 1:5, features.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42,
@@ -44,7 +44,7 @@ NULL will not set a seed.}
 
 \item{\dots}{Additional arguments to be passed to IRLBA}
 
-\item{assay.use}{Name of Assay PCA is being run on}
+\item{assay}{Name of Assay PCA is being run on}
 
 \item{compute.dims}{Total Number of PCs to compute and store (20 by default)}
 

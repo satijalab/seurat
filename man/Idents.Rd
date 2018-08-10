@@ -17,7 +17,7 @@ StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, ...)
 
-\method{Idents}{Seurat}(object, cells.use = NULL, ...) <- value
+\method{Idents}{Seurat}(object, cells = NULL, ...) <- value
 
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
 }
@@ -30,7 +30,7 @@ StashIdent(object, save.name, ...)
 
 \item{save.name}{Store current identity information under this name}
 
-\item{cells.use}{Set cell identities for specific cells}
+\item{cells}{Set cell identities for specific cells}
 }
 \value{
 The cell identies

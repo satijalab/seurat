@@ -8,11 +8,11 @@
 \usage{
 SubsetData(object, slot, ...)
 
-\method{SubsetData}{Assay}(object, cells.use = NULL,
-  subset.name = NULL, low.threshold = -Inf, high.threshold = Inf,
-  accept.value = NULL, do.clean = FALSE, ...)
+\method{SubsetData}{Assay}(object, cells = NULL, subset.name = NULL,
+  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
+  do.clean = FALSE, ...)
 
-\method{SubsetData}{Seurat}(object, assay.use = NULL, cells.use = NULL,
+\method{SubsetData}{Seurat}(object, assay = NULL, cells = NULL,
   subset.name = NULL, ident.use = NULL, ident.remove = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
   max.cells.per.ident = Inf, random.seed = 1, do.clean = FALSE, ...)
@@ -22,7 +22,7 @@ SubsetData(object, slot, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{cells.use}{A vector of cell names to use as a subset. If NULL
+\item{cells}{A vector of cell names to use as a subset. If NULL
 (default), then this list will be computed based on the next three
 arguments. Otherwise, will return an object consissting only of these cells}
 
@@ -42,7 +42,7 @@ subset of the data. Also clears out stored clustering results in
 object@meta.data (any columns containing "res"). Will by default subset the
 raw.data slot.}
 
-\item{assay.use}{Assay to subset on}
+\item{assay}{Assay to subset on}
 
 \item{ident.use}{Create a cell subset based on the provided identity classes}
 
@@ -76,7 +76,7 @@ parameter (for example, a gene), to subset on.
 }}
 
 \examples{
-pbmc1 <- SubsetData(object = pbmc_small, cells.use = colnames(x = pbmc_small)[1:40])
+pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc1
 
 }

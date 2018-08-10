@@ -4,16 +4,16 @@
 \alias{CalcAlignmentMetric}
 \title{Calculate an alignment score}
 \usage{
-CalcAlignmentMetric(object, reduction.use = "cca.aligned", dims.use,
+CalcAlignmentMetric(object, reduction = "cca.aligned", dims,
   grouping.var, nn, nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Stored dimensional reduction on which to build NN graph.
+\item{reduction}{Stored dimensional reduction on which to build NN graph.
 Usually going to be cca.aligned.}
 
-\item{dims.use}{Dimensions to use in building the NN graph}
+\item{dims}{Dimensions to use in building the NN graph}
 
 \item{grouping.var}{Grouping variable used in the alignment.}
 
@@ -41,15 +41,15 @@ neighbors in the KNN graph.
 \dontrun{
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
-pbmc1 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[1:40])
-pbmc2 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+pbmc1 <- SubsetData(pbmc_small, cells = pbmc_small@cell.names[1:40])
+pbmc2 <- SubsetData(pbmc_small, cells = pbmc_small@cell.names[41:80])
 pbmc1@meta.data$group <- "group1"
 pbmc2@meta.data$group <- "group2"
 pbmc_cca <- RunCCA(pbmc1,pbmc2)
 pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca",
                           grouping.var = "group", dims.align = 1:5)
-CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned",
-                    dims.use = 1:5, grouping.var =  "group")
+CalcAlignmentMetric(pbmc_cca, reduction = "cca.aligned",
+                    dims = 1:5, grouping.var =  "group")
 }
 
 }

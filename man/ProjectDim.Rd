@@ -4,16 +4,16 @@
 \alias{ProjectDim}
 \title{Project Dimensional reduction onto full dataset}
 \usage{
-ProjectDim(object, reduction.use = "pca", assay.use = NULL,
-  dims.print = 1:5, features.print = 20, overwrite = FALSE,
-  do.center = FALSE, verbose = TRUE)
+ProjectDim(object, reduction = "pca", assay = NULL, dims.print = 1:5,
+  features.print = 20, overwrite = FALSE, do.center = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Reduction to use}
+\item{reduction}{Reduction to use}
 
-\item{assay.use}{Assay to use}
+\item{assay}{Assay to use}
 
 \item{dims.print}{Number of dims to print features for}
 
@@ -39,6 +39,6 @@ all genes.
 pbmc_small
 pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
 # Vizualize top projected genes in heatmap
-DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
+DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,balanced = TRUE,reduction.type = "pca")
 
 }

@@ -6,22 +6,22 @@
 \alias{WhichCells.Seurat}
 \title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, cells.use, subset.name, low.threshold, high.threshold,
+WhichCells(object, cells, subset.name, low.threshold, high.threshold,
   accept.value, ...)
 
-\method{WhichCells}{Assay}(object, cells.use, subset.name = NULL,
+\method{WhichCells}{Assay}(object, cells, subset.name = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
   ...)
 
-\method{WhichCells}{Seurat}(object, cells.use = NULL,
-  subset.name = NULL, low.threshold = -Inf, high.threshold = Inf,
-  accept.value = NULL, ident.keep = NULL, ident.remove = NULL,
-  max.cells.per.ident = Inf, random.seed = 1, assay.use = NULL, ...)
+\method{WhichCells}{Seurat}(object, cells = NULL, subset.name = NULL,
+  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
+  ident.keep = NULL, ident.remove = NULL, max.cells.per.ident = Inf,
+  random.seed = 1, assay = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{cells.use}{Subset of cell names}
+\item{cells}{Subset of cell names}
 
 \item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
 column name in object@meta.data, etc. Any argument that can be retreived
@@ -46,7 +46,7 @@ max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{assay.use}{Which assay to filter on}
+\item{assay}{Which assay to filter on}
 
 \item{...}{Extra parameters passed to \code{FetchData}}
 }

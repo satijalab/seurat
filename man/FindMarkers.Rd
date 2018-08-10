@@ -6,19 +6,19 @@
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
 \usage{
-FindMarkers(object, features.use, logfc.threshold, test.use, min.pct,
+FindMarkers(object, features, logfc.threshold, test.use, min.pct,
   min.diff.pct, verbose, only.pos, max.cells.per.ident, random.seed,
   latent.vars, min.cells.feature, min.cells.group, pseudocount.use, ...)
 
 \method{FindMarkers}{default}(object, cells.1 = NULL, cells.2 = NULL,
-  features.use = NULL, logfc.threshold = 0.25, test.use = "wilcox",
+  features = NULL, logfc.threshold = 0.25, test.use = "wilcox",
   min.pct = 0.1, min.diff.pct = -Inf, verbose = TRUE,
   only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
   latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
   pseudocount.use = 1, ...)
 
 \method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
-  assay.use = NULL, features.use = NULL, logfc.threshold = 0.25,
+  assay = NULL, features = NULL, logfc.threshold = 0.25,
   test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
   verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
@@ -27,7 +27,7 @@ FindMarkers(object, features.use, logfc.threshold, test.use, min.pct,
 \arguments{
 \item{object}{Seurat object}
 
-\item{features.use}{Genes to test. Default is to use all genes}
+\item{features}{Genes to test. Default is to use all genes}
 
 \item{logfc.threshold}{Limit testing to genes which show, on average, at least
 X-fold difference (log-scale) between the two groups of cells. Default is 0.25
@@ -107,7 +107,7 @@ calculating logFC. 1 by default.}
 \item{ident.2}{A second identity class for comparison. If NULL (default) -
 use all other cells for comparison.}
 
-\item{assay.use}{Assay to use in differential expression testing}
+\item{assay}{Assay to use in differential expression testing}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses
 pbapply to do this)}

@@ -6,26 +6,26 @@
 \alias{RunTSNE.Seurat}
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
-RunTSNE(object, reduction.use, cells.use, seed.use, tsne.method, add.iter,
+RunTSNE(object, reduction, cells, seed.use, tsne.method, add.iter,
   dim.embed, reduction.key, ...)
 
-\method{RunTSNE}{DimReduc}(object, cells.use = NULL, dims.use = 1:5,
+\method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
   seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
   reduction.key = "tSNE_", ...)
 
-\method{RunTSNE}{Seurat}(object, reduction.use = "pca",
-  cells.use = NULL, dims.use = 1:5, features.use = NULL,
-  seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
-  distance.matrix = NULL, reduction.name = "tsne",
-  reduction.key = "tSNE_", workflow.name = NULL, ...)
+\method{RunTSNE}{Seurat}(object, reduction = "pca", cells = NULL,
+  dims = 1:5, features = NULL, seed.use = 1, tsne.method = "Rtsne",
+  add.iter = 0, dim.embed = 2, distance.matrix = NULL,
+  reduction.name = "tsne", reduction.key = "tSNE_",
+  workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Which dimensional reduction (e.g. PCA, ICA) to use for
+\item{reduction}{Which dimensional reduction (e.g. PCA, ICA) to use for
 the tSNE. Default is PCA}
 
-\item{cells.use}{Which cells to analyze (default, all cells)}
+\item{cells}{Which cells to analyze (default, all cells)}
 
 \item{seed.use}{Random seed for the t-SNE}
 
@@ -50,9 +50,9 @@ of this}
 \item{\dots}{Additional arguments to the tSNE call. Most commonly used is
 perplexity (expected number of neighbors default is 30)}
 
-\item{dims.use}{Which dimensions to use as input features}
+\item{dims}{Which dimensions to use as input features}
 
-\item{features.use}{If set, run the tSNE on this subset of features
+\item{features}{If set, run the tSNE on this subset of features
 (instead of running on a set of reduced dimensions). Not set (NULL) by default}
 
 \item{distance.matrix}{If set, runs tSNE on the given distance matrix

@@ -6,26 +6,25 @@
 \alias{ScaleData.Seurat}
 \title{Scale and center the data.}
 \usage{
-ScaleData(object, features.use, vars.to.regress, model.use, use.umi,
-  do.scale, do.center, scale.max, block.size, min.cells.to.block, verbose,
-  ...)
+ScaleData(object, features, vars.to.regress, model.use, use.umi, do.scale,
+  do.center, scale.max, block.size, min.cells.to.block, verbose, ...)
 
-\method{ScaleData}{Assay}(object, features.use = NULL,
+\method{ScaleData}{Assay}(object, features = NULL,
   vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
   use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
   scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
   verbose = TRUE, ...)
 
-\method{ScaleData}{Seurat}(object, features.use = NULL,
-  assay.use = NULL, vars.to.regress = NULL, model.use = "linear",
-  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
-  scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
-  verbose = TRUE, workflow.name = NULL, ...)
+\method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
+  vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
+  do.scale = TRUE, do.center = TRUE, scale.max = 10,
+  block.size = 1000, min.cells.to.block = 3000, verbose = TRUE,
+  workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
 
-\item{features.use}{Vector of features names to scale/center. Default is all features}
+\item{features}{Vector of features names to scale/center. Default is all features}
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
 RegressOut). For example, nUMI, or percent.mito.}
@@ -57,7 +56,7 @@ don't block for scaling calculations.}
 
 \item{latent.data}{Extra data to regress out, should be cells x latent data}
 
-\item{assay.use}{Name of Assay to scale}
+\item{assay}{Name of Assay to scale}
 
 \item{workflow.name}{Name of workflow}
 }

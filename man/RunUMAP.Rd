@@ -5,30 +5,30 @@
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
-RunUMAP(object, cells.use, dims.use, reduction.use, features.use,
-  assay.use, max.dim, reduction.name, reduction.key, n_neighbors, min_dist,
-  metric, seed.use, ...)
+RunUMAP(object, cells, dims, reduction, features, assay, max.dim,
+  reduction.name, reduction.key, n_neighbors, min_dist, metric, seed.use,
+  ...)
 
-\method{RunUMAP}{Seurat}(object, dims.use = 1:5, reduction.use = "pca",
-  features.use = NULL, assay.use = "RNA", max.dim = 2L,
+\method{RunUMAP}{Seurat}(object, dims = 1:5, reduction = "pca",
+  features = NULL, assay = "RNA", max.dim = 2L,
   reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
   min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{cells.use}{Which cells to analyze (default, all cells)}
+\item{cells}{Which cells to analyze (default, all cells)}
 
-\item{dims.use}{Which dimensions to use as input features, used only if
+\item{dims}{Which dimensions to use as input features, used only if
 \code{genes.use} is NULL}
 
-\item{reduction.use}{Which dimensional reduction (PCA or ICA) to use for the
+\item{reduction}{Which dimensional reduction (PCA or ICA) to use for the
 UMAP input. Default is PCA}
 
-\item{features.use}{If set, run UMAP on this subset of features (instead of running on a
+\item{features}{If set, run UMAP on this subset of features (instead of running on a
 set of reduced dimensions). Not set (NULL) by default}
 
-\item{assay.use}{Assay to pull data for when using \code{genes.use}}
+\item{assay}{Assay to pull data for when using \code{genes.use}}
 
 \item{max.dim}{Max dimension to keep from UMAP procedure.}
 
@@ -78,9 +78,9 @@ discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 \dontrun{
 pbmc_small
 # Run UMAP map on first 5 PCs
-pbmc_small <- RunUMAP(object = pbmc_small, dims.use = 1:5)
+pbmc_small <- RunUMAP(object = pbmc_small, dims = 1:5)
 # Plot results
-DimPlot(object = pbmc_small, reduction.use = 'umap')
+DimPlot(object = pbmc_small, reduction = 'umap')
 }
 
 }
