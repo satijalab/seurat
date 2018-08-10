@@ -484,7 +484,7 @@ DimPlot <- function(
 ) {
   ReadPlotParams(object)
   if (length(x = dims) != 2) {
-    stop("'dims.use' must be a two-length vector")
+    stop("'dims' must be a two-length vector")
   }
   cells <- cells %||% colnames(x = object)
   data <- Embeddings(object = object[[reduction]])[cells, dims]
@@ -501,7 +501,7 @@ DimPlot <- function(
   }
   plot <- SingleDimPlot(
     data.plot = data,
-    dims.use = dims,
+    dims = dims,
     col.by = group.by,
     cols.use = cols,
     pt.size = pt.size,
@@ -567,7 +567,7 @@ FeaturePlot <- function(
 ) {
   ReadPlotParams(object)
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
-    stop("'dims.use' must be a two-length integer vector")
+    stop("'dims' must be a two-length integer vector")
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(object)
@@ -660,7 +660,7 @@ FeaturePlot <- function(
     for (j in 1:length(x = features)) {
       feature <- features[j]
       plot <- SingleDimPlot(
-        data.plot = data.plot[, c(dims, feature)],
+        data = data.plot[, c(dims, feature)],
         dims = dims,
         col.by = feature,
         pt.size = pt.size,
@@ -2752,7 +2752,7 @@ SingleDimPlot <- function(
   ...
 ) {
   if (length(x = dims) != 2) {
-    stop("'dims.use' must be a two-length vector")
+    stop("'dims' must be a two-length vector")
   }
   if (!is.data.frame(x = data)) {
     data <- as.data.frame(x = data)
@@ -2794,15 +2794,15 @@ SingleDimPlot <- function(
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
-        x = dims.use[1],
-        y = dims.use[2],
+        x = dims[1],
+        y = dims[2],
         color = col.by,
         shape = shape.by
       ),
       size = pt.size
     ) + labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    labels <- MakeLabels(data = plot$data[, c(dims.use, col.by)])
+    labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
     plot <- plot +
       geom_point(
         data = labels,
