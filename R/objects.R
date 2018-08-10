@@ -373,14 +373,14 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   # According to SeuratCommand, the most recent update
   # go to workflow to look up assay and DR
   params <- slot(object = object[[workflow.name]], name = "params")
-  assay.use <- params$global$assay.use
-  assay.use <- assay.use %iff% params[[command.name]]$assay.use
-  assay.use <- assay.use %||% DefaultAssay(object)
-  reduction.use <- params$global$reduction.use
-  reduction.use <- reduction.use %iff% params[[command.name]]$reduction.use
-  reduction.use <- reduction.use %||% formals(fun = paste0(command.name, ".Seurat"))$reduction.use
+  assay <- params$global$assay
+  assay <- assay %iff% params[[command.name]]$assay
+  assay <- assay %||% DefaultAssay(object)
+  reduction <- params$global$reduction
+  reduction <- reduction %iff% params[[command.name]]$reduction
+  reduction <- reduction %||% formals(fun = paste0(command.name, ".Seurat"))$reduction
 
-  command.name <- paste0(command.name, ".", assay.use, ".", reduction.use)
+  command.name <- paste0(command.name, ".", assay, ".", reduction)
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
   command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
 
@@ -434,8 +434,8 @@ CreateAssayObject <- function(
     counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
   }
   # Filter based on min.features
-  num.features <- Matrix::colSums(x = counts > 0)
-  counts <- counts[, which(x = num.features > min.features)]
+  nfeatures <- Matrix::colSums(x = counts > 0)
+  counts <- counts[, which(x = nfeatures > min.features)]
   # filter genes on the number of cells expressing
   if (min.cells > 0) {
     num.cells <- rowSums(x = counts > 0)
@@ -511,7 +511,7 @@ CreateDimReducObject <- function(
 #'
 #' @inheritParams CreateAssayObject
 #' @param project Sets the project name for the Seurat object.
-#' @param assay.use Name of the assay corresponding to the initial input data.
+#' @param assay Name of the assay corresponding to the initial input data.
 #' @param names.field For the initial identity class for each cell, choose this field from the
 #' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set
 #' names.field to 3 to set the initial identities to CELLTYPE.
@@ -536,7 +536,7 @@ CreateDimReducObject <- function(
 CreateSeuratObject <- function(
   counts,
   project = 'SeuratProject',
-  assay.use = 'RNA',
+  assay = 'RNA',
   min.cells = 0,
   min.features = 0,
   names.field = 1,
@@ -548,10 +548,10 @@ CreateSeuratObject <- function(
     min.cells = min.cells,
     min.features = min.features
   )
-  Key(object = assay.data) <- paste0(tolower(x = assay.use), '_')
+  Key(object = assay.data) <- paste0(tolower(x = assay), '_')
   assay.list <- list(assay.data)
-  names(x = assay.list) <- assay.use
-  init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay.use]]))
+  names(x = assay.list) <- assay
+  init.meta.data <- data.frame(row.names = colnames(x = assay.list[[assay]]))
   # Set idents
   idents <- factor(x = unlist(x = lapply(
     X = colnames(x = counts),
@@ -569,7 +569,7 @@ CreateSeuratObject <- function(
     Class = 'Seurat',
     assays = assay.list,
     meta.data = init.meta.data,
-    active.assay = assay.use,
+    active.assay = assay,
     active.ident = idents,
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
@@ -577,7 +577,7 @@ CreateSeuratObject <- function(
   object['orig.ident'] <- idents
   # Calculate nUMI and nFeature
   object['nUMI'] <- Matrix::colSums(x = object)
-  object[paste('nFeature', assay.use, sep = '_')] <- Matrix::colSums(counts > 0)
+  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(counts > 0)
   if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -622,7 +622,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   data.fetched <- lapply(
     X = names(x = keyed.vars),
     FUN = function(x) {
-      vars <- vars[keyed.vars[[x]]]
+      vars.use <- vars[keyed.vars[[x]]]
       key.use <- object.keys[x]
       data.return <- switch(
         EXPR = class(x = object[[x]]),
@@ -633,7 +633,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
             value = TRUE
           )
           if (length(x = vars.use) > 0) {
-            object[[x]][[cells.use, vars.use, drop = FALSE]]
+            object[[x]][[cells, vars.use, drop = FALSE]]
           } else {
             NULL
           }
@@ -643,7 +643,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
           data.vars <- t(x = as.matrix(x = GetAssayData(
             object = object,
             slot = slot,
-            assay.use = x
+            assay = x
           )[vars.use, cells, drop = FALSE]))
           colnames(x = data.vars) <- paste0(key.use, vars.use)
           data.vars
@@ -743,13 +743,13 @@ InitializeWorkflow <- function(object, file) {
   names(mostRecent) <- fxns
 
   for(mr in names(mostRecent)) {
-    assay.use <- config$global$assay.use
-    assay.use <- assay.use %iff% config[mr]$assay.use
-    assay.use <- assay.use %||% DefaultAssay(object = object)
-    reduction.use <- config$global$reduction.use
-    reduction.use <- config[mr]$reduction.use
-    reduction.use <- reduction.use %||% formals(fun = paste0(mr, ".Seurat"))$reduction.use
-    command.name <- paste0(mr, ".", assay.use, ".", reduction.use)
+    assay <- config$global$assay
+    assay <- assay %iff% config[mr]$assay
+    assay <- assay %||% DefaultAssay(object = object)
+    reduction <- config$global$reduction
+    reduction <- config[mr]$reduction
+    reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
+    command.name <- paste0(mr, ".", assay, ".", reduction)
     command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
     command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
     if(command.name %in% names(x = object)) {
@@ -923,9 +923,9 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #'
 #' @param object DimReduc object
 #' @param dim.use Dimension to use
-#' @param num.features Number of features to return
+#' @param nfeatures Number of features to return
 #' @param projected Use the full PCA (projected PCA). Default i s FALSE
-#' @param do.balanced Return an equal number of features with both + and - scores.
+#' @param balanced Return an equal number of features with both + and - scores.
 #'
 #' @return Returns a vector of features
 #'
@@ -959,7 +959,7 @@ TopFeatures <- function(
 #' @param object DimReduc object
 #' @param dim.use Dimension to use
 #' @param num.cells Number of cells to return
-#' @param do.balanced Return an equal number of cells with both + and - scores.
+#' @param balanced Return an equal number of cells with both + and - scores.
 #'
 #' @return Returns a vector of cells
 #'
@@ -1040,13 +1040,13 @@ UpdateSeuratObject <- function(object) {
       return(object)
     } else if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
       seurat.version <- packageVersion(pkg = "Seurat")
-      new.assay <- UpdateAssay(old.assay = object, assay.use = "RNA")
+      new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
       assay.list <- list(new.assay)
       names(assay.list) <- "RNA"
       for(i in names(object@assay)) {
-        assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay.use = i)
+        assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay = i)
       }
-      new.dr <- UpdateDimReduction(old.dr = object@dr, assay.use = "RNA")
+      new.dr <- UpdateDimReduction(old.dr = object@dr, assay = "RNA")
       new.object <- new(
         Class = "Seurat",
         version = seurat.version,
@@ -1543,7 +1543,7 @@ Convert.seurat <- function(
   return(object.to)
 }
 
-#' @describeIn DefaultAssay Get the name of the assay used to calculate this DimReduc
+#' @describeIn DefaultAssay Get the name of the assay.used to calculate this DimReduc
 #' @export
 #' @method DefaultAssay DimReduc
 #'
@@ -1591,13 +1591,17 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @export
 #' @method GetAssay Seurat
 #'
-GetAssay.Seurat <- function(object, assay.use = NULL) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  if (!assay.use %in% names(x = slot(object = object, name = 'assays'))) {
-    stop(paste0(assay.use, " is not an assay present in the given object. Available assays are: ",
-                paste(names(x = slot(object = object, name = 'assays')), collapse = ", ")))
+GetAssay.Seurat <- function(object, assay = NULL) {
+  assay <- assay %||% DefaultAssay(object = object)
+  object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  if (!assay %in% object.assays) {
+    stop(paste0(
+      assay,
+      " is not an assay present in the given object. Available assays are: ",
+      paste(object.assays, collapse = ", ")
+    ))
   }
-  return(slot(object = object, name = 'assays')[[assay.use]])
+  return(slot(object = object, name = 'assays')[[assay]])
 }
 
 #' @describeIn GetAssayData Get assay data for an Assay object
@@ -1608,16 +1612,16 @@ GetAssayData.Assay <- function(object, slot = 'data') {
   return(slot(object = object, name = slot))
 }
 
-#' @param assay.use Name of assay to pull data from
+#' @param assay Name of assay to pull data from
 #'
 #' @describeIn GetAssayData Get assay data from a Seurat object
 #' @export
 #' @method GetAssayData Seurat
 #'
-GetAssayData.Seurat <- function(object, slot = 'data', assay.use = NULL, ...) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
+GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
   return(GetAssayData(
-    object = GetAssay(object = object, assay.use = assay.use),
+    object = GetAssay(object = object, assay = assay),
     slot = slot
   ))
 }
@@ -1630,16 +1634,15 @@ HVFInfo.Assay <- function(object, ...) {
   return(object[[c('mean', 'dispersion', 'dispersion.scaled')]])
 }
 
-#' @param assay.use Name of assay to pull highly variable feature information for
+#' @param assay Name of assay to pull highly variable feature information for
 #'
 #' @describeIn HVFInfo Get highly variable feature information from a Seurat object
 #' @export
 #' @method HVFInfo Seurat
 #'
-HVFInfo.Seurat <- function(object, assay.use = NULL, ...) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  return(HVFInfo(object = assay.data))
+HVFInfo.Seurat <- function(object, assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  return(HVFInfo(object = GetAssay(object = object, assay = assay)))
 }
 
 #' @describeIn Idents Get the active identities of a Seurat object
@@ -1650,30 +1653,30 @@ Idents.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.ident'))
 }
 
-#' @param cells.use Set cell identities for specific cells
+#' @param cells Set cell identities for specific cells
 #'
 #' @describeIn Idents Set the active identities of a Seurat object
 #' @export
 #' @method Idents<- Seurat
 #'
-"Idents<-.Seurat" <- function(object, cells.use = NULL, ..., value) {
-  cells.use <- cells.use %||% colnames(x = object)
-  if (is.numeric(x = cells.use)) {
-    cells.use <- colnames(x = object)[cells.use]
+"Idents<-.Seurat" <- function(object, cells = NULL, ..., value) {
+  cells <- cells %||% colnames(x = object)
+  if (is.numeric(x = cells)) {
+    cells <- colnames(x = object)[cells]
   }
-  cells.use <- intersect(x = cells.use, y = colnames(x = object))
-  cells.use <- match(x = cells.use, table = colnames(x = object))
+  cells <- intersect(x = cells, y = colnames(x = object))
+  cells <- match(x = cells, table = colnames(x = object))
   idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[])) {
-    unlist(x = object[value], use.names = FALSE)[cells.use]
+    unlist(x = object[value], use.names = FALSE)[cells]
   } else {
     if (is.list(x = value)) {
       value <- unlist(x = value, use.names = FALSE)
     }
-    rep_len(x = value, length.out = length(x = cells.use))
+    rep_len(x = value, length.out = length(x = cells))
   }
   idents.new <- as.vector(x = idents.new)
   idents <- as.vector(x = Idents(object = object))
-  idents[cells.use] <- idents.new
+  idents[cells] <- idents.new
   idents <- factor(x = idents)
   names(x = idents) <- colnames(x = object)
   slot(object = object, name = 'active.ident') <- idents
@@ -1826,7 +1829,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 }
 
 #' @param dims Number of dimensions to display
-#' @param num.features Number of genes to display
+#' @param nfeatures Number of genes to display
 #' @param projected Use projected slot
 #'
 #' @export
@@ -1837,11 +1840,11 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 Print.DimReduc <- function(
   object,
   dims = 1:5,
-  num.features = 20,
+  nfeatures = 20,
   projected = FALSE
 ) {
   loadings <- Loadings(object = object, projected = projected)
-  num.features <- min(num.features, nrow(x = loadings))
+  nfeatures <- min(nfeatures, nrow(x = loadings))
   if (ncol(x = loadings) == 0) {
     warning("Dimensions have not been projected. Setting projected = FALSE")
     projected <- FALSE
@@ -1853,10 +1856,10 @@ Print.DimReduc <- function(
   for (dim in dims) {
     features <- TopFeatures(
       object = object,
-      dim.use = dim,
-      num.features = num.features * 2,
+      dim = dim,
+      nfeatures = nfeatures * 2,
       projected = projected,
-      do.balanced = TRUE
+      balanced = TRUE
     )
    message(paste0(Key(object = object), dim))
    pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
@@ -1965,7 +1968,7 @@ RenameCells.Seurat <- function(
   # rename the active.idents
   old.ids <- Idents(object = object)
   names(x = old.ids) <- new.cell.names
-  Idents(object = object, cells.use = rownames(x = object[])) <- old.ids
+  Idents(object = object, cells = rownames(x = object[])) <- old.ids
   # rename the cell-level metadata
   old.meta.data <- object[]
   rownames(x = old.meta.data) <- new.cell.names
@@ -2019,7 +2022,7 @@ SetAssayData.Assay <- function(object, slot, new.data) {
   return(object)
 }
 
-#' @param assay.use Name of assay whose data should be set
+#' @param assay Name of assay whose data should be set
 #'
 #' @describeIn SetAssayData Set assay data for an Assay object in a Seurat object
 #' @export
@@ -2029,13 +2032,11 @@ SetAssayData.Seurat <- function(
   object,
   slot = 'data',
   new.data,
-  assay.use = NULL,
+  assay = NULL,
   ...
 ) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  assay.data <- SetAssayData(object = assay.data, slot = slot, new.data = new.data)
-  object[[assay.use]] <- assay.data
+  assay <- assay %||% DefaultAssay(object = object)
+  SetAssayData(object = object[[assay]], slot = slot) <- new.data
   return(object)
 }
 
@@ -2056,14 +2057,14 @@ Stdev.DimReduc <- function(object) {
   return(slot(object = object, name = 'stdev'))
 }
 
-#' @param reduction.use Name of reduction to use
+#' @param reduction Name of reduction to use
 #'
 #' @describeIn Stdev Get the standard deviations of a dimensional reduction from a Seurat object
 #' @export
 #' @method Stdev Seurat
 #'
-Stdev.Seurat <- function(object, reduction.use, ...) {
-  return(Stdev(object = object[[reduction.use]]))
+Stdev.Seurat <- function(object, reduction, ...) {
+  return(Stdev(object = object[[reduction]]))
 }
 
 #' @describeIn SubsetData Subset an Assay object
@@ -2072,7 +2073,7 @@ Stdev.Seurat <- function(object, reduction.use, ...) {
 #'
 SubsetData.Assay <- function(
   object,
-  cells.use = NULL,
+  cells = NULL,
   subset.name = NULL,
   low.threshold = -Inf,
   high.threshold = Inf,
@@ -2080,27 +2081,27 @@ SubsetData.Assay <- function(
   do.clean = FALSE,
   ...
 ) {
-  cells.use <- cells.use %||% colnames(x = object)
-  cells.use <- WhichCells(
+  cells <- cells %||% colnames(x = object)
+  cells <- WhichCells(
     object = object,
-    cells.use = cells.use,
+    cells = cells,
     subset.name = subset.name,
     low.threshold = low.threshold,
     high.threshold = high.threshold,
     accept.value = accept.value,
     ...
   )
-  slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells.use]
-  slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells.use]
+  slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
+  slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells]
   cells.scaled <- colnames(x = GetAssayData(object = object, slot = "scale.data"))
-  cells.scaled <- cells.scaled[cells.scaled %in% cells.use]
+  cells.scaled <- cells.scaled[cells.scaled %in% cells]
   if (length(x = cells.scaled) > 0) {
-    slot(object = object, name = "scale.data") <- GetAssayData(object = object, slot = "scale.data")[, cells.use]
+    slot(object = object, name = "scale.data") <- GetAssayData(object = object, slot = "scale.data")[, cells]
   }
   return(object)
 }
 
-#' @param assay.use Assay to subset on
+#' @param assay Assay to subset on
 #' @param ident.use Create a cell subset based on the provided identity classes
 #' @param ident.remove Subtract out cells from these identity classes (used for
 #' filtration)
@@ -2114,8 +2115,8 @@ SubsetData.Assay <- function(
 #'
 SubsetData.Seurat <- function(
   object,
-  assay.use = NULL,
-  cells.use = NULL,
+  assay = NULL,
+  cells = NULL,
   subset.name = NULL,
   ident.use = NULL,
   ident.remove = NULL,
@@ -2127,14 +2128,14 @@ SubsetData.Seurat <- function(
   do.clean = FALSE,
   ...
 ) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  cells.use <- WhichCells(
+  assay <- assay %||% DefaultAssay(object = object)
+  cells <- WhichCells(
     object = object,
-    assay.use = assay.use,
+    assay = assay,
     ident = ident.use,
     ident.remove = ident.remove,
     subset.name = subset.name,
-    cells.use = cells.use,
+    cells = cells,
     max.cells.per.ident = max.cells.per.ident,
     random.seed = random.seed,
     low.threshold = low.threshold,
@@ -2147,14 +2148,14 @@ SubsetData.Seurat <- function(
   for (assay in assays) {
     slot(object = object, name = "assays")[[assay]] <- SubsetData(
       object = object[[assay]],
-      cells.use = cells.use
+      cells = cells
     )
   }
   # Subset all the DimReducs
   drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
   for (dr in drs) {
     object[[dr]] <- CreateDimReducObject(
-      embeddings = Embeddings(object = object[[dr]])[cells.use, ],
+      embeddings = Embeddings(object = object[[dr]])[cells, ],
       loadings = Loadings(object = object[[dr]], projected = FALSE),
       projected = Loadings(object = object[[dr]], projected = TRUE),
       assay = DefaultAssay(object = object[[dr]]),
@@ -2164,8 +2165,8 @@ SubsetData.Seurat <- function(
       misc = slot(object[[dr]], name = "misc")
     )
   }
-  slot(object = object, name = "active.ident") <- Idents(object = object)[cells.use]
-  slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells.use, ]
+  slot(object = object, name = "active.ident") <- Idents(object = object)[cells]
+  slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells, ]
   return(object)
 }
 
@@ -2177,16 +2178,15 @@ VariableFeatures.Assay <- function(object, ...) {
   return(slot(object = object, name = 'var.features'))
 }
 
-#' @param assay.use Name of assay to pull variable features for
+#' @param assay Name of assay to pull variable features for
 #'
 #' @describeIn VariableFeatures Get the variable features of a Seurat object
 #' @export
 #' @method VariableFeatures Seurat
 #'
-VariableFeatures.Seurat <- function(object, assay.use = NULL, ...) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
-  return(VariableFeatures(object = assay.data))
+VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
+  assay <- assay %||% DefaultAssay(object = object)
+  return(VariableFeatures(object = object[[assay]]))
 }
 
 #' @describeIn VariableFeatures Set the variable features of an assay object
@@ -2204,11 +2204,9 @@ VariableFeatures.Seurat <- function(object, assay.use = NULL, ...) {
 #' @export
 #' @method VariableFeatures<- Seurat
 #'
-"VariableFeatures<-.Seurat" <- function(object, assay.use = NULL, ..., value) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- object[[assay.use]]
-  VariableFeatures(object = assay.data) <- value
-  object[[assay.use]] <- assay.data
+"VariableFeatures<-.Seurat" <- function(object, assay = NULL, ..., value) {
+  assay <- assay %||% DefaultAssay(object = object)
+  VariableFeatures(object = object[[assay]]) <- value
   return(object)
 }
 
@@ -2218,14 +2216,14 @@ VariableFeatures.Seurat <- function(object, assay.use = NULL, ...) {
 #'
 WhichCells.Assay <- function(
   object,
-  cells.use,
+  cells,
   subset.name = NULL,
   low.threshold = -Inf,
   high.threshold = Inf,
   accept.value = NULL,
   ...
 ) {
-  cells.use <- cells.use %||% colnames(x = object)
+  cells <- cells %||% colnames(x = object)
   # input checking
   if (length(x = subset.name) > 1) {
     stop("subset.name must be a single parameter")
@@ -2242,7 +2240,7 @@ WhichCells.Assay <- function(
       object = object,
       ... = ...
     )
-    data.use <- t(x = data.use[subset.name, cells.use, drop = FALSE])
+    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
     if (!is.null(x = accept.value)) {
       if (!all(accept.value %in% unique(x = data.use[, 1]))) {
         bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
@@ -2252,9 +2250,9 @@ WhichCells.Assay <- function(
     } else {
       pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
     }
-    cells.use <- rownames(x = data.use)[pass.inds]
+    cells <- rownames(x = data.use)[pass.inds]
   }
-  return(cells.use)
+  return(cells)
 }
 
 #' @param ident.keep Create a cell subset based on the provided identity classes
@@ -2263,7 +2261,7 @@ WhichCells.Assay <- function(
 #' @param max.cells.per.ident Can be used to downsample the data to a certain
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
-#' @param assay.use Which assay to filter on
+#' @param assay Which assay to filter on
 #' @param ... Extra parameters passed to \code{FetchData}
 #'
 #' @seealso \code{\link{FetchData}}
@@ -2274,7 +2272,7 @@ WhichCells.Assay <- function(
 #'
 WhichCells.Seurat <- function(
   object,
-  cells.use = NULL,
+  cells = NULL,
   subset.name = NULL,
   low.threshold = -Inf,
   high.threshold = Inf,
@@ -2283,7 +2281,7 @@ WhichCells.Seurat <- function(
   ident.remove = NULL,
   max.cells.per.ident = Inf,
   random.seed = 1,
-  assay.use = NULL,
+  assay = NULL,
   ...
 ) {
   # input checking
@@ -2299,8 +2297,8 @@ WhichCells.Seurat <- function(
   if (!is.na(x = random.seed)) {
     set.seed(seed = random.seed)
   }
-  cells.use <- cells.use %||% colnames(x = object)
-  assay.use <- assay.use %||% DefaultAssay(object = object)
+  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
   ident.keep <- ident.keep %||% unique(x = Idents(object = object))
   bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
   if (length(bad.remove.idents) > 0) {
@@ -2313,7 +2311,7 @@ WhichCells.Seurat <- function(
   }
   cells.to.use <- character()
   for (id in ident.keep) {
-    cells.in.ident <- Idents(object = object)[cells.use]
+    cells.in.ident <- Idents(object = object)[cells]
     cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
     cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
     if (length(x = cells.in.ident) > max.cells.per.ident) {
@@ -2321,13 +2319,13 @@ WhichCells.Seurat <- function(
     }
     cells.to.use <- c(cells.to.use, cells.in.ident)
   }
-  cells.use <- cells.to.use
+  cells <- cells.to.use
   if (!is.null(x = subset.name)) {
     subset.name <- as.character(subset.name)
     data.use <- FetchData(
       object = object,
       vars = subset.name,
-      cells = cells.use,
+      cells = cells,
       ...
     )
     if (!is.null(x = accept.value)) {
@@ -2339,9 +2337,9 @@ WhichCells.Seurat <- function(
     } else {
       pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
     }
-    cells.use <- rownames(x = data.use)[pass.inds]
+    cells <- rownames(x = data.use)[pass.inds]
   }
-  return(cells.use)
+  return(cells)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2809,7 +2807,7 @@ subset.Seurat <- function(x, subset, ...) {
   )
   data.subset <- FetchData(object = x, vars = expr.char[vars.use])
   data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-  return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
+  return(SubsetData(object = x, cells = rownames(x = data.subset)))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3062,7 +3060,7 @@ setMethod(
   signature = "Seurat",
   definition = function(object) {
     assays <- FilterObjects(object = object, classes.keep = 'Assay')
-    num.features <- sum(vapply(
+    nfeatures <- sum(vapply(
       X = assays,
       FUN = function(x) {
         return(nrow(x = object[[x]]))
@@ -3073,7 +3071,7 @@ setMethod(
     cat("An object of class", class(x = object))
     cat(
       '\n',
-      num.features,
+      nfeatures,
       'features across',
       ncol(x = object),
       'samples within',
@@ -3254,10 +3252,10 @@ Top <- function(
 # Update Seurat assay
 #
 # @param old.assay Seurat2 assay
-# @param assay.use Name to store for assay in new object
+# @param assay Name to store for assay in new object
 #
-UpdateAssay <- function(old.assay, assay.use){
-  cells.use <- colnames(old.assay@data)
+UpdateAssay <- function(old.assay, assay){
+  cells <- colnames(old.assay@data)
   counts <- old.assay@raw.data
   data <- old.assay@data
   if (!inherits(x = counts, what = 'dgCMatrix')) {
@@ -3268,12 +3266,12 @@ UpdateAssay <- function(old.assay, assay.use){
   }
   new.assay <- new(
     Class = 'Assay',
-    counts = counts[, cells.use],
+    counts = counts[, cells],
     data = data,
     scale.data = old.assay@scale.data %||% matrix(),
     meta.features = data.frame(row.names = rownames(x = counts)),
     var.features = old.assay@var.genes,
-    key = paste0(assay.use, "_")
+    key = paste0(assay, "_")
   )
   return(new.assay)
 }
@@ -3282,7 +3280,7 @@ UpdateAssay <- function(old.assay, assay.use){
 #
 # @param old.dr Seurat2 dimension reduction slot
 #
-UpdateDimReduction <- function(old.dr, assay.use){
+UpdateDimReduction <- function(old.dr, assay){
   new.dr <- list()
   for(i in names(old.dr)){
     cell.embeddings <- old.dr[[i]]@cell.embeddings %||% matrix()
@@ -3294,7 +3292,7 @@ UpdateDimReduction <- function(old.dr, assay.use){
       Class = 'DimReduc',
       cell.embeddings = as(cell.embeddings, 'matrix'),
       feature.loadings = as(feature.loadings, 'matrix'),
-      assay.used = assay.use,
+      assay.used = assay,
       stdev = as(stdev, 'numeric'),
       key = as(old.dr[[i]]@key, 'character'),
       jackstraw = old.dr[[i]]@jackstraw,

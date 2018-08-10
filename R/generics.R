@@ -46,7 +46,7 @@ as.seurat <- function(from) {
 #' # More commonly, we build the SNN on a dimensionally reduced form of the data
 #' # such as the first 10 principle components.
 #'
-#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims.use = 1:10)
+#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims = 1:10)
 #'
 #' @rdname BuildSNN
 #' @export BuildSNN
@@ -195,7 +195,7 @@ FindClusters <- function(
 #' Finds markers (differentially expressed genes) for identity classes
 #'
 #' @param object Seurat object
-#' @param features.use Genes to test. Default is to use all genes
+#' @param features Genes to test. Default is to use all genes
 #' @param logfc.threshold Limit testing to genes which show, on average, at least
 #' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
 #' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
@@ -295,7 +295,7 @@ FindClusters <- function(
 #'
 FindMarkers <- function(
   object,
-  features.use,
+  features,
   logfc.threshold,
   test.use,
   min.pct,
@@ -387,7 +387,7 @@ FindVariableFeatures <- function(
 #' Get an assay from an object
 #'
 #' @param object An object
-#' @param assay.use Assay to get
+#' @param assay Assay to get
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns an Assay object
@@ -395,7 +395,7 @@ FindVariableFeatures <- function(
 #' @rdname GetAssay
 #' @export GetAssay
 #'
-GetAssay <- function(object, assay.use, ...) {
+GetAssay <- function(object, assay, ...) {
   UseMethod(generic = 'GetAssay', object = object)
 }
 
@@ -504,7 +504,7 @@ NormalizeData <- function(
 #' square otherwise.
 #'
 #' @param object An object
-#' @param features.use Vector of features names to scale/center. Default is all features
+#' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
 #' @param model.use Use a linear model or generalized linear model
@@ -530,7 +530,7 @@ NormalizeData <- function(
 #'
 ScaleData <- function(
   object,
-  features.use,
+  features,
   vars.to.regress,
   model.use,
   use.umi,
@@ -734,8 +734,8 @@ RenameCells <- function(object, new.names, ...) {
 #' @examples
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
@@ -775,9 +775,9 @@ RunCCA <- function(
 #' pbmc_small
 #' # As multi-set CCA requires more than two datasets, we will split our test object into
 #' # three just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:30])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[31:60])
-#' pbmc3 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[61:80])
+#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:30])
+#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[31:60])
+#' pbmc3 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[61:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc3@meta.data$group <- "group3"
@@ -789,7 +789,7 @@ RunCCA <- function(
 #'
 RunMultiCCA <- function(
   object.list,
-  features.use,
+  features,
   add.cell.ids,
   niter,
   num.ccs,
@@ -808,7 +808,7 @@ RunMultiCCA <- function(
 #' parameters, see \code{PrintPCAParams}.
 #'
 #' @param object Seurat object
-#' @param assay.use Name of Assay PCA is being run on
+#' @param assay Name of Assay PCA is being run on
 #' @param compute.dims Total Number of PCs to compute and store (20 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
@@ -861,9 +861,9 @@ RunPCA <- function(
 #' parameters, see \code{PrintTSNEParams}.
 #'
 #' @param object Seurat object
-#' @param reduction.use Which dimensional reduction (e.g. PCA, ICA) to use for
+#' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
 #' the tSNE. Default is PCA
-#' @param cells.use Which cells to analyze (default, all cells)
+#' @param cells Which cells to analyze (default, all cells)
 #' @param seed.use Random seed for the t-SNE
 #' @param tsne.method Select the method to use to compute the tSNE. Available
 #' methods are:
@@ -887,8 +887,8 @@ RunPCA <- function(
 #'
 RunTSNE <- function(
   object,
-  reduction.use,
-  cells.use,
+  reduction,
+  cells,
   seed.use,
   tsne.method,
   add.iter,
@@ -909,14 +909,14 @@ RunTSNE <- function(
 #' \url{https://arxiv.org/abs/1802.03426}.
 #'
 #' @param object Seurat object
-#' @param cells.use Which cells to analyze (default, all cells)
-#' @param dims.use Which dimensions to use as input features, used only if
+#' @param cells Which cells to analyze (default, all cells)
+#' @param dims Which dimensions to use as input features, used only if
 #' \code{genes.use} is NULL
-#' @param reduction.use Which dimensional reduction (PCA or ICA) to use for the
+#' @param reduction Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
-#' @param features.use If set, run UMAP on this subset of features (instead of running on a
+#' @param features If set, run UMAP on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default
-#' @param assay.use Assay to pull data for when using \code{genes.use}
+#' @param assay Assay to pull data for when using \code{genes.use}
 #' @param max.dim Max dimension to keep from UMAP procedure.
 #' @param reduction.name dimensional reduction name, specifies the position in
 #' the object$dr list. umap by default
@@ -950,9 +950,9 @@ RunTSNE <- function(
 #' \dontrun{
 #' pbmc_small
 #' # Run UMAP map on first 5 PCs
-#' pbmc_small <- RunUMAP(object = pbmc_small, dims.use = 1:5)
+#' pbmc_small <- RunUMAP(object = pbmc_small, dims = 1:5)
 #' # Plot results
-#' DimPlot(object = pbmc_small, reduction.use = 'umap')
+#' DimPlot(object = pbmc_small, reduction = 'umap')
 #' }
 #'
 #' @rdname RunUMAP
@@ -960,11 +960,11 @@ RunTSNE <- function(
 #'
 RunUMAP <- function(
   object,
-  cells.use,
-  dims.use,
-  reduction.use,
-  features.use,
-  assay.use,
+  cells,
+  dims,
+  reduction,
+  features,
+  assay,
   max.dim ,
   reduction.name,
   reduction.key,
@@ -1031,7 +1031,7 @@ Stdev <- function(object, ...) {
 #' parameter (for example, a gene), to subset on.
 #'
 #' @param object Seurat object
-#' @param cells.use A vector of cell names to use as a subset. If NULL
+#' @param cells A vector of cell names to use as a subset. If NULL
 #' (default), then this list will be computed based on the next three
 #' arguments. Otherwise, will return an object consissting only of these cells
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
@@ -1058,7 +1058,7 @@ Stdev <- function(object, ...) {
 #' @export SubsetData
 #'
 #' @examples
-#' pbmc1 <- SubsetData(object = pbmc_small, cells.use = colnames(x = pbmc_small)[1:40])
+#' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc1
 #'
 SubsetData <- function(object, slot, ...) {
@@ -1093,7 +1093,7 @@ VariableFeatures <- function(object, ...) {
 #' identity class, high/low values for particular PCs, ect..
 #'
 #' @param object Seurat object
-#' @param cells.use Subset of cell names
+#' @param cells Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
 #' column name in object@@meta.data, etc. Any argument that can be retreived
 #' using FetchData
@@ -1114,7 +1114,7 @@ VariableFeatures <- function(object, ...) {
 #'
 WhichCells <- function(
   object,
-  cells.use,
+  cells,
   subset.name,
   low.threshold,
   high.threshold,

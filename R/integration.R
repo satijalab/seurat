@@ -59,8 +59,8 @@ globalVariables(
 #' pbmc_small
 #' # Requires CCA to have previously been run
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
@@ -120,7 +120,7 @@ AlignSubspace <- function(
   }
   cc.embeds.all <- GetCellEmbeddings(object = object,
                                      reduction.type = reduction.type,
-                                     dims.use = dims.align)
+                                     dims = dims.align)
   colnames(cc.embeds.all) <- paste0("A", colnames(x = cc.embeds.all))
   cc.embeds.orig <- cc.embeds.all
   for (cc.use in dims.align) {
@@ -280,9 +280,9 @@ AlignSubspace <- function(
 #' \deqn{1 - \frac{\bar{x} - \frac{k}{N}}{k - \frac{k}{N}}}{1 - (xbar - k/N)/(k - k/N)}
 #'
 #' @param object Seurat object
-#' @param reduction.use Stored dimensional reduction on which to build NN graph.
+#' @param reduction Stored dimensional reduction on which to build NN graph.
 #' Usually going to be cca.aligned.
-#' @param dims.use Dimensions to use in building the NN graph
+#' @param dims Dimensions to use in building the NN graph
 #' @param grouping.var Grouping variable used in the alignment.
 #' @param nn Number of neighbors to calculate in the NN graph construction
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
@@ -295,21 +295,21 @@ AlignSubspace <- function(
 #' \dontrun{
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small, cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1 <- SubsetData(pbmc_small, cells = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small, cells = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
 #' pbmc_cca <- AlignSubspace(pbmc_cca, reduction.type = "cca",
 #'                           grouping.var = "group", dims.align = 1:5)
-#' CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned",
-#'                     dims.use = 1:5, grouping.var =  "group")
+#' CalcAlignmentMetric(pbmc_cca, reduction = "cca.aligned",
+#'                     dims = 1:5, grouping.var =  "group")
 #' }
 #'
 CalcAlignmentMetric <- function(
   object,
-  reduction.use = "cca.aligned",
-  dims.use,
+  reduction = "cca.aligned",
+  dims,
   grouping.var,
   nn,
   nn.eps = 0
@@ -322,8 +322,8 @@ CalcAlignmentMetric <- function(
   }
   dist.mat <- GetCellEmbeddings(
     object = object,
-    reduction.type = reduction.use,
-    dims.use = dims.use
+    reduction.type = reduction,
+    dims = dims
   )
   # object.fnn <- get.knn(dist.mat, k = nn)
   object.fnn <- nn2(
@@ -349,7 +349,7 @@ CalcAlignmentMetric <- function(
 #' @param reduction.type type of dimensional reduction to compare to CCA (pca,
 #' pcafast, ica)
 #' @param grouping.var variable to group by
-#' @param dims.use Vector of dimensions to project onto (default is the 1:number
+#' @param dims Vector of dimensions to project onto (default is the 1:number
 #' stored for cca)
 #' @param verbose Display progress and other output
 #'
@@ -361,25 +361,25 @@ CalcAlignmentMetric <- function(
 #' pbmc_small
 #' # Requires CCA to have previously been run
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells.use = pbmc_small@cell.names[41:80])
+#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:40])
+#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[41:80])
 #' pbmc1@meta.data$group <- "group1"
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
-#' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
+#' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims = 1:5)
 #'
 CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",
   grouping.var,
-  dims.use,
+  dims,
   verbose = TRUE
 ) {
   if (missing(x = grouping.var)) {
     stop("Need to provide grouping variable")
   }
-  if (missing(x = dims.use)) {
-    dims.use <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
+  if (missing(x = dims)) {
+    dims <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
   }
   # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CalcVarExpRatio"))]
   # object <- SetCalcParams(object = object,
@@ -403,21 +403,21 @@ CalcVarExpRatio <- function(
     if (verbose) {
       cat(paste("\t Separating", group, "cells\n"), file = stderr())
     }
-    group.object <- SubsetData(object = object, cells.use = group.cells)
+    group.object <- SubsetData(object = object, cells = group.cells)
     if (verbose) {
       cat("\t Running Dimensional Reduction \n", file = stderr())
     }
     ldp.cca <- CalcLDProj(
       object = group.object,
       reduction.type = "cca",
-      dims.use = dims.use,
+      dims = dims,
       genes.use = genes.use
     )
     group.object <- CalcProjectedVar(
       object = group.object,
       low.dim.data = ldp.cca,
       reduction.type = "cca",
-      dims.use = dims.use,
+      dims = dims,
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
@@ -427,19 +427,19 @@ CalcVarExpRatio <- function(
         pc.genes = genes.use,
         do.print = FALSE,
         center = rowMeans(temp.matrix),
-        pcs.compute = max(dims.use)
+        pcs.compute = max(dims)
       )
       ldp.pca <- CalcLDProj(
         object = group.object,
         reduction.type = "pca",
-        dims.use = dims.use,
+        dims = dims,
         genes.use = genes.use
       )
       group.object <- CalcProjectedVar(
         object = group.object,
         low.dim.data = ldp.pca,
         reduction.type = "pca",
-        dims.use = dims.use,
+        dims = dims,
         genes.use = genes.use
       )
       group.var.ratio <- group.object@meta.data[, "cca.var", drop = FALSE] /
@@ -449,19 +449,19 @@ CalcVarExpRatio <- function(
         object = group.object,
         ic.genes = genes.use,
         print.results = FALSE,
-        ics.compute = max(dims.use)
+        ics.compute = max(dims)
       )
       ldp.ica <- CalcLDProj(
         object = group.object,
         reduction.type = "ica",
-        dims.use = dims.use,
+        dims = dims,
         genes.use = genes.use
       )
       group.object <- CalcProjectedVar(
         object = group.object,
         low.dim.data = ldp.ica,
         reduction.type = "ica",
-        dims.use = dims.use,
+        dims = dims,
         genes.use = genes.use
       )
       group.var.ratio <- group.object@meta.data[, "cca.var", drop = FALSE] /

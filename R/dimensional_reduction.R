@@ -14,8 +14,8 @@ NULL
 #' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object
-#' @param reduction.use DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.
-#' @param assay.use Assay used to calculate reduction.
+#' @param reduction DimReduc to use. ONLY PCA CURRENTLY SUPPORTED.
+#' @param assay Assay used to calculate reduction.
 #' @param dims Number of PCs to compute significance for
 #' @param num.replicate Number of replicate samplings to perform
 #' @param prop.freq Proportion of the data to randomly permute for each
@@ -45,28 +45,28 @@ NULL
 #'
 JackStraw <- function(
   object,
-  reduction.use = "pca",
-  assay.use = NULL,
+  reduction = "pca",
+  assay = NULL,
   dims = 20,
   num.replicate = 100,
   prop.freq = 0.01,
   verbose = TRUE,
   maxit = 1000
 ) {
-  if (reduction.use != "pca") {
-    stop("Only pca for reduction.use is currently supported")
+  if (reduction != "pca") {
+    stop("Only pca for reduction is currently supported")
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  # embeddings <- Embeddings(object = object[[reduction.use]])
-  if (dims > length(x = object[[reduction.use]])) {
-    dims <- length(x = object[[reduction.use]])
+  assay <- assay %||% DefaultAssay(object = object)
+  # embeddings <- Embeddings(object = object[[reduction]])
+  if (dims > length(x = object[[reduction]])) {
+    dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
   if (dims > ncol(x = object)) {
     dims <- ncol(x = object)
     warning("Number of dimensions specified is greater than the number of cells. Setting dims to ", dims, " and continuing", immediate. = TRUE)
   }
-  loadings <- Loadings(object = object[[reduction.use]], projected = FALSE)
+  loadings <- Loadings(object = object[[reduction]], projected = FALSE)
   reduc.features <- rownames(x = loadings)
   if (length(x = reduc.features) < 3) {
     stop("Too few features")
@@ -79,9 +79,9 @@ JackStraw <- function(
       "Continuing with 3 genes in every random sampling."
     )
   }
-  data.use <- GetAssayData(object = object, assay.use = assay.use, slot = "scale.data")[reduc.features, ]
-  rev.pca <- object[[paste0('RunPCA.', assay.use)]]$rev.pca
-  weight.by.var <- object[[paste0('RunPCA.', assay.use)]]$weight.by.var
+  data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
+  rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
+  weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
   ## TODO: Parallelization
   fake.vals.raw <- lapply(
     X = 1:num.replicate,
@@ -125,7 +125,7 @@ JackStraw <- function(
     fake.reduction.scores = fake.vals,
     empirical.p.values.full = matrix()
   )
-  JS(object = object[[reduction.use]]) <- jackstraw.obj
+  JS(object = object[[reduction]]) <- jackstraw.obj
   object <- LogSeuratCommand(object = object)
   return(object)
 }
@@ -202,11 +202,11 @@ MultiModal_CCA <- function(
   cca.output <- list(out$u, out$v)
   embeddings.cca <- list()
   for (i in 1:length(x = cca.data)) {
-    assay.use <- names(x = cca.data)[i]
+    assay <- names(x = cca.data)[i]
     rownames(x = cca.output[[i]]) <- colnames(x = cca.data[[i]])
     embeddings.cca[[i]] <- cca.data[[i]] %*% cca.output[[i]]
     colnames(x = embeddings.cca[[i]]) <- paste0(
-      assay.use,
+      assay,
       "CC",
       1:ncol(x = embeddings.cca[[i]])
     )
@@ -216,19 +216,19 @@ MultiModal_CCA <- function(
     }
     object <- SetDimReduction(
       object = object,
-      reduction.type = paste0(assay.use, "CCA"),
+      reduction.type = paste0(assay, "CCA"),
       slot = "cell.embeddings",
       new.data = embeddings.cca[[i]]
     )
     object <- SetDimReduction(
       object = object,
-      reduction.type = paste0(assay.use, "CCA"),
+      reduction.type = paste0(assay, "CCA"),
       slot = "key",
-      new.data = paste0(assay.use, "CC")
+      new.data = paste0(assay, "CC")
     )
     object <- SetDimReduction(
       object = object,
-      reduction.type = paste0(assay.use, "CCA"),
+      reduction.type = paste0(assay, "CCA"),
       slot = "gene.loadings",
       new.data =  cca.output[[i]]
     )
@@ -277,16 +277,16 @@ PCASigGenes <- function(
     pvals.min <- apply(X = pvals.use[, pcs.use], MARGIN = 1, FUN = min)
   }
   names(x = pvals.min) <- rownames(x = pvals.use)
-  features.use <- names(x = pvals.min)[pvals.min < pval.cut]
+  features <- names(x = pvals.min)[pvals.min < pval.cut]
   if (!is.null(x = max.per.pc)) {
     top.features <- TopFeatures(
       object = object[['pca']],
       dim.use = pcs.use,
-      num.features = max.per.pc,
+      nfeatures = max.per.pc,
       projected = use.full,
-      do.balanced = FALSE
+      balanced = FALSE
     )
-    features.use <- intersect(x = top.features, y = features.use)
+    features <- intersect(x = top.features, y = features)
   }
   # if (!is.null(x = max.per.pc)) {
   #   pc.top.genes <- PCTopGenes(
@@ -294,11 +294,11 @@ PCASigGenes <- function(
   #     pc.use = pcs.use,
   #     num.genes = max.per.pc,
   #     use.full = use.full,
-  #     do.balanced = FALSE
+  #     balanced = FALSE
   #   )
   #   genes.use <- intersect(x = pc.top.genes, y = genes.use)
   # }
-  return(features.use)
+  return(features)
 }
 
 #' Project Dimensional reduction onto full dataset
@@ -309,8 +309,8 @@ PCASigGenes <- function(
 #' all genes.
 #'
 #' @param object Seurat object
-#' @param reduction.use Reduction to use
-#' @param assay.use Assay to use
+#' @param reduction Reduction to use
+#' @param assay Assay to use
 #' @param dims.print Number of dims to print features for
 #' @param features.print Number of features with highest/lowest loadings to print for
 #' each dimension
@@ -326,42 +326,42 @@ PCASigGenes <- function(
 #' pbmc_small
 #' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
 #' # Vizualize top projected genes in heatmap
-#' DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
+#' DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,balanced = TRUE,reduction.type = "pca")
 #'
 ProjectDim <- function(
   object,
-  reduction.use = "pca",
-  assay.use = NULL,
+  reduction = "pca",
+  assay = NULL,
   dims.print = 1:5,
   features.print = 20,
   overwrite = FALSE,
   do.center = FALSE,
   verbose = TRUE
 ) {
-  reduction <- object[[reduction.use]]
-  assay.use <- assay.use %||% DefaultAssay(object = reduction)
+  redeuc <- object[[reduction]]
+  assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
     object = object,
-    assay.us = assay.use,
+    assay.us = assay,
     slot = "scale.data"
   )
   if (do.center) {
     data.use <- scale(x = as.matrix(x = data.use), center = TRUE, scale = FALSE)
   }
-  cell.embeddings <- Embeddings(object = reduction)
+  cell.embeddings <- Embeddings(object = redeuc)
   new.feature.loadings.full <- FastMatMult(m1 = data.use, m2 = cell.embeddings)
   rownames(x = new.feature.loadings.full) <- rownames(x = data.use)
   colnames(x = new.feature.loadings.full) <- colnames(x = cell.embeddings)
-  Loadings(object = reduction, projected = TRUE) <- new.feature.loadings.full
+  Loadings(object = redeuc, projected = TRUE) <- new.feature.loadings.full
   if (overwrite) {
-    Loadings(object = reduction, projected = FALSE) <- new.feature.loadings.full
+    Loadings(object = redeuc, projected = FALSE) <- new.feature.loadings.full
   }
-  object[[reduction.use]] <- reduction
+  object[[reduction]] <- redeuc
   if (verbose) {
     Print(
-      object = reduction,
+      object = redeuc,
       dims = dims.print,
-      num.features = features.print,
+      nfeatures = features.print,
       projected = TRUE
     )
   }
@@ -415,9 +415,9 @@ RunCCA.default <- function(
   return(list(ccv = cca.data, d = cca.svd$d))
 }
 
-#' @param assay.use1 Assay to pull from in the first object
-#' @param assay.use1 Assay to pull from in the second object
-#' @param features.use Set of genes to use in CCA. Default is the union of both
+#' @param assay1 Assay to pull from in the first object
+#' @param assay1 Assay to pull from in the second object
+#' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
 #' @param renormlize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
@@ -434,10 +434,10 @@ RunCCA.default <- function(
 RunCCA.Seurat <- function(
   object1,
   object2,
-  assay.use1 = NULL,
-  assay.use2 = NULL,
+  assay1 = NULL,
+  assay2 = NULL,
   num.cc = 20,
-  features.use = NULL,
+  features = NULL,
   renormalize = FALSE,
   rescale = FALSE,
   compute.gene.loadings = TRUE,
@@ -447,45 +447,45 @@ RunCCA.Seurat <- function(
   use.cpp = TRUE,
   ...
 ) {
-  assay.use1 <- assay.use1 %||% DefaultAssay(object = object1)
-  assay.use2 <- assay.use2 %||% DefaultAssay(object = object2)
+  assay1 <- assay1 %||% DefaultAssay(object = object1)
+  assay2 <- assay2 %||% DefaultAssay(object = object2)
 
-  if(assay.use1 != assay.use2) {
-    stop("assay.use1 != assay.use2. Only unimodal data currently supported.")
+  if(assay1 != assay2) {
+    stop("assay1 != assay2. Only unimodal data currently supported.")
   }
 
-  if (is.null(x = features.use)) {
-    if (length(x = VariableFeatures(object = object1, assay.use = assay.use1)) == 0) {
-      stop(paste0("VariableFeatures not computed for the ", assay.use1, " assay in object1"))
+  if (is.null(x = features)) {
+    if (length(x = VariableFeatures(object = object1, assay = assay1)) == 0) {
+      stop(paste0("VariableFeatures not computed for the ", assay1, " assay in object1"))
     }
-    if (length(x = VariableFeatures(object = object2, assay.use = assay.use2)) == 0) {
-      stop(paste0("VariableFeatures not computed for the ", assay.use2, " assay in object2"))
+    if (length(x = VariableFeatures(object = object2, assay = assay2)) == 0) {
+      stop(paste0("VariableFeatures not computed for the ", assay2, " assay in object2"))
     }
-    features.use <- union(x = VariableFeatures(object = object1), y = VariableFeatures(object = object2))
-    if (length(x = features.use) == 0) {
+    features <- union(x = VariableFeatures(object = object1), y = VariableFeatures(object = object2))
+    if (length(x = features) == 0) {
       stop("Zero features in the union of the VariableFeature sets ")
     }
   }
-  data.use1 <- GetAssayData(object = object1, assay.use = assay.use1, slot = "scale.data")
-  data.use2 <- GetAssayData(object = object2, assay.use = assay.use2, slot = "scale.data")
-  features.use <- CheckFeatures(data.use = data.use1, features.use = features.use, object.name = "object1")
-  features.use <- CheckFeatures(data.use = data.use2, features.use = features.use, object.name = "object2")
+  data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
+  data.use2 <- GetAssayData(object = object2, assay = assay2, slot = "scale.data")
+  features <- CheckFeatures(data.use = data.use1, features = features, object.name = "object1")
+  features <- CheckFeatures(data.use = data.use2, features = features, object.name = "object2")
 
 
-  if (length(x = features.use) < 50) {
-    warning("Fewer than 50 features used as input for CCA.")
+  if (length(x = features) < 50) {
+    warning("Fewer than 50 featuresd as input for CCA.")
   }
   if (verbose) {
     message("Running CCA")
   }
-  data1 <- data.use1[features.use,]
-  data2 <- data.use2[features.use,]
+  data1 <- data.use1[features,]
+  data2 <- data.use2[features,]
   if (rescale) {
     if (verbose) message("Rescaling groups")
     data1 <- FastRowScale(data1)
-    dimnames(data1) <- list(features.use, colnames(x = object1))
+    dimnames(data1) <- list(features, colnames(x = object1))
     data2 <- FastRowScale(data2)
-    dimnames(data2) <- list(features.use, colnames(x = object2))
+    dimnames(data2) <- list(features, colnames(x = object2))
   }
   cca.results <- RunCCA(
     object1 = data1,
@@ -507,26 +507,26 @@ RunCCA.Seurat <- function(
 
   combined.object[['cca']] <- CreateDimReducObject(
     embeddings = cca.results$ccv[colnames(combined.object), ],
-    used = assay.use1,
+    used = assay1,
     key = "CC"
   )
   if (ncol(combined.object) != (ncol(object1) + ncol(object2))) {
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, assay.use = assay.use1,slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, assay = assay1,slot = "scale.data")
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
-      assay.use = assay.use1,
-      normalization.method = object1[[paste0("NormalizeData.", assay.use1)]]$normalization.method,
-      scale.factor = object1[[paste0("NormalizeData.", assay.use1)]]$scale.factor
+      assay = assay1,
+      normalization.method = object1[[paste0("NormalizeData.", assay1)]]$normalization.method,
+      scale.factor = object1[[paste0("NormalizeData.", assay1)]]$scale.factor
     )
   }
   if (compute.gene.loadings) {
     combined.object <- ProjectDim(
       object = combined.object,
-      reduction.use = "cca",
+      reduction = "cca",
       verbose = FALSE,
       overwrite = TRUE)
   }
@@ -612,8 +612,8 @@ RunMultiCCA.default <- function(
   return(results)
 }
 
-#' @param assay.use Assay to use
-#' @param features.use Set of genes to use in CCA. Default is the union of both
+#' @param assay Assay to use
+#' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
 #' @param renormlize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
@@ -625,8 +625,8 @@ RunMultiCCA.default <- function(
 #'
 RunMultiCCA.Seurat <- function(
   object.list,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   add.cell.ids = NULL,
   niter = 25,
   num.ccs = 1,
@@ -641,24 +641,24 @@ RunMultiCCA.Seurat <- function(
       stop("Not all objects in object.list are Seurat objects")
     }
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object.list[[1]])
+  assay <- assay %||% DefaultAssay(object = object.list[[1]])
   for(object in object.list) {
     assays <- FilterObjects(object = object, classes.keep = "Assay")
-    if (!assay.use %in% assays) {
-      stop(paste0(assay.use, " not present in all objects."))
+    if (!assay %in% assays) {
+      stop(paste0(assay, " not present in all objects."))
     }
   }
-  if (is.null(x = features.use)) {
-    features.use <- c()
+  if (is.null(x = features)) {
+    features <- c()
     for(object in object.list) {
-      features.use <- c(features.use, VariableFeatures(object = object))
+      features <- c(features, VariableFeatures(object = object))
     }
-    features.use <- unique(x = features.use)
+    features <- unique(x = features)
   }
   for(i in 1:length(x = object.list)) {
-    features.use <- CheckFeatures(
-      data.use = GetAssayData(object = object.list[[i]], assay.use = assay.use, slot = "scale.data"),
-      features.use = features.use,
+    features <- CheckFeatures(
+      data.use = GetAssayData(object = object.list[[i]], assay = assay, slot = "scale.data"),
+      features = features,
       object.name = paste0("object", i)
     )
   }
@@ -687,9 +687,9 @@ RunMultiCCA.Seurat <- function(
   for(i in 1:length(x = object.list)) {
     mat.list[[i]] <- GetAssayData(
       object = object.list[[i]],
-      assay.use = assay.use,
+      assay = assay,
       slot = "scale.data"
-    )[features.use, ]
+    )[features, ]
   }
   cca.results <- RunMultiCCA(
     object.list = mat.list,
@@ -704,22 +704,22 @@ RunMultiCCA.Seurat <- function(
   )
   combined.object[['cca']] <- CreateDimReducObject(
     embeddings = cca.results$ccv,
-    assay = assay.use,
+    assay = assay,
     key = "CC"
   )
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,
-      assay.use = assay.use,
-      normalization.method = object.list[[1]][[paste0("NormalizeData.", assay.use)]]$normalization.method,
-      scale.factor = object.list[[1]][[paste0("NormalizeData.", assay.use)]]$scale.factor,
+      assay = assay,
+      normalization.method = object.list[[1]][[paste0("NormalizeData.", assay)]]$normalization.method,
+      scale.factor = object.list[[1]][[paste0("NormalizeData.", assay)]]$scale.factor,
       verbose = verbose
     )
     if (compute.gene.loadings) {
       combined.object <- ScaleData(object = combined.object, verbose = verbose)
       combined.object <- ProjectDim(
         object = combined.object,
-        reduction.use = "cca",
+        reduction = "cca",
         verbose = FALSE,
         overwrite = TRUE)
     }
@@ -732,8 +732,8 @@ RunMultiCCA.Seurat <- function(
 #'
 RunPCA.default <- function(
   object,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
@@ -777,12 +777,12 @@ RunPCA.default <- function(
   reduction.data <- CreateDimReducObject(
     embeddings = cell.embeddings,
     loadings = feature.loadings,
-    assay = assay.use,
+    assay = assay,
     stdev = sdev,
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = print.dims, num.features = features.print)
+    Print(object = reduction.data, dims = print.dims, nfeatures = features.print)
   }
   return(reduction.data)
 }
@@ -793,8 +793,8 @@ RunPCA.default <- function(
 #'
 RunPCA.Assay <- function(
   object,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
@@ -808,12 +808,12 @@ RunPCA.Assay <- function(
 ) {
   data.use <- PrepDR(
     object = object,
-    features.use = features.use
+    features = features
   )
   reduction.data <- RunPCA(
     object = data.use,
-    assay.use = assay.use,
-    pc.features = features.use,
+    assay = assay,
+    pc.features = features,
     compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
@@ -837,8 +837,8 @@ RunPCA.Assay <- function(
 #'
 RunPCA.Seurat <- function(
   object,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   compute.dims = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
@@ -854,12 +854,12 @@ RunPCA.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
     object = assay.data,
-    assay.use = assay.use,
-    features.use = features.use,
+    assay = assay,
+    features = features,
     compute.dims = compute.dims,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
@@ -887,7 +887,7 @@ RunPCA.Seurat <- function(
 #'
 RunTSNE.matrix <- function(
   object,
-  assay.use = NULL,
+  assay = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
   add.iter = 0,
@@ -922,12 +922,12 @@ RunTSNE.matrix <- function(
   tsne.reduction <- CreateDimReducObject(
     embeddings = tsne.data,
     key = reduction.key,
-    assay = assay.use
+    assay = assay
   )
   return(tsne.reduction)
 }
 
-#' @param dims.use Which dimensions to use as input features
+#' @param dims Which dimensions to use as input features
 #'
 #' @describeIn RunTSNE Run tSNE on a DimReduc object
 #' @export
@@ -935,8 +935,8 @@ RunTSNE.matrix <- function(
 #'
 RunTSNE.DimReduc <- function(
   object,
-  cells.use = NULL,
-  dims.use = 1:5,
+  cells = NULL,
+  dims = 1:5,
   seed.use = 1,
   tsne.method = "Rtsne",
   add.iter = 0,
@@ -945,8 +945,8 @@ RunTSNE.DimReduc <- function(
   ...
 ) {
   tsne.reduction <- RunTSNE(
-    object = object[[, dims.use]],
-    assay.use = DefaultAssay(object = object),
+    object = object[[, dims]],
+    assay = DefaultAssay(object = object),
     seed.use = seed.use,
     tsne.method = tsne.method,
     add.iter = add.iter,
@@ -959,7 +959,7 @@ RunTSNE.DimReduc <- function(
 
 #' @param distance.matrix If set, runs tSNE on the given distance matrix
 #' instead of data matrix (experimental)
-#' @param features.use If set, run the tSNE on this subset of features
+#' @param features If set, run the tSNE on this subset of features
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
 #' @param workflow.name Name of workflow
@@ -970,10 +970,10 @@ RunTSNE.DimReduc <- function(
 #'
 RunTSNE.Seurat <- function(
   object,
-  reduction.use = "pca",
-  cells.use = NULL,
-  dims.use = 1:5,
-  features.use = NULL,
+  reduction = "pca",
+  cells = NULL,
+  dims = 1:5,
+  features = NULL,
   seed.use = 1,
   tsne.method = "Rtsne",
   add.iter = 0,
@@ -987,14 +987,14 @@ RunTSNE.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  if (length(dims.use) == 1 && !is.null(workflow.name)) {
-    dims.use <- 1:dims.use
+  if (length(dims) == 1 && !is.null(workflow.name)) {
+    dims <- 1:dims
   }
   tsne.reduction <- if (tsne.method == 'Rtsne') {
     if (!is.null(x = distance.matrix)) {
       RunTSNE(
         object = as.matrix(x = distance.matrix),
-        assay.use = DefaultAssay(object = object),
+        assay = DefaultAssay(object = object),
         seed.use = seed.use,
         tsne.method = tsne.method,
         add.iter = add.iter,
@@ -1003,10 +1003,10 @@ RunTSNE.Seurat <- function(
         is_distance = TRUE,
         ...
       )
-    } else if (!is.null(x = features.use)) {
+    } else if (!is.null(x = features)) {
       RunTSNE(
-        object = as.matrix(x = GetAssayData(object = object)[features.use, ]),
-        assay.use = DefaultAssay(object = object),
+        object = as.matrix(x = GetAssayData(object = object)[features, ]),
+        assay = DefaultAssay(object = object),
         seed.use = seed.use,
         tsne.method = tsne.method,
         add.iter = add.iter,
@@ -1017,8 +1017,8 @@ RunTSNE.Seurat <- function(
       )
     } else {
       RunTSNE(
-        object = object[[reduction.use]],
-        dims.use = dims.use,
+        object = object[[reduction]],
+        dims = dims,
         seed.use = seed.use,
         tsne.method = tsne.method,
         add.iter = add.iter,
@@ -1030,8 +1030,8 @@ RunTSNE.Seurat <- function(
     }
   } else {
     RunTSNE(
-      object = object[[reduction.use]],
-      dims.use = dims.use,
+      object = object[[reduction]],
+      dims = dims,
       seed.use = seed.use,
       tsne.method = tsne.method,
       add.iter = add.iter,
@@ -1058,10 +1058,10 @@ RunTSNE.Seurat <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
-  dims.use = 1:5,
-  reduction.use = 'pca',
-  features.use = NULL,
-  assay.use = 'RNA',
+  dims = 1:5,
+  reduction = 'pca',
+  features = NULL,
+  assay = 'RNA',
   max.dim = 2L,
   reduction.name = "umap",
   reduction.key = "UMAP",
@@ -1078,10 +1078,10 @@ RunUMAP.Seurat <- function(
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  if (is.null(x = features.use)) {
-    data.use <- Embeddings(object[[reduction.use]])[,dims.use]
+  if (is.null(x = features)) {
+    data.use <- Embeddings(object[[reduction]])[,dims]
   } else {
-    data.use <- t(GetAssayData(object = object, slot = 'data', assay.use = assay.use)[features.use, ])
+    data.use <- t(GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
@@ -1096,7 +1096,7 @@ RunUMAP.Seurat <- function(
   umap.reduction <- CreateDimReducObject(
     embeddings = umap_output,
     key = reduction.key,
-    assay = assay.use
+    assay = assay
   )
   object[[reduction.name]] <- umap.reduction
   return(object)
@@ -1142,7 +1142,6 @@ ScoreJackStraw.JackStrawData <- function(
   return(object)
 }
 
-
 #' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
 #' @export
 #' @method ScoreJackStraw DimReduc
@@ -1163,7 +1162,7 @@ ScoreJackStraw.DimReduc <- function(
   return(object)
 }
 
-#' @param reduction.use Reduction associated with JackStraw to score
+#' @param reduction Reduction associated with JackStraw to score
 #' @param do.plot Show plot. To return ggplot object, use \code{JackStrawPlot} after
 #' running ScoreJackStraw.
 #'
@@ -1175,21 +1174,21 @@ ScoreJackStraw.DimReduc <- function(
 #'
 ScoreJackStraw.Seurat <- function(
   object,
-  reduction.use = "pca",
+  reduction = "pca",
   dims = 1:5,
   score.thresh = 1e-5,
   do.plot = FALSE,
   ...
 ) {
-  object[[reduction.use]] <- ScoreJackStraw(
-    object = object[[reduction.use]],
+  object[[reduction]] <- ScoreJackStraw(
+    object = object[[reduction]],
     dims = dims,
     ...
   )
   if (do.plot) {
     suppressWarnings(expr = print(JackStrawPlot(
       object = object,
-      reduction.use = reduction.use,
+      reduction = reduction,
       dims = dims,
       ...
     )))
@@ -1208,14 +1207,14 @@ ScoreJackStraw.Seurat <- function(
 #
 # @param object          Seurat object
 # @param reduction.type  Type of dimensional reduction to use
-# @param dims.use        Dimensions to use in calculation
+# @param dims        Dimensions to use in calculation
 # @param genes.use       Genes to consider when calculating
 #
 # @return                Returns a matrix with the low dimensional reconstruction
 #
-CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
-  if (missing(x = dims.use)) {
-    dims.use <- 1:ncol(x = Embeddings(
+CalcLDProj <- function(object, reduction.type, dims, genes.use) {
+  if (missing(x = dims)) {
+    dims <- 1:ncol(x = Embeddings(
       object = object,
       reduction.type = reduction.type
     ))
@@ -1223,7 +1222,7 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
   x.vec <- Loadings(
     object = object,
     reduction.type = reduction.type,
-    dims.use = dims.use,
+    dims = dims,
     genes.use = genes.use
   )
   # form orthonormal basis via QR
@@ -1245,7 +1244,7 @@ CalcLDProj <- function(object, reduction.type, dims.use, genes.use) {
 #
 # @param object          Seurat object
 # @param reduction.type  Name of the reduction to use for the projection
-# @param dims.use        Vector of dimensions to project onto (default is the
+# @param dims        Vector of dimensions to project onto (default is the
 #                        1:number stored for given technique)
 # @param genes.use       vector of genes to use in calculation
 #
@@ -1257,14 +1256,14 @@ CalcProjectedVar <- function(
   object,
   low.dim.data,
   reduction.type = "pca",
-  dims.use,
+  dims,
   genes.use
 ) {
   if (missing(x = low.dim.data)) {
     low.dim.data <- CalcLDProj(
       object = object,
       reduction.type = reduction.type,
-      dims.use = dims.use,
+      dims = dims,
       genes.use = genes.use
     )
   }
@@ -1281,15 +1280,15 @@ CalcProjectedVar <- function(
 # Check that features are present and have non-zero variance
 #
 # @param data.use      Feature matrix (features are rows)
-# @param features.use  Features to check
+# @param features  Features to check
 # @param object.name   Name of object for message printing
 #
-# @return           Returns a vector of features that is the subset of features.use
+# @return           Returns a vector of features that is the subset of features
 #                   that have non-zero variance
 #
-CheckFeatures <- function(data.use, features.use, object.name) {
-  if (any(!features.use %in% rownames(data.use))) {
-    missing.features <- features.use[!features.use %in% rownames(data.use)]
+CheckFeatures <- function(data.use, features, object.name) {
+  if (any(!features %in% rownames(data.use))) {
+    missing.features <- features[!features %in% rownames(data.use)]
     stop(
       "Following features are not scaled in ",
       object.name,
@@ -1297,8 +1296,8 @@ CheckFeatures <- function(data.use, features.use, object.name) {
       paste0(missing.features, collapse = ", ")
     )
   }
-  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
-  no.var.features <- features.use[features.var == 0]
+  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+  no.var.features <- features[features.var == 0]
   if (length(no.var.features) > 0) {
     warning(
       "The following features have zero variance in ",
@@ -1307,9 +1306,9 @@ CheckFeatures <- function(data.use, features.use, object.name) {
       paste0(no.var.features, collapse = ", ")
     )
   }
-  features.use <- setdiff(x = features.use, y = no.var.features)
-  features.use <- features.use[!is.na(x = features.use)]
-  return(features.use)
+  features <- setdiff(x = features, y = no.var.features)
+  features <- features[!is.na(x = features)]
+  return(features)
 }
 
 #internal
@@ -1523,9 +1522,9 @@ JackRandom <- function(
   data.mod[rand.genes, ] <- MatrixRowShuffle(x = scaled.data[rand.genes, ])
   temp.object <- RunPCA(
     object = data.mod,
-    assay.use = "temp",
+    assay = "temp",
     pcs.compute = r2.use,
-    features.use = rownames(x = data.mod),
+    features = rownames(x = data.mod),
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = FALSE,
@@ -1558,24 +1557,24 @@ L2Norm <- function(vec){
 # reduction techniques
 #
 # @param object        Assay object
-# @param features.use  Features to use as input for the dimensional reduction technique.
+# @param features  Features to use as input for the dimensional reduction technique.
 #                      Default is variable features
 #
 #
 PrepDR <- function(
   object,
-  features.use = NULL
+  features = NULL
 ) {
-  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features.use)) {
+  if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
   }
   data.use <- GetAssayData(object = object, slot = "scale.data")
-  features.use <- features.use %||% VariableFeatures(object = object)
-  features.use <- unique(x = features.use[features.use %in% rownames(x = data.use)])
-  features.var <- apply(X = data.use[features.use, ], MARGIN = 1, FUN = var)
-  features.use <- features.use[features.var > 0]
-  features.use <- features.use[!is.na(x = features.use)]
-  data.use <- data.use[features.use, ]
+  features <- features %||% VariableFeatures(object = object)
+  features <- unique(x = features[features %in% rownames(x = data.use)])
+  features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
+  features <- features[features.var > 0]
+  features <- features[!is.na(x = features)]
+  data.use <- data.use[features, ]
   return(data.use)
 }
 

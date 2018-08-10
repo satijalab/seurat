@@ -83,9 +83,9 @@ DimHeatmap <- function(
     features.keyed <- lapply(
       X = assays,
       FUN = function(assay) {
-        features.use <- features.all[features.all %in% rownames(x = object[[assay]])]
-        if (length(x = features.use) > 0) {
-          return(paste0(Key(object = object[[assay]]), features.use))
+        features <- features.all[features.all %in% rownames(x = object[[assay]])]
+        if (length(x = features) > 0) {
+          return(paste0(Key(object = object[[assay]]), features))
         }
       }
     )
@@ -102,7 +102,7 @@ DimHeatmap <- function(
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
   data.limits <- c(min(data.all), max(data.all))
-  # if (check.plot && any(c(length(x = features.keyed), length(x = cells.use[[1]])) > 700)) {
+  # if (check.plot && any(c(length(x = features.keyed), length(x = cells[[1]])) > 700)) {
   #   choice <- menu(c("Continue with plotting", "Quit"), title = "Plot(s) requested will likely take a while to plot.")
   #   if (choice != 1) {
   #     return(invisible(x = NULL))
@@ -124,7 +124,11 @@ DimHeatmap <- function(
     dim.cells <- cells[[i]]
     data.plot <- data.all[dim.cells, dim.features]
     if (fast) {
-      SingleImageMap(data = data.plot, title = paste0(Key(object = object[[reduction]]), dims[i]))
+      SingleImageMap(
+        data = data.plot,
+        title = paste0(Key(object = object[[reduction]]), dims[i]),
+        cell.order = dim.cells
+      )
     } else {
       plots[[i]] <- SingleRasterMap(
         data = data.plot,
@@ -267,7 +271,7 @@ HTOHeatmap <- function(
 ) {
 
   object <- SetAllIdent(object,id = hto.classification)
-  objmini <- SubsetData(object,cells.use = sample(object@cell.names,num.cells))
+  objmini <- SubsetData(object,cells = sample(object@cell.names,num.cells))
 
   metadata_use <- objmini@meta.data
   singlet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Singlet",hto.classification])))
@@ -283,7 +287,7 @@ HTOHeatmap <- function(
   if (!is.null(singlet.names)){
     levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
   }
-  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells.use = cells.ordered,group.label.rot = T)
+  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells = cells.ordered,group.label.rot = T)
 
 }
 
@@ -510,7 +514,7 @@ DimPlot <- function(
     data = data,
     dims = dims,
     col.by = group.by,
-    cols.use = cols,
+    cols = cols,
     pt.size = pt.size,
     shape.by = shape.by,
     plot.order = order,
@@ -895,8 +899,8 @@ VariableFeaturePlot <- function(
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
   }
-  hvf.info <- HVFInfo(object = object, assay.use = assay)[, c('mean', 'dispersion')]
-  var.features <- VariableFeatures(object = object, assay.use = assay)
+  hvf.info <- HVFInfo(object = object, assay = assay)[, c('mean', 'dispersion')]
+  var.features <- VariableFeatures(object = object, assay = assay)
   var.status <- ifelse(
     test = rownames(x = hvf.info) %in% var.features,
     yes = 'yes',
@@ -1133,7 +1137,7 @@ VizDimReduction <- function(
     }
   }
   loadings <- Loadings(object = object[[reduction]], projected = projected)
-  features.use <- lapply(
+  features <- lapply(
     X = dims,
     FUN = TopFeatures,
     object = object[[reduction]],
@@ -1141,17 +1145,17 @@ VizDimReduction <- function(
     projected = projected,
     balanced = balanced
   )
-  features.use <- lapply(
-    X = features.use,
+  features <- lapply(
+    X = features,
     FUN = unlist,
     use.names = FALSE
   )
-  loadings <- loadings[unlist(x = features.use), dims, drop = FALSE]
-  names(x = features.use) <- colnames(x = loadings) <- as.character(x = dims)
+  loadings <- loadings[unlist(x = features), dims, drop = FALSE]
+  names(x = features) <- colnames(x = loadings) <- as.character(x = dims)
   plots <- lapply(
     X = as.character(x = dims),
     FUN = function(i) {
-      data.plot <- as.data.frame(x = loadings[features.use[[i]], i, drop = FALSE])
+      data.plot <- as.data.frame(x = loadings[features[[i]], i, drop = FALSE])
       colnames(x = data.plot) <- paste0(Key(object = object[[reduction]]), i)
       data.plot$feature <- factor(x = rownames(x = data.plot), levels = rownames(x = data.plot))
       plot <- ggplot(
@@ -1194,9 +1198,9 @@ ElbowPlot <- function(
   ndims = 20,
   reduction = 'pca'
 ) {
-  data.use <- Stdev(object = object, reduction.use = reduction)
+  data.use <- Stdev(object = object, reduction = reduction)
   if (length(data.use) == 0) {
-    stop(paste("No standard deviation info stored for", reduction.use))
+    stop(paste("No standard deviation info stored for", reduction))
   }
   if (ndims > length(x = data.use)) {
     warning("The object only has information for ", length(x = data.use), " reductions")
@@ -1888,7 +1892,7 @@ BlendColors <- function(..., as.rgb = FALSE) {
 # @param data.plot The data to be plotted
 # @param pt.size Size of each point
 # @param pch.use Shape of each point
-# @param cols.use Colors to plot
+# @param cols Colors to plot
 # @param dim.codes Codes for the dimensions to plot in
 # @param min.cutoff Minimum cutoff for data
 # @param max.cutoff Maximum cutoff for data
@@ -1911,7 +1915,7 @@ BlendPlot <- function(
   data.plot,
   pt.size,
   pch.use,
-  cols.use,
+  cols,
   dim.codes,
   min.cutoff,
   max.cutoff,
@@ -1920,43 +1924,43 @@ BlendPlot <- function(
   no.legend,
   dark.theme
 ) {
-  num.cols <- length(x = cols.use)
+  num.cols <- length(x = cols)
   #   Create a vector of colors that weren't provided
   cols.not.provided <- colors(distinct = TRUE)
   cols.not.provided <- cols.not.provided[!(grepl(
-    pattern = paste(cols.use, collapse = '|'),
+    pattern = paste(cols, collapse = '|'),
     x = cols.not.provided,
     ignore.case = TRUE
   ))]
   if (num.cols > 4) {
     #   If provided more than four colors, take only the first four
-    cols.use <- cols.use[c(1:4)]
+    cols <- cols[c(1:4)]
   } else if ((num.cols == 2) || (num.cols == 3)) {
     #   If two or three colors, use the last two as high values for blending
     #   and add to our vector of colors
-    blend <- BlendColors(cols.use[c(num.cols - 1, num.cols)])
-    cols.use <- c(cols.use, blend)
+    blend <- BlendColors(cols[c(num.cols - 1, num.cols)])
+    cols <- c(cols, blend)
     if (num.cols == 2) {
       #   If two colors, provided,
       #   we still need a low color
-      cols.use <- c(sample(x = cols.not.provided, size = 1), cols.use)
+      cols <- c(sample(x = cols.not.provided, size = 1), cols)
     }
   } else if ((num.cols == 1)) {
     #   If only one color provided
-    if (cols.use %in% rownames(x = brewer.pal.info)) {
+    if (cols %in% rownames(x = brewer.pal.info)) {
       #   Was it a palette from RColorBrewer? If so, create
       #   our colors based on the palette
-      palette <- brewer.pal(n = 3, name = cols.use)
-      cols.use <- c(palette, BlendColors(palette[c(2, 3)]))
+      palette <- brewer.pal(n = 3, name = cols)
+      cols <- c(palette, BlendColors(palette[c(2, 3)]))
     } else {
       #   If not, randomly create our colors
       cols.high <- sample(x = cols.not.provided, size = 2, replace = FALSE)
-      cols.use <- c(cols.use, cols.high, BlendColors(cols.high))
+      cols <- c(cols, cols.high, BlendColors(cols.high))
     }
   } else if (num.cols <= 0) {
-    cols.use <- c('yellow','red', 'blue', BlendColors('red', 'blue'))
+    cols <- c('yellow','red', 'blue', BlendColors('red', 'blue'))
   }
-  names(x = cols.use) <- c('low', 'high1', 'high2', 'highboth')
+  names(x = cols) <- c('low', 'high1', 'high2', 'highboth')
   length.check <- vapply(
     X = list(features.plot, min.cutoff, max.cutoff),
     FUN = function(x) {
@@ -2048,7 +2052,7 @@ BlendPlot <- function(
     shape = pch.use
   )
   p <- p + scale_color_manual(
-    values = cols.use,
+    values = cols,
     limits = c('high1', 'high2', 'highboth'),
     labels = legend.names,
     guide = guide_legend(title = NULL, override.aes = list(size = 2))
@@ -2302,15 +2306,15 @@ ExIPlot <- function(
   )
   data <- FetchData(object = object, vars = features, slot = slot)
   if (is.null(x = idents)) {
-    cells.use <- colnames(x = object)
+    cells <- colnames(x = object)
   } else {
-    cells.use <- Idents(object = object)[Idents(object = object) %in% idents]
+    cells <- Idents(object = object)[Idents(object = object) %in% idents]
   }
-  data <- data[cells.use, , drop = FALSE]
+  data <- data[cells, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
-    Idents(object = object)[cells.use]
+    Idents(object = object)[cells]
   } else {
-    object[group.by][cells.use, , drop = TRUE]
+    object[group.by][cells, , drop = TRUE]
   }
   feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
   if (same.y.lims && is.null(x = y.max)) {
@@ -2661,7 +2665,7 @@ SetQuantile <- function(cutoff, data) {
 #
 # @param data.plot A data frame with two columns to be plotted
 # @param col.by A vector or factor of values to color the plot by
-# @param cols.use An optional vector of colors to use
+# @param cols An optional vector of colors to use
 # @param pt.size Point size for the plot
 # @param smooth Make a smoothed scatter plot
 # @param legend.title Optional legend title
@@ -2676,8 +2680,8 @@ SetQuantile <- function(cutoff, data) {
 SingleCorPlot <- function(
   data,
   col.by = NULL,
-  cols.use = NULL,
-  cols = 1,
+  cols = NULL,
+  #cols = 1,
   pt.size = 1,
   smooth = FALSE,
   legend.title = NULL,
@@ -2709,7 +2713,7 @@ SingleCorPlot <- function(
     plot <- plot + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
       guides(fill = FALSE)
   }
-  if (!is.null(x = cols.use)) {
+  if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {
       scale_color_brewer(palette = cols)
     } else {
@@ -2781,7 +2785,7 @@ SingleDimPlot <- function(
       cells.all = rownames(x = data.plot),
       sizes.highlight = sizes.highlight,
       cols.highlight = cols.highlight,
-      col.base = cols.use[1] %||% 'black',
+      col.base = cols[1] %||% 'black',
       pt.size = pt.size
     )
     order <- highlight.info$plot.order

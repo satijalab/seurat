@@ -28,8 +28,8 @@ globalVariables(
 #'
 FindAllMarkers <- function(
   object,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -55,10 +55,10 @@ FindAllMarkers <- function(
       {
         FindMarkers(
           object = object,
-          assay.use = assay.use,
+          assay = assay,
           ident.1 = idents.all[i],
           ident.2 = NULL,
-          features.use = features.use,
+          features = features,
           logfc.threshold = logfc.threshold,
           test.use = test.use,
           min.pct = min.pct,
@@ -164,7 +164,7 @@ FindConservedMarkers <- function(
   object.var <- FetchData(object = object, vars = grouping.var)
   object <- SetIdent(
     object = object,
-    cells.use = object@cell.names,
+    cells = object@cell.names,
     ident.use = paste(object@ident, object.var[, 1], sep = "_")
   )
   levels.split <- names(x = sort(x = table(object.var[, 1])))
@@ -253,7 +253,7 @@ FindMarkers.default <- function(
   object,
   cells.1 = NULL,
   cells.2 = NULL,
-  features.use = NULL,
+  features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -268,10 +268,10 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  features.use <- features.use %||% rownames(object)
+  features <- features %||% rownames(object)
   methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
-    features.use <- rownames(object)
+    features <- rownames(object)
     min.diff.pct <- -Inf
     logfc.threshold <- 0
   }
@@ -303,7 +303,7 @@ FindMarkers.default <- function(
   thresh.min <- 0
   pct.1 <- round(
     x = apply(
-      X = object[features.use, cells.1, drop = F],
+      X = object[features, cells.1, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -313,7 +313,7 @@ FindMarkers.default <- function(
   )
   pct.2 <- round(
     x = apply(
-      X = object[features.use, cells.2, drop = F],
+      X = object[features, cells.2, drop = F],
       MARGIN = 1,
       FUN = function(x) {
         return(sum(x > thresh.min) / length(x = x))
@@ -325,29 +325,29 @@ FindMarkers.default <- function(
   colnames(x = data.alpha) <- c("pct.1", "pct.2")
   alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
   names(x = alpha.min) <- rownames(x = data.alpha)
-  features.use <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = features.use) == 0) {
+  features <- names(x = which(x = alpha.min > min.pct))
+  if (length(x = features) == 0) {
     stop("No features pass min.pct threshold")
   }
   alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  features.use <- names(
+  features <- names(
     x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
   )
-  if (length(x = features.use) == 0) {
+  if (length(x = features) == 0) {
     stop("No features pass min.diff.pct threshold")
   }
   # gene selection (based on average difference)
-  data.1 <- apply(X = object[features.use, cells.1, drop = F],
+  data.1 <- apply(X = object[features, cells.1, drop = F],
                   MARGIN = 1,
                   FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = object[features.use, cells.2, drop = F],
+  data.2 <- apply(X = object[features, cells.2, drop = F],
                   MARGIN = 1,
                   FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
   total.diff <- (data.1 - data.2)
   if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
   if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
-  features.use <- intersect(x = features.use, y = features.diff)
-  if (length(x = features.use) == 0) {
+  features <- intersect(x = features, y = features.diff)
+  if (length(x = features) == 0) {
     stop("No features pass logfc.threshold threshold")
   }
   if (max.cells.per.ident < Inf) {
@@ -366,32 +366,32 @@ FindMarkers.default <- function(
   de.results <- switch(
     EXPR = test.use,
     'wilcox' = WilcoxDETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose,
       ...
     ),
     'bimod' = DiffExpTest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'roc' = MarkerTest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     't' = DiffTTest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'negbinom' = GLMDETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -400,7 +400,7 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'poisson' = GLMDETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -409,20 +409,20 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'MAST' = MASTDETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
       verbose = verbose
     ),
     "DESeq2" = DESeq2DETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     "LR" = LRDETest(
-      data.use = object[features.use, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
@@ -451,7 +451,7 @@ FindMarkers.default <- function(
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
-#' @param assay.use Assay to use in differential expression testing
+#' @param assay Assay to use in differential expression testing
 #'
 #' @describeIn FindMarkers Run differential expression test on a Seurat object
 #' @export
@@ -461,8 +461,8 @@ FindMarkers.Seurat <- function(
   object,
   ident.1 = NULL,
   ident.2 = NULL,
-  assay.use = NULL,
-  features.use = NULL,
+  assay = NULL,
+  features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -477,12 +477,12 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay <- assay %||% DefaultAssay(object = object)
   data.slot <- "data"
   if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
     data.slot <- "raw.data"
   }
-  data.use <- GetAssayData(object = object[[assay.use]], slot = data.slot)
+  data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
   if (is.null(ident.1)) {
     stop("Please provide ident.1")
   }
@@ -520,7 +520,7 @@ FindMarkers.Seurat <- function(
     object = data.use,
     cells.1 = ident.1,
     cells.2 = ident.2,
-    features.use = features.use,
+    features = features,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,

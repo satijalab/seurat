@@ -68,12 +68,12 @@ BuildSNN.default <- function(
   return(snn.matrix)
 }
 
-#' @param features.use A vector of feature names to use in construction of SNN
+#' @param features A vector of feature names to use in construction of SNN
 #' graph if building directly based on data rather than a dimensionally reduced
 #' representation (i.e. PCs).
-#' @param reduction.use Name of dimensional reduction technique to use in
+#' @param reduction Name of dimensional reduction technique to use in
 #' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims.use A vector of the dimensions to use in construction of the SNN
+#' @param dims A vector of the dimensions to use in construction of the SNN
 #' graph (e.g. To use the first 10 PCs, pass 1:10)
 #'
 #'
@@ -83,15 +83,15 @@ BuildSNN.default <- function(
 #'
 BuildSNN.Assay <- function(
   object,
-  features.use = NULL,
+  features = NULL,
   k.param = 10,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE
 ) {
-  features.use <- features.use %||% VariableFeatures(object = object)
-  data.use <- t(x = GetAssayData(object = object, slot = "data")[features.use, ])
+  features <- features %||% VariableFeatures(object = object)
+  data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
   snn.matrix <- BuildSNN(
     object = data.use,
     k.param = k.param,
@@ -103,10 +103,10 @@ BuildSNN.Assay <- function(
   return(snn.matrix)
 }
 
-#' @param assay.use Assay to use in construction of SNN
-#' @param features.use Features to use as input for building the SNN
-#' @param reduction.use Reduction to use as input for building the SNN
-#' @param dims.use Dimensions of reduction to use as input
+#' @param assay Assay to use in construction of SNN
+#' @param features Features to use as input for building the SNN
+#' @param reduction Reduction to use as input for building the SNN
+#' @param dims Dimensions of reduction to use as input
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
@@ -118,10 +118,10 @@ BuildSNN.Assay <- function(
 #'
 BuildSNN.Seurat <- function(
   object,
-  assay.use = NULL,
-  features.use = NULL,
-  reduction.use = "pca",
-  dims.use = 1:10,
+  assay = NULL,
+  features = NULL,
+  reduction = "pca",
+  dims = 1:10,
   k.param = 30,
   prune.SNN = 1/15,
   nn.eps = 0,
@@ -134,16 +134,16 @@ BuildSNN.Seurat <- function(
   if (!is.null(x = workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  if (length(x = dims.use) == 1 && !is.null(x = workflow.name)) {
-    dims.use <- 1:dims.use
+  if (length(x = dims) == 1 && !is.null(x = workflow.name)) {
+    dims <- 1:dims
   }
-  if (!is.null(x = dims.use)) {
-    assay.use <- assay.use %||% DefaultAssay(object = object)
-    data.use <- Embeddings(object = object[[reduction.use]])
-    if (max(dims.use) > ncol(x = data.use)) {
-      stop("More dimensions specified in dims.use than have been computed")
+  if (!is.null(x = dims)) {
+    assay <- assay %||% DefaultAssay(object = object)
+    data.use <- Embeddings(object = object[[reduction]])
+    if (max(dims) > ncol(x = data.use)) {
+      stop("More dimensions specified in dims than have been computed")
     }
-    data.use <- data.use[, dims.use]
+    data.use <- data.use[, dims]
     snn.matrix <- BuildSNN(
       object = data.use,
       k.param = k.param,
@@ -153,11 +153,11 @@ BuildSNN.Seurat <- function(
       force.recalc = force.recalc
     )
   } else {
-    assay.use <- assay.use %||% DefaultAssay(object = object)
-    data.use <- GetAssay(object = object, assay.use = assay.use)
+    assay <- assay %||% DefaultAssay(object = object)
+    data.use <- GetAssay(object = object, assay = assay)
     snn.matrix <- BuildSNN(
       object = data.use,
-      features.use = features.use,
+      features = features,
       k.param = k.param,
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
@@ -166,7 +166,7 @@ BuildSNN.Seurat <- function(
     )
   }
 
-  graph.name <- graph.name %||% paste0(assay.use, "_snn")
+  graph.name <- graph.name %||% paste0(assay, "_snn")
   object[[graph.name]] <- snn.matrix
   if (do.plot) {
     if (!"tsne" %in% names(x = object@reductions)) {

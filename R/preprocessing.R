@@ -12,8 +12,8 @@ NULL
 #' original object. Takes a vector of variables on which to subset along with
 #' corresponding low and high threshold values for each variable, returning an
 #' object contain only cells that pass the specified filters. You can also
-#' restrict the filtering to only a subset of cells using cells.use (i.e. only
-#' keep cells that BOTH pass the filters and are in the cells.use list).
+#' restrict the filtering to only a subset of cells using cells (i.e. only
+#' keep cells that BOTH pass the filters and are in the cells list).
 #'
 #' @param object Seurat object
 #' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
@@ -21,7 +21,7 @@ NULL
 #' using FetchData
 #' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
 #' @param high.thresholds High cutoffs for the parameters (default is Inf)
-#' @param cells.use A vector of cell names to use as a subset
+#' @param cells A vector of cell names to use as a subset
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
@@ -41,7 +41,7 @@ FilterCells <- function(
   subset.names,
   low.thresholds,
   high.thresholds,
-  cells.use = NULL
+  cells = NULL
 ) {
   if (missing(x = low.thresholds)) {
     low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
@@ -57,23 +57,23 @@ FilterCells <- function(
     stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
   }
   data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells.use <- cells.use %||% colnames(x = object)
+  cells <- cells %||% colnames(x = object)
   for (i in seq(nrow(data.subsets))) {
-    cells.use <- tryCatch(
+    cells <- tryCatch(
       expr = WhichCells(
         object = object,
-        cells.use = cells.use,
+        cells = cells,
         subset.name = data.subsets[i, 1],
         low.threshold = data.subsets[i, 2],
         high.threshold = data.subsets[i, 3]
       ),
       error = function(e) {
         warning(e)
-        cells.use
+        cells
       }
     )
   }
-  object <- SubsetData(object, cells.use = cells.use)
+  object <- SubsetData(object, cells = cells)
   object <- LogSeuratCommand(object)
   return(object)
 }
@@ -112,7 +112,7 @@ FilterCells <- function(
 #'
 HTODemux <- function(
   object,
-  assay.use = "HTO",
+  assay = "HTO",
   positive_quantile = 0.99,
   init_centers = NULL,
   cluster_nstarts = 100,
@@ -121,11 +121,11 @@ HTODemux <- function(
   verbose = TRUE
 ) {
   #initial clustering
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  hash_data <- GetAssayData(object = object, assay.use = assay.use)
+  assay <- assay %||% DefaultAssay(object = object)
+  hash_data <- GetAssayData(object = object, assay = assay)
   hash_raw_data <- GetAssayData(
     object = object,
-    assay.use = assay.use,
+    assay = assay,
     slot = 'counts'
     # slot = "raw.data"
   )[, colnames(x = object)]
@@ -134,29 +134,29 @@ HTODemux <- function(
   ncenters <- init_centers %||% nrow(x = hash_data) + 1
   if (k_function == "kmeans") {
     hto_init_clusters <- kmeans(
-      x = t(x = GetAssayData(object = object, assay.use = assay.use)),
+      x = t(x = GetAssayData(object = object, assay = assay)),
       centers = ncenters,
       nstart = cluster_nstarts
     )
     #identify positive and negative signals for all HTO
-    Idents(object = object, cells.use = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
+    Idents(object = object, cells = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
     # object <- SetIdent(
     #   object = object,
-    #   cells.use = names(hto_init_clusters$cluster),
+    #   cells = names(hto_init_clusters$cluster),
     #   ident.use = hto_init_clusters$cluster
     # )
   } else {
     #use fast k-medoid clustering
     hto_init_clusters <- clara(
-      x = t(x = GetAssayData(object = object, assay.use = assay.use)),
+      x = t(x = GetAssayData(object = object, assay = assay)),
       k = ncenters,
       samples = nsamples
     )
     #identify positive and negative signals for all HTO
-    Idents(object = object, cells.use = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
+    Idents(object = object, cells = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
     # object <- SetIdent(
     #   object = object,
-    #   cells.use = names(x = hto_init_clusters$clustering),
+    #   cells = names(x = hto_init_clusters$clustering),
     #   ident.use = hto_init_clusters$clustering
     # )
   }
@@ -171,11 +171,11 @@ HTODemux <- function(
   )
   average_hto <- GetAssayData(
     object = hto_averages,
-    assay.use = assay.use,
+    assay = assay,
     slot = "raw.data"
   )
   #create a matrix to store classification result
-  hto_discrete <- GetAssayData(object = object, assay.use = assay.use)
+  hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
   for (hto_iter in rownames(x = hash_data)) {
@@ -237,7 +237,7 @@ HTODemux <- function(
     print(x = table(object@meta.data$hto_classification_global))
   }
   object <- SetAllIdent(object = object,id = "hto_classification")
-  object <- SetIdent(object,cells.use = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
+  object <- SetIdent(object,cells = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
   object@meta.data$hash_ID <- object@ident[rownames(object@meta.data)]
   return(object)
 }
@@ -421,7 +421,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
 #' results are saved in misc slot of seurat object.
 #'
 #' @param object A seurat object
-#' @param assay.use Name of assay to use
+#' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
 #' @param variable.features.zscore Z-score threshold for calling features highly variable;
 #' z-scores are based on variances of regression model pearson residuals of all features
@@ -435,7 +435,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE){
 #' @export
 RegressRegNB <- function(
   object,
-  assay.use = NULL,
+  assay = NULL,
   do.correct.umi = FALSE,
   variable.features.zscore = 1,
   variable.features.n = NULL,
@@ -448,8 +448,8 @@ RegressRegNB <- function(
   if (!requireNamespace('sctransform')) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.obj <- GetAssay(object = object, assay.use = assay.use)
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
 
   vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
@@ -524,7 +524,7 @@ RegressRegNB <- function(
     slot = 'scale.data',
     new.data = scale.data
   )
-  object[[assay.use]] <- assay.obj
+  object[[assay]] <- assay.obj
 
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
@@ -671,7 +671,7 @@ FindVariableFeatures.default <- function(
   return(hvf.info)
 }
 
-#' @param num.features Number of features to select as top variable features;
+#' @param nfeatures Number of features to select as top variable features;
 #' only used when \code{selection.method = 'dispersion'}
 #' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature means
@@ -691,7 +691,7 @@ FindVariableFeatures.Assay <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  num.features = 1000,
+  nfeatures = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE
@@ -727,8 +727,8 @@ FindVariableFeatures.Assay <- function(
       dispersions.use <- (hvf.info[, 3] > dispersion.cutoff[1]) & (hvf.info[, 3] < dispersion.cutoff[2])
       rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
     },
-    'dispersion' = head(x = rownames(x = hvf.info), n = num.features),
-    'vst' = head(x = rownames(x = hvf.info), n = num.features),
+    'dispersion' = head(x = rownames(x = hvf.info), n = nfeatures),
+    'vst' = head(x = rownames(x = hvf.info), n = nfeatures),
     stop("Unkown selection method: ", selection.method)
   )
   VariableFeatures(object = object) <- top.features
@@ -736,7 +736,7 @@ FindVariableFeatures.Assay <- function(
 }
 
 #' @inheritParams FindVariableFeatures.Assay
-#' @param assay.use Assay to use
+#' @param assay Assay to use
 #' @param workflow.name Name of workflow
 #'
 #' @describeIn FindVariableFeatures Find variable features in a Seurat object
@@ -745,7 +745,7 @@ FindVariableFeatures.Assay <- function(
 #'
 FindVariableFeatures.Seurat <- function(
   object,
-  assay.use = NULL,
+  assay = NULL,
   selection.method = "vst",
   loess.span = 0.3,
   clip.max = 'auto',
@@ -753,7 +753,7 @@ FindVariableFeatures.Seurat <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  num.features = 1000,
+  nfeatures = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
@@ -762,8 +762,8 @@ FindVariableFeatures.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- FindVariableFeatures(
     object = assay.data,
     selection.method = selection.method,
@@ -773,12 +773,12 @@ FindVariableFeatures.Seurat <- function(
     dispersion.function = dispersion.function,
     num.bin = num.bin,
     binning.method = binning.method,
-    num.features = num.features,
+    nfeatures = nfeatures,
     mean.cutoff = mean.cutoff,
     dispersion.cutoff = dispersion.cutoff,
     verbose = verbose
   )
-  object[[assay.use]] <- assay.data
+  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
     object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
@@ -839,7 +839,7 @@ NormalizeData.Assay <- function(
   return(object)
 }
 
-#' @param assay.use Name of assay to use
+#' @param assay Name of assay to use
 #'
 #' @describeIn NormalizeData Normalize data in a Seurat object
 #' @export
@@ -853,24 +853,24 @@ NormalizeData.Assay <- function(
 #'
 NormalizeData.Seurat <- function(
   object,
-  assay.use = NULL,
+  assay = NULL,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
   workflow.name = NULL
 ) {
-  assay.use <- assay.use %||% DefaultAssay(object = object)
+  assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- NormalizeData(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose
   )
-  object[[assay.use]] <- assay.data
+  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
     object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
@@ -882,7 +882,7 @@ NormalizeData.Seurat <- function(
 #'
 ScaleData.default <- function(
   object,
-  features.use = NULL,
+  features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
   model.use = 'linear',
@@ -895,9 +895,9 @@ ScaleData.default <- function(
   verbose = TRUE,
   ...
 ) {
-  features.use <- features.use %||% rownames(x = object)
-  features.use <- as.vector(x = intersect(x = features.use, y = rownames(x = object)))
-  object <- object[features.use, , drop = FALSE]
+  features <- features %||% rownames(x = object)
+  features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
+  object <- object[features, , drop = FALSE]
   scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
   dimnames(x = scaled.data) <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
@@ -923,21 +923,21 @@ ScaleData.default <- function(
     object <- RegressOutMatrix(
       data.expr = object,
       latent.data = latent.data,
-      features.regress = features.use,
+      features.regress = features,
       model.use = model.use,
       use.umi = use.umi,
       verbose = verbose
     )
     gc(verbose = FALSE)
   }
-  max.block <- ceiling(x = length(x = features.use) / block.size)
+  max.block <- ceiling(x = length(x = features) / block.size)
   if (verbose) {
     message("Scaling data matrix")
     pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   for (i in 1:max.block) {
     my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-    my.inds <- my.inds[my.inds <= length(x = features.use)]
+    my.inds <- my.inds[my.inds <= length(x = features)]
     if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
       scale.function <- FastSparseRowScale
     } else {
@@ -945,14 +945,14 @@ ScaleData.default <- function(
       scale.function <- FastRowScale
     }
     data.scale <- scale.function(
-      mat = object[features.use[my.inds], , drop = FALSE],
+      mat = object[features[my.inds], , drop = FALSE],
       scale = do.scale,
       center = do.center,
       scale_max = scale.max,
       display_progress = FALSE
     )
-    dimnames(x = data.scale) <- dimnames(x = object[features.use[my.inds], ])
-    scaled.data[features.use[my.inds], ] <- data.scale
+    dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
+    scaled.data[features[my.inds], ] <- data.scale
     rm(data.scale)
     gc(verbose = FALSE)
     if (verbose) {
@@ -975,7 +975,7 @@ ScaleData.default <- function(
 #'
 ScaleData.Assay <- function(
   object,
-  features.use = NULL,
+  features = NULL,
   vars.to.regress = NULL,
   latent.data = NULL,
   model.use = 'linear',
@@ -990,14 +990,14 @@ ScaleData.Assay <- function(
 ) {
   use.umi <- ifelse(test = model.use != 'linear', yes = TRUE, no = use.umi)
   slot.use <- ifelse(test = use.umi, yes = 'counts', no = 'data')
-  features.use <- features.use %||% VariableFeatures(object)
-  if (length(features.use) == 0) features.use <- rownames(GetAssayData(object = object, slot = slot.use))
+  features <- features %||% VariableFeatures(object)
+  if (length(features) == 0) features <- rownames(GetAssayData(object = object, slot = slot.use))
   object <- SetAssayData(
     object = object,
     slot = 'scale.data',
     new.data = ScaleData(
       object = GetAssayData(object = object, slot = slot.use),
-      features.use = features.use,
+      features = features,
       vars.to.regress = vars.to.regress,
       latent.data = latent.data,
       model.use = model.use,
@@ -1014,7 +1014,7 @@ ScaleData.Assay <- function(
   return(object)
 }
 
-#' @param assay.use Name of Assay to scale
+#' @param assay Name of Assay to scale
 #' @param workflow.name Name of workflow
 #'
 #' @describeIn ScaleData Scale a Seurat object
@@ -1023,8 +1023,8 @@ ScaleData.Assay <- function(
 #'
 ScaleData.Seurat <- function(
   object,
-  features.use = NULL,
-  assay.use = NULL,
+  features = NULL,
+  assay = NULL,
   vars.to.regress = NULL,
   model.use = 'linear',
   use.umi = FALSE,
@@ -1040,8 +1040,8 @@ ScaleData.Seurat <- function(
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
   }
-  assay.use <- assay.use %||% DefaultAssay(object = object)
-  assay.data <- GetAssay(object = object, assay.use = assay.use)
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
   if (any(vars.to.regress %in% colnames(x = object[]))) {
     latent.data <- object[vars.to.regress[vars.to.regress %in% colnames(x = object[])]]
   } else {
@@ -1049,7 +1049,7 @@ ScaleData.Seurat <- function(
   }
   assay.data <- ScaleData(
     object = assay.data,
-    features.use = features.use,
+    features = features,
     vars.to.regress = vars.to.regress,
     latent.data = latent.data,
     model.use = model.use,
@@ -1062,7 +1062,7 @@ ScaleData.Seurat <- function(
     verbose = verbose,
     ...
   )
-  object[[assay.use]] <- assay.data
+  object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
   if (!is.null(workflow.name)) {
     object <- UpdateWorkflow(object = object, workflow.name = workflow.name)

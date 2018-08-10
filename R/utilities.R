@@ -210,7 +210,7 @@ AverageExpression <- function(
     )
     object <- SetIdent(
       object = object,
-      cells.use = rownames(x = new.data),
+      cells = rownames(x = new.data),
       ident.use = new.ident
     )
   }
@@ -295,7 +295,7 @@ AverageExpression <- function(
     }
     toRet <- SetIdent(
       object = toRet,
-      cells.use = toRet@cell.names,
+      cells = toRet@cell.names,
       ident.use = ident.new[toRet@cell.names]
     )
     toRet@ident <- factor(
@@ -734,10 +734,10 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     params[[arg]] <- param_value
   }
   # check if function works on the Assay and/or the DimReduc Level
-  assay.use <- params[["assay.use"]]
-  reduction.use <- params[["reduction.use"]]
+  assay <- params[["assay"]]
+  reduction <- params[["reduction"]]
   # rename function name to include Assay/DimReduc info
-  command.name <- paste(command.name, assay.use, reduction.use, sep = '.')
+  command.name <- paste(command.name, assay, reduction, sep = '.')
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
   command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
   if (return.command) {
