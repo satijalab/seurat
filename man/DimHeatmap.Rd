@@ -4,45 +4,42 @@
 \alias{DimHeatmap}
 \title{Dimensional reduction heatmap}
 \usage{
-DimHeatmap(object, assay.use = NULL, reduction.use = "pca",
-  dims.use = 1, cells.use = NULL, num.features = 30,
-  use.full = FALSE, disp.min = -2.5, disp.max = 2.5,
-  slot.use = "scale.data", do.balanced = FALSE, check.plot = TRUE,
-  num.col = NULL, combine.plots = TRUE, plot.method = c("quick",
-  "gg"), ...)
+DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
+  reduction = "pca", disp.min = -2.5, disp.max = 2.5,
+  balanced = FALSE, ncol = NULL, combine = TRUE, fast = FALSE,
+  slot = "scale.data", assays = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{assay.use}{A vector of assays to pull data from}
+\item{dims}{Dimensions to plot}
 
-\item{reduction.use}{Which dimmensional reduction to use}
+\item{nfeatures}{NUmber of genes to plot}
 
-\item{dims.use}{Dimensions to plot}
+\item{cells}{A list of cells to plot. If numeric, just plots the top cells.}
 
-\item{cells.use}{A list of cells to plot. If numeric, just plots the top cells.}
-
-\item{num.features}{NUmber of genes to plot}
+\item{reduction}{Which dimmensional reduction to use}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
-\item{slot.use}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
+\item{balanced}{Plot an equal number of genes with both + and - scores.}
 
-\item{do.balanced}{Plot an equal number of genes with both + and - scores.}
+\item{ncol}{Number of columns to plot}
 
-\item{num.col}{Number of columns to plot}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
 
-\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
+\item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
 
-\item{plot.method}{Either "quick" for fast exploratory visualization or "gg" for slower
-plotting but returns ggplot objects that can be customized.}
+\item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
+
+\item{assays}{A vector of assays to pull data from}
 
 \item{...}{Ignored for now}
 }
 \value{
-Invisbly returns the final grob
+A ggplot object
 }
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their
@@ -53,5 +50,5 @@ DimHeatmap(object = pbmc_small)
 
 }
 \seealso{
-\code{\link{superheat::superheat}}
+\code{\link{graphics::image}} \code{\link{ggplot2::geom_raster}}
 }

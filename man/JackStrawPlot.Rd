@@ -4,19 +4,19 @@
 \alias{JackStrawPlot}
 \title{JackStraw Plot}
 \usage{
-JackStrawPlot(object, reduction.use = "pca", dims = 1:5,
-  plot.x.lim = 0.1, plot.y.lim = 0.3)
+JackStrawPlot(object, dims = 1:5, reduction = "pca", xmax = 0.1,
+  ymax = 0.3)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{reduction to pull jackstraw info from}
-
 \item{dims}{Dims to plot}
 
-\item{plot.x.lim}{X-axis maximum on each QQ plot.}
+\item{reduction}{reduction to pull jackstraw info from}
 
-\item{plot.y.lim}{Y-axis maximum on each QQ plot.}
+\item{xmax}{X-axis maximum on each QQ plot.}
+
+\item{ymax}{Y-axis maximum on each QQ plot.}
 }
 \value{
 A ggplot object

@@ -4,40 +4,36 @@
 \alias{DimPlot}
 \title{Dimensional reduction plot}
 \usage{
-DimPlot(object, reduction.use = "pca", dims.use = c(1, 2),
-  group.by = NULL, cols.use = NULL, cells.use = NULL, pt.size = 1,
-  shape.by = NULL, plot.order = NULL, do.label = FALSE,
-  label.size = 4, cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", do.hover = FALSE,
-  data.hover = "ident", do.identify = FALSE, no.legend = FALSE,
-  vector.friendly = FALSE, png.file = NULL, png.arguments = c(10, 10,
-  100), ...)
+DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
+  pt.size = 1, reduction = "pca", group.by = NULL, shape.by = NULL,
+  order = NULL, label = FALSE, label.size = 4,
+  cells.highlight = NULL, cols.highlight = "red",
+  sizes.highlight = 1, na.value = "grey50", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Which dimensionality reduction to use. Default is
-"pca", can also be "tsne", or "ica", assuming these are precomputed.}
+\item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
-\item{dims.use}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
+\item{cells}{Vector of cells to plot (default is all cells)}
 
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
-
-\item{cols.use}{Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors.}
-
-\item{cells.use}{Vector of cells to plot (default is all cells)}
+\item{cols}{Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors}
 
 \item{pt.size}{Adjust point size for plotting}
 
+\item{reduction}{Which dimensionality reduction to use}
+
+\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
-different colors and different shapes on cells.}
+different colors and different shapes on cells}
 
-\item{plot.order}{Specify the order of plotting for the idents. This can be
+\item{order}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
-either a full list of valid idents or a subset to be plotted last (on top).}
+either a full list of valid idents or a subset to be plotted last (on top)}
 
-\item{do.label}{Whether to label the clusters}
+\item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
 
@@ -45,7 +41,7 @@ either a full list of valid idents or a subset to be plotted last (on top).}
 highlight. If only one group of cells desired, can simply
 pass a vector instead of a list. If set, colors selected cells to the color(s)
 in \code{cols.highlight} and other cells black (white if dark.theme = TRUE);
- will also resize to the size(s) passed to \code{sizes.highlight}}
+will also resize to the size(s) passed to \code{sizes.highlight}}
 
 \item{cols.highlight}{A vector of colors to highlight the cells as; will
 repeat to the length groups in cells.highlight}
@@ -54,6 +50,8 @@ repeat to the length groups in cells.highlight}
 groups in cells.highlight}
 
 \item{na.value}{Color value for NA points when using custom scale.}
+
+\item{...}{Ignored for now}
 }
 \value{
 A ggplot object

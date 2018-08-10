@@ -4,12 +4,12 @@
 \alias{AugmentPlot}
 \title{Augments ggplot2 scatterplot with a PNG image.}
 \usage{
-AugmentPlot(plot1, imgFile)
+AugmentPlot(plot, img)
 }
 \arguments{
-\item{plot1}{ggplot2 scatterplot. Typically will have only labeled axes and no points}
+\item{plot}{ggplot2 scatterplot. Typically will have only labeled axes and no points}
 
-\item{imgFile}{location of a PNG file that contains the points to overlay onto the scatterplot.}
+\item{img}{location of a PNG file that contains the points to overlay onto the scatterplot.}
 }
 \value{
 ggplot2 scatterplot that includes the original axes but also the PNG file
@@ -22,7 +22,7 @@ Used in to creating vector friendly plots. Exported as it may be useful to other
 data("pbmc_small")
 p <- PCAPlot(pbmc_small, do.return = TRUE)
 ggsave(filename = 'pcaplot.png', plot = p, device = png)
-pmod <- AugmentPlot(plot1 = p, imgFile = 'pcaplot.png')
+pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
 pmod
 }
 }

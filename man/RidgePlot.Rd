@@ -4,37 +4,36 @@
 \alias{RidgePlot}
 \title{Single cell ridge plot}
 \usage{
-RidgePlot(object, features.plot, ident.include = NULL, num.col = NULL,
-  do.sort = FALSE, y.max = NULL, same.y.lims = FALSE,
-  cols.use = NULL, group.by = NULL, y.log = FALSE,
-  combine.plots = TRUE, plot.counts = FALSE, ...)
+RidgePlot(object, features, cols = NULL, idents = NULL, sort = FALSE,
+  group.by = NULL, y.max = NULL, same.y.lims = FALSE, log = FALSE,
+  ncol = NULL, combine = TRUE, slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{features.plot}{Features to plot (gene expression, metrics, PC scores,
+\item{features}{Features to plot (gene expression, metrics, PC scores,
 anything that can be retreived by FetchData)}
 
-\item{ident.include}{Which classes to include in the plot (default is all)}
+\item{cols}{Colors to use for plotting}
 
-\item{num.col}{Number of columns if multiple plots are displayed}
+\item{idents}{Which classes to include in the plot (default is all)}
 
-\item{do.sort}{Sort identity classes (on the x-axis) by the average
+\item{sort}{Sort identity classes (on the x-axis) by the average
 expression of the attribute being potted}
+
+\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
 \item{y.max}{Maximum y axis value}
 
 \item{same.y.lims}{Set all the y-axis limits to the same values}
 
-\item{cols.use}{Colors to use for plotting}
+\item{log}{plot Y axis on log scale}
 
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+\item{ncol}{Number of columns if multiple plots are displayed}
 
-\item{y.log}{plot Y axis on log scale}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
-\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
-
-\item{plot.counts}{Use non-normalized counts data for plotting}
+\item{slot}{Use non-normalized counts data for plotting}
 
 \item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
 }

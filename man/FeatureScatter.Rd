@@ -5,9 +5,8 @@
 \alias{GenePlot}
 \title{Scatter plot of single cell data}
 \usage{
-FeatureScatter(object, feature1, feature2, cells.use = NULL,
-  cols.use = NULL, pt.size = 1, shape.by = NULL, span = NULL,
-  plot.counts = FALSE, ...)
+FeatureScatter(object, feature1, feature2, cells = NULL, cols = NULL,
+  pt.size = 1, shape.by = NULL, span = NULL, slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -17,9 +16,9 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{feature2}{Second feature to plot.}
 
-\item{cells.use}{Cells to include on the scatter plot.}
+\item{cells}{Cells to include on the scatter plot.}
 
-\item{cols.use}{Colors to use for identity class plotting.}
+\item{cols}{Colors to use for identity class plotting.}
 
 \item{pt.size}{Size of the points on the plot}
 
@@ -27,7 +26,7 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{span}{Spline span in loess function call, if \code{NULL}, no spline added}
 
-\item{plot.counts}{Use non-normalized counts data for plotting}
+\item{slot}{Use non-normalized counts data for plotting}
 
 \item{...}{Ignored for now}
 }

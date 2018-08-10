@@ -2,53 +2,57 @@
 % Please edit documentation in R/visualization.R
 \name{FeaturePlot}
 \alias{FeaturePlot}
+\alias{FeatureHeatmap}
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
-FeaturePlot(object, features.plot, min.cutoff = NA, max.cutoff = NA,
-  reduction.use = "tsne", dims.use = c(1, 2), group.by = NULL,
-  cols.use = c("yellow", "red"), cells.use = NULL, pt.size = 1,
-  shape.by = NULL, plot.order = NULL, do.label = FALSE,
-  label.size = 4, na.value = "grey50", combine.plots = TRUE)
+FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
+  cols = c("lightgrey", "blue"), pt.size = 1, min.cutoff = NA,
+  max.cutoff = NA, reduction = "tsne", group.by = NULL,
+  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
+  label.size = 4, ncol = NULL, combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{features.plot}{Vector of features to plot}
+\item{features}{Vector of features to plot}
 
-\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
+\item{dims}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
 
-\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
+\item{cells}{Vector of cells to plot (default is all cells)}
 
-\item{reduction.use}{Which dimensionality reduction to use. Default is
-"tsne", can also be "pca", or "ica", assuming these are precomputed.}
-
-\item{dims.use}{Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions}
-
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
-
-\item{cols.use}{The two colors to form the gradient over. Provide as string vector with
+\item{cols}{The two colors to form the gradient over. Provide as string vector with
 the first color corresponding to low values, the second to high. Also accepts a Brewer
 color scale or vector of colors. Note: this will bin the data into number of colors provided.}
 
-\item{cells.use}{Vector of cells to plot (default is all cells)}
-
 \item{pt.size}{Adjust point size for plotting}
+
+\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)}
+
+\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)}
+
+\item{reduction}{Which dimensionality reduction to use}
+
+\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+
+\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
-different colors and different shapes on cells.}
+different colors and different shapes on cells}
 
-\item{plot.order}{Specify the order of plotting for the idents. This can be
+\item{order}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
-either a full list of valid idents or a subset to be plotted last (on top).}
+either a full list of valid idents or a subset to be plotted last (on top)}
 
-\item{do.label}{Whether to label the clusters}
+\item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
 
-\item{na.value}{Color value for NA points when using custom scale.}
+\item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
 
-\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{...}{Ignored for now}
 }
 \value{
 A ggplot object

@@ -5,7 +5,7 @@
 \alias{CellPlot}
 \title{Cell-cell scatter plot}
 \usage{
-CellScatter(object, cell1, cell2, features.use = NULL, cols.use = NULL,
+CellScatter(object, cell1, cell2, features = NULL, cols = NULL,
   pt.size = 1, ...)
 }
 \arguments{
@@ -15,13 +15,13 @@ CellScatter(object, cell1, cell2, features.use = NULL, cols.use = NULL,
 
 \item{cell2}{Cell 2 name}
 
-\item{features.use}{Features to plot (default, all features)}
+\item{features}{Features to plot (default, all features)}
 
-\item{cols.use}{Colors to use for identity class plotting.}
+\item{cols}{Colors to use for identity class plotting.}
 
 \item{pt.size}{Size of the points on the plot}
 
-\item{\dots}{Extra parameters passed to kde2d}
+\item{...}{Extra parameters passed to \code{kde2d}}
 }
 \value{
 A ggplot object

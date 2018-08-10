@@ -5,17 +5,17 @@
 \alias{SplitDotPlotGG}
 \title{Dot plot visualization}
 \usage{
-DotPlot(object, features.plot, cols.use = c("lightgrey", "blue"),
+DotPlot(object, features, cols = c("lightgrey", "blue"),
   col.min = -2.5, col.max = 2.5, dot.min = 0, dot.scale = 6,
-  scale.by = "radius", scale.min = NA, scale.max = NA,
-  group.by = NULL, split.by = NULL)
+  group.by = NULL, split.by = NULL, scale.by = "radius",
+  scale.min = NA, scale.max = NA, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{features.plot}{Input vector of features}
+\item{features}{Input vector of features}
 
-\item{cols.use}{Colors to plot, can pass a single character giving the name of
+\item{cols}{Colors to plot, can pass a single character giving the name of
 a palette from \code{RColorBrewer::brewer.pal.info}}
 
 \item{col.min}{Minimum scaled average expression threshold (everything smaller
@@ -30,15 +30,17 @@ gene will have no dot drawn.}
 
 \item{dot.scale}{Scale the size of the points, similar to cex}
 
+\item{group.by}{Factor to group the cells by}
+
+\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)}
+
 \item{scale.by}{Scale the size of the points by 'size' or by 'radius'}
 
 \item{scale.min}{Set lower limit for scaling, use NA for default}
 
 \item{scale.max}{Set upper limit for scaling, use NA for default}
 
-\item{group.by}{Factor to group the cells by}
-
-\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)}
+\item{...}{Ignored}
 }
 \value{
 A ggplot object

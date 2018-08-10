@@ -4,14 +4,14 @@
 \alias{ElbowPlot}
 \title{Quickly Pick Relevant Dimensions}
 \usage{
-ElbowPlot(object, reduction.use = "pca", dims.plot = 20)
+ElbowPlot(object, ndims = 20, reduction = "pca")
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Reduction technique to plot standard deviation for}
+\item{ndims}{Number of dimensions to plot standard deviation for}
 
-\item{dims.plot}{Number of dimensions to plot standard deviation for}
+\item{reduction}{Reduction technique to plot standard deviation for}
 }
 \value{
 A ggplot object

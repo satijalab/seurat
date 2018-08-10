@@ -4,12 +4,12 @@
 \alias{FeatureLocator}
 \title{Feature Locator}
 \usage{
-FeatureLocator(plot, data.plot, ...)
+FeatureLocator(plot, data, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}
 
-\item{data.plot}{The oridinal data that went into the ggplot2 plot}
+\item{data}{The oridinal data that went into the ggplot2 plot}
 
 \item{...}{Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
 recoloring based on selected cells, or using a smooth scatterplot, respectively}

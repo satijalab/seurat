@@ -24,7 +24,7 @@ HTOHeatmap(object, hto.classification = "hto_classification",
 \item{...}{Additional arguments for DoHeatmap().}
 }
 \value{
-Returns a ggplot2 plot object.
+A ggplot object
 }
 \description{
 Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.

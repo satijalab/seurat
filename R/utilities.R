@@ -815,7 +815,8 @@ Melt <- function(x) {
   return(data.frame(
     rows = rep.int(x = rownames(x = x), times = ncol(x = x)),
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
-    vals = unlist(x = x, use.names = FALSE)
+    vals = unlist(x = x, use.names = FALSE),
+    stringsAsFactors = FALSE
   ))
 }
 

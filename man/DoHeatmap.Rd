@@ -4,33 +4,33 @@
 \alias{DoHeatmap}
 \title{Feature expression heatmap}
 \usage{
-DoHeatmap(object, features.use = NULL, cells.use = NULL,
-  disp.min = -2.5, disp.max = 2.5, group.by = "ident",
-  slot.use = "scale.data", group.bar = TRUE, assay.use = NULL, ...)
+DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
+  group.bar = TRUE, disp.min = -2.5, disp.max = 2.5,
+  slot = "scale.data", assay = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{features.use}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
+\item{cells}{A vector of cells to plot}
 
-\item{cells.use}{A vector of cells to plot}
+\item{group.by}{Name of variable to group cells by}
+
+\item{group.bar}{Add a color bar showing group status for cells}
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
 \item{disp.max}{Maximum display value (all values above are clipped)}
 
-\item{group.by}{Name of variable to group cells by}
+\item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
-\item{slot.use}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
-
-\item{group.bar}{Add a color bar showing group status for cells}
-
-\item{assay.use}{Assay to pull from}
+\item{assay}{Assay to pull from}
 
 \item{...}{Ignored for now}
+
+\item{feautres}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
 }
 \value{
-Invisbly returns the final grob
+A ggplot object
 }
 \description{
 Draws a heatmap of single cell feature expression using superheat

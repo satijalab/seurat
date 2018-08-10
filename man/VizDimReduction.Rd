@@ -4,29 +4,28 @@
 \alias{VizDimReduction}
 \title{Visualize Dimensional Reduction genes}
 \usage{
-VizDimReduction(object, reduction.use = "pca", dims.use = 1:5,
-  num.features = 30, pt.color = "blue", projected = FALSE,
-  num.col = NULL, do.balanced = FALSE, combine.plots = TRUE, ...)
+VizDimReduction(object, dims = 1:5, nfeatures = 30, col = "blue",
+  reduction = "pca", projected = FALSE, balanced = FALSE,
+  ncol = NULL, combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.use}{Reduction technique to visualize results for}
+\item{dims}{Number of dimensions to display}
 
-\item{dims.use}{Number of dimensions to display}
+\item{nfeatures}{Number of genes to display}
 
-\item{num.features}{Number of genes to display}
+\item{col}{Color of points to use}
 
-\item{pt.color}{Color of points to use}
+\item{reduction}{Reduction technique to visualize results for}
 
 \item{projected}{Use reduction values for full dataset (i.e. projected dimensional reduction values)}
 
-\item{num.col}{Number of columns to display}
+\item{balanced}{Return an equal number of genes with + and - scores. If FALSE (default), returns the top genes ranked by the scores absolute values}
 
-\item{do.balanced}{Return an equal number of genes with + and - scores. If FALSE (default), returns
-the top genes ranked by the scores absolute values}
+\item{ncol}{Number of columns to display}
 
-\item{combine.plots}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{...}{Ignored}
 }
