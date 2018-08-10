@@ -7,8 +7,9 @@
 \alias{FindVariableFeatures.Seurat}
 \title{Find variable features}
 \usage{
-FindVariableFeatures(object, selection.method, mean.function,
-  dispersion.function, num.bin, binning.method, verbose, ...)
+FindVariableFeatures(object, selection.method, loess.span, clip.max,
+  mean.function, dispersion.function, num.bin, binning.method, verbose,
+  ...)
 
 \method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
   loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
@@ -44,6 +45,13 @@ FindVariableFeatures(object, selection.method, mean.function,
   \item{dispersion:}{ selects the genes with the highest dispersion values}
 }}
 
+\item{loess.span}{(vst method) Loess span parameter used when fitting the
+variance-mean relationship}
+
+\item{clip.max}{(vst method) After standardization values larger than
+clip.max will be set to clip.max; default is 'auto' which sets this value to
+the square root of the number of cells}
+
 \item{mean.function}{Function to compute x-axis value (average expression).
 Default is to take the mean of the detected (i.e. non-zero) values}
 
@@ -63,13 +71,6 @@ methods are:
 }}
 
 \item{verbose}{show progress bar for calculations}
-
-\item{loess.span}{(vst method) Loess span parameter used when fitting the
-variance-mean relationship}
-
-\item{clip.max}{(vst method) After standardization values larger than
-clip.max will be set to clip.max; default is 'auto' which sets this value to
-the square root of the number of cells}
 
 \item{num.features}{Number of features to select as top variable features;
 only used when \code{selection.method = 'dispersion'}}

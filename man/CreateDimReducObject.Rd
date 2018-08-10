@@ -4,19 +4,18 @@
 \alias{CreateDimReducObject}
 \title{Create a DimReduc object}
 \usage{
-CreateDimReducObject(cell.embeddings = matrix(),
-  feature.loadings = matrix(), feature.loadings.projected = matrix(),
-  assay.used = NULL, stdev = numeric(), key = NULL,
-  jackstraw = NULL, misc = list(), ...)
+CreateDimReducObject(embeddings = matrix(), loadings = matrix(),
+  projected = matrix(), assay = NULL, stdev = numeric(),
+  key = NULL, jackstraw = NULL, misc = list(), ...)
 }
 \arguments{
-\item{cell.embeddings}{...}
+\item{embeddings}{...}
 
-\item{feature.loadings}{...}
+\item{loadings}{...}
 
-\item{feature.loadings.projected}{...}
+\item{projected}{...}
 
-\item{assay.used}{...}
+\item{assay}{...}
 
 \item{stdev}{...}
 

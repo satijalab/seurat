@@ -4,17 +4,17 @@
 \alias{TopFeatures}
 \title{Find features with highest scores for a given dimensional reduction technique}
 \usage{
-TopFeatures(object, dim.use = 1, num.features = 20,
-  projected = FALSE, do.balanced = FALSE)
+TopFeatures(object, dim = 1, nfeatures = 20, projected = FALSE,
+  balanced = FALSE)
 }
 \arguments{
 \item{object}{DimReduc object}
 
+\item{projected}{Use the full PCA (projected PCA). Default i s FALSE}
+
 \item{dim.use}{Dimension to use}
 
 \item{num.features}{Number of features to return}
-
-\item{projected}{Use the full PCA (projected PCA). Default i s FALSE}
 
 \item{do.balanced}{Return an equal number of features with both + and - scores.}
 }

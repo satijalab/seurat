@@ -454,10 +454,10 @@ CreateAssayObject <- function(
 
 #' Create a DimReduc object
 #'
-#' @param cell.embeddings ...
-#' @param feature.loadings ...
-#' @param feature.loadings.projected ...
-#' @param assay.used ...
+#' @param embeddings ...
+#' @param loadings ...
+#' @param projected ...
+#' @param assay ...
 #' @param stdev ...
 #' @param key ...
 #' @param jackstraw ...
@@ -467,10 +467,10 @@ CreateAssayObject <- function(
 #' @export
 #'
 CreateDimReducObject <- function(
-  cell.embeddings = matrix(),
-  feature.loadings = matrix(),
-  feature.loadings.projected = matrix(),
-  assay.used = NULL,
+  embeddings = matrix(),
+  loadings = matrix(),
+  projected = matrix(),
+  assay = NULL,
   stdev = numeric(),
   key = NULL,
   jackstraw = NULL,
@@ -486,10 +486,10 @@ CreateDimReducObject <- function(
   jackstraw <- jackstraw %||% new(Class = 'JackStrawData')
   dim.reduc <- new(
     Class = 'DimReduc',
-    cell.embeddings = cell.embeddings,
-    feature.loadings = feature.loadings,
-    feature.loadings.projected = feature.loadings.projected,
-    assay.used = assay.used,
+    cell.embeddings = embeddings,
+    feature.loadings = loadings,
+    feature.loadings.projected = projected,
+    assay.used = assay,
     stdev = stdev,
     key = key,
     jackstraw = jackstraw,
@@ -590,8 +590,8 @@ CreateSeuratObject <- function(
 #' of cells in a Seurat object
 #'
 #' @param object Seurat object
-#' @param vars.fetch List of all variables to fetch
-#' @param cells.use Cells to collect data for (default is all cells)
+#' @param vars List of all variables to fetch
+#' @param cells Cells to collect data for (default is all cells)
 #' @param slot Slot to pull feature data for
 #'
 #' @return A data frame with cells as rows and cellular data as columns
@@ -602,10 +602,10 @@ CreateSeuratObject <- function(
 #' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
 #' head(x = pc1)
 #'
-FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
-  cells.use <- cells.use %||% colnames(x = object)
-  if (is.numeric(x = cells.use)) {
-    cells.use <- colnames(x = object)[cells.use]
+FetchData <- function(object, vars, cells = NULL, slot = 'data') {
+  cells <- cells %||% colnames(x = object)
+  if (is.numeric(x = cells)) {
+    cells <- colnames(x = object)[cells]
   }
   objects.use <- FilterObjects(object = object)
   object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(object[[i]]))})
@@ -615,14 +615,14 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       if (length(x = key) == 0) {
         return(integer(length = 0L))
       }
-      return(grep(pattern = paste0('^', key), x = vars.fetch))
+      return(grep(pattern = paste0('^', key), x = vars))
     }
   )
   keyed.vars <- Filter(f = length, x = keyed.vars)
   data.fetched <- lapply(
     X = names(x = keyed.vars),
     FUN = function(x) {
-      vars.use <- vars.fetch[keyed.vars[[x]]]
+      vars <- vars[keyed.vars[[x]]]
       key.use <- object.keys[x]
       data.return <- switch(
         EXPR = class(x = object[[x]]),
@@ -644,7 +644,7 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
             object = object,
             slot = slot,
             assay.use = x
-          )[vars.use, cells.use, drop = FALSE]))
+          )[vars.use, cells, drop = FALSE]))
           colnames(x = data.vars) <- paste0(key.use, vars.use)
           data.vars
         }
@@ -654,24 +654,24 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
     }
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
-  meta.vars <- vars.fetch[vars.fetch %in% colnames(x = object[])]
-  data.fetched <- c(data.fetched, object[meta.vars][cells.use, , drop = FALSE])
-  default.vars <- vars.fetch[vars.fetch %in% rownames(x = object)]
+  meta.vars <- vars[vars %in% colnames(x = object[])]
+  data.fetched <- c(data.fetched, object[meta.vars][cells, , drop = FALSE])
+  default.vars <- vars[vars %in% rownames(x = object)]
   data.fetched <- c(
     data.fetched,
     as.data.frame(x = t(x = as.matrix(x = GetAssayData(
       object = object,
       slot = slot
-    )[default.vars, cells.use, drop = FALSE])))
+    )[default.vars, cells, drop = FALSE])))
   )
-  vars.fetched <- names(x = data.fetched)
-  vars.missing <- setdiff(x = vars.fetch, y = vars.fetched)
+  fetched <- names(x = data.fetched)
+  vars.missing <- setdiff(x = vars, y = fetched)
   m2 <- if (length(x = vars.missing) > 10) {
     paste0(' (10 out of ', length(x = vars.missing), ' shown)')
   } else {
     ''
   }
-  if (length(x = vars.missing) == length(x = vars.fetch)) {
+  if (length(x = vars.missing) == length(x = vars)) {
     stop(
       "None of the requested variables were found",
       m2,
@@ -685,21 +685,20 @@ FetchData <- function(object, vars.fetch, cells.use = NULL, slot = 'data') {
       ': ',
       paste(head(x = vars.missing, n = 10L), collapse = ', ')
     )
-    # warning('T', msg, immediate. = TRUE)
   }
   data.fetched <- as.data.frame(
     x = data.fetched,
-    row.names = cells.use,
+    row.names = cells,
     stringsAsFactors = FALSE
   )
   data.order <- na.omit(object = pmatch(
-    x = vars.fetch,
-    table = vars.fetched
+    x = vars,
+    table = fetched
   ))
   if (length(x = data.order) > 1) {
     data.fetched <- data.fetched[, data.order]
   }
-  colnames(x = data.fetched) <- vars.fetch[vars.fetch %in% vars.fetched]
+  colnames(x = data.fetched) <- vars[vars %in% fetched]
   return(data.fetched)
 }
 
@@ -899,7 +898,7 @@ SplitObject <- function(object, split.by = "ident", ...) {
   if (split.by == 'ident') {
     groupings <- Idents(object = object)
   } else {
-    groupings <- FetchData(object = object, vars.fetch = split.by)[, 1]
+    groupings <- FetchData(object = object, vars = split.by)[, 1]
   }
   groupings <- unique(x = as.character(x = groupings))
   obj.list <- list()
@@ -940,17 +939,16 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #'
 TopFeatures <- function(
   object,
-  dim.use = 1,
-  num.features = 20,
+  dim = 1,
+  nfeatures = 20,
   projected = FALSE,
-  do.balanced = FALSE
+  balanced = FALSE
 ) {
-  loadings <- Loadings(object = object, projected = projected)[, dim.use, drop = FALSE]
+  loadings <- Loadings(object = object, projected = projected)[, dim, drop = FALSE]
   return(Top(
-    data.use = loadings,
-    dim.use = dim.use,
-    num.use = num.features,
-    do.balanced = do.balanced
+    data = loadings,
+    num = nfeatures,
+    balanced = balanced
   ))
 }
 
@@ -975,16 +973,15 @@ TopFeatures <- function(
 #'
 TopCells <- function(
   object,
-  dim.use = 1,
-  num.cells = 20,
-  do.balanced = FALSE
+  dim = 1,
+  ncells = 20,
+  balanced = FALSE
 ) {
-  embeddings <- Embeddings(object = object)[, dim.use, drop = FALSE]
+  embeddings <- Embeddings(object = object)[, dim, drop = FALSE]
   return(Top(
-    data.use = embeddings,
-    dim.use = dim.use,
-    num.use = num.cells,
-    do.balanced = do.balanced
+    data = embeddings,
+    num = ncells,
+    balanced = balanced
   ))
 }
 
@@ -2157,12 +2154,10 @@ SubsetData.Seurat <- function(
   drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
   for (dr in drs) {
     object[[dr]] <- CreateDimReducObject(
-      cell.embeddings = Embeddings(object = object[[dr]])[cells.use, ],
-      feature.loadings = Loadings(object = object[[dr]], projected = FALSE),
-      feature.loadings.projected = Loadings(object = object[[dr]], projected = TRUE),
-      assay.used = DefaultAssay(object = object[[dr]]),
-      # assay.used = slot(object = object[[dr]], name = "assay.used"),
-      # stdev = slot(object = object[[dr]], name = "stdev"),
+      embeddings = Embeddings(object = object[[dr]])[cells.use, ],
+      loadings = Loadings(object = object[[dr]], projected = FALSE),
+      projected = Loadings(object = object[[dr]], projected = TRUE),
+      assay = DefaultAssay(object = object[[dr]]),
       stdev = Stdev(object = object[[dr]]),
       key = Key(object = object[[dr]]),
       jackstraw = slot(object = object[[dr]], name = "jackstraw"),
@@ -2331,8 +2326,8 @@ WhichCells.Seurat <- function(
     subset.name <- as.character(subset.name)
     data.use <- FetchData(
       object = object,
-      vars.fetch = subset.name,
-      cells.use = cells.use,
+      vars = subset.name,
+      cells = cells.use,
       ...
     )
     if (!is.null(x = accept.value)) {
@@ -2812,7 +2807,7 @@ subset.Seurat <- function(x, subset, ...) {
   vars.use <- which(
     x = expr.char %in% rownames(x = x) | expr.char %in% colnames(x = x[]) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
   )
-  data.subset <- FetchData(object = x, vars.fetch = expr.char[vars.use])
+  data.subset <- FetchData(object = x, vars = expr.char[vars.use])
   data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
   return(SubsetData(object = x, cells.use = rownames(x = data.subset)))
 }
@@ -3228,31 +3223,30 @@ ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
   }
 }
 
-# ...
+# Get the top
 #
-# @param data.use ...
-# @param dim.use ...
-# @param num.use ...
-# @param do.balanced ...
+# @param data Data to pull the top from
+# @param num Pull top \code{num}
+# @param balanced Pull even amounts of from positive and negative values
 #
-# @return ...
+# @return The top \code{num}
+# @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
 Top <- function(
-  data.use,
-  dim.use,
-  num.use,
-  do.balanced
+  data,
+  num,
+  balanced
 ) {
-  top <- if (do.balanced) {
-    num.use <- round(x = num.use / 2)
-    data.use <- data.use[order(data.use), , drop = FALSE]
-    positive <- head(x = rownames(x = data.use), n = num.use)
-    negative <- rev(x = tail(x = rownames(x = data.use), n = num.use))
+  top <- if (balanced) {
+    num <- round(x = num / 2)
+    data <- data[order(data), , drop = FALSE]
+    positive <- head(x = rownames(x = data), n = num)
+    negative <- rev(x = tail(x = rownames(x = data), n = num))
     list(positive = positive, negative = negative)
   } else {
-    data.use <- data.use[rev(x = order(abs(x = data.use))), , drop = FALSE]
-    top <- head(x = rownames(x = data.use), n = num.use)
-    top[order(data.use[top, ])]
+    data <- data[rev(x = order(abs(x = data))), , drop = FALSE]
+    top <- head(x = rownames(x = data), n = num)
+    top[order(data[top, ])]
   }
   return(top)
 }

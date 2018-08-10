@@ -387,7 +387,7 @@ CalcVarExpRatio <- function(
   #                         ... = parameters.to.store)
   groups <- as.vector(x = unique(x = FetchData(
     object = object,
-    vars.all = grouping.var
+    vars = grouping.var
   )[, 1]))
   genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
   var.ratio <- data.frame()

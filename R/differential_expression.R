@@ -161,7 +161,7 @@ FindConservedMarkers <- function(
   if(class(meta.method) != "function") {
     stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
   }
-  object.var <- FetchData(object = object, vars.all = grouping.var)
+  object.var <- FetchData(object = object, vars = grouping.var)
   object <- SetIdent(
     object = object,
     cells.use = object@cell.names,
@@ -489,7 +489,7 @@ FindMarkers.Seurat <- function(
   if (length(x = as.vector(x = ident.1)) > 1 &&
       any(as.character(x = ident.1) %in% colnames(data.use))) {
     bad.cells <- colnames(data.use)[which(!as.character(x = ident.1) %in% colnames(data.use))]
-    if(length(bad.cells) > 0) {
+    if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
@@ -499,7 +499,7 @@ FindMarkers.Seurat <- function(
   if (length(x = as.vector(x = ident.2)) > 1 &&
       any(as.character(x = ident.2) %in% colnames(data.use))) {
     bad.cells <- colnames(data.use)[which(!as.character(x = ident.2) %in% colnames(data.use))]
-    if(length(bad.cells) > 0) {
+    if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
@@ -512,8 +512,8 @@ FindMarkers.Seurat <- function(
   if (!is.null(latent.vars)) {
     latent.vars <- FetchData(
       object = object,
-      vars.fetch = latent.vars,
-      cells.use = c(ident.1, ident.2)
+      vars = latent.vars,
+      cells = c(ident.1, ident.2)
     )
   }
   de.results <- FindMarkers(

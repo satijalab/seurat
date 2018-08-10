@@ -4,14 +4,14 @@
 \alias{FetchData}
 \title{Access cellular data}
 \usage{
-FetchData(object, vars.fetch, cells.use = NULL, slot = "data")
+FetchData(object, vars, cells = NULL, slot = "data")
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{vars.fetch}{List of all variables to fetch}
+\item{vars}{List of all variables to fetch}
 
-\item{cells.use}{Cells to collect data for (default is all cells)}
+\item{cells}{Cells to collect data for (default is all cells)}
 
 \item{slot}{Slot to pull feature data for}
 }

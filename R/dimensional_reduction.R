@@ -506,8 +506,8 @@ RunCCA.Seurat <- function(
   )
 
   combined.object[['cca']] <- CreateDimReducObject(
-    cell.embeddings = cca.results$ccv[colnames(combined.object), ],
-    assay.used = assay.use1,
+    embeddings = cca.results$ccv[colnames(combined.object), ],
+    used = assay.use1,
     key = "CC"
   )
   if (ncol(combined.object) != (ncol(object1) + ncol(object2))) {
@@ -703,8 +703,8 @@ RunMultiCCA.Seurat <- function(
     y = object.list[2:length(x = object.list)]
   )
   combined.object[['cca']] <- CreateDimReducObject(
-    cell.embeddings = cca.results$ccv,
-    assay.used = assay.use,
+    embeddings = cca.results$ccv,
+    assay = assay.use,
     key = "CC"
   )
   if (renormalize) {
@@ -775,9 +775,9 @@ RunPCA.default <- function(
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- CreateDimReducObject(
-    cell.embeddings = cell.embeddings,
-    feature.loadings = feature.loadings,
-    assay.used = assay.use,
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay.use,
     stdev = sdev,
     key = reduction.key
   )
@@ -920,9 +920,9 @@ RunTSNE.matrix <- function(
   colnames(x = tsne.data) <- paste0(reduction.key, 1:ncol(x = tsne.data))
   rownames(x = tsne.data) <- rownames(x = object)
   tsne.reduction <- CreateDimReducObject(
-    cell.embeddings = tsne.data,
+    embeddings = tsne.data,
     key = reduction.key,
-    assay.used = assay.use
+    assay = assay.use
   )
   return(tsne.reduction)
 }
@@ -1094,9 +1094,9 @@ RunUMAP.Seurat <- function(
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
   rownames(x = umap_output) <- colnames(object)
   umap.reduction <- CreateDimReducObject(
-    cell.embeddings = umap_output,
+    embeddings = umap_output,
     key = reduction.key,
-    assay.used = assay.use
+    assay = assay.use
   )
   object[[reduction.name]] <- umap.reduction
   return(object)

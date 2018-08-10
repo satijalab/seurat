@@ -55,9 +55,9 @@ DimHeatmap <- function(
       FUN = function(x) {
         cells <- TopCells(
           object = object[[reduction]],
-          dim.use = x,
-          num.cells = cells,
-          do.balanced = balanced
+          dim = x,
+          ncells = cells,
+          balanced = balanced
         )
         if (balanced) {
           cells$negative <- rev(x = cells$negative)
@@ -75,8 +75,8 @@ DimHeatmap <- function(
     X = dims,
     FUN = TopFeatures,
     object = object[[reduction]],
-    num.features = nfeatures,
-    do.balanced = balanced
+    nfeatures = nfeatures,
+    balanced = balanced
   )
   features.all <- unique(x = unlist(x = features))
   if (length(x = assays) > 1) {
@@ -96,8 +96,8 @@ DimHeatmap <- function(
   }
   data.all <- FetchData(
     object = object,
-    vars.fetch = features.keyed,
-    cells.use = unique(x = unlist(x = cells)),
+    vars = features.keyed,
+    cells = unique(x = unlist(x = cells)),
     slot = slot
   )
   data.all <- MinMax(data = data.all, min = disp.min, max = disp.max)
@@ -121,14 +121,21 @@ DimHeatmap <- function(
         return(grep(pattern = paste0(feat, '$'), x = features.keyed, value = TRUE))
       }
     )))
-    data.plot <- data.all[cells[[i]], dim.features]
+    dim.cells <- cells[[i]]
+    data.plot <- data.all[dim.cells, dim.features]
     if (fast) {
       SingleImageMap(data = data.plot, title = paste0(Key(object = object[[reduction]]), dims[i]))
     } else {
-      plots[[i]] <- SingleRasterMap(data = data.plot, limits = data.limits)
+      plots[[i]] <- SingleRasterMap(
+        data = data.plot,
+        limits = data.limits,
+        cell.order = dim.cells,
+        feature.order = dim.features
+      )
     }
   }
   if (fast) {
+    par(mfrow = orig.par)
     return(invisible(x = NULL))
   }
   if (combine) {
@@ -189,8 +196,8 @@ DoHeatmap <- function(
   )
   data <- FetchData(
     object = object,
-    vars.fetch = rev(x = features),
-    cells.use = cells,
+    vars = rev(x = features),
+    cells = cells,
     slot = slot
   )
   group.by <- group.by %||% 'ident'
@@ -573,8 +580,8 @@ FeaturePlot <- function(
   cells <- cells %||% colnames(object)
   data <- FetchData(
     object = object,
-    vars.fetch = c(dims, features),
-    cells.use = cells
+    vars = c(dims, features),
+    cells = cells
   )
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
@@ -786,8 +793,8 @@ CellScatter <- function(
   features <- features %||% rownames(x = object)
   data <- FetchData(
     object = object,
-    vars.fetch = features,
-    cells.use = c(cell1, cell2)
+    vars = features,
+    cells = c(cell1, cell2)
   )
   data <- as.data.frame(x = t(x = data))
   plot <- SingleCorPlot(
@@ -845,8 +852,8 @@ FeatureScatter <- function(
   plot <- SingleCorPlot(
     data = FetchData(
       object = object,
-      vars.fetch = c(feature1, feature2),
-      cells.use = cells,
+      vars = c(feature1, feature2),
+      cells = cells,
       slot = slot
     ),
     col.by = Idents(object = object)[cells],
@@ -976,7 +983,7 @@ DotPlot <- function(
     'radius' = scale_radius,
     stop("'scale.by' must be either 'size' or 'radius'")
   )
-  data.features <- FetchData(object = object, vars.fetch = features)
+  data.features <- FetchData(object = object, vars = features)
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)
   } else {
@@ -1130,9 +1137,9 @@ VizDimReduction <- function(
     X = dims,
     FUN = TopFeatures,
     object = object[[reduction]],
-    num.features = nfeatures,
+    nfeatures = nfeatures,
     projected = projected,
-    do.balanced = balanced
+    balanced = balanced
   )
   features.use <- lapply(
     X = features.use,
@@ -2293,7 +2300,7 @@ ExIPlot <- function(
     yes = 4,
     no = min(length(x = features), 3)
   )
-  data <- FetchData(object = object, vars.fetch = features, slot = slot)
+  data <- FetchData(object = object, vars = features, slot = slot)
   if (is.null(x = idents)) {
     cells.use <- colnames(x = object)
   } else {
@@ -3035,18 +3042,18 @@ SingleRasterMap <- function(
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {
     stop("limits' must be a two-length numeric vector")
   }
-  p <- ggplot(data = data) +
+  plot <- ggplot(data = data) +
     geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors) +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
     WhiteBackground()
   if (!is.null(x = group.by)) {
-    p <- p + geom_point(
+    plot <- plot + geom_point(
       mapping = aes_string(x = 'Cell', y = 'Feature', color = 'Identity'),
       alpha = 0
     ) +
       guides(color = guide_legend(override.aes = list(alpha = 1)))
   }
-  return(p)
+  return(plot)
 }

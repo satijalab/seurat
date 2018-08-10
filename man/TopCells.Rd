@@ -4,7 +4,7 @@
 \alias{TopCells}
 \title{Find cells with highest scores for a given dimensional reduction technique}
 \usage{
-TopCells(object, dim.use = 1, num.cells = 20, do.balanced = FALSE)
+TopCells(object, dim = 1, ncells = 20, balanced = FALSE)
 }
 \arguments{
 \item{object}{DimReduc object}

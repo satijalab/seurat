@@ -608,22 +608,31 @@ FindVariableFeatures.default <- function(
   }
   if (selection.method == "vst") {
     if (clip.max == 'auto') {
-      clip.max <- sqrt(ncol(object))
+      clip.max <- sqrt(x = ncol(x = object))
     }
     hvf.info <- data.frame(mean = rowMeans(x = object))
-    hvf.info$variance <- SparseRowVar2(mat = object, mu = hvf.info$mean, display_progress = verbose)
+    hvf.info$variance <- SparseRowVar2(
+      mat = object,
+      mu = hvf.info$mean,
+      display_progress = verbose
+    )
     hvf.info$variance.expected <- 0
     hvf.info$variance.standardized <- 0
-
     not.const <- hvf.info$variance > 0
-    fit <- loess(log10(variance) ~ log10(mean), data = hvf.info[not.const, ], span = loess.span)
+    fit <- loess(
+      formula = log10(x = variance) ~ log10(x = mean),
+      data = hvf.info[not.const, ],
+      span = loess.span
+    )
     hvf.info$variance.expected[not.const] <- 10 ^ fit$fitted
     # use c function to get variance after feature standardization
-    hvf.info$variance.standardized <- SparseRowVarStd(mat = object,
-                                                      mu = hvf.info$mean,
-                                                      sd = sqrt(hvf.info$variance.expected),
-                                                      vmax = clip.max,
-                                                      display_progress = verbose)
+    hvf.info$variance.standardized <- SparseRowVarStd(
+      mat = object,
+      mu = hvf.info$mean,
+      sd = sqrt(hvf.info$variance.expected),
+      vmax = clip.max,
+      display_progress = verbose
+    )
   } else {
     if (!inherits(x = mean.function, what = 'function')) {
       stop("'mean.function' must be a function")
@@ -706,7 +715,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
-  if (selection.method == "vst"){
+  if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
     hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
@@ -1279,7 +1288,7 @@ RegressOutNB <- function(
   genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
   genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
   cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
-  latent.data <- FetchData(object = object, vars.all = latent.vars)
+  latent.data <- FetchData(object = object, vars = latent.vars)
   message(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
   theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
   message('Second run NB regression with fixed theta')

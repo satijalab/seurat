@@ -372,6 +372,8 @@ FindMarkers <- function(
 FindVariableFeatures <- function(
   object,
   selection.method,
+  loess.span,
+  clip.max,
   mean.function,
   dispersion.function,
   num.bin,
