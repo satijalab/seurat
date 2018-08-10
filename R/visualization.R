@@ -2847,7 +2847,7 @@ SingleDimPlot <- function(
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
-      cells.all = colnames(x = object),
+      cells.all = rownames(x = data.plot),
       sizes.highlight = sizes.highlight,
       cols.highlight = cols.highlight,
       col.base = cols.use[1] %||% 'black',
@@ -2906,12 +2906,12 @@ SingleDimPlot <- function(
       )
   }
   if (!is.null(x = cols.use)) {
-    cols.use <- if (length(x = cols.use) == 1) {
+    scale.color <- if (length(x = cols.use) == 1) {
       scale_color_brewer(palette = cols.use)
     } else {
       scale_color_gradientn(colors = cols.use, na.value = na.value)
     }
-    p <- p + cols.use
+    p <- p + scale.color
   }
   p <- p + theme_cowplot()
   return(p)
