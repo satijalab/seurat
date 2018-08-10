@@ -217,15 +217,16 @@ FindClusters <- function(
 #'  expressed genes.
 #'  \item{"t"} : Identify differentially expressed genes between two groups of
 #'  cells using the Student's t-test.
-#'  \item{"tobit"} : Identifies differentially expressed genes between two
-#'  groups of cells using Tobit models, as proposed in Trapnell et al.,
-#'  Nature Biotechnology, 2014
 #'  \item{"negbinom"} : Identifies differentially expressed genes between two
 #'   groups of cells using a negative binomial generalized linear model.
 #'   Use only for UMI-based datasets
 #'  \item{"poisson"} : Identifies differentially expressed genes between two
 #'   groups of cells using a poisson generalized linear model.
 #'   Use only for UMI-based datasets
+#'  \item{"LR"} : Uses a logistic regression framework to determine differentially
+#'  expressed genes. Constructs a logistic regression model predicting group
+#'  membership based on each feature individually and compares this to a null
+#'  model with a likelihood ratio test.
 #'  \item{"MAST} : Identifies differentially expressed genes between two groups
 #'  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
 #'  package to run the DE testing.

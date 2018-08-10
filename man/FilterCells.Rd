@@ -2,7 +2,7 @@
 % Please edit documentation in R/preprocessing.R
 \name{FilterCells}
 \alias{FilterCells}
-\title{Return a subset of the Seurat object}
+\title{Filter out cells from a Seurat object}
 \usage{
 FilterCells(object, subset.names, low.thresholds, high.thresholds,
   cells.use = NULL)
@@ -25,8 +25,11 @@ Returns a Seurat object containing only the relevant subset of cells
 }
 \description{
 Creates a Seurat object containing only a subset of the cells in the
-original object. Takes either a list of cells to use as a subset, or a
-parameter (for example, a gene), to subset on.
+original object. Takes a vector of variables on which to subset along with
+corresponding low and high threshold values for each variable, returning an
+object contain only cells that pass the specified filters. You can also
+restrict the filtering to only a subset of cells using cells.use (i.e. only
+keep cells that BOTH pass the filters and are in the cells.use list).
 }
 \examples{
 head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))

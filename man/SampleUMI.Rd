@@ -4,8 +4,7 @@
 \alias{SampleUMI}
 \title{Sample UMI}
 \usage{
-SampleUMI(data, max.umi = 1000, upsample = FALSE,
-  progress.bar = FALSE)
+SampleUMI(data, max.umi = 1000, upsample = FALSE, verbose = FALSE)
 }
 \arguments{
 \item{data}{Matrix with the raw count data}
@@ -14,7 +13,7 @@ SampleUMI(data, max.umi = 1000, upsample = FALSE,
 
 \item{upsample}{Upsamples all cells with fewer than max.umi}
 
-\item{progress.bar}{Display the progress bar}
+\item{verbose}{Display the progress bar}
 }
 \value{
 Matrix with downsampled data

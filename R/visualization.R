@@ -2765,7 +2765,7 @@ SingleDimPlot <- function(
   if (!is.null(x = cells.highlight)) {
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
-      cells.all = colnames(x = object),
+      cells.all = rownames(x = data.plot),
       sizes.highlight = sizes.highlight,
       cols.highlight = cols.highlight,
       col.base = cols.use[1] %||% 'black',

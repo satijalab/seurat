@@ -6,11 +6,14 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Return a subset of the Seurat object
+#' Filter out cells from a Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
+#' original object. Takes a vector of variables on which to subset along with
+#' corresponding low and high threshold values for each variable, returning an
+#' object contain only cells that pass the specified filters. You can also
+#' restrict the filtering to only a subset of cells using cells.use (i.e. only
+#' keep cells that BOTH pass the filters and are in the cells.use list).
 #'
 #' @param object Seurat object
 #' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
@@ -537,7 +540,7 @@ RegressRegNB <- function(
 #' @param data Matrix with the raw count data
 #' @param max.umi Number of UMIs to sample to
 #' @param upsample Upsamples all cells with fewer than max.umi
-#' @param progress.bar Display the progress bar
+#' @param verbose Display the progress bar
 #'
 #' @import Matrix
 #' @importFrom methods as
@@ -555,16 +558,16 @@ SampleUMI <- function(
   data,
   max.umi = 1000,
   upsample = FALSE,
-  progress.bar = FALSE
+  verbose = FALSE
 ) {
-  data <- as(data, "dgCMatrix")
+  data <- as(object = data, Class = "dgCMatrix")
   if (length(x = max.umi) == 1) {
     return(
       RunUMISampling(
         data = data,
         sample_val = max.umi,
         upsample = upsample,
-        display_progress = progress.bar
+        display_progress = verbose
       )
     )
   } else if (length(x = max.umi) != ncol(x = data)) {
@@ -574,7 +577,7 @@ SampleUMI <- function(
     data = data,
     sample_val = max.umi,
     upsample = upsample,
-    display_progress = progress.bar
+    display_progress = verbose
   )
   dimnames(new_data) <- dimnames(data)
   return(new_data)
