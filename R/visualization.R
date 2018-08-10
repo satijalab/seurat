@@ -135,7 +135,7 @@ DimHeatmap <- function(
     plots <- CombinePlots(
       plots = plots,
       ncol = ncol,
-      legend = 'right'
+      position = 'right'
     )
   }
   return(plots)
@@ -500,7 +500,7 @@ DimPlot <- function(
     data[, shape.by] <- object[shape.by, drop = TRUE]
   }
   plot <- SingleDimPlot(
-    data.plot = data,
+    data = data,
     dims = dims,
     col.by = group.by,
     cols.use = cols,
@@ -742,7 +742,7 @@ FeaturePlot <- function(
     plots <- CombinePlots(
       plots = plots,
       ncol = ncol,
-      legend = legend,
+      position = legend,
       nrow = split.by %iff% length(x = levels(x = data$split))
     )
   }
@@ -896,7 +896,7 @@ VariableFeaturePlot <- function(
     no = 'no'
   )
   plot <- SingleCorPlot(
-    data.plot = hvf.info,
+    data = hvf.info,
     col.by = var.status,
     pt.size = pt.size
   )
@@ -941,7 +941,8 @@ VariableFeaturePlot <- function(
 #'
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank labs
 #' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
 #' @export
 #'
@@ -1057,7 +1058,12 @@ DotPlot <- function(
     geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
     theme(axis.title.x = element_blank(), axis.title.y = element_blank()) +
-    guides(size = guide_legend(title = 'Percent Expressed'))
+    guides(size = guide_legend(title = 'Percent Expressed')) +
+    labs(
+      x = 'Features',
+      y = ifelse(test = is.null(x = split.by), yes = 'Identity', no = 'Split Identity')
+    ) +
+    theme_cowplot()
   if (!is.null(x = split.by)) {
     plot <- plot + scale_color_identity()
   } else if (length(x = cols) == 1) {
@@ -1151,7 +1157,7 @@ VizDimReduction <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = NULL)
+    plots <- CombinePlots(plots = plots, ncol = ncol, position = NULL)
   }
   return(plots)
 }
@@ -1263,8 +1269,8 @@ JackStrawPlot <- function(
   gp <- ggplot(data = data.plot, mapping = aes_string(sample = 'Value', color = 'PC.Score')) +
     stat_qq(distribution = qunif) +
     labs(x = "Theoretical [runif(1000)]", y = "Empirical") +
-    xlim(0, xmax) +
-    ylim(0, ymax) +
+    xlim(0, ymax) +
+    ylim(0, xmax) +
     coord_flip() +
     geom_abline(intercept = 0, slope = 1, linetype = "dashed", na.rm = TRUE) +
     guides(color = guide_legend(title = "PC: p-value")) +
@@ -2069,7 +2075,7 @@ BlendPlot <- function(
 #
 # @param plots A list of gg objects
 # @param ncol Number of columns
-# @param legend Combine legends into a single legend
+# @param position Combine legends into a single legend
 # choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 # to leave legends as they are
 # @param ... Extra parameters passed to plot_grid
@@ -2078,11 +2084,11 @@ BlendPlot <- function(
 #
 #' @importFrom cowplot plot_grid get_legend
 #
-CombinePlots <- function(plots, ncol, legend = NULL, ...) {
+CombinePlots <- function(plots, ncol, position = NULL, ...) {
   plots.combined <- if (length(x = plots) > 1) {
-    if (!is.null(x = legend)) {
-      if (legend != 'none') {
-        legend <- get_legend(plot = plots[[1]] + theme(legend.position = legend))
+    if (!is.null(x = position)) {
+      if (position != 'none') {
+        legend <- get_legend(plot = plots[[1]] + theme(legend.position = position))
       }
       plots <- lapply(
         X = plots,
@@ -2097,9 +2103,9 @@ CombinePlots <- function(plots, ncol, legend = NULL, ...) {
       align = 'hv',
       ...
     )
-    if (!is.null(x = legend)) {
+    if (!is.null(x = position)) {
       plots.combined <- switch(
-        EXPR = legend,
+        EXPR = position,
         'bottom' = plot_grid(
           plots.combined,
           legend,
@@ -2293,7 +2299,7 @@ ExIPlot <- function(
   } else {
     cells.use <- Idents(object = object)[Idents(object = object) %in% idents]
   }
-  data.use <- data.use[cells.use, , drop = FALSE]
+  data <- data[cells.use, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells.use]
   } else {
@@ -2301,7 +2307,7 @@ ExIPlot <- function(
   }
   feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
   if (same.y.lims && is.null(x = y.max)) {
-    y.max <- max(data.use)
+    y.max <- max(data)
   }
   plots <- lapply(
     X = features,
@@ -2309,7 +2315,7 @@ ExIPlot <- function(
       return(SingleExIPlot(
         feature = x,
         type = type,
-        data = data.use[, x, drop = FALSE],
+        data = data[, x, drop = FALSE],
         idents = idents,
         sort = sort,
         y.max = y.max,
@@ -2321,7 +2327,7 @@ ExIPlot <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = 'none')
+    plots <- CombinePlots(plots = plots, ncol = ncol, position = 'none')
   }
   return(plots)
 }
@@ -2876,7 +2882,7 @@ SingleExIPlot <- function(
   set.seed(seed = 42)
   feature.name <- colnames(x = data)
   feature <- colnames(x = data) <- "feature"
-  data$ident <- cell.ident
+  data$ident <- idents
   if (sort) {
     data$ident <- factor(
       x = data$ident,
