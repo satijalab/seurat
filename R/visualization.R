@@ -500,7 +500,7 @@ DimPlot <- function(
     data[, shape.by] <- object[shape.by, drop = TRUE]
   }
   plot <- SingleDimPlot(
-    data.plot = data,
+    data = data,
     dims = dims,
     col.by = group.by,
     cols.use = cols,
@@ -2293,7 +2293,7 @@ ExIPlot <- function(
   } else {
     cells.use <- Idents(object = object)[Idents(object = object) %in% idents]
   }
-  data.use <- data.use[cells.use, , drop = FALSE]
+  data <- data[cells.use, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells.use]
   } else {
@@ -2301,7 +2301,7 @@ ExIPlot <- function(
   }
   feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
   if (same.y.lims && is.null(x = y.max)) {
-    y.max <- max(data.use)
+    y.max <- max(data)
   }
   plots <- lapply(
     X = features,
@@ -2309,7 +2309,7 @@ ExIPlot <- function(
       return(SingleExIPlot(
         feature = x,
         type = type,
-        data = data.use[, x, drop = FALSE],
+        data = data[, x, drop = FALSE],
         idents = idents,
         sort = sort,
         y.max = y.max,
@@ -2876,7 +2876,7 @@ SingleExIPlot <- function(
   set.seed(seed = 42)
   feature.name <- colnames(x = data)
   feature <- colnames(x = data) <- "feature"
-  data$ident <- cell.ident
+  data$ident <- idents
   if (sort) {
     data$ident <- factor(
       x = data$ident,
