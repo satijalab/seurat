@@ -234,7 +234,7 @@ FindClusters.default <- function(
       edge.file.name = edge.file.name)
     names(x = ids) <- colnames(x = object)
     ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-    clustering.results[, paste0("res.", r)] <- ids
+    clustering.results[, paste0("res.", r)] <- factor(x = ids)
   }
   return(clustering.results)
 }
