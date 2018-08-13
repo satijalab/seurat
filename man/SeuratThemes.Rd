@@ -17,7 +17,7 @@ SeuratTheme()
 
 DarkTheme(...)
 
-NoAxes(...)
+NoAxes(..., keep.text = FALSE, keep.ticks = FALSE)
 
 NoLegend(...)
 
