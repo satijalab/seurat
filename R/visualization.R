@@ -1669,22 +1669,34 @@ DarkTheme <- function(...) {
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoAxes()
 #'
-NoAxes <- function(...) {
+NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
   blank <- element_blank()
   no.axes.theme <- theme(
     # Remove the axis elements
     axis.line.x = blank,
     axis.line.y = blank,
-    axis.text.x = blank,
-    axis.text.y = blank,
-    axis.ticks.x = blank,
-    axis.ticks.y = blank,
-    axis.title.x = blank,
-    axis.title.y = blank,
     # Validate the theme
     validate = TRUE,
     ...
   )
+  if (!keep.text) {
+    no.axes.theme <- no.axes.theme + theme(
+      axis.text.x = blank,
+      axis.text.y = blank,
+      axis.title.x = blank,
+      axis.title.y = blank,
+      validate = TRUE,
+      ...
+    )
+  }
+  if (!keep.ticks){
+    no.axes.theme <- no.axes.theme + theme(
+      axis.ticks.x = blank,
+      axis.ticks.y = blank,
+      validate = TRUE,
+      ...
+    )
+  }
   return(no.axes.theme)
 }
 
@@ -3051,7 +3063,7 @@ SingleRasterMap <- function(
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors) +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +
-    WhiteBackground()
+    WhiteBackground() + NoAxes(keep.text = TRUE)
   if (!is.null(x = group.by)) {
     plot <- plot + geom_point(
       mapping = aes_string(x = 'Cell', y = 'Feature', color = 'Identity'),
