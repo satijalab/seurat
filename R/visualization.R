@@ -9,7 +9,7 @@
 #'
 #' @inheritParams DoHeatmap
 #' @param dims Dimensions to plot
-#' @param nfeatures NUmber of genes to plot
+#' @param nfeatures Number of genes to plot
 #' @param cells A list of cells to plot. If numeric, just plots the top cells.
 #' @param reduction Which dimmensional reduction to use
 #' @param balanced Plot an equal number of genes with both + and - scores.
@@ -38,7 +38,7 @@ DimHeatmap <- function(
   balanced = FALSE,
   ncol = NULL,
   combine = TRUE,
-  fast = FALSE,
+  fast = TRUE,
   slot = 'scale.data',
   assays = NULL,
   ...
@@ -127,7 +127,7 @@ DimHeatmap <- function(
       SingleImageMap(
         data = data.plot,
         title = paste0(Key(object = object[[reduction]]), dims[i]),
-        cell.order = dim.cells
+        order = dim.cells
       )
     } else {
       plots[[i]] <- SingleRasterMap(

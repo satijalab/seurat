@@ -6,7 +6,7 @@
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   reduction = "pca", disp.min = -2.5, disp.max = 2.5,
-  balanced = FALSE, ncol = NULL, combine = TRUE, fast = FALSE,
+  balanced = FALSE, ncol = NULL, combine = TRUE, fast = TRUE,
   slot = "scale.data", assays = NULL, ...)
 }
 \arguments{
@@ -14,7 +14,7 @@ DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
 
 \item{dims}{Dimensions to plot}
 
-\item{nfeatures}{NUmber of genes to plot}
+\item{nfeatures}{Number of genes to plot}
 
 \item{cells}{A list of cells to plot. If numeric, just plots the top cells.}
 
