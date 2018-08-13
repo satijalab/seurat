@@ -154,10 +154,10 @@ DimHeatmap <- function(
 
 #' Feature expression heatmap
 #'
-#' Draws a heatmap of single cell feature expression using superheat
+#' Draws a heatmap of single cell feature expression.
 #'
 #' @param object Seurat object
-#' @param feautres A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
+#' @param features A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param cells A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)

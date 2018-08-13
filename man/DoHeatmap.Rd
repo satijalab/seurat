@@ -11,6 +11,8 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 \arguments{
 \item{object}{Seurat object}
 
+\item{features}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
+
 \item{cells}{A vector of cells to plot}
 
 \item{group.by}{Name of variable to group cells by}
@@ -26,14 +28,12 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 \item{assay}{Assay to pull from}
 
 \item{...}{Ignored for now}
-
-\item{feautres}{A vector of features to plot, defaults to \code{VariableFeatures(object = object)}}
 }
 \value{
 A ggplot object
 }
 \description{
-Draws a heatmap of single cell feature expression using superheat
+Draws a heatmap of single cell feature expression.
 }
 \examples{
 DoHeatmap(object = pbmc_small)
