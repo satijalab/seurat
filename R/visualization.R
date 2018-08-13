@@ -193,6 +193,7 @@ DoHeatmap <- function(
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
+  features <- rev(x = unique(x = features))
   disp.max <- ifelse(
     test = slot != 'scale.data',
     yes = max(disp.max, 10),
@@ -200,7 +201,8 @@ DoHeatmap <- function(
   )
   data <- FetchData(
     object = object,
-    vars = rev(x = features),
+    # vars = rev(x = features),
+    vars = features,
     cells = cells,
     slot = slot
   )
@@ -215,6 +217,7 @@ DoHeatmap <- function(
     data = data,
     disp.min = disp.min,
     disp.max = disp.max,
+    feature.order = features,
     cell.order = names(x = sort(x = group.use)),
     group.by = group.use
   )
