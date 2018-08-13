@@ -4,7 +4,8 @@
 \alias{AssessNodes}
 \title{Assess Internal Nodes}
 \usage{
-AssessNodes(object, node.list, all.below = FALSE, genes.training = NULL)
+AssessNodes(object, node.list, all.below = FALSE,
+  genes.training = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

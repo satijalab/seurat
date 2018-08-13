@@ -5,10 +5,10 @@
 \title{Scatter plot of single cell data}
 \usage{
 GenePlot(object, gene1, gene2, cell.ids = NULL, col.use = NULL,
-  pch.use = 16, cex.use = 1.5, use.imputed = FALSE, use.scaled = FALSE,
-  use.raw = FALSE, do.hover = FALSE, data.hover = "ident",
-  do.identify = FALSE, dark.theme = FALSE, do.spline = FALSE,
-  spline.span = 0.75, ...)
+  pch.use = 16, cex.use = 1.5, use.imputed = FALSE,
+  use.scaled = FALSE, use.raw = FALSE, do.hover = FALSE,
+  data.hover = "ident", do.identify = FALSE, dark.theme = FALSE,
+  do.spline = FALSE, spline.span = 0.75, ...)
 }
 \arguments{
 \item{object}{Seurat object}

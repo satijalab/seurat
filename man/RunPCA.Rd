@@ -17,11 +17,13 @@ RunPCA(object, ...)
 
 \method{RunPCA}{loom}(object, pcs.compute = 75, pc.genes = NULL,
   online.pca = TRUE, covariance.mat = NULL, cells.initial = 50000,
-  chunk.size = 1000, do.print = TRUE, pcs.print = 1:5, genes.print = 30,
-  gene.names = "row_attrs/gene_names", gene.means = "row_attrs/gene_means",
+  chunk.size = 1000, do.print = TRUE, pcs.print = 1:5,
+  genes.print = 30, gene.names = "row_attrs/gene_names",
+  gene.means = "row_attrs/gene_means",
   gene.variance = "row_attrs/gene_dispersion",
   var.genes = "row_attrs/var_genes", scale.data = "layers/scale_data",
-  ngene = NULL, overwrite = FALSE, display.progress = TRUE, ...)
+  cell.names = "col_attrs/cell_names", ngene = NULL,
+  overwrite = FALSE, display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object to run PCA on}
@@ -71,6 +73,8 @@ NULL will not set a seed.}
 \item{gene.variance}{Path to gene variance dataset}
 
 \item{scale.data}{Path to scaled data matrix}
+
+\item{cell.names}{Path to cell names dataset}
 
 \item{ngene}{Number of variable genes to use}
 

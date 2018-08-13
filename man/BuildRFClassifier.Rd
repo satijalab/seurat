@@ -4,8 +4,8 @@
 \alias{BuildRFClassifier}
 \title{Build Random Forest Classifier}
 \usage{
-BuildRFClassifier(object, training.genes = NULL, training.classes = NULL,
-  verbose = TRUE, ...)
+BuildRFClassifier(object, training.genes = NULL,
+  training.classes = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object on which to train the classifier}

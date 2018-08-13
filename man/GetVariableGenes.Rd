@@ -7,10 +7,12 @@
 \usage{
 GetVariableGenes(object, ...)
 
-\method{GetVariableGenes}{loom}(object)
+\method{GetVariableGenes}{loom}(object, row.names = "gene_names")
 }
 \arguments{
 \item{object}{An object}
+
+\item{row.names}{Name of dataset for gene names in loom objects. Default to "gene_names". Duplicates are not allowed.}
 }
 \value{
 A dataframe with four columns

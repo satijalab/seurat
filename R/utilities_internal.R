@@ -271,6 +271,7 @@ setMethod(
     to.store <- list(...)
     to.store$...$object <- NULL
     to.store$...$object2 <- NULL
+    to.store$...$... <- NULL
     names.to.store <- names(to.store$...)
     to.store <- as.character(unlist(to.store))
     if(time) {

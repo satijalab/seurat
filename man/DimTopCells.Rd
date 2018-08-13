@@ -4,8 +4,8 @@
 \alias{DimTopCells}
 \title{Find cells with highest scores for a given dimensional reduction technique}
 \usage{
-DimTopCells(object, dim.use = 1, reduction.type = "pca", num.cells = NULL,
-  do.balanced = FALSE)
+DimTopCells(object, dim.use = 1, reduction.type = "pca",
+  num.cells = NULL, do.balanced = FALSE)
 }
 \arguments{
 \item{object}{An object}

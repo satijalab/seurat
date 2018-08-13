@@ -125,6 +125,7 @@ RunPCA.seurat <- function(
 #' @param gene.means Path to gene means dataset
 #' @param gene.variance Path to gene variance dataset
 #' @param scale.data Path to scaled data matrix
+#' @param cell.names Path to cell names dataset
 #' @param ngene Number of variable genes to use
 #' @param overwrite Overwrite preexisting results
 #' @param display.progress Show progress bars
@@ -156,6 +157,7 @@ RunPCA.loom <- function(
   gene.variance = 'row_attrs/gene_dispersion',
   var.genes = 'row_attrs/var_genes',
   scale.data = 'layers/scale_data',
+  cell.names = 'col_attrs/cell_names',
   ngene = NULL,
   overwrite = FALSE,
   display.progress = TRUE,
@@ -200,7 +202,9 @@ RunPCA.loom <- function(
       genes.use = pc.genes,
       chunk.size = cells.initial,
       do.sparse = FALSE,
-      display.progress = display.progress
+      display.progress = display.progress,
+      cell.names = cell.names,
+      gene.names = gene.names
     )
     if (cells.use <= cells.initial) {
       # Small number of cells, just use irlba
@@ -208,7 +212,7 @@ RunPCA.loom <- function(
         cat("Smaller number of cells than required for online PCA\n")
         cat("Running standard PCA instead\n")
       }
-      pca.results <- irlba(A = t(x = data), nv = pcs.compute, ...)
+      pca.results <- irlba(A = data, nv = pcs.compute, ...)
       gene.loadings <- pca.results$u
       cell.embeddings <- pca.results$v
       sdev <- pca.results$d / sqrt(x = max(1, ncol(x = data) - 1))
@@ -295,7 +299,9 @@ RunPCA.loom <- function(
           genes.use = pc.genes,
           chunk.size = chunk.size,
           do.sparse = FALSE,
-          display.progress = display.progress
+          display.progress = display.progress,
+          cell.names = cell.names,
+          gene.names = gene.names
         )
         data <- object[[scale.data]][chunk.indices, pc.genes]
         cell.embeddings[chunk.indices, ] <- data %*% pca$vectors
@@ -363,7 +369,7 @@ RunPCA.loom <- function(
       }
     }
     colnames(x = pc.values) <- paste0("PC", 1:ncol(x = pc.values))
-    rownames(pc.values) <- object[['col_attrs/cell_names']][]
+    rownames(pc.values) <- object[[cell.names]][]
     pc.values <- pc.values[, 1:pcs.compute]
     gene.loadings <- pc.eigs$vectors[, 1:pcs.compute]
     rownames(gene.loadings) <- rownames(covariance.mat)
@@ -541,8 +547,10 @@ RunTSNE.seurat <- function(
   return(object)
 }
 
+#' @param gene.names Dataset name for gene names in loom object
+#' @param cell.names Dataset name for cell names in loom object
 #' @param overwrite Overwrite existing data? Used only for loom objects
-#'
+#' 
 #' @describeIn RunTSNE Run TSNE on a loom file
 #' @export
 #' @method RunTSNE loom
@@ -560,6 +568,8 @@ RunTSNE.loom <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
+  gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names",
   overwrite = FALSE,
   ...
 ) {
@@ -577,6 +587,8 @@ RunTSNE.loom <- function(
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     overwrite = overwrite,
+    gene.names = gene.names,
+    cell.names = cell.names,
     ...
   )
   invisible(x = object)

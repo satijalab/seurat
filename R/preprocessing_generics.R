@@ -122,6 +122,7 @@ ScaleData <- function(object, ...) {
 #' Get the variable genes dataframe
 #'
 #' @param object An object
+#' @param row.names Name of dataset for gene names in loom objects. Default to "gene_names". Duplicates are not allowed.
 #'
 #' @return A dataframe with four columns
 #' \item{gene.means}{Gene means}

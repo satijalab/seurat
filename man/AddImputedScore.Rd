@@ -4,8 +4,8 @@
 \alias{AddImputedScore}
 \title{Calculate imputed expression values}
 \usage{
-AddImputedScore(object, genes.use = NULL, genes.fit = NULL, s.use = 20,
-  do.print = FALSE, gram = TRUE)
+AddImputedScore(object, genes.use = NULL, genes.fit = NULL,
+  s.use = 20, do.print = FALSE, gram = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}

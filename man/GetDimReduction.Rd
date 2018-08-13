@@ -14,7 +14,8 @@ GetDimReduction(object, ...)
 
 \method{GetDimReduction}{loom}(object, reduction.type = "pca",
   slot = "gene_loadings", dataset.use = NULL,
-  gene.names = "row_attrs/gene_names", cell.names = "col_attrs/cell_names")
+  gene.names = "row_attrs/gene_names",
+  cell.names = "col_attrs/cell_names")
 }
 \arguments{
 \item{object}{An object}

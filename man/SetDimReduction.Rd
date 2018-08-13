@@ -9,7 +9,8 @@
 \usage{
 SetDimReduction(object, ...)
 
-\method{SetDimReduction}{seurat}(object, reduction.type, slot, new.data, ...)
+\method{SetDimReduction}{seurat}(object, reduction.type, slot, new.data,
+  ...)
 
 \method{SetDimReduction}{loom}(object, reduction.type, slot, new.data,
   overwrite = FALSE, ...)

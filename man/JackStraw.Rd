@@ -5,7 +5,8 @@
 \title{Determine statistical significance of PCA scores.}
 \usage{
 JackStraw(object, num.pc = 20, num.replicate = 100, prop.freq = 0.01,
-  display.progress = TRUE, do.par = FALSE, num.cores = 1, maxit = 1000)
+  display.progress = TRUE, do.par = FALSE, num.cores = 1,
+  maxit = 1000)
 }
 \arguments{
 \item{object}{Seurat object}

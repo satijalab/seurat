@@ -4,8 +4,8 @@
 \alias{ReorderIdent}
 \title{Reorder identity classes}
 \usage{
-ReorderIdent(object, feature = "PC1", rev = FALSE, aggregate.fxn = mean,
-  reorder.numeric = FALSE, ...)
+ReorderIdent(object, feature = "PC1", rev = FALSE,
+  aggregate.fxn = mean, reorder.numeric = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

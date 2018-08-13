@@ -4,9 +4,9 @@
 \alias{AddModuleScore}
 \title{Calculate module scores for gene expression programs in single cells}
 \usage{
-AddModuleScore(object, genes.list = NULL, genes.pool = NULL, n.bin = 25,
-  seed.use = 1, ctrl.size = 100, use.k = FALSE, enrich.name = "Cluster",
-  random.seed = 1)
+AddModuleScore(object, genes.list = NULL, genes.pool = NULL,
+  n.bin = 25, seed.use = 1, ctrl.size = 100, use.k = FALSE,
+  enrich.name = "Cluster", random.seed = 1)
 }
 \arguments{
 \item{object}{Seurat object}

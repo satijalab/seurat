@@ -6,7 +6,8 @@
 \usage{
 HTODemux(object, percent_cutoff = 0.999, init_centers = NULL,
   cluster_nstarts = 100, k_function = "kmeans", nsamples = 100,
-  print.output = TRUE, assay.type = "HTO", confidence_threshold = 0.05)
+  print.output = TRUE, assay.type = "HTO",
+  confidence_threshold = 0.05)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized in the HTO slot.}

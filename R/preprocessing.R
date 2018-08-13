@@ -339,12 +339,14 @@ NormalizeData.loom <- function(
     dtype = dtype,
     chunk.dims = chunk.dims
   )
+  # Store parameters
   parameters.to.store <- as.list(x = environment(), all = TRUE)[names(formals())]
   SetCalcParams(
     object = object,
     dataset.use = "layers/norm_data",
     ... = parameters.to.store
   )
+  # Clean up
   gc(verbose = FALSE)
   invisible(x = object)
 }
@@ -839,7 +841,7 @@ FindVariableGenes.seurat <- function(
   display.progress = TRUE,
   ...
 ) {
-  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("FindVariableGenes"))]
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
   parameters.to.store$mean.function <- as.character(substitute(mean.function))
   parameters.to.store$dispersion.function <- as.character(substitute(dispersion.function))
   object <- SetCalcParams(
@@ -1054,6 +1056,14 @@ FindVariableGenes.loom <- function(
       'var_genes' = var.genes
     )
   )
+  # Store parameters
+  parameters.to.store <- as.list(environment(), all = TRUE)[names(formals())]
+  SetCalcParams(
+    object = object,
+    dataset.use = "row_attrs/var_genes",
+    ... = parameters.to.store
+  )
+  # Clean up
   gc(verbose = FALSE)
   invisible(x = object)
 }
@@ -1062,11 +1072,11 @@ FindVariableGenes.loom <- function(
 #' @export
 #' @method GetVariableGenes loom
 #'
-GetVariableGenes.loom <- function(object) {
+GetVariableGenes.loom <- function(object, row.names = "gene_names") {
   hvg.info <- object$get.attribute.df(
     MARGIN = 1,
     attribute.names = c('gene_means', 'gene_dispersion', 'gene_dispersion_scaled'),
-    row.names = 'gene_names'
+    row.names = row.names
   )
   hvg.info$index <- 1:nrow(x = hvg.info)
   colnames(x = hvg.info) <- gsub(

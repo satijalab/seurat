@@ -55,6 +55,9 @@ Convert.seurat <- function(
       if (!'loomR' %in% rownames(x = installed.packages())) {
         stop("Please install loomR from GitHub before converting to a loom object")
       }
+      # loomR::create needs chunk.dims = NULL in order to automatically estimate it
+      # Passing a string to chunk.dims will make it NA
+      chunk.dims <- NULL
       cell.order <- from@cell.names
       gene.order <- rownames(x = from@data)
       loomfile <- loomR::create(

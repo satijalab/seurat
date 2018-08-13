@@ -4,8 +4,8 @@
 \alias{ScaleDataR}
 \title{Old R based implementation of ScaleData. Scales and centers the data}
 \usage{
-ScaleDataR(object, genes.use = NULL, data.use = NULL, do.scale = TRUE,
-  do.center = TRUE, scale.max = 10)
+ScaleDataR(object, genes.use = NULL, data.use = NULL,
+  do.scale = TRUE, do.center = TRUE, scale.max = 10)
 }
 \arguments{
 \item{object}{Seurat object}

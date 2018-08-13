@@ -110,7 +110,7 @@ Collate:
     'utilities_generics.R'
     'utilities_internal.R'
     'zfRenderSeurat.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 Suggests:
     testthat,
     S4Vectors,

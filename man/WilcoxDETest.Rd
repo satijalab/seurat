@@ -4,8 +4,8 @@
 \alias{WilcoxDETest}
 \title{Differential expression using Wilcoxon Rank Sum}
 \usage{
-WilcoxDETest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE,
-  assay.type = "RNA", ...)
+WilcoxDETest(object, cells.1, cells.2, genes.use = NULL,
+  print.bar = TRUE, assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}

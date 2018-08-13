@@ -16,9 +16,10 @@ FindVariableGenes(object, ...)
   display.progress = TRUE, ...)
 
 \method{FindVariableGenes}{loom}(object, x.low.cutoff = 0.1,
-  x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf, num.bin = 20,
-  chunk.size = 1000, normalized.data = "layers/norm_data",
-  overwrite = FALSE, display.progress = TRUE, ...)
+  x.high.cutoff = 8, y.cutoff = 1, y.high.cutoff = Inf,
+  num.bin = 20, chunk.size = 1000,
+  normalized.data = "layers/norm_data", overwrite = FALSE,
+  display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}

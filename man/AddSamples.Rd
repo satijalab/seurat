@@ -4,10 +4,11 @@
 \alias{AddSamples}
 \title{Add samples into existing Seurat object.}
 \usage{
-AddSamples(object, new.data, project = NULL, min.cells = 0, min.genes = 0,
-  is.expr = 0, do.normalize = TRUE, scale.factor = 10000,
-  do.scale = FALSE, do.center = FALSE, names.field = 1,
-  names.delim = "_", meta.data = NULL, add.cell.id = NULL)
+AddSamples(object, new.data, project = NULL, min.cells = 0,
+  min.genes = 0, is.expr = 0, do.normalize = TRUE,
+  scale.factor = 10000, do.scale = FALSE, do.center = FALSE,
+  names.field = 1, names.delim = "_", meta.data = NULL,
+  add.cell.id = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

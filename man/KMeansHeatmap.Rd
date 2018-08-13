@@ -4,9 +4,9 @@
 \alias{KMeansHeatmap}
 \title{Plot k-means clusters}
 \usage{
-KMeansHeatmap(object, cells.use = object@cell.names, genes.cluster = NULL,
-  max.genes = 1e+06, slim.col.label = TRUE, remove.key = TRUE,
-  row.lines = TRUE, ...)
+KMeansHeatmap(object, cells.use = object@cell.names,
+  genes.cluster = NULL, max.genes = 1e+06, slim.col.label = TRUE,
+  remove.key = TRUE, row.lines = TRUE, ...)
 }
 \arguments{
 \item{object}{A Seurat object}
