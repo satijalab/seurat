@@ -1592,7 +1592,7 @@ AugmentPlot <- function(plot, img) {
 #'
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @seealso \code{\link{ggplot2::theme}}
 #' @aliases SeuratTheme
 #'
@@ -1600,12 +1600,12 @@ SeuratTheme <- function() {
   return(DarkTheme() + NoLegend() + NoGrid() + SeuratAxes())
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_rect element_text element_line margin
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases DarkTheme
 #'
 #' @examples
@@ -1658,12 +1658,12 @@ DarkTheme <- function(...) {
   return(dark.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases NoAxes
 #'
 #' @examples
@@ -1703,12 +1703,12 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
   return(no.axes.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases NoLegend
 #'
 #' @examples
@@ -1728,12 +1728,12 @@ NoLegend <- function(...) {
   return(no.legend.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases NoGrid
 #'
 #' @examples
@@ -1754,12 +1754,12 @@ NoGrid <- function(...) {
   return(no.grid.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases SeuratAxes
 #'
 SeuratAxes <- function(...) {
@@ -1776,19 +1776,19 @@ SeuratAxes <- function(...) {
 
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases BarePlot
 #'
 BarePlot <- function() {
   return(NoLegend() + NoAxes() + NoGrid())
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases RotatedAxis
 #'
 RotatedAxis <- function(...) {
@@ -1802,12 +1802,12 @@ RotatedAxis <- function(...) {
   return(rotated.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_text
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases BoldTitle
 #'
 BoldTitle <- function(...) {
@@ -1821,12 +1821,12 @@ BoldTitle <- function(...) {
   return(bold.theme)
 }
 
-#' @inheritParams SeuratThemes
+#' @inheritParams SeuratTheme
 #'
 #' @importFrom ggplot2 theme element_rect
 #' @export
 #'
-#' @rdname SeuratThemes
+#' @rdname SeuratTheme
 #' @aliases WhiteBackground
 #'
 WhiteBackground <- function(...) {
