@@ -518,7 +518,7 @@ DimPlot <- function(
     pt.size = pt.size,
     shape.by = shape.by,
     plot.order = order,
-    do.label = label,
+    label = label,
     label.size = label.size,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
@@ -2419,7 +2419,7 @@ MakeLabels <- function(data) {
     }
   )
   names(x = labels) <- as.character(unique(x = data[, 3]))
-  labels <- as.data.frame(x = t(x = as.data.frame(x = data)))
+  labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
   labels[, colnames(x = data)[3]] <- as.character(unique(x = data[, 3]))
   return(labels)
 }
