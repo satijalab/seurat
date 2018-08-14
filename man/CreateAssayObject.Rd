@@ -4,10 +4,12 @@
 \alias{CreateAssayObject}
 \title{Create an Assay object}
 \usage{
-CreateAssayObject(counts, min.cells = 0, min.features = 0)
+CreateAssayObject(counts, data, min.cells = 0, min.features = 0)
 }
 \arguments{
 \item{counts}{Unnormalized data such as raw counts or TPMs}
+
+\item{data}{Prenormalized data; if provided, donot pass \code{counts}}
 
 \item{min.cells}{Include features detected in at least this many cells. Will subset the counts
 matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}

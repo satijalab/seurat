@@ -401,6 +401,7 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
 #'
 #' @param counts Unnormalized data such as raw counts or TPMs
+#' @param data Prenormalized data; if provided, donot pass \code{counts}
 #' @param min.cells Include features detected in at least this many cells. Will subset the counts
 #' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
 #' @param min.features Include cells where at least this many features are detected.
@@ -420,33 +421,51 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #'
 CreateAssayObject <- function(
   counts,
+  data,
   min.cells = 0,
   min.features = 0
 ) {
-  # check that dimnames of input counts are unique
-  if (anyDuplicated(rownames(x = counts))) {
-    stop("Non-unique features (rownames) present in the input matrix")
-  }
-  if (anyDuplicated(colnames(x = counts))) {
-    stop("Non-unique cell names (colnames) present in the input matrix")
-  }
-  if (!inherits(x = counts, what = 'dgCMatrix')) {
-    counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
-  }
-  # Filter based on min.features
-  nfeatures <- Matrix::colSums(x = counts > 0)
-  counts <- counts[, which(x = nfeatures > min.features)]
-  # filter genes on the number of cells expressing
-  if (min.cells > 0) {
-    num.cells <- rowSums(x = counts > 0)
-    counts <- counts[which(x = num.cells >= min.cells), ]
+  if (missing(x = counts) && missing(x = data)) {
+    stop("Must provide either 'counts' or 'data'")
+  } else if (!missing(x = counts) && !missing(x = data)) {
+    stop("Either 'counts' or 'data' must be missing; both cannot be provided")
+  } else if (!missing(x = counts)) {
+    # check that dimnames of input counts are unique
+    if (anyDuplicated(rownames(x = counts))) {
+      stop("Non-unique features (rownames) present in the input matrix")
+    }
+    if (anyDuplicated(colnames(x = counts))) {
+      stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    if (!inherits(x = counts, what = 'dgCMatrix')) {
+      counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
+    }
+    # Filter based on min.features
+    nfeatures <- Matrix::colSums(x = counts > 0)
+    counts <- counts[, which(x = nfeatures > min.features)]
+    # filter genes on the number of cells expressing
+    if (min.cells > 0) {
+      num.cells <- rowSums(x = counts > 0)
+      counts <- counts[which(x = num.cells >= min.cells), ]
+    }
+    data <- counts
+  } else if (!missing(x = data)) {
+    # check that dimnames of input counts are unique
+    if (anyDuplicated(rownames(x = data))) {
+      stop("Non-unique features (rownames) present in the input matrix")
+    }
+    if (anyDuplicated(colnames(x = data))) {
+      stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    counts <- new(Class = 'matrix')
   }
   # Initialize meta.features
-  init.meta.features <- data.frame(row.names = rownames(x = counts))
+  init.meta.features <- data.frame(row.names = rownames(x = data))
   assay <- new(
     Class = 'Assay',
     counts = counts,
-    data = counts,
+    data = data,
+    scale.data = new(Class = 'matrix'),
     meta.features = init.meta.features
   )
   return(assay)
@@ -467,9 +486,9 @@ CreateAssayObject <- function(
 #' @export
 #'
 CreateDimReducObject <- function(
-  embeddings = matrix(),
-  loadings = matrix(),
-  projected = matrix(),
+  embeddings = new(Class = 'matrix'),
+  loadings = new(Class = 'matrix'),
+  projected = new(Class = 'matrix'),
   assay = NULL,
   stdev = numeric(),
   key = NULL,
@@ -1783,19 +1802,26 @@ Key.DimReduc <- function(object, ...) {
 #' @method Loadings DimReduc
 #'
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
-  slot.use <- if (is.null(x = projected)) {
-    projected.data <- slot(object = object, name = 'feature.loadings.projected')
-    ifelse(
-      test = all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1,
-      yes = 'feature.loadings',
-      no = 'feature.loadings.projected'
-    )
-  } else if (projected) {
-    'feature.loadings.projected'
-  } else {
-    'feature.loadings'
-  }
-  return(slot(object = object, name = slot.use))
+  projected <- projected %||% Projected(object = object)
+  slot <- ifelse(
+    test = projected,
+    yes = 'feature.loadings.projected',
+    no = 'feature.loadings'
+  )
+  # slot.use <- if (is.null(x = projected)) {
+  #   projected.data <- slot(object = object, name = 'feature.loadings.projected')
+  #   ifelse(
+  #     test = all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1,
+  #     yes = 'feature.loadings',
+  #     no = 'feature.loadings.projected'
+  #   )
+  # } else if (projected) {
+  #   'feature.loadings.projected'
+  # } else {
+  #   'feature.loadings'
+  # }
+  # return(slot(object = object, name = slot.use))
+  return(slot(object = object, name = slot))
 }
 
 #' @describeIn Loadings Add projected feature loadings to a DimReduc object
@@ -2913,7 +2939,7 @@ setMethod(
   f = 'colMeans',
   signature = c('x' = 'Assay'),
   definition = function(x, na.rm = FALSE, dims = 1, ...) {
-    return(colMeans(
+    return(Matrix::colMeans(
       x = GetAssayData(object = x),
       na.rm = na.rm,
       dims = dims,
@@ -2939,7 +2965,7 @@ setMethod(
   f = 'colSums',
   signature = c('x' = 'Assay'),
   definition = function(x, na.rm = FALSE, dims = 1, ...) {
-    return(colSums(
+    return(Matrix::colSums(
       x = GetAssayData(object = x),
       na.rm = na.rm,
       dims = dims,
@@ -2965,7 +2991,7 @@ setMethod(
   f = 'rowMeans',
   signature = c('x' = 'Assay'),
   definition = function(x, na.rm = FALSE, dims = 1, ...) {
-    return(rowMeans(
+    return(Matrix::rowMeans(
       x = GetAssayData(object = x),
       na.rm = na.rm,
       dims = dims,
@@ -2991,7 +3017,7 @@ setMethod(
   f = 'rowSums',
   signature = c('x' = 'Assay'),
   definition = function(x, na.rm = FALSE, dims = 1, ...) {
-    return(rowSums(
+    return(Matrix::rowSums(
       x = GetAssayData(object = x),
       na.rm = na.rm,
       dims = dims,
@@ -3032,13 +3058,13 @@ setMethod(
   f = 'show',
   signature = 'DimReduc',
   definition = function(object) {
-    projected.data <- slot(object = object, name = 'feature.loadings.projected')
-    projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) %in% c(0, 1))
+    # projected.data <- slot(object = object, name = 'feature.loadings.projected')
+    # projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) %in% c(0, 1))
     cat(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
-      'Projected dimensional reduction calculated:', projected, '\n',
-    #   'Jackstraw run:', !is.null(x = object@jackstraw), '\n'
+      # 'Projected dimensional reduction calculated:', projected, '\n',
+      'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
       'Jackstraw run:', as.logical(x = JS(object = object)), '\n'
     )
   }
@@ -3179,6 +3205,20 @@ PrepareWorkflow <- function(object, workflow.name) {
   }
   ReadWorkflowParams( object = object, workflow.name = workflow.name, depth = 2)
   return(object)
+}
+
+# Check to see if projected loadings have been set
+#
+# @param object a DimReduc object
+#
+# @return TRUE if proejcted loadings have been set, else FALSE
+#
+Projected <- function(object) {
+  projected.dims <- dim(x = slot(object = object, name = 'feature.loadings.projected'))
+  if (all(projected.dims == 1)) {
+    return(!all(is.na(x = slot(object = object, name = 'feature.loadings.projected'))))
+  }
+  return(!all(projected.dims == 0))
 }
 
 # Read Seurat workflow parameters
