@@ -1808,19 +1808,6 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
     yes = 'feature.loadings.projected',
     no = 'feature.loadings'
   )
-  # slot.use <- if (is.null(x = projected)) {
-  #   projected.data <- slot(object = object, name = 'feature.loadings.projected')
-  #   ifelse(
-  #     test = all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) == 1,
-  #     yes = 'feature.loadings',
-  #     no = 'feature.loadings.projected'
-  #   )
-  # } else if (projected) {
-  #   'feature.loadings.projected'
-  # } else {
-  #   'feature.loadings'
-  # }
-  # return(slot(object = object, name = slot.use))
   return(slot(object = object, name = slot))
 }
 
@@ -3058,12 +3045,9 @@ setMethod(
   f = 'show',
   signature = 'DimReduc',
   definition = function(object) {
-    # projected.data <- slot(object = object, name = 'feature.loadings.projected')
-    # projected <- !(all(is.na(x = projected.data)) && unique(x = dim(x = projected.data)) %in% c(0, 1))
     cat(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
-      # 'Projected dimensional reduction calculated:', projected, '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
       'Jackstraw run:', as.logical(x = JS(object = object)), '\n'
     )

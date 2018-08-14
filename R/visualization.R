@@ -935,7 +935,7 @@ VariableFeaturePlot <- function(
       values = cols
     )
   if (log) {
-    suppressWarnings(expr = plot <- plot + scale_x_log10())
+    plot <- plot + scale_x_log10()
   }
   return(plot)
 }
