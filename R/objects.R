@@ -2114,7 +2114,9 @@ SubsetData.Assay <- function(
     accept.value = accept.value,
     ...
   )
-  slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
+  if (ncol(x = GetAssayData(object = object, slot == 'counts')) == ncol(x = object)) {
+    slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
+  }
   slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells]
   cells.scaled <- colnames(x = GetAssayData(object = object, slot = "scale.data"))
   cells.scaled <- cells.scaled[cells.scaled %in% cells]
