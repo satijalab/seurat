@@ -1631,7 +1631,16 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' @method HVFInfo Assay
 #'
 HVFInfo.Assay <- function(object, ...) {
-  return(object[[c('mean', 'dispersion', 'dispersion.scaled')]])
+  vars <- c(
+    'mean',
+    if ('variance.standardized' %in% colnames(x = object[[]])) {
+      c('variance', 'variance.standardized')
+    } else {
+      c('dispersion', 'dispersion.scaled')
+    }
+  )
+  hvf.info <- object[[vars]]
+  return(hvf.info)
 }
 
 #' @param assay Name of assay to pull highly variable feature information for

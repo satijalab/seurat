@@ -3,10 +3,11 @@
 \name{VariableFeaturePlot}
 \alias{VariableFeaturePlot}
 \alias{VariableGenePlot}
+\alias{MeanVarPlot}
 \title{View variable features}
 \usage{
 VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
-  assay = NULL)
+  log = NULL, assay = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -14,6 +15,8 @@ VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
 \item{cols}{Colors to specify non-variable/variable status}
 
 \item{pt.size}{Size of the points on the plot}
+
+\item{log}{Plot the x-axis in log scale}
 
 \item{assay}{Assay to pull variable features from}
 }
@@ -23,4 +26,7 @@ View variable features
 \examples{
 VariableFeaturePlot(object = pbmc_small)
 
+}
+\seealso{
+\code{\link{FindVariableFeatures}}
 }

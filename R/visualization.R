@@ -834,8 +834,8 @@ CellScatter <- function(
 #'
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 geom_smooth aes_string
 #' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 geom_smooth aes_string
 #' @export
 #'
 #' @aliases GenePlot
@@ -884,11 +884,14 @@ FeatureScatter <- function(
 #' @inheritParams FeatureScatter
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
+#' @param log Plot the x-axis in log scale
 #'
-#' @importFrom ggplot2 labs scale_color_manual
+#' @importFrom ggplot2 labs scale_color_manual scale_x_log10
 #' @export
 #'
-#' @aliases VariableGenePlot
+#' @aliases VariableGenePlot MeanVarPlot
+#'
+#' @seealso \code{\link{FindVariableFeatures}}
 #'
 #' @examples
 #' VariableFeaturePlot(object = pbmc_small)
@@ -897,12 +900,23 @@ VariableFeaturePlot <- function(
   object,
   cols = c('black', 'red'),
   pt.size = 1,
+  log = NULL,
   assay = NULL
 ) {
   if (length(x = cols) != 2) {
     stop("'cols' must be of length 2")
   }
-  hvf.info <- HVFInfo(object = object, assay = assay)[, c('mean', 'dispersion')]
+  hvf.info <- HVFInfo(object = object, assay = assay)
+  vars <- c(
+    'mean',
+    ifelse(
+      test = 'variance.standardized' %in% colnames(x = hvf.info),
+      yes = 'variance.standardized',
+      no = 'dispersion'
+    )
+  )
+  hvf.info <- hvf.info[, vars]
+  log <- log %||% 'variance.standardized' %in% colnames(x = hvf.info)
   var.features <- VariableFeatures(object = object, assay = assay)
   var.status <- ifelse(
     test = rownames(x = hvf.info) %in% var.features,
@@ -920,6 +934,9 @@ VariableFeaturePlot <- function(
       labels = paste(c('Non-variable', 'Variable'), 'count:', table(var.status)),
       values = cols
     )
+  if (log) {
+    suppressWarnings(expr = plot <- plot + scale_x_log10())
+  }
   return(plot)
 }
 
