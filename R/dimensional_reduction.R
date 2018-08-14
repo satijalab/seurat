@@ -507,14 +507,14 @@ RunCCA.Seurat <- function(
 
   combined.object[['cca']] <- CreateDimReducObject(
     embeddings = cca.results$ccv[colnames(combined.object), ],
-    used = assay1,
+    assay = assay1,
     key = "CC"
   )
   if (ncol(combined.object) != (ncol(object1) + ncol(object2))) {
     warning("Some cells removed after object merge due to minimum feature count cutoff")
   }
   combined.scale <- cbind(data1,data2)
-  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, assay = assay1,slot = "scale.data")
+  combined.object <- SetAssayData(object = combined.object,new.data = combined.scale, assay = assay1, slot = "scale.data")
   if (renormalize) {
     combined.object <- NormalizeData(
       object = combined.object,

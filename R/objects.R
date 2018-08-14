@@ -2036,7 +2036,7 @@ SetAssayData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  SetAssayData(object = object[[assay]], slot = slot) <- new.data
+  object[[assay]] <- SetAssayData(object = object[[assay]], slot = slot, new.data = new.data)
   return(object)
 }
 
