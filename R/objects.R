@@ -1677,6 +1677,7 @@ Idents.Seurat <- function(object, ...) {
   idents.new <- as.vector(x = idents.new)
   idents <- as.vector(x = Idents(object = object))
   idents[cells] <- idents.new
+  idents[is.na(x = idents)] <- 'NA'
   idents <- factor(x = idents)
   names(x = idents) <- colnames(x = object)
   slot(object = object, name = 'active.ident') <- idents
