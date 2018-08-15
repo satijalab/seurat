@@ -8,6 +8,7 @@
 
 #include <RcppEigen.h>
 #include <Rcpp.h>
+#include <progress.hpp>
 
 #include "ModularityOptimizer.h"
 
@@ -17,6 +18,7 @@ using namespace Rcpp;
 
 
 // [[Rcpp::depends(RcppEigen)]]
+// [[Rcpp::depends(RcppProgress)]]
 // [[Rcpp::export]]
 IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     int modularityFunction,
@@ -39,7 +41,7 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     stop("Need at least one interation");
   if (modularityFunction == 2 && resolution > 1.0)
     stop("error: resolution<1 for alternative modularity");
-  try { 
+  try {
   bool update;
   double modularity, maxModularity, resolution2;
   int i, j;
@@ -47,9 +49,9 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
   std::string msg = "Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck";
   if (printOutput)
     Rcout << msg << std::endl << std::endl;
-  
+
   // Load netwrok
-  std::shared_ptr<Network> network;  
+  std::shared_ptr<Network> network;
   if(edgefilename != "") {
     if (printOutput)
       Rcout << "Reading input file..." << std::endl << std::endl;
@@ -80,11 +82,11 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     if(node1.size() == 0) {
       stop("Matrix contained no network data.  Check format.");
     }
-    
+
     network = matrixToNetwork(node1, node2, edgeweights, modularityFunction);
     Rcpp::checkUserInterrupt();
   }
-  
+
   if (printOutput)
   {
     Rprintf("Number of nodes: %d\n", network->getNNodes());
@@ -93,27 +95,29 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     Rcout << "Running " <<  ((algorithm == 1) ? "Louvain algorithm" : ((algorithm == 2) ? "Louvain algorithm with multilevel refinement" : "smart local moving algorithm")) << "...";
     Rcout << std::endl;
   }
-  
+
   resolution2 = ((modularityFunction == 1) ? (resolution / (2 * network->getTotalEdgeWeight() + network->getTotalEdgeWeightSelfLinks())) : resolution);
-  
+
   auto beginTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
   std::shared_ptr<Clustering> clustering;
   maxModularity = -std::numeric_limits<double>::infinity();
   JavaRandom random(randomSeed);
+
+  Progress p(nRandomStarts, printOutput);
   for (i = 0; i < nRandomStarts; i++)
   {
-    if (printOutput && (nRandomStarts > 1))
-      Rprintf("Random start: %d\n", i + 1);
-    
+    //if (printOutput && (nRandomStarts > 1))
+    //Rprintf("Random start: %d\n", i + 1);
+
     VOSClusteringTechnique vosClusteringTechnique(network, resolution2);
-    
+
     j = 0;
     update = true;
     do
     {
-      if (printOutput && (nIterations > 1))
+      /*if (printOutput && (nIterations > 1))
         Rprintf("Iteration: %d\n", j + 1);
-      
+      */
       if (algorithm == 1)
         update = vosClusteringTechnique.runLouvainAlgorithm(random);
       else if (algorithm == 2)
@@ -121,27 +125,28 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
       else if (algorithm == 3)
         vosClusteringTechnique.runSmartLocalMovingAlgorithm(random);
       j++;
-      
+
       modularity = vosClusteringTechnique.calcQualityFunction();
-      
-      if (printOutput && (nIterations > 1))
-        Rprintf("Modularity: %.4f\n", modularity);
+
+      //if (printOutput && (nIterations > 1))
+      //  Rprintf("Modularity: %.4f\n", modularity);
       Rcpp::checkUserInterrupt();
     }
     while ((j < nIterations) && update);
-    
+
     if (modularity > maxModularity)
     {
       clustering = vosClusteringTechnique.getClustering();
       maxModularity = modularity;
     }
-    
-    if (printOutput && (nRandomStarts > 1))
+
+    /*if (printOutput && (nRandomStarts > 1))
     {
       if (nIterations == 1)
         Rprintf("Modularity: %.4f\n", modularity);
       Rcout << std::endl;
-    }
+    }*/
+    p.increment();
   }
   auto endTime = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
   if(clustering == nullptr) {
@@ -157,18 +162,18 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
     }
     else
       Rprintf("Maximum modularity in %d random starts: %.4f\n", nRandomStarts, maxModularity);
-    Rprintf("Number of communities: %d\n", clustering->getNClusters());
-    Rprintf("Elapsed time: %d seconds\n", static_cast<int>((endTime - beginTime).count() / 1000.0));
+      Rprintf("Number of communities: %d\n", clustering->getNClusters());
+      Rprintf("Elapsed time: %d seconds\n", static_cast<int>((endTime - beginTime).count() / 1000.0));
   }
-  
+
   // Return results
   clustering->orderClustersByNNodes();
   IntegerVector iv(clustering->cluster.cbegin(), clustering->cluster.cend());
   return iv;
-  } catch(std::exception &ex) {	
+  } catch(std::exception &ex) {
     forward_exception_to_r(ex);
-  } catch(...) { 
-    ::Rf_error("c++ exception (unknown reason)"); 
+  } catch(...) {
+    ::Rf_error("c++ exception (unknown reason)");
   }
   return IntegerVector(1);
 }

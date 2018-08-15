@@ -10,7 +10,7 @@ FindClusters(object, modularity.fxn, resolution, algorithm, n.start,
 
 \method{FindClusters}{Seurat}(object, graph.name = NULL,
   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
-  n.start = 100, n.iter = 10, random.seed = 0,
+  n.start = 10, n.iter = 10, random.seed = 0,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
   workflow.name = NULL)
 }
