@@ -2114,7 +2114,7 @@ SubsetData.Assay <- function(
     accept.value = accept.value,
     ...
   )
-  if (ncol(x = GetAssayData(object = object, slot == 'counts')) == ncol(x = object)) {
+  if (ncol(x = GetAssayData(object = object, slot = 'counts')) == ncol(x = object)) {
     slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
   }
   slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells]

@@ -108,7 +108,7 @@ context("Regression")
 object <- ScaleData(
   object = object,
   vars.to.regress = "nUMI",
-  features.use = rownames(x = object)[1:10],
+  features = rownames(x = object)[1:10],
   verbose = FALSE,
   model.use = "linear")
 
@@ -122,7 +122,7 @@ test_that("Linear regression works as expected", {
 object <- ScaleData(
   object,
   vars.to.regress = "nUMI",
-  features.use = rownames(x = object)[1:10],
+  features = rownames(x = object)[1:10],
   verbose = FALSE,
   model.use = "negbinom")
 
@@ -140,7 +140,7 @@ test_that("Regression error handling checks out", {
 object <- ScaleData(
   object,
   vars.to.regress = "nUMI",
-  features.use = rownames(x = object)[1:10],
+  features = rownames(x = object)[1:10],
   verbose = FALSE,
   model.use = "poisson")
 
@@ -245,3 +245,4 @@ test_that("FilterCells handles input correctly", {
   expect_error(FilterCells(object, subset.names = c("nGene", "nUMI"), low.thresholds = 20))
   expect_error(FilterCells(object, subset.names = c("nGene"), high.thresholds = c(30, 300)))
 })
+
