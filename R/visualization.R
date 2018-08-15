@@ -540,11 +540,12 @@ DimPlot <- function(
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
-#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)
-#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)
+#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
+#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio.
 #'
 #' @return A ggplot object
 #'
@@ -577,6 +578,7 @@ FeaturePlot <- function(
   label.size = 4,
   ncol = NULL,
   combine = TRUE,
+  coord.fixed = FALSE,
   ...
 ) {
   ReadPlotParams(object)
@@ -730,6 +732,9 @@ FeaturePlot <- function(
           colors = cols,
           guide = 'colorbar'
         ))
+      }
+      if (coord.fixed) {
+        plot <- plot + coord_fixed()
       }
       plots[[(length(x = features) * (i - 1)) + j]] <- plot
     }
