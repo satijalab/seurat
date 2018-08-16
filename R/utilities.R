@@ -172,18 +172,16 @@ AddModuleScore <- function(
 #' Averaging is done in non-log space.
 #'
 #' @param object Seurat object
-#' @param assay Which assay to use. Default is all assays.
-#' @param features Features to analyze. Default is all features in the assay.
-#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
-#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
-#' @param use.scale Use scaled values for gene expression
-#' @param use.counts Use count values for gene expression
-#' @param verbose Print messages and show progress bar
-#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
+#' @param features Features to analyze; default is all features
+#' @param assays A vector of assays to analyze, default is the default assay
+#' @param group.by Meta data to group by, default is identity classes
+#' @param slot Slot to pull data from
+#' @param verbose Show progress updates
+#' @param ... Ignored for now
 #'
-#' @return Returns a matrix with genes as rows, identity classes as columns.
-#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#' @return Returns a list of matrices with features as rows and identity classes as columns
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 #'
 #' @examples
@@ -191,124 +189,78 @@ AddModuleScore <- function(
 #'
 AverageExpression <- function(
   object,
-  assay = NULL,
   features = NULL,
-  return.seurat = FALSE,
-  add.ident = NULL,
-  use.scale = FALSE,
-  use.counts = FALSE,
+  assays = NULL,
+  group.by = NULL,
+  slot = 'data',
   verbose = TRUE,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object)
-  ident.orig <- Idents(object)
-  orig.levels <- levels(x = Idents(object))
-  ident.new <- c()
-  if (!all(assay %in% names(object@assays))) {
-    assay <- assay[assay %in% names(object@assays)]
-    if (length(assay) == 0) {
-      stop("None of the requested assays are present in the object")
-    } else {
-      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
-    }
+  assays <- assays %||% DefaultAssay(object = object)
+  assays <- intersect(
+    x = assays,
+    y = FilterObjects(object = object, classes.keep = 'Assay')
+  )
+  if (length(x = assays) < 1) {
+    stop("No assays provided found in the object")
   }
-  if (! is.null(x = add.ident)) {
-    new.data <- FetchData(object = object, vars = add.ident)
-    new.ident <- paste(
-      Idents(object)[rownames(x = new.data)],
-      new.data[, 1],
-      sep = '_'
-    )
-    Idents(object, cells = rownames(new.data)) <- new.ident
+  group.by <- group.by %||% 'ident'
+  group.by <- switch(
+    EXPR = group.by,
+    'ident' = Idents(object = object),
+    object[group.by, drop = TRUE]
+  )
+  if (!is.factor(x = group.by)) {
+    group.by <- factor(x = group.by)
   }
-  slot.use <- "data"
-  fxn.average <- function(x) mean(expm1(x))
-  if (use.scale) {
-    slot.use <- "scale.data"
-    fxn.average <- mean
-  }
-  if (use.counts) {
-    slot.use <- "counts"
-    fxn.average <- mean
-  }
-  data.return <- list()
-  for (i in 1:length(x = assay)) {
+  group.levels <- levels(x = group.by)
+  average <- switch(
+    EXPR = slot,
+    'data' = function(x) {
+      return(mean(x = expm1(x = x)))
+    },
+    mean
+  )
+  data.return <- vector(mode = 'list', length = length(x = assays))
+  for (i in 1:length(x = assays)) {
     data.use <- GetAssayData(
       object = object,
-      assay = assay[i],
-      slot = slot.use
+      assay = assays[i],
+      slot = slot
     )
-    features.assay <- features
-    if (length(x = intersect(x = features, y = rownames(x = data.use))) <1 ) {
+    features.assay <- features %||% rownames(x = data.use)
+    features.assay <- intersect(x = features.assay, y = rownames(x = data.use))
+    if (length(x = features.assay) < 1) {
       features.assay <- rownames(x = data.use)
     }
+    features.assay <- unique(x = features.assay)
     data.all <- data.frame(row.names = features.assay)
-    for (j in levels(x = Idents(object))) {
-      temp.cells <- WhichCells(object = object, ident.keep = j)
-      features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
-      if (length(x = temp.cells) == 1) {
-        data.temp <- (data.use[features.assay, temp.cells])
-        # transform data if needed (alternative: apply fxn.average to single value above)
-        if(!(use.scale | use.counts)) { # equivalent: slot.use == "data"
-          data.temp <- expm1(data.temp)
-        }
-      }
-      if (length(x = temp.cells) >1 ) {
-        data.temp <- apply(
-          X = data.use[features.assay, temp.cells, drop = FALSE],
-          MARGIN = 1,
-          FUN = fxn.average
+    if (verbose) {
+      message("Working on assay ", assays[i])
+      pb <- txtProgressBar(char = '=', style = 3)
+    }
+    for (j in group.levels) {
+      cells.ident <- names(x = group.by[group.by == j])
+      data.temp <- apply(
+        X = data.use[features.assay, cells.ident, drop = FALSE],
+        MARGIN = 1,
+        FUN = average
+      )
+      data.all[, j] <- data.temp
+      if (verbose) {
+        setTxtProgressBar(
+          pb = pb,
+          value = which(x = group.levels == j) / length(x = group.levels)
         )
       }
-      data.all <- cbind(data.all, data.temp)
-      colnames(x = data.all)[ncol(x = data.all)] <- j
-      if (verbose) {
-        message(paste("Finished averaging", assay[i], "for cluster", j))
-      }
-      if (i == 1) {
-        ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
-      }
     }
-    names(x = ident.new) <- levels(x = Idents(object))
     data.return[[i]] <- data.all
-    names(x = data.return)[i] <- assay[[i]]
-  }
-
-  if (return.seurat) {
-    toRet <- CreateSeuratObject(
-      counts = data.return[[1]],
-      project = "Average",
-      assay = names(x = data.return)[1],
-      ...
-    )
-
-    #for multimodal data
-    if (length(x = data.return) > 1) {
-      for (i in 2:length(x = data.return)) {
-        toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
-        # toRet <- SetAssayData(
-        #   object = toRet,
-        #   assay = names(x = data.return)[i],
-        #   slot = "counts",
-        #   new.data = data.return[[i]]
-        # )
-      }
+    names(x = data.return)[i] <- assays[[i]]
+    if (verbose) {
+      close(con = pb)
     }
-    Idents(toRet, cells = colnames(toRet)) <- ident.new[colnames(toRet)]
-    Idents(toRet) <- factor(
-      x = Idents(toRet),
-      levels = as.character(x = orig.levels),
-      ordered = TRUE
-    )
-
-    # finish setting up object if it is to be returned
-    toRet <- NormalizeData(toRet, verbose = verbose)
-    toRet <- ScaleData(toRet, verbose = verbose)
-
-    return(toRet)
-  } else {
-    return(data.return[[1]])
   }
+  return(data.return)
 }
 
 #' Match the case of character vectors
@@ -525,7 +477,7 @@ ExpMean <- function(x) {
 #' ExpSD(x = c(1, 2, 3))
 #'
 ExpSD <- function(x) {
-  return(log1p(sd(expm1(x))))
+  return(log1p(x = sd(x = expm1(x = x))))
 }
 
 #' Calculate the variance of logged values
@@ -545,7 +497,7 @@ ExpSD <- function(x) {
 #' ExpVar(x = c(1, 2, 3))
 #'
 ExpVar <- function(x) {
-  return(log1p(var(expm1(x))))
+  return(log1p(x = var(x = expm1(x = x))))
 }
 
 #' Calculate the variance to mean ratio of logged values
@@ -846,18 +798,30 @@ PackageCheck <- function(..., error = TRUE) {
 #
 # @param parent.find Regex pattern of name of parent function call to modify.
 # For example, this can be the class name for a method that was dispatched previously
-# @param param Name of parameter to modify
-# @param value Value to set for \code{param} in environement that matches \code{parent.find}
+# @param params Names of parameter to modify
+# @param values Values to set for \code{params} in environement that matches \code{parent.find}
 #
 # @return No return, modifies parent environment directly
 #
-Parenting <- function(parent.find = 'Seurat', param, value) {
-  parent.index <- grep(pattern = parent.find, x = sys.calls())
+Parenting <- function(parent.find = 'Seurat', params, values) {
+  calls <- as.character(x = sys.calls())
+  calls <- lapply(
+    X = strsplit(x = calls, split = '(', fixed = TRUE),
+    FUN = '[',
+    1
+  )
+  parent.index <- grep(pattern = parent.find, x = calls)
   if (length(x = parent.index) != 1) {
     stop("Cannot find a parent environment called ", parent.find)
   }
+  if (length(x = params) != length(x = values)) {
+    stop("Must provide equal params and values to parent")
+  }
   parent.environ <- sys.frame(which = parent.index)
-  parent.environ[[param]] <- value
+  # parent.environ[[param]] <- value
+  for (i in 1:length(x = params)) {
+    parent.environ[[params[i]]] <- value[i]
+  }
 }
 
 # Calculate the percentage of a vector above some threshold

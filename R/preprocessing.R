@@ -102,7 +102,7 @@ FilterCells <- function(
 #' @importFrom cluster clara
 #' @importFrom Matrix colSums
 #' @importFrom fitdistrplus fitdist
-#' @importFrom stats pnbinom kmeans
+#' @importFrom stats pnbinom kmeans quantile
 #' @export
 #'
 #' @examples
@@ -150,17 +150,23 @@ HTODemux <- function(
   }
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  hto_averages <- AverageExpression(
+  # object2 <- object
+  # object2@data <- object2@data[1:10, ]
+  average_hto <- AverageExpression(
     object = object,
-    assay = assay,
-    return.seurat = TRUE,
+    assays = assay,
     verbose = FALSE
   )
-  average_hto <- GetAssayData(
-    object = hto_averages,
-    assay = assay,
-    slot = "counts"
-  )
+  # hto_averages <- AverageExpression(
+  #   object = object2,
+  #   return.seurat = TRUE,
+  #   show.progress = FALSE
+  # )
+  # average_hto <- GetAssayData(
+  #   object = hto_averages,
+  #   assay = assay,
+  #   slot = "raw.data"
+  # )
   #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
