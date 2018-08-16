@@ -868,7 +868,7 @@ Parenting <- function(parent.find = 'Seurat', params, values) {
   parent.environ <- sys.frame(which = parent.index)
   # parent.environ[[param]] <- value
   for (i in 1:length(x = params)) {
-    parent.environ[[params[i]]] <- value[i]
+    parent.environ[[params[i]]] <- values[[i]]
   }
 }
 
