@@ -83,7 +83,7 @@ FilterCells <- function(
 #' Assign sample-of-origin for each cell, annotate doublets.
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.
-#' @param assay.type Name of the Hashtag assay (HTO by default)
+#' @param assay Name of the Hashtag assay (HTO by default)
 #' @param positive_quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
 #' @param init_centers Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
 #' @param k_function Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
@@ -127,10 +127,8 @@ HTODemux <- function(
     object = object,
     assay = assay,
     slot = 'counts'
-    # slot = "raw.data"
   )[, colnames(x = object)]
   hash_raw_data <- as.matrix(x = hash_raw_data)
-  # ncenters <- SetIfNull(x = init_centers, default = nrow(hash_data) + 1)
   ncenters <- init_centers %||% nrow(x = hash_data) + 1
   if (k_function == "kmeans") {
     hto_init_clusters <- kmeans(
@@ -140,11 +138,6 @@ HTODemux <- function(
     )
     #identify positive and negative signals for all HTO
     Idents(object = object, cells = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
-    # object <- SetIdent(
-    #   object = object,
-    #   cells = names(hto_init_clusters$cluster),
-    #   ident.use = hto_init_clusters$cluster
-    # )
   } else {
     #use fast k-medoid clustering
     hto_init_clusters <- clara(
@@ -154,42 +147,35 @@ HTODemux <- function(
     )
     #identify positive and negative signals for all HTO
     Idents(object = object, cells = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
-    # object <- SetIdent(
-    #   object = object,
-    #   cells = names(x = hto_init_clusters$clustering),
-    #   ident.use = hto_init_clusters$clustering
-    # )
   }
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  object2 <- object
-  object2@data <- object2@data[1:10, ]
   hto_averages <- AverageExpression(
-    object = object2,
+    object = object,
+    assay = assay,
     return.seurat = TRUE,
-    show.progress = FALSE
+    verbose = FALSE
   )
   average_hto <- GetAssayData(
     object = hto_averages,
     assay = assay,
-    slot = "raw.data"
+    slot = "counts"
   )
   #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
   for (hto_iter in rownames(x = hash_data)) {
-    hto_values <- hash_raw_data[hto_iter, object@cell.names]
+    hto_values <- hash_raw_data[hto_iter, colnames(object)]
     #commented out if we take all but the top cluster as background
     #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
-    hto_values_use <- hto_values[WhichCells(object = object, ident = which.min(x = average_hto[hto_iter, ])
-    )]
+    hto_values_use <- hto_values[WhichCells(object = object, ident.keep = which.min(x = average_hto[hto_iter, ]))]
 
     hto_fit <- fitdist(hto_values_use, "nbinom")
     hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
     hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
     if (verbose) {
-      print(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
+      message(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
     }
   }
   # now assign cells to HTO based on discretized values
@@ -234,11 +220,11 @@ HTODemux <- function(
   )
   object <- AddMetaData(object = object, metadata = classification_metadata)
   if (verbose) {
-    print(x = table(object@meta.data$hto_classification_global))
+    message(x = table(object@meta.data$hto_classification_global))
   }
-  object <- SetAllIdent(object = object,id = "hto_classification")
-  object <- SetIdent(object,cells = WhichCells(object,subset.name = "hto_classification_global",accept.value = "Doublet"),ident.use = "Doublet")
-  object@meta.data$hash_ID <- object@ident[rownames(object@meta.data)]
+  Idents(object) <- "hto_classification"
+  Idents(object, cells = rownames(object@meta.data[object@meta.data$hto_classification_global == "Doublet", ])) <- "Doublet"
+  object@meta.data$hash_ID <- Idents(object)
   return(object)
 }
 
