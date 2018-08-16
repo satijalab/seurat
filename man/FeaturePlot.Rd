@@ -9,7 +9,8 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   cols = c("lightgrey", "blue"), pt.size = 1, min.cutoff = NA,
   max.cutoff = NA, reduction = "tsne", group.by = NULL,
   split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
-  label.size = 4, ncol = NULL, combine = TRUE, ...)
+  label.size = 4, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
+  ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,9 +27,9 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)}
+\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
 
-\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the antile (eg, 1, 10)}
+\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
 
 \item{reduction}{Which dimensionality reduction to use}
 
@@ -51,6 +52,8 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 \item{ncol}{Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio.}
 
 \item{...}{Ignored for now}
 }
