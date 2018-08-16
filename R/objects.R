@@ -3323,6 +3323,7 @@ UpdateDimReduction <- function(old.dr, assay){
     feature.loadings <- old.dr[[i]]@gene.loadings %||% matrix()
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
+    new.jackstraw <- UpdateJackstraw(old.dr[[i]]@jackstraw)
 
     new.dr[[i]] <- new(
       Class = 'DimReduc',
@@ -3331,11 +3332,41 @@ UpdateDimReduction <- function(old.dr, assay){
       assay.used = assay,
       stdev = as(stdev, 'numeric'),
       key = as(old.dr[[i]]@key, 'character'),
-      jackstraw = old.dr[[i]]@jackstraw,
+      jackstraw = new.jackstraw,
       misc = as(misc, 'list')
     )
   }
   return(new.dr)
+}
+
+# Update jackstraw
+# 
+# @param old.jackstraw
+# 
+UpdateJackstraw <- function(old.jackstraw) {
+  if (is.null(old.jackstraw)) {
+    new.jackstraw <- new(
+      Class = 'JackStrawData',
+      empirical.p.values = matrix(),
+      fake.reduction.scores = matrix(),
+      empirical.p.values.full = matrix(),
+      overall.p.values = matrix()
+    )
+  } else {
+    if(.hasSlot(old.jackstraw, 'overall.p.values')) {
+      overall.p <- old.jackstraw@overall.p.values %||% matrix()
+    } else {
+      overall.p <- matrix()
+    }
+    new.jackstraw <- new(
+      Class = 'JackStrawData',
+      empirical.p.values = old.jackstraw@emperical.p.value %||% matrix(),
+      fake.reduction.scores = old.jackstraw@fake.pc.scores %||% matrix(),
+      empirical.p.values.full = old.jackstraw@emperical.p.value.full %||% matrix(),
+      overall.p.values = overall.p
+    )
+  }
+  return(new.jackstraw)
 }
 
 
