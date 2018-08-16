@@ -169,9 +169,8 @@ HTODemux <- function(
     hto_values <- hash_raw_data[hto_iter, colnames(object)]
     #commented out if we take all but the top cluster as background
     #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
-    hto_values_use <- hto_values[WhichCells(object = object, ident.keep = which.min(x = average_hto[hto_iter, ]))]
-
-    hto_fit <- fitdist(hto_values_use, "nbinom")
+    hto_values_use <- hto_values[WhichCells(object = object, ident.keep = levels(Idents(object))[[which.min(x = average_hto[hto_iter, ])]])]
+    hto_fit <- suppressWarnings(fitdist(hto_values_use, "nbinom"))
     hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
     hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
     if (verbose) {
@@ -219,9 +218,6 @@ HTODemux <- function(
     hto_classification_global
   )
   object <- AddMetaData(object = object, metadata = classification_metadata)
-  if (verbose) {
-    message(x = table(object@meta.data$hto_classification_global))
-  }
   Idents(object) <- "hto_classification"
   Idents(object, cells = rownames(object@meta.data[object@meta.data$hto_classification_global == "Doublet", ])) <- "Doublet"
   object@meta.data$hash_ID <- Idents(object)
