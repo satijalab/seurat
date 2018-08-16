@@ -11,6 +11,8 @@ HTODemux(object, assay = "HTO", positive_quantile = 0.99,
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.}
 
+\item{assay}{Name of the Hashtag assay (HTO by default)}
+
 \item{positive_quantile}{The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99}
 
 \item{init_centers}{Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)}
@@ -22,8 +24,6 @@ HTODemux(object, assay = "HTO", positive_quantile = 0.99,
 \item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"}
 
 \item{verbose}{Prints the output}
-
-\item{assay.type}{Name of the Hashtag assay (HTO by default)}
 }
 \value{
 The Seurat object with the following demultiplexed information stored in the meta data:
