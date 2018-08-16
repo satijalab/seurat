@@ -893,6 +893,11 @@ ScaleData.default <- function(
   scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
   dimnames(x = scaled.data) <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
+  Parenting(
+    parent.find = "ScaleData.Assay",
+    params = c("features", "min.cells.to.block"),
+    values = list(features, min.cells.to.block)
+  )
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
@@ -1002,6 +1007,11 @@ ScaleData.Assay <- function(
       verbose = verbose,
       ...
     )
+  )
+  Parenting(
+    parent.find = "ScaleData.Seurat",
+    params = c("features", "min.cells.to.block", "use.umi"),
+    values = list(features, min.cells.to.block, use.umi)
   )
   return(object)
 }
