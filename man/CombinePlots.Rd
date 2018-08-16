@@ -4,14 +4,14 @@
 \alias{CombinePlots}
 \title{Combine ggplot2-based plots into a single plot}
 \usage{
-CombinePlots(plots, ncol = NULL, position = NULL, ...)
+CombinePlots(plots, ncol = NULL, legend = NULL, ...)
 }
 \arguments{
 \item{plots}{A list of gg objects}
 
 \item{ncol}{Number of columns}
 
-\item{position}{Combine legends into a single legend
+\item{legend}{Combine legends into a single legend
 choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 to leave legends as they are}
 
@@ -37,7 +37,7 @@ plots <- FeaturePlot(
 )
 CombinePlots(
   plots = plots,
-  position = 'none',
+  legend = 'none',
   nrow = length(x = unique(x = pbmc_small['group', drop = TRUE]))
 )
 

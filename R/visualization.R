@@ -146,7 +146,7 @@ DimHeatmap <- function(
     plots <- CombinePlots(
       plots = plots,
       ncol = ncol,
-      position = 'right'
+      legend = 'right'
     )
   }
   return(plots)
@@ -761,7 +761,7 @@ FeaturePlot <- function(
     plots <- CombinePlots(
       plots = plots,
       ncol = ncol,
-      position = legend,
+      legend = legend,
       nrow = split.by %iff% length(x = levels(x = data$split))
     )
   }
@@ -1193,7 +1193,7 @@ VizDimReduction <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, position = NULL)
+    plots <- CombinePlots(plots = plots, ncol = ncol, legend = NULL)
   }
   return(plots)
 }
@@ -1322,7 +1322,7 @@ JackStrawPlot <- function(
 #'
 #' @param plots A list of gg objects
 #' @param ncol Number of columns
-#' @param position Combine legends into a single legend
+#' @param legend Combine legends into a single legend
 #' choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
 #' to leave legends as they are
 #' @param ... Extra parameters passed to plot_grid
@@ -1346,15 +1346,15 @@ JackStrawPlot <- function(
 #' )
 #' CombinePlots(
 #'   plots = plots,
-#'   position = 'none',
+#'   legend = 'none',
 #'   nrow = length(x = unique(x = pbmc_small['group', drop = TRUE]))
 #' )
 #'
-CombinePlots <- function(plots, ncol = NULL, position = NULL, ...) {
+CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
   plots.combined <- if (length(x = plots) > 1) {
-    if (!is.null(x = position)) {
-      if (position != 'none') {
-        legend <- get_legend(plot = plots[[1]] + theme(legend.position = position))
+    if (!is.null(x = legend)) {
+      if (legend != 'none') {
+        plot.legend <- get_legend(plot = plots[[1]] + theme(legend.position = legend))
       }
       plots <- lapply(
         X = plots,
@@ -1369,18 +1369,18 @@ CombinePlots <- function(plots, ncol = NULL, position = NULL, ...) {
       align = 'hv',
       ...
     )
-    if (!is.null(x = position)) {
+    if (!is.null(x = legend)) {
       plots.combined <- switch(
-        EXPR = position,
+        EXPR = legend,
         'bottom' = plot_grid(
           plots.combined,
-          legend,
+          plot.legend,
           ncol = 1,
           rel_heights = c(1, 0.2)
         ),
         'right' = plot_grid(
           plots.combined,
-          legend,
+          plot.legend,
           rel_widths = c(3, 0.3)
         ),
         plots.combined
@@ -2394,7 +2394,7 @@ ExIPlot <- function(
     }
   )
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, position = 'none')
+    plots <- CombinePlots(plots = plots, ncol = ncol, legend = 'none')
   }
   return(plots)
 }
