@@ -1318,6 +1318,81 @@ JackStrawPlot <- function(
 # Exported utility functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Combine ggplot2-based plots into a single plot
+#'
+#' @param plots A list of gg objects
+#' @param ncol Number of columns
+#' @param position Combine legends into a single legend
+#' choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
+#' to leave legends as they are
+#' @param ... Extra parameters passed to plot_grid
+#'
+#' @return A combined plot
+#'
+#' @importFrom cowplot plot_grid get_legend
+#' @export
+#'
+#' @examples
+#' pbmc_small['group'] <- sample(
+#'   x = c('g1', 'g2'),
+#'   size = ncol(x = pbmc_small),
+#'   replace = TRUE
+#' )
+#' plots <- FeaturePlot(
+#'   object = pbmc_small,
+#'   features = c('MS4A1', 'FCN1'),
+#'   split.by = 'group',
+#'   combine = FALSE
+#' )
+#' CombinePlots(
+#'   plots = plots,
+#'   position = 'none',
+#'   nrow = length(x = unique(x = pbmc_small['group', drop = TRUE]))
+#' )
+#'
+CombinePlots <- function(plots, ncol = NULL, position = NULL, ...) {
+  plots.combined <- if (length(x = plots) > 1) {
+    if (!is.null(x = position)) {
+      if (position != 'none') {
+        legend <- get_legend(plot = plots[[1]] + theme(legend.position = position))
+      }
+      plots <- lapply(
+        X = plots,
+        FUN = function(x) {
+          return(x + NoLegend())
+        }
+      )
+    }
+    plots.combined <- plot_grid(
+      plotlist = plots,
+      ncol = ncol,
+      align = 'hv',
+      ...
+    )
+    if (!is.null(x = position)) {
+      plots.combined <- switch(
+        EXPR = position,
+        'bottom' = plot_grid(
+          plots.combined,
+          legend,
+          ncol = 1,
+          rel_heights = c(1, 0.2)
+        ),
+        'right' = plot_grid(
+          plots.combined,
+          legend,
+          rel_widths = c(3, 0.3)
+        ),
+        plots.combined
+      )
+    }
+    plots.combined
+  } else {
+    plots[[1]]
+  }
+  return(plots.combined)
+}
+
 #' Feature Locator
 #'
 #' Select points on a scatterplot and get information about them
@@ -2117,62 +2192,6 @@ BlendPlot <- function(
     p <- p + coord_fixed()
   }
   return(p)
-}
-
-# Combine ggplot2-based plots into a single plot
-#
-# @param plots A list of gg objects
-# @param ncol Number of columns
-# @param position Combine legends into a single legend
-# choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
-# to leave legends as they are
-# @param ... Extra parameters passed to plot_grid
-#
-# @return A combined plot
-#
-#' @importFrom cowplot plot_grid get_legend
-#
-CombinePlots <- function(plots, ncol, position = NULL, ...) {
-  plots.combined <- if (length(x = plots) > 1) {
-    if (!is.null(x = position)) {
-      if (position != 'none') {
-        legend <- get_legend(plot = plots[[1]] + theme(legend.position = position))
-      }
-      plots <- lapply(
-        X = plots,
-        FUN = function(x) {
-          return(x + NoLegend())
-        }
-      )
-    }
-    plots.combined <- plot_grid(
-      plotlist = plots,
-      ncol = ncol,
-      align = 'hv',
-      ...
-    )
-    if (!is.null(x = position)) {
-      plots.combined <- switch(
-        EXPR = position,
-        'bottom' = plot_grid(
-          plots.combined,
-          legend,
-          ncol = 1,
-          rel_heights = c(1, 0.2)
-        ),
-        'right' = plot_grid(
-          plots.combined,
-          legend,
-          rel_widths = c(3, 0.3)
-        ),
-        plots.combined
-      )
-    }
-    plots.combined
-  } else {
-    plots[[1]]
-  }
-  return(plots.combined)
 }
 
 globalVariables(
