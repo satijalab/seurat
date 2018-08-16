@@ -164,60 +164,62 @@ AddModuleScore <- function(
   return(object)
 }
 
-# Averaged gene expression by identity class
-#
-# Returns gene expression for an 'average' single cell in each identity class
-#
-# Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
-# Averaging is done in non-log space.
-#
-# @param object Seurat object
-# @param genes.use Genes to analyze. Default is all genes.
-# @param return.seurat Whether to return the data as a Seurat object. Default is false.
-# @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
-# @param use.scale Use scaled values for gene expression
-# @param use.raw Use raw values for gene expression
-# @param show.progress Show progress bar (default is T)
-# @param ... Arguments to be passed to methods such as \code{Seurat}
-#
-# @return Returns a matrix with genes as rows, identity classes as columns.
-#
-# @export
-#
-# @examples
-# head(AverageExpression(object = pbmc_small))
-#
+#' Averaged feature expression by identity class
+#'
+#' Returns expression for an 'average' single cell in each identity class
+#'
+#' Output is in log-space when \code{return.seurat = TRUE}, otherwise it's in non-log space.
+#' Averaging is done in non-log space.
+#'
+#' @param object Seurat object
+#' @param assay Which assay to use. Default is all assays.
+#' @param features Features to analyze. Default is all features in the assay.
+#' @param return.seurat Whether to return the data as a Seurat object. Default is FALSE.
+#' @param add.ident Place an additional label on each cell prior to averaging (very useful if you want to observe cluster averages, separated by replicate, for example).
+#' @param use.scale Use scaled values for gene expression
+#' @param use.counts Use count values for gene expression
+#' @param verbose Print messages and show progress bar
+#' @param ... Arguments to be passed to methods such as \code{\link{CreateSeuratObject}}
+#'
+#' @return Returns a matrix with genes as rows, identity classes as columns.
+#' If return.seurat is TRUE, returns an object of class \code{\link{Seurat}}.
+#'
+#' @export
+#'
+#' @examples
+#' head(AverageExpression(object = pbmc_small))
+#'
 AverageExpression <- function(
   object,
-  genes.use = NULL,
+  assay = NULL,
+  features = NULL,
   return.seurat = FALSE,
   add.ident = NULL,
   use.scale = FALSE,
-  use.raw = FALSE,
-  show.progress = TRUE,
+  use.counts = FALSE,
+  verbose = TRUE,
   ...
 ) {
-
-  ident.orig <- object@ident
-  orig.levels <- levels(x = object@ident)
+  assay <- assay %||% DefaultAssay(object)
+  ident.orig <- Idents(object)
+  orig.levels <- levels(x = Idents(object))
   ident.new <- c()
+  if (!all(assay %in% names(object@assays))) {
+    assay <- assay[assay %in% names(object@assays)]
+    if (length(assay) == 0) {
+      stop("None of the requested assays are present in the object")
+    } else {
+      warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
+    }
+  }
   if (! is.null(x = add.ident)) {
-    new.data <- FetchData(object = object, vars.all = add.ident)
+    new.data <- FetchData(object = object, vars = add.ident)
     new.ident <- paste(
-      object@ident[rownames(x = new.data)],
+      Idents(object)[rownames(x = new.data)],
       new.data[, 1],
       sep = '_'
     )
-    object <- SetIdent(
-      object = object,
-      cells = rownames(x = new.data),
-      ident.use = new.ident
-    )
-  }
-  if (return.seurat) {
-    assays.use <- c("RNA", names(x = object@assay))
-  } else {
-    assays.use <- "RNA"
+    Idents(object, cells = rownames(new.data)) <- new.ident
   }
   slot.use <- "data"
   fxn.average <- function(x) mean(expm1(x))
@@ -225,89 +227,83 @@ AverageExpression <- function(
     slot.use <- "scale.data"
     fxn.average <- mean
   }
-  if (use.raw) {
-    slot.use <- "raw.data"
+  if (use.counts) {
+    slot.use <- "counts"
     fxn.average <- mean
   }
   data.return <- list()
-  for (i in 1:length(x = assays.use)) {
+  for (i in 1:length(x = assay)) {
     data.use <- GetAssayData(
       object = object,
-      assay.type = assays.use[i],
+      assay = assay[i],
       slot = slot.use
     )
-    genes.assay <- genes.use
-    if (length(x = intersect(x = genes.use,y = rownames(x = data.use))) <1 ) {
-      genes.assay <- rownames(x = data.use)
+    features.assay <- features
+    if (length(x = intersect(x = features, y = rownames(x = data.use))) <1 ) {
+      features.assay <- rownames(x = data.use)
     }
-    data.all <- data.frame(row.names = genes.assay)
-    for (j in levels(x = object@ident)) {
-      temp.cells <- WhichCells(object = object, ident = j)
-      genes.assay <- unique(x = intersect(x = genes.assay, y = rownames(x = data.use)))
+    data.all <- data.frame(row.names = features.assay)
+    for (j in levels(x = Idents(object))) {
+      temp.cells <- WhichCells(object = object, ident.keep = j)
+      features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
       if (length(x = temp.cells) == 1) {
-        data.temp <- (data.use[genes.assay, temp.cells])
+        data.temp <- (data.use[features.assay, temp.cells])
         # transform data if needed (alternative: apply fxn.average to single value above)
-        if(!(use.scale | use.raw)) { # equivalent: slot.use == "data"
+        if(!(use.scale | use.counts)) { # equivalent: slot.use == "data"
           data.temp <- expm1(data.temp)
         }
       }
       if (length(x = temp.cells) >1 ) {
         data.temp <- apply(
-          X = data.use[genes.assay, temp.cells, drop = FALSE],
+          X = data.use[features.assay, temp.cells, drop = FALSE],
           MARGIN = 1,
           FUN = fxn.average
         )
       }
       data.all <- cbind(data.all, data.temp)
       colnames(x = data.all)[ncol(x = data.all)] <- j
-      if (show.progress) {
-        message(paste("Finished averaging", assays.use[i], "for cluster", j))
+      if (verbose) {
+        message(paste("Finished averaging", assay[i], "for cluster", j))
       }
-      if(i == 1) {
+      if (i == 1) {
         ident.new <- c(ident.new, as.character(x = ident.orig[temp.cells[1]]))
       }
     }
-    names(x = ident.new) <- levels(x = object@ident)
+    names(x = ident.new) <- levels(x = Idents(object))
     data.return[[i]] <- data.all
-    names(x = data.return)[i] <- assays.use[[i]]
+    names(x = data.return)[i] <- assay[[i]]
   }
 
   if (return.seurat) {
     toRet <- CreateSeuratObject(
-      raw.data = data.return[[1]],
+      counts = data.return[[1]],
       project = "Average",
-      min.cells = 0,
-      min.genes = 0,
-      is.expr = 0,
+      assay = names(x = data.return)[1],
       ...
     )
 
     #for multimodal data
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
-        toRet <- SetAssayData(
-          object = toRet,
-          assay.type = names(x = data.return)[i],
-          slot = "raw.data",
-          new.data = data.return[[i]]
-        )
+        toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
+        # toRet <- SetAssayData(
+        #   object = toRet,
+        #   assay = names(x = data.return)[i],
+        #   slot = "counts",
+        #   new.data = data.return[[i]]
+        # )
       }
     }
-    toRet <- SetIdent(
-      object = toRet,
-      cells = toRet@cell.names,
-      ident.use = ident.new[toRet@cell.names]
-    )
-    toRet@ident <- factor(
-      x = toRet@ident,
+    Idents(toRet, cells = colnames(toRet)) <- ident.new[colnames(toRet)]
+    Idents(toRet) <- factor(
+      x = Idents(toRet),
       levels = as.character(x = orig.levels),
       ordered = TRUE
     )
 
     # finish setting up object if it is to be returned
-
-    toRet <- NormalizeData(toRet, display.progress = show.progress)
-    toRet <- ScaleData(toRet, display.progress = show.progress)
+    toRet <- NormalizeData(toRet, verbose = verbose)
+    toRet <- ScaleData(toRet, verbose = verbose)
 
     return(toRet)
   } else {
