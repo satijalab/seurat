@@ -150,17 +150,11 @@ HTODemux <- function(
   }
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  hto_averages <- AverageExpression(
+  average_hto <- AverageExpression(
     object = object,
     assay = assay,
-    return.seurat = TRUE,
     verbose = FALSE
-  )
-  average_hto <- GetAssayData(
-    object = hto_averages,
-    assay = assay,
-    slot = "counts"
-  )
+  )[[assay]]
   #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
