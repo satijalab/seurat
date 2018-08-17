@@ -351,37 +351,42 @@ Read10X <- function(data.dir = NULL){
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
 #' returns a list of sparse matrices (one per genome).
 #'
-#' @importFrom hdf5r H5File
+# @importFrom hdf5r H5File
 #'
 #' @export
 #'
-Read10X_h5 <- function(filename, ensg.names = FALSE){
-  if(!file.exists(filename)){
+Read10X_h5 <- function(filename, ensg.names = FALSE) {
+  if (!require(hdf5r)) {
+    stop("Please install hdf5r to read HDF5 files")
+  }
+  if (!file.exists(filename)) {
     stop("File not found")
   }
   infile <- H5File$new(filename)
   genomes <- names(infile)
   output <- list()
-  for(genome in genomes){
+  for (genome in genomes) {
     counts <- infile[[paste0(genome, '/data')]]
     indices <- infile[[paste0(genome, '/indices')]]
     indptr <- infile[[paste0(genome, '/indptr')]]
     shp <- infile[[paste0(genome, '/shape')]]
-    if(ensg.names){
+    if (ensg.names) {
       gene_names <- infile[[paste0(genome, '/genes')]][]
     } else {
       gene_names <- make.unique(infile[[paste0(genome, '/gene_names')]][])
     }
     barcodes <- infile[[paste0(genome, '/barcodes')]]
-    sparse.mat <- sparseMatrix(i = indices[] + 1, p = indptr[],
-                               x = as.numeric(counts[]),
-                               dims = shp[], giveCsparse = FALSE)
+    sparse.mat <- sparseMatrix(
+      i = indices[] + 1, p = indptr[],
+      x = as.numeric(counts[]),
+      dims = shp[], giveCsparse = FALSE
+    )
     rownames(sparse.mat) <- gene_names
     colnames(sparse.mat) <- barcodes[]
     output[[genome]] <- sparse.mat
   }
   infile$close_all()
-  if(length(output) == 1) {
+  if (length(output) == 1) {
     return(output[[genome]])
   } else{
     return(output)

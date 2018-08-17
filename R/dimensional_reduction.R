@@ -879,7 +879,7 @@ RunPCA.Seurat <- function(
   return(object)
 }
 
-#' @importFrom tsne tsne
+# @importFrom tsne tsne
 #' @importFrom Rtsne Rtsne
 #'
 #' @export
@@ -906,8 +906,8 @@ RunTSNE.matrix <- function(
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
-    'tsne' = tsne(X = object, k = dim.embed, ...),
-    stop("Invalid tSNE method: please choose from 'Rtsne', 'FIt-SNE', or 'tsne'")
+    # 'tsne' = tsne(X = object, k = dim.embed, ...),
+    stop("Invalid tSNE method: please choose from 'Rtsne' or 'FIt-SNE'")
   )
   if (add.iter > 0) {
     tsne.data <- tsne(
@@ -990,44 +990,30 @@ RunTSNE.Seurat <- function(
   if (length(dims) == 1 && !is.null(workflow.name)) {
     dims <- 1:dims
   }
-  tsne.reduction <- if (tsne.method == 'Rtsne') {
-    if (!is.null(x = distance.matrix)) {
-      RunTSNE(
-        object = as.matrix(x = distance.matrix),
-        assay = DefaultAssay(object = object),
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        is_distance = TRUE,
-        ...
-      )
-    } else if (!is.null(x = features)) {
-      RunTSNE(
-        object = as.matrix(x = GetAssayData(object = object)[features, ]),
-        assay = DefaultAssay(object = object),
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        pca = FALSE,
-        ...
-      )
-    } else {
-      RunTSNE(
-        object = object[[reduction]],
-        dims = dims,
-        seed.use = seed.use,
-        tsne.method = tsne.method,
-        add.iter = add.iter,
-        dim.embed = dim.embed,
-        reduction.key = reduction.key,
-        pca = FALSE,
-        ...
-      )
-    }
+  tsne.reduction <- if (!is.null(x = distance.matrix)) {
+    RunTSNE(
+      object = as.matrix(x = distance.matrix),
+      assay = DefaultAssay(object = object),
+      seed.use = seed.use,
+      tsne.method = tsne.method,
+      add.iter = add.iter,
+      dim.embed = dim.embed,
+      reduction.key = reduction.key,
+      is_distance = TRUE,
+      ...
+    )
+  } else if (!is.null(x = features)) {
+    RunTSNE(
+      object = as.matrix(x = GetAssayData(object = object)[features, ]),
+      assay = DefaultAssay(object = object),
+      seed.use = seed.use,
+      tsne.method = tsne.method,
+      add.iter = add.iter,
+      dim.embed = dim.embed,
+      reduction.key = reduction.key,
+      pca = FALSE,
+      ...
+    )
   } else {
     RunTSNE(
       object = object[[reduction]],
@@ -1037,6 +1023,7 @@ RunTSNE.Seurat <- function(
       add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
+      pca = FALSE,
       ...
     )
   }
