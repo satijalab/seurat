@@ -2340,8 +2340,8 @@ EvaluateCCs <- function(
 #
 ExIPlot <- function(
   object,
-  type = 'violin',
   features,
+  type = 'violin',
   idents = NULL,
   ncol = NULL,
   sort = FALSE,
@@ -2349,6 +2349,7 @@ ExIPlot <- function(
   same.y.lims = FALSE,
   adjust = 1,
   cols = NULL,
+  pt.size = 0,
   group.by = NULL,
   log = FALSE,
   combine = TRUE,
@@ -2372,7 +2373,7 @@ ExIPlot <- function(
   } else {
     object[group.by][cells, , drop = TRUE]
   }
-  feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
+  # feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
@@ -2388,7 +2389,8 @@ ExIPlot <- function(
         y.max = y.max,
         adjust = adjust,
         cols = cols,
-        feature.names = feature.names,
+        pt.size = pt.size,
+        # feature.names = feature.names,
         log = log
       ))
     }
@@ -2737,7 +2739,6 @@ SingleCorPlot <- function(
   data,
   col.by = NULL,
   cols = NULL,
-  #cols = 1,
   pt.size = 1,
   smooth = FALSE,
   legend.title = NULL,
@@ -2928,26 +2929,27 @@ SingleDimPlot <- function(
 #' @importFrom stats rnorm
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
-#' @importFrom ggplot2 ggplot aes_string guides guide_legend theme labs geom_violin ylim
-#' scale_fill_manual scale_y_discrete scale_y_log10 scale_x_log10 scale_x_continuous element_line
+#' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim
+#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
 #' @importFrom cowplot theme_cowplot
 #'
 SingleExIPlot <- function(
-  feature,
-  type = 'violin',
   data,
   idents,
-  sort,
-  y.max,
-  adjust.use,
-  cols,
-  feature.names,
-  log,
+  type = 'violin',
+  sort = FALSE,
+  y.max = NULL,
+  adjust.use = 1,
+  pt.size = 0,
+  cols = NULL,
+  log = FALSE,
   ...
 ) {
   set.seed(seed = 42)
-  feature.name <- colnames(x = data)
-  feature <- colnames(x = data) <- "feature"
+  if (!is.data.frame(x = data) || ncol(x = data) != 1) {
+    stop("'SingleExIPlot requires a data frame with 1 column")
+  }
+  feature <- colnames(x = data)
   data$ident <- idents
   if (sort) {
     data$ident <- factor(
@@ -2970,62 +2972,57 @@ SingleExIPlot <- function(
   } else{
     data[, feature] <- data[, feature] + noise
   }
-  axis.label <- if (feature %in% feature.names) {
-    if (log) {
-      "Log Expression level"
-    } else {
-      "Expression level"
-    }
-  } else {
-    ""
-  }
+  axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
   y.max <- y.max %||% max(data[, feature])
-  plot <- ggplot(data = data, mapping = aes_string(fill = 'ident')) +
-    guides(fill = guide_legend(title = NULL)) +
-    NoGrid() +
-    labs(title = feature.name)
-  plot <- switch(
+  switch(
     EXPR = type,
     'violin' = {
-      plot <- plot +
-        geom_violin(
-          scale = 'width',
-          adjust = adjust.use,
-          trim = TRUE,
-          mapping = aes_string(x = 'ident', y = 'feature')
-        ) +
-        labs(x = 'Identity', y = axis.label)
-      plot <- plot + if (log) {
-        scale_y_log10()
-      } else {
-        ylim(min(data[, feature]), y.max)
-      }
-      plot <- plot + theme_cowplot()
-      plot <- plot + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-      plot
+      x <- 'ident'
+      y <- feature
+      xlab <- 'Identity'
+      ylab <- axis.label
+      geom <- list(
+        geom_violin(scale = 'width', adjust = adjust.use, trim = TRUE),
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      )
+      jitter <- geom_jitter(height = 0, size = pt.size)
+      log.scale <- scale_y_log10()
+      axis.scale <- ylim
     },
     'ridge' = {
-      plot <- plot +
-        geom_density_ridges(
-          scale = 4,
-          mapping = aes_string(x = 'feature', y = 'ident')
-        ) +
-        theme_ridges() +
-        labs(x = axis.label, y = 'Identity') + #, title = feature.name) +
-        scale_y_discrete(expand = c(0.01, 0)) +   # will generally have to set the `expand` option
-        scale_x_continuous(expand = c(0, 0))      # for both axes to remove unneeded padding
-      if (log) {
-        plot <- plot + scale_x_log10()
+      x <- feature
+      y <- 'ident'
+      xlab <- axis.label
+      ylab <- 'Identity'
+      geom <- list(
+        geom_density_ridges(scale = 4),
+        theme_ridges(),
+        scale_y_discrete(expand = c(0.01, 0)),
+        scale_x_continuous(expand = c(0, 0))
+      )
+      jitter <- geom_jitter(width = 0, size = pt.size)
+      log.scale <- scale_x_log10()
+      axis.scale <- function(...) {
+        invisible(x = NULL)
       }
-      plot <- plot + theme_cowplot()
-      plot
     },
     stop("Unknown plot type: ", type)
   )
+  plot <- ggplot(data = data, mapping = aes_string(x = x, y = y, fill = 'ident')) +
+    labs(x = xlab, y = ylab, title = feature, fill = NULL) +
+    theme_cowplot()
+  plot <- do.call(what = '+', args = list(plot, geom))
+  plot <- plot + if (log) {
+    log.scale
+  } else {
+    axis.scale(min(data[, feature]), y.max)
+  }
+  if (pt.size > 0) {
+    plot <- plot + jitter
+  }
   if (!is.null(x = cols)) {
     plot <- plot + scale_fill_manual(values = cols)
   }
-
   return(plot)
 }
 
