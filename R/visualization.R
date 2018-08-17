@@ -530,6 +530,85 @@ DimPlot <- function(
   return(plot)
 }
 
+#' Plot tSNE
+#' 
+#' Plot cells using tSNE dimensions
+#' 
+#' @param object A Seurat object
+#' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
+#' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param \dots Additional arguments passed to \code{\link{DimPlot}}
+#' 
+#' @seealso DimPlot
+#' 
+#' @examples
+#' TSNEPlot(object = pbmc_small)
+#' 
+TSNEPlot <- function(
+  object,
+  dims = c(1, 2),
+  group.by = NULL,
+  cols = NULL,
+  ...
+) {
+  return(DimPlot(object = object, reduction = 'tsne',
+                 dims = dims, group.by = group.by, cols = cols, ...))
+}
+
+
+#' Plot PCA
+#' 
+#' Plot cells using PCA dimensions
+#' 
+#' @param object A Seurat object
+#' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
+#' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param \dots Additional arguments passed to \code{\link{DimPlot}}
+#' 
+#' @seealso DimPlot
+#' 
+#' @examples
+#' PCAPlot(object = pbmc_small)
+#' 
+PCAPlot <- function(
+  object,
+  dims = c(1, 2),
+  group.by = NULL,
+  cols = NULL,
+  ...
+  ) {
+  return(DimPlot(object = object, reduction = 'pca',
+                 dims = dims, group.by = group.by, cols = cols, ...))
+}
+
+#' Plot UMAP
+#' 
+#' Plot cells using UMAP dimensions
+#' 
+#' @param object A Seurat object
+#' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
+#' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param \dots Additional arguments passed to \code{\link{DimPlot}}
+#' 
+#' @seealso DimPlot
+#' 
+#' @examples
+#' UMAPPlot(object = pbmc_small)
+#' 
+UMAPPlot <- function(
+  object,
+  dims = c(1, 2),
+  group.by = NULL,
+  cols = NULL,
+  ...
+) {
+  return(DimPlot(object = object, reduction = 'umap',
+                 dims = dims, group.by = group.by, cols = cols, ...))
+}
+
 #' Visualize 'features' on a dimensional reduction plot
 #'
 #' Colors single cells on a dimensional reduction plot according to a 'feature'
