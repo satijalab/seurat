@@ -2400,7 +2400,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 "$.Seurat" <- function(x, i, ...) {
-  return(x[i])
+  return(x[i, drop = TRUE])
 }
 
 #' @export
@@ -3340,9 +3340,9 @@ UpdateDimReduction <- function(old.dr, assay){
 }
 
 # Update jackstraw
-# 
+#
 # @param old.jackstraw
-# 
+#
 UpdateJackstraw <- function(old.jackstraw) {
   if (is.null(old.jackstraw)) {
     new.jackstraw <- new(
