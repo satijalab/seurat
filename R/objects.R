@@ -2772,7 +2772,7 @@ merge.Seurat <- function(
     Class = 'Seurat',
     assays = combined.assays,
     meta.data = combined.meta.data,
-    active.assay = assays.to.merge[1],
+    active.assay = DefaultAssay(object = x),
     active.ident = new.idents,
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
@@ -3090,16 +3090,17 @@ setMethod(
       FUN.VALUE = integer(length = 1L)
     ))
     num.assays <- length(x = assays)
-    cat("An object of class", class(x = object))
+    cat("An object of class", class(x = object), "\n")
     cat(
-      '\n',
       nfeatures,
       'features across',
       ncol(x = object),
       'samples within',
       num.assays,
-      ifelse(test = num.assays == 1, yes = 'assay', no = 'assays')
+      ifelse(test = num.assays == 1, yes = 'assay', no = 'assays'),
+      "\n"
     )
+    cat("Active assay:", DefaultAssay(object = object))
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(
