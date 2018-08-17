@@ -286,12 +286,6 @@ AverageExpression <- function(
     if (length(x = data.return) > 1) {
       for (i in 2:length(x = data.return)) {
         toRet[[names(x = data.return)[i]]] <- CreateAssayObject(counts = data.return[[i]])
-        # toRet <- SetAssayData(
-        #   object = toRet,
-        #   assay = names(x = data.return)[i],
-        #   slot = "counts",
-        #   new.data = data.return[[i]]
-        # )
       }
     }
     Idents(toRet, cells = colnames(toRet)) <- ident.new[colnames(toRet)]
@@ -307,7 +301,7 @@ AverageExpression <- function(
 
     return(toRet)
   } else {
-    return(data.return[[1]])
+    return(data.return)
   }
 }
 
