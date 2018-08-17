@@ -67,7 +67,6 @@ Collate:
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
-    'zfRenderSeurat.R'
 RoxygenNote: 6.1.0
 Encoding: UTF-8
 Suggests:
