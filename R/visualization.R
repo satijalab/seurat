@@ -2832,7 +2832,7 @@ SingleDimPlot <- function(
     data <- as.data.frame(x = data)
   }
   if (is.character(x = dims) && !all(dims %in% colnames(x = data))) {
-    stop("")
+    stop("Cannot find dimensions to plot in data")
   } else if (is.numeric(x = dims)) {
     dims <- colnames(x = data)[dims]
   }
@@ -2858,9 +2858,20 @@ SingleDimPlot <- function(
     ))
     data[, col.by] <- factor(x = data[, col.by], levels = order)
   }
+  col.orig <- col.by
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
     col.by <- NULL
+  } else {
+    col.index <- grep(pattern = col.by, x = colnames(x = data), fixed = TRUE)
+    if (grepl(pattern = '^\\d', x = col.by)) {
+      # Do something for numbers
+      col.by <- paste0('x', col.by)
+    } else if (grepl(pattern = '-', x = col.by)) {
+      # Do something for dashes
+      col.by <- gsub(pattern = '-', replacement = '.', x = col.by)
+    }
+    colnames(x = data)[col.index] <- col.by
   }
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
