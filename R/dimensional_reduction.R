@@ -1556,10 +1556,23 @@ PrepDR <- function(
     stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
   }
   data.use <- GetAssayData(object = object, slot = "scale.data")
+  if (nrow(x = data.use ) == 0) {
+    stop("Data has not been scaled. Please run ScaleData and retry")
+  }
   features <- features %||% VariableFeatures(object = object)
-  features <- unique(x = features[features %in% rownames(x = data.use)])
+  features.keep <- unique(x = features[features %in% rownames(x = data.use)])
+  if (length(x = features.keep) < length(x = features)) {
+    features.exclude <- setdiff(x = features, y = features.keep)
+    warning(paste0("The following ", length(x = features.exclude), " features requested have not been scaled (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
+  }
+  features <- features.keep
   features.var <- apply(X = data.use[features, ], MARGIN = 1, FUN = var)
-  features <- features[features.var > 0]
+  features.keep <- features[features.var > 0]
+  if (length(x = features.keep) < length(x = features)) {
+    features.exclude <- setdiff(x = features, y = features.keep)
+    warning(paste0("The following ", length(x = features.exclude), " features requested have zero variance (running reduction without them): ", paste0(features.exclude, collapse = ", ")))
+  }
+  features <- features.keep
   features <- features[!is.na(x = features)]
   data.use <- data.use[features, ]
   return(data.use)
