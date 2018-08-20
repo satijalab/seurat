@@ -2858,7 +2858,6 @@ SingleDimPlot <- function(
     ))
     data[, col.by] <- factor(x = data[, col.by], levels = order)
   }
-  col.orig <- col.by
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
     col.by <- NULL

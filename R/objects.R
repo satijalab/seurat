@@ -2903,30 +2903,54 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     if (!is.character(x = i)) {
       stop("'i' must be a character")
     }
-    slot.use <- switch(
-      EXPR = as.character(x = class(x = value)),
-      'Assay' = 'assays',
-      'Graph' = 'graphs',
-      'DimReduc' = {
-        if (is.null(x = DefaultAssay(object = value))) {
-          stop("Cannot add a DimReduc without an assay associated with it")
-        }
-        'reductions'
-      },
-      'SeuratCommand' = 'commands',
-      'SeuratWorkflow' = 'workflows',
-      stop("Unknown object type: ", class(x = value))
-    )
-    if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
-      stop("All cells in the object being added must match the cells in this object")
-    }
-    if (i %in% names(x = x) && class(x = value) != class(x = x[[i]])) {
-      stop("This object already contains ", i, " as a ", class(x = x[[i]]), "; duplicate names are not allowed", call. = FALSE)
-    }
-    if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
-      Key(object = value) <- paste0(tolower(x = i), '_')
+    if (is.null(x = value)) {
+      slot.use <- FindObject(object = object, name = i)
+      if (is.null(x = slot.use)) {
+        stop("Cannot find object ", i)
+      }
+    } else {
+      slot.use <- switch(
+        EXPR = as.character(x = class(x = value)),
+        'Assay' = 'assays',
+        'Graph' = 'graphs',
+        'DimReduc' = {
+          if (is.null(x = DefaultAssay(object = value))) {
+            stop("Cannot add a DimReduc without an assay associated with it")
+          }
+          'reductions'
+        },
+        'SeuratCommand' = 'commands',
+        'SeuratWorkflow' = 'workflows',
+        stop("Unknown object type: ", class(x = value))
+      )
+      if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
+        stop("All cells in the object being added must match the cells in this object")
+      }
+      if (!is.null(x = FindObject(object = object, name = i)) && class(x = value) != class(x = x[[i]])) {
+        stop(
+          "This object already contains ",
+          i,
+          " as a",
+          ifelse(
+            test = tolower(x = substring(text = class(x = x[[i]]), first = 1, last = 1)) %in% c('a', 'e', 'i', 'o', 'u'),
+            yes = 'n ',
+            no = ' '
+          ),
+          class(x = x[[i]]),
+          "; duplicate names are not allowed",
+          call. = FALSE
+        )
+      }
+      if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
+        Key(object = value) <- paste0(tolower(x = i), '_')
+      }
     }
     slot(object = x, name = slot.use)[[i]] <- value
+    slot(object = x, name = slot.use) <- Filter(
+      f = Negate(f = is.null),
+      x = slot(object = x, name = slot.use)
+    )
+    gc(verbose = FALSE)
     return(x)
   }
 )
@@ -3170,6 +3194,31 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
   )
   object.classes <- object.classes[object.classes %in% classes.keep]
   return(names(x = object.classes))
+}
+
+# Find the collection of an object within a Seurat object
+#
+# @param object A Seurat object
+# @param name Name of object to find
+#
+# @return The collection (slot) of the object
+#
+FindObject <- function(object, name) {
+  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows', 'tools')
+  object.names <- lapply(
+    X = collections,
+    FUN = function(x) {
+      return(names(x = slot(object = object, name = x)))
+    }
+  )
+  names(x = object.names) <- collections
+  object.names <- Filter(f = Negate(f = is.null), x = object.names)
+  for (i in names(x = object.names)) {
+    if (name %in% names(x = slot(object = object, name = i))) {
+      return(i)
+    }
+  }
+  return(NULL)
 }
 
 # Prepare a Seurat function for a workflow run
