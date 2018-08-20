@@ -2768,11 +2768,18 @@ merge.Seurat <- function(
   }
   names(new.idents) <- rownames(combined.meta.data)
   new.idents <- factor(new.idents)
+  if(DefaultAssay(object = x) %in% assays.to.merge){
+    new.default.assay <- DefaultAssay(object = x)
+  } else if (DefaultAssay(object = y) %in% assays.to.merge) {
+    new.default.assay <- DefaultAssay(object = y)
+  } else {
+    new.default.assay <- assays.to.merge[1]
+  }
   merged.object <- new(
     Class = 'Seurat',
     assays = combined.assays,
     meta.data = combined.meta.data,
-    active.assay = DefaultAssay(object = x),
+    active.assay = new.default.assay,
     active.ident = new.idents,
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
