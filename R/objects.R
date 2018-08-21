@@ -2911,7 +2911,18 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     } else {
       slot.use <- switch(
         EXPR = as.character(x = class(x = value)),
-        'Assay' = 'assays',
+        'Assay' = {
+          if (all(colnames(x = value) %in% colnames(x = object)) && !all(colnames(x = value) == colnames(x = object))) {
+            for (slot in c('counts', 'data', 'scale.data')) {
+              assay.data <- GetAssayData(object = value, slot = slot)
+              if (nrow(x = assay.data) > 0) {
+                assay.data <- assay.data[, colnames(x = object), drop = FALSE]
+              }
+              value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
+            }
+          }
+          'assays'
+        },
         'Graph' = 'graphs',
         'DimReduc' = {
           if (is.null(x = DefaultAssay(object = value))) {
