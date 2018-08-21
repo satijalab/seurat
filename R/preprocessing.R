@@ -859,7 +859,7 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_sapply
+#' @importFrom future.apply future_sapply future_apply
 #' @export
 #'
 ScaleData.default <- function(
@@ -919,6 +919,7 @@ ScaleData.default <- function(
         ))
       }
     )
+    object <- t(x = object)
     # object <- RegressOutMatrix(
     #   data.expr = object,
     #   latent.data = latent.data,
