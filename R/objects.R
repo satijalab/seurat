@@ -2926,7 +2926,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
         stop("All cells in the object being added must match the cells in this object")
       }
-      if (!is.null(x = FindObject(object = object, name = i)) && class(x = value) != class(x = x[[i]])) {
+      if (!is.null(x = FindObject(object = x, name = i)) && class(x = value) != class(x = x[[i]])) {
         stop(
           "This object already contains ",
           i,
