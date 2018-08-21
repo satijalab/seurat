@@ -859,7 +859,7 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_sapply future_apply
+#' @importFrom future.apply future_lapply
 #' @export
 #'
 ScaleData.default <- function(
@@ -903,31 +903,38 @@ ScaleData.default <- function(
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
-    # TODO: implement parallelization for RegressOutMatrix
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    object <- future_sapply(
-      X = features,
-      FUN = function(x) {
-        return(RegressOutMatrix(
-          data.expr = object[x, , drop = FALSE],
-          latent.data = latent.data,
-          model.use = model.use,
-          use.umi = use.umi,
-          verbose = FALSE
-        ))
-      }
-    )
-    object <- t(x = object)
-    # object <- RegressOutMatrix(
-    #   data.expr = object,
-    #   latent.data = latent.data,
-    #   features.regress = features,
-    #   model.use = model.use,
-    #   use.umi = use.umi,
-    #   verbose = verbose
-    # )
+    nthreads <- PlanThreads()
+    object <- if (nthreads == 1) {
+      RegressOutMatrix(
+        data.expr = object,
+        latent.data = latent.data,
+        features.regress = features,
+        model.use = model.use,
+        use.umi = use.umi,
+        verbose = verbose
+      )
+    } else {
+      chunk.points <- ChunkPoints(
+        dsize = nrow(x = object),
+        csize = min(nrow(x = object) / nthreads, 200)
+      )
+      object <- future_lapply(
+        X = 1:ncol(x = chunk.points),
+        FUN = function(i) {
+          return(RegressOutMatrix(
+            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
+            latent.data = latent.data,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = FALSE
+          ))
+        }
+      )
+      do.call(what = 'rbind', args = object)
+    }
     gc(verbose = FALSE)
   }
   max.block <- ceiling(x = length(x = features) / block.size)

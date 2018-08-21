@@ -629,14 +629,13 @@ MinMax <- function(data, min, max) {
 # Generate chunk points
 #
 # @param dsize How big is the data being chunked
-# @param nchunks How many chunks are we making
+# @param csize How big should each chunk be
 #
 # @return A matrix where each column is a chunk, row 1 is start points, row 2 is end points
 #
-ChunkPoints <- function(dsize, nchunks) {
-  csize <- dsize / nchunks
+ChunkPoints <- function(dsize, csize) {
   return(vapply(
-    X = 1L:nchunks,
+    X = 1L:ceiling(x = dsize / csize),
     FUN = function(i) {
       return(c(
         start = (csize * (i - 1L)) + 1L,
