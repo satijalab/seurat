@@ -225,6 +225,7 @@ HTODemux <- function(
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data. Default is 1e4
 #' @param verbose Print progress
+#' @param ... Ignored
 #'
 #' @return Returns a matrix with the normalize and log transformed data
 #'
@@ -239,7 +240,7 @@ HTODemux <- function(
 #' mat_norm <- LogNormalize(data = mat)
 #' mat_norm
 #'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
+LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -767,6 +768,7 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future.apply future_apply
 #' @export
 #'
 NormalizeData.default <- function(
@@ -778,22 +780,45 @@ NormalizeData.default <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- switch(
+  norm.function <- switch(
     EXPR = normalization.method,
-    'LogNormalize' = LogNormalize(
-      data = object,
-      scale.factor = scale.factor,
-      verbose = verbose
-    ),
-    'CLR' = CustomNormalize(
-      data = object,
-      custom_function = function(x) {
-        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-      },
-      across = 'features'
-    ),
+    'LogNormalize' = LogNormalize,
+    'CLR' = CustomNormalize,
     stop("Unkown normalization method: ", normalization.method)
   )
+  chunk.points <- ChunkPoints(dsize = ncol(x = object), csize = 200)
+  normalized.data <- future_apply(
+    X = chunk.points,
+    MARGIN = 2,
+    FUN = function(block) {
+      return(norm.function(
+        data = object[, block[1]:block[2], drop = FALSE],
+        scale.factor = scale.factor,
+        verbose = FALSE,
+        custom_function = function(x) {
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+        },
+        across = 'features'
+      ))
+    }
+  )
+  normalized.data <- do.call(what = 'cbind', args = normalized.data)
+  # normalized.data <- switch(
+  #   EXPR = normalization.method,
+  #   'LogNormalize' = LogNormalize(
+  #     data = object,
+  #     scale.factor = scale.factor,
+  #     verbose = verbose
+  #   ),
+  #   'CLR' = CustomNormalize(
+  #     data = object,
+  #     custom_function = function(x) {
+  #       return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+  #     },
+  #     across = 'features'
+  #   ),
+  #   stop("Unkown normalization method: ", normalization.method)
+  # )
   return(normalized.data)
 }
 
@@ -954,14 +979,14 @@ ScaleData.default <- function(
         display_progress = FALSE
       )
       dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
-      data.scale[is.na(x = data.scale)] <- 0
+      suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
       gc(verbose = FALSE)
       return(data.scale)
     }
   )
-  scaled.data <- do.call(what = 'rbind', args = scaled.data)
+  suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
   gc(verbose = FALSE)
-  return(suppressWarnings(expr = scaled.data))
+  return(scaled.data)
 }
 
 #' @param latent.data Extra data to regress out, should be cells x latent data
@@ -1083,13 +1108,14 @@ ScaleData.Seurat <- function(
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
 # @parm across Which way to we normalize? Choose form 'cells' or 'features'
+# @param ... Ignored
 #
 # @return Returns a matrix with the custom normalization
 #
 #' @importFrom methods as
 # @import Matrix
 #
-CustomNormalize <- function(data, custom_function, across) {
+CustomNormalize <- function(data, custom_function, across, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
