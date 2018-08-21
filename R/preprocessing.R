@@ -880,8 +880,6 @@ ScaleData.default <- function(
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
-  scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
-  dimnames(x = scaled.data) <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   Parenting(
     parent.find = "ScaleData.Assay",
@@ -946,6 +944,7 @@ ScaleData.default <- function(
         display_progress = FALSE
       )
       dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+      data.scale[is.na(x = data.scale)] <- 0
       gc(verbose = FALSE)
       return(data.scale)
     }
@@ -954,7 +953,7 @@ ScaleData.default <- function(
   # if (verbose) {
   #   close(con = pb)
   # }
-  scaled.data[is.na(x = scaled.data)] <- 0
+  # scaled.data[is.na(x = scaled.data)] <- 0
   gc(verbose = FALSE)
   return(scaled.data)
 }
