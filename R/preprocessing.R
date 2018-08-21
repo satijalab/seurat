@@ -859,6 +859,7 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
+#' @importFrom pbapply pblapply pbapply
 #' @importFrom future.apply future_lapply future_apply
 #' @export
 #'
@@ -877,6 +878,16 @@ ScaleData.default <- function(
   verbose = TRUE,
   ...
 ) {
+  if (PlanThreads() > 1) {
+    my.apply <- future_apply
+    my.lapply <- future_lapply
+  } else if (verbose) {
+    my.apply <- pbapply
+    my.lapply <- pblapply
+  } else {
+    my.apply <- apply
+    my.lapply <- lapply
+  }
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
@@ -906,7 +917,7 @@ ScaleData.default <- function(
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
     # TODO: Find/make version of future_lapply with progress bar support
-    object <- future_lapply(
+    object <- my.lapply(
       X = 1:ncol(x = chunk.points),
       FUN = function(i) {
         return(RegressOutMatrix(
@@ -923,7 +934,6 @@ ScaleData.default <- function(
   }
   if (verbose) {
     message("Scaling data matrix")
-    # pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
@@ -932,7 +942,7 @@ ScaleData.default <- function(
     scale.function <- FastRowScale
   }
   blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-  scaled.data <- future_apply(
+  scaled.data <- my.apply(
     X = blocks,
     MARGIN = 2,
     FUN = function(block) {
@@ -950,12 +960,8 @@ ScaleData.default <- function(
     }
   )
   scaled.data <- do.call(what = 'rbind', args = scaled.data)
-  # if (verbose) {
-  #   close(con = pb)
-  # }
-  # scaled.data[is.na(x = scaled.data)] <- 0
   gc(verbose = FALSE)
-  return(scaled.data)
+  return(suppressWarnings(expr = scaled.data))
 }
 
 #' @param latent.data Extra data to regress out, should be cells x latent data
