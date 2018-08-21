@@ -24,6 +24,8 @@ Imports:
     cowplot,
     doSNOW,
     dtw,
+    future,
+    future.apply,
     fitdistrplus,
     ggplot2 (>= 3.0.0),
     ggridges,

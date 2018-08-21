@@ -626,6 +626,27 @@ MinMax <- function(data, min, max) {
   }
 }
 
+# Generate chunk points
+#
+# @param dsize How big is the data being chunked
+# @param nchunks How many chunks are we making
+#
+# @return A matrix where each column is a chunk, row 1 is start points, row 2 is end points
+#
+ChunkPoints <- function(dsize, nchunks) {
+  csize <- dsize / nchunks
+  return(vapply(
+    X = 1L:nchunks,
+    FUN = function(i) {
+      return(c(
+        start = (csize * (i - 1L)) + 1L,
+        end = min(csize * i, dsize)
+      ))
+    },
+    FUN.VALUE = numeric(length = 2L)
+  ))
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -876,6 +897,17 @@ Parenting <- function(parent.find = 'Seurat', params, values) {
 #
 PercentAbove <- function(x, threshold){
   return(length(x = x[x > threshold]) / length(x = x))
+}
+
+# Get the number of threads provided by the current plan
+#
+# @return The number of threads (workers) for the current future plan, or 1 if no workers detected
+#
+#' @importFrom future plan
+#
+PlanThreads <- function() {
+  nthreads <- eval(expr = formals(fun = plan())$workers)
+  return(nthreads %||% 1)
 }
 
 # Generate a random name

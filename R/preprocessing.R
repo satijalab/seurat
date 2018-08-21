@@ -859,6 +859,7 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future.apply future_sapply
 #' @export
 #'
 ScaleData.default <- function(
@@ -906,14 +907,26 @@ ScaleData.default <- function(
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    object <- RegressOutMatrix(
-      data.expr = object,
-      latent.data = latent.data,
-      features.regress = features,
-      model.use = model.use,
-      use.umi = use.umi,
-      verbose = verbose
+    object <- future_sapply(
+      X = features,
+      FUN = function(x) {
+        return(RegressOutMatrix(
+          data.expr = object[x, , drop = FALSE],
+          latent.data = latent.data,
+          model.use = model.use,
+          use.umi = use.umi,
+          verbose = FALSE
+        ))
+      }
     )
+    # object <- RegressOutMatrix(
+    #   data.expr = object,
+    #   latent.data = latent.data,
+    #   features.regress = features,
+    #   model.use = model.use,
+    #   use.umi = use.umi,
+    #   verbose = verbose
+    # )
     gc(verbose = FALSE)
   }
   max.block <- ceiling(x = length(x = features) / block.size)
@@ -1132,7 +1145,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 
 # Regress out techincal effects and cell cycle from a matrix
 #
-# Remove unwanted effects from scale.data
+# Remove unwanted effects from a matrix
 #
 # @parm data.expr An expression matrix to regress the effects of latent.data out of
 # should be the complete expression matrix in genes x cells
