@@ -284,21 +284,20 @@ FindMarkers.default <- function(
     message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
     return(NULL)
   }
-  if (length(cells.1) < min.cells.group) {
+  if (length(x = cells.1) < min.cells.group) {
     stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells"))
   }
-  if (length(cells.2) < min.cells.group) {
+  if (length(x = cells.2) < min.cells.group) {
     stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells"))
   }
-  if(any(!cells.1 %in% colnames(object))) {
+  if (any(!cells.1 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
     stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-  if(any(!cells.2 %in% colnames(object))) {
+  if (any(!cells.2 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
     stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-
   # feature selection (based on percentages)
   thresh.min <- 0
   pct.1 <- round(
@@ -337,12 +336,20 @@ FindMarkers.default <- function(
     stop("No features pass min.diff.pct threshold")
   }
   # gene selection (based on average difference)
-  data.1 <- apply(X = object[features, cells.1, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = object[features, cells.2, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.1 <- apply(
+    X = object[features, cells.1, drop = FALSE],
+    MARGIN = 1,
+    FUN = function(x) {
+      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    }
+  )
+  data.2 <- apply(
+    X = object[features, cells.2, drop = FALSE],
+    MARGIN = 1,
+    FUN = function(x) {
+      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    }
+  )
   total.diff <- (data.1 - data.2)
   if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
   if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
@@ -707,6 +714,9 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 # @return Returns a p-value ranked matrix of putative differentially expressed
 # genes.
 #
+#' @importFrom pbapply pbsapply
+#' @importFrom future.apply future_sapply
+#
 # @export
 # @examples
 # pbmc_small
@@ -719,9 +729,13 @@ DiffExpTest <- function(
   cells.2,
   verbose = TRUE
 ) {
-  mysapply <- if (verbose) {pbsapply} else {sapply}
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
         return(DifferentialLRT(
@@ -731,7 +745,7 @@ DiffExpTest <- function(
       }
     )
   )
-  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  to.return <- data.frame(p_val, row.names = rownames(x = data.use))
   return(to.return)
 }
 
@@ -743,8 +757,9 @@ DiffExpTest <- function(
 # @return Returns a p-value ranked matrix of putative differentially expressed
 # genes.
 #
-# @importFrom stats t.test
-# @importFrom pbapply pblapply
+#' @importFrom stats t.test
+#' @importFrom pbapply pbsapply
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
@@ -758,16 +773,20 @@ DiffTTest <- function(
   cells.2,
   verbose = TRUE
 ) {
-  mysapply <- if (verbose) {pbsapply} else {sapply}
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(data.use),
       FUN = function(x) {
         t.test(x = data.use[x, cells.1], y = data.use[x, cells.2])$p.value
       }
     )
   )
-  to.return <- data.frame(p_val,row.names = rownames(data.use))
+  to.return <- data.frame(p_val,row.names = rownames(x = data.use))
   return(to.return)
 }
 
@@ -790,10 +809,11 @@ DiffTTest <- function(
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbapply
 #' @importFrom stats var as.formula
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
-#@examples
+# @examples
 # pbmc_small
 # # Note, not recommended for particularly small datasets - expect warnings
 # NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
@@ -813,10 +833,14 @@ GLMDETest <- function(
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
   latent.vars <- cbind(group.info, latent.vars)
-  latent.var.names <- colnames(latent.vars)
-  mysapply <- if (verbose) {pbsapply} else {sapply}
+  latent.var.names <- colnames(x = latent.vars)
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(data.use),
       FUN = function(x) {
         latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
@@ -841,9 +865,12 @@ GLMDETest <- function(
           ))
           return(2)
         }
-        fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.var.names, collapse = "+")))
+        fmla <- as.formula(object = paste(
+          "GENE ~",
+          paste(latent.var.names, collapse = "+")
+        ))
         p.estimate <- 2
-        if(test.use == "negbinom"){
+        if (test.use == "negbinom") {
           try(
             expr = p.estimate <- summary(
               object = glm.nb(formula = fmla, data = latent.vars)
@@ -851,24 +878,20 @@ GLMDETest <- function(
             silent = TRUE
           )
           return(p.estimate)
-        } else if (test.use == "poisson"){
-          return(
-            summary(
-              object = glm(
-                formula = fmla,
-                data = latent.vars,
-                family = "poisson"
-              )
-            )$coef[2,4]
-          )
+        } else if (test.use == "poisson") {
+          return(summary(object = glm(
+            formula = fmla,
+            data = latent.vars,
+            family = "poisson"
+          ))$coef[2,4])
         }
       }
     )
   )
   features.keep <- rownames(data.use)
-  if (length(x = which(x = p_val == 2)) > 0){
+  if (length(x = which(x = p_val == 2)) > 0) {
     features.keep <- features.keep[-which(x = p_val == 2)]
-    p_val <- p_val[! p_val == 2]
+    p_val <- p_val[!p_val == 2]
   }
   to.return <- data.frame(p_val, row.names = features.keep)
   return(to.return)
@@ -885,6 +908,11 @@ GLMDETest <- function(
 # @param latent.vars Latent variables to include in model
 # @param verbose Print messages
 #
+#' @importFrom lmtest lrtest
+#' @importFrom pbapply pbsapply
+#' @importFrom stats as.formula glm
+#' @importFrom future.apply future_sapply
+#
 LRDETest <- function(
   data.use,
   cells.1,
@@ -899,18 +927,28 @@ LRDETest <- function(
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(group.info)]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
-  mysapply <- if (verbose) {pbsapply} else {sapply}
-  p_val <- mysapply(
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
+  p_val <- my.sapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
-      if(is.null(x = latent.vars)) {
+      if (is.null(x = latent.vars)) {
         model.data <- cbind(GENE = data.use[x, ], group.info)
-        fmla <- as.formula(paste0("group  ~ GENE"))
-        fmla2 <- as.formula("group ~ 1")
+        fmla <- as.formula(object = "group ~ GENE")
+        fmla2 <- as.formula(object = "group ~ 1")
       } else {
         model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-        fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
-        fmla2 <- as.formula(paste0("group ~ ", paste(colnames(x = latent.vars), collapse = "+")))
+        fmla <- as.formula(object = paste(
+          "group ~ GENE +",
+          paste(colnames(x = latent.vars), collapse = "+")
+        ))
+        fmla2 <- as.formula(object = paste(
+          "group ~",
+          paste(colnames(x = latent.vars), collapse = "+")
+        ))
       }
       model1 <- glm(formula = fmla, data = model.data, family = "binomial")
       model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
@@ -1017,7 +1055,7 @@ MASTDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  latent.vars.names <- c("condition", colnames(latent.vars))
+  latent.vars.names <- c("condition", colnames(x = latent.vars))
   latent.vars <- cbind(latent.vars, group.info)
   latent.vars$wellKey <- rownames(x = latent.vars)
   fdat <- data.frame(rownames(x = data.use))
@@ -1190,6 +1228,7 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #
 #' @importFrom pbapply pbsapply
 #' @importFrom stats wilcox.test
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
@@ -1209,13 +1248,17 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(group.info)]
-  mysapply <- if (verbose) {pbsapply} else {sapply}
-  p_val <- mysapply(
+  data.use <- data.use[, rownames(x = group.info)]
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
+  p_val <- my.sapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
       return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
     }
   )
-  return(data.frame(p_val, row.names = rownames(data.use)))
+  return(data.frame(p_val, row.names = rownames(x = data.use)))
 }
