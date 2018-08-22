@@ -7,7 +7,9 @@ init:
         Invoke-WebRequest http://raw.github.com/krlmlr/r-appveyor/master/scripts/appveyor-tool.ps1 -OutFile "..\appveyor-tool.ps1"
         Import-Module '..\appveyor-tool.ps1'
 install:
-  ps: Bootstrap
+  - "%PYTHON%\\python.exe -m pip install wheel"
+  - "%PYTHON%\\python.exe -m pip install phate"
+  - ps: Bootstrap
 
 # Adapt as necessary starting from here
 
@@ -15,6 +17,9 @@ environment:
   global:
     R_ARCH: x64
     USE_RTOOLS: true
+    _R_CHECK_FORCE_SUGGESTS_: false
+    PYTHON: "C:\\Python36-x64"
+    RETICULATE_PYTHON: "C:\\Python36-x64"
 
 build_script:
   - travis-tool.sh install_deps
@@ -22,6 +27,9 @@ build_script:
   - travis-tool.sh bioc_install GenomeInfoDbData
   - travis-tool.sh bioc_install DESeq2
   - travis-tool.sh bioc_install MAST
+  - travis-tool.sh bioc_install S4Vectors
+  - travis-tool.sh bioc_install SummarizedExperiment
+  - travis-tool.sh bioc_install SingleCellExperiment
 
 test_script:
   - travis-tool.sh run_tests

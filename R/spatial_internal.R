@@ -279,9 +279,16 @@ iter.k.fit <- function(scale.data, cell.ident, data.use) {
   means.all <- sapply(
     X = sort(x = unique(x = cell.ident)),
     FUN = function(x) {
-      return(apply(X = scale.data[, cell.ident == x], MARGIN = 1, FUN = mean))
+      return(apply(
+        X = scale.data[, cell.ident == x, drop = FALSE],
+        MARGIN = 1,
+        FUN = mean
+      ))
     }
   )
+  if (is.null(x = dim(x = means.all))) {
+    dim(x = means.all) <- c(1, length(x = means.all))
+  }
   all.dist <- data.frame(
     t(x = sapply(
       X = 1:ncol(x = scale.data),
@@ -289,7 +296,7 @@ iter.k.fit <- function(scale.data, cell.ident, data.use) {
         return(unlist(x = lapply(
           X = sort(x = unique(x = cell.ident)),
           FUN = function(y) {
-            return(dist(x = rbind(scale.data[, x], means.all[, y])))
+            return(dist(x = rbind(scale.data[, x, drop = FALSE], means.all[, y])))
           }
         )))
       }

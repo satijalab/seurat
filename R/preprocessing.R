@@ -31,8 +31,7 @@
 #' @return Returns a Seurat object with the raw data stored in object@@raw.data.
 #' object@@data, object@@meta.data, object@@ident, also initialized.
 #'
-#' @import stringr
-#' @import pbapply
+#' @importFrom methods new
 #' @importFrom utils packageVersion
 #' @importFrom Matrix colSums rowSums
 #'
@@ -113,6 +112,7 @@ CreateSeuratObject <- function(
   if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
+  object@meta.data[["orig.ident"]] <- NULL
   object@meta.data[names(object@ident), "orig.ident"] <- object@ident
   if (!is.null(normalization.method)) {
     object <- NormalizeData(
@@ -233,6 +233,54 @@ Read10X <- function(data.dir = NULL){
   return(full.data)
 }
 
+#' Read 10X hdf5 file
+#'
+#' Read gene expression matrix from 10X CellRanger hdf5 file
+#'
+#' @param filename Path to h5 file
+#' @param ensg.names Label row names with ENSG names rather than unique gene names
+#'
+#' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
+#' returns a list of sparse matrices (one per genome).
+#'
+#' @importFrom hdf5r H5File
+#'
+#' @export
+#'
+Read10X_h5 <- function(filename, ensg.names = FALSE){
+  if(!file.exists(filename)){
+    stop("File not found")
+  }
+  infile <- H5File$new(filename)
+  genomes <- names(infile)
+  output <- list()
+  for(genome in genomes){
+    raw.data <- infile[[paste0(genome, '/data')]]
+    indices <- infile[[paste0(genome, '/indices')]]
+    indptr <- infile[[paste0(genome, '/indptr')]]
+    shp <- infile[[paste0(genome, '/shape')]]
+    if(ensg.names){
+      gene_names <- infile[[paste0(genome, '/genes')]][]
+    } else {
+      gene_names <- make.unique(infile[[paste0(genome, '/gene_names')]][])
+    }
+    barcodes <- infile[[paste0(genome, '/barcodes')]]
+    sparse.mat <- sparseMatrix(i = indices[] + 1, p = indptr[],
+                               x = as.numeric(raw.data[]),
+                               dims = shp[], giveCsparse = FALSE)
+    rownames(sparse.mat) <- gene_names
+    colnames(sparse.mat) <- barcodes[]
+    output[[genome]] <- sparse.mat
+  }
+  infile$close_all()
+  if(length(output) == 1) {
+    return(output[[genome]])
+  } else{
+    return(output)
+  }
+}
+
+
 #' Normalize Assay Data
 #'
 #' Normalize data for a given assay
@@ -245,8 +293,7 @@ Read10X <- function(data.dir = NULL){
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param display.progress display progress bar for scaling procedure.
 #'
-#' @return Returns object after normalization. Normalized data is stored in data
-#' or scale.data slot, depending on the method
+#' @return Returns object after normalization. Normalized data is stored in data slot
 #'
 #' @export
 #'
@@ -358,8 +405,8 @@ ScaleDataR <- function(
   if (do.scale | do.center) {
     bin.size <- 1000
     max.bin <- floor(length(genes.use)/bin.size) + 1
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
     for (i in 1:max.bin) {
       my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
       my.inds <- my.inds[my.inds <= length(x = genes.use)]
@@ -493,7 +540,7 @@ ScaleData <- function(
     )
   )
   data.use <- data.use[genes.use, ]
-  if (! missing(vars.to.regress)) {
+  if (!missing(x = vars.to.regress) && !is.null(x = vars.to.regress)) {
     data.use <- RegressOutResid(
       object = object,
       vars.to.regress = vars.to.regress,
@@ -507,7 +554,7 @@ ScaleData <- function(
     if (model.use != "linear") {
       use.umi <- TRUE
     }
-    if(use.umi && missing(scale.max)){
+    if (use.umi && missing(scale.max)) {
       scale.max <- 50
     }
   }
@@ -519,7 +566,7 @@ ScaleData <- function(
     calculation = "ScaleData",
     ... = parameters.to.store
   )
-  if(!do.cpp){
+  if (!do.cpp) {
     return(ScaleDataR(
       object = object,
       data.use = data.use,
@@ -536,7 +583,7 @@ ScaleData <- function(
     )
   )
   rownames(scaled.data) <- genes.use
-  if(length(object@cell.names) <= min.cells.to.block) {
+  if (length(object@cell.names) <= min.cells.to.block) {
     block.size <- length(genes.use)
   }
   gc()
@@ -544,8 +591,8 @@ ScaleData <- function(
   max.block <- ceiling(x = length(x = genes.use) / block.size)
   gc()
   if (display.progress) {
-    print("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.block, style = 3)
+    message("Scaling data matrix")
+    pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
   for (i in 1:max.block) {
     my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
@@ -600,6 +647,7 @@ ScaleData <- function(
 #' @return Returns a matrix with the normalize and log transformed data
 #'
 #' @import Matrix
+#' @importFrom methods as
 #'
 #' @export
 #'
@@ -637,6 +685,7 @@ LogNormalize <- function(data, scale.factor = 1e4, display.progress = TRUE) {
 #' @param progress.bar Display the progress bar
 #'
 #' @import Matrix
+#' @importFrom methods as
 #'
 #' @return Matrix with downsampled data
 #'
@@ -651,7 +700,7 @@ SampleUMI <- function(
   data,
   max.umi = 1000,
   upsample = FALSE,
-  progress.bar = TRUE
+  progress.bar = FALSE
 ) {
   data <- as(data, "dgCMatrix")
   if (length(x = max.umi) == 1) {
@@ -666,14 +715,14 @@ SampleUMI <- function(
   } else if (length(x = max.umi) != ncol(x = data)) {
     stop("max.umi vector not equal to number of cells")
   }
-  return(
-    RunUMISamplingPerCell(
-      data = data,
-      sample_val = max.umi,
-      upsample = upsample,
-      display_progress = progress.bar
-    )
+  new_data = RunUMISamplingPerCell(
+    data = data,
+    sample_val = max.umi,
+    upsample = upsample,
+    display_progress = progress.bar
   )
+  dimnames(new_data) <- dimnames(data)
+  return(new_data)
 }
 
 #' Identify variable genes
@@ -714,6 +763,13 @@ SampleUMI <- function(
 #' statistical power to detect overdispersed genes at high expression values, at
 #' the cost of reduced resolution along the x-axis)}
 #' }
+#' @param selection.method Specifies how to select the genes to store in @@var.genes.
+#' \itemize{
+#' \item{mean.var.plot: }{Default method, placing cutoffs on the mean variablility plot}
+#' \item{dispersion: }{Choose the top.genes with the highest dispersion}
+#' }
+#' @param top.genes Selects the genes with the highest value according to the
+#' selection method.
 #' @param do.recalc TRUE by default. If FALSE, plots and selects variable genes without recalculating statistics for each gene.
 #' @param sort.results If TRUE (by default), sort results in object@hvg.info in decreasing order of dispersion
 #' @param do.cpp Run c++ version of mean.function and dispersion.function if they
@@ -723,6 +779,7 @@ SampleUMI <- function(
 #' @inheritParams VariableGenePlot
 #'
 #' @importFrom MASS kde2d
+#' @importFrom methods as
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @return Returns a Seurat object, placing variable genes in object@@var.genes.
@@ -748,6 +805,8 @@ FindVariableGenes <- function(
   y.high.cutoff = Inf,
   num.bin = 20,
   binning.method = "equal_width",
+  selection.method = "mean.var.plot",
+  top.genes = 1000,
   do.recalc = TRUE,
   sort.results = TRUE,
   do.cpp = TRUE,
@@ -765,18 +824,18 @@ FindVariableGenes <- function(
   data <- object@data
   genes.use <- rownames(x = object@data)
   if (do.recalc) {
-    if(do.cpp){
-      if(! identical(mean.function, ExpMean)){
+    if (do.cpp) {
+      if (!identical(mean.function, ExpMean)) {
         warning("No equivalent mean.function implemented in c++ yet, falling back to R version")
         do.cpp <- FALSE
       }
-      if(! identical(dispersion.function, LogVMR)){
+      if (!identical(dispersion.function, LogVMR)) {
         warning("No equivalent dispersion.function implemented in c++ yet, falling back to R version")
         do.cpp <- FALSE
       }
     }
-    if (do.cpp ){
-      if(class(data) != "dgCMatrix"){
+    if (do.cpp ) {
+      if (class(data) != "dgCMatrix") {
         data <- as(as.matrix(data), "dgCMatrix")
       }
       gene.mean <- FastExpMean(data, display.progress)
@@ -784,16 +843,16 @@ FindVariableGenes <- function(
       gene.dispersion <- FastLogVMR(data, display.progress)
       names(gene.dispersion) <- genes.use
     }
-    if(!do.cpp){
+    if (!do.cpp) {
       gene.mean <- rep(x = 0, length(x = genes.use))
       names(x = gene.mean) <- genes.use
       gene.dispersion <- gene.mean
       gene.dispersion.scaled <- gene.mean
       bin.size <- 1000
       max.bin <- floor(x = length(x = genes.use) / bin.size) + 1
-      if(display.progress){
-        print("Calculating gene dispersion")
-        pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+      if (display.progress) {
+        message("Calculating gene dispersion")
+        pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
       }
       for (i in 1:max.bin) {
         my.inds <- ((bin.size * (i - 1)):(bin.size * i - 1)) + 1
@@ -802,11 +861,11 @@ FindVariableGenes <- function(
         data.iter <- data[genes.iter, , drop = F]
         gene.mean[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = mean.function)
         gene.dispersion[genes.iter] <- apply(X = data.iter, MARGIN = 1, FUN = dispersion.function)
-        if(display.progress) {
+        if (display.progress) {
           setTxtProgressBar(pb = pb, value = i)
         }
       }
-      if(display.progress){
+      if (display.progress) {
         close(con = pb)
       }
     }
@@ -835,7 +894,7 @@ FindVariableGenes <- function(
   gene.mean <- object@hvg.info[, 1]
   gene.dispersion <- object@hvg.info[, 2]
   gene.dispersion.scaled <- object@hvg.info[, 3]
-  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@data)
+  names(x = gene.mean) <- names(x = gene.dispersion) <- names(x = gene.dispersion.scaled) <- rownames(x = object@hvg.info)
   pass.cutoff <- names(x = gene.mean)[which(
     x = (
       (gene.mean > x.low.cutoff) & (gene.mean < x.high.cutoff)
@@ -854,12 +913,21 @@ FindVariableGenes <- function(
     )
   }
   if (set.var.genes) {
-    object@var.genes <- pass.cutoff
+    if(selection.method == "dispersion") {
+      sort.results <- TRUE
+    }
     if (sort.results) {
       object@hvg.info <- object@hvg.info[order(
         object@hvg.info$gene.dispersion,
         decreasing = TRUE
       ),]
+    }
+    if(selection.method == "dispersion"){
+      object@var.genes <- head(rownames(object@hvg.info), top.genes)
+    } else if(selection.method == "mean.var.plot") {
+      object@var.genes <- pass.cutoff
+    } else {
+      stop("Invalid selection.method")
     }
     return(object)
   } else {

@@ -1,29 +1,45 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-language: R
+language: r
 sudo: required
-r_binary_packages:
-  - lars
-  - mixtools
-  - caret
-  - e1071
-  - ica
-  - fpc
-  - ape
-  - igraph
-  - dplyr
-  - irlba
-  - reshape2
-  - gdata
-  - compositions
-  - dtw
-  - plotly
-  - httr
-  - tidyr
-  - ranger
+cache: packages
+
+os:
+  - linux
+  - osx
+
+r: release
+
+env:
+  global:
+    - _R_CHECK_FORCE_SUGGESTS_=FALSE
+    - ASAN="-fsanitize=address -fno-omit-frame-pointer"
+    - LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    - HDF5_VERSION=1.8.17
+    - HDF5_RELEASE_URL="https://support.hdfgroup.org/ftp/HDF5/releases"
+
+before_install: 
+  - chmod +x travis_setup.sh
+  - ./travis_setup.sh
+
+addons:
+  apt:
+    packages:
+      - subversion
+      - autoconf
+      - build-essential
+      - libtool
+      - libmagick++-dev
+
 bioc_packages:
   - GenomeInfoDbData
   - DESeq2
   - MAST
+  - S4Vectors
+  - SummarizedExperiment
+  - SingleCellExperiment
+
+r_github_packages:
+  - mojaveazure/loomR
+
 warnings_are_errors: false
-dist: trusty

@@ -176,7 +176,6 @@ AlignSubspace <- function(
       }
       mean.difference <- mean(x = ReferenceRange(x = metagenes[[g]])) -
         mean(x = ReferenceRange(x = metagenes[[1]]))
-      metric.use <- "Euclidean"
       align.1 <- ReferenceRange(x = metagenes[[g]])
       align.2 <- ReferenceRange(x = metagenes[[1]])
       a1q <- sapply(
@@ -200,8 +199,7 @@ AlignSubspace <- function(
       align.2 <- align.2 + iqrmin
       alignment <- dtw(x = align.1,
                        y = align.2,
-                       keep.internals = TRUE,
-                       dist.method = metric.use)
+                       keep.internals = TRUE)
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
       alignment.map$cc_data2 <- sort(cc.embeds[[1]][, cc.use])[alignment$index2]
@@ -277,8 +275,10 @@ AlignSubspace <- function(
 #' @param dims.use Dimensions to use in building the NN graph
 #' @param grouping.var Grouping variable used in the alignment.
 #' @param nn Number of neighbors to calculate in the NN graph construction
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
 #'
-#' @importFrom FNN get.knn
+#' @importFrom RANN nn2
 #' @export
 #'
 #' @examples
@@ -296,22 +296,41 @@ AlignSubspace <- function(
 #'                     dims.use = 1:5, grouping.var =  "group")
 #' }
 #'
-CalcAlignmentMetric <- function(object, reduction.use = "cca.aligned", dims.use,
-                                grouping.var, nn){
-  object <- SetAllIdent(object, grouping.var)
-  object <- SubsetData(object, max.cells.per.ident = min(table(object@ident)))
-  num.groups <- length(unique(object@ident))
-  if(missing(nn)){
-    nn <- ceiling(table(object@ident)[1] * 0.01 * num.groups)
+CalcAlignmentMetric <- function(
+  object,
+  reduction.use = "cca.aligned",
+  dims.use,
+  grouping.var,
+  nn,
+  nn.eps = 0
+) {
+  object <- SetAllIdent(object = object, id = grouping.var)
+  object <- SubsetData(object = object, max.cells.per.ident = min(table(object@ident)))
+  num.groups <- length(x = unique(x = object@ident))
+  if (missing(x = nn)) {
+    nn <- ceiling(x = table(object@ident)[1] * 0.01 * num.groups)
   }
-  dist.mat <- GetCellEmbeddings(object, reduction.type = reduction.use, dims.use = dims.use)
-  object.fnn <- get.knn(dist.mat, k = nn)
-  alignment.score <- sapply(1:length(object@cell.names), function(x) {
-    cell.id <- object@ident[x]
-    num.same.id <- length(which(object@ident[object.fnn$nn.index[x, ]] == cell.id))
-  })
-  alignment.score <- 1 - ((mean(alignment.score) - nn /num.groups) / (nn - nn/num.groups))
-  return(unname(alignment.score))
+  dist.mat <- GetCellEmbeddings(
+    object = object,
+    reduction.type = reduction.use,
+    dims.use = dims.use
+  )
+  # object.fnn <- get.knn(dist.mat, k = nn)
+  object.fnn <- nn2(
+    data = dist.mat,
+    k = nn,
+    searchtype = 'standard',
+    eps = nn.eps
+  )
+  alignment.score <- sapply(
+    X = 1:length(x = object@cell.names),
+    FUN = function(x) {
+      cell.id <- object@ident[x]
+      num.same.id <- length(x = which(x = object@ident[object.fnn$nn.idx[x, ]] == cell.id))
+    }
+  )
+  alignment.score <- 1 - ((mean(x = alignment.score) - nn / num.groups) / (nn - nn / num.groups))
+  return(unname(obj = alignment.score))
 }
 
 #' Calculate the ratio of variance explained by ICA or PCA to CCA

@@ -1,3 +1,1 @@
-PKG_CXXFLAGS = -I../inst/include
-PKG_LIBS = $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
 CXX_STD = CXX11

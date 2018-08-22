@@ -5,7 +5,7 @@
 \title{Split Dot plot visualization}
 \usage{
 SplitDotPlotGG(object, grouping.var, genes.plot, gene.groups,
-  cols.use = c("green", "red"), col.min = -2.5, col.max = 2.5,
+  cols.use = c("blue", "red"), col.min = -2.5, col.max = 2.5,
   dot.min = 0, dot.scale = 6, group.by, plot.legend = FALSE,
   do.return = FALSE, x.lab.rot = FALSE)
 }
@@ -42,7 +42,7 @@ default, no return, only graphical output. If do.return=TRUE, returns a ggplot2 
 \description{
 Intuitive way of visualizing how gene expression changes across different identity classes (clusters).
 The size of the dot encodes the percentage of cells within a class, while the color encodes the
-AverageExpression level of 'expressing' cells (green is high). Splits the cells into two groups based on a
+AverageExpression level of 'expressing' cells. Splits the cells into groups based on a
 grouping variable.
 Still in BETA
 }

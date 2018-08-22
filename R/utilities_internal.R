@@ -1,9 +1,27 @@
+# Generate a random name
+#
+# Make a name from randomly sampled lowercase letters,
+# pasted together with no spaces or other characters
+#
+# @param length How long should the name be
+# @param ... Extra parameters passed to sample
+#
+# @return A character with nchar == length of randomly sampled letters
+#
+# @seealso \code{\link{sample}}
+#
+RandomName <- function(length = 5L, ...) {
+  return(paste(sample(x = letters, size = length, ...), collapse = ''))
+}
+
 # Internal function for merging two matrices by rowname
 #
 # @param mat1 First matrix
 # @param mat2 Second matrix
 #
 # @return A merged matrix
+#
+#' @importFrom methods as
 #
 RowMergeSparseMatrices <- function(mat1, mat2){
   if (inherits(x = mat1, what = "data.frame")) {
@@ -70,7 +88,7 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
 #              length as from)
 # @return      returns vector of mapped values
 #
-MapVals <- function(v, from, to){
+MapVals <- function(v, from, to) {
   if (length(from) != length(to)) {
     stop("from and to vectors are not the equal length.")
   }
@@ -86,9 +104,11 @@ MapVals <- function(v, from, to){
 # @param old.object  object to get slot value from
 # @param new.slot    object to set slot value in
 #
+#' @importFrom methods slot slot<-
+#
 # @return            returns new object with slot filled
 #
-FillSlot <- function(slot.name, old.object, new.object){
+FillSlot <- function(slot.name, old.object, new.object) {
   new.slot <- tryCatch(
     {
       slot(object = old.object, name = slot.name)
@@ -97,7 +117,7 @@ FillSlot <- function(slot.name, old.object, new.object){
       return(NULL)
     }
   )
-  if(!is.null(x = new.slot)) {
+  if (!is.null(x = new.slot)) {
     slot(new.object, slot.name) <- new.slot
   }
   return(new.object)
@@ -470,19 +490,29 @@ Same <- function(x) {
 #
 #' @importFrom stats residuals
 #
-NBResiduals <- function(fmla, regression.mat, gene) {
+NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
   fit <- 0
   try(
-    fit <- glm.nb(fmla,
-    data = regression.mat),
-    silent=TRUE)
+    fit <- glm.nb(
+      formula = fmla,
+      data = regression.mat
+    ),
+    silent = TRUE)
   if (class(fit)[1] == 'numeric') {
     message(sprintf('glm.nb failed for gene %s; falling back to scale(log(y+1))', gene))
-    return(scale(log(regression.mat[, 'GENE']+1))[, 1])
+    resid <- scale(x = log(x = regression.mat[, 'GENE'] + 1))[, 1]
+    mode <- 'scale'
+  } else {
+    resid <- residuals(fit, type = 'pearson')
+    mode = 'nbreg'
   }
-  return(residuals(fit, type='pearson'))
+  do.return <- list(resid = resid, mode = mode)
+  if (return.mode) {
+    return(do.return)
+  } else {
+    return(do.return$resid)
+  }
 }
-
 
 # Documentation
 ###############
@@ -591,9 +621,31 @@ LengthCheck <- function(values, cutoff = 0) {
 #
 MaxN <- function(x, N = 2){
   len <- length(x)
-  if(N > len) {
+  if (N > len) {
     warning('N greater than length(x).  Setting N=length(x)')
     N <- length(x)
   }
   sort(x, partial = len - N + 1)[len - N + 1]
+}
+
+# Check the existence of a package
+#
+# @param ... Package names
+# @param error If true, throw an error if the package doesn't exist
+#
+# @return Invisibly returns boolean denoting if the package is installed
+#
+#' @importFrom utils installed.packages
+#
+PackageCheck <- function(..., error = TRUE) {
+  pkgs <- unlist(x = c(...), use.names = FALSE)
+  package.installed <- pkgs %in% rownames(x = installed.packages())
+  if (error && any(!package.installed)) {
+    stop(
+      "Cannot find ",
+      paste(pkgs[!package.installed], collapse = ', '),
+      "; please install"
+    )
+  }
+  invisible(x = package.installed)
 }

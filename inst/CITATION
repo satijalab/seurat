@@ -1,0 +1,16 @@
+citHeader("To cite Seurat in publications, please use:")
+
+citEntry(entry = "article",
+  author = personList(as.person("Andrew Butler"),
+                      as.person("Paul Hoffman"),
+                      as.person("Peter Smibert"),
+                      as.person("Efthymia Papalexi"),
+                      as.person("Rahul Satija")),
+  title = "Integrating single-cell transcriptomic data across different conditions, technologies, and species",
+  journal = "Nature Biotechnology",
+  year = "2018",
+  doi = "10.1038/nbt.4096",
+  issn = "1087-0156",
+  url = "https://www.nature.com/articles/nbt.4096",
+  textVersion = "Butler et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species. Nature Biotechnology (2018)."
+)

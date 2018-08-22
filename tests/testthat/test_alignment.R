@@ -21,7 +21,7 @@ test_that("Alignment returns expected values", {
 })
 
 test_that("Alignment score calculated correctly", {
-  expect_equal(CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var = "group"), 0.625)
+  expect_equal(CalcAlignmentMetric(pbmc_cca, reduction.use = "cca.aligned", dims.use = 1:5, grouping.var = "group", nn = 5), 0.655)
 })
 
 pbmc_cca <- CalcVarExpRatio(pbmc_cca, reduction.type = "pca", grouping.var = "group", dims.use = 1:5)
@@ -30,4 +30,10 @@ test_that("CalcVarExpRatio performs as expectd", {
   expect_equal(pbmc_cca@meta.data$var.ratio.pca[1], 1.818141, tolerance = 1e-6)
   expect_equal(pbmc_cca@meta.data$var.ratio.pca[40], 0.5198426, tolerance = 1e-6)
   expect_equal(pbmc_cca@meta.data$var.ratio.pca[80], 0.9824946, tolerance = 1e-6)
+})
+
+test_that("RunMultiCCA works with add.cell.ids", {
+  pbmc_multi_cca <- RunMultiCCA(list(pbmc_small, pbmc_small, pbmc_small),
+                                add.cell.ids = c("A", "B", "C"))
+  expect_s4_class(pbmc_multi_cca, "seurat")
 })

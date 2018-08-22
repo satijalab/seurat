@@ -24,8 +24,8 @@ globalVariables(names = 'cell.name', package = 'Seurat', add = TRUE)
 #' field from the cell's column name
 #' @param names.delim For the initial identity class for each cell, choose this
 #' delimiter from the cell's column name
-#' @param add.cell.id1 String to be appended to the names of all cells in object1
-#' @param add.cell.id2 String to be appended to the names of all cells in object2
+#' @param add.cell.id1 String passed to \code{\link{RenameCells}} for object1
+#' @param add.cell.id2 String passed to \code{\link{RenameCells}} for object1
 #'
 #' @return Merged Seurat object
 #'
@@ -67,30 +67,10 @@ MergeSeurat <- function(
     stop("Second object provided has an empty raw.data slot. Adding/Merging performed on raw count data.")
   }
   if (!missing(x = add.cell.id1)) {
-    object1@cell.names <- paste(add.cell.id1,object1@cell.names, sep = "_")
-    colnames(x = object1@raw.data) <- paste(
-      add.cell.id1,
-      colnames(x = object1@raw.data),
-      sep = "_"
-    )
-    rownames(x = object1@meta.data) <- paste(
-      add.cell.id1,
-      rownames(x = object1@meta.data),
-      sep = "_"
-    )
+    object1 <- RenameCells(object1, add.cell.id = add.cell.id1, for.merge = TRUE)
   }
   if (!missing(x = add.cell.id2)) {
-  object2@cell.names <- paste(add.cell.id2,object2@cell.names, sep = "_")
-    colnames(x = object2@raw.data) <- paste(
-      add.cell.id2,
-      colnames(x = object2@raw.data),
-      sep = "_"
-    )
-    rownames(x = object2@meta.data) <- paste(
-      add.cell.id2,
-      rownames(x = object2@meta.data),
-      sep = "_"
-    )
+    object2 <- RenameCells(object2, add.cell.id = add.cell.id2, for.merge = TRUE)
   }
   if (any(object1@cell.names %in% object2@cell.names)) {
     stop("Duplicate cell names, please provide 'add.cell.id1' and/or 'add.cell.id2' for unique names")
@@ -313,21 +293,21 @@ AddSamples <- function(
 #' Creates a Seurat object containing only a subset of the cells in the
 #' original object. Forms a dataframe by fetching the variables in \code{vars.use}, then
 #' subsets it using \code{base::subset} with \code{predicate} as the filter.
-#' Returns the corresponding subset of the Seurat object. 
+#' Returns the corresponding subset of the Seurat object.
 #'
 #' @param object Seurat object
 #' @param vars.use Variables to fetch for use in base::subset. Character vector.
 #' @param predicate String to be parsed into an R expression and evaluated as an input to base::subset.
-#' 
+#'
 #' @export
 #'
 #' @examples
-#' pbmc1 <- SubsetByPredicate(object = pbmc_small, 
-#'                       vars.use = c("nUMI", "res.1"), 
+#' pbmc1 <- SubsetByPredicate(object = pbmc_small,
+#'                       vars.use = c("nUMI", "res.1"),
 #'                       predicate = "nUMI < 200 & res.1=='3'")
 #' pbmc1
 #'
-SubsetByPredicate = function( 
+SubsetByPredicate = function(
   object,
   vars.use,
   predicate
@@ -379,6 +359,8 @@ SubsetByPredicate = function(
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
+#' @importFrom methods .hasSlot as
+#'
 #' @export
 #'
 #' @examples
@@ -403,24 +385,28 @@ SubsetData <- function(
   ...
 ) {
   data.use <- NULL
-  cells.use <- WhichCells(object = object,
-                          ident = ident.use,
-                          ident.remove = ident.remove,
-                          cells.use = cells.use,
-                          subset.name = subset.name,
-                          accept.low = accept.low,
-                          accept.high = accept.high,
-                          accept.value = accept.value,
-                          max.cells.per.ident = max.cells.per.ident,
-                          random.seed = random.seed,
-                          ... = ...)
+  cells.use <- WhichCells(
+    object = object,
+    ident = ident.use,
+    ident.remove = ident.remove,
+    cells.use = cells.use,
+    subset.name = subset.name,
+    accept.low = accept.low,
+    accept.high = accept.high,
+    accept.value = accept.value,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    ... = ...
+  )
   object@cell.names <- cells.use
   object@data <- object@data[, cells.use]
-  if(! is.null(x = object@scale.data)) {
+  gc(verbose = FALSE)
+  if (!is.null(x = object@scale.data)) {
     if (length(x = colnames(x = object@scale.data) > 0)) {
       object@scale.data[, cells.use]
       object@scale.data <- object@scale.data[, cells.use]
     }
+    gc(verbose = FALSE)
   }
   if (do.scale) {
     object <- ScaleData(
@@ -428,30 +414,33 @@ SubsetData <- function(
       do.scale = do.scale,
       do.center = do.center
     )
+    gc(verbose = FALSE)
   }
-  object@ident <- drop.levels(x = object@ident[cells.use])
+  object@ident <- droplevels(x = object@ident[cells.use])
   if (length(x = object@dr) > 0) {
     for (i in 1:length(object@dr)) {
-      if(length(object@dr[[i]]@cell.embeddings) > 0){
+      if (length(object@dr[[i]]@cell.embeddings) > 0) {
         object@dr[[i]]@cell.embeddings <- object@dr[[i]]@cell.embeddings[cells.use, ,drop = FALSE]
       }
     }
+    gc(verbose = FALSE)
   }
   # handle multimodal casess
-  if (! .hasSlot(object = object, name = "assay")) {
+  if (!.hasSlot(object = object, name = "assay")) {
     object@assay <- list()
   }
   if (length(object@assay) > 0) {
-    for(i in 1:length(object@assay)) {
-      if ((! is.null(x = object@assay[[i]]@raw.data)) && (ncol(x = object@assay[[i]]@raw.data) > 1)) {
+    for (i in 1:length(object@assay)) {
+      if ((!is.null(x = object@assay[[i]]@raw.data)) && (ncol(x = object@assay[[i]]@raw.data) > 1)) {
         object@assay[[i]]@raw.data <- object@assay[[i]]@raw.data[, cells.use]
       }
-      if ((! is.null(x = object@assay[[i]]@data)) && (ncol(x = object@assay[[i]]@data) > 1)) {
+      if ((!is.null(x = object@assay[[i]]@data)) && (ncol(x = object@assay[[i]]@data) > 1)) {
         object@assay[[i]]@data <- object@assay[[i]]@data[, cells.use]
       }
-      if ((! is.null(x = object@assay[[i]]@scale.data)) && (ncol(x = object@assay[[i]]@scale.data) > 1)) {
+      if ((!is.null(x = object@assay[[i]]@scale.data)) && (ncol(x = object@assay[[i]]@scale.data) > 1)) {
         object@assay[[i]]@scale.data <- object@assay[[i]]@scale.data[, cells.use]
       }
+      gc(verbose = FALSE)
     }
   }
   #object@tsne.rot=object@tsne.rot[cells.use, ]
@@ -459,8 +448,9 @@ SubsetData <- function(
   # colnames(x = object@gene.scores)[1] <- "nGene"
   # rownames(x = object@gene.scores) <- colnames(x = object@data)
   object@meta.data <- data.frame(object@meta.data[cells.use,])
+  gc(verbose = FALSE)
   #object@mix.probs=data.frame(object@mix.probs[cells.use,]); colnames(object@mix.probs)[1]="nGene"; rownames(object@mix.probs)=colnames(object@data)
-  if (do.clean){
+  if (do.clean) {
     calcs.to.keep <- c("CreateSeuratObject", "NormalizeData", "ScaleData")
     object@calc.params <- object@calc.params[calcs.to.keep]
     object@var.genes <- vector()
@@ -472,14 +462,16 @@ SubsetData <- function(
     object@kmeans <- NULL
     object@dr <- list()
     object@meta.data
-    if(missing(subset.raw)) {
+    if (missing(x = subset.raw)) {
       subset.raw <- TRUE
     }
     object@meta.data[, sapply(colnames(object@meta.data), function(x){grepl("res", x)})] <- NULL
+    gc(verbose = FALSE)
   }
-  if(!missing(subset.raw)){
-    if(subset.raw){
+  if (!missing(x = subset.raw)) {
+    if (subset.raw) {
       object@raw.data <- object@raw.data[, cells.use]
+      gc(verbose = FALSE)
     }
   }
   return(object)
@@ -622,16 +614,25 @@ FetchData <- function(
   if (length(x = object@assay) > 0) {
     data.types <- names(x = object@assay)
     for (data.type in data.types) {
-      all_data <- (GetAssayData(
-        object = object,
-        assay.type = data.type,
-        slot = slot.use
-      ))
-      genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
-      data.expression <- cbind(
-        data.expression,
-        t(x = all_data[genes.include, , drop = FALSE])
+      all_data <- tryCatch(
+        {
+          GetAssayData(
+            object = object,
+            assay.type = data.type,
+            slot = slot.use
+          )
+        },
+        error = function(cond){
+          return(NULL)
+        }
       )
+      if(!is.null(all_data)){
+        genes.include <- intersect(x = vars.all, y = rownames(x = all_data))
+        data.expression <- cbind(
+          data.expression,
+          t(x = all_data[genes.include, cells.use, drop = FALSE])
+        )
+      }
     }
   }
   var.options <- c("meta.data", "mix.probs", "gene.scores")
@@ -670,7 +671,7 @@ FetchData <- function(
       }
     }
     if (my.var %in% colnames(object@meta.data)) {
-      data.use <- object@meta.data[, my.var, drop = FALSE]
+      data.use <- object@meta.data[cells.use, my.var, drop = FALSE]
     }
     if (ncol(x = data.use) == 0) {
       stop(paste("Error:", my.var, "not found"))
@@ -920,7 +921,7 @@ StashIdent <- function(object, save.name = "oldIdent") {
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'
-#' @importFrom gdata drop.levels
+#' @importFrom stats reorder
 #'
 #' @export
 #'
@@ -953,7 +954,7 @@ SetIdent <- function(object, cells.use = NULL, ident.use = NULL) {
     )
   )
   object@ident[cells.use] <- ident.use
-  object@ident <- drop.levels(x = object@ident)
+  object@ident <- reorder(x = droplevels(x = object@ident))
   return(object)
 }
 
@@ -1132,5 +1133,100 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     stop("Metadata provided doesn't match the cells in this object")
   }
   object@meta.data[, cols.add] <- meta.add
+  return(object)
+}
+
+
+#' Rename cells
+#'
+#' Change the cell names in all the different parts of a Seurat object. Can
+#' be useful before combining multiple objects.
+#'
+#' @param object Seurat object
+#' @param add.cell.id prefix to add cell names
+#' @param new.names vector of new cell names
+#' @param for.merge Only rename slots needed for merging Seurat objects.
+#' Currently only renames the raw.data and meta.data slots.
+#'
+#' @details
+#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
+#' \code{new.names} is set these will be used to replace existing names.
+#'
+#' @return Seurat object with new cell names
+#'
+#' @export
+#'
+#' @examples
+#' head(pbmc_small@cell.names)
+#' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
+#' head(pbmc_small@cell.names)
+#'
+RenameCells <- function(object, add.cell.id = NULL, new.names = NULL,
+                        for.merge = FALSE) {
+
+  if (missing(add.cell.id) && missing(new.names)) {
+    stop("One of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id) && !missing(new.names)) {
+    stop("Only one of 'add.cell.id' and 'new.names' must be set")
+  }
+
+  if (!missing(add.cell.id)) {
+    new.cell.names <- paste(add.cell.id, object@cell.names, sep = "_")
+    new.rawdata.names <- paste(add.cell.id, colnames(object@raw.data), sep = "_")
+  } else {
+    if(ncol(object@raw.data) != ncol(object@data)) {
+      stop("raw.data contains a different number of cells than data")
+    }
+    if(any(colnames(object@raw.data) != colnames(object@data))){
+      stop("cells in raw.data are different than the cells in data")
+    }
+    if (length(new.names) == length(object@cell.names)) {
+      new.cell.names <- new.names
+      new.rawdata.names <- new.names
+    } else {
+      stop("the length of 'new.names' (", length(new.names), ") must be the ",
+           "same as the length of 'object@cell.names' (",
+           length(object@cell.names), ")")
+    }
+  }
+  colnames(object@raw.data) <- new.rawdata.names
+  rownames(object@meta.data) <- new.cell.names
+  object@cell.names <- new.cell.names
+
+  if (for.merge) {
+    return(object)
+  }
+
+  colnames(object@data) <- new.cell.names
+
+  if (!is.null(object@scale.data)) {
+    colnames(object@scale.data) <- new.cell.names
+  }
+  names(object@ident) <- new.cell.names
+
+  if (length(object@dr) > 0) {
+    for (dr in names(object@dr)) {
+      rownames(object@dr[[dr]]@cell.embeddings) <- new.cell.names
+    }
+  }
+
+  if (nrow(object@snn) == length(new.cell.names)) {
+    colnames(object@snn) <- new.cell.names
+    rownames(object@snn) <- new.cell.names
+  }
+
+  if (!is.null(object@kmeans)) {
+    if (!is.null(object@kmeans@gene.kmeans.obj)) {
+      colnames(object@kmeans@gene.kmeans.obj$centers) <- new.cell.names
+    }
+    if (!is.null(object@kmeans@cell.kmeans.obj)) {
+      names(object@kmeans@cell.kmeans.obj$cluster) <- new.cell.names
+    }
+  }
+
+  # rownames(object@spatial@mix.probs) <- new.cell.names
+
   return(object)
 }

@@ -7,7 +7,7 @@
 FindMarkers(object, ident.1, ident.2 = NULL, genes.use = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
   min.diff.pct = -Inf, print.bar = TRUE, only.pos = FALSE,
-  max.cells.per.ident = Inf, random.seed = 1, latent.vars = "nUMI",
+  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
   min.cells.gene = 3, min.cells.group = 3, pseudocount.use = 1,
   assay.type = "RNA", ...)
 }
@@ -61,7 +61,8 @@ Default is no downsampling. Not activated by default (set to Inf)}
 
 \item{random.seed}{Random seed for downsampling}
 
-\item{latent.vars}{Variables to test}
+\item{latent.vars}{Variables to test, used only when \code{test.use} is one of
+'negbinom', 'poisson', or 'MAST'}
 
 \item{min.cells.gene}{Minimum number of cells expressing the gene in at least one
 of the two groups, currently only used for poisson and negative binomial tests}

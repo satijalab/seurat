@@ -94,14 +94,14 @@ DifferentialTobit <- function(x1, x2, lower = 1, upper = Inf) {
 #internal function to run Tobit DE test
 #credit to Cole Trapnell for this
 #
-#' @importFrom VGAM vgam tobit
 #' @importFrom stats as.formula
 #
-TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf){
+TobitFitter <- function(x, modelFormulaStr, lower = 1, upper = Inf) {
+  PackageCheck('VGAM')
   tryCatch(
-    expr = return(suppressWarnings(expr = vgam(
+    expr = return(suppressWarnings(expr = VGAM::vgam(
       formula = as.formula(object = modelFormulaStr),
-      family = tobit(Lower = lower, Upper = upper),
+      family = VGAM::tobit(Lower = lower, Upper = upper),
       data = x
     ))),
     #warning = function(w) { FM_fit },
@@ -166,8 +166,8 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
   genes.regress <- rownames(x = cm)
   bin.ind <- ceiling(x = 1:length(x = genes.regress) / bin.size)
   max.bin <- max(bin.ind)
-  print('Running Poisson regression (to get initial mean), and theta estimation per gene')
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3)
+  message('Running Poisson regression (to get initial mean), and theta estimation per gene')
+  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
   theta.estimate <- c()
   for (i in 1:max.bin) {
     genes.bin.regress <- genes.regress[bin.ind == i]
@@ -199,7 +199,7 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
       span = span
     )
     if (! any(is.na(x = fit$fitted))) {
-      cat(sprintf(
+      message(sprintf(
         'Used loess with span %1.2f to fit mean-variance relationship\n',
         span
       ))
@@ -213,14 +213,13 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
   names(x = theta.fit) <- genes.regress
   to.fix <- theta.fit <= min.theta | is.infinite(x = theta.fit)
   if (any(to.fix)) {
-    cat(
-      'Fitted theta below',
+    message(
+      'Fitted theta below ',
       min.theta,
-      'for',
+      ' for ',
       sum(to.fix),
-      'genes, setting them to',
-      min.theta,
-      '\n'
+      ' genes, setting them to ',
+      min.theta
     )
     theta.fit[to.fix] <- min.theta
   }
@@ -260,13 +259,13 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
   }
   pval <- anova(fit2, fit4, test = 'Chisq')$'Pr(>Chi)'[2]
   foi <- 2 + length(x = com.fac)
-  log.fc <- log2(x = exp(x = coef(object = fit4)[foi])) #log.fc <- log2(1/exp(coef(fit4)[foi]))
+  log2.fc <- log2(x = 1 / exp(x = coef(object = fit4)[foi]))
   ret <- c(
     fit2$deviance,
     fit4$deviance,
     pval,
     coef(object = fit4)[foi],
-    log.fc,
+    log2.fc,
     freqs
   )
   names(x = ret) <- c(
@@ -274,7 +273,7 @@ NBModelComparison <- function(y, theta, latent.data, com.fac, grp.fac) {
     'dev2',
     'pval',
     'coef',
-    'log.fc',
+    'log2.fc',
     'freq1',
     'freq2'
   )

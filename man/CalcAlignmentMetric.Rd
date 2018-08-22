@@ -5,7 +5,7 @@
 \title{Calculate an alignment score}
 \usage{
 CalcAlignmentMetric(object, reduction.use = "cca.aligned", dims.use,
-  grouping.var, nn)
+  grouping.var, nn, nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,6 +18,9 @@ Usually going to be cca.aligned.}
 \item{grouping.var}{Grouping variable used in the alignment.}
 
 \item{nn}{Number of neighbors to calculate in the NN graph construction}
+
+\item{nn.eps}{Error bound when performing nearest neighbor seach using RANN;
+default of 0.0 implies exact nearest neighbor search}
 }
 \description{
 Calculates an alignment score to determine how well aligned two (or more)
