@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature
+#' slotNames slot<- setMethod new signature
 #' @useDynLib Seurat
 #'
 NULL
@@ -3178,6 +3178,22 @@ setMethod(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Find the names of collections in an object
+#
+# @return A vector with the names of slots that are a list
+#
+Collections <- function(object) {
+  collections <- vapply(
+    X = slotNames(x = object),
+    FUN = function(x) {
+      return(any(grepl(pattern = 'list', x = class(x = slot(object = object, name = x)))))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  collections <- Filter(f = isTRUE, x = collections)
+  return(names(x = collections))
+}
+
 # Get the names of objects within a Seurat object that are of a certain class
 #
 # @param object A Seurat object
@@ -3204,7 +3220,7 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
 # @return The collection (slot) of the object
 #
 FindObject <- function(object, name) {
-  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows', 'tools')
+  collections <- Collections(object = object)
   object.names <- lapply(
     X = collections,
     FUN = function(x) {

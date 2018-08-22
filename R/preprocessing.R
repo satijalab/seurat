@@ -768,6 +768,7 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @importFrom pbapply pbapply
 #' @importFrom future.apply future_apply
 #' @export
 #'
@@ -780,6 +781,11 @@ NormalizeData.default <- function(
   if (is.null(x = normalization.method)) {
     return(object)
   }
+  my.apply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbapply,
+    no = future_apply
+  )
   norm.function <- switch(
     EXPR = normalization.method,
     'LogNormalize' = LogNormalize,
@@ -787,7 +793,7 @@ NormalizeData.default <- function(
     stop("Unkown normalization method: ", normalization.method)
   )
   chunk.points <- ChunkPoints(dsize = ncol(x = object), csize = 200)
-  normalized.data <- future_apply(
+  normalized.data <- my.apply(
     X = chunk.points,
     MARGIN = 2,
     FUN = function(block) {
@@ -803,22 +809,6 @@ NormalizeData.default <- function(
     }
   )
   normalized.data <- do.call(what = 'cbind', args = normalized.data)
-  # normalized.data <- switch(
-  #   EXPR = normalization.method,
-  #   'LogNormalize' = LogNormalize(
-  #     data = object,
-  #     scale.factor = scale.factor,
-  #     verbose = verbose
-  #   ),
-  #   'CLR' = CustomNormalize(
-  #     data = object,
-  #     custom_function = function(x) {
-  #       return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-  #     },
-  #     across = 'features'
-  #   ),
-  #   stop("Unkown normalization method: ", normalization.method)
-  # )
   return(normalized.data)
 }
 
