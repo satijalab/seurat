@@ -22,7 +22,6 @@ Depends:
 Imports:
     cluster,
     cowplot,
-    doSNOW,
     dtw,
     future,
     future.apply,

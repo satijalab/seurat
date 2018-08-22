@@ -24,13 +24,13 @@ NULL
 #' that have been processed.
 #' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
-#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
+#' @return Returns a Seurat object where JS(object = object[['pca']], slot = 'empirical')
 #' represents p-values for each gene in the PCA analysis. If ProjectPCA is
-#' subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+#' subsequently run, JS(object = object[['pca']], slot = 'full') then
 #' represents p-values for all genes.
 #'
-#' @import doSNOW
 #' @importFrom methods new
+#' @importFrom future.apply future_lapply future_sapply
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
@@ -40,7 +40,7 @@ NULL
 #' @examples
 #' \dontrun{
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
-#' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+#' head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 #' }
 #'
 JackStraw <- function(
@@ -57,7 +57,6 @@ JackStraw <- function(
     stop("Only pca for reduction is currently supported")
   }
   assay <- assay %||% DefaultAssay(object = object)
-  # embeddings <- Embeddings(object = object[[reduction]])
   if (dims > length(x = object[[reduction]])) {
     dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
@@ -82,8 +81,7 @@ JackStraw <- function(
   data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
-  ## TODO: Parallelization
-  fake.vals.raw <- lapply(
+  fake.vals.raw <- future_lapply(
     X = 1:num.replicate,
     FUN = JackRandom,
     scaled.data = data.use,
@@ -107,7 +105,7 @@ JackStraw <- function(
   )
   fake.vals <- as.matrix(x = fake.vals)
   jackStraw.empP <- as.matrix(
-    sapply(
+    future_sapply(
       X = 1:dims,
       FUN = function(x) {
         return(unlist(x = lapply(

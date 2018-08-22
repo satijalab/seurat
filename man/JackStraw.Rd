@@ -28,9 +28,9 @@ that have been processed.}
 \item{maxit}{maximum number of iterations to be performed by the irlba function of RunPCA}
 }
 \value{
-Returns a Seurat object where object@dr$pca@jackstraw@emperical.p.value
+Returns a Seurat object where JS(object = object[['pca']], slot = 'empirical')
 represents p-values for each gene in the PCA analysis. If ProjectPCA is
-subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+subsequently run, JS(object = object[['pca']], slot = 'full') then
 represents p-values for all genes.
 }
 \description{
@@ -42,7 +42,7 @@ is a p-value for each gene's association with each principal component.
 \examples{
 \dontrun{
 pbmc_small = suppressWarnings(JackStraw(pbmc_small))
-head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 }
 
 }
