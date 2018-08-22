@@ -759,7 +759,7 @@ RunCCA <- function(
 #'
 #' Runs a canonical correlation analysis
 #'
-#' @param object.list List of Seurat objects
+#' @param object.list List of Seurat objects or a single Seurat object
 #' @param genes.use Genes to use in mCCA.
 #' @param add.cell.ids Vector of strings to pass to \code{\link{RenameCells}} to
 #' give unique cell names
@@ -767,6 +767,8 @@ RunCCA <- function(
 #' @param num.ccs Number of canonical vectors to calculate
 #' @param standardize standardize scale.data matrices to be centered (mean zero)
 #' and scaled to have a standard deviation of 1.
+#' @param weight.by.var Weight cell embeddings unequally (by standard deviations as in PCA).
+#' @param group.by If object.list is a single object, this specifies how to split it up.
 #'
 #' @return Returns a combined Seurat object with the CCA stored in the @@dr$cca slot.
 #'
@@ -795,9 +797,50 @@ RunMultiCCA <- function(
   add.cell.ids = NULL,
   niter = 25,
   num.ccs = 1,
-  standardize = TRUE
+  standardize = TRUE,
+  weight.by.var = FALSE,
+  group.by = NULL
 ) {
   set.seed(42)
+  
+  # If a single object is given, split it 
+  if(class(object.list) == "seurat"){
+    if( is.null( group.by ) ){
+      stop("If object.list is a Seurat object, you must specify 'group.by' .\n")
+    }
+    
+    # Extract and preserve metadata and ident fields for later
+    ident_for_later = object.list@ident %>% as.character %>% setNames(object.list@cell.names)
+    metadata_for_later = object.list@meta.data
+    
+    # Check number of groups
+    groups_levels = FetchData(object.list, group.by)[[1]] %>% as.character %>% unique
+    if( length( groups_levels ) < 3 ){
+      stop("Must give at least 3 groups for MultiCCA")
+    }
+    
+    # Split object; run CCA as usual
+    object.list = SetIdent( object.list, 
+                            as.character(FetchData(object.list, group.by)[[1]]), 
+                            cells.use = object.list@cell.names )
+    get_one = function( x ) { 
+      return( SubsetData( object.list, ident.use = x ) )
+    }
+    object.list = RunMultiCCA( object.list = lapply(groups_levels, get_one),  
+                               genes.use = genes.use,
+                               num.ccs = num.ccs,
+                               standardize = standardize,
+                               group.by = NULL )
+    
+    # Restore metadata and ident, altering order if necessary
+    object.list = SetIdent( object.list, 
+                               ident_for_later[object.list@cell.names], 
+                               cells.use = names( ident_for_later ) )
+    object.list = AddMetaData( object.list, 
+                               metadata_for_later[object.list@cell.names,] )
+    return( object.list )
+  }
+  
   if(length(object.list) < 3){
     stop("Must give at least 3 objects/matrices for MultiCCA")
   }
@@ -885,7 +928,7 @@ RunMultiCCA <- function(
   }
   combined.object <- NormalizeData(combined.object)
   combined.object@meta.data$orig.ident <- sapply(combined.object@cell.names, ExtractField, 1)
-  combined.object <- ScaleData(object = combined.object)
+  combined.object <- ScaleData( object = combined.object, genes.use = genes.use )
   combined.object@scale.data[is.na(x = combined.object@scale.data)] <- 0
   combined.object@var.genes <- genes.use
   cca.data <- results$ws[[1]]
@@ -899,6 +942,8 @@ RunMultiCCA <- function(
     }
     return(x)
   })
+  
+
   combined.object <- SetDimReduction(
     object = combined.object,
     reduction.type = "cca",
@@ -927,12 +972,30 @@ RunMultiCCA <- function(
       genes.use = genes.use
     )
   )
+  if( weight.by.var ){
+    sdev = GetGeneLoadings(
+      object = combined.object,
+      reduction.type = "cca",
+      use.full = FALSE,
+      genes.use = genes.use
+    ) %>% apply(2, function(x) sqrt(sum(x*x)))
+
+    combined.object <- SetDimReduction(
+      object = combined.object,
+      reduction.type = "cca",
+      slot = "cell.embeddings",
+      new.data = cca.data %*% diag(sdev)
+    )
+  }
+
+  
   parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("RunMultiCCA"))]
   parameters.to.store$object.list <- NULL
   combined.object <- SetCalcParams(object = combined.object,
                                    calculation = "RunMultiCCA",
                                    ... = parameters.to.store
   )
+ 
   return(combined.object)
 }
 
