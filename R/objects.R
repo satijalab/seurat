@@ -3215,7 +3215,7 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
 # @return The collection (slot) of the object
 #
 FindObject <- function(object, name) {
-  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows', 'tools')
+  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows')
   object.names <- lapply(
     X = collections,
     FUN = function(x) {
