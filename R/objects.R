@@ -2904,14 +2904,25 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       stop("'i' must be a character")
     }
     if (is.null(x = value)) {
-      slot.use <- FindObject(object = object, name = i)
+      slot.use <- FindObject(object = x, name = i)
       if (is.null(x = slot.use)) {
         stop("Cannot find object ", i)
       }
     } else {
       slot.use <- switch(
         EXPR = as.character(x = class(x = value)),
-        'Assay' = 'assays',
+        'Assay' = {
+          if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+            for (slot in c('counts', 'data', 'scale.data')) {
+              assay.data <- GetAssayData(object = value, slot = slot)
+              if (nrow(x = assay.data) > 0) {
+                assay.data <- assay.data[, colnames(x = x), drop = FALSE]
+              }
+              value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
+            }
+          }
+          'assays'
+        },
         'Graph' = 'graphs',
         'DimReduc' = {
           if (is.null(x = DefaultAssay(object = value))) {
@@ -3220,7 +3231,7 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
 # @return The collection (slot) of the object
 #
 FindObject <- function(object, name) {
-  collections <- Collections(object = object)
+  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows')
   object.names <- lapply(
     X = collections,
     FUN = function(x) {

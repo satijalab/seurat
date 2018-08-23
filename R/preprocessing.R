@@ -73,8 +73,8 @@ FilterCells <- function(
       }
     )
   }
-  object <- SubsetData(object, cells = cells)
-  object <- LogSeuratCommand(object)
+  object <- SubsetData(object = object, cells = cells)
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
