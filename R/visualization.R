@@ -525,7 +525,8 @@ DimPlot <- function(
     label.size = label.size,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
-    sizes.highlight = sizes.highlight
+    sizes.highlight = sizes.highlight,
+    na.value = na.value
   )
   return(plot)
 }
@@ -2909,9 +2910,9 @@ SingleDimPlot <- function(
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {
-      scale_color_brewer(palette = cols)
+      scale_color_brewer(palette = cols, na.value = na.value)
     } else {
-      scale_color_manual(values = cols)
+      scale_color_manual(values = cols, na.value = na.value)
     }
   }
   plot <- plot + theme_cowplot()
