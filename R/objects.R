@@ -2904,7 +2904,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       stop("'i' must be a character")
     }
     if (is.null(x = value)) {
-      slot.use <- FindObject(object = object, name = i)
+      slot.use <- FindObject(object = x, name = i)
       if (is.null(x = slot.use)) {
         stop("Cannot find object ", i)
       }
@@ -2912,11 +2912,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       slot.use <- switch(
         EXPR = as.character(x = class(x = value)),
         'Assay' = {
-          if (all(colnames(x = value) %in% colnames(x = object)) && !all(colnames(x = value) == colnames(x = object))) {
+          if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
             for (slot in c('counts', 'data', 'scale.data')) {
               assay.data <- GetAssayData(object = value, slot = slot)
               if (nrow(x = assay.data) > 0) {
-                assay.data <- assay.data[, colnames(x = object), drop = FALSE]
+                assay.data <- assay.data[, colnames(x = x), drop = FALSE]
               }
               value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
             }
@@ -2937,7 +2937,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
         stop("All cells in the object being added must match the cells in this object")
       }
-      if (!is.null(x = FindObject(object = object, name = i)) && class(x = value) != class(x = x[[i]])) {
+      if (!is.null(x = FindObject(object = x, name = i)) && class(x = value) != class(x = x[[i]])) {
         stop(
           "This object already contains ",
           i,
