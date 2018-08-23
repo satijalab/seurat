@@ -476,7 +476,7 @@ DimPlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   reduction = 'pca',
   group.by = NULL,
   shape.by = NULL,
@@ -567,7 +567,7 @@ FeaturePlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = c('lightgrey', 'blue'),
-  pt.size = 1,
+  pt.size = NULL,
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = 'tsne',
@@ -2807,8 +2807,8 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param ... Ignored for now
 #
-#' @importFrom ggplot2 ggplot aes_string labs geom_text
-#' scale_color_brewer scale_color_manual element_rect
+#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
+#' scale_color_brewer scale_color_manual element_rect guide_legend
 #' @importFrom cowplot theme_cowplot
 #'
 SingleDimPlot <- function(
@@ -2816,7 +2816,7 @@ SingleDimPlot <- function(
   dims,
   col.by = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   shape.by = NULL,
   order = NULL,
   label = FALSE,
@@ -2877,6 +2877,7 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
@@ -2886,7 +2887,9 @@ SingleDimPlot <- function(
         shape = shape.by
       ),
       size = pt.size
-    ) + labs(color = NULL)
+    ) +
+    guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(color = NULL)
   if (label && !is.null(x = col.by)) {
     labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
     plot <- plot +
