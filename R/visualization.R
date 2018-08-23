@@ -2458,16 +2458,17 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
 #
 MakeLabels <- function(data) {
+  groups <- as.character(x = na.omit(object = unique(x = data[, 3])))
   labels <- lapply(
-    X = unique(x = data[, 3]),
+    X = groups,
     FUN = function(group) {
       data.use <- data[data[, 3] == group, 1:2]
-      return(apply(X = data.use, MARGIN = 2, FUN = median))
+      return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
     }
   )
-  names(x = labels) <- as.character(unique(x = data[, 3]))
+  names(x = labels) <- groups
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
-  labels[, colnames(x = data)[3]] <- as.character(unique(x = data[, 3]))
+  labels[, colnames(x = data)[3]] <- groups
   return(labels)
 }
 
