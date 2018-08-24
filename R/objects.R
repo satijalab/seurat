@@ -595,8 +595,9 @@ CreateSeuratObject <- function(
   )
   object['orig.ident'] <- idents
   # Calculate nCount and nFeature
-  object[paste('nCount', assay, sep = '_')] <- Matrix::colSums(x = object)
-  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(counts > 0)
+  filtered.counts <- GetAssayData(object = object, assay = assay, slot = 'counts')
+  object[paste('nCount', assay, sep = '_')] <- Matrix::colSums(filtered.counts)
+  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(filtered.counts > 0)
   if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -2790,7 +2791,10 @@ merge.Seurat <- function(
         object = merged.object,
         assay = assay, slot = "counts") > 0)
     merged.object[paste('nCount', assay, sep = '_')] <-
-      Matrix::colSums(x = merged.object[[assay]])
+      Matrix::colSums(x = GetAssayData(
+        object = merged.object,
+        assay = assay, 
+        slot = 'counts'))
   }
   return(merged.object)
 }
