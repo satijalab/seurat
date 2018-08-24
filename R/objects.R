@@ -3098,7 +3098,8 @@ setMethod(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
-      'Jackstraw run:', as.logical(x = JS(object = object)), '\n'
+      'Jackstraw run:', as.logical(x = JS(object = object)), '\n',
+      'Computed using assay:', DefaultAssay(object)
     )
   }
 )
