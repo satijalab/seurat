@@ -466,6 +466,9 @@ VlnPlot <- function(
 #'
 #' @export
 #'
+#' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
+#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#'
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
 #' \code{\link{FeatureLocator}}
 #'
@@ -548,6 +551,9 @@ DimPlot <- function(
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect
 #' dup_axis element_blank element_text margin scale_color_brewer scale_color_gradientn
 #' @export
+#'
+#' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
+#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
 #'
 #' @aliases FeatureHeatmap
 #' @seealso \code{\link{DimPlot}} \code{\link{HoverLocator}}

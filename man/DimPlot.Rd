@@ -60,6 +60,10 @@ A ggplot object
 Graphs the output of a dimensional reduction technique (PCA by default).
 Cells are colored by their identity class.
 }
+\note{
+For the old \code{do.hover} and \code{do.identify} functionality, please see
+\code{HoverLocator} and \code{FeatureLocator}, respectively.
+}
 \examples{
 DimPlot(object = pbmc_small)
 

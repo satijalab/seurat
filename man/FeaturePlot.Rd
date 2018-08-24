@@ -64,6 +64,10 @@ A ggplot object
 Colors single cells on a dimensional reduction plot according to a 'feature'
 (i.e. gene expression, PC scores, number of genes detected, etc.)
 }
+\note{
+For the old \code{do.hover} and \code{do.identify} functionality, please see
+\code{HoverLocator} and \code{FeatureLocator}, respectively.
+}
 \examples{
 FeaturePlot(object = pbmc_small, features.plot = 'PC1')
 
