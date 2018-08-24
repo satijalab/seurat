@@ -476,7 +476,7 @@ DimPlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   reduction = 'pca',
   group.by = NULL,
   shape.by = NULL,
@@ -525,7 +525,8 @@ DimPlot <- function(
     label.size = label.size,
     cells.highlight = cells.highlight,
     cols.highlight = cols.highlight,
-    sizes.highlight = sizes.highlight
+    sizes.highlight = sizes.highlight,
+    na.value = na.value
   )
   return(plot)
 }
@@ -566,7 +567,7 @@ FeaturePlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = c('lightgrey', 'blue'),
-  pt.size = 1,
+  pt.size = NULL,
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = 'tsne',
@@ -2457,16 +2458,17 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
 #
 MakeLabels <- function(data) {
+  groups <- as.character(x = na.omit(object = unique(x = data[, 3])))
   labels <- lapply(
-    X = unique(x = data[, 3]),
+    X = groups,
     FUN = function(group) {
       data.use <- data[data[, 3] == group, 1:2]
-      return(apply(X = data.use, MARGIN = 2, FUN = median))
+      return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
     }
   )
-  names(x = labels) <- as.character(unique(x = data[, 3]))
+  names(x = labels) <- groups
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
-  labels[, colnames(x = data)[3]] <- as.character(unique(x = data[, 3]))
+  labels[, colnames(x = data)[3]] <- groups
   return(labels)
 }
 
@@ -2805,8 +2807,8 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param ... Ignored for now
 #
-#' @importFrom ggplot2 ggplot aes_string labs geom_text
-#' scale_color_brewer scale_color_manual element_rect
+#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
+#' scale_color_brewer scale_color_manual element_rect guide_legend
 #' @importFrom cowplot theme_cowplot
 #'
 SingleDimPlot <- function(
@@ -2814,7 +2816,7 @@ SingleDimPlot <- function(
   dims,
   col.by = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   shape.by = NULL,
   order = NULL,
   label = FALSE,
@@ -2875,6 +2877,7 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
@@ -2884,7 +2887,9 @@ SingleDimPlot <- function(
         shape = shape.by
       ),
       size = pt.size
-    ) + labs(color = NULL)
+    ) +
+    guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(color = NULL)
   if (label && !is.null(x = col.by)) {
     labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
     plot <- plot +
@@ -2909,9 +2914,9 @@ SingleDimPlot <- function(
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {
-      scale_color_brewer(palette = cols)
+      scale_color_brewer(palette = cols, na.value = na.value)
     } else {
-      scale_color_manual(values = cols)
+      scale_color_manual(values = cols, na.value = na.value)
     }
   }
   plot <- plot + theme_cowplot()

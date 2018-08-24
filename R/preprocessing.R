@@ -909,8 +909,8 @@ ScaleData.default <- function(
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   Parenting(
     parent.find = "ScaleData.Assay",
-    params = c("features", "min.cells.to.block"),
-    values = list(features, min.cells.to.block)
+    features = features,
+    min.cells.to.block = min.cells.to.block
   )
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
@@ -1025,8 +1025,9 @@ ScaleData.Assay <- function(
   )
   Parenting(
     parent.find = "ScaleData.Seurat",
-    params = c("features", "min.cells.to.block", "use.umi"),
-    values = list(features, min.cells.to.block, use.umi)
+    features = features,
+    min.cells.to.block = min.cells.to.block,
+    use.umi = use.umi
   )
   return(object)
 }

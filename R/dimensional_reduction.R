@@ -449,7 +449,7 @@ RunCCA.Seurat <- function(
   assay2 <- assay2 %||% DefaultAssay(object = object2)
 
   if(assay1 != assay2) {
-    stop("assay1 != assay2. Only unimodal data currently supported.")
+    warning("Running CCA on different assays")
   }
 
   if (is.null(x = features)) {

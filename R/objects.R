@@ -594,9 +594,10 @@ CreateSeuratObject <- function(
     version = packageVersion(pkg = 'Seurat')
   )
   object['orig.ident'] <- idents
-  # Calculate nUMI and nFeature
-  object['nUMI'] <- Matrix::colSums(x = object)
-  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(counts > 0)
+  # Calculate nCount and nFeature
+  filtered.counts <- GetAssayData(object = object, assay = assay, slot = 'counts')
+  object[paste('nCount', assay, sep = '_')] <- Matrix::colSums(filtered.counts)
+  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(filtered.counts > 0)
   if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -2749,12 +2750,12 @@ merge.Seurat <- function(
     )
   }
   # Merge the meta.data
-  # get rid of nUMI and nFeature_*
+  # get rid of nCount_ and nFeature_*
   combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
   new.idents <- c()
   for(object in objects) {
     old.meta.data <- object[]
-    old.meta.data$nUMI <- NULL
+    old.meta.data[, which(grepl(pattern = "nCount_", x = colnames(old.meta.data)))] <- NULL
     old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
     if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
       cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
@@ -2784,12 +2785,16 @@ merge.Seurat <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  merged.object['nUMI'] <- Matrix::colSums(x = merged.object)
   for(assay in assays.to.merge) {
     merged.object[paste('nFeature', assay, sep = '_')] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
         assay = assay, slot = "counts") > 0)
+    merged.object[paste('nCount', assay, sep = '_')] <-
+      Matrix::colSums(x = GetAssayData(
+        object = merged.object,
+        assay = assay, 
+        slot = 'counts'))
   }
   return(merged.object)
 }
@@ -3093,7 +3098,8 @@ setMethod(
       "A dimensional reduction object with key", Key(object = object), '\n',
       'Number of dimensions:', length(x = object), '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
-      'Jackstraw run:', as.logical(x = JS(object = object)), '\n'
+      'Jackstraw run:', as.logical(x = JS(object = object)), '\n',
+      'Computed using assay:', DefaultAssay(object)
     )
   }
 )

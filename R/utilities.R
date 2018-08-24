@@ -860,12 +860,15 @@ PackageCheck <- function(..., error = TRUE) {
 #
 # @param parent.find Regex pattern of name of parent function call to modify.
 # For example, this can be the class name for a method that was dispatched previously
-# @param params Names of parameter to modify
-# @param values Values to set for \code{params} in environement that matches \code{parent.find}
+# @param ... Parameter names and values to parent; both name and value must be supplied
+# in the standard \code{name = value} format; any number of name/value pairs can be specified
 #
 # @return No return, modifies parent environment directly
 #
-Parenting <- function(parent.find = 'Seurat', params, values) {
+# @examples
+# Parenting(parent.find = 'Seurat', features = features[features > 7])
+#
+Parenting <- function(parent.find = 'Seurat', ...) {
   calls <- as.character(x = sys.calls())
   calls <- lapply(
     X = strsplit(x = calls, split = '(', fixed = TRUE),
@@ -876,13 +879,17 @@ Parenting <- function(parent.find = 'Seurat', params, values) {
   if (length(x = parent.index) != 1) {
     stop("Cannot find a parent environment called ", parent.find)
   }
-  if (length(x = params) != length(x = values)) {
-    stop("Must provide equal params and values to parent")
+  to.parent <- list(...)
+  if (length(x = to.parent) == 0) {
+    stop("Nothing to parent")
+  } else if (is.null(x = names(x = to.parent))) {
+    stop("All input must be in a key = value pair")
+  } else if (length(x = Filter(f = nchar, x = names(x = to.parent))) != length(x = to.parent)) {
+    stop("All inputs must be named")
   }
   parent.environ <- sys.frame(which = parent.index)
-  # parent.environ[[param]] <- value
-  for (i in 1:length(x = params)) {
-    parent.environ[[params[i]]] <- values[[i]]
+  for (i in 1:length(x = to.parent)) {
+    parent.environ[[names(x = to.parent)[i]]] <- to.parent[[i]]
   }
 }
 
