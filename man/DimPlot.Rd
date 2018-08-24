@@ -65,5 +65,6 @@ DimPlot(object = pbmc_small)
 
 }
 \seealso{
-\code{\link{FeaturePlot}} \code{\link{FeatureMap}}
+\code{\link{FeaturePlot}} \code{\link{HoverLocator}}
+\code{\link{FeatureLocator}}
 }

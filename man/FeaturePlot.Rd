@@ -69,5 +69,6 @@ FeaturePlot(object = pbmc_small, features.plot = 'PC1')
 
 }
 \seealso{
-\code{\link{DimPlot}} \code{\link{FeatureMap}}
+\code{\link{DimPlot}} \code{\link{HoverLocator}}
+\code{\link{FeatureLocator}}
 }
