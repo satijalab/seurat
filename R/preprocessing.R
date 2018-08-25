@@ -859,6 +859,207 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
+
+#' @inheritParams RunALRA
+#' @export
+#'
+
+RunALRA.default <- function(
+  object, 
+  k = NULL,
+  q = 10
+){
+  
+  A_norm <- t(as.matrix(object))
+  
+  message("Getting nonzeros")
+  originally_nonzero <- A_norm > 0 
+  
+  message("Randomized SVD")
+  fastDecomp_noc <- rsvd(A_norm, k, q=q);
+  A_norm_rank_k <- fastDecomp_noc$u[,1:k]%*%diag(fastDecomp_noc$d[1:k])%*% t(fastDecomp_noc$v[,1:k])
+  
+  
+  message("Find mins")
+  A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,min))
+  message("Sweep")
+  A_norm_rank_k_cor <- replace(A_norm_rank_k, A_norm_rank_k <= A_norm_rank_k_mins[col(A_norm_rank_k)], 0)
+  
+  
+  sd_nonzero <- function(x) sd(x[!x == 0])
+  sigma_1 <- apply(A_norm_rank_k_cor, 2, sd_nonzero)
+  sigma_2 <- apply(A_norm, 2, sd_nonzero)
+  mu_1 <- colSums(A_norm_rank_k_cor)/colSums(!!A_norm_rank_k_cor)
+  mu_2 <- colSums(A_norm)/colSums(!!A_norm)
+  
+  toscale <- !is.na(sigma_1) & !is.na(sigma_2)
+  
+  message(sprintf("Scaling all except for %d columns", sum(!toscale)))
+  
+  sigma_1_2 <- sigma_2/sigma_1
+  toadd  <- -1*mu_1*sigma_2/sigma_1 + mu_2
+  
+  A_norm_rank_k_temp <- A_norm_rank_k_cor[,toscale]
+  A_norm_rank_k_temp <- sweep(A_norm_rank_k_temp,2, sigma_1_2[toscale],FUN = "*")
+  A_norm_rank_k_temp <- sweep(A_norm_rank_k_temp,2, toadd[toscale],FUN = "+")
+  
+  A_norm_rank_k_cor_sc <- A_norm_rank_k_cor
+  A_norm_rank_k_cor_sc[,toscale] <- A_norm_rank_k_temp
+  A_norm_rank_k_cor_sc[A_norm_rank_k_cor==0] = 0
+  
+  lt0 <- A_norm_rank_k_cor_sc  <0
+  A_norm_rank_k_cor_sc[lt0] <- 0 
+  message(sprintf("%.2f%% of the values became negative in the scaling process and were set to zero", 
+              100*sum(lt0)/(nrow(A_norm)*ncol(A_norm))))
+  
+  A_norm_rank_k_cor_sc[originally_nonzero & A_norm_rank_k_cor_sc ==0] <- 
+    A_norm[originally_nonzero & A_norm_rank_k_cor_sc ==0]
+  
+  colnames(A_norm_rank_k_cor) <- colnames(A_norm)
+  colnames(A_norm_rank_k_cor_sc) <- colnames(A_norm)
+  colnames(A_norm_rank_k) <- colnames(A_norm)
+  
+  original_nz <- sum(A_norm>0)/(nrow(A_norm)*ncol(A_norm))
+  completed_nz <- sum(A_norm_rank_k_cor_sc>0)/(nrow(A_norm)*ncol(A_norm))
+  message(sprintf("The matrix went from %.2f%% nonzero to %.2f%% nonzero", 100*original_nz, 100*completed_nz))
+  
+  return(A_norm_rank_k_cor_sc)
+}
+
+
+
+#' @inheritParams RunALRA
+#' @param assay: Assay to use
+#' @param slot: slot to use
+#' @param setDefaultAssay: set to TRUE to set imputed results as default Assay
+#' @param genes.use: genes to impute
+#' @param K: Number of singular values to compute. Must be less than the smallest dimension of the matrix.
+#' @param p.val.th : The threshold for ''significance''
+#' @param noise.start : Index for which all smaller singular values are considered noise
+#' @param q.k : Number of additional power iterations
+#' @param k.only: set to TRUE if only computes optimal k WITHOUT performing ALRA
+#' @param do.plot: set to TRUE to plot d, diff, pvals and chosen k
+#' 
+#' @describeIn RunALRA Run ALRA
+#' @export
+#' @method RunALRA Seurat
+
+RunALRA.Seurat <- function(
+  object, 
+  k = NULL, 
+  q = 10, 
+  assay = NULL,
+  slot = "data", 
+  setDefaultAssay = TRUE, 
+  genes.use = NULL, 
+  K = 100,
+  p.val.th = 1e-10, 
+  noise.start = 80, 
+  q.k = 2, 
+  k.only = FALSE,
+  do.plot = FALSE
+){
+  
+  if(!is.null(k) & k.only){
+    warning("Stop: k is already given, set k.only = FALSE or k = NULL")
+  }
+  
+  if(is.null(genes.use)){
+    genes.use <- rownames(object)
+  }
+  
+  assay <- assay %||% DefaultAssay(object = object)
+  
+  
+  # Add slot alra in object@tools
+  if(is.null(object@tools[["alra"]])){
+    object@tools[["alra"]] <- list()
+  }
+  
+  
+  # Check if k is already stored
+  if(is.null(k) & !is.null(object@tools[["alra"]][["k"]])){
+    k = object@tools[["alra"]][["k"]]
+  }
+  
+  data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
+  
+  
+  # Choose k with heuristics if k is not given
+  if(is.null(k)){
+    if (K > min(dim(data.used))) {
+      stop("For an m by n data, K must be smaller than the min(m,n).\n")
+    }
+    
+    if (noise.start > K - 5) {
+      stop("There need to be at least 5 singular values considered noise.\n")
+    }
+    noise.svals <- noise.start:K
+    
+    rsvd.out <- rsvd(t(as.matrix(data.used)), K, q = q.k)
+    diffs <- diff(rsvd.out$d)
+    pvals <- pnorm(diffs, mean(diffs[noise.svals - 1]), sd(diffs[noise.svals - 1]))
+    k <- max(which(pvals < p.val.th))
+    
+    # plot process of k choice
+    if(do.plot){
+      ggdata <- data.frame(x = 1:100, y = rsvd.out$d)
+      gg1 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
+        geom_line(size = 0.5) + geom_vline(xintercept = k) + 
+        theme(axis.title.x = element_blank()) + theme_cowplot() + 
+        scale_x_continuous(breaks = seq(10,100,10)) + 
+        ylab('s_i') + ggtitle('Singular values')
+      
+      ggdata <- data.frame(x = 2:100, y = diffs)[3:99,]
+      gg2 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
+        geom_line(size = 0.5) + geom_vline(xintercept = k+1) + 
+        theme(axis.title.x=element_blank()) + theme_cowplot() + 
+        scale_x_continuous(breaks = seq(10,100,10)) + ylab('s_{i} - s_{i-1}') + 
+        ggtitle('Singular value spacings')
+      
+      ggdata <- data.frame(x = 2:100, y = pvals)
+      gg3 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + geom_vline(xintercept = k+1) + 
+        theme(axis.title.x=element_blank()) + theme_cowplot() + 
+        scale_x_continuous(breaks = seq(10,100,10)) + ylab('p.val') + 
+        ggtitle('Singular value spacing p-values')
+      
+      grid.arrange(gg1,gg2,gg3, nrow = 1)
+    }
+  }
+  
+  object@tools[["alra"]][["k"]] <- k
+  if(k.only){
+    message(paste("Choosing k = ", k, ", WITHOUT performing ALRA", sep = ""))
+    return(object)
+  }
+  
+  message(paste("Choosing k = ", k, sep = ""))
+  
+  
+  # Perform ALRA on data.used
+  output.alra <- RunALRA(
+    object = data.used,
+    k = k,
+    q = q
+  )
+  
+  # Save ALRA data in object@assay
+  data.alra <- Matrix(t(output.alra), sparse = T)
+  rownames(data.alra) <- genes.use
+  colnames(data.alra) <- colnames(object)
+  assay.alra <- CreateAssayObject(data = data.alra)
+  object[["alra"]] <- assay.alra
+  
+  if(setDefaultAssay){
+    message("Setting default assay as alra")
+    DefaultAssay(object) <- "alra"
+  }
+  
+  return(object)
+}
+
+
+
 #' @export
 #'
 ScaleData.default <- function(

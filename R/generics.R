@@ -715,6 +715,34 @@ RenameCells <- function(object, new.names, ...) {
   UseMethod(generic = 'RenameCells', object = object)
 }
 
+
+
+#' Run Adaptively-thresholded Low Rank Approximation (ALRA) 
+#' 
+#' Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
+#' Computes the k-rank approximation to A_norm and adjusts it according to the
+#' error distribution learned from the negative values. Described in 
+#' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+#' 
+#' @param object a Seurat object
+#' @param k  The rank of the rank-k approximation. Set to 0 for automated choice of k.
+#' @param q  The number of additional power iterations in randomized SVD when
+#'           computing rank k approximation. By default, q=10.
+#' @export
+#' @import rsvd
+#'
+RunALRA <- function(
+  object,
+  k,
+  q,
+  ...
+){
+  UseMethod(generic = 'RunALRA', object = object)
+}
+
+
+
 #' Perform Canonical Correlation Analysis
 #'
 #' Runs a canonical correlation analysis using a diagonal implementation of CCA.
