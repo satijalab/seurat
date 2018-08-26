@@ -9,7 +9,7 @@ ALRAChooseKPlot(object, starting.from = 0)
 \arguments{
 \item{object}{Seurat object}
 
-\item{starting.frome}{Index to start plotting singular value spacings from.
+\item{starting.from}{Index to start plotting singular value spacings from.
 The transition from "signal" to "noise" in the is hard to see because the
 first singular value spacings are so large. Nicer visualizations result from
 skipping the first few. If set to 0 (default) starts from k/2.}
