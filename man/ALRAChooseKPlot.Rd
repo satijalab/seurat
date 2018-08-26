@@ -15,7 +15,8 @@ first singular value spacings are so large. Nicer visualizations result from
 skipping the first few. If set to 0 (default) starts from k/2.}
 }
 \value{
-A ggplot object
+A list of 3 ggplot objects splotting the singular values, the
+        spacings of the singular values, and the p-values of the singular values.
 }
 \description{
 Plots the results of the approximate rank selection process for ALRA.

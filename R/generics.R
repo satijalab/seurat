@@ -731,7 +731,6 @@ RenameCells <- function(object, new.names, ...) {
 #'           computing rank k approximation. By default, q=10.
 #' @export
 #' @import rsvd
-#' @import ggplot2
 #' 
 #' @examples 
 #' pbmc_small
