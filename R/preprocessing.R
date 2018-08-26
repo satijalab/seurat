@@ -872,17 +872,17 @@ RunALRA.default <- function(
   
   A_norm <- t(as.matrix(object))
   
-  message("Getting nonzeros")
+  message("Identifying non-zero values")
   originally_nonzero <- A_norm > 0 
   
-  message("Randomized SVD")
+  message("Computing Randomized SVD")
   fastDecomp_noc <- rsvd(A_norm, k, q=q);
   A_norm_rank_k <- fastDecomp_noc$u[,1:k]%*%diag(fastDecomp_noc$d[1:k])%*% t(fastDecomp_noc$v[,1:k])
   
   
-  message("Find mins")
+  message("Find most negative values of each gene")
   A_norm_rank_k_mins <- abs(apply(A_norm_rank_k,2,min))
-  message("Sweep")
+  message("Thresholding by the most negative value of each gene")
   A_norm_rank_k_cor <- replace(A_norm_rank_k, A_norm_rank_k <= A_norm_rank_k_mins[col(A_norm_rank_k)], 0)
   
   
@@ -930,15 +930,15 @@ RunALRA.default <- function(
 
 #' @inheritParams RunALRA
 #' @param assay: Assay to use
-#' @param slot: slot to use
-#' @param setDefaultAssay: set to TRUE to set imputed results as default Assay
-#' @param genes.use: genes to impute
-#' @param K: Number of singular values to compute. Must be less than the smallest dimension of the matrix.
-#' @param p.val.th : The threshold for ''significance''
-#' @param noise.start : Index for which all smaller singular values are considered noise
-#' @param q.k : Number of additional power iterations
-#' @param k.only: set to TRUE if only computes optimal k WITHOUT performing ALRA
-#' @param do.plot: set to TRUE to plot d, diff, pvals and chosen k
+#' @param slot slot to use
+#' @param setDefaultAssay If TRUE, will set imputed results as default Assay
+#' @param genes.use genes to impute
+#' @param K Number of singular values to compute when choosing k. Must be less
+#'        than the smallest dimension of the matrix.
+#' @param p.val.th  The threshold for ''significance'' when choosing k
+#' @param noise.start  Index for which all smaller singular values are considered noise
+#' @param q.k  Number of additional power iterations when choosing k
+#' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #' 
 #' @describeIn RunALRA Run ALRA
 #' @export
@@ -956,8 +956,7 @@ RunALRA.Seurat <- function(
   p.val.th = 1e-10, 
   noise.start = 80, 
   q.k = 2, 
-  k.only = FALSE,
-  do.plot = FALSE
+  k.only = FALSE
 ){
   
   if(!is.null(k) & k.only){
@@ -980,6 +979,7 @@ RunALRA.Seurat <- function(
   # Check if k is already stored
   if(is.null(k) & !is.null(object@tools[["alra"]][["k"]])){
     k = object@tools[["alra"]][["k"]]
+    message("Using previously computed value of k")
   }
   
   data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
@@ -1001,39 +1001,18 @@ RunALRA.Seurat <- function(
     pvals <- pnorm(diffs, mean(diffs[noise.svals - 1]), sd(diffs[noise.svals - 1]))
     k <- max(which(pvals < p.val.th))
     
-    # plot process of k choice
-    if(do.plot){
-      ggdata <- data.frame(x = 1:100, y = rsvd.out$d)
-      gg1 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
-        geom_line(size = 0.5) + geom_vline(xintercept = k) + 
-        theme(axis.title.x = element_blank()) + theme_cowplot() + 
-        scale_x_continuous(breaks = seq(10,100,10)) + 
-        ylab('s_i') + ggtitle('Singular values')
-      
-      ggdata <- data.frame(x = 2:100, y = diffs)[3:99,]
-      gg2 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
-        geom_line(size = 0.5) + geom_vline(xintercept = k+1) + 
-        theme(axis.title.x=element_blank()) + theme_cowplot() + 
-        scale_x_continuous(breaks = seq(10,100,10)) + ylab('s_{i} - s_{i-1}') + 
-        ggtitle('Singular value spacings')
-      
-      ggdata <- data.frame(x = 2:100, y = pvals)
-      gg3 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + geom_vline(xintercept = k+1) + 
-        theme(axis.title.x=element_blank()) + theme_cowplot() + 
-        scale_x_continuous(breaks = seq(10,100,10)) + ylab('p.val') + 
-        ggtitle('Singular value spacing p-values')
-      
-      grid.arrange(gg1,gg2,gg3, nrow = 1)
-    }
+    object@tools[["alra"]][["d"]] <- rsvd.out$d
+    object@tools[["alra"]][["k"]] <- k
+    object@tools[["alra"]][["diffs"]] <- diffs
+    object@tools[["alra"]][["pvals"]] <- pvals
   }
   
-  object@tools[["alra"]][["k"]] <- k
   if(k.only){
-    message(paste("Choosing k = ", k, ", WITHOUT performing ALRA", sep = ""))
+    message(paste("Chose rank k = ", k, ", WITHOUT performing ALRA", sep = ""))
     return(object)
   }
   
-  message(paste("Choosing k = ", k, sep = ""))
+  message(paste("Rank k = ", k, sep = ""))
   
   
   # Perform ALRA on data.used

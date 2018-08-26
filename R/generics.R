@@ -731,7 +731,23 @@ RenameCells <- function(object, new.names, ...) {
 #'           computing rank k approximation. By default, q=10.
 #' @export
 #' @import rsvd
-#'
+#' @import ggplot2
+#' 
+#' @examples 
+#' pbmc_small
+#' # Example 1: Simple usage, with automatic choice of k. 
+#' pbmc_small_alra <- RunALRA(pbmc_small)
+#' \dontrun{
+#' # Example 2: Visualize choice of k, then run ALRA
+#' # First, choose K
+#' pbmc_small_alra <- RunALRA(pbmc_small, k.only=TRUE)
+#' # Plot the spectrum, spacings, and p-values which are used to choose k
+#' ggouts <- ALRAChooseKPlot(pbmc_small_alra)
+#' do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
+#' # Run ALRA with the chosen k
+#' pbmc_small_alra <- RunALRA(pbmc_small_alra)
+#' }
+
 RunALRA <- function(
   object,
   k,

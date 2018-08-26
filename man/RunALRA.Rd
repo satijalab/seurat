@@ -9,8 +9,7 @@ RunALRA(object, k, q, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL, K = 100,
-  p.val.th = 1e-10, noise.start = 80, q.k = 2, k.only = FALSE,
-  do.plot = FALSE)
+  p.val.th = 1e-10, noise.start = 80, q.k = 2, k.only = FALSE)
 }
 \arguments{
 \item{object}{a Seurat object}
@@ -20,25 +19,24 @@ RunALRA(object, k, q, ...)
 \item{q}{The number of additional power iterations in randomized SVD when
 computing rank k approximation. By default, q=10.}
 
-\item{p.val.th}{: The threshold for ''significance''}
+\item{slot}{slot to use}
 
-\item{noise.start}{: Index for which all smaller singular values are considered noise}
+\item{setDefaultAssay}{If TRUE, will set imputed results as default Assay}
 
-\item{q.k}{: Number of additional power iterations}
+\item{genes.use}{genes to impute}
+
+\item{K}{Number of singular values to compute when choosing k. Must be less
+than the smallest dimension of the matrix.}
+
+\item{p.val.th}{The threshold for ''significance'' when choosing k}
+
+\item{noise.start}{Index for which all smaller singular values are considered noise}
+
+\item{q.k}{Number of additional power iterations when choosing k}
+
+\item{k.only}{If TRUE, only computes optimal k WITHOUT performing ALRA}
 
 \item{assay:}{Assay to use}
-
-\item{slot:}{slot to use}
-
-\item{setDefaultAssay:}{set to TRUE to set imputed results as default Assay}
-
-\item{genes.use:}{genes to impute}
-
-\item{K:}{Number of singular values to compute. Must be less than the smallest dimension of the matrix.}
-
-\item{k.only:}{set to TRUE if only computes optimal k WITHOUT performing ALRA}
-
-\item{do.plot:}{set to TRUE to plot d, diff, pvals and chosen k}
 }
 \description{
 Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
@@ -52,3 +50,18 @@ of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 \item \code{Seurat}: Run ALRA
 }}
 
+\examples{
+pbmc_small
+# Example 1: Simple usage, with automatic choice of k. 
+pbmc_small_alra <- RunALRA(pbmc_small)
+\dontrun{
+# Example 2: Visualize choice of k, then run ALRA
+# First, choose K
+pbmc_small_alra <- RunALRA(pbmc_small, k.only=TRUE)
+# Plot the spectrum, spacings, and p-values which are used to choose k
+ggouts <- ALRAChooseKPlot(pbmc_small_alra)
+do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
+# Run ALRA with the chosen k
+pbmc_small_alra <- RunALRA(pbmc_small_alra)
+}
+}

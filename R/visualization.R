@@ -1315,6 +1315,64 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+
+#' ALRA Approximate Rank Selection Plot
+#'
+#' Plots the results of the approximate rank selection process for ALRA.
+#'
+#'
+#' @param object Seurat object
+#' @param starting.frome Index to start plotting singular value spacings from.
+#'                       The transition from "signal" to "noise" in the is hard to see because the
+#'                       first singular value spacings are so large. Nicer visualizations result from
+#'                       skipping the first few. If set to 0 (default) starts from k/2.
+#'
+#' @return A list of 3 ggplot objects splotting the singular values, the
+#'         spacings of the singular values, and the p-values of the singular values.
+#'
+#' @import ggplot2 
+#'
+#' @export
+#'
+#'
+ALRAChooseKPlot <- function( object, starting.from=0) {
+      d <- object@tools[["alra"]][["d"]]
+      diffs <- object@tools[["alra"]][["diffs"]]
+      pvals <- object@tools[["alra"]][["pvals"]]
+      k <- object@tools[["alra"]][["k"]]
+      if (starting.from==0){
+        starting.from = floor(k/2)
+      }
+      
+      if (starting.from > k ) {
+        error("Plots should include k (i.e. starting.from should be less than k)")
+      }
+      ggdata <- data.frame(x = 1:length(d), y = d)
+      gg1 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
+        geom_line(size = 0.5) + geom_vline(xintercept = k) + 
+        theme(axis.title.x = element_blank()) + theme_cowplot() + 
+        scale_x_continuous(breaks = seq(10,length(d),10)) + 
+        ylab('s_i') + ggtitle('Singular values')
+      
+      ggdata <- data.frame(x = 2:length(d), y = diffs)[-(1:(starting.from-1)),]
+      gg2 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
+        geom_line(size = 0.5) + geom_vline(xintercept = k+1) + 
+        theme(axis.title.x=element_blank()) + theme_cowplot() + 
+        scale_x_continuous(breaks = seq(10,length(d),10)) + ylab('s_{i} - s_{i-1}') + 
+        ggtitle('Singular value spacings')
+      
+      ggdata <- data.frame(x = 2:length(d), y = pvals)
+      gg3 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + geom_vline(xintercept = k+1) + 
+        theme(axis.title.x=element_blank()) + theme_cowplot() +
+        scale_x_continuous(breaks = seq(10,length(d),10)) + ylab('p.val') + 
+        ggtitle('Singular value spacing p-values')
+      
+  return(list(spectrum=gg1, spacings=gg2, pvals=gg3))
+}
+
+
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Exported utility functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
