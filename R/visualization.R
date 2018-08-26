@@ -1336,6 +1336,9 @@ JackStrawPlot <- function(
 #'
 #'
 ALRAChooseKPlot <- function( object, starting.from=0) {
+      if ( is.null(object@tools[["alra"]])) {
+            stop('RunALRA() should be run prior to using this function.')
+      }
       d <- object@tools[["alra"]][["d"]]
       diffs <- object@tools[["alra"]][["diffs"]]
       pvals <- object@tools[["alra"]][["pvals"]]
@@ -1345,7 +1348,7 @@ ALRAChooseKPlot <- function( object, starting.from=0) {
       }
       
       if (starting.from > k ) {
-        error("Plots should include k (i.e. starting.from should be less than k)")
+        stop("Plots should include k (i.e. starting.from should be less than k)")
       }
       ggdata <- data.frame(x = 1:length(d), y = d)
       gg1 <- ggplot(ggdata, aes(x = x, y = y)) + geom_point(size = 1) + 
