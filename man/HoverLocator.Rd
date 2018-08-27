@@ -4,12 +4,10 @@
 \alias{HoverLocator}
 \title{Hover Locator}
 \usage{
-HoverLocator(plot, data, information = NULL, dark.theme = FALSE, ...)
+HoverLocator(plot, information = NULL, dark.theme = FALSE, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}
-
-\item{data}{The oridinal data that went into the ggplot2 plot}
 
 \item{information}{An optional dataframe or matrix of extra information to be displayed on hover}
 
@@ -22,14 +20,12 @@ Get quick information from a scatterplot by hovering over points
 }
 \examples{
 \dontrun{
-df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-HoverLocator(plot = p, data.plot = df)
+plot <- DimPlot(object = pbmc_small)
+HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
 }
 
 }
 \seealso{
-\code{\link{plotly::layout}}
-
-\code{\link{ggplot2::ggplot_build}}
+\code{\link{plotly::layout}} \code{\link{ggplot2::ggplot_build}}
+\code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }

@@ -4,12 +4,10 @@
 \alias{FeatureLocator}
 \title{Feature Locator}
 \usage{
-FeatureLocator(plot, data, ...)
+FeatureLocator(plot, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot}
-
-\item{data}{The oridinal data that went into the ggplot2 plot}
 
 \item{...}{Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
 recoloring based on selected cells, or using a smooth scatterplot, respectively}
@@ -22,14 +20,14 @@ Select points on a scatterplot and get information about them
 }
 \examples{
 \dontrun{
-df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-FeatureLocator(plot = p, data.plot = df)
+plot <- DimPlot(object = pbmc_small)
+# Follow instructions in the terminal to select points
+cells.located <- FeatureLocator(plot = plot)
+cells.located
 }
 
 }
 \seealso{
-\code{locator}
-
-\code{ggplot2::ggplot_build}
+\code{\link{graphics::locator}} \code{\link{ggplot2::ggplot_build}}
+\code{\link{SDMTools::pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }
