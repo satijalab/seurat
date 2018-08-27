@@ -1708,6 +1708,7 @@ SeuratTheme <- function() {
 #'
 #' @examples
 #' # Generate a plot with a dark theme
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + DarkTheme(legend.position = 'none')
@@ -1766,6 +1767,7 @@ DarkTheme <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no axes
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoAxes()
@@ -1811,6 +1813,7 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
 #'
 #' @examples
 #' # Generate a plot with no legend
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoLegend()
@@ -1836,6 +1839,7 @@ NoLegend <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no grid lines
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoGrid()
