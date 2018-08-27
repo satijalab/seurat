@@ -324,7 +324,7 @@ HTOHeatmap <- function(
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC1')
 #'
 RidgePlot <- function(
   object,
@@ -373,7 +373,7 @@ RidgePlot <- function(
 #' @export
 #'
 #' @examples
-#' VlnPlot(object = pbmc_small, features.plot = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC1')
 #'
 VlnPlot <- function(
   object,
@@ -560,7 +560,7 @@ DimPlot <- function(
 #' \code{\link{FeatureLocator}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC1')
 #'
 FeaturePlot <- function(
   object,
@@ -989,9 +989,9 @@ VariableFeaturePlot <- function(
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
-#' DotPlot(object = pbmc_small, features.plot = cd_genes)
-#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
-#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
+#' DotPlot(object = pbmc_small, features = cd_genes)
+#' pbmc_small['groups'] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+#' DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 #'
 DotPlot <- function(
   object,

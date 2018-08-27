@@ -20,6 +20,8 @@ Returns TRUE if the dependency has changed (or has not been run), and an update 
 Compares the stored timestamp with the most recently recorded timestamp to see if a dependency has been updated
 }
 \examples{
+\dontrun{
 CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#'
+}
+
 }

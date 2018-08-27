@@ -27,12 +27,13 @@ advantage of adding it to the Seurat object is so that it can be
 analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
 }
 \examples{
-cluster_letters <- LETTERS[pbmc_small@ident]
+cluster_letters <- LETTERS[Idents(object = pbmc_small)]
+names(cluster_letters) <- colnames(x = pbmc_small)
 pbmc_small <- AddMetaData(
   object = pbmc_small,
   metadata = cluster_letters,
   col.name = 'letter.idents'
 )
-head(x = pbmc_small@meta.data)
+head(x = pbmc_small[])
 
 }

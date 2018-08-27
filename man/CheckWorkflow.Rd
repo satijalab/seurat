@@ -18,6 +18,8 @@ TRUE if workflow is defined. STOP otherwise
 Checks if a workflow is defined for a Seurat object
 }
 \examples{
+\dontrun{
 CheckWorkflow(pbmc_small, "cluster")
+}
 
 }

@@ -37,6 +37,7 @@ All analyzed genes are binned based on averaged expression, and the control gene
 randomly selected from each bin.
 }
 \examples{
+\dontrun{
 cd_genes <- list(c(
   'CD79B',
   'CD79A',
@@ -61,7 +62,7 @@ pbmc_small <- AddModuleScore(
   enrich.name = 'CD_Genes'
 )
 head(x = pbmc_small@meta.data)
-
+}
 }
 \references{
 Tirosh et al, Science (2016)

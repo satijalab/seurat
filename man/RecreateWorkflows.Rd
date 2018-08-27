@@ -23,6 +23,8 @@ Output all commands to reproduce your analysis without shortcuts. Should enhance
 We hope this will be very useful, but use with care and verify that it does indeed reproduce your work.
 }
 \examples{
-RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
-#
+\dontrun{
+RecreateWorkflows(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+}
+
 }

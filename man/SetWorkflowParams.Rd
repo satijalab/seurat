@@ -30,6 +30,8 @@ Object with modified workflows
 Sets parameters for a workflow
 }
 \examples{
+\dontrun{
 pbmc_small <- SetWorkflowParams(object = pbmc_small, seed.use = 31, dims. = 20)
+}
 
 }
