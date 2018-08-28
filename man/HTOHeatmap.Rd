@@ -5,8 +5,8 @@
 \title{Hashtag oligo heatmap}
 \usage{
 HTOHeatmap(object, hto.classification = "hto_classification",
-  global.classification = "hto_classification_global",
-  assay.type = "HTO", num.cells = 5000, singlet.names = NULL, ...)
+  global.classification = "hto_classification_global", assay = "HTO",
+  ncells = 5000, singlet.names = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().}
@@ -15,9 +15,9 @@ HTOHeatmap(object, hto.classification = "hto_classification",
 
 \item{global.classification}{The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.}
 
-\item{assay.type}{Hashtag assay name.}
+\item{assay}{Hashtag assay name.}
 
-\item{num.cells}{Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.}
+\item{ncells}{Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.}
 
 \item{singlet.names}{Namings for the singlets. Default is to use the same names as HTOs.}
 
