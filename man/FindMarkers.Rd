@@ -138,7 +138,7 @@ same genes tested for differential expression.
 }}
 
 \examples{
-markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
+markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 head(markers)
 
 }

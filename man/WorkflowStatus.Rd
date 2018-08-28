@@ -20,6 +20,8 @@ Seurat object with updated workflow
 For each command in the workflow, indicate whether it is up-to-date.
 }
 \examples{
+\dontrun{
 WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
-#
+}
+
 }

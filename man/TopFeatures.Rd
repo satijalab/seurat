@@ -26,8 +26,8 @@ Return a list of features with the strongest contribution to a set of components
 }
 \examples{
 pbmc_small
-TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+TopFeatures(object = pbmc_small[["pca"]], dim = 1)
 # After projection:
-TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+TopFeatures(object = pbmc_small[["pca"]], dim = 1,  projected = TRUE)
 
 }

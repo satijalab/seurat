@@ -23,8 +23,8 @@ Return a list of genes with the strongest contribution to a set of components
 }
 \examples{
 pbmc_small
-head(TopCells(object = pbmc_small, reduction.type = "pca"))
+head(TopCells(object = pbmc_small[["pca"]]))
 # Can specify which dimension and how many cells to return
-TopCells(object = pbmc_small, reduction.type = "pca", dim.use = 2, num.cells = 5)
+TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
 
 }

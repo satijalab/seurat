@@ -69,7 +69,7 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 \code{HoverLocator} and \code{FeatureLocator}, respectively.
 }
 \examples{
-FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+FeaturePlot(object = pbmc_small, features = 'PC1')
 
 }
 \seealso{

@@ -89,11 +89,11 @@ to construct the SNN graph by calculating the neighborhood overlap
 \examples{
 pbmc_small
 # Compute an SNN on the gene expression level
-pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
+pbmc_small <- BuildSNN(pbmc_small, features = VariableFeatures(object = pbmc_small))
 
 # More commonly, we build the SNN on a dimensionally reduced form of the data
 # such as the first 10 principle components.
 
-pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims = 1:10)
+pbmc_small <- BuildSNN(pbmc_small, reduction = "pca", dims = 1:10)
 
 }

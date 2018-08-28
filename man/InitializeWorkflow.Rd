@@ -18,6 +18,8 @@ Object with modified workflows
 Reads dependencies from a file and initializes a Seurat workflow
 }
 \examples{
+\dontrun{
 pbmc_small <- InitializeWorkflow(object = pbmc_small, file = 'workflows/cluster.workflow.txt')
+}
 
 }

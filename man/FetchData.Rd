@@ -23,7 +23,7 @@ Retreives data (feature expression, PCA scores, metrics, etc.) for a set
 of cells in a Seurat object
 }
 \examples{
-pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
 head(x = pc1)
 
 }

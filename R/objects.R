@@ -289,13 +289,14 @@ seurat <- setClass(
 #' @export
 #'
 #' @examples
-#' cluster_letters <- LETTERS[pbmc_small@ident]
+#' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
+#' names(cluster_letters) <- colnames(x = pbmc_small)
 #' pbmc_small <- AddMetaData(
 #'   object = pbmc_small,
 #'   metadata = cluster_letters,
 #'   col.name = 'letter.idents'
 #' )
-#' head(x = pbmc_small@meta.data)
+#' head(x = pbmc_small[])
 #'
 AddMetaData <- function(object, metadata, col.name = NULL) {
   if (typeof(x = metadata) != "list") {
@@ -327,8 +328,10 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' CheckWorkflow(pbmc_small, "cluster")
-#'
+#' }
+#' 
 CheckWorkflow <- function(object, workflow.name) {
   # Check if workflow is there
   workflow.present <- FALSE
@@ -356,8 +359,10 @@ CheckWorkflow <- function(object, workflow.name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#' #'
+#' }
+#' 
 CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
 
@@ -619,7 +624,7 @@ CreateSeuratObject <- function(
 #' @export
 #'
 #' @examples
-#' pc1 <- FetchData(object = pbmc_small, vars.all = 'PC1')
+#' pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
 #' head(x = pc1)
 #'
 FetchData <- function(object, vars, cells = NULL, slot = 'data') {
@@ -735,7 +740,9 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small <- InitializeWorkflow(object = pbmc_small, file = 'workflows/cluster.workflow.txt')
+#' }
 #'
 InitializeWorkflow <- function(object, file) {
   if(!file.exists(... = file)) {
@@ -820,8 +827,10 @@ InitializeWorkflow <- function(object, file) {
 #' @export
 #'
 #' @examples
-#' RecreateWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
-#' #
+#' \dontrun{
+#' RecreateWorkflows(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
+#' }
+#' 
 RecreateWorkflows <- function(object, workflow.name, command.name,depth=1) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   depends <- slot(object = object[[workflow.name]],name = "depends")
@@ -861,7 +870,9 @@ RecreateWorkflows <- function(object, workflow.name, command.name,depth=1) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small <- SetWorkflowParams(object = pbmc_small, seed.use = 31, dims. = 20)
+#' }
 #'
 SetWorkflowParams <- function(
   object,
@@ -953,9 +964,9 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #'
 #' @examples
 #' pbmc_small
-#' TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca")
+#' TopFeatures(object = pbmc_small[["pca"]], dim = 1)
 #' # After projection:
-#' TopFeatures(object = pbmc_small, dim.use = 1, reduction.type = "pca", use.full = TRUE)
+#' TopFeatures(object = pbmc_small[["pca"]], dim = 1,  projected = TRUE)
 #'
 TopFeatures <- function(
   object,
@@ -987,10 +998,10 @@ TopFeatures <- function(
 #'
 #' @examples
 #' pbmc_small
-#' head(TopCells(object = pbmc_small, reduction.type = "pca"))
+#' head(TopCells(object = pbmc_small[["pca"]]))
 #' # Can specify which dimension and how many cells to return
-#' TopCells(object = pbmc_small, reduction.type = "pca", dim.use = 2, num.cells = 5)
-#'
+#' TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
+#' 
 TopCells <- function(
   object,
   dim = 1,
@@ -1019,8 +1030,10 @@ TopCells <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#' #'
+#' }
+#' 
 TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.time()) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   #Now update all dependencies, recursively
@@ -1099,8 +1112,10 @@ UpdateSeuratObject <- function(object) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
-#' #
+#' }
+#' 
 WorkflowStatus <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   message(paste0("Status  for ", workflow.name, " workflow"))
@@ -2830,7 +2845,7 @@ names.Seurat <- function(x) {
 #' @method subset Seurat
 #'
 #' @examples
-#' subset(x = pbmc, subset = MS4A1 > 7)
+#' subset(x = pbmc_small, subset = MS4A1 > 7)
 #'
 subset.Seurat <- function(x, subset, ...) {
   objects.use <- FilterObjects(object = x)

@@ -248,13 +248,14 @@ DoHeatmap <- function(
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().
 #' @param hto.classification The naming for object@meta.data slot with classification result from HTODemux().
 #' @param global.classification The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.
-#' @param assay.type Hashtag assay name.
-#' @param num.cells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
+#' @param assay Hashtag assay name.
+#' @param ncells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
 #' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
 #' @param ... Additional arguments for DoHeatmap().
 #'
 #' @return A ggplot object
 #'
+#' @importFrom ggplot2 guides
 #' @export
 #'
 #' @examples
@@ -267,31 +268,40 @@ HTOHeatmap <- function(
   object,
   hto.classification = "hto_classification",
   global.classification = "hto_classification_global",
-  assay.type = "HTO",
-  num.cells = 5000,
+  assay = "HTO",
+  ncells = 5000,
   singlet.names = NULL,
   ...
 ) {
-
-  object <- SetAllIdent(object,id = hto.classification)
-  objmini <- SubsetData(object,cells = sample(object@cell.names,num.cells))
-
-  metadata_use <- objmini@meta.data
-  singlet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Singlet",hto.classification])))
-  doublet_id <- sort(unique(as.character(metadata_use[metadata_use[,global.classification]=="Doublet",hto.classification])))
-
-  heatmap_levels <- c(singlet_id,doublet_id,"Negative")
-  objmini <- SetIdent(objmini,FastWhichCells(objmini,group.by = global.classification,"Doublet"),"Multiplet")
-
-  objmini@ident <- factor(objmini@ident, c(singlet_id,"Multiplet","Negative"))
-  cells.ordered=as.character(unlist(sapply(heatmap_levels,function(x) sample(FastWhichCells(objmini,group.by = hto.classification,x)))))
-  objmini <- ScaleData(objmini,assay.type = assay.type,display.progress = FALSE)
-
-  if (!is.null(singlet.names)){
-    levels(objmini@ident) <- c(singlet.names, "Multiplet", "Negative")
+  DefaultAssay(object = object) <- assay
+  Idents(object = object) <- object[hto.classification, drop = TRUE]
+  object <- SubsetData(
+    object = object,
+    cells = sample(x = colnames(x = object), size = ncells)
+  )
+  classification <- object[hto.classification]
+  singlets <- which(x = object[global.classification] == 'Singlet')
+  singlet.ids <- sort(x = unique(x = as.character(x = classification[singlets, ])))
+  doublets <- which(object[global.classification] == 'Doublet')
+  doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
+  heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
+  Idents(object = object, cells = doublets) <- 'Multiplet'
+  Idents(object = object) <- factor(
+    x = Idents(object = object),
+    levels = c(singlet.ids, 'Multiplet', 'Negative')
+  )
+  object <- ScaleData(object = object, assay = assay, verbose = FALSE)
+  if (!is.null(x = singlet.names)) {
+    levels(x = object@ident) <- c(singlet.names, "Multiplet", "Negative")
   }
-  DoHeatmap(objmini,slim.col.label = T,genes.use = singlet_id,assay.type = assay.type,cells = cells.ordered,group.label.rot = T)
-
+  data <- FetchData(object = object, vars = singlet.ids)
+  plot <- SingleRasterMap(
+    data = data,
+    feature.order = rev(x = singlet.ids),
+    cell.order = names(x = sort(x = Idents(object = object))),
+    group.by = Idents(object = object)
+  ) + guides(color = FALSE)
+  return(plot)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -324,7 +334,7 @@ HTOHeatmap <- function(
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC1')
 #'
 RidgePlot <- function(
   object,
@@ -373,7 +383,7 @@ RidgePlot <- function(
 #' @export
 #'
 #' @examples
-#' VlnPlot(object = pbmc_small, features.plot = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC1')
 #'
 VlnPlot <- function(
   object,
@@ -560,7 +570,7 @@ DimPlot <- function(
 #' \code{\link{FeatureLocator}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC1')
 #'
 FeaturePlot <- function(
   object,
@@ -989,9 +999,9 @@ VariableFeaturePlot <- function(
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
-#' DotPlot(object = pbmc_small, features.plot = cd_genes)
-#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
-#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
+#' DotPlot(object = pbmc_small, features = cd_genes)
+#' pbmc_small['groups'] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+#' DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 #'
 DotPlot <- function(
   object,
@@ -1708,6 +1718,7 @@ SeuratTheme <- function() {
 #'
 #' @examples
 #' # Generate a plot with a dark theme
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + DarkTheme(legend.position = 'none')
@@ -1766,6 +1777,7 @@ DarkTheme <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no axes
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoAxes()
@@ -1811,6 +1823,7 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
 #'
 #' @examples
 #' # Generate a plot with no legend
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoLegend()
@@ -1836,6 +1849,7 @@ NoLegend <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no grid lines
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoGrid()
