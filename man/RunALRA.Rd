@@ -19,6 +19,8 @@ RunALRA(object, k, q, ...)
 \item{q}{The number of additional power iterations in randomized SVD when
 computing rank k approximation. By default, q=10.}
 
+\item{assay}{Assay to use}
+
 \item{slot}{slot to use}
 
 \item{setDefaultAssay}{If TRUE, will set imputed results as default Assay}
@@ -35,25 +37,23 @@ than the smallest dimension of the matrix.}
 \item{q.k}{Number of additional power iterations when choosing k}
 
 \item{k.only}{If TRUE, only computes optimal k WITHOUT performing ALRA}
-
-\item{assay:}{Assay to use}
 }
 \description{
 Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
 Computes the k-rank approximation to A_norm and adjusts it according to the
-error distribution learned from the negative values. Described in 
+error distribution learned from the negative values. Described in
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{Seurat}: Run ALRA
+\item \code{Seurat}: Run ALRA on a Seurat object
 }}
 
 \examples{
 pbmc_small
-# Example 1: Simple usage, with automatic choice of k. 
-pbmc_small_alra <- RunALRA(pbmc_small)
+# Example 1: Simple usage, with automatic choice of k.
+pbmc_small_alra <- RunALRA(object = pbmc_small)
 \dontrun{
 # Example 2: Visualize choice of k, then run ALRA
 # First, choose K
