@@ -31,13 +31,13 @@ addons:
       - libtool
       - libmagick++-dev
 
-bioc_packages:
-  - GenomeInfoDbData
-  - DESeq2
-  - MAST
-  - S4Vectors
-  - SummarizedExperiment
-  - SingleCellExperiment
+#bioc_packages:
+#  - GenomeInfoDbData
+#  - DESeq2
+#  - MAST
+#  - S4Vectors
+#  - SummarizedExperiment
+#  - SingleCellExperiment
 
 r_github_packages:
   - mojaveazure/loomR
