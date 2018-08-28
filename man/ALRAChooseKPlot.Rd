@@ -4,19 +4,22 @@
 \alias{ALRAChooseKPlot}
 \title{ALRA Approximate Rank Selection Plot}
 \usage{
-ALRAChooseKPlot(object, starting.from = 0)
+ALRAChooseKPlot(object, start = 0, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{starting.from}{Index to start plotting singular value spacings from.
+\item{start}{Index to start plotting singular value spacings from.
 The transition from "signal" to "noise" in the is hard to see because the
 first singular value spacings are so large. Nicer visualizations result from
 skipping the first few. If set to 0 (default) starts from k/2.}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE,
+themeing will not work when plotting multiple features}
 }
 \value{
 A list of 3 ggplot objects splotting the singular values, the
-        spacings of the singular values, and the p-values of the singular values.
+spacings of the singular values, and the p-values of the singular values.
 }
 \description{
 Plots the results of the approximate rank selection process for ALRA.

@@ -938,13 +938,16 @@ RunALRA.default <- function(object, k = NULL, q = 10) {
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
+#' @importFrom Matrix Matrix
+#' @importFrom stats pnorm sd
 #'
 #' @describeIn RunALRA Run ALRA on a Seurat object
 #' @export
 #' @method RunALRA Seurat
 #'
 RunALRA.Seurat <- function(
-  object, k = NULL,
+  object,
+  k = NULL,
   q = 10,
   assay = NULL,
   slot = "data",
@@ -956,7 +959,7 @@ RunALRA.Seurat <- function(
   q.k = 2,
   k.only = FALSE
 ) {
-  if (!is.null(x = k) & k.only) {
+  if (!is.null(x = k) && k.only) {
     warning("Stop: k is already given, set k.only = FALSE or k = NULL")
   }
   genes.use <- genes.use %||% rownames(x = object)
