@@ -874,8 +874,8 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
-#' @importFrom pbapply pblapply pbapply
-#' @importFrom future.apply future_lapply future_apply
+#' @importFrom pbapply pblapply
+#' @importFrom future.apply future_lapply
 #' @export
 #'
 ScaleData.default <- function(
@@ -893,16 +893,11 @@ ScaleData.default <- function(
   verbose = TRUE,
   ...
 ) {
-  if (PlanThreads() > 1) {
-    my.apply <- future_apply
-    my.lapply <- future_lapply
-  } else if (verbose) {
-    my.apply <- pbapply
-    my.lapply <- pblapply
-  } else {
-    my.apply <- apply
-    my.lapply <- lapply
-  }
+  my.lapply <- ifelse(
+    test = verbose && PlanThreads() > 1,
+    yes = pblapply,
+    no = future_lapply
+  )
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
@@ -957,10 +952,10 @@ ScaleData.default <- function(
     scale.function <- FastRowScale
   }
   blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-  scaled.data <- my.apply(
-    X = blocks,
-    MARGIN = 2,
-    FUN = function(block) {
+  scaled.data <- my.lapply(
+    X = 1:ncol(x = blocks),
+    FUN = function(i) {
+      block <- as.vector(x = blocks[, i])
       data.scale <- scale.function(
         mat = object[features[block[1]:block[2]], , drop = FALSE],
         scale = do.scale,
