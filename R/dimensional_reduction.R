@@ -324,9 +324,9 @@ PCASigGenes <- function(
 #'
 #' @examples
 #' pbmc_small
-#' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
+#' pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 #' # Vizualize top projected genes in heatmap
-#' DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,balanced = TRUE,reduction.type = "pca")
+#' DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 #'
 ProjectDim <- function(
   object,
@@ -451,7 +451,7 @@ RunCCA.Seurat <- function(
   assay2 <- assay2 %||% DefaultAssay(object = object2)
 
   if(assay1 != assay2) {
-    stop("assay1 != assay2. Only unimodal data currently supported.")
+    warning("Running CCA on different assays")
   }
 
   if (is.null(x = features)) {

@@ -5,8 +5,8 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = 1, reduction = "pca", group.by = NULL, shape.by = NULL,
-  order = NULL, label = FALSE, label.size = 4,
+  pt.size = NULL, reduction = "pca", group.by = NULL,
+  shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
   cells.highlight = NULL, cols.highlight = "red",
   sizes.highlight = 1, na.value = "grey50", ...)
 }
@@ -60,10 +60,15 @@ A ggplot object
 Graphs the output of a dimensional reduction technique (PCA by default).
 Cells are colored by their identity class.
 }
+\note{
+For the old \code{do.hover} and \code{do.identify} functionality, please see
+\code{HoverLocator} and \code{FeatureLocator}, respectively.
+}
 \examples{
 DimPlot(object = pbmc_small)
 
 }
 \seealso{
-\code{\link{FeaturePlot}} \code{\link{FeatureMap}}
+\code{\link{FeaturePlot}} \code{\link{HoverLocator}}
+\code{\link{FeatureLocator}}
 }

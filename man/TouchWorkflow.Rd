@@ -23,6 +23,8 @@ Seurat object with updated workflow
 Like the touch command in linux. Updates a workflow command's timestamp, and its dependencies
 }
 \examples{
+\dontrun{
 TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#'
+}
+
 }

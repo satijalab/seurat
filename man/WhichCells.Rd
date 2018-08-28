@@ -33,8 +33,7 @@ using FetchData}
 
 \item{accept.value}{Returns all cells with the subset name equal to this value}
 
-\item{...}{Arguments passed to other methods
-use.imputed=TRUE)}
+\item{...}{Arguments passed to other methods}
 
 \item{ident.keep}{Create a cell subset based on the provided identity classes}
 
@@ -65,7 +64,7 @@ identity class, high/low values for particular PCs, ect..
 }}
 
 \examples{
-WhichCells(object = pbmc_small, ident = 2)
+WhichCells(object = pbmc_small, ident.keep = 2)
 
 }
 \seealso{

@@ -28,13 +28,13 @@ NULL
 #' @export
 #'
 #' @examples
-#' head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+#' head(x = FetchData(object = pbmc_small, vars = 'LTB'))
 #' pbmc_filtered <- FilterCells(
 #'   object = pbmc_small,
 #'   subset.names = 'LTB',
 #'   high.thresholds = 6
 #' )
-#' head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
+#' head(x = FetchData(object = pbmc_filtered, vars = 'LTB'))
 #'
 FilterCells <- function(
   object,
@@ -531,8 +531,8 @@ RegressRegNB <- function(
 #' @export
 #'
 #' @examples
-#' raw_data = as.matrix(x = pbmc_small@raw.data)
-#' downsampled = SampleUMI(data = raw_data)
+#' counts = as.matrix(x = GetAssayData(object = pbmc_small, assay = "RNA", slot = "counts"))
+#' downsampled = SampleUMI(data = counts)
 #' head(x = downsampled)
 #'
 SampleUMI <- function(

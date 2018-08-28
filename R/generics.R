@@ -41,12 +41,12 @@ as.seurat <- function(from) {
 #' @examples
 #' pbmc_small
 #' # Compute an SNN on the gene expression level
-#' pbmc_small <- BuildSNN(pbmc_small, genes.use = pbmc_small@var.genes)
+#' pbmc_small <- BuildSNN(pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
 #' # More commonly, we build the SNN on a dimensionally reduced form of the data
 #' # such as the first 10 principle components.
 #'
-#' pbmc_small <- BuildSNN(pbmc_small, reduction.type = "pca", dims = 1:10)
+#' pbmc_small <- BuildSNN(pbmc_small, reduction = "pca", dims = 1:10)
 #'
 #' @rdname BuildSNN
 #' @export BuildSNN
@@ -287,7 +287,7 @@ FindClusters <- function(
 #' @export
 #'
 #' @examples
-#' markers <- FindMarkers(object = pbmc_small, ident.1 = 3)
+#' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(markers)
 #'
 #' @rdname FindMarkers
@@ -777,13 +777,13 @@ RunALRA <- function(
 #' @examples
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:40])
-#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[41:80])
-#' pbmc1@meta.data$group <- "group1"
-#' pbmc2@meta.data$group <- "group2"
-#' pbmc_cca <- RunCCA(pbmc1,pbmc2)
+#' pbmc1 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[1:40])
+#' pbmc2 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[41:80])
+#' pbmc1["group"] <- "group1"
+#' pbmc2["group"] <- "group2"
+#' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
-#' PrintDim(pbmc_cca,reduction.type = 'cca')
+#' Print(object = pbmc_cca[["cca"]])
 #'
 #' @rdname RunCCA
 #' @export RunCCA
@@ -1144,8 +1144,7 @@ VariableFeatures <- function(object, ...) {
 #' @param high.threshold High cutoff for the parameter (default is Inf)
 #' @param accept.value Returns all cells with the subset name equal to this value
 #' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData (for example,
-#' use.imputed=TRUE)
+# @param \dots Additional arguments to be passed to FetchData
 #'
 #' @return A vector of cell names
 #'
@@ -1153,7 +1152,7 @@ VariableFeatures <- function(object, ...) {
 #' @export WhichCells
 #'
 #' @examples
-#' WhichCells(object = pbmc_small, ident = 2)
+#' WhichCells(object = pbmc_small, ident.keep = 2)
 #'
 WhichCells <- function(
   object,

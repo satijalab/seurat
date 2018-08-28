@@ -55,21 +55,25 @@ Various themes to be applied to ggplot2-based plots
 }
 \examples{
 # Generate a plot with a dark theme
+library(ggplot2)
 df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 p + DarkTheme(legend.position = 'none')
 
 # Generate a plot with no axes
+library(ggplot2)
 df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 p + NoAxes()
 
 # Generate a plot with no legend
+library(ggplot2)
 df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 p + NoLegend()
 
 # Generate a plot with no grid lines
+library(ggplot2)
 df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 p + NoGrid()

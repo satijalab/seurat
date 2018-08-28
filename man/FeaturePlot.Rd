@@ -6,7 +6,7 @@
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
 FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
-  cols = c("lightgrey", "blue"), pt.size = 1, min.cutoff = NA,
+  cols = c("lightgrey", "blue"), pt.size = NULL, min.cutoff = NA,
   max.cutoff = NA, reduction = "tsne", group.by = NULL,
   split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
   label.size = 4, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
@@ -64,10 +64,15 @@ A ggplot object
 Colors single cells on a dimensional reduction plot according to a 'feature'
 (i.e. gene expression, PC scores, number of genes detected, etc.)
 }
+\note{
+For the old \code{do.hover} and \code{do.identify} functionality, please see
+\code{HoverLocator} and \code{FeatureLocator}, respectively.
+}
 \examples{
-FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+FeaturePlot(object = pbmc_small, features = 'PC1')
 
 }
 \seealso{
-\code{\link{DimPlot}} \code{\link{FeatureMap}}
+\code{\link{DimPlot}} \code{\link{HoverLocator}}
+\code{\link{FeatureLocator}}
 }

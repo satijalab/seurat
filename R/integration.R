@@ -358,6 +358,7 @@ CalcAlignmentMetric <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' pbmc_small
 #' # Requires CCA to have previously been run
 #' # As CCA requires two datasets, we will split our test object into two just for this example
@@ -367,7 +368,7 @@ CalcAlignmentMetric <- function(
 #' pbmc2@meta.data$group <- "group2"
 #' pbmc_cca <- RunCCA(pbmc1,pbmc2)
 #' pbmc_cca <- CalcVarExpRatio(pbmc_cca,reduction.type = "pca", grouping.var = "group", dims = 1:5)
-#'
+#'}
 CalcVarExpRatio <- function(
   object,
   reduction.type = "pca",

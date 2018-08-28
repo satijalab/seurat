@@ -21,7 +21,7 @@ A subsetted Seurat object
 Subset a Seurat object
 }
 \examples{
-subset(x = pbmc, subset = MS4A1 > 7)
+subset(x = pbmc_small, subset = MS4A1 > 7)
 
 }
 \seealso{

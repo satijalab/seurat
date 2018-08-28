@@ -32,12 +32,12 @@ restrict the filtering to only a subset of cells using cells (i.e. only
 keep cells that BOTH pass the filters and are in the cells list).
 }
 \examples{
-head(x = FetchData(object = pbmc_small, vars.all = 'LTB'))
+head(x = FetchData(object = pbmc_small, vars = 'LTB'))
 pbmc_filtered <- FilterCells(
   object = pbmc_small,
   subset.names = 'LTB',
   high.thresholds = 6
 )
-head(x = FetchData(object = pbmc_filtered, vars.all = 'LTB'))
+head(x = FetchData(object = pbmc_filtered, vars = 'LTB'))
 
 }

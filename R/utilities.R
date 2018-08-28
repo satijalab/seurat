@@ -33,6 +33,7 @@ NULL
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' cd_genes <- list(c(
 #'   'CD79B',
 #'   'CD79A',
@@ -57,7 +58,7 @@ NULL
 #'   enrich.name = 'CD_Genes'
 #' )
 #' head(x = pbmc_small@meta.data)
-#'
+#' }
 AddModuleScore <- function(
   object,
   genes.list = NULL,
@@ -316,7 +317,7 @@ AverageExpression <- function(
 #'
 #' @examples
 #' cd_genes <- c('Cd79b', 'Cd19', 'Cd200')
-#' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small@raw.data))
+#' CaseMatch(search = cd_genes, match = rownames(x = pbmc_small))
 #'
 CaseMatch <- function(search, match) {
   search.match <- sapply(

@@ -34,7 +34,6 @@ Imports:
     ini,
     irlba,
     lmtest,
-    magrittr,
     MASS,
     Matrix (>= 1.2.14),
     metap,

@@ -324,7 +324,7 @@ HTOHeatmap <- function(
 #' @export
 #'
 #' @examples
-#' RidgePlot(object = pbmc_small, features.plot = 'PC1')
+#' RidgePlot(object = pbmc_small, features = 'PC1')
 #'
 RidgePlot <- function(
   object,
@@ -373,7 +373,7 @@ RidgePlot <- function(
 #' @export
 #'
 #' @examples
-#' VlnPlot(object = pbmc_small, features.plot = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'PC1')
 #'
 VlnPlot <- function(
   object,
@@ -466,7 +466,11 @@ VlnPlot <- function(
 #'
 #' @export
 #'
-#' @seealso \code{\link{FeaturePlot}} \code{\link{FeatureMap}}
+#' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
+#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#'
+#' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
+#' \code{\link{FeatureLocator}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
@@ -476,7 +480,7 @@ DimPlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   reduction = 'pca',
   group.by = NULL,
   shape.by = NULL,
@@ -487,13 +491,6 @@ DimPlot <- function(
   cols.highlight = 'red',
   sizes.highlight = 1,
   na.value = 'grey50',
-  # do.hover = FALSE,
-  # data.hover = 'ident',
-  # do.identify = FALSE,
-  # no.legend = FALSE,
-  # vector.friendly = FALSE,
-  # png.file = NULL,
-  # png.arguments = c(10,10, 100),
   ...
 ) {
   ReadPlotParams(object)
@@ -555,11 +552,15 @@ DimPlot <- function(
 #' dup_axis element_blank element_text margin scale_color_brewer scale_color_gradientn
 #' @export
 #'
+#' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
+#' \code{HoverLocator} and \code{FeatureLocator}, respectively.
+#'
 #' @aliases FeatureHeatmap
-#' @seealso \code{\link{DimPlot}} \code{\link{FeatureMap}}
+#' @seealso \code{\link{DimPlot}} \code{\link{HoverLocator}}
+#' \code{\link{FeatureLocator}}
 #'
 #' @examples
-#' FeaturePlot(object = pbmc_small, features.plot = 'PC1')
+#' FeaturePlot(object = pbmc_small, features = 'PC1')
 #'
 FeaturePlot <- function(
   object,
@@ -567,7 +568,7 @@ FeaturePlot <- function(
   dims = c(1, 2),
   cells = NULL,
   cols = c('lightgrey', 'blue'),
-  pt.size = 1,
+  pt.size = NULL,
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = 'tsne',
@@ -988,9 +989,9 @@ VariableFeaturePlot <- function(
 #'
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
-#' DotPlot(object = pbmc_small, features.plot = cd_genes)
-#' pbmc_small['groups'] <- sample(x = c('g1', 'g2', size = ncol(x = pbmc_small), replace = TRUE))
-#' DotPlot(object = pbmc_small, features.plot = cd_genes, split.by = 'groups')
+#' DotPlot(object = pbmc_small, features = cd_genes)
+#' pbmc_small['groups'] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+#' DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 #'
 DotPlot <- function(
   object,
@@ -1460,27 +1461,28 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
 #' Select points on a scatterplot and get information about them
 #'
 #' @param plot A ggplot2 plot
-#' @param data The oridinal data that went into the ggplot2 plot
 #' @param ... Extra parameters, such as dark.theme, recolor, or smooth for using a dark theme,
 #' recoloring based on selected cells, or using a smooth scatterplot, respectively
 #'
 #' @return The names of the points selected
 #'
-#' @seealso \code{locator}
-#' @seealso \code{ggplot2::ggplot_build}
+#' @importFrom ggplot2 ggplot_build
 #' @export
+#'
+#' @seealso \code{\link{graphics::locator}} \code{\link{ggplot2::ggplot_build}}
+#' \code{\link{SDMTools::pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-#' FeatureLocator(plot = p, data.plot = df)
+#' plot <- DimPlot(object = pbmc_small)
+#' # Follow instructions in the terminal to select points
+#' cells.located <- FeatureLocator(plot = plot)
+#' cells.located
 #' }
 #'
-FeatureLocator <- function(plot, data, ...) {
+FeatureLocator <- function(plot, ...) {
   located <- PointLocator(plot = plot, ...)
-  #   The rownames for points.located correspond to the row indecies
-  #   of data.plot thanks to the way the ggplot object was made
+  data <- ggplot_build(plot = plot)$plot$data
   selected <- data[as.numeric(x = rownames(x = located)), ]
   return(rownames(x = selected))
 }
@@ -1490,28 +1492,25 @@ FeatureLocator <- function(plot, data, ...) {
 #' Get quick information from a scatterplot by hovering over points
 #'
 #' @param plot A ggplot2 plot
-#' @param data The oridinal data that went into the ggplot2 plot
 #' @param information An optional dataframe or matrix of extra information to be displayed on hover
 #' @param dark.theme Plot using a dark theme?
 #' @param ... Extra parameters to be passed to \code{plotly::layout}
 #'
-#' @importFrom magrittr %>%
+#' @importFrom ggplot2 ggplot_build
 #' @importFrom plotly plot_ly layout
-#'
-#' @seealso \code{\link{plotly::layout}}
-#' @seealso \code{\link{ggplot2::ggplot_build}}
 #' @export
+#'
+#' @seealso \code{\link{plotly::layout}} \code{\link{ggplot2::ggplot_build}}
+#' \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
-#' HoverLocator(plot = p, data.plot = df)
+#' plot <- DimPlot(object = pbmc_small)
+#' HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
 #' }
 #'
 HoverLocator <- function(
   plot,
-  data,
   information = NULL,
   dark.theme = FALSE,
   ...
@@ -1519,7 +1518,8 @@ HoverLocator <- function(
   #   Use GGpointToBase because we already have ggplot objects
   #   with colors (which are annoying in plotly)
   plot.build <- GGpointToBase(plot = plot, do.plot = FALSE)
-  rownames(x = plot.build) <- rownames(data)
+  data <- ggplot_build(plot = plot)$plot$data
+  rownames(x = plot.build) <- rownames(x = data)
   #   Reset the names to 'x' and 'y'
   names(x = plot.build) <- c(
     'x',
@@ -1568,21 +1568,21 @@ HoverLocator <- function(
     title = list(color = 'black')
     plotbg = 'white'
   }
-  #   Start plotly and pipe it into layout for axis modifications
   #   The `~' means pull from the data passed (this is why we reset the names)
   #   Use I() to get plotly to accept the colors from the data as is
   #   Set hoverinfo to 'text' to override the default hover information
   #   rather than append to it
-  plot_ly(
-    data = plot.build,
-    x = ~x,
-    y = ~y,
-    type = 'scatter',
-    mode = 'markers',
-    color = ~I(color),
-    hoverinfo = 'text',
-    text = ~feature
-  ) %>% layout(
+  plotly::layout(
+    p = plot_ly(
+      data = plot.build,
+      x = ~x,
+      y = ~y,
+      type = 'scatter',
+      mode = 'markers',
+      color = ~I(color),
+      hoverinfo = 'text',
+      text = ~feature
+    ),
     xaxis = xaxis,
     yaxis = yaxis,
     titlefont = title,
@@ -1769,6 +1769,7 @@ SeuratTheme <- function() {
 #'
 #' @examples
 #' # Generate a plot with a dark theme
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + DarkTheme(legend.position = 'none')
@@ -1827,6 +1828,7 @@ DarkTheme <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no axes
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoAxes()
@@ -1872,6 +1874,7 @@ NoAxes <- function(..., keep.text = FALSE, keep.ticks = FALSE) {
 #'
 #' @examples
 #' # Generate a plot with no legend
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoLegend()
@@ -1897,6 +1900,7 @@ NoLegend <- function(...) {
 #'
 #' @examples
 #' # Generate a plot with no grid lines
+#' library(ggplot2)
 #' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
 #' p <- ggplot(data = df, mapping = aes(x = x, y = y)) + geom_point(mapping = aes(color = 'red'))
 #' p + NoGrid()
@@ -2506,7 +2510,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
     'cex'
   )
   if (do.plot) {
-    PlotBuild(plot.data = plot.data, ...)
+    PlotBuild(data = plot.data, ...)
   }
   return(plot.data)
 }
@@ -2623,7 +2627,7 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
     no <- ifelse(test = dark.theme, yes = 'white', no = 'black')
     points.all$color <- ifelse(test = points.all$pip == 1, yes = 'red', no = no)
     plot.data$color <- points.all$color
-    PlotBuild(plot.data = plot.data, dark.theme = dark.theme, ...)
+    PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
   }
   return(points.located[, c(1, 2)])
 }
@@ -2868,8 +2872,8 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param ... Ignored for now
 #
-#' @importFrom ggplot2 ggplot aes_string labs geom_text
-#' scale_color_brewer scale_color_manual element_rect
+#' @importFrom ggplot2 ggplot aes_string labs geom_text guides
+#' scale_color_brewer scale_color_manual element_rect guide_legend
 #' @importFrom cowplot theme_cowplot
 #'
 SingleDimPlot <- function(
@@ -2877,7 +2881,7 @@ SingleDimPlot <- function(
   dims,
   col.by = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   shape.by = NULL,
   order = NULL,
   label = FALSE,
@@ -2938,6 +2942,7 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
+  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
@@ -2947,7 +2952,9 @@ SingleDimPlot <- function(
         shape = shape.by
       ),
       size = pt.size
-    ) + labs(color = NULL)
+    ) +
+    guides(color = guide_legend(override.aes = list(size = 3))) +
+    labs(color = NULL)
   if (label && !is.null(x = col.by)) {
     labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
     plot <- plot +
