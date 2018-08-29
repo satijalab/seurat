@@ -331,7 +331,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' \dontrun{
 #' CheckWorkflow(pbmc_small, "cluster")
 #' }
-#' 
+#'
 CheckWorkflow <- function(object, workflow.name) {
   # Check if workflow is there
   workflow.present <- FALSE
@@ -362,7 +362,7 @@ CheckWorkflow <- function(object, workflow.name) {
 #' \dontrun{
 #' CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
 #' }
-#' 
+#'
 CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
 
@@ -830,7 +830,7 @@ InitializeWorkflow <- function(object, file) {
 #' \dontrun{
 #' RecreateWorkflows(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
 #' }
-#' 
+#'
 RecreateWorkflows <- function(object, workflow.name, command.name,depth=1) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   depends <- slot(object = object[[workflow.name]],name = "depends")
@@ -1001,7 +1001,7 @@ TopFeatures <- function(
 #' head(TopCells(object = pbmc_small[["pca"]]))
 #' # Can specify which dimension and how many cells to return
 #' TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
-#' 
+#'
 TopCells <- function(
   object,
   dim = 1,
@@ -1033,7 +1033,7 @@ TopCells <- function(
 #' \dontrun{
 #' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
 #' }
-#' 
+#'
 TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.time()) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   #Now update all dependencies, recursively
@@ -1115,7 +1115,7 @@ UpdateSeuratObject <- function(object) {
 #' \dontrun{
 #' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
 #' }
-#' 
+#'
 WorkflowStatus <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
   message(paste0("Status  for ", workflow.name, " workflow"))
@@ -2808,7 +2808,7 @@ merge.Seurat <- function(
     merged.object[paste('nCount', assay, sep = '_')] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
-        assay = assay, 
+        assay = assay,
         slot = 'counts'))
   }
   return(merged.object)
@@ -2872,6 +2872,9 @@ setMethod(
   definition = function(x, i, ..., value) {
     meta.data <- x[]
     cell.names <- rownames(x = meta.data)
+    if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
+      value <- value[cell.names, , drop = FALSE]
+    }
     if (length(x = i) > 1) {
       value <- rep_len(x = value, length.out = length(x = i))
       for (index in 1:length(x = i)) {
