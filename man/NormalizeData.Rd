@@ -6,15 +6,15 @@
 \alias{NormalizeData.Seurat}
 \title{Normalize Data}
 \usage{
-NormalizeData(object, normalization.method, scale.factor, verbose)
+NormalizeData(object, normalization.method, scale.factor, verbose, ...)
 
 \method{NormalizeData}{Assay}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE)
+  verbose = TRUE, ...)
 
 \method{NormalizeData}{Seurat}(object, assay = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, workflow.name = NULL)
+  verbose = TRUE, workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -31,6 +31,8 @@ More methods to be added.}
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
 \item{verbose}{display progress bar for normalization procedure.}
+
+\item{...}{Arugments passed to other methods}
 
 \item{assay}{Name of assay to use}
 }

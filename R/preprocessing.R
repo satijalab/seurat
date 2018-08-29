@@ -768,15 +768,17 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
-#' @importFrom pbapply pbapply
-#' @importFrom future.apply future_apply
+#' @importFrom pbapply pbapply pblapply
+#' @importFrom future.apply future_apply future_lapply
 #' @export
 #'
 NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  block.size = NULL,
+  verbose = TRUE,
+  ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
@@ -786,17 +788,22 @@ NormalizeData.default <- function(
     yes = pbapply,
     no = future_apply
   )
+  my.lapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pblapply,
+    no = future_lapply
+  )
   norm.function <- switch(
     EXPR = normalization.method,
     'LogNormalize' = LogNormalize,
     'CLR' = CustomNormalize,
     stop("Unkown normalization method: ", normalization.method)
   )
-  chunk.points <- ChunkPoints(dsize = ncol(x = object), csize = 200)
-  normalized.data <- my.apply(
-    X = chunk.points,
-    MARGIN = 2,
-    FUN = function(block) {
+  chunk.points <- ChunkPoints(dsize = ncol(x = object), csize = block.size %||% ncol(x = object) / 2)
+  normalized.data <- my.lapply(
+    X = 1:ncol(x = chunk.points),
+    FUN = function(i) {
+      block <- chunk.points[, i]
       return(norm.function(
         data = object[, block[1]:block[2], drop = FALSE],
         scale.factor = scale.factor,
@@ -808,6 +815,21 @@ NormalizeData.default <- function(
       ))
     }
   )
+  #normalized.data <- my.apply(
+  #  X = chunk.points,
+  #  MARGIN = 2,
+  #  FUN = function(block) {
+  #    return(norm.function(
+  #      data = object[, block[1]:block[2], drop = FALSE],
+  #      scale.factor = scale.factor,
+  #      verbose = FALSE,
+  #      custom_function = function(x) {
+  #        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+  #      },
+  #      across = 'features'
+  #    ))
+  #  }
+  #)
   normalized.data <- do.call(what = 'cbind', args = normalized.data)
   return(normalized.data)
 }
@@ -820,7 +842,8 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   object <- SetAssayData(
     object = object,
@@ -829,7 +852,8 @@ NormalizeData.Assay <- function(
       object = GetAssayData(object = object, slot = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      verbose = verbose
+      verbose = verbose,
+      ...
     )
   )
   return(object)
@@ -853,7 +877,8 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(workflow.name)) {
@@ -864,7 +889,8 @@ NormalizeData.Seurat <- function(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
-    verbose = verbose
+    verbose = verbose,
+    ...
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)

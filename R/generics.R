@@ -471,6 +471,7 @@ Idents <- function(object, ... ) {
 #' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param verbose display progress bar for normalization procedure.
+#' @param ... Arugments passed to other methods
 #'
 #' @return Returns object after normalization
 #'
@@ -481,7 +482,8 @@ NormalizeData <- function(
   object,
   normalization.method,
   scale.factor,
-  verbose
+  verbose,
+  ...
 ) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
