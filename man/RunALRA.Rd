@@ -8,8 +8,9 @@
 RunALRA(object, k, q, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
-  slot = "data", setDefaultAssay = TRUE, genes.use = NULL, K = 100,
-  p.val.th = 1e-10, noise.start = 80, q.k = 2, k.only = FALSE)
+  slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
+  K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
+  k.only = FALSE)
 }
 \arguments{
 \item{object}{a Seurat object}
