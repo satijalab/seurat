@@ -45,6 +45,7 @@ Imports:
     RANN,
     RColorBrewer,
     Rcpp,
+    rsvd,
     reticulate,
     ROCR,
     Rtsne,

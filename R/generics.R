@@ -456,120 +456,6 @@ Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents<-', object = object)
 }
 
-#' Normalize Data
-#'
-#' Normalize the count data present in a given assay.
-#'
-#' @param object An object
-#' @param normalization.method Method for normalization.
-#'  \itemize{
-#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. This is then
-#'   natural-log transformed using log1p.}
-#'   \item{CLR: }{Applies a centered log ratio transformation}
-#' }
-#' More methods to be added.
-#' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param verbose display progress bar for normalization procedure.
-#'
-#' @return Returns object after normalization
-#'
-#' @rdname NormalizeData
-#' @export NormalizeData
-#'
-NormalizeData <- function(
-  object,
-  normalization.method,
-  scale.factor,
-  verbose
-) {
-  UseMethod(generic = 'NormalizeData', object = object)
-}
-
-#' Scale and center the data.
-#'
-#' Scales and centers features in the dataset. If variables are provided in vars.to.regress,
-#' they are individually regressed against each feautre, and the resulting residuals are
-#' then scaled and centered.
-#'
-#' ScaleData now incorporates the functionality of the function formerly known
-#' as RegressOut (which regressed out given the effects of provided variables
-#' and then scaled the residuals). To make use of the regression functionality,
-#' simply pass the variables you want to remove to the vars.to.regress parameter.
-#'
-#' Setting center to TRUE will center the expression for each feautre by subtracting
-#' the average expression for that feautre. Setting scale to TRUE will scale the
-#' expression level for each feautre by dividing the centered feautre expression
-#' levels by their standard deviations if center is TRUE and by their root mean
-#' square otherwise.
-#'
-#' @param object An object
-#' @param features Vector of features names to scale/center. Default is all features
-#' @param vars.to.regress Variables to regress out (previously latent.vars in
-#' RegressOut). For example, nUMI, or percent.mito.
-#' @param model.use Use a linear model or generalized linear model
-#' (poisson, negative binomial) for the regression. Options are 'linear'
-#' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear
-#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#' @param do.scale Whether to scale the data.
-#' @param do.center Whether to center the data.
-#' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
-#' a very small number of cells. If regressing out latent variables and using a
-#' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
-#' computation. Increasing block.size may speed up calculations but at an
-#' additional memory cost.
-#' @param min.cells.to.block If object contains fewer than this number of cells,
-#' don't block for scaling calculations.
-#' @param verbose Displays a progress bar for scaling procedure
-#'
-#' @rdname ScaleData
-#' @export ScaleData
-#'
-ScaleData <- function(
-  object,
-  features,
-  vars.to.regress,
-  model.use,
-  use.umi,
-  do.scale,
-  do.center,
-  scale.max,
-  block.size,
-  min.cells.to.block,
-  verbose,
-  ...
-) {
-  UseMethod(generic = 'ScaleData', object = object)
-}
-
-
-#' Compute Jackstraw scores significance.
-#'
-#' Significant PCs should show a p-value distribution that is
-#' strongly skewed to the left compared to the null distribution.
-#' The p-value for each PC is based on a proportion test comparing the number
-#' of genes with a p-value below a particular threshold (score.thresh), compared with the
-#' proportion of genes expected under a uniform distribution of p-values.
-#'
-#' @param object An object
-#' @param dims Which dimensions to examine
-#' @param score.thresh Threshold to use for the proportion test of PC
-#' significance (see Details)
-#'
-#' @return Returns a Seurat object
-#'
-#' @author Thanks to Omri Wurtzel for integrating with ggplot
-#'
-#' @rdname ScoreJackStraw
-#' @export ScoreJackStraw
-#'
-ScoreJackStraw <- function(object, dims, score.thresh, ...) {
-  UseMethod(generic = 'ScoreJackStraw', object = object)
-}
-
 #' Get JackStraw information
 #'
 #' @param object An object
@@ -674,6 +560,36 @@ Misc <- function(object, slot, ...) {
   UseMethod(generic = 'Misc<-', object = object)
 }
 
+#' Normalize Data
+#'
+#' Normalize the count data present in a given assay.
+#'
+#' @param object An object
+#' @param normalization.method Method for normalization.
+#'  \itemize{
+#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. This is then
+#'   natural-log transformed using log1p.}
+#'   \item{CLR: }{Applies a centered log ratio transformation}
+#' }
+#' More methods to be added.
+#' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param verbose display progress bar for normalization procedure.
+#'
+#' @return Returns object after normalization
+#'
+#' @rdname NormalizeData
+#' @export NormalizeData
+#'
+NormalizeData <- function(
+  object,
+  normalization.method,
+  scale.factor,
+  verbose
+) {
+  UseMethod(generic = 'NormalizeData', object = object)
+}
+
 #' Print the results of a dimensional reduction analysis
 #'
 #' Prints a set of genes that most strongly define a set of components
@@ -713,6 +629,41 @@ Print <- function(object, ...) {
 #'
 RenameCells <- function(object, new.names, ...) {
   UseMethod(generic = 'RenameCells', object = object)
+}
+
+#' Run Adaptively-thresholded Low Rank Approximation (ALRA)
+#'
+#' Runs ALRA, a method for imputation of dropped out values in scRNA-seq data.
+#' Computes the k-rank approximation to A_norm and adjusts it according to the
+#' error distribution learned from the negative values. Described in
+#' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+#'
+#' @param object a Seurat object
+#' @param k  The rank of the rank-k approximation. Set to 0 for automated choice of k.
+#' @param q  The number of additional power iterations in randomized SVD when
+#' computing rank k approximation. By default, q=10.
+#' @rdname RunALRA
+#' @export RunALRA
+# @import rsvd
+#'
+#' @examples
+#' pbmc_small
+#' # Example 1: Simple usage, with automatic choice of k.
+#' pbmc_small_alra <- RunALRA(object = pbmc_small)
+#' \dontrun{
+#' # Example 2: Visualize choice of k, then run ALRA
+#' # First, choose K
+#' pbmc_small_alra <- RunALRA(pbmc_small, k.only=TRUE)
+#' # Plot the spectrum, spacings, and p-values which are used to choose k
+#' ggouts <- ALRAChooseKPlot(pbmc_small_alra)
+#' do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
+#' # Run ALRA with the chosen k
+#' pbmc_small_alra <- RunALRA(pbmc_small_alra)
+#' }
+
+RunALRA <- function(object, k, q, ...) {
+  UseMethod(generic = 'RunALRA', object = object)
 }
 
 #' Perform Canonical Correlation Analysis
@@ -975,6 +926,89 @@ RunUMAP <- function(
   ...
 ) {
   UseMethod(generic = 'RunUMAP', object = object)
+}
+
+#' Scale and center the data.
+#'
+#' Scales and centers features in the dataset. If variables are provided in vars.to.regress,
+#' they are individually regressed against each feautre, and the resulting residuals are
+#' then scaled and centered.
+#'
+#' ScaleData now incorporates the functionality of the function formerly known
+#' as RegressOut (which regressed out given the effects of provided variables
+#' and then scaled the residuals). To make use of the regression functionality,
+#' simply pass the variables you want to remove to the vars.to.regress parameter.
+#'
+#' Setting center to TRUE will center the expression for each feautre by subtracting
+#' the average expression for that feautre. Setting scale to TRUE will scale the
+#' expression level for each feautre by dividing the centered feautre expression
+#' levels by their standard deviations if center is TRUE and by their root mean
+#' square otherwise.
+#'
+#' @param object An object
+#' @param features Vector of features names to scale/center. Default is all features
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear
+#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param do.scale Whether to scale the data.
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of feautres that are only expressed in
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
+#' @param block.size Default size for number of feautres to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param verbose Displays a progress bar for scaling procedure
+#'
+#' @rdname ScaleData
+#' @export ScaleData
+#'
+ScaleData <- function(
+  object,
+  features,
+  vars.to.regress,
+  model.use,
+  use.umi,
+  do.scale,
+  do.center,
+  scale.max,
+  block.size,
+  min.cells.to.block,
+  verbose,
+  ...
+) {
+  UseMethod(generic = 'ScaleData', object = object)
+}
+
+#' Compute Jackstraw scores significance.
+#'
+#' Significant PCs should show a p-value distribution that is
+#' strongly skewed to the left compared to the null distribution.
+#' The p-value for each PC is based on a proportion test comparing the number
+#' of genes with a p-value below a particular threshold (score.thresh), compared with the
+#' proportion of genes expected under a uniform distribution of p-values.
+#'
+#' @param object An object
+#' @param dims Which dimensions to examine
+#' @param score.thresh Threshold to use for the proportion test of PC
+#' significance (see Details)
+#'
+#' @return Returns a Seurat object
+#'
+#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#'
+#' @rdname ScoreJackStraw
+#' @export ScoreJackStraw
+#'
+ScoreJackStraw <- function(object, dims, score.thresh, ...) {
+  UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
 #' Setter for multimodal data
