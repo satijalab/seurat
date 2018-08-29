@@ -799,7 +799,10 @@ NormalizeData.default <- function(
     'CLR' = CustomNormalize,
     stop("Unkown normalization method: ", normalization.method)
   )
-  chunk.points <- ChunkPoints(dsize = ncol(x = object), csize = block.size %||% ncol(x = object) / 2)
+  chunk.points <- ChunkPoints(
+    dsize = ncol(x = object),
+    csize = block.size %||% ceiling(x = ncol(x = object) / 2)
+  )
   normalized.data <- my.lapply(
     X = 1:ncol(x = chunk.points),
     FUN = function(i) {
