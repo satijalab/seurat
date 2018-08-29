@@ -961,6 +961,72 @@ VariableFeaturePlot <- function(
 # Other plotting functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' ALRA Approximate Rank Selection Plot
+#'
+#' Plots the results of the approximate rank selection process for ALRA.
+#'
+#'
+#' @param object Seurat object
+#' @param start Index to start plotting singular value spacings from.
+#' The transition from "signal" to "noise" in the is hard to see because the
+#' first singular value spacings are so large. Nicer visualizations result from
+#' skipping the first few. If set to 0 (default) starts from k/2.
+#' @param combine Combine plots into a single gg object; note that if TRUE,
+#' themeing will not work when plotting multiple features
+#'
+#' @return A list of 3 ggplot objects splotting the singular values, the
+#' spacings of the singular values, and the p-values of the singular values.
+#'
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot aes_string geom_point geom_line
+#' geom_vline scale_x_continuous labs
+#' @export
+#'
+ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
+  if ( is.null(object@tools[["alra"]])) {
+    stop('RunALRA() should be run prior to using this function.')
+  }
+  d <- object@tools[["alra"]][["d"]]
+  diffs <- object@tools[["alra"]][["diffs"]]
+  pvals <- object@tools[["alra"]][["pvals"]]
+  k <- object@tools[["alra"]][["k"]]
+  if (start == 0) {
+    start <- floor(x = k / 2)
+  }
+  if (start > k) {
+    stop("Plots should include k (i.e. starting.from should be less than k)")
+  }
+  breaks <- seq(from = 10, to = length(x = d), by = 10)
+  ggdata <- data.frame(x = 1:length(x = d), y = d)
+  gg1 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
+    geom_point(size = 1) +
+    geom_line(size = 0.5) +
+    geom_vline(xintercept = k) +
+    theme_cowplot() +
+    scale_x_continuous(breaks = breaks) +
+    labs(x = NULL, y = 's_i', title = 'Singular values')
+  ggdata <- data.frame(x = 2:length(x = d), y = diffs)[-(1:(start - 1)), ]
+  gg2 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
+    geom_point(size = 1) +
+    geom_line(size = 0.5) +
+    geom_vline(xintercept = k + 1) +
+    theme_cowplot() +
+    scale_x_continuous(breaks = breaks) +
+    labs(x = NULL, y = 's_{i} - s_{i-1}', title = 'Singular value spacings')
+  ggdata <- data.frame(x = 2:length(x = d), y = pvals)
+  gg3 <- ggplot(data = ggdata, mapping = aes_string(x = 'x', y = 'y')) +
+    geom_point(size = 1) +
+    geom_vline(xintercept = k + 1) +
+    theme_cowplot() +
+    scale_x_continuous(breaks = breaks) +
+    labs(x = NULL, y = 'p.val', title = 'Singular value spacing p-values')
+  plots <- list(spectrum = gg1, spacings = gg2, pvals = gg3)
+  if (combine) {
+    plots <- CombinePlots(plots = plots)
+  }
+  return(plots)
+}
+
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how feature expression changes across different
@@ -1125,91 +1191,6 @@ DotPlot <- function(
   return(plot)
 }
 
-#' Visualize Dimensional Reduction genes
-#'
-#' Visualize top genes associated with reduction components
-#'
-#' @param object Seurat object
-#' @param reduction Reduction technique to visualize results for
-#' @param dims Number of dimensions to display
-#' @param nfeatures Number of genes to display
-#' @param col Color of points to use
-#' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
-#' @param balanced Return an equal number of genes with + and - scores. If FALSE (default), returns the top genes ranked by the scores absolute values
-#' @param ncol Number of columns to display
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
-#' @param ... Ignored
-#'
-#' @return A ggplot object
-#'
-#' @importFrom cowplot theme_cowplot
-#' @importFrom ggplot2 ggplot aes_string geom_point labs
-#' @export
-#'
-#' @examples
-#' VizDimReduction(object = pbmc_small)
-#'
-VizDimReduction <- function(
-  object,
-  dims = 1:5,
-  nfeatures = 30,
-  col = 'blue',
-  reduction = 'pca',
-  projected = FALSE,
-  balanced = FALSE,
-  ncol = NULL,
-  combine = TRUE,
-  ...
-) {
-  if (is.null(x = ncol)) {
-    ncol <- 2
-    if (length(x = dims) == 1) {
-      ncol <- 1
-    }
-    if (length(x = dims) > 6) {
-      ncol <- 3
-    }
-    if (length(x = dims) > 9) {
-      ncol <- 4
-    }
-  }
-  loadings <- Loadings(object = object[[reduction]], projected = projected)
-  features <- lapply(
-    X = dims,
-    FUN = TopFeatures,
-    object = object[[reduction]],
-    nfeatures = nfeatures,
-    projected = projected,
-    balanced = balanced
-  )
-  features <- lapply(
-    X = features,
-    FUN = unlist,
-    use.names = FALSE
-  )
-  loadings <- loadings[unlist(x = features), dims, drop = FALSE]
-  names(x = features) <- colnames(x = loadings) <- as.character(x = dims)
-  plots <- lapply(
-    X = as.character(x = dims),
-    FUN = function(i) {
-      data.plot <- as.data.frame(x = loadings[features[[i]], i, drop = FALSE])
-      colnames(x = data.plot) <- paste0(Key(object = object[[reduction]]), i)
-      data.plot$feature <- factor(x = rownames(x = data.plot), levels = rownames(x = data.plot))
-      plot <- ggplot(
-        data = data.plot,
-        mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
-      ) +
-        geom_point(col = col) +
-        labs(y = NULL) + theme_cowplot()
-      return(plot)
-    }
-  )
-  if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, legend = NULL)
-  }
-  return(plots)
-}
-
 #' Quickly Pick Relevant Dimensions
 #'
 #' Plots the standard deviations (or approximate singular values if running PCAFast)
@@ -1324,6 +1305,91 @@ JackStrawPlot <- function(
     guides(color = guide_legend(title = "PC: p-value")) +
     theme_cowplot()
   return(gp)
+}
+
+#' Visualize Dimensional Reduction genes
+#'
+#' Visualize top genes associated with reduction components
+#'
+#' @param object Seurat object
+#' @param reduction Reduction technique to visualize results for
+#' @param dims Number of dimensions to display
+#' @param nfeatures Number of genes to display
+#' @param col Color of points to use
+#' @param projected Use reduction values for full dataset (i.e. projected dimensional reduction values)
+#' @param balanced Return an equal number of genes with + and - scores. If FALSE (default), returns the top genes ranked by the scores absolute values
+#' @param ncol Number of columns to display
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param ... Ignored
+#'
+#' @return A ggplot object
+#'
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot aes_string geom_point labs
+#' @export
+#'
+#' @examples
+#' VizDimReduction(object = pbmc_small)
+#'
+VizDimReduction <- function(
+  object,
+  dims = 1:5,
+  nfeatures = 30,
+  col = 'blue',
+  reduction = 'pca',
+  projected = FALSE,
+  balanced = FALSE,
+  ncol = NULL,
+  combine = TRUE,
+  ...
+) {
+  if (is.null(x = ncol)) {
+    ncol <- 2
+    if (length(x = dims) == 1) {
+      ncol <- 1
+    }
+    if (length(x = dims) > 6) {
+      ncol <- 3
+    }
+    if (length(x = dims) > 9) {
+      ncol <- 4
+    }
+  }
+  loadings <- Loadings(object = object[[reduction]], projected = projected)
+  features <- lapply(
+    X = dims,
+    FUN = TopFeatures,
+    object = object[[reduction]],
+    nfeatures = nfeatures,
+    projected = projected,
+    balanced = balanced
+  )
+  features <- lapply(
+    X = features,
+    FUN = unlist,
+    use.names = FALSE
+  )
+  loadings <- loadings[unlist(x = features), dims, drop = FALSE]
+  names(x = features) <- colnames(x = loadings) <- as.character(x = dims)
+  plots <- lapply(
+    X = as.character(x = dims),
+    FUN = function(i) {
+      data.plot <- as.data.frame(x = loadings[features[[i]], i, drop = FALSE])
+      colnames(x = data.plot) <- paste0(Key(object = object[[reduction]]), i)
+      data.plot$feature <- factor(x = rownames(x = data.plot), levels = rownames(x = data.plot))
+      plot <- ggplot(
+        data = data.plot,
+        mapping = aes_string(x = colnames(x = data.plot)[1], y = 'feature')
+      ) +
+        geom_point(col = col) +
+        labs(y = NULL) + theme_cowplot()
+      return(plot)
+    }
+  )
+  if (combine) {
+    plots <- CombinePlots(plots = plots, ncol = ncol, legend = NULL)
+  }
+  return(plots)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
