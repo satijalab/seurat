@@ -953,9 +953,9 @@ RunALRA.Seurat <- function(
   slot = "data",
   setDefaultAssay = TRUE,
   genes.use = NULL,
-  K = 100,
+  K = NULL,
   p.val.th = 1e-10,
-  noise.start = 80,
+  noise.start = NULL,
   q.k = 2,
   k.only = FALSE
 ) {
@@ -976,8 +976,23 @@ RunALRA.Seurat <- function(
   data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
   # Choose k with heuristics if k is not given
   if (is.null(x = k)) {
+    # set K based on data dimension
+    if (is.null(x = K)) {
+      K <- 100
+      if (K > min(dim(x = data.used))) {
+        K <- min(dim(x = data.used))
+        warning("For best performance, we recommend using ALRA on expression matrices larger than 100 by 100")
+      }
+    }
     if (K > min(dim(x = data.used))) {
       stop("For an m by n data, K must be smaller than the min(m,n)")
+    }
+    # set noise.start based on K
+    if (is.null(x = noise.start)) {
+      noise.start <- K - 20
+      if (noise.start <= 0) {
+        noise.start <- max(K - 5, 1)
+      }
     }
     if (noise.start > K - 5) {
       stop("There need to be at least 5 singular values considered noise")
