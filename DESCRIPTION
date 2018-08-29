@@ -29,7 +29,6 @@ Imports:
     ggridges,
     graphics,
     grDevices,
-    Hmisc,
     igraph,
     ini,
     irlba,
