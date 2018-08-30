@@ -1081,7 +1081,6 @@ Stdev <- function(object, ...) {
 #' subset of the data. Also clears out stored clustering results in
 #' object@@meta.data (any columns containing "res"). Will by default subset the
 #' raw.data slot.
-#' @param subset.raw Also subset object@@raw.data
 #' @param ... Arguments passed to other methods
 # @param \dots Additional arguments to be passed to FetchData (for example,
 # use.imputed=TRUE)

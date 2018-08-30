@@ -2833,6 +2833,7 @@ names.Seurat <- function(x) {
 #'
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
+#' @param select A vector of cells to keep
 #' @param ... Arguments passed to other methods
 #'
 #' @return A subsetted Seurat object
@@ -2847,19 +2848,26 @@ names.Seurat <- function(x) {
 #' @examples
 #' subset(x = pbmc_small, subset = MS4A1 > 7)
 #'
-subset.Seurat <- function(x, subset, ...) {
-  objects.use <- FilterObjects(object = x)
-  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(x[[i]]))})
-  key.pattern <- paste0('^', object.keys, collapse = '|')
-  expr <- substitute(expr = subset)
-  expr.char <- as.character(x = expr)
-  expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
-  vars.use <- which(
-    x = expr.char %in% rownames(x = x) | expr.char %in% colnames(x = x[]) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
-  )
-  data.subset <- FetchData(object = x, vars = expr.char[vars.use])
-  data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-  return(SubsetData(object = x, cells = rownames(x = data.subset)))
+subset.Seurat <- function(x, subset, select = NULL, ...) {
+  cells <- select %||% colnames(x = x)
+  if (!missing(x = subset)) {
+    objects.use <- FilterObjects(object = x)
+    object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(x[[i]]))})
+    key.pattern <- paste0('^', object.keys, collapse = '|')
+    expr <- substitute(expr = subset)
+    expr.char <- as.character(x = expr)
+    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    vars.use <- which(
+      x = expr.char %in% rownames(x = x) | expr.char %in% colnames(x = x[]) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+    )
+    data.subset <- FetchData(object = x, vars = expr.char[vars.use])
+    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+    cells <- intersect(x = rownames(x = data.subset), y = cells)
+  }
+  if (length(x = cells) == 0) {
+    stop("No cells found", call. = FALSE)
+  }
+  return(SubsetData(object = x, cells = cells))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
