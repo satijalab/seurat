@@ -214,7 +214,7 @@ AverageExpression <- function(
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
   }
-  if (! is.null(x = add.ident)) {
+  if (!is.null(x = add.ident)) {
     new.data <- FetchData(object = object, vars = add.ident)
     new.ident <- paste(
       Idents(object)[rownames(x = new.data)],
@@ -241,21 +241,21 @@ AverageExpression <- function(
       slot = slot.use
     )
     features.assay <- features
-    if (length(x = intersect(x = features, y = rownames(x = data.use))) <1 ) {
+    if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
       features.assay <- rownames(x = data.use)
     }
     data.all <- data.frame(row.names = features.assay)
     for (j in levels(x = Idents(object))) {
-      temp.cells <- WhichCells(object = object, ident.keep = j)
+      temp.cells <- WhichCells(object = object, idents = j)
       features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
       if (length(x = temp.cells) == 1) {
         data.temp <- (data.use[features.assay, temp.cells])
         # transform data if needed (alternative: apply fxn.average to single value above)
-        if(!(use.scale | use.counts)) { # equivalent: slot.use == "data"
+        if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
           data.temp <- expm1(data.temp)
         }
       }
-      if (length(x = temp.cells) >1 ) {
+      if (length(x = temp.cells) > 1 ) {
         data.temp <- apply(
           X = data.use[features.assay, temp.cells, drop = FALSE],
           MARGIN = 1,

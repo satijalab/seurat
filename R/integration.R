@@ -396,11 +396,12 @@ CalcVarExpRatio <- function(
     if (verbose) {
       cat(paste("Calculating for", group, "\n"), file = stderr())
     }
-    group.cells <- WhichCells(
-      object = object,
-      subset.name = grouping.var,
-      accept.value = group
-    )
+    # group.cells <- WhichCells(
+    #   object = object,
+    #   subset.name = grouping.var,
+    #   accept.value = group
+    # )
+    group.cells <- colnames(x = object)[object[grouping.var] == group]
     if (verbose) {
       cat(paste("\t Separating", group, "cells\n"), file = stderr())
     }
