@@ -8,74 +8,16 @@ NULL
 
 #' Filter out cells from a Seurat object
 #'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes a vector of variables on which to subset along with
-#' corresponding low and high threshold values for each variable, returning an
-#' object contain only cells that pass the specified filters. You can also
-#' restrict the filtering to only a subset of cells using cells (i.e. only
-#' keep cells that BOTH pass the filters and are in the cells list).
+#' Defunct, replaced with \code{subset.Seurat}
 #'
-#' @param object Seurat object
-#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
-#' @param high.thresholds High cutoffs for the parameters (default is Inf)
-#' @param cells A vector of cell names to use as a subset
+#' @param ... Ignored
 #'
-#' @return Returns a Seurat object containing only the relevant subset of cells
+#' @seealso \code{\link{subset.Seurat}}
 #'
 #' @export
 #'
-#' @examples
-#' head(x = FetchData(object = pbmc_small, vars = 'LTB'))
-#' pbmc_filtered <- FilterCells(
-#'   object = pbmc_small,
-#'   subset.names = 'LTB',
-#'   high.thresholds = 6
-#' )
-#' head(x = FetchData(object = pbmc_filtered, vars = 'LTB'))
-#'
-FilterCells <- function(
-  object,
-  subset.names,
-  low.thresholds,
-  high.thresholds,
-  cells = NULL
-) {
-  if (missing(x = low.thresholds)) {
-    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
-  }
-  if (missing(x = high.thresholds)) {
-    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
-  }
-  length.check <- sapply(
-    X = list(subset.names, low.thresholds, high.thresholds),
-    FUN = length
-  )
-  if (length(x = unique(x = length.check)) != 1) {
-    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
-  }
-  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells <- cells %||% colnames(x = object)
-  for (i in seq(nrow(data.subsets))) {
-    cells <- tryCatch(
-      expr = WhichCells(
-        object = object,
-        cells = cells,
-        subset.name = data.subsets[i, 1],
-        low.threshold = data.subsets[i, 2],
-        high.threshold = data.subsets[i, 3]
-      ),
-      error = function(e) {
-        warning(e)
-        cells
-      }
-    )
-  }
-  object <- SubsetData(object = object, cells = cells)
-  object <- LogSeuratCommand(object = object)
-  return(object)
+FilterCells <- function(...) {
+  .Defunct(new = 'subset.Seurat', package = 'Seurat')
 }
 
 #' Demultiplex samples based on data from cell 'hashing'

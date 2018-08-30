@@ -2257,55 +2257,39 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #'
 WhichCells.Assay <- function(
   object,
-  cells,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
+  cells = NULL,
+  expression,
+  invert = FALSE,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(x = subset.name)
-    data.use <- GetAssayData(
-      object = object,
-      ... = ...
+  if (!missing(x = expression)) {
+    key.pattern <- paste0('^', Key(object = object))
+    expr <- substitute(expr = expression)
+    expr.char <- as.character(x = expr)
+    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    expr.char <- gsub(
+      pattern = key.pattern,
+      replacement = '',
+      x = expr.char,
+      perl = TRUE
     )
-    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
-        stop("Identity: ", bad.vals, " not found.")
-      }
-      pass.inds <- which(x = apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
+    vars.use <- which(x = expr.char %in% rownames(x = object))
+    expr.char <- expr.char[vars.use]
+    data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
+    colnames(x = data.subset) <- expr.char
+    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+    cells <- rownames(x = data.subset)
+  }
+  if (invert) {
+    cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   return(cells)
 }
 
-#' @param ident.keep Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for
-#' filtration)
-#' @param max.cells.per.ident Can be used to downsample the data to a certain
-#' max per cell ident. Default is INF.
-#' @param random.seed Random seed for downsampling
-#' @param assay Which assay to filter on
-#' @param ... Extra parameters passed to \code{FetchData}
-#'
-#' @seealso \code{\link{FetchData}}
+#' @param idents A vector of identity classes to keep
+#' @param downsample Maximum number of cells per identity class, default is \code{Inf}
+#' @param seed Random seed for downsampling
 #'
 #' @describeIn WhichCells Get cells from a Seurat object
 #' @export
@@ -2314,71 +2298,68 @@ WhichCells.Assay <- function(
 WhichCells.Seurat <- function(
   object,
   cells = NULL,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  ident.keep = NULL,
-  ident.remove = NULL,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  assay = NULL,
+  idents = NULL,
+  expression,
+  invert = FALSE,
+  downsample = Inf,
+  seed = 1,
   ...
 ) {
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.na(x = random.seed)) {
-    set.seed(seed = random.seed)
-  }
   cells <- cells %||% colnames(x = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  ident.keep <- ident.keep %||% unique(x = Idents(object = object))
-  bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
-  if (length(bad.remove.idents) > 0) {
-    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  if (is.numeric(x = cells)) {
+    cells <- colnames(x = object)[cells]
   }
-  ident.keep <- setdiff(x = ident.keep, y = ident.remove)
-  if (!all(ident.keep %in% unique(Idents(object = object)))) {
-    bad.idents <- ident.keep[!(ident.keep %in% unique(x = Idents(object = object)))]
-    stop("Identity: ", bad.idents, " not found.")
-  }
-  cells.to.use <- character()
-  for (id in ident.keep) {
-    cells.in.ident <- Idents(object = object)[cells]
-    cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
-    cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
-    if (length(x = cells.in.ident) > max.cells.per.ident) {
-      cells.in.ident <- sample(x = cells.in.ident, size = max.cells.per.ident)
+  if (!is.null(x = idents)) {
+    set.seed(seed = seed)
+    if (any(!idents %in% levels(x = Idents(object = object)))) {
+      stop(
+        "Cannot find the following identities in the object: ",
+        paste(
+          idents[!idents %in% levels(x = Idents(object = object))],
+          sep = ', '
+        )
+      )
     }
-    cells.to.use <- c(cells.to.use, cells.in.ident)
-  }
-  cells <- cells.to.use
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(subset.name)
-    data.use <- FetchData(
-      object = object,
-      vars = subset.name,
-      cells = cells,
-      ...
-    )
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!accept.value %in% unique(x = data.use[, 1])]
-        stop("Identity: ", bad.vals, " not found.")
+    cells.idents <- unlist(x = lapply(
+      X = idents,
+      FUN = function(i) {
+        cells.use <- which(x = as.vector(x = Idents(object = object)) == i)
+        cells.use <- names(x = Idents(object = object)[cells.use])
+        if (length(x = cells.use) > downsample) {
+          cells.use <- sample(x = cells.use, size = downsample, replace = FALSE)
+        }
+        return(cells.use)
       }
-      pass.inds <- which(x = apply(X = data.use, MARGIN = 1, FUN = function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
+    ))
+    cells <- intersect(x = cells, y = cells.idents)
+  }
+  if (!missing(x = expression)) {
+    objects.use <- FilterObjects(object = object)
+    object.keys <- sapply(
+      X = objects.use,
+      FUN = function(i) {
+        return(Key(object = object[[i]]))
+      }
+    )
+    key.pattern <- paste0('^', object.keys, collapse = '|')
+    expr <- substitute(expr = expression)
+    expr.char <- as.character(x = expr)
+    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    vars.use <- which(
+      x = expr.char %in% rownames(x = object) |
+        expr.char %in% colnames(x = object[]) |
+        grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+    )
+    data.subset <- FetchData(
+      object = object,
+      vars = expr.char[vars.use],
+      cells = cells
+    )
+    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+    cells <- rownames(x = data.subset)
+  }
+  if (invert) {
+    cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   return(cells)
 }
@@ -2442,7 +2423,7 @@ WhichCells.Seurat <- function(
   if (missing(x = j)) {
     j <- 1:ncol(x = x)
   }
-  return(GetAssayData(object = x)[i, j, ...])
+  return(GetAssayData(object = x)[i, j, ..., drop = FALSE])
 }
 
 #' @export
@@ -2529,7 +2510,7 @@ WhichCells.Seurat <- function(
   slot.use <- unlist(x = lapply(
     X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
     FUN = function(s) {
-      if (i %in% names(x = slot(object = x, name = s))) {
+      if (any(i %in% names(x = slot(object = x, name = s)))) {
         return(s)
       }
       return(NULL)

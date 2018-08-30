@@ -53,12 +53,6 @@ filtration)}
 max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
-
-\item{do.center}{Recenter the new object@scale.data}
-
-\item{do.scale}{Rescale the new object@scale.data. FALSE by default}
-
-\item{subset.raw}{Also subset object@raw.data}
 }
 \value{
 Returns a Seurat object containing only the relevant subset of cells

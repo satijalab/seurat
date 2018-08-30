@@ -5,12 +5,14 @@
 \alias{subset}
 \title{Subset a Seurat object}
 \usage{
-\method{subset}{Seurat}(x, subset, ...)
+\method{subset}{Seurat}(x, subset, select = NULL, ...)
 }
 \arguments{
 \item{x}{Seurat object to be subsetted}
 
 \item{subset}{Logical expression indicating features/variables to keep}
+
+\item{select}{A vector of cells to keep}
 
 \item{...}{Arguments passed to other methods}
 }

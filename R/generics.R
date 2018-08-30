@@ -1074,8 +1074,6 @@ Stdev <- function(object, ...) {
 #' @param low.threshold Low cutoff for the parameter (default is -Inf)
 #' @param high.threshold High cutoff for the parameter (default is Inf)
 #' @param accept.value Returns cells with the subset name equal to this value
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data. FALSE by default
 #' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
 #' other slots. Can be useful if you want to start a fresh analysis on just a
 #' subset of the data. Also clears out stored clustering results in
@@ -1127,30 +1125,27 @@ VariableFeatures <- function(object, ...) {
 #'
 #' @param object Seurat object
 #' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
+#' @param expression A predicate expression for feature/variable expression, can
+#' evalue anything that can be pulled by \code{FetchData}
+#' @param invert Invert the selection of cells
 #' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData
 #'
 #' @return A vector of cell names
 #'
+#' @seealso \code{\link{FetchData}}
 #' @rdname WhichCells
 #' @export WhichCells
 #'
 #' @examples
-#' WhichCells(object = pbmc_small, ident.keep = 2)
+#' WhichCells(object = pbmc_small, idents = 2)
+#' WhichCells(object = pbmc_small, expression = MS4A1 > 3)
+#' WhichCells(object = pbmc_small, idents = c(1, 3), invert = TRUE)
 #'
 WhichCells <- function(
   object,
   cells,
-  subset.name,
-  low.threshold,
-  high.threshold,
-  accept.value,
+  expression,
+  invert,
   ...
 ) {
   UseMethod(generic = 'WhichCells', object = object)
