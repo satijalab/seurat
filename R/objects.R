@@ -2336,10 +2336,18 @@ WhichCells.Seurat <- function(
   return(Loadings(object = x)[i, j, ...])
 }
 
+#' @inheritParams subset.Seurat
+#' @param i A vector of features to keep
+#' @param j A vector of cells to keep
+#'
+#' @rdname subset.Seurat
 #' @export
 #'
+#' @examples
+#' pbmc_small[VariableFeatures(object = pbmc_small), ]
+#' pbmc_small[, 1:10]
+#'
 "[.Seurat" <- function(x, i, j, ...) {
-  .NotYetImplemented()
   if (missing(x = i) && missing(x = j)) {
     return(x)
   }
@@ -2348,6 +2356,13 @@ WhichCells.Seurat <- function(
   } else if (missing(x = j)) {
     j <- colnames(x = x)
   }
+  if (is.numeric(x = i)) {
+    i <- rownames(x = x)[i]
+  }
+  if (is.numeric(x = j)) {
+    j <- colnames(x = x)[j]
+  }
+  return(subset.Seurat(x = x, select = c(i, j), ...))
 }
 
 #' @export
@@ -2817,7 +2832,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL) {
 #' @return A subsetted Seurat object
 #'
 #' @rdname subset.Seurat
-#' @aliases subset
+#' @aliases subset SubsetData
 #' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
 #'
 #' @export
