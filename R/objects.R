@@ -295,7 +295,7 @@ seurat <- setClass(
 #'   metadata = cluster_letters,
 #'   col.name = 'letter.idents'
 #' )
-#' head(x = pbmc_small[])
+#' head(x = pbmc_small[[]])
 #'
 AddMetaData <- function(object, metadata, col.name = NULL) {
   if (typeof(x = metadata) != "list") {
@@ -307,7 +307,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   }
   cols.add <- colnames(x = metadata)
   #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(rownames(object[]), rownames(metadata))
+  meta.order <- match(x = rownames(x = object[[]]), rownames(x = metadata))
   meta.add <- metadata[meta.order, ]
   if (all(is.null(x = meta.add))) {
     stop("Metadata provided doesn't match the cells in this object")
@@ -334,7 +334,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 CheckWorkflow <- function(object, workflow.name) {
   # Check if workflow is there
   workflow.present <- FALSE
-  if (workflow.name%in%names(object)) {
+  if (workflow.name %in% names(x = object)) {
     if (class(x = object[[workflow.name]])[[1]] == "SeuratWorkflow") {
       workflow.present <- TRUE
     }
@@ -597,11 +597,11 @@ CreateSeuratObject <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  object['orig.ident'] <- idents
+  object[['orig.ident']] <- idents
   # Calculate nCount and nFeature
   filtered.counts <- GetAssayData(object = object, assay = assay, slot = 'counts')
-  object[paste('nCount', assay, sep = '_')] <- Matrix::colSums(filtered.counts)
-  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(filtered.counts > 0)
+  object[[paste('nCount', assay, sep = '_')]] <- Matrix::colSums(filtered.counts)
+  object[[paste('nFeature', assay, sep = '_')]] <- Matrix::colSums(filtered.counts > 0)
   if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -679,8 +679,8 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
-  meta.vars <- vars[vars %in% colnames(x = object[])]
-  data.fetched <- c(data.fetched, object[meta.vars][cells, , drop = FALSE])
+  meta.vars <- vars[vars %in% colnames(x = object[[]])]
+  data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
   default.vars <- vars[vars %in% rownames(x = object)]
   data.fetched <- c(
     data.fetched,
@@ -939,7 +939,7 @@ SplitObject <- function(object, split.by = "ident", ...) {
       obj.list[[i]] <- subset(x = object, select = i)
     }
     else {
-      cells <- which(x = object[split.by, drop = TRUE] == i)
+      cells <- which(x = object[[split.by, drop = TRUE]] == i)
       cells <- colnames(x = object)[cells]
       obj.list[[i]] <- subset(x = object, select = cells)
     }
@@ -1709,8 +1709,8 @@ Idents.Seurat <- function(object, ...) {
   }
   cells <- intersect(x = cells, y = colnames(x = object))
   cells <- match(x = cells, table = colnames(x = object))
-  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[])) {
-    unlist(x = object[value], use.names = FALSE)[cells]
+  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[[]])) {
+    unlist(x = object[[value]], use.names = FALSE)[cells]
   } else {
     if (is.list(x = value)) {
       value <- unlist(x = value, use.names = FALSE)
@@ -2006,9 +2006,9 @@ RenameCells.Seurat <- function(
   # rename the active.idents
   old.ids <- Idents(object = object)
   names(x = old.ids) <- new.cell.names
-  Idents(object = object, cells = rownames(x = object[])) <- old.ids
+  Idents(object = object, cells = rownames(x = object[[]])) <- old.ids
   # rename the cell-level metadata
-  old.meta.data <- object[]
+  old.meta.data <- object[[]]
   rownames(x = old.meta.data) <- new.cell.names
   slot(object = object, name = "meta.data") <- old.meta.data
   # rename the graphs
@@ -2083,7 +2083,7 @@ SetAssayData.Seurat <- function(
 #' @method StashIdent Seurat
 #'
 StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
-  object[save.name] <- Idents(object = object)
+  object[[save.name]] <- Idents(object = object)
   return(object)
 }
 
@@ -2245,7 +2245,7 @@ WhichCells.Seurat <- function(
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     vars.use <- which(
       x = expr.char %in% rownames(x = object) |
-        expr.char %in% colnames(x = object[]) |
+        expr.char %in% colnames(x = object[[]]) |
         grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
     )
     data.subset <- FetchData(
@@ -2276,7 +2276,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 ".DollarNames.Seurat" <- function(x, pattern = '') {
-  utils:::findMatches(pattern, colnames(x = x[]))
+  utils:::findMatches(pattern, colnames(x = x[[]]))
 }
 
 #' @export
@@ -2295,7 +2295,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 "$.Seurat" <- function(x, i, ...) {
-  return(x[i, drop = TRUE])
+  return(x[[i, drop = TRUE]])
 }
 
 #' @export
@@ -2308,7 +2308,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 "$<-.Seurat" <- function(x, i, ..., value) {
-  x[i] <- value
+  x[[i]] <- value
   return(x)
 }
 
@@ -2338,32 +2338,16 @@ WhichCells.Seurat <- function(
 
 #' @export
 #'
-"[.Seurat" <- function(x, i, j, ..., drop = FALSE) {
+"[.Seurat" <- function(x, i, j, ...) {
+  .NotYetImplemented()
+  if (missing(x = i) && missing(x = j)) {
+    return(x)
+  }
   if (missing(x = i)) {
-    i <- if (missing(x = j)) {
-      colnames(x = slot(object = x, name = 'meta.data'))
-    } else {
-      rownames(x = x)
-    }
+    i <- NULL
+  } else if (missing(x = j)) {
+    j <- colnames(x = x)
   }
-  meta.count <- sum(i %in% colnames(x = slot(object = x, name = 'meta.data')))
-  feat.count <- sum(
-    i %in% rownames(x = x),
-    vapply(X = i, FUN = is.numeric, FUN.VALUE = logical(length = 1L))
-  )
-  if (feat.count == 0 || meta.count > feat.count) {
-    data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
-    if (drop) {
-      data.return <- unlist(x = data.return, use.names = FALSE)
-      names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
-    }
-  } else {
-    if (missing(x = j)) {
-      j <- colnames(x = x)
-    }
-    data.return <- GetAssayData(object = x)[i, j, drop = drop]
-  }
-  return(data.return)
 }
 
 #' @export
@@ -2404,20 +2388,44 @@ WhichCells.Seurat <- function(
 
 #' @export
 #'
-"[[.Seurat" <- function(x, i, ...) {
-  slot.use <- unlist(x = lapply(
-    X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
-    FUN = function(s) {
-      if (any(i %in% names(x = slot(object = x, name = s)))) {
-        return(s)
-      }
-      return(NULL)
-    }
-  ))
-  if (is.null(x = slot.use)) {
-    stop("Cannot find '", i, "' in this Seurat object")
+"[[.Seurat" <- function(x, i, ..., drop = FALSE) {
+  if (missing(x = i)) {
+    i <- colnames(x = slot(object = x, name = 'meta.data'))
   }
-  return(slot(object = x, name = slot.use)[[i]])
+  if (length(x = i) == 0) {
+    return(data.frame(row.names = colnames(x = x)))
+  } else if (length(x = i) > 1 || any(i %in% colnames(x = slot(object = x, name = 'meta.data')))) {
+    if (any(!i %in% colnames(x = slot(object = x, name = 'meta.data')))) {
+      warning(
+        "Cannot find the following bits of meta data: ",
+        paste0(
+          i[!i %in% colnames(x = slot(object = x, name = 'meta.data'))],
+          collapse = ', '
+        )
+      )
+    }
+    i <- i[i %in% colnames(x = slot(object = x, name = 'meta.data'))]
+    data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
+    if (drop) {
+      data.return <- unlist(x = data.return, use.names = FALSE)
+      names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
+    }
+  } else {
+    slot.use <- unlist(x = lapply(
+      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
+      FUN = function(s) {
+        if (any(i %in% names(x = slot(object = x, name = s)))) {
+          return(s)
+        }
+        return(NULL)
+      }
+    ))
+    if (is.null(x = slot.use)) {
+      stop("Cannot find '", i, "' in this Seurat object")
+    }
+    data.return <- slot(object = x, name = slot.use)[[i]]
+  }
+  return(data.return)
 }
 
 #' @export
@@ -2624,12 +2632,12 @@ merge.Seurat <- function(
     }
   }
   assays.to.merge <- c()
-  for(i in 1:length(objects)) {
+  for (i in 1:length(objects)) {
     assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
   }
   assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
   combined.assays <- list()
-  for(assay in assays.to.merge) {
+  for (assay in assays.to.merge) {
     assay1 <- objects[[1]][[assay]]
     assay2 <- list()
     for(i in 2:length(objects)) {
@@ -2647,8 +2655,8 @@ merge.Seurat <- function(
   # get rid of nCount_ and nFeature_*
   combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
   new.idents <- c()
-  for(object in objects) {
-    old.meta.data <- object[]
+  for (object in objects) {
+    old.meta.data <- object[[]]
     old.meta.data[, which(grepl(pattern = "nCount_", x = colnames(old.meta.data)))] <- NULL
     old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
     if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
@@ -2663,7 +2671,7 @@ merge.Seurat <- function(
   }
   names(new.idents) <- rownames(combined.meta.data)
   new.idents <- factor(new.idents)
-  if(DefaultAssay(object = x) %in% assays.to.merge){
+  if (DefaultAssay(object = x) %in% assays.to.merge){
     new.default.assay <- DefaultAssay(object = x)
   } else if (DefaultAssay(object = y) %in% assays.to.merge) {
     new.default.assay <- DefaultAssay(object = y)
@@ -2679,12 +2687,12 @@ merge.Seurat <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  for(assay in assays.to.merge) {
-    merged.object[paste('nFeature', assay, sep = '_')] <-
+  for (assay in assays.to.merge) {
+    merged.object[[paste('nFeature', assay, sep = '_')]] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
         assay = assay, slot = "counts") > 0)
-    merged.object[paste('nCount', assay, sep = '_')] <-
+    merged.object[[paste('nCount', assay, sep = '_')]] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
         assay = assay,
@@ -2904,27 +2912,11 @@ setMethod(
   f = '[<-',
   signature = c('x' = 'Seurat'),
   definition = function(x, i, ..., value) {
-    meta.data <- x[]
-    cell.names <- rownames(x = meta.data)
-    if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
-      value <- value[cell.names, , drop = FALSE]
-    }
-    if (length(x = i) > 1) {
-      value <- rep_len(x = value, length.out = length(x = i))
-      for (index in 1:length(x = i)) {
-        meta.data[i[index]] <- value[index]
-      }
-    } else {
-      if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
-        meta.data[, i] <- value[cell.names]
-      } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
-        meta.data[, i] <- value
-      } else {
-        stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
-      }
-    }
-    slot(object = x, name = 'meta.data') <- meta.data
-    return(x)
+    .Defunct(
+      new = '[[<-',
+      package = 'Seurat',
+      msg = "When setting meta data, please use '[[<-' instead"
+    )
   }
 )
 
@@ -2968,36 +2960,60 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (i == DefaultAssay(object = x)) {
         stop("Cannot delete the default assay", call. = FALSE)
       }
-    } else {
-      slot.use <- switch(
-        EXPR = as.character(x = class(x = value)),
-        'Assay' = {
-          if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
-            for (slot in c('counts', 'data', 'scale.data')) {
-              assay.data <- GetAssayData(object = value, slot = slot)
-              if (nrow(x = assay.data) > 0) {
-                assay.data <- assay.data[, colnames(x = x), drop = FALSE]
-              }
-              value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
+    }
+    slot.use <- switch(
+      EXPR = as.character(x = class(x = value)),
+      'Assay' = {
+        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+          for (slot in c('counts', 'data', 'scale.data')) {
+            assay.data <- GetAssayData(object = value, slot = slot)
+            if (nrow(x = assay.data) > 0) {
+              assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
+            value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
           }
-          'assays'
-        },
-        'Graph' = 'graphs',
-        'DimReduc' = {
-          if (is.null(x = DefaultAssay(object = value))) {
-            stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
-          }
-          'reductions'
-        },
-        'SeuratCommand' = 'commands',
-        'SeuratWorkflow' = 'workflows',
-        stop("Unknown object type: ", class(x = value))
-      )
-      if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
+        }
+        'assays'
+      },
+      'Graph' = 'graphs',
+      'DimReduc' = {
+        if (is.null(x = DefaultAssay(object = value))) {
+          stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+        }
+        'reductions'
+      },
+      'SeuratCommand' = 'commands',
+      'SeuratWorkflow' = 'workflows',
+      'NULL' = slot.use,
+      # stop("Unknown object type: ", class(x = value))
+      'meta.data'
+    )
+    if (slot.use == 'meta.data') {
+      meta.data <- x[[]]
+      cell.names <- rownames(x = meta.data)
+      if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
+        value <- value[cell.names, , drop = FALSE]
+      }
+      if (length(x = i) > 1) {
+        value <- rep_len(x = value, length.out = length(x = i))
+        for (index in 1:length(x = i)) {
+          meta.data[i[index]] <- value[index]
+        }
+      } else {
+        if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
+          meta.data[, i] <- value[cell.names]
+        } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+          meta.data[, i] <- value
+        } else {
+          stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
+        }
+      }
+      slot(object = x, name = 'meta.data') <- meta.data
+    } else {
+      if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
-      if (!is.null(x = FindObject(object = x, name = i)) && class(x = value) != class(x = x[[i]])) {
+      if (!is.null(x = FindObject(object = x, name = i)) && !(class(x = value) %in% c(class(x = x[[i]]), 'NULL'))) {
         stop(
           "This object already contains ",
           i,
@@ -3015,12 +3031,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
         Key(object = value) <- paste0(tolower(x = i), '_')
       }
+      slot(object = x, name = slot.use)[[i]] <- value
+      slot(object = x, name = slot.use) <- Filter(
+        f = Negate(f = is.null),
+        x = slot(object = x, name = slot.use)
+      )
     }
-    slot(object = x, name = slot.use)[[i]] <- value
-    slot(object = x, name = slot.use) <- Filter(
-      f = Negate(f = is.null),
-      x = slot(object = x, name = slot.use)
-    )
     gc(verbose = FALSE)
     return(x)
   }

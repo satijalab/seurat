@@ -1154,8 +1154,8 @@ ScaleData.Seurat <- function(
   }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
-  if (any(vars.to.regress %in% colnames(x = object[]))) {
-    latent.data <- object[vars.to.regress[vars.to.regress %in% colnames(x = object[])]]
+  if (any(vars.to.regress %in% colnames(x = object[[]]))) {
+    latent.data <- object[[vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]]]
   } else {
     latent.data <- NULL
   }

@@ -18,11 +18,11 @@ test_that("object initialization actually creates seurat object", {
 })
 
 test_that("meta.data slot generated correctly", {
-  expect_equal(dim(object[]), c(80, 4))
-  expect_equal(colnames(object[]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
-  expect_equal(rownames(object[]), colnames(object))
-  expect_equal(object["nFeature_RNA"][1:5, ], c(47, 52, 50, 56, 53))
-  expect_equal(object["nCount_RNA"][75:80, ], c(228, 527, 202, 157, 150, 233))
+  expect_equal(dim(object[[]]), c(80, 4))
+  expect_equal(colnames(object[[]]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
+  expect_equal(rownames(object[[]]), colnames(object))
+  expect_equal(object[["nFeature_RNA"]][1:5, ], c(47, 52, 50, 56, 53))
+  expect_equal(object[["nCount_RNA"]][75:80, ], c(228, 527, 202, 157, 150, 233))
 })
 
 object.filtered <- CreateSeuratObject(

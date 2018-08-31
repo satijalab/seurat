@@ -405,7 +405,7 @@ CalcVarExpRatio <- function(
     #   subset.name = grouping.var,
     #   accept.value = group
     # )
-    group.cells <- colnames(x = object)[object[grouping.var] == group]
+    group.cells <- colnames(x = object)[object[[grouping.var]] == group]
     if (verbose) {
       cat(paste("\t Separating", group, "cells\n"), file = stderr())
     }

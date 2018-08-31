@@ -69,7 +69,7 @@ DimHeatmap <- function(
   }
   cells <- cells %||% colnames(x = object)
   if (!is.list(x = cells)) {
-    cells <- lapply(X = dims, FUN = Same)
+    cells <- lapply(X = 1:length(x = dims), FUN = function(x) {return(cells)})
   }
   features <- lapply(
     X = dims,
@@ -210,7 +210,7 @@ DoHeatmap <- function(
   group.use <- switch(
     EXPR = group.by,
     'ident' = Idents(object = object),
-    object[group.by, drop = TRUE]
+    object[[group.by, drop = TRUE]]
   )
   group.use <- factor(x = group.use[cells])
   plot <- SingleRasterMap(
@@ -274,15 +274,15 @@ HTOHeatmap <- function(
   ...
 ) {
   DefaultAssay(object = object) <- assay
-  Idents(object = object) <- object[hto.classification, drop = TRUE]
+  Idents(object = object) <- object[[hto.classification, drop = TRUE]]
   object <- subset(
     object = object,
     select = sample(x = colnames(x = object), size = ncells)
   )
-  classification <- object[hto.classification]
-  singlets <- which(x = object[global.classification] == 'Singlet')
+  classification <- object[[hto.classification]]
+  singlets <- which(x = object[[global.classification]] == 'Singlet')
   singlet.ids <- sort(x = unique(x = as.character(x = classification[singlets, ])))
-  doublets <- which(object[global.classification] == 'Doublet')
+  doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
   Idents(object = object, cells = doublets) <- 'Multiplet'
@@ -515,10 +515,10 @@ DimPlot <- function(
   data[, group.by] <- switch(
     EXPR = group.by,
     'ident' = Idents(object = object),
-    object[group.by, drop = TRUE]
+    object[[group.by, drop = TRUE]]
   )
   if (!is.null(x = shape.by)) {
-    data[, shape.by] <- object[shape.by, drop = TRUE]
+    data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
   plot <- SingleDimPlot(
     data = data,
@@ -670,7 +670,7 @@ FeaturePlot <- function(
     switch(
       EXPR = split.by,
       'ident' = Idents(object = object)[cells],
-      object[split.by, drop = TRUE][cells]
+      object[[split.by, drop = TRUE]][cells]
     )
   }
   if (!is.factor(x = data$split)) {
@@ -1094,11 +1094,11 @@ DotPlot <- function(
   data.features$id <- if (is.null(x = group.by)) {
     Idents(object = object)
   } else {
-    object[group.by, drop = TRUE]
+    object[[group.by, drop = TRUE]]
   }
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
-    splits <- object[split.by, drop = TRUE]
+    splits <- object[[split.by, drop = TRUE]]
     if (length(x = unique(x = splits)) > length(x = cols)) {
       stop("Not enought colors for the number of groups")
     }
@@ -2452,7 +2452,7 @@ ExIPlot <- function(
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells]
   } else {
-    object[group.by][cells, , drop = TRUE]
+    object[[group.by]][cells, , drop = TRUE]
   }
   # feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
   if (same.y.lims && is.null(x = y.max)) {

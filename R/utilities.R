@@ -160,7 +160,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[colnames(x = features.scores.use)] <- features.scores.use
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
   gc(verbose = FALSE)
   DefaultAssay(object = object) <- assay.old
   return(object)
@@ -400,9 +400,9 @@ CellCycleScoring <- function(
   colnames(x = cc.scores) <- c('rownames', 'S.Score', 'G2M.Score', 'Phase')
   rownames(x = cc.scores) <- cc.scores$rownames
   cc.scores <- cc.scores[, c('S.Score', 'G2M.Score', 'Phase')]
-  object[colnames(x = cc.scores)] <- cc.scores
+  object[[colnames(x = cc.scores)]] <- cc.scores
   if (set.ident) {
-    object['old.ident'] <- Idents(object = object)
+    object[['old.ident']] <- Idents(object = object)
     Idents(object = object) <- 'Phase'
   }
   return(object)
