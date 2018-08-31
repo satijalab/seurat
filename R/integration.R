@@ -90,7 +90,7 @@ AlignSubspace <- function(
   num.groups <- length(levels.split)
   objects <- list()
   for (i in 1:num.groups){
-    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
+    objects[[i]] <- subset(x = object, select = levels.split[i])
   }
   object@ident <- ident.orig
   cc.loadings <- list()
@@ -315,7 +315,11 @@ CalcAlignmentMetric <- function(
   nn.eps = 0
 ) {
   object <- SetAllIdent(object = object, id = grouping.var)
-  object <- SubsetData(object = object, max.cells.per.ident = min(table(object@ident)))
+  object <- subset(
+    object = object,
+    select = levels(x = Idents(object = object)),
+    downsample = min(table(object@ident))
+  )
   num.groups <- length(x = unique(x = object@ident))
   if (missing(x = nn)) {
     nn <- ceiling(x = table(object@ident)[1] * 0.01 * num.groups)
@@ -405,7 +409,7 @@ CalcVarExpRatio <- function(
     if (verbose) {
       cat(paste("\t Separating", group, "cells\n"), file = stderr())
     }
-    group.object <- SubsetData(object = object, cells = group.cells)
+    group.object <- subset(x = object, select = group.cells)
     if (verbose) {
       cat("\t Running Dimensional Reduction \n", file = stderr())
     }

@@ -12,7 +12,7 @@ SplitObject(object, split.by = "ident", ...)
 \item{split.by}{Attribute for splitting. Default is "ident". Currently
 only supported for class-level (i.e. non-quantitative) attributes.}
 
-\item{\dots}{Additional parameters to pass to SubsetData}
+\item{...}{Ignored}
 }
 \value{
 A named list of Seurat objects, each containing a subset of cells

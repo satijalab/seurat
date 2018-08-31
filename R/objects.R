@@ -912,7 +912,8 @@ SetWorkflowParams <- function(
 #' @param object Seurat object
 #' @param split.by Attribute for splitting. Default is "ident". Currently
 #' only supported for class-level (i.e. non-quantitative) attributes.
-#' @param \dots Additional parameters to pass to SubsetData
+#' @param ... Ignored
+#'
 #' @return A named list of Seurat objects, each containing a subset of cells
 #' from the original object.
 #'
@@ -935,14 +936,12 @@ SplitObject <- function(object, split.by = "ident", ...) {
   obj.list <- list()
   for (i in groupings) {
     if (split.by == "ident") {
-      obj.list[[i]] <- SubsetData(object = object, ident.use = i, ...)
+      obj.list[[i]] <- subset(x = object, select = i)
     }
     else {
-      obj.list[[i]] <- SubsetData(
-        object = object,
-        subset.name = split.by,
-        accept.value = i, ...
-      )
+      cells <- which(x = object[split.by, drop = TRUE] == i)
+      cells <- colnames(x = object)[cells]
+      obj.list[[i]] <- subset(x = object, select = cells)
     }
   }
   return(obj.list)
@@ -2106,111 +2105,6 @@ Stdev.Seurat <- function(object, reduction, ...) {
   return(Stdev(object = object[[reduction]]))
 }
 
-#' @describeIn SubsetData Subset an Assay object
-#' @export
-#' @method SubsetData Assay
-#'
-SubsetData.Assay <- function(
-  object,
-  cells = NULL,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  do.clean = FALSE,
-  ...
-) {
-  cells <- cells %||% colnames(x = object)
-  cells <- WhichCells(
-    object = object,
-    cells = cells,
-    subset.name = subset.name,
-    low.threshold = low.threshold,
-    high.threshold = high.threshold,
-    accept.value = accept.value,
-    ...
-  )
-  if (ncol(x = GetAssayData(object = object, slot = 'counts')) == ncol(x = object)) {
-    slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
-  }
-  slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells]
-  cells.scaled <- colnames(x = GetAssayData(object = object, slot = "scale.data"))
-  cells.scaled <- cells.scaled[cells.scaled %in% cells]
-  if (length(x = cells.scaled) > 0) {
-    slot(object = object, name = "scale.data") <- GetAssayData(object = object, slot = "scale.data")[, cells]
-  }
-  return(object)
-}
-
-#' @param assay Assay to subset on
-#' @param ident.use Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for
-#' filtration)
-#' @param max.cells.per.ident Can be used to downsample the data to a certain
-#' max per cell ident. Default is INF.
-#' @param random.seed Random seed for downsampling
-#'
-#' @describeIn SubsetData Subset an Seurat object
-#' @export
-#' @method SubsetData Seurat
-#'
-SubsetData.Seurat <- function(
-  object,
-  assay = NULL,
-  cells = NULL,
-  subset.name = NULL,
-  ident.use = NULL,
-  ident.remove = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  do.clean = FALSE,
-  ...
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  cells <- WhichCells(
-    object = object,
-    assay = assay,
-    ident = ident.use,
-    ident.remove = ident.remove,
-    subset.name = subset.name,
-    cells = cells,
-    max.cells.per.ident = max.cells.per.ident,
-    random.seed = random.seed,
-    low.threshold = low.threshold,
-    high.threshold = high.threshold,
-    accept.value = accept.value,
-    ...
-  )
-  # Subset all the Assays
-  assays <- FilterObjects(object = object, classes.keep = 'Assay')
-  for (assay in assays) {
-    slot(object = object, name = "assays")[[assay]] <- SubsetData(
-      object = object[[assay]],
-      cells = cells
-    )
-  }
-  # Subset all the DimReducs
-  drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
-  for (dr in drs) {
-    object[[dr]] <- CreateDimReducObject(
-      embeddings = Embeddings(object = object[[dr]])[cells, ],
-      loadings = Loadings(object = object[[dr]], projected = FALSE),
-      projected = Loadings(object = object[[dr]], projected = TRUE),
-      assay = DefaultAssay(object = object[[dr]]),
-      stdev = Stdev(object = object[[dr]]),
-      key = Key(object = object[[dr]]),
-      jackstraw = slot(object = object[[dr]], name = "jackstraw"),
-      misc = slot(object[[dr]], name = "misc")
-    )
-  }
-  slot(object = object, name = "active.ident") <- Idents(object = object)[cells]
-  slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells, ]
-  return(object)
-}
-
 #' @describeIn VariableFeatures Get the variable features of an assay object
 #' @export
 #' @method VariableFeatures Assay
@@ -2342,7 +2236,11 @@ WhichCells.Seurat <- function(
       }
     )
     key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- substitute(expr = expression)
+    expr <- if (is.character(x = expression)) {
+      parse(text = expression)
+    } else {
+      substitute(expr = expression)
+    }
     expr.char <- as.character(x = expr)
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     vars.use <- which(
@@ -2810,45 +2708,192 @@ names.Seurat <- function(x) {
   ))
 }
 
+#' @export
+#' @method subset Assay
+#'
+subset.Assay <- function(x, cells = NULL, features = NULL) {
+  cells <- cells %||% colnames(x = x)
+  features <- features %||% rownames(x = x)
+  if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
+    return(x)
+  }
+  if (is.numeric(x = features)) {
+    features <- rownames(x = x)[features]
+  }
+  features <- gsub(
+    pattern = paste0('^', Key(object = x)),
+    replacement = '',
+    x = features
+  )
+  features <- intersect(x = rownames(x = x), y = features)
+  if (length(x = features) == 0) {
+    stop("Cannot find features provided")
+  }
+  if (ncol(x = GetAssayData(object = x, slot = 'counts')) == ncol(x = x)) {
+    slot(object = x, name = "counts") <- GetAssayData(object = x, slot = "counts")[features, cells, drop = FALSE]
+  }
+  slot(object = x, name = "data") <- GetAssayData(object = x, slot = "data")[features, cells, drop = FALSE]
+  cells.scaled <- colnames(x = GetAssayData(object = x, slot = "scale.data"))
+  cells.scaled <- cells.scaled[cells.scaled %in% cells]
+  features.scaled <- rownames(x = GetAssayData(object = x, slot = 'scale.data'))
+  features.scaled <- features.scaled[features.scaled %in% features]
+  slot(object = x, name = "scale.data") <- if (length(x = cells.scaled) > 0 && length(x = features.scaled) > 0) {
+    GetAssayData(object = x, slot = "scale.data")[features.scaled, cells.scaled, drop = FALSE]
+  } else {
+    new(Class = 'matrix')
+  }
+  VariableFeatures(object = x) <- VariableFeatures(object = x)[VariableFeatures(object = x) %in% features]
+  slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
+  return(x)
+}
+
+#' @export
+#' @method subset DimReduc
+#'
+subset.DimReduc <- function(x, cells = NULL, features = NULL) {
+  cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
+  features <- rownames(x = x) %iff% features %||% rownames(x = x)
+  if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
+    return(x)
+  }
+  slot(object = x, name = 'cell.embeddings') <- if (is.null(x = cells)) {
+    new(Class = 'matrix')
+  } else {
+    if (is.numeric(x = cells)) {
+      cells <- colnames(x = x)[cells]
+    }
+    cells <- intersect(x = cells, y = colnames(x = x))
+    if (length(x = cells) == 0) {
+      stop("Cannot find cell provided", call. = FALSE)
+    }
+    x[[cells, , drop = FALSE]]
+  }
+  slot(object = x, name = 'feature.loadings') <- if (is.null(x = features)) {
+    new(Class = 'matrix')
+  } else {
+    if (is.numeric(x = features)) {
+      features <- rownames(x = x)[features]
+    }
+    features.loadings <- intersect(
+      x = rownames(x = Loadings(object = x, projected = FALSE)),
+      y = features
+    )
+    if (length(x = features.loadings) == 0) {
+      stop("Cannot find features provided", call. = FALSE)
+    }
+    Loadings(object = x, projected = FALSE)[features.loadings, , drop = FALSE]
+  }
+  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) && !Projected(object = x)) {
+    new(Class = 'matrix')
+  } else {
+    features.projected <- intersect(
+      x = rownames(x = Loadings(object = x, projected = TRUE)),
+      y = features
+    )
+    if (length(x = features.projected) == 0) {
+      stop("Cannot find features provided", call. = FALSE)
+    }
+    Loadings(object = x, projected = TRUE)[features.projected, , drop = FALSE]
+  }
+  slot(object = x, name = 'jackstraw') <- new(Class = 'JackStrawData')
+  return(x)
+}
+
 #' Subset a Seurat object
 #'
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
-#' @param select A vector of cells to keep
-#' @param ... Arguments passed to other methods
+#' @param select A vector of cells, identity classes, or features to keep
+#' @param ... Arguments passed to \code{WhichCells}
 #'
 #' @return A subsetted Seurat object
 #'
 #' @rdname subset.Seurat
 #' @aliases subset
-#' @seealso \code{\link{base::subset}}
+#' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
 #'
 #' @export
 #' @method subset Seurat
 #'
 #' @examples
 #' subset(x = pbmc_small, subset = MS4A1 > 7)
+#' subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, select = NULL, ...) {
-  cells <- select %||% colnames(x = x)
   if (!missing(x = subset)) {
-    objects.use <- FilterObjects(object = x)
-    object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(x[[i]]))})
-    key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- substitute(expr = subset)
-    expr.char <- as.character(x = expr)
-    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
-    vars.use <- which(
-      x = expr.char %in% rownames(x = x) | expr.char %in% colnames(x = x[]) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
-    )
-    data.subset <- FetchData(object = x, vars = expr.char[vars.use])
-    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-    cells <- intersect(x = rownames(x = data.subset), y = cells)
+    subset <- deparse(expr = substitute(expr = subset))
   }
+  cells <- select %iff% if (any(select %in% colnames(x = x))) {
+    select[select %in% colnames(x = x)]
+  } else {
+    NULL
+  }
+  idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
+    select[select %in% levels(x = Idents(object = x))]
+  } else {
+    NULL
+  }
+  cells <- WhichCells(
+    object = x,
+    cells = cells,
+    idents = idents,
+    expression = subset,
+    ...
+  )
   if (length(x = cells) == 0) {
     stop("No cells found", call. = FALSE)
   }
-  return(SubsetData(object = x, cells = cells))
+  assays <- FilterObjects(object = x, classes.keep = 'Assay')
+  assay.keys <- sapply(
+    X = assays,
+    FUN = function(i) {
+      return(Key(object = x[[i]]))
+    }
+  )
+  assay.features <- unlist(
+    x = lapply(
+      X = assays,
+      FUN = function(i) {
+        return(rownames(x = x[[i]]))
+      }
+    ),
+    use.names = FALSE
+  )
+  assay.features <- unique(x = assay.features)
+  key.patterns <- paste0('^', assay.keys, collapse = '|')
+  features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
+    select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
+  } else {
+    NULL
+  }
+  for (assay in assays) {
+    assay.features <- features %||% rownames(x = x[[assay]])
+    slot(object = x, name = 'assays')[[assay]] <- tryCatch(
+      expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
+      error = function(e) {
+        return(NULL)
+      }
+    )
+  }
+  slot(object = x, name = 'assays') <- Filter(
+    f = Negate(f = is.null),
+    x = slot(object = x, name = 'assays')
+  )
+  if (length(x = FilterObjects(object = x, classes.keep = 'Assay')) == 0 || is.null(x = x[[DefaultAssay(object = x)]])) {
+    stop("Cannot delete the default assay", call. = FALSE)
+  }
+  for (dimreduc in FilterObjects(object = x, classes.keep = 'DimReduc')) {
+    x[[dimreduc]] <- tryCatch(
+      expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
+      error = function(e) {
+        return(NULL)
+      }
+    )
+  }
+  slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
+  slot(object = x, name = 'graphs') <- list()
+  Idents(object = x) <- Idents(object = x)[cells]
+  return(x)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2913,12 +2958,15 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   signature = c('x' = 'Seurat'),
   definition = function(x, i, ..., value) {
     if (!is.character(x = i)) {
-      stop("'i' must be a character")
+      stop("'i' must be a character", call. = FALSE)
     }
     if (is.null(x = value)) {
       slot.use <- FindObject(object = x, name = i)
       if (is.null(x = slot.use)) {
-        stop("Cannot find object ", i)
+        stop("Cannot find object ", i, call. = FALSE)
+      }
+      if (i == DefaultAssay(object = x)) {
+        stop("Cannot delete the default assay", call. = FALSE)
       }
     } else {
       slot.use <- switch(
@@ -2938,7 +2986,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         'Graph' = 'graphs',
         'DimReduc' = {
           if (is.null(x = DefaultAssay(object = value))) {
-            stop("Cannot add a DimReduc without an assay associated with it")
+            stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
           }
           'reductions'
         },
@@ -2947,7 +2995,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Unknown object type: ", class(x = value))
       )
       if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
-        stop("All cells in the object being added must match the cells in this object")
+        stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
       if (!is.null(x = FindObject(object = x, name = i)) && class(x = value) != class(x = x[[i]])) {
         stop(
@@ -3082,16 +3130,21 @@ setMethod(
   }
 )
 
+#' @importFrom utils head
+#'
 setMethod(
   f = 'show',
   signature = 'Assay',
   definition = function(object) {
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = VariableFeatures(object = object)) > 0) {
-      top.ten <- VariableFeatures(object = object)[1:10]
+      top.ten <- head(x = VariableFeatures(object = object), n = 10L)
       cat(
-        "Top 10 variable features:\n",
-        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n ')
+        "Top",
+        length(x = top.ten),
+        paste0("variable feature", if (length(x = top.ten) > 1) {'s'}, ":\n"),
+        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n '),
+        '\n'
       )
     }
   }
@@ -3106,7 +3159,7 @@ setMethod(
       'Number of dimensions:', length(x = object), '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
       'Jackstraw run:', as.logical(x = JS(object = object)), '\n',
-      'Computed using assay:', DefaultAssay(object)
+      'Computed using assay:', DefaultAssay(object), '\n'
     )
   }
 )
@@ -3127,7 +3180,7 @@ setMethod(
       "dimensions.\n",
       "Scored for:",
       nrow(x = scored),
-      "dimensions."
+      "dimensions.\n"
     )
   }
 )
@@ -3168,7 +3221,6 @@ setMethod(
       )
     }
     cat('\n')
-    invisible(x = NULL)
   }
 )
 
@@ -3194,7 +3246,13 @@ setMethod(
   f = 'show',
   signature = 'seurat',
   definition = function(object) {
-    cat("An old seurat object\n", nrow(x = object@data), 'genes across', ncol(x = object@data), 'samples')
+    cat(
+      "An old seurat object\n",
+      nrow(x = object@data),
+      'genes across',
+      ncol(x = object@data),
+      'samples\n'
+    )
   }
 )
 

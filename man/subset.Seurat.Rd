@@ -12,9 +12,9 @@
 
 \item{subset}{Logical expression indicating features/variables to keep}
 
-\item{select}{A vector of cells to keep}
+\item{select}{A vector of cells, identity classes, or features to keep}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Arguments passed to \code{WhichCells}}
 }
 \value{
 A subsetted Seurat object
@@ -24,8 +24,9 @@ Subset a Seurat object
 }
 \examples{
 subset(x = pbmc_small, subset = MS4A1 > 7)
+subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 
 }
 \seealso{
-\code{\link{base::subset}}
+\code{\link{base::subset}} \code{\link{WhichCells}}
 }

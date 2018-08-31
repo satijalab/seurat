@@ -1058,44 +1058,6 @@ Stdev <- function(object, ...) {
   UseMethod(generic = 'Stdev', object = object)
 }
 
-#' Return a subset of the Seurat object
-#'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes either a list of cells to use as a subset, or a
-#' parameter (for example, a gene), to subset on.
-#'
-#' @param object Seurat object
-#' @param cells A vector of cell names to use as a subset. If NULL
-#' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns cells with the subset name equal to this value
-#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
-#' other slots. Can be useful if you want to start a fresh analysis on just a
-#' subset of the data. Also clears out stored clustering results in
-#' object@@meta.data (any columns containing "res"). Will by default subset the
-#' raw.data slot.
-#' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData (for example,
-# use.imputed=TRUE)
-#'
-#' @return Returns a Seurat object containing only the relevant subset of cells
-#'
-#' @rdname SubsetData
-#' @export SubsetData
-#'
-#' @examples
-#' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
-#' pbmc1
-#'
-SubsetData <- function(object, slot, ...) {
-  UseMethod(generic = 'SubsetData', object = object)
-}
-
 #' Get and set variable feature information
 #'
 #' @param object An object
