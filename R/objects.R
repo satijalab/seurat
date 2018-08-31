@@ -2236,10 +2236,10 @@ WhichCells.Seurat <- function(
       }
     )
     key.pattern <- paste0('^', object.keys, collapse = '|')
-    expr <- if (is.character(x = expression)) {
-      parse(text = expression)
-    } else {
+    expr <- if (is.call(x = substitute(expr = expression))) {
       substitute(expr = expression)
+    } else {
+      parse(text = expression)
     }
     expr.char <- as.character(x = expr)
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
