@@ -377,8 +377,8 @@ CellCycleScoring <- function(
     name = name,
     ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
   )
-  cc.columns <- grep(pattern = name, x = colnames(x = object.cc[]), value = TRUE)
-  cc.scores <- object.cc[cc.columns]
+  cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
+  cc.scores <- object.cc[[cc.columns]]
   rm(object.cc)
   gc(verbose = FALSE)
   assignments <- apply(
