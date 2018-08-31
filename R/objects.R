@@ -3,6 +3,7 @@
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
 #' slot<- setMethod new signature
+#' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
 NULL
@@ -31,7 +32,6 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #'
 #' @name Assay
 #' @exportClass Assay
-#' @importClassesFrom Matrix dgCMatrix
 #'
 Assay <- setClass(
   Class = 'Assay',
@@ -104,7 +104,6 @@ DimReduc <- setClass(
 #'
 #' @name Graph
 #' @exportClass Graph
-#' @importClassesFrom Matrix dgCMatrix
 #'
 Graph <- setClass(
   Class = 'Graph',
@@ -621,6 +620,7 @@ CreateSeuratObject <- function(
 #'
 #' @return A data frame with cells as rows and cellular data as columns
 #'
+#' @importFrom utils head
 #' @export
 #'
 #' @examples
@@ -3401,6 +3401,8 @@ ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
 # @param data Data to pull the top from
 # @param num Pull top \code{num}
 # @param balanced Pull even amounts of from positive and negative values
+#
+#' @importFrom utils head
 #
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}

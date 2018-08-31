@@ -418,6 +418,8 @@ CellCycleScoring <- function(
 #' @param features.controls.toKeep How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.
 #' @return A UMI count matrix. Rownames that started with prefix.1 have this prefix discarded. For rownames starting with prefix.2, only the most highly expressed features are kept, and the prefix is kept. All other rows are retained.
 #'
+#'
+#' @importFrom utils head
 #' @export
 #'
 #' @examples
