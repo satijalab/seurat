@@ -931,10 +931,11 @@ RunALRA.default <- function(object, k = NULL, q = 10) {
 #' @param setDefaultAssay If TRUE, will set imputed results as default Assay
 #' @param genes.use genes to impute
 #' @param K Number of singular values to compute when choosing k. Must be less
-#' than the smallest dimension of the matrix.
-#' @param p.val.th  The threshold for ''significance'' when choosing k
-#' @param noise.start  Index for which all smaller singular values are considered noise
-#' @param q.k  Number of additional power iterations when choosing k
+#' than the smallest dimension of the matrix. Default 100 or smallest dimension.
+#' @param p.val.th  The threshold for ''significance'' when choosing k. Default 1e-10.
+#' @param noise.start  Index for which all smaller singular values are considered noise.
+#' Default K - 20.
+#' @param q.k  Number of additional power iterations when choosing k. Default 2.
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
