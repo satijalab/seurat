@@ -9,7 +9,7 @@ RunALRA(object, k, q, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
-  K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
+  K = NULL, p.val.th = 0.0000000001, noise.start = NULL, q.k = 2,
   k.only = FALSE)
 }
 \arguments{
@@ -66,4 +66,14 @@ do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
 # Run ALRA with the chosen k
 pbmc_small_alra <- RunALRA(pbmc_small_alra)
 }
+}
+\references{
+Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+}
+\seealso{
+\code{\link{ALRAChooseKPlot}}
+}
+\author{
+Jun Zhao, George Linderman
 }

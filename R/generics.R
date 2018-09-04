@@ -647,6 +647,11 @@ RenameCells <- function(object, new.names, ...) {
 #' @export RunALRA
 # @import rsvd
 #'
+#' @author Jun Zhao, George Linderman
+#' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+#' @seealso \code{\link{ALRAChooseKPlot}}
+#'
 #' @examples
 #' pbmc_small
 #' # Example 1: Simple usage, with automatic choice of k.
