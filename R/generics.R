@@ -640,12 +640,17 @@ RenameCells <- function(object, new.names, ...) {
 #' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 #'
 #' @param object a Seurat object
-#' @param k  The rank of the rank-k approximation. Set to 0 for automated choice of k.
+#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
 #' @param q  The number of additional power iterations in randomized SVD when
 #' computing rank k approximation. By default, q=10.
 #' @rdname RunALRA
 #' @export RunALRA
 # @import rsvd
+#'
+#' @author Jun Zhao, George Linderman
+#' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+#' @seealso \code{\link{ALRAChooseKPlot}}
 #'
 #' @examples
 #' pbmc_small

@@ -977,6 +977,9 @@ VariableFeaturePlot <- function(
 #' @return A list of 3 ggplot objects splotting the singular values, the
 #' spacings of the singular values, and the p-values of the singular values.
 #'
+#' @author Jun Zhao, George Linderman
+#' @seealso \code{\link{RunALRA}}
+#'
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string geom_point geom_line
 #' geom_vline scale_x_continuous labs

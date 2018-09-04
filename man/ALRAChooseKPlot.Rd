@@ -24,3 +24,9 @@ spacings of the singular values, and the p-values of the singular values.
 \description{
 Plots the results of the approximate rank selection process for ALRA.
 }
+\seealso{
+\code{\link{RunALRA}}
+}
+\author{
+Jun Zhao, George Linderman
+}
