@@ -245,6 +245,8 @@ FindConservedMarkers <- function(
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
 #'
+#' @importFrom Matrix rowSums
+#'
 #' @describeIn FindMarkers Run differential expression test on matrix
 #' @export
 #' @method FindMarkers default
@@ -268,7 +270,7 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  features <- features %||% rownames(object)
+  features <- features %||% rownames(x = object)
   methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
     features <- rownames(object)
@@ -284,41 +286,30 @@ FindMarkers.default <- function(
     message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
     return(NULL)
   }
-  if (length(cells.1) < min.cells.group) {
+  if (length(x = cells.1) < min.cells.group) {
     stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells"))
   }
-  if (length(cells.2) < min.cells.group) {
+  if (length(x = cells.2) < min.cells.group) {
     stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells"))
   }
-  if(any(!cells.1 %in% colnames(object))) {
+  if (any(!cells.1 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
     stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-  if(any(!cells.2 %in% colnames(object))) {
+  if (any(!cells.2 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
     stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-
   # feature selection (based on percentages)
   thresh.min <- 0
   pct.1 <- round(
-    x = apply(
-      X = object[features, cells.1, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
+    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+      length(x = cells.1),
     digits = 3
   )
   pct.2 <- round(
-    x = apply(
-      X = object[features, cells.2, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
+    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+      length(x = cells.2),
     digits = 3
   )
   data.alpha <- cbind(pct.1, pct.2)
@@ -337,12 +328,20 @@ FindMarkers.default <- function(
     stop("No features pass min.diff.pct threshold")
   }
   # gene selection (based on average difference)
-  data.1 <- apply(X = object[features, cells.1, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = object[features, cells.2, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+  data.1 <- apply(
+    X = object[features, cells.1, drop = FALSE],
+    MARGIN = 1,
+    FUN = function(x) {
+      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    }
+  )
+  data.2 <- apply(
+    X = object[features, cells.2, drop = FALSE],
+    MARGIN = 1,
+    FUN = function(x) {
+      return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    }
+  )
   total.diff <- (data.1 - data.2)
   if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
   if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
