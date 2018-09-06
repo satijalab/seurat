@@ -9,7 +9,7 @@ RunALRA(object, k, q, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
-  K = NULL, p.val.th = 0.0000000001, noise.start = NULL, q.k = 2,
+  K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
   k.only = FALSE)
 }
 \arguments{
