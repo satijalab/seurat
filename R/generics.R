@@ -435,7 +435,7 @@ HVFInfo <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return The cell identies
+#' @return \code{Idents}: The cell identies
 #'
 #' @rdname Idents
 #' @export Idents
@@ -445,9 +445,9 @@ Idents <- function(object, ... ) {
 }
 
 #' @inheritParams Idents
-#' @param value The name of the identites to pull or the identities themselves
+#' @param value,idents The name of the identites to pull from object metadata or the identities themselves
 #'
-#' @return An object with the cell identites changed
+#' @return \code{Idents<-}: An object with the cell identites changed
 #'
 #' @rdname Idents
 #' @export Idents<-
@@ -701,12 +701,7 @@ RunALRA <- function(object, k, q, ...) {
 #' @rdname RunCCA
 #' @export RunCCA
 #'
-RunCCA <- function(
-  object1,
-  object2,
-  num.cc,
-  ...
-) {
+RunCCA <- function(object1, object2, num.cc, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
 
@@ -1032,12 +1027,25 @@ SetAssayData <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
 }
 
+#' Set cell identity information
+#'
+#' @inheritParams Idents
+#'
+#' @return \code{SetIdent}: An object with new identity classes set
+#'
+#' @rdname Idents
+#' @export SetIdent
+#'
+SetIdent <- function(object, idents, ...) {
+  UseMethod(generic = 'SetIdent', object = object)
+}
+
 #' Stash an object's identity information
 #'
 #' @inheritParams Idents
 #' @param save.name Store current identity information under this name
 #'
-#' @return An object with the identities stashed
+#' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
 #' @export StashIdent

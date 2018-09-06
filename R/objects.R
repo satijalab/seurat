@@ -1689,7 +1689,7 @@ HVFInfo.Seurat <- function(object, assay = NULL, ...) {
   return(HVFInfo(object = GetAssay(object = object, assay = assay)))
 }
 
-#' @describeIn Idents Get the active identities of a Seurat object
+#' @rdname Idents
 #' @export
 #' @method Idents Seurat
 #'
@@ -1699,7 +1699,7 @@ Idents.Seurat <- function(object, ...) {
 
 #' @param cells Set cell identities for specific cells
 #'
-#' @describeIn Idents Set the active identities of a Seurat object
+#' @rdname Idents
 #' @export
 #' @method Idents<- Seurat
 #'
@@ -1710,6 +1710,9 @@ Idents.Seurat <- function(object, ...) {
   }
   cells <- intersect(x = cells, y = colnames(x = object))
   cells <- match(x = cells, table = colnames(x = object))
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
   idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[])) {
     unlist(x = object[value], use.names = FALSE)[cells]
   } else {
@@ -2079,7 +2082,18 @@ SetAssayData.Seurat <- function(
   return(object)
 }
 
-#' @describeIn Idents Stash cell identities of a Seurat object
+#' @inheritParams Idents
+#'
+#' @rdname Idents
+#' @export
+#' @method SetIdent Seurat
+#'
+SetIdent.Seurat <- function(object, cells = NULL, idents) {
+  Idents(object = object, cells = cells) <- idents
+  return(object)
+}
+
+#' @rdname Idents
 #' @export
 #' @method StashIdent Seurat
 #'
@@ -2646,6 +2660,14 @@ ggplot.DimReduc <- function(
 #' @method length DimReduc
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
+}
+
+#' @rdname Idents
+#' @export
+#' @method levels Seurat
+#'
+levels.Seurat <- function(x) {
+  return(levels(x = Idents(object = x)))
 }
 
 #' @rdname merge.Seurat

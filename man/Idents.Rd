@@ -3,15 +3,20 @@
 \name{Idents}
 \alias{Idents}
 \alias{Idents<-}
+\alias{SetIdent}
 \alias{StashIdent}
 \alias{Idents.Seurat}
 \alias{Idents<-.Seurat}
+\alias{SetIdent.Seurat}
 \alias{StashIdent.Seurat}
+\alias{levels.Seurat}
 \title{Get an object's cell identities}
 \usage{
 Idents(object, ...)
 
 Idents(object, ...) <- value
+
+SetIdent(object, idents, ...)
 
 StashIdent(object, save.name, ...)
 
@@ -19,40 +24,39 @@ StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, cells = NULL, ...) <- value
 
+\method{SetIdent}{Seurat}(object, cells = NULL, idents)
+
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
+
+\method{levels}{Seurat}(x)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{value}{The name of the identites to pull or the identities themselves}
+\item{value, idents}{The name of the identites to pull from object metadata or the identities themselves}
 
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
 }
 \value{
-The cell identies
+\code{Idents}: The cell identies
 
-An object with the cell identites changed
+\code{Idents<-}: An object with the cell identites changed
 
-An object with the identities stashed
+\code{SetIdent}: An object with new identity classes set
+
+\code{StashIdent}: An object with the identities stashed
 }
 \description{
 Get an object's cell identities
 
+Set cell identity information
+
 Stash an object's identity information
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Get the active identities of a Seurat object
-
-\item \code{Seurat}: Set the active identities of a Seurat object
-
-\item \code{Seurat}: Stash cell identities of a Seurat object
-}}
-
 \examples{
 head(x = pbmc_small[])
 pbmc_small <- StashIdent(object = pbmc_small, save.name = 'cluster.ident')
