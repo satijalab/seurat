@@ -2422,6 +2422,12 @@ WhichCells.Assay <- function(
       x = expr.char,
       perl = TRUE
     )
+    expr.char <- gsub(
+      pattern = '(',
+      replacement = '',
+      x = expr.char,
+      fixed = TRUE
+    )
     vars.use <- which(x = expr.char %in% rownames(x = object))
     expr.char <- expr.char[vars.use]
     data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
@@ -2497,6 +2503,12 @@ WhichCells.Seurat <- function(
     }
     expr.char <- as.character(x = expr)
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    expr.char <- gsub(
+      pattern = '(',
+      replacement = '',
+      x = expr.char,
+      fixed = TRUE
+    )
     vars.use <- which(
       x = expr.char %in% rownames(x = object) |
         expr.char %in% colnames(x = object[[]]) |
