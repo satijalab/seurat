@@ -101,7 +101,7 @@ identity class, high/low values for particular PCs, ect..
 }}
 
 \examples{
-WhichCells(object = pbmc_small, ident.keep = 2)
+OldWhichCells(object = pbmc_small, ident.keep = 2)
 
 WhichCells(object = pbmc_small, idents = 2)
 WhichCells(object = pbmc_small, expression = MS4A1 > 3)

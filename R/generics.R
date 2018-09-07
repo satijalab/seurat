@@ -612,7 +612,7 @@ NormalizeData <- function(
 #' @export OldWhichCells
 #'
 #' @examples
-#' WhichCells(object = pbmc_small, ident.keep = 2)
+#' OldWhichCells(object = pbmc_small, ident.keep = 2)
 #'
 OldWhichCells <- function(
   object,
