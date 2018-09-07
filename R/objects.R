@@ -744,7 +744,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
 #' }
 #'
 InitializeWorkflow <- function(object, file) {
-  if(!file.exists(... = file)) {
+  if (!file.exists(... = file)) {
     stop("Provided workflow file does not exist.")
   }
   config <- read.ini(filepath = file)
@@ -752,23 +752,25 @@ InitializeWorkflow <- function(object, file) {
   workflow.name <- gsub(
     pattern = ".workflow.ini",
     replacement = "",
-    x = basename(path = file))
-
-  depend.fxns <- unlist(strsplit(x = unname(unlist(config$dependencies)), split = ","))
-  fxns <- union(depend.fxns, names(config$dependencies))
+    x = basename(path = file)
+  )
+  depend.fxns <- unlist(x = strsplit(
+    x = unname(obj = unlist(x = config$dependencies)),
+    split = ","
+  ))
+  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
   depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
-  rownames(depends) <- colnames(depends) <- fxns
-  for(cmd in 1:length(config$dependencies)) {
-    cmd.name <- names(config$dependencies[cmd])
-    cmd.vals <- unlist(strsplit(x = config$dependencies[[cmd]], split = ","))
-    for(cv in cmd.vals){
+  rownames(x = depends) <- colnames(x = depends) <- fxns
+  for(cmd in 1:length(x = config$dependencies)) {
+    cmd.name <- names(x = config$dependencies[cmd])
+    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
+    for(cv in cmd.vals) {
       depends[cmd.name, cv] <- 1
     }
   }
-  mostRecent <- rep(x = as.POSIXct("1900-01-01"), length(fxns))
-  names(mostRecent) <- fxns
-
-  for(mr in names(mostRecent)) {
+  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
+  names(x = mostRecent) <- fxns
+  for (mr in names(x = mostRecent)) {
     assay <- config$global$assay
     assay <- assay %iff% config[mr]$assay
     assay <- assay %||% DefaultAssay(object = object)
@@ -776,26 +778,39 @@ InitializeWorkflow <- function(object, file) {
     reduction <- config[mr]$reduction
     reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
     command.name <- paste0(mr, ".", assay, ".", reduction)
-    command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-    command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-    if(command.name %in% names(x = object)) {
+    command.name <- sub(
+      pattern = "[\\.]+$",
+      replacement = "",
+      x = command.name,
+      perl = TRUE
+    )
+    command.name <- sub(
+      pattern = "\\.\\.",
+      replacement = "\\.",
+      x = command.name,
+      perl = TRUE
+    )
+    if (command.name %in% names(x = object)) {
       seurat.timestamp <- slot(object = object[[command.name]], name = "time.stamp")
       mostRecent[mr] <- seurat.timestamp
     }
   }
   params <- list()
-  if (!is.null(config$global)){
+  if (!is.null(x = config$global)) {
     params[["global"]] <- config$global
-    for(p in 1:length(params$global)){
-      params$global[names(params$global[p])] <- ToNumeric(x = params$global[[p]])
+    for (p in 1:length(x = params$global)){
+      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
     }
   }
   # set fxn specific params
-  fxn.param.names <- setdiff(names(config), c("dependencies", "global"))
-  if(length(x = fxn.param.names) > 0) {
-    for(i in 1:length(fxn.param.names)) {
+  fxn.param.names <- setdiff(
+    x = names(x = config),
+    y = c("dependencies", "global")
+  )
+  if (length(x = fxn.param.names) > 0) {
+    for(i in 1:length(x = fxn.param.names)) {
       params[fxn.param.names[i]] <- config[fxn.param.names[i]]
-      for(p in 1:length(params[[fxn.param.names[i]]])){
+      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
         params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
       }
     }
@@ -1111,21 +1126,24 @@ UpdateSeuratObject <- function(object) {
 #'
 #' @examples
 #' \dontrun{
-#' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
+#' WorkflowStatus(object = pbmc_small, workflow.name = "cluster")
 #' }
 #'
 WorkflowStatus <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
-  message(paste0("Status  for ", workflow.name, " workflow"))
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  all.cmds <- rownames(depends)
-  for(i in all.cmds) {
-    is.updated <- (!CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i))
+  message(paste("Status  for", workflow.name, "workflow"))
+  depends <- slot(object = object[[workflow.name]], name = "depends")
+  all.cmds <- rownames(x = depends)
+  for (i in all.cmds) {
+    is.updated <- !CheckWorkflowUpdate(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = i
+    )
     if (is.updated) {
-      message(paste0("\t",i, " up to date"))
-    }
-    else {
-      message(paste0("\t\t",i, " is out of date"))
+      message(paste0("\t", i, " up to date"))
+    } else {
+      message(paste0("\t\t", i, " is out of date"))
     }
   }
 }
@@ -2512,14 +2530,15 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 ".DollarNames.Seurat" <- function(x, pattern = '') {
-  utils:::findMatches(pattern, colnames(x = x[[]]))
+  utils:::findMatches(pattern = pattern, values = colnames(x = x[[]]))
 }
 
+#' @importFrom utils .DollarNames
 #' @export
 #'
-".DollarNames.SeuratCommand" <- function(x, pattern = ''){
+".DollarNames.SeuratCommand" <- function(x, pattern = '') {
   params <- slot(object = x, name = "params")
-  utils:::findMatches(pattern, names(x = params))
+  utils:::findMatches(pattern = pattern, names(x = params))
 }
 
 #' @export
@@ -3774,29 +3793,38 @@ UpdateJackstraw <- function(old.jackstraw) {
   return(new.jackstraw)
 }
 
-
 # UpdateWorkflow
 #
 # Updates a workflow object after a command is run, and makes sure timestamps are properly set.
 #
 UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
   CheckWorkflow(object = object,workflow.name = workflow.name)
-  if(is.null(command.name)) {
-    command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
-    command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-    command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
-    command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (is.null(x = command.name)) {
+    command.name <- as.character(x = deparse(expr = sys.calls()[[sys.nframe() - 1]]))
+    command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+    command.name.seurat <- intersect(
+      x = c(command.name, paste0(command.name, ".", DefaultAssay(object = object))),
+      names(x = object)
+    )
   } else {
     command.name.seurat <- command.name
     command.name <- ExtractField(string = command.name, field = 1, delim = "\\.")
   }
-
   #TODO - Deal with Assay better
   seurat.timestamp <- Sys.time()
-  if (length(x = command.name)==1) {
-    seurat.timestamp <- slot(object = object[[command.name.seurat]], name = "time.stamp")
+  if (length(x = command.name) == 1) {
+    seurat.timestamp <- slot(
+      object = object[[command.name.seurat]],
+      name = "time.stamp"
+    )
   }
-  object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name,time.stamp = seurat.timestamp)
+  object <- TouchWorkflow(
+    object = object,
+    workflow.name = workflow.name,
+    command.name = command.name,
+    time.stamp = seurat.timestamp
+  )
   return(object)
 }
 
@@ -3806,7 +3834,7 @@ UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
 #
 # @return No return
 #
-ValidateWorkflowFile <- function(config){
+ValidateWorkflowFile <- function(config) {
   sections <- names(x = config)
   if (!'dependencies' %in% sections) {
     stop("Workflow file is missing the dependencies section")
