@@ -623,7 +623,7 @@ OldWhichCells <- function(
   accept.value,
   ...
 ) {
-  UseMethod(generic = 'WhichCells', object = object)
+  UseMethod(generic = 'OldWhichCells', object = object)
 }
 #' Print the results of a dimensional reduction analysis
 #'
