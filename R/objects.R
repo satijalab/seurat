@@ -307,8 +307,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
     colnames(x = metadata) <- col.name
   }
   cols.add <- colnames(x = metadata)
-  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(rownames(object[]), rownames(metadata))
+  meta.order <- match(x = rownames(x = object[]), rownames(x = metadata))
   meta.add <- metadata[meta.order, ]
   if (all(is.null(x = meta.add))) {
     stop("Metadata provided doesn't match the cells in this object")
@@ -1178,7 +1177,6 @@ Command.Seurat <- function(object, command, value = NULL) {
 #' @importFrom reticulate py_to_r
 #' @export
 #' @method Convert anndata.base.AnnData
-#'
 #'
 Convert.anndata.base.AnnData <- function(
   from,
