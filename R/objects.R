@@ -2251,7 +2251,7 @@ SubsetData.Assay <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
-  cells <- WhichCells(
+  cells <- OldWhichCells(
     object = object,
     cells = cells,
     subset.name = subset.name,
@@ -2301,7 +2301,7 @@ SubsetData.Seurat <- function(
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   cells <- WhichCells(
-    object = object,
+    object = OldWhichCells,
     assay = assay,
     ident = ident.use,
     ident.remove = ident.remove,
