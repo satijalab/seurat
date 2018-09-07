@@ -604,9 +604,6 @@ FindVariableFeatures.default <- function(
 #' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature dispersions
 #'
-#'
-#' @importFrom utils head
-#'
 #' @describeIn FindVariableFeatures Find variable features in an Assay object
 #' @export
 #' @method FindVariableFeatures Assay

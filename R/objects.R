@@ -620,7 +620,6 @@ CreateSeuratObject <- function(
 #'
 #' @return A data frame with cells as rows and cellular data as columns
 #'
-#' @importFrom utils head
 #' @export
 #'
 #' @examples
@@ -2546,6 +2545,7 @@ ggplot.DimReduc <- function(
 
 #' @export
 #' @method length DimReduc
+#'
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
 }
@@ -3161,8 +3161,6 @@ setMethod(
   }
 )
 
-#' @importFrom utils head
-#'
 setMethod(
   f = 'show',
   signature = 'Assay',
@@ -3432,8 +3430,6 @@ ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
 # @param data Data to pull the top from
 # @param num Pull top \code{num}
 # @param balanced Pull even amounts of from positive and negative values
-#
-#' @importFrom utils head
 #
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
