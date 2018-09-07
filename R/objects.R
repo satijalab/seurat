@@ -1865,6 +1865,138 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(object)
 }
 
+#' @describeIn WhichCells Get cells from an Assay object
+#' @export
+#' @method OldWhichCells Assay
+#'
+OldWhichCells.Assay <- function(
+  object,
+  cells,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ...
+) {
+  cells <- cells %||% colnames(x = object)
+  # input checking
+  if (length(x = subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
+  }
+  if (low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
+  }
+  if (!is.null(x = subset.name)) {
+    subset.name <- as.character(x = subset.name)
+    data.use <- GetAssayData(
+      object = object,
+      ... = ...
+    )
+    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
+    if (!is.null(x = accept.value)) {
+      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
+        stop("Identity: ", bad.vals, " not found.")
+      }
+      pass.inds <- which(x = apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells <- rownames(x = data.use)[pass.inds]
+  }
+  return(cells)
+}
+
+#' @param ident.keep Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#' max per cell ident. Default is INF.
+#' @param random.seed Random seed for downsampling
+#' @param assay Which assay to filter on
+#' @param ... Extra parameters passed to \code{FetchData}
+#'
+#' @seealso \code{\link{FetchData}}
+#'
+#' @describeIn WhichCells Get cells from a Seurat object
+#' @export
+#' @method OldWhichCells Seurat
+#'
+OldWhichCells.Seurat <- function(
+  object,
+  cells = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ident.keep = NULL,
+  ident.remove = NULL,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  assay = NULL,
+  ...
+) {
+  # input checking
+  if (length(x = subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
+  }
+  if (low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
+  }
+  if (!is.na(x = random.seed)) {
+    set.seed(seed = random.seed)
+  }
+  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  ident.keep <- ident.keep %||% unique(x = Idents(object = object))
+  bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
+  if (length(bad.remove.idents) > 0) {
+    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  }
+  ident.keep <- setdiff(x = ident.keep, y = ident.remove)
+  if (!all(ident.keep %in% unique(Idents(object = object)))) {
+    bad.idents <- ident.keep[!(ident.keep %in% unique(x = Idents(object = object)))]
+    stop("Identity: ", bad.idents, " not found.")
+  }
+  cells.to.use <- character()
+  for (id in ident.keep) {
+    cells.in.ident <- Idents(object = object)[cells]
+    cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
+    cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
+    if (length(x = cells.in.ident) > max.cells.per.ident) {
+      cells.in.ident <- sample(x = cells.in.ident, size = max.cells.per.ident)
+    }
+    cells.to.use <- c(cells.to.use, cells.in.ident)
+  }
+  cells <- cells.to.use
+  if (!is.null(x = subset.name)) {
+    subset.name <- as.character(subset.name)
+    data.use <- FetchData(
+      object = object,
+      vars = subset.name,
+      cells = cells,
+      ...
+    )
+    if (!is.null(x = accept.value)) {
+      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[!accept.value %in% unique(x = data.use[, 1])]
+        stop("Identity: ", bad.vals, " not found.")
+      }
+      pass.inds <- which(x = apply(X = data.use, MARGIN = 1, FUN = function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells <- rownames(x = data.use)[pass.inds]
+  }
+  return(cells)
+}
+
 #' @param dims Number of dimensions to display
 #' @param nfeatures Number of genes to display
 #' @param projected Use projected slot
@@ -2102,6 +2234,111 @@ Stdev.DimReduc <- function(object) {
 #'
 Stdev.Seurat <- function(object, reduction, ...) {
   return(Stdev(object = object[[reduction]]))
+}
+
+#' @describeIn SubsetData Subset an Assay object
+#' @export
+#' @method SubsetData Assay
+#'
+SubsetData.Assay <- function(
+  object,
+  cells = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  do.clean = FALSE,
+  ...
+) {
+  cells <- cells %||% colnames(x = object)
+  cells <- WhichCells(
+    object = object,
+    cells = cells,
+    subset.name = subset.name,
+    low.threshold = low.threshold,
+    high.threshold = high.threshold,
+    accept.value = accept.value,
+    ...
+  )
+  if (ncol(x = GetAssayData(object = object, slot = 'counts')) == ncol(x = object)) {
+    slot(object = object, name = "counts") <- GetAssayData(object = object, slot = "counts")[, cells]
+  }
+  slot(object = object, name = "data") <- GetAssayData(object = object, slot = "data")[, cells]
+  cells.scaled <- colnames(x = GetAssayData(object = object, slot = "scale.data"))
+  cells.scaled <- cells.scaled[cells.scaled %in% cells]
+  if (length(x = cells.scaled) > 0) {
+    slot(object = object, name = "scale.data") <- GetAssayData(object = object, slot = "scale.data")[, cells]
+  }
+  return(object)
+}
+
+#' @param assay Assay to subset on
+#' @param ident.use Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#' max per cell ident. Default is INF.
+#' @param random.seed Random seed for downsampling
+#'
+#' @describeIn SubsetData Subset an Seurat object
+#' @export
+#' @method SubsetData Seurat
+#'
+SubsetData.Seurat <- function(
+  object,
+  assay = NULL,
+  cells = NULL,
+  subset.name = NULL,
+  ident.use = NULL,
+  ident.remove = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  do.clean = FALSE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  cells <- WhichCells(
+    object = object,
+    assay = assay,
+    ident = ident.use,
+    ident.remove = ident.remove,
+    subset.name = subset.name,
+    cells = cells,
+    max.cells.per.ident = max.cells.per.ident,
+    random.seed = random.seed,
+    low.threshold = low.threshold,
+    high.threshold = high.threshold,
+    accept.value = accept.value,
+    ...
+  )
+  # Subset all the Assays
+  assays <- FilterObjects(object = object, classes.keep = 'Assay')
+  for (assay in assays) {
+    slot(object = object, name = "assays")[[assay]] <- SubsetData(
+      object = object[[assay]],
+      cells = cells
+    )
+  }
+  # Subset all the DimReducs
+  drs <- FilterObjects(object = object, classes.keep = 'DimReduc')
+  for (dr in drs) {
+    object[[dr]] <- CreateDimReducObject(
+      embeddings = Embeddings(object = object[[dr]])[cells, ],
+      loadings = Loadings(object = object[[dr]], projected = FALSE),
+      projected = Loadings(object = object[[dr]], projected = TRUE),
+      assay = DefaultAssay(object = object[[dr]]),
+      stdev = Stdev(object = object[[dr]]),
+      key = Key(object = object[[dr]]),
+      jackstraw = slot(object = object[[dr]], name = "jackstraw"),
+      misc = slot(object[[dr]], name = "misc")
+    )
+  }
+  slot(object = object, name = "active.ident") <- Idents(object = object)[cells]
+  slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells, ]
+  return(object)
 }
 
 #' @describeIn VariableFeatures Get the variable features of an assay object
