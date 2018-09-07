@@ -2331,8 +2331,8 @@ SubsetData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  cells <- WhichCells(
-    object = OldWhichCells,
+  cells <- OldWhichCells(
+    object = object,
     assay = assay,
     ident = ident.use,
     ident.remove = ident.remove,
