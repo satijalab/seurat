@@ -2038,7 +2038,7 @@ SetAssayData.Assay <- function(object, slot, new.data) {
   }
   num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
   counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
-  if (num.counts == 0) {
+  if (num.counts <= 1) {
     num.counts <- nrow(x = object)
     counts.names <- rownames(x = object)
   }
