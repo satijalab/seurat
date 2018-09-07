@@ -4,40 +4,14 @@
 \alias{FilterCells}
 \title{Filter out cells from a Seurat object}
 \usage{
-FilterCells(object, subset.names, low.thresholds, high.thresholds,
-  cells = NULL)
+FilterCells(...)
 }
 \arguments{
-\item{object}{Seurat object}
-
-\item{subset.names}{Parameters to subset on. Eg, the name of a gene, PC1, a
-column name in object@meta.data, etc. Any argument that can be retreived
-using FetchData}
-
-\item{low.thresholds}{Low cutoffs for the parameters (default is -Inf)}
-
-\item{high.thresholds}{High cutoffs for the parameters (default is Inf)}
-
-\item{cells}{A vector of cell names to use as a subset}
-}
-\value{
-Returns a Seurat object containing only the relevant subset of cells
+\item{...}{Ignored}
 }
 \description{
-Creates a Seurat object containing only a subset of the cells in the
-original object. Takes a vector of variables on which to subset along with
-corresponding low and high threshold values for each variable, returning an
-object contain only cells that pass the specified filters. You can also
-restrict the filtering to only a subset of cells using cells (i.e. only
-keep cells that BOTH pass the filters and are in the cells list).
+Defunct, replaced with \code{subset.Seurat}
 }
-\examples{
-head(x = FetchData(object = pbmc_small, vars = 'LTB'))
-pbmc_filtered <- FilterCells(
-  object = pbmc_small,
-  subset.names = 'LTB',
-  high.thresholds = 6
-)
-head(x = FetchData(object = pbmc_filtered, vars = 'LTB'))
-
+\seealso{
+\code{\link{subset.Seurat}}
 }

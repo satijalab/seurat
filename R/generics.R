@@ -590,6 +590,41 @@ NormalizeData <- function(
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
+#' Identify cells matching certain criteria
+#'
+#' Returns a list of cells that match a particular set of criteria such as
+#' identity class, high/low values for particular PCs, ect..
+#'
+#' @param object Seurat object
+#' @param cells Subset of cell names
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns all cells with the subset name equal to this value
+#' @param ... Arguments passed to other methods
+# @param \dots Additional arguments to be passed to FetchData
+#'
+#' @return A vector of cell names
+#'
+#' @rdname WhichCells
+#' @export OldWhichCells
+#'
+#' @examples
+#' WhichCells(object = pbmc_small, ident.keep = 2)
+#'
+OldWhichCells <- function(
+  object,
+  cells,
+  subset.name,
+  low.threshold,
+  high.threshold,
+  accept.value,
+  ...
+) {
+  UseMethod(generic = 'WhichCells', object = object)
+}
 #' Print the results of a dimensional reduction analysis
 #'
 #' Prints a set of genes that most strongly define a set of components
@@ -747,7 +782,7 @@ RunMultiCCA <- function(
   standardize,
   verbose
 ) {
-  if(length(x = object.list) < 3){
+  if (length(x = object.list) < 3) {
     stop("Must give at least 3 objects for MultiCCA")
   }
   UseMethod(generic = 'RunMultiCCA', object = object.list[[1]])
@@ -1141,30 +1176,27 @@ VariableFeatures <- function(object, ...) {
 #'
 #' @param object Seurat object
 #' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
+#' @param expression A predicate expression for feature/variable expression, can
+#' evalue anything that can be pulled by \code{FetchData}
+#' @param invert Invert the selection of cells
 #' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData
 #'
 #' @return A vector of cell names
 #'
+#' @seealso \code{\link{FetchData}}
 #' @rdname WhichCells
 #' @export WhichCells
 #'
 #' @examples
-#' WhichCells(object = pbmc_small, ident.keep = 2)
+#' WhichCells(object = pbmc_small, idents = 2)
+#' WhichCells(object = pbmc_small, expression = MS4A1 > 3)
+#' WhichCells(object = pbmc_small, idents = c(1, 3), invert = TRUE)
 #'
 WhichCells <- function(
   object,
   cells,
-  subset.name,
-  low.threshold,
-  high.threshold,
-  accept.value,
+  expression,
+  invert,
   ...
 ) {
   UseMethod(generic = 'WhichCells', object = object)
