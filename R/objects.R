@@ -1740,8 +1740,12 @@ Idents.Seurat <- function(object, ...) {
   idents <- as.vector(x = Idents(object = object))
   idents[cells] <- idents.new
   idents[is.na(x = idents)] <- 'NA'
-  idents <- factor(x = idents)
   names(x = idents) <- colnames(x = object)
+  missing.cells <- which(x = is.na(x = names(x = idents)))
+  if (length(x = missing.cells) > 0) {
+    idents <- idents[-missing.cells]
+  }
+  idents <- factor(x = idents)
   slot(object = object, name = 'active.ident') <- idents
   return(object)
 }
@@ -2455,7 +2459,9 @@ WhichCells.Assay <- function(
 }
 
 #' @param idents A vector of identity classes to keep
-#' @param downsample Maximum number of cells per identity class, default is \code{Inf}
+#' @param downsample Maximum number of cells per identity class, default is \code{Inf};
+#' downsampling will happen after all other operations, including inverting the
+#' cell selection
 #' @param seed Random seed for downsampling
 #'
 #' @describeIn WhichCells Get cells from a Seurat object
@@ -2492,9 +2498,6 @@ WhichCells.Seurat <- function(
       FUN = function(i) {
         cells.use <- which(x = as.vector(x = Idents(object = object)) == i)
         cells.use <- names(x = Idents(object = object)[cells.use])
-        if (length(x = cells.use) > downsample) {
-          cells.use <- sample(x = cells.use, size = downsample, replace = FALSE)
-        }
         return(cells.use)
       }
     ))
@@ -2538,7 +2541,17 @@ WhichCells.Seurat <- function(
   if (invert) {
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
-  return(cells)
+  cells <- CellsByIdentities(object = object, cells = cells)
+  cells <- lapply(
+    X = cells,
+    FUN = function(x) {
+      if (length(x = x) > downsample) {
+        x <- sample(x = x, size = downsample, replace = FALSE)
+      }
+      return(x)
+    }
+  )
+  return(unlist(x = cells, use.names = FALSE))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3577,6 +3590,32 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Get cell names grouped by identity class
+#
+# @param object A Seurat object
+# @param cells A vector of cells to grouping to
+#
+# @return A named list where names are identity classes and values are vectors
+# of cells beloning to that class
+#
+CellsByIdentities <- function(object, cells = NULL) {
+  cells <- cells %||% colnames(x = object)
+  cells <- intersect(x = cells, y = colnames(x = object))
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
+  idents <- levels(x = object)
+  cells.idents <- sapply(
+    X = idents,
+    FUN = function(i) {
+      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  return(cells.idents)
+}
 
 # Get the names of objects within a Seurat object that are of a certain class
 #

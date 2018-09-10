@@ -65,7 +65,9 @@ max per cell ident. Default is INF.}
 
 \item{idents}{A vector of identity classes to keep}
 
-\item{downsample}{Maximum number of cells per identity class, default is \code{Inf}}
+\item{downsample}{Maximum number of cells per identity class, default is \code{Inf};
+downsampling will happen after all other operations, including inverting the
+cell selection}
 
 \item{seed}{Random seed for downsampling}
 
