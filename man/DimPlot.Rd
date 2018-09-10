@@ -5,10 +5,9 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = "pca", group.by = NULL,
-  shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
-  cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", ...)
+  pt.size = NULL, reduction = "pca", group.by = NULL, shape.by = NULL,
+  order = NULL, label = FALSE, label.size = 4, cells.highlight = NULL,
+  cols.highlight = "red", sizes.highlight = 1, na.value = "grey50", ...)
 }
 \arguments{
 \item{object}{Seurat object}

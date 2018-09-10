@@ -8,22 +8,20 @@
 \title{Find variable features}
 \usage{
 FindVariableFeatures(object, selection.method, loess.span, clip.max,
-  mean.function, dispersion.function, num.bin, binning.method, verbose,
-  ...)
+  mean.function, dispersion.function, num.bin, binning.method, verbose, ...)
 
 \method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
   loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
   dispersion.function = FastLogVMR, num.bin = 20,
-  binning.method = "equal_width", nfeatures = 1000,
-  mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE)
+  binning.method = "equal_width", nfeatures = 1000, mean.cutoff = c(0.1,
+  8), dispersion.cutoff = c(1, Inf), verbose = TRUE)
 
 \method{FindVariableFeatures}{Seurat}(object, assay = NULL,
   selection.method = "vst", loess.span = 0.3, clip.max = "auto",
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
   num.bin = 20, binning.method = "equal_width", nfeatures = 1000,
-  mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE, workflow.name = NULL)
+  mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf), verbose = TRUE,
+  workflow.name = NULL)
 }
 \arguments{
 \item{object}{An object}

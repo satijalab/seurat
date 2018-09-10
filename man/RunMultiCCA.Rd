@@ -6,16 +6,15 @@
 \alias{RunMultiCCA.Seurat}
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
-RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs,
-  standardize, verbose)
+RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs, standardize,
+  verbose)
 
 \method{RunMultiCCA}{default}(object.list, niter = 25, num.ccs = 1,
   standardize = TRUE, verbose = TRUE)
 
-\method{RunMultiCCA}{Seurat}(object.list, assay = NULL,
-  features = NULL, add.cell.ids = NULL, niter = 25, num.ccs = 1,
-  standardize = TRUE, renormalize = TRUE,
-  compute.gene.loadings = TRUE, verbose = TRUE)
+\method{RunMultiCCA}{Seurat}(object.list, assay = NULL, features = NULL,
+  add.cell.ids = NULL, niter = 25, num.ccs = 1, standardize = TRUE,
+  renormalize = TRUE, compute.gene.loadings = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{object.list}{List of Seurat objects}

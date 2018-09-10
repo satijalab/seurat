@@ -13,8 +13,8 @@ RenameCells(object, new.names, ...)
 
 \method{RenameCells}{DimReduc}(object, new.names = NULL)
 
-\method{RenameCells}{Seurat}(object, add.cell.id = NULL,
-  new.names = NULL, for.merge = FALSE)
+\method{RenameCells}{Seurat}(object, add.cell.id = NULL, new.names = NULL,
+  for.merge = FALSE)
 }
 \arguments{
 \item{object}{An object}

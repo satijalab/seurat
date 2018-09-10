@@ -8,13 +8,13 @@
 \usage{
 RunCCA(object1, object2, num.cc, ...)
 
-\method{RunCCA}{default}(object1, object2, standardize = TRUE,
-  num.cc = 20, verbose = FALSE, use.cpp = TRUE)
+\method{RunCCA}{default}(object1, object2, standardize = TRUE, num.cc = 20,
+  verbose = FALSE, use.cpp = TRUE)
 
 \method{RunCCA}{Seurat}(object1, object2, assay1 = NULL, assay2 = NULL,
-  num.cc = 20, features = NULL, renormalize = FALSE,
-  rescale = FALSE, compute.gene.loadings = TRUE, add.cell.id1 = NULL,
-  add.cell.id2 = NULL, verbose = TRUE, use.cpp = TRUE, ...)
+  num.cc = 20, features = NULL, renormalize = FALSE, rescale = FALSE,
+  compute.gene.loadings = TRUE, add.cell.id1 = NULL, add.cell.id2 = NULL,
+  verbose = TRUE, use.cpp = TRUE, ...)
 }
 \arguments{
 \item{object1}{First Seurat object}

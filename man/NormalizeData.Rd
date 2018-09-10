@@ -8,9 +8,8 @@
 \usage{
 NormalizeData(object, normalization.method, scale.factor, verbose)
 
-\method{NormalizeData}{Assay}(object,
-  normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE)
+\method{NormalizeData}{Assay}(object, normalization.method = "LogNormalize",
+  scale.factor = 10000, verbose = TRUE)
 
 \method{NormalizeData}{Seurat}(object, assay = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,

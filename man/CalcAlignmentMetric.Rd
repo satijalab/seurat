@@ -4,8 +4,8 @@
 \alias{CalcAlignmentMetric}
 \title{Calculate an alignment score}
 \usage{
-CalcAlignmentMetric(object, reduction = "cca.aligned", dims,
-  grouping.var, nn, nn.eps = 0)
+CalcAlignmentMetric(object, reduction = "cca.aligned", dims, grouping.var, nn,
+  nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}

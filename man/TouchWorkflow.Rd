@@ -4,8 +4,7 @@
 \alias{TouchWorkflow}
 \title{Updates workflow timestamps}
 \usage{
-TouchWorkflow(object, workflow.name, command.name,
-  time.stamp = Sys.time())
+TouchWorkflow(object, workflow.name, command.name, time.stamp = Sys.time())
 }
 \arguments{
 \item{object}{Seurat object}

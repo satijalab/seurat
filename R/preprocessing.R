@@ -564,6 +564,236 @@ SampleUMI <- function(
   return(new_data)
 }
 
+
+#' Demultiplex samples based on classification method from MULTI-seq (McGinnis et al., bioRxiv 2018)
+#'
+#' Identify singlets, doublets and negative cells from multiplexing experiments. Annotate singlets by tags.
+#'
+#' @param object Seurat object. Assumes that the specified assay data has been added
+#' @param assay Name of the multiplexing assay (HTO by default)
+#' @param quantile The quantile to use for classification
+#' @param autoThresh Whether to perform automated threshold finding to define the best quantile. Default is FALSE
+#' @param maxiter Maximum number of iterations if autoThresh = TRUE. Default is 3
+#' @param qrange A range of possible quantile values to try if autoThresh = TRUE
+#' @param verbose Prints the output
+#'
+#' @return A Seurat object with demultiplexing results stored at object@meta.data$MULTI_ID
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- MULTIseqDemux(object)
+#' }
+#'
+
+MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1)){
+  
+  assay <- assay %||% DefaultAssay(object = object)
+  multi_data <- GetAssayData(object = object,slot = "counts", assay = assay)
+  multi_data <- as.data.frame(t(as.matrix(multi_data)))
+  
+  
+  if (autoThresh){
+    iter <- 1
+    negatives <- c()
+    neg.vector <- c()
+    while (iter <= maxiter){
+      print (paste("Iteration",iter,sep = " "))
+      
+      #iterate over q to examine pSinglet
+      bar.table_sweep.list <- list()
+      n <- 0
+      for (q in qrange) {
+        # print(q)
+        n <- n + 1
+        bar.table_sweep.list[[n]] <- classifyCells(data=multi_data, q=q)
+        names(bar.table_sweep.list)[n] <- paste("q=",q,sep="")
+      }
+      findThresh(call.list=bar.table_sweep.list, id="round")
+      
+      res.use <- res_round[res_round$Subset=="pSinglet",]
+      q.use <- res.use[which.max(res.use$Proportion),"q"]
+      if (verbose){
+        print (paste0("Using quantile: ",q.use))
+      }
+      round.calls <- classifyCells(multi_data, q=q.use)
+      
+      #remove negative cells
+      neg.cells <- names(round.calls)[which(round.calls == "Negative")]
+      
+      neg.vector <- c(neg.vector, rep("Negative",length(neg.cells)))
+      negatives <- c(negatives, neg.cells)
+      if (length(neg.cells) == 0) break
+      multi_data <- multi_data[-which(rownames(multi_data) %in% neg.cells), ]
+      iter <- iter + 1
+    }
+    
+    names(neg.vector) <- negatives
+    demux_result <- c(round.calls,neg.vector)
+    demux_result <- demux_result[rownames(object[])]
+  }
+  
+  else{
+    demux_result <- classifyCells(data = multi_data,q = quantile)
+  }
+  
+  object@meta.data$MULTI_ID <- factor(demux_result[rownames(object@meta.data)])
+  Idents(object) <- "MULTI_ID"
+  return (object)
+}
+
+#' Sample classification from MULTI-seq
+#'
+#' Identify singlets, doublets and negative cells from multiplexing experiments.
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#'
+#' @param data Data frame with the raw count data (cell x tags)
+#' @param q Scale the data. Default is 1e4
+#' 
+#' @return Returns a named vector with demultiplexed identities
+#'
+#' @import KernSmooth
+#' @import Matrix
+#'
+#' @export
+#'
+#' @examples
+#' demux_result <- classifyCells(data = counts_data,q = 0.7)
+#'
+classifyCells <- function(data, q) {
+  # require(KernSmooth)
+  
+  ## Normalize Data: Log2 Transform, replace -Infs, mean-center
+  # print("Normalizing Data...")
+  data.n <- as.data.frame(log2(data))
+  for (i in 1:ncol(data)) {
+    ind <- which(is.finite(data.n[,i]) == FALSE)
+    data.n[ind,i] <- 0
+    data.n[,i] <- data.n[,i]-mean(data.n[,i])
+  }
+  
+  ## Generate Thresholds: Gaussian KDE with bad barcode detection, outlier trimming
+  ## local maxima estiamtion with bad barcode detection, threshold definition and adjustment
+  thresholds <- NULL
+  bcs <- NULL
+  for (i in 1:ncol(data.n)) {
+    model <- tryCatch( { approxfun(bkde(data.n[,i], kernel="normal")) }, 
+                       error=function(e) { print(paste("No threshold found for ", colnames(data.n)[i],"...",sep="")) } )
+    if (class(model) == "character") { next }
+    x <- seq(from=quantile(data.n[,i],0.001), to=quantile(data.n[,i],0.999), length.out=100)    
+    extrema <- localMaxima(model(x))
+    if (length(extrema) <= 1) { 
+      print(paste("No threshold found for ", colnames(data.n)[i],"...",sep=""))
+      next
+    }
+    low.extrema <- min(extrema)
+    high.extrema <- max(extrema)
+    thresh <- (x[high.extrema] + x[low.extrema])/2
+    
+    low.extremae <- extrema[which(x[extrema] <= thresh)]
+    new.low <- low.extremae[which.max(model(x)[low.extremae])]
+    thresh <- quantile(c(x[high.extrema], x[new.low]), q)
+    thresholds <- c(thresholds, thresh)
+    bcs <- c(bcs, colnames(data.n)[i])
+  }
+  
+  # Make classification matrix
+  # print("Making Classification Matrix...")
+  call.mat <- as.data.frame(matrix(0L, nrow=nrow(data.n), ncol=length(bcs)))
+  rownames(call.mat) <- rownames(data.n)
+  colnames(call.mat) <- bcs
+  for (i in 1:length(bcs)) {
+    thresh <- thresholds[i]
+    temp.bc <- bcs[i]
+    ind <- which(data.n[,temp.bc] >= thresh)
+    call.mat[ind,i] <- 1
+  }
+  
+  # Classify cells
+  # print("Classifying cells...")
+  calls <- NULL
+  temp <- rowSums(call.mat)
+  for (i in 1:nrow(call.mat)) {
+    if (temp[i] == 0) { calls <- c(calls, "Negative"); next }
+    if (temp[i] > 1) { calls <- c(calls, "Doublet"); next }
+    if (temp[i] == 1) { calls <- c(calls, colnames(call.mat)[which(call.mat[i, ] == 1)]) }
+  }
+  names(calls) <- rownames(data.n)
+  return(calls)
+}
+
+
+#' Inter-maxima quantile sweep to find ideal barcode thresholds
+#'
+#' Finding ideal thresholds for positive-negative signal classification per multiplex barcode
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#'
+#' @param call.list A list of sample classification result from different quantiles using classifyCells
+#' @param id The id as the suffix for output dataframe (named as res_id)
+#' 
+#' @return A data.frame named res_id documenting the quantile used, subset, number of cells and proportion
+#'
+#' @import reshape2
+#'
+#' @export
+#'
+#' @examples
+#' findThresh(call.list=bar.table_sweep.list, id="round") #returns res_round in the environment
+#'
+findThresh <- function(call.list, id) {
+  # require(reshape2)
+  # require(ggplot2)
+  res <- as.data.frame(matrix(0L, nrow=length(call.list), ncol=4))
+  colnames(res) <- c("q","pDoublet","pNegative","pSinglet")
+  q.range <- unlist(strsplit(names(call.list), split="q="))
+  res$q <- as.numeric(q.range[grep("0", q.range)])
+  nCell <- length(call.list[[1]])
+  
+  for (i in 1:nrow(res)) {
+    temp <- table(call.list[[i]])
+    if ( "Doublet" %in% names(temp) == TRUE ) { res$pDoublet[i] <- temp[which(names(temp) == "Doublet")] }
+    if ( "Negative" %in% names(temp) == TRUE ) { res$pNegative[i] <- temp[which(names(temp) == "Negative")] }
+    res$pSinglet[i] <- sum(temp[which(names(temp) != "Doublet" & names(temp) != "Negative")])
+  }
+  
+  res <- melt(res, id.vars="q")
+  res[,4] <- res$value/nCell
+  colnames(res)[2:4] <- c("Subset","nCells","Proportion")
+  assign(x=paste("res_",id,sep=""), value=res, envir = .GlobalEnv)
+  
+  extrema <- res$q[localMaxima(res$Proportion[which(res$Subset == "pSinglet")])]
+  assign(x=paste("extrema_",id,sep=""), value=extrema, envir = .GlobalEnv)
+}
+
+#' Local maxima estimator
+#'
+#' Finding local maxima given a numeric vector
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#' From Tommy @ https://stackoverflow.com/questions/6836409/finding-local-maxima-and-minima
+#'
+#' @param x A continuous vector 
+#' 
+#' @return Returns a (named) vector showing positions of local maximas
+#'
+#' @export
+#'
+#' @examples
+#' extrema <- localMaxima(x)
+#'
+localMaxima <- function(x) {
+  # Use -Inf instead if x is numeric (non-integer)
+  y <- diff(c(-.Machine$integer.max, x)) > 0L
+  rle(y)$lengths
+  y <- cumsum(rle(y)$lengths)
+  y <- y[seq.int(1L, length(y), 2L)]
+  if (x[[1]] == x[[2]]) {
+    y <- y[-1]
+  }
+  y
+}
+
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

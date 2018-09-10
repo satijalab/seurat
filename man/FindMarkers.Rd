@@ -6,16 +6,15 @@
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
 \usage{
-FindMarkers(object, features, logfc.threshold, test.use, min.pct,
-  min.diff.pct, verbose, only.pos, max.cells.per.ident, random.seed,
-  latent.vars, min.cells.feature, min.cells.group, pseudocount.use, ...)
+FindMarkers(object, features, logfc.threshold, test.use, min.pct, min.diff.pct,
+  verbose, only.pos, max.cells.per.ident, random.seed, latent.vars,
+  min.cells.feature, min.cells.group, pseudocount.use, ...)
 
 \method{FindMarkers}{default}(object, cells.1 = NULL, cells.2 = NULL,
   features = NULL, logfc.threshold = 0.25, test.use = "wilcox",
-  min.pct = 0.1, min.diff.pct = -Inf, verbose = TRUE,
-  only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
-  latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
-  pseudocount.use = 1, ...)
+  min.pct = 0.1, min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
+  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
+  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1, ...)
 
 \method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
   assay = NULL, features = NULL, logfc.threshold = 0.25,
