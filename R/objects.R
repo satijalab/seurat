@@ -2175,6 +2175,32 @@ RenameCells.Seurat <- function(
   return(object)
 }
 
+#' @rdname Idents
+#' @export
+#' @method RenameIdents Seurat
+#'
+RenameIdents.Seurat <- function(object, ...) {
+  ident.pairs <- list(...)
+  if (is.null(x = names(x = ident.pairs))) {
+    stop("All arguments must be named with the old identity class")
+  }
+  if (!all(sapply(X = ident.pairs, FUN = length) == 1)) {
+    stop("Can only rename identity classes to one value")
+  }
+  if (!any(names(x = ident.pairs) %in% levels(x = object))) {
+    stop("Cannot find any of the provided identities")
+  }
+  cells.idents <- CellsByIdentities(object = object)
+  for (i in names(x = ident.pairs)) {
+    if (!i %in% names(x = cells.idents)) {
+      warning("Cannot find identity ", i, call. = FALSE, immediate. = TRUE)
+      next
+    }
+    Idents(object = object, cells = cells.idents[[i]]) <- ident.pairs[[i]]
+  }
+  return(object)
+}
+
 #' @describeIn SetAssayData Set assay data for an Assay object
 #' @export
 #' @method SetAssayData Assay
@@ -2239,8 +2265,8 @@ SetAssayData.Seurat <- function(
 #' @export
 #' @method SetIdent Seurat
 #'
-SetIdent.Seurat <- function(object, cells = NULL, idents) {
-  Idents(object = object, cells = cells) <- idents
+SetIdent.Seurat <- function(object, cells = NULL, value) {
+  Idents(object = object, cells = cells) <- value
   return(object)
 }
 

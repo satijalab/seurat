@@ -430,7 +430,7 @@ HVFInfo <- function(object, ...) {
   UseMethod(generic = 'HVFInfo', object = object)
 }
 
-#' Get an object's cell identities
+#' Get, set, and manipulate an object's identity classes
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -439,6 +439,10 @@ HVFInfo <- function(object, ...) {
 #'
 #' @rdname Idents
 #' @export Idents
+#'
+#' @examples
+#' # Get cell identity classes
+#' Idents(object = pbmc_small)
 #'
 Idents <- function(object, ... ) {
   UseMethod(generic = 'Idents', object = object)
@@ -451,6 +455,17 @@ Idents <- function(object, ... ) {
 #'
 #' @rdname Idents
 #' @export Idents<-
+#'
+#' @examples
+#' # Set cell identity classes
+#' # Can be used to set identities for specific cells to a new level
+#' Idents(object = pbmc_small, cells = 1:4) <- 'a'
+#' head(x = Idents(object = pbmc_small))
+#'
+#' # Can also set idents from a value in object metadata
+#' pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+#' Idents(object = pbmc_small) <- 'groups'
+#' levels(x = pbmc_small)
 #'
 "Idents<-" <- function(object, ..., value) {
   UseMethod(generic = 'Idents<-', object = object)
@@ -664,6 +679,25 @@ Print <- function(object, ...) {
 #'
 RenameCells <- function(object, new.names, ...) {
   UseMethod(generic = 'RenameCells', object = object)
+}
+
+#' @inheritParams Idents
+#' @param ... \code{RenameIdents}: named arguments as \code{old.ident = new.ident}
+#'
+#' @return \code{RenameIdents}: An object with selected
+#'
+#' @rdname Idents
+#' @export RenameIdents
+#' @aliases RenameIdent
+#'
+#' @examples
+#' # Rename cell identity classes
+#' # Can provide an arbitrary amount of idents to rename
+#' pbmc_small <- RenameIdents(object = pbmc_small, '0' = 'cluster0', '1' = 'cluster1')
+#' levels(x = pbmc_small)
+#'
+RenameIdents <- function(object, ...) {
+  UseMethod(generic = 'RenameIdents', object = object)
 }
 
 #' Run Adaptively-thresholded Low Rank Approximation (ALRA)
@@ -1062,8 +1096,6 @@ SetAssayData <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
 }
 
-#' Set cell identity information
-#'
 #' @inheritParams Idents
 #'
 #' @return \code{SetIdent}: An object with new identity classes set
@@ -1071,12 +1103,15 @@ SetAssayData <- function(object, slot, new.data, ...) {
 #' @rdname Idents
 #' @export SetIdent
 #'
-SetIdent <- function(object, idents, ...) {
+#' @examples
+#' # Set cell identity classes using SetIdent
+#' cells.use <- WhichCells(object = pbmc_small, idents = '0')
+#' pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'cluster0')
+#'
+SetIdent <- function(object, value, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
-#' Stash an object's identity information
-#'
 #' @inheritParams Idents
 #' @param save.name Store current identity information under this name
 #'

@@ -3,20 +3,25 @@
 \name{Idents}
 \alias{Idents}
 \alias{Idents<-}
+\alias{RenameIdents}
+\alias{RenameIdent}
 \alias{SetIdent}
 \alias{StashIdent}
 \alias{Idents.Seurat}
 \alias{Idents<-.Seurat}
+\alias{RenameIdents.Seurat}
 \alias{SetIdent.Seurat}
 \alias{StashIdent.Seurat}
 \alias{levels.Seurat}
-\title{Get an object's cell identities}
+\title{Get, set, and manipulate an object's identity classes}
 \usage{
 Idents(object, ...)
 
 Idents(object, ...) <- value
 
-SetIdent(object, idents, ...)
+RenameIdents(object, ...)
+
+SetIdent(object, value, ...)
 
 StashIdent(object, save.name, ...)
 
@@ -24,7 +29,9 @@ StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, cells = NULL, ...) <- value
 
-\method{SetIdent}{Seurat}(object, cells = NULL, idents)
+\method{RenameIdents}{Seurat}(object, ...)
+
+\method{SetIdent}{Seurat}(object, cells = NULL, value)
 
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
 
@@ -40,24 +47,46 @@ StashIdent(object, save.name, ...)
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
+
+\item{...}{\code{RenameIdents}: named arguments as \code{old.ident = new.ident}}
 }
 \value{
 \code{Idents}: The cell identies
 
 \code{Idents<-}: An object with the cell identites changed
 
+\code{RenameIdents}: An object with selected
+
 \code{SetIdent}: An object with new identity classes set
 
 \code{StashIdent}: An object with the identities stashed
 }
 \description{
-Get an object's cell identities
-
-Set cell identity information
-
-Stash an object's identity information
+Get, set, and manipulate an object's identity classes
 }
 \examples{
+# Get cell identity classes
+Idents(object = pbmc_small)
+
+# Set cell identity classes
+# Can be used to set identities for specific cells to a new level
+Idents(object = pbmc_small, cells = 1:4) <- 'a'
+head(x = Idents(object = pbmc_small))
+
+# Can also set idents from a value in object metadata
+pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+Idents(object = pbmc_small) <- 'groups'
+levels(x = pbmc_small)
+
+# Rename cell identity classes
+# Can provide an arbitrary amount of idents to rename
+pbmc_small <- RenameIdents(object = pbmc_small, '0' = 'cluster0', '1' = 'cluster1')
+levels(x = pbmc_small)
+
+# Set cell identity classes using SetIdent
+cells.use <- WhichCells(object = pbmc_small, idents = '0')
+pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'cluster0')
+
 head(x = pbmc_small[])
 pbmc_small <- StashIdent(object = pbmc_small, save.name = 'cluster.ident')
 head(x = pbmc_small[])
