@@ -718,7 +718,8 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
@@ -750,7 +751,8 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   object <- SetAssayData(
     object = object,
@@ -783,7 +785,8 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(workflow.name)) {
