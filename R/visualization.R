@@ -276,7 +276,7 @@ HTOHeatmap <- function(
   DefaultAssay(object = object) <- assay
   Idents(object = object) <- object[[hto.classification, drop = TRUE]]
   object <- subset(
-    object = object,
+    x = object,
     select = sample(x = colnames(x = object), size = ncells)
   )
   classification <- object[[hto.classification]]
@@ -285,7 +285,9 @@ HTOHeatmap <- function(
   doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
-  Idents(object = object, cells = doublets) <- 'Multiplet'
+  if (length(x = doublets) > 0) {
+    Idents(object = object, cells = doublets) <- 'Multiplet'
+  }
   Idents(object = object) <- factor(
     x = Idents(object = object),
     levels = c(singlet.ids, 'Multiplet', 'Negative')
