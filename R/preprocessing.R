@@ -97,6 +97,10 @@ HTODemux <- function(
     assay = assay,
     verbose = FALSE
   )[[assay]]
+  #checking for any cluster with all zero counts for any barcode
+  if (sum(average_hto == 0) > 0){
+    stop("Cells with zero counts exist as a cluster.")
+  }
   #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
