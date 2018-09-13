@@ -4,8 +4,8 @@
 \alias{Labeler}
 \title{Add text labels to a ggplot2 plot}
 \usage{
-Labeler(plot, points, labels = NULL, xnudge = 0.3, ynudge = 0.05,
-  ...)
+Labeler(plot, points, labels = NULL, repel = FALSE, xnudge = 0.3,
+  ynudge = 0.05, ...)
 }
 \arguments{
 \item{plot}{A ggplot2 plot with a GeomPoint layer}
@@ -14,6 +14,10 @@ Labeler(plot, points, labels = NULL, xnudge = 0.3, ynudge = 0.05,
 
 \item{labels}{A vector of labels for the points; if \code{NULL}, will use
 rownames of the data provided to the plot at the points selected}
+
+\item{repel}{Use \code{geom_text_repel} to create a nicely-repelled labels; this
+is slow when a lot of points are being plotted. If using \code{repel}, set \code{xnudge}
+and \code{ynudge} to 0}
 
 \item{xnudge, ynudge}{Amount to nudge X and Y coordinates of labels by}
 

@@ -1747,11 +1747,15 @@ HoverLocator <- function(
 #' @param points A vector of points to label; if \code{NULL}, will use all points in the plot
 #' @param labels A vector of labels for the points; if \code{NULL}, will use
 #' rownames of the data provided to the plot at the points selected
+#' @param repel Use \code{geom_text_repel} to create a nicely-repelled labels; this
+#' is slow when a lot of points are being plotted. If using \code{repel}, set \code{xnudge}
+#' and \code{ynudge} to 0
 #' @param xnudge,ynudge Amount to nudge X and Y coordinates of labels by
 #' @param ... Extra parameters passed to \code{geom_text}
 #'
 #' @return A ggplot object
 #'
+#' @importFrom ggrepel geom_text_repel
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
@@ -1766,6 +1770,7 @@ Labeler <- function(
   plot,
   points,
   labels = NULL,
+  repel = FALSE,
   xnudge = 0.3,
   ynudge = 0.05,
   ...
@@ -1795,7 +1800,20 @@ Labeler <- function(
   plot$data[points, 'labels'] <- labels
   x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
   y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
-  plot <- plot + geom_text(
+  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+  if (repel) {
+    if (!all(c(xnudge, ynudge) == 0)) {
+      message("When using repel, set xnudge and ynudge to 0 for optimal results")
+    }
+    if (nrow(x = plot$data) > 1500) {
+      warning(
+        "repel is slow with a large number of points",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  plot <- plot + geom.use(
     mapping = aes_string(x = x, y = y, label = 'labels'),
     nudge_x = xnudge,
     nudge_y = ynudge,

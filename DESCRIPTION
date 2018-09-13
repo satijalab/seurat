@@ -26,6 +26,7 @@ Imports:
     dtw,
     fitdistrplus,
     ggplot2 (>= 3.0.0),
+    ggrepel,
     ggridges,
     graphics,
     grDevices,
