@@ -912,6 +912,8 @@ FeatureScatter <- function(
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
 #'
+#' @return A ggplot object
+#'
 #' @importFrom ggplot2 labs scale_color_manual scale_x_log10
 #' @export
 #'
@@ -1408,6 +1410,76 @@ VizDimReduction <- function(
 # Exported utility functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# NEED TO TREAT PNG PACKAGE PROPERLY
+#' Augments ggplot2 scatterplot with a PNG image.
+#'
+#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
+#'
+#' @param plot ggplot2 scatterplot. Typically will have only labeled axes and no points
+#' @param img location of a PNG file that contains the points to overlay onto the scatterplot.
+#'
+#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
+#'
+#' @importFrom png readPNG
+#' @importFrom ggplot2 annotation_raster ggplot_build
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data("pbmc_small")
+#' p <- PCAPlot(pbmc_small, do.return = TRUE)
+#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
+#' pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
+#' pmod
+#' }
+#'
+AugmentPlot <- function(plot, img) {
+  range.values <- c(
+    ggplot_build(plot = plot)$layout$panel_params[[1]]$x.range,
+    ggplot_build(plot = plot)$layout$panel_params[[1]]$y.range
+  )
+  img <- readPNG(source = img)
+  p1mod <- plot + annotation_raster(
+    img,
+    xmin = range.values[1],
+    xmax = range.values[2],
+    ymin = range.values[3],
+    ymax = range.values[4]
+  )
+  return(p1mod)
+}
+
+#' @inheritParams CustomPalette
+#'
+#' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlackAndWhite
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlackAndWhite())
+#'
+BlackAndWhite <- function(mid = NULL, k = 50) {
+  return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
+}
+
+#' @inheritParams CustomPalette
+#'
+#' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlueAndRed
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlueAndRed())
+#'
+BlueAndRed <- function(k = 50) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
+}
+
 #' Combine ggplot2-based plots into a single plot
 #'
 #' @param plots A list of gg objects
@@ -1481,6 +1553,56 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
     plots[[1]]
   }
   return(plots.combined)
+}
+
+#' Create a custom color palette
+#'
+#' Creates a custom color palette based on low, middle, and high color values
+#'
+#' @param low low color
+#' @param high high color
+#' @param mid middle color. Optional.
+#' @param k number of steps (colors levels) to include between low and high values
+#'
+#' @return A color palette for plotting
+#'
+#' @importFrom grDevices col2rgb rgb
+#' @export
+#'
+#' @rdname CustomPalette
+#' @examples
+#' myPalette <- CustomPalette()
+#' myPalette
+#'
+CustomPalette <- function(
+  low = "white",
+  high = "red",
+  mid = NULL,
+  k = 50
+) {
+  low <- col2rgb(col = low) / 255
+  high <- col2rgb(col = high) / 255
+  if (is.null(x = mid)) {
+    r <- seq(from = low[1], to = high[1], len = k)
+    g <- seq(from = low[2], to = high[2], len = k)
+    b <- seq(from = low[3], to = high[3], len = k)
+  } else {
+    k2 <- round(x = k / 2)
+    mid <- col2rgb(col = mid) / 255
+    r <- c(
+      seq(from = low[1], to = mid[1], len = k2),
+      seq(from = mid[1], to = high[1], len = k2)
+    )
+    g <- c(
+      seq(from = low[2], to = mid[2], len = k2),
+      seq(from = mid[2], to = high[2],len = k2)
+    )
+    b <- c(
+      seq(from = low[3], to = mid[3], len = k2),
+      seq(from = mid[3], to = high[3], len = k2)
+    )
+  }
+  return(rgb(red = r, green = g, blue = b))
 }
 
 #' Feature Locator
@@ -1619,69 +1741,67 @@ HoverLocator <- function(
   )
 }
 
-#' Create a custom color palette
+#' Add text labels to a ggplot2 plot
 #'
-#' Creates a custom color palette based on low, middle, and high color values
+#' @param plot A ggplot2 plot with a GeomPoint layer
+#' @param points A vector of points to label; if \code{NULL}, will use all points in the plot
+#' @param labels A vector of labels for the points; if \code{NULL}, will use
+#' rownames of the data provided to the plot at the points selected
+#' @param xnudge,ynudge Amount to nudge X and Y coordinates of labels by
+#' @param ... Extra parameters passed to \code{geom_text}
 #'
-#' @param low low color
-#' @param high high color
-#' @param mid middle color. Optional.
-#' @param k number of steps (colors levels) to include between low and high values
+#' @return A ggplot object
 #'
-#' @return A color palette for plotting
-#'
-#' @importFrom grDevices col2rgb rgb
+#' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
-#' @rdname CustomPalette
-#' @examples
-#' myPalette <- CustomPalette()
-#' myPalette
+#' @seealso \code{\link{ggplot2::geom_text}}
 #'
-CustomPalette <- function(
-  low = "white",
-  high = "red",
-  mid = NULL,
-  k = 50
+#' @examples
+#' plot <- CellScatter(object = pbmc_small)
+#' cc <- TopCells(object = pbmc_small[['pca']])
+#' Labeler(plot = plot, points = cc)
+#'
+Labeler <- function(
+  plot,
+  points,
+  labels = NULL,
+  xnudge = 0.3,
+  ynudge = 0.05,
+  ...
 ) {
-  low <- col2rgb(col = low) / 255
-  high <- col2rgb(col = high) / 255
-  if (is.null(x = mid)) {
-    r <- seq(from = low[1], to = high[1], len = k)
-    g <- seq(from = low[2], to = high[2], len = k)
-    b <- seq(from = low[3], to = high[3], len = k)
-  } else {
-    k2 <- round(x = k / 2)
-    mid <- col2rgb(col = mid) / 255
-    r <- c(
-      seq(from = low[1], to = mid[1], len = k2),
-      seq(from = mid[1], to = high[1], len = k2)
-    )
-    g <- c(
-      seq(from = low[2], to = mid[2], len = k2),
-      seq(from = mid[2], to = high[2],len = k2)
-    )
-    b <- c(
-      seq(from = low[3], to = mid[3], len = k2),
-      seq(from = mid[3], to = high[3], len = k2)
-    )
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == 'GeomPoint')
+  if (length(x = geoms) == 0) {
+    stop("Labelling only work on ggplot-based plots with a GeomPoint layer")
   }
-  return(rgb(red = r, green = g, blue = b))
-}
-
-#' @inheritParams CustomPalette
-#'
-#' @export
-#'
-#' @rdname CustomPalette
-#' @aliases BlackAndWhite
-#'
-#' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' plot(df, col = BlackAndWhite())
-#'
-BlackAndWhite <- function(mid = NULL, k = 50) {
-  return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
+  geoms <- min(geoms)
+  points <- points %||% rownames(x = plot$data)
+  if (is.numeric(x = points)) {
+    points <- rownames(x = plot$data)
+  }
+  points <- intersect(x = points, y = rownames(x = plot$data))
+  if (length(x = points) == 0) {
+    stop("Cannot find points provided")
+  }
+  labels <- labels %||% points
+  labels <- as.character(x = labels)
+  plot$data$labels <- ''
+  plot$data[points, 'labels'] <- labels
+  x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+  y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+  plot <- plot + geom_text(
+    mapping = aes_string(x = x, y = y, label = 'labels'),
+    nudge_x = xnudge,
+    nudge_y = ynudge,
+    ...
+  )
+  return(plot)
 }
 
 #' @inheritParams CustomPalette
@@ -1697,60 +1817,6 @@ BlackAndWhite <- function(mid = NULL, k = 50) {
 #'
 PurpleAndYellow <- function(k = 50) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", k = k))
-}
-
-#' @inheritParams CustomPalette
-#'
-#' @export
-#'
-#' @rdname CustomPalette
-#' @aliases BlueAndRed
-#'
-#' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' plot(df, col = BlueAndRed())
-#'
-BlueAndRed <- function(k = 50) {
-  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
-}
-
-# NEED TO TREAT PNG PACKAGE PROPERLY
-#' Augments ggplot2 scatterplot with a PNG image.
-#'
-#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
-#'
-#' @param plot ggplot2 scatterplot. Typically will have only labeled axes and no points
-#' @param img location of a PNG file that contains the points to overlay onto the scatterplot.
-#'
-#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
-#'
-#' @importFrom png readPNG
-#' @importFrom ggplot2 annotation_raster ggplot_build
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' data("pbmc_small")
-#' p <- PCAPlot(pbmc_small, do.return = TRUE)
-#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
-#' pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
-#' pmod
-#' }
-AugmentPlot <- function(plot, img) {
-  range.values <- c(
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$x.range,
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$y.range
-  )
-  img <- readPNG(source = img)
-  p1mod <- plot + annotation_raster(
-    img,
-    xmin = range.values[1],
-    xmax = range.values[2],
-    ymin = range.values[3],
-    ymax = range.values[4]
-  )
-  return(p1mod)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
