@@ -5,8 +5,8 @@
 \alias{CellPlot}
 \title{Cell-cell scatter plot}
 \usage{
-CellScatter(object, cell1, cell2, features = NULL, cols = NULL,
-  pt.size = 1, smooth = FALSE, ...)
+CellScatter(object, cell1, cell2, features = NULL, highlight = NULL,
+  cols = NULL, pt.size = 1, smooth = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,6 +16,8 @@ CellScatter(object, cell1, cell2, features = NULL, cols = NULL,
 \item{cell2}{Cell 2 name}
 
 \item{features}{Features to plot (default, all features)}
+
+\item{highlight}{Features to highlight}
 
 \item{cols}{Colors to use for identity class plotting.}
 

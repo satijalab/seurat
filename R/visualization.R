@@ -799,6 +799,7 @@ FeaturePlot <- function(
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
+#' @param highlight Features to highlight
 #'
 #' @return A ggplot object
 #'
@@ -814,6 +815,7 @@ CellScatter <- function(
   cell1,
   cell2,
   features = NULL,
+  highlight = NULL,
   cols = NULL,
   pt.size = 1,
   smooth = FALSE,
@@ -830,6 +832,7 @@ CellScatter <- function(
     data = data,
     cols = cols,
     pt.size = pt.size,
+    rows.highlight = highlight,
     smooth = smooth,
     ...
   )
@@ -2857,6 +2860,7 @@ SetQuantile <- function(cutoff, data) {
 # @param cols An optional vector of colors to use
 # @param pt.size Point size for the plot
 # @param smooth Make a smoothed scatter plot
+# @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
 # @param ... Extra parameters to MASS::kde2d
 #
@@ -2870,12 +2874,14 @@ SingleCorPlot <- function(
   data,
   col.by = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   smooth = FALSE,
+  rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
   ...
 ) {
+  pt.size <- pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -2884,6 +2890,24 @@ SingleCorPlot <- function(
     fixed = TRUE
   )
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  if (!is.null(x = rows.highlight)) {
+    highlight.info <- SetHighlight(
+      cells.highlight = rows.highlight,
+      cells.all = rownames(x = data),
+      sizes.highlight = pt.size,
+      cols.highlight = 'red',
+      col.base = 'black',
+      pt.size = pt.size
+    )
+    cols <- highlight.info$color
+    col.by <- factor(
+      x = highlight.info$highlight,
+      levels = rev(x = highlight.info$plot.order)
+    )
+    plot.order <- order(col.by)
+    data <- data[plot.order, ]
+    col.by <- col.by[plot.order]
+  }
   if (!is.null(x = col.by)) {
     data$colors <- col.by
   }
@@ -2903,7 +2927,7 @@ SingleCorPlot <- function(
       geom = 'tile',
       contour = FALSE,
       n = 200,
-      h = Bandwidth(data = data)
+      h = Bandwidth(data = data[, names.plot])
     ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
@@ -2911,10 +2935,11 @@ SingleCorPlot <- function(
   if (!is.null(x = col.by)) {
     plot <- plot + geom_point(
       mapping = aes_string(color = 'colors'),
+      position = 'jitter',
       size = pt.size
     )
   } else {
-    plot <- plot + geom_point(size = pt.size)
+    plot <- plot + geom_point(position = 'jitter', size = pt.size)
   }
   if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {
@@ -2923,6 +2948,9 @@ SingleCorPlot <- function(
       scale_color_manual(values = cols, na.value = na.value)
     }
     plot <- plot + cols.scale
+    if (!is.null(x = rows.highlight)) {
+      plot <- plot + guides(color = FALSE)
+    }
   }
   plot <- plot + theme_cowplot()
   return(plot)
