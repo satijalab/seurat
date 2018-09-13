@@ -201,7 +201,6 @@ DoHeatmap <- function(
   )
   data <- FetchData(
     object = object,
-    # vars = rev(x = features),
     vars = features,
     cells = cells,
     slot = slot
@@ -2549,8 +2548,19 @@ FixPlotParam <- function(object, function.name, param.name, param.value) {
 #
 GGpointToBase <- function(plot, do.plot = TRUE, ...) {
   plot.build <- ggplot_build(plot = plot)
-  build.data <- plot.build$data[[1]]
-  plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
+  cols <- c('x', 'y', 'colour', 'shape', 'size')
+  build.use <- which(x = vapply(
+    X = plot.build$data,
+    FUN = function(dat) {
+      return(all(cols %in% colnames(x = dat)))
+    },
+    FUN.VALUE = logical(length = 1L)
+  ))
+  if (length(x = build.use) == 0) {
+    stop("GGpointToBase only works on geom_point ggplot objects")
+  }
+  build.data <- plot.build$data[[min(build.use)]]
+  plot.data <- build.data[, cols]
   names(x = plot.data) <- c(
     plot.build$plot$labels$x,
     plot.build$plot$labels$y,
