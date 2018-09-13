@@ -322,14 +322,15 @@ HTOHeatmap <- function(
 #' @param idents Which classes to include in the plot (default is all)
 #' @param sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
+#' @param assay Name of assay to use, defaults to the active assay
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.max Maximum y axis value
 #' @param same.y.lims Set all the y-axis limits to the same values
-#' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param log plot Y axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
-#' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#' @param ... Ignored
 #'
 #' @return A ggplot object
 #'
@@ -344,6 +345,7 @@ RidgePlot <- function(
   cols = NULL,
   idents = NULL,
   sort = FALSE,
+  assay = NULL,
   group.by = NULL,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -360,6 +362,7 @@ RidgePlot <- function(
     idents = idents,
     ncol = ncol,
     sort = sort,
+    assay = assay,
     y.max = y.max,
     same.y.lims = same.y.lims,
     cols = cols,
@@ -394,6 +397,7 @@ VlnPlot <- function(
   pt.size = 1,
   idents = NULL,
   sort = FALSE,
+  assay = NULL,
   group.by = NULL,
   adjust.use = 1,
   y.max = NULL,
@@ -411,6 +415,7 @@ VlnPlot <- function(
     idents = idents,
     ncol = ncol,
     sort = sort,
+    assay = assay,
     y.max = y.max,
     same.y.lims = same.y.lims,
     adjust.use = adjust.use,
@@ -2421,7 +2426,7 @@ EvaluateCCs <- function(
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
-# @param ... Ignores
+# @param ... Ignored
 #
 #
 ExIPlot <- function(
@@ -2431,6 +2436,7 @@ ExIPlot <- function(
   idents = NULL,
   ncol = NULL,
   sort = FALSE,
+  assay = NULL,
   y.max = NULL,
   same.y.lims = FALSE,
   adjust = 1,
@@ -2442,6 +2448,8 @@ ExIPlot <- function(
   slot = 'data',
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
   ncol <- ncol %||% ifelse(
     test = length(x = features) > 9,
     yes = 4,
