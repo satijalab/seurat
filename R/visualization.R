@@ -2553,7 +2553,7 @@ ExIPlot <- function(
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
   } else {
-    cells <- Idents(object = object)[Idents(object = object) %in% idents]
+    cells <- names(x = Idents(object = object)[Idents(object = object) %in% idents])
   }
   data <- data[cells, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
