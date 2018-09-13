@@ -645,6 +645,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
+  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {

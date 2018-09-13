@@ -54,9 +54,8 @@ test_that("Read10X creates sparse matrix", {
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
 context("NormalizeData")
-
 test_that("NormalizeData error handling", {
-  expect_error(NormalizeData(object = object, assay.use = "FAKE"))
+  expect_error(NormalizeData(object = object, assay = "FAKE"))
   expect_equal(GetAssayData(object = object, slot = "counts"),
                GetAssayData(object = NormalizeData(
                   object = object,
