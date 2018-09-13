@@ -851,12 +851,11 @@ CellScatter <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
-#' @param slot Use non-normalized counts data for plotting
+#' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
-#' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 geom_smooth aes_string
 #' @export
 #'
@@ -897,7 +896,6 @@ FeatureScatter <- function(
       span = span
     )
   }
-  plot <- plot + theme_cowplot()
   return(plot)
 }
 
@@ -2848,9 +2846,10 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
+#' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
-#' scale_color_manual guides element_rect stat_density2d aes scale_fill_continuous
+#' scale_color_manual guides stat_density2d aes scale_fill_continuous
 #'
 SingleCorPlot <- function(
   data,
@@ -2896,7 +2895,7 @@ SingleCorPlot <- function(
     }
     plot <- plot + cols.scale
   }
-  plot <- plot + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
+  plot <- plot + theme_cowplot()
   return(plot)
 }
 
