@@ -3140,7 +3140,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL) {
     }
     Loadings(object = x, projected = FALSE)[features.loadings, , drop = FALSE]
   }
-  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) && !Projected(object = x)) {
+  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) || !Projected(object = x)) {
     new(Class = 'matrix')
   } else {
     features.projected <- intersect(
