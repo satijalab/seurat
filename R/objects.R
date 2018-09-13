@@ -2210,34 +2210,40 @@ SetAssayData.Assay <- function(object, slot, new.data) {
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
   }
-  if (ncol(x = new.data) != ncol(x = object)) {
-    stop("The new data doesn't have the same number of cells as the current data")
+  if (!IsMatrixEmpty(x = new.data) && !slot %in% c('counts', 'scale.data')) {
+    if (ncol(x = new.data) != ncol(x = object)) {
+      stop("The new data doesn't have the same number of cells as the current data")
+    }
+    num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
+    counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
+    if (num.counts <= 1) {
+      num.counts <- nrow(x = object)
+      counts.names <- rownames(x = object)
+    }
+    if (slot == 'counts' && nrow(x = new.data) != num.counts) {
+      warning("The new data doesn't have the same number of features as the current data")
+    } else if (slot %in% c('data', 'scale.data') && nrow(x = new.data) > num.counts) {
+      warning("Adding more features than present in current data")
+    }
+    if (!all(rownames(x = new.data) %in% counts.names)) {
+      warning("Adding features not currently present in the object")
+    }
+    new.features <- na.omit(object = match(
+      x = counts.names,
+      table = rownames(x = new.data)
+    ))
+    #if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
+    #  stop("Cannot add more features than present in current data")
+    #} else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
+    #  stop("The new data doesn't have the same number of features as the current data")
+    #}
+    new.cells <- colnames(x = new.data)
+    if (!all(new.cells %in% colnames(x = object))) {
+      stop("All cell names must match current cell names")
+    }
+    new.data <- new.data[new.features, colnames(x = object)]
   }
-  num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
-  counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
-  if (num.counts <= 1) {
-    num.counts <- nrow(x = object)
-    counts.names <- rownames(x = object)
-  }
-  if (slot == 'counts' && nrow(x = new.data) != num.counts) {
-    warning("The new data doesn't have the same number of features as the current data")
-  } else if (slot %in% c('data', 'scale.data') && nrow(x = new.data) > num.counts) {
-    warning("Adding more features than present in current data")
-  }
-  if (!all(rownames(x = new.data) %in% counts.names)) {
-    warning("Adding features not currently present in the object")
-  }
-  new.features <- na.omit(object = match(x = counts.names, table = rownames(x = new.data)))
-  #if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
-  #  stop("Cannot add more features than present in current data")
-  #} else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
-  #  stop("The new data doesn't have the same number of features as the current data")
-  #}
-  new.cells <- colnames(x = new.data)
-  if (!all(new.cells %in% colnames(x = object))) {
-    stop("All cell names must match current cell names")
-  }
-  slot(object = object, name = slot) <- new.data[new.features, colnames(x = object)]
+  slot(object = object, name = slot) <- new.data
   return(object)
 }
 
@@ -3310,7 +3316,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
-            if (nrow(x = assay.data) > 0) {
+            # if (nrow(x = assay.data) > 0) {
+            if (!IsMatrixEmpty(x = assay.data)) {
               assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
             value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
