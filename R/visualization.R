@@ -800,12 +800,10 @@ FeaturePlot <- function(
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
-#' @param ... Extra parameters passed to \code{kde2d}
 #'
 #' @return A ggplot object
 #'
 #' @export
-#' @seealso \code{\link{MASS::kde2d}}
 #'
 #' @aliases CellPlot
 #'
@@ -840,12 +838,12 @@ CellScatter <- function(
 
 #' Scatter plot of single cell data
 #'
-#' Creates a scatter plot of two features (typically gene expression), across a
+#' Creates a scatter plot of two features (typically feature expression), across a
 #' set of single cells. Cells are colored by their identity class. Pearson
 #' correlation between the two features is displayed above the plot.
 #'
 #' @param object Seurat object
-#' @param feature1 First feature to plot. Typically gene expression but can also
+#' @param feature1 First feature to plot. Typically feature expression but can also
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
@@ -2035,6 +2033,31 @@ WhiteBackground <- function(...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Calculate bandwidth for use in ggplot2-based smooth scatter plots
+#
+# Inspired by MASS::bandwidth.nrd and graphics:::.smoothScatterCalcDensity
+#
+# @param data A two-column data frame with X and Y coordinates for a plot
+#
+# @return The calculated bandwidth
+#
+#' @importFrom stats quantile var
+Bandwidth <- function(data) {
+  r <- diff(x = apply(
+    X = data,
+    MARGIN = 2,
+    FUN = quantile,
+    probs = c(0.05, 0.95),
+    na.rm = TRUE,
+    names = FALSE
+  ))
+  h <- abs(x = r[2L] - r[1L]) / 1.34
+  bandwidth <- 4 * 1.06 *
+    min(sqrt(x = apply(X = data, MARGIN = 2, FUN = var)), h) *
+    nrow(x = data) ^ (-0.2)
+  return(bandwidth)
+}
+
 # Blend two or more colors together
 #
 # @param ... Two or more colors to blend together
@@ -2825,10 +2848,9 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
-#' @importFrom MASS kde2d
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
-#' scale_color_manual geom_tile guides element_rect
+#' scale_color_manual guides element_rect stat_density2d aes scale_fill_continuous
 #'
 SingleCorPlot <- function(
   data,
@@ -2850,20 +2872,21 @@ SingleCorPlot <- function(
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
   ) +
     labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
+  if (smooth) {
+    plot <- plot + stat_density2d(
+      mapping = aes(fill = ..density.. ^ 0.25),
+      geom = 'tile',
+      contour = FALSE,
+      n = 200,
+      h = Bandwidth(data = data)
+    ) +
+      scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
+      guides(fill = FALSE)
+  }
   if (!is.null(x = col.by)) {
     plot <- plot + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
   } else {
     plot <- plot + geom_point(size = pt.size)
-  }
-  if (smooth) {
-    density <- kde2d(x = data[, 1], y = data[, 2], ...)
-    density <- data.frame(
-      x = unlist(x = lapply(X = density$x, FUN = rep.int, times = length(x = density$x))),
-      y = rep.int(x = density$y, times = length(x = density$y)),
-      z = unlist(x = as.data.frame(x = density$z))
-    )
-    plot <- plot + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
-      guides(fill = FALSE)
   }
   if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {

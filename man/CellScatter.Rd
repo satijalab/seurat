@@ -21,7 +21,7 @@ CellScatter(object, cell1, cell2, features = NULL, cols = NULL,
 
 \item{pt.size}{Size of the points on the plot}
 
-\item{...}{Extra parameters passed to \code{kde2d}}
+\item{...}{Ignored for now}
 }
 \value{
 A ggplot object
@@ -33,7 +33,4 @@ correlation between the two cells is displayed above the plot.
 \examples{
 CellScatter(object = pbmc_small, cell1 = 'ATAGGAGAAACAGA', cell2 = 'CATCAGGATGCACA')
 
-}
-\seealso{
-\code{\link{MASS::kde2d}}
 }
