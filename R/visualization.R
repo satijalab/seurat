@@ -816,6 +816,7 @@ CellScatter <- function(
   features = NULL,
   cols = NULL,
   pt.size = 1,
+  smooth = FALSE,
   ...
 ) {
   features <- features %||% rownames(x = object)
@@ -829,7 +830,7 @@ CellScatter <- function(
     data = data,
     cols = cols,
     pt.size = pt.size,
-    smooth = TRUE,
+    smooth = smooth,
     ...
   )
   return(plot)
@@ -850,6 +851,7 @@ CellScatter <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
+#' @param smooth Smooth the graph (similar to smoothScatter)
 #' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param ... Ignored for now
 #'
@@ -872,6 +874,7 @@ FeatureScatter <- function(
   pt.size = 1,
   shape.by = NULL,
   span = NULL,
+  smooth = FALSE,
   slot = 'data',
   ...
 ) {
@@ -886,6 +889,7 @@ FeatureScatter <- function(
     col.by = Idents(object = object)[cells],
     cols = cols,
     pt.size = pt.size,
+    smooth = smooth,
     legend.title = 'Identity'
   )
   if (!is.null(x = span)) {
@@ -2049,6 +2053,7 @@ Bandwidth <- function(data) {
     names = FALSE
   ))
   h <- abs(x = r[2L] - r[1L]) / 1.34
+  h <- ifelse(test = h == 0, yes = 1, no = h)
   bandwidth <- 4 * 1.06 *
     min(sqrt(x = apply(X = data, MARGIN = 2, FUN = var)), h) *
     nrow(x = data) ^ (-0.2)
@@ -2871,7 +2876,13 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   ...
 ) {
-  names.plot <- colnames(x = data)
+  orig.names <- colnames(x = data)
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
   if (!is.null(x = col.by)) {
     data$colors <- col.by
@@ -2880,7 +2891,12 @@ SingleCorPlot <- function(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
   ) +
-    labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
+    labs(
+      x = orig.names[1],
+      y = orig.names[2],
+      title = plot.cor,
+      color = legend.title
+    )
   if (smooth) {
     plot <- plot + stat_density2d(
       mapping = aes(fill = ..density.. ^ 0.25),
@@ -2893,7 +2909,10 @@ SingleCorPlot <- function(
       guides(fill = FALSE)
   }
   if (!is.null(x = col.by)) {
-    plot <- plot + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
+    plot <- plot + geom_point(
+      mapping = aes_string(color = 'colors'),
+      size = pt.size
+    )
   } else {
     plot <- plot + geom_point(size = pt.size)
   }

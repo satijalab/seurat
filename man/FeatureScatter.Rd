@@ -6,7 +6,8 @@
 \title{Scatter plot of single cell data}
 \usage{
 FeatureScatter(object, feature1, feature2, cells = NULL, cols = NULL,
-  pt.size = 1, shape.by = NULL, span = NULL, slot = "data", ...)
+  pt.size = 1, shape.by = NULL, span = NULL, smooth = FALSE,
+  slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -25,6 +26,8 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{shape.by}{Ignored for now}
 
 \item{span}{Spline span in loess function call, if \code{NULL}, no spline added}
+
+\item{smooth}{Smooth the graph (similar to smoothScatter)}
 
 \item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
 
