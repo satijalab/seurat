@@ -7,9 +7,9 @@
 \alias{Misc<-.Seurat}
 \title{Access miscellaneous data}
 \usage{
-Misc(object, slot, ...)
+Misc(object, ...)
 
-Misc(object, slot, ...) <- value
+Misc(object, ...) <- value
 
 \method{Misc}{Seurat}(object, slot = NULL, ...)
 
@@ -18,11 +18,11 @@ Misc(object, slot, ...) <- value
 \arguments{
 \item{object}{An object}
 
-\item{slot}{Name of specific bit of meta data to pull}
-
 \item{...}{Arguments passed to other methods}
 
 \item{value}{Data to add}
+
+\item{slot}{Name of specific bit of meta data to pull}
 }
 \value{
 Miscellaneous data
@@ -34,10 +34,3 @@ Access miscellaneous data
 
 Set miscellaneous data
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Get miscellaneous data from a Seurat object
-
-\item \code{Seurat}: Set miscellaneous data for a Seurat object
-}}
-

@@ -12,7 +12,7 @@ FindAllMarkers(object, assay = NULL, features = NULL,
   return.thresh = 0.01, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{assay}{Assay to use in differential expression testing}
 
@@ -69,6 +69,8 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
+
+\item{verbose}{Print a progress bar once expression testing begins}
 
 \item{only.pos}{Only return positive markers (FALSE by default)}
 

@@ -3,13 +3,17 @@
 \name{FindVariableFeatures}
 \alias{FindVariableFeatures}
 \alias{FindVariableGenes}
+\alias{FindVariableFeatures.default}
 \alias{FindVariableFeatures.Assay}
 \alias{FindVariableFeatures.Seurat}
 \title{Find variable features}
 \usage{
-FindVariableFeatures(object, selection.method, loess.span, clip.max,
-  mean.function, dispersion.function, num.bin, binning.method, verbose,
-  ...)
+FindVariableFeatures(object, ...)
+
+\method{FindVariableFeatures}{default}(object, selection.method = "vst",
+  loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
+  dispersion.function = FastLogVMR, num.bin = 20,
+  binning.method = "equal_width", verbose = TRUE, ...)
 
 \method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
   loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
@@ -27,6 +31,8 @@ FindVariableFeatures(object, selection.method, loess.span, clip.max,
 }
 \arguments{
 \item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{selection.method}{How to choose top variable features. Choose one of :
 \itemize{
@@ -72,8 +78,6 @@ methods are:
 
 \item{verbose}{show progress bar for calculations}
 
-\item{...}{Arguments passed to other methods}
-
 \item{nfeatures}{Number of features to select as top variable features;
 only used when \code{selection.method = 'dispersion'}}
 
@@ -100,10 +104,3 @@ expression level, and for Y-axis it is the log(Variance/mean). All mean/variance
 calculations are not performed in log-space, but the results are reported in
 log-space - see relevant functions for exact details.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Find variable features in an Assay object
-
-\item \code{Seurat}: Find variable features in a Seurat object
-}}
-

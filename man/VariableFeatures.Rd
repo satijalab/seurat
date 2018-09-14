@@ -33,14 +33,3 @@ VariableFeatures(object, ...) <- value
 \description{
 Get and set variable feature information
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get the variable features of an assay object
-
-\item \code{Seurat}: Get the variable features of a Seurat object
-
-\item \code{Assay}: Set the variable features of an assay object
-
-\item \code{Seurat}: Set variable features for a Seurat object
-}}
-

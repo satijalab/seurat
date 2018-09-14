@@ -5,27 +5,22 @@
 \alias{Command.Seurat}
 \title{Get SeuratCommands}
 \usage{
-Command(object, command, value, ...)
+Command(object, ...)
 
 \method{Command}{Seurat}(object, command, value = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
 
+\item{...}{Arguments passed to other methods}
+
 \item{command}{Name of the command to pull}
 
 \item{value}{Name of the parameter to pull the value for}
-
-\item{...}{Arguments passed to other methods}
 }
 \value{
-Either the SeuratCommand object or the paramter value
+Either a SeuratCommand object or the requested paramter value
 }
 \description{
 Pull information on previously run commands in the Seurat object.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Get the SeuratCommands
-}}
-

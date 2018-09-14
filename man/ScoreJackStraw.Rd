@@ -13,7 +13,7 @@ ScoreJackStraw(object, dims, score.thresh, ...)
   score.thresh = 1e-05, ...)
 
 \method{ScoreJackStraw}{DimReduc}(object, dims = 1:5,
-  score.thresh = 1e-05, do.plot = FALSE, ...)
+  score.thresh = 1e-05, ...)
 
 \method{ScoreJackStraw}{Seurat}(object, reduction = "pca", dims = 1:5,
   score.thresh = 1e-05, do.plot = FALSE, ...)
@@ -28,10 +28,10 @@ significance (see Details)}
 
 \item{...}{Arguments passed to other methods}
 
+\item{reduction}{Reduction associated with JackStraw to score}
+
 \item{do.plot}{Show plot. To return ggplot object, use \code{JackStrawPlot} after
 running ScoreJackStraw.}
-
-\item{reduction}{Reduction associated with JackStraw to score}
 }
 \value{
 Returns a Seurat object
@@ -43,18 +43,11 @@ The p-value for each PC is based on a proportion test comparing the number
 of genes with a p-value below a particular threshold (score.thresh), compared with the
 proportion of genes expected under a uniform distribution of p-values.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{JackStrawData}: Score JackStraw results given a JackStrawData
-
-\item \code{DimReduc}: Score JackStraw results given a DimReduc
-
-\item \code{Seurat}: Score JackStraw results given a Seurat object
-}}
-
 \seealso{
+\code{\link{JackStrawPlot}}
+
 \code{\link{JackStrawPlot}}
 }
 \author{
-Thanks to Omri Wurtzel for integrating with ggplot
+Omri Wurtzel
 }

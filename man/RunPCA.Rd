@@ -2,26 +2,36 @@
 % Please edit documentation in R/generics.R, R/dimensional_reduction.R
 \name{RunPCA}
 \alias{RunPCA}
+\alias{RunPCA.default}
 \alias{RunPCA.Assay}
 \alias{RunPCA.Seurat}
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
-  nfeatures.print, reduction.name, reduction.key, seed.use, ...)
+RunPCA(object, ...)
+
+\method{RunPCA}{default}(object, assay = NULL, npcs = 20,
+  rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
+  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC",
+  seed.use = 42, ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
-  compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, print.dims = 1:5, nfeatures.print = 30,
-  reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
+  npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
+  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC",
+  seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
-  compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, print.dims = 1:5, nfeatures.print = 30,
-  reduction.name = "pca", reduction.key = "PC", seed.use = 42,
-  workflow.name = NULL, ...)
+  npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
+  ndims.print = 1:5, nfeatures.print = 30, reduction.name = "pca",
+  reduction.key = "PC", seed.use = 42, workflow.name = NULL, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods and IRLBA}
+
+\item{assay}{Name of Assay PCA is being run on}
+
+\item{npcs}{Total Number of PCs to compute and store (20 by default)}
 
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
@@ -32,9 +42,9 @@ to true will compute it on gene x cell matrix.}
 \item{verbose}{Print the top genes associated with high/low loadings for
 the PCs}
 
-\item{nfeatures.print}{Number of genes to print for each PC}
+\item{ndims.print}{PCs to print genes for}
 
-\item{reduction.name}{dimensional reduction name,  pca by default}
+\item{nfeatures.print}{Number of genes to print for each PC}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before
 the number for the dimension names. PC by default}
@@ -42,13 +52,9 @@ the number for the dimension names. PC by default}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
 
-\item{...}{Arguments passed to other methods and IRLBA}
+\item{features}{Features to compute PCA on}
 
-\item{assay}{Name of Assay PCA is being run on}
-
-\item{compute.dims}{Total Number of PCs to compute and store (20 by default)}
-
-\item{print.dims}{PCs to print genes for}
+\item{reduction.name}{dimensional reduction name,  pca by default}
 
 \item{workflow.name}{Name of workflow}
 }
@@ -59,10 +65,3 @@ Returns Seurat object with the PCA calculation stored in the reductions slot
 Run a PCA dimensionality reduction. For details about stored PCA calculation
 parameters, see \code{PrintPCAParams}.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Run a PCA on an Assay object
-
-\item \code{Seurat}: Run a PCA on a Seurat object
-}}
-

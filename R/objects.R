@@ -1168,7 +1168,10 @@ as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
 }
 
-#' @describeIn Command Get the SeuratCommands
+#' @param command Name of the command to pull
+#' @param value Name of the parameter to pull the value for
+#'
+#' @rdname Command
 #' @export
 #' @method Command Seurat
 #'
@@ -1190,8 +1193,10 @@ Command.Seurat <- function(object, command, value = NULL, ...) {
 
 #' @param X.slot Seurat slot to transfer anndata X into. Default is scale.data
 #' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
-#' @describeIn Convert from Anndata file to a Seurat object
+#'
 #' @importFrom reticulate py_to_r
+#'
+#' @rdname Convert
 #' @export
 #' @method Convert anndata.base.AnnData
 #'
@@ -1285,7 +1290,7 @@ Convert.anndata.base.AnnData <- function(
 #' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
-#' @describeIn Convert Convert from SingleCellExperiment to a Seurat object
+#' @rdname Convert
 #' @export
 #' @method Convert SingleCellExperiment
 #'
@@ -1360,12 +1365,12 @@ Convert.SingleCellExperiment <- function(
 #' @param anndata.raw Name of matrix (raw.data, data) to put in the anndata raw slot
 #' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
-#' @describeIn Convert Convert a Seurat object
 #'
-#' @importFrom utils installed.packages
 #' @importFrom methods as slot
+#' @importFrom utils installed.packages
 #' @importFrom reticulate import np_array tuple dict r_to_py
 #'
+#' @rdname Convert
 #' @export
 #' @method Convert seurat
 #'
@@ -1418,7 +1423,7 @@ Convert.seurat <- function(
           'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
         ))
       }
-      for (dim.reduc in FilterObjects(object = from, classes.keey = 'DimReduc')) {
+      for (dim.reduc in FilterObjects(object = from, classes.keep = 'DimReduc')) {
         cell.embeddings <- Embeddings(object = from[[dim.reduc]])
         ce.dims <- unique(x = dim(x = cell.embeddings))
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
@@ -1611,7 +1616,7 @@ Convert.seurat <- function(
   return(object.to)
 }
 
-#' @describeIn DefaultAssay Get the name of the assay.used to calculate this DimReduc
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay DimReduc
 #'
@@ -1619,7 +1624,7 @@ DefaultAssay.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'assay.used'))
 }
 
-#' @describeIn DefaultAssay Get the default assay of a Seurat object
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay Seurat
 #'
@@ -1635,7 +1640,7 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn DefaultAssay Set the default assay of a Seurat object
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay<- Seurat
 #'
@@ -1647,7 +1652,7 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn Embeddings Get the cell embeddings from a DimReduc object
+#' @rdname Embeddings
 #' @export
 #' @method Embeddings DimReduc
 #'
@@ -1655,7 +1660,9 @@ Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
-#' @describeIn GetAssay Get an assay from a Seurat object
+#' @param assay Assay to get
+#'
+#' @rdname GetAssay
 #' @export
 #' @method GetAssay Seurat
 #'
@@ -1672,7 +1679,9 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
-#' @describeIn GetAssayData Get assay data for an Assay object
+#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
+#'
+#' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Assay
 #'
@@ -1682,7 +1691,7 @@ GetAssayData.Assay <- function(object, slot = 'data', ...) {
 
 #' @param assay Name of assay to pull data from
 #'
-#' @describeIn GetAssayData Get assay data from a Seurat object
+#' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Seurat
 #'
@@ -1694,7 +1703,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   ))
 }
 
-#' @describeIn HVFInfo Get highly variable feature information from an Assay
+#' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
 #'
@@ -1713,7 +1722,7 @@ HVFInfo.Assay <- function(object, ...) {
 
 #' @param assay Name of assay to pull highly variable feature information for
 #'
-#' @describeIn HVFInfo Get highly variable feature information from a Seurat object
+#' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
 #'
@@ -1768,7 +1777,10 @@ Idents.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn JS Get JackStraw information from a DimReduc object
+#' @param slot Name of slot to store JackStraw scores to
+#' Can shorten to 'empirical', 'fake', 'full', or 'overall'
+#'
+#' @rdname JS
 #' @export
 #' @method JS DimReduc
 #'
@@ -1780,7 +1792,7 @@ JS.DimReduc <- function(object, slot = NULL, ...) {
   return(jackstraw)
 }
 
-#' @describeIn JS Get Jackstraw information from a JackStrawData object
+#' @rdname JS
 #' @export
 #' @method JS JackStrawData
 #'
@@ -1796,7 +1808,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(slot(object = object, name = slot))
 }
 
-#' @describeIn JS Set JackStraw information for a DimReduc object
+#' @rdname JS
 #' @export
 #' @method JS<- DimReduc
 #'
@@ -1811,7 +1823,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(object)
 }
 
-#' @describeIn JS Get Jackstraw information from a JackStrawData object
+#' @rdname JS
 #' @export
 #' @method JS<- JackStrawData
 #'
@@ -1828,7 +1840,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(object)
 }
 
-#' @describeIn Key Get the key for an Assay object
+#' @rdname Key
 #' @export
 #' @method Key Assay
 #'
@@ -1836,7 +1848,7 @@ Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
-#' @describeIn Key Get the key for a DimReduc object
+#' @rdname Key
 #' @export
 #' @method Key DimReduc
 #'
@@ -1844,7 +1856,7 @@ Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
-#' @describeIn Key Set the key for an Assay object
+#' @rdname Key
 #' @export
 #' @method Key<- Assay
 #'
@@ -1853,7 +1865,9 @@ Key.DimReduc <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn Loadings Get the feature loadings from a DimReduc object
+#' @param projected Pull the projected feature loadings?
+#'
+#' @rdname Loadings
 #' @export
 #' @method Loadings DimReduc
 #'
@@ -1867,7 +1881,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot))
 }
 
-#' @describeIn Loadings Add projected feature loadings to a DimReduc object
+#' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
 #'
@@ -1884,7 +1898,9 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(object)
 }
 
-#' @describeIn Misc Get miscellaneous data from a Seurat object
+#' @param slot Name of specific bit of meta data to pull
+#'
+#' @rdname Misc
 #' @export
 #' @method Misc Seurat
 #'
@@ -1895,7 +1911,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(slot(object = object, name = 'misc')[[slot]])
 }
 
-#' @describeIn Misc Set miscellaneous data for a Seurat object
+#' @rdname Misc
 #' @export
 #' @method Misc<- Seurat
 #'
@@ -1907,6 +1923,14 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(object)
 }
 
+#' @param cells Subset of cell names
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns all cells with the subset name equal to this value
+#'
 #' @rdname OldWhichCells
 #' @export
 #' @method OldWhichCells Assay
@@ -2045,7 +2069,7 @@ OldWhichCells.Seurat <- function(
 #'
 #' @export
 #'
-#' @describeIn Print Print top features for DimReduc
+#' @rdname Print
 #' @method Print DimReduc
 #'
 Print.DimReduc <- function(
@@ -2094,7 +2118,9 @@ Print.DimReduc <- function(
   }
 }
 
-#' @describeIn RenameCells Rename cells in an Assay object
+#' @param new.names vector of new cell names
+#'
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells Assay
 #'
@@ -2109,7 +2135,7 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
   return(object)
 }
 
-#' @describeIn RenameCells Rename cells in a DimReduc object
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells DimReduc
 #'
@@ -2124,7 +2150,11 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 #' Currently only renames the raw.data and meta.data slots.
 #' @param add.cell.id prefix to add cell names
 #'
-#' @describeIn RenameCells Rename cells in a Seurat object
+#' @details
+#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
+#' \code{new.names} is set these will be used to replace existing names.
+#'
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells Seurat
 #'
@@ -2214,7 +2244,10 @@ RenameIdents.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn SetAssayData Set assay data for an Assay object
+#' @param slot Where to store the new data
+#' @param new.data New data to insert
+#'
+#' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Assay
 #'
@@ -2262,7 +2295,7 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 
 #' @param assay Name of assay whose data should be set
 #'
-#' @describeIn SetAssayData Set assay data for an Assay object in a Seurat object
+#' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Seurat
 #'
@@ -2289,6 +2322,9 @@ SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
   return(object)
 }
 
+#' @inheritParams Idents
+#' @param save.name Store current identity information under this name
+#'
 #' @rdname Idents
 #' @export
 #' @method StashIdent Seurat
@@ -2298,7 +2334,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
   return(object)
 }
 
-#' @describeIn Stdev Get the standard deviations from a DimReduc object
+#' @rdname Stdev
 #' @export
 #' @method Stdev DimReduc
 #'
@@ -2308,7 +2344,7 @@ Stdev.DimReduc <- function(object, ...) {
 
 #' @param reduction Name of reduction to use
 #'
-#' @describeIn Stdev Get the standard deviations of a dimensional reduction from a Seurat object
+#' @rdname Stdev
 #' @export
 #' @method Stdev Seurat
 #'
@@ -2316,7 +2352,24 @@ Stdev.Seurat <- function(object, reduction, ...) {
   return(Stdev(object = object[[reduction]]))
 }
 
-#' @describeIn SubsetData Subset an Assay object
+#' @param cells A vector of cell names to use as a subset. If NULL
+#' (default), then this list will be computed based on the next three
+#' arguments. Otherwise, will return an object consissting only of these cells
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns cells with the subset name equal to this value
+#' @param do.center Recenter the new object@@scale.data
+#' @param do.scale Rescale the new object@@scale.data. FALSE by default
+#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
+#' other slots. Can be useful if you want to start a fresh analysis on just a
+#' subset of the data. Also clears out stored clustering results in
+#' object@@meta.data (any columns containing "res"). Will by default subset the
+#' raw.data slot.
+#'
+#' @rdname SubsetData
 #' @export
 #' @method SubsetData Assay
 #'
@@ -2360,7 +2413,7 @@ SubsetData.Assay <- function(
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
 #'
-#' @describeIn SubsetData Subset an Seurat object
+#' @rdname SubsetData
 #' @export
 #' @method SubsetData Seurat
 #'
@@ -2421,7 +2474,7 @@ SubsetData.Seurat <- function(
   return(object)
 }
 
-#' @describeIn VariableFeatures Get the variable features of an assay object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures Assay
 #'
@@ -2431,7 +2484,7 @@ VariableFeatures.Assay <- function(object, ...) {
 
 #' @param assay Name of assay to pull variable features for
 #'
-#' @describeIn VariableFeatures Get the variable features of a Seurat object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures Seurat
 #'
@@ -2440,7 +2493,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
   return(VariableFeatures(object = object[[assay]]))
 }
 
-#' @describeIn VariableFeatures Set the variable features of an assay object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures<- Assay
 #'
@@ -2451,7 +2504,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 
 #' @inheritParams VariableFeatures.Seurat
 #'
-#' @describeIn VariableFeatures Set variable features for a Seurat object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures<- Seurat
 #'
@@ -2461,7 +2514,12 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
   return(object)
 }
 
-#' @describeIn WhichCells Get cells from an Assay object
+#' @param cells Subset of cell names
+#' @param expression A predicate expression for feature/variable expression, can
+#' evalue anything that can be pulled by \code{FetchData}
+#' @param invert Invert the selection of cells
+#'
+#' @rdname WhichCells
 #' @export
 #' @method WhichCells Assay
 #'
@@ -2509,7 +2567,7 @@ WhichCells.Assay <- function(
 #' cell selection
 #' @param seed Random seed for downsampling
 #'
-#' @describeIn WhichCells Get cells from a Seurat object
+#' @rdname WhichCells
 #' @export
 #' @method WhichCells Seurat
 #'

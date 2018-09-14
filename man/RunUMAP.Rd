@@ -2,22 +2,44 @@
 % Please edit documentation in R/generics.R, R/dimensional_reduction.R
 \name{RunUMAP}
 \alias{RunUMAP}
+\alias{RunUMAP.default}
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
-RunUMAP(object, cells, dims, reduction, features, assay, max.dim,
-  reduction.name, reduction.key, n_neighbors, min_dist, metric, seed.use,
-  ...)
+RunUMAP(object, ...)
+
+\method{RunUMAP}{default}(object, assay = NULL, nneighbors = 30L,
+  max.dim = 2L, metric = "correlation", min.dist = 0.3,
+  reduction.key = "umap", seed.use = 42, ...)
 
 \method{RunUMAP}{Seurat}(object, dims = 1:5, reduction = "pca",
-  features = NULL, assay = "RNA", max.dim = 2L,
-  reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
-  min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
+  features = NULL, assay = "RNA", nneighbors = 30L, max.dim = 2L,
+  min.dist = 0.3, reduction.name = "umap", reduction.key = "UMAP",
+  metric = "correlation", seed.use = 42, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
-\item{cells}{Which cells to analyze (default, all cells)}
+\item{...}{Arguments passed to other methods and UMAP}
+
+\item{assay}{Assay to pull data for when using \code{genes.use}}
+
+\item{nneighbors}{This determines the number of neighboring points used in
+local approximations of manifold structure. Larger values will result in more
+global structure being preserved at the loss of detailed local structure. In
+general this parameter should often be in the range 5 to 50.}
+
+\item{max.dim}{Max dimension to keep from UMAP procedure.}
+
+\item{metric}{metric: This determines the choice of metric used to measure
+distance in the input space. A wide variety of metrics are already coded, and
+a user defined function can be passed as long as it has been JITd by numba.}
+
+\item{reduction.key}{dimensional reduction key, specifies the string before
+the number for the dimension names. UMAP by default}
+
+\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
+NULL will not set a seed}
 
 \item{dims}{Which dimensions to use as input features, used only if
 \code{genes.use} is NULL}
@@ -28,20 +50,8 @@ UMAP input. Default is PCA}
 \item{features}{If set, run UMAP on this subset of features (instead of running on a
 set of reduced dimensions). Not set (NULL) by default}
 
-\item{assay}{Assay to pull data for when using \code{genes.use}}
-
-\item{max.dim}{Max dimension to keep from UMAP procedure.}
-
 \item{reduction.name}{dimensional reduction name, specifies the position in
 the object$dr list. umap by default}
-
-\item{reduction.key}{dimensional reduction key, specifies the string before
-the number for the dimension names. UMAP by default}
-
-\item{n_neighbors}{This determines the number of neighboring points used in
-local approximations of manifold structure. Larger values will result in more
-global structure being preserved at the loss of detailed local structure. In
-general this parameter should often be in the range 5 to 50.}
 
 \item{min_dist}{min_dist: This controls how tightly the embedding is allowed
 compress points together. Larger values ensure embedded points are more
@@ -49,14 +59,7 @@ evenly distributed, while smaller values allow the algorithm to optimise more
 accurately with regard to local structure. Sensible values are in the range
 0.001 to 0.5.}
 
-\item{metric}{metric: This determines the choice of metric used to measure
-distance in the input space. A wide variety of metrics are already coded, and
-a user defined function can be passed as long as it has been JITd by numba.}
-
-\item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
-NULL will not set a seed.}
-
-\item{...}{Arguments passed to other methods and UMAP}
+\item{cells}{Which cells to analyze (default, all cells)}
 }
 \value{
 Returns a Seurat object containing a UMAP representation
@@ -64,16 +67,11 @@ Returns a Seurat object containing a UMAP representation
 \description{
 Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
 reduction technique. To run, you must first install the umap-learn python
-package (e.g. via pip install umap-learn). Details on this package can be
+package (e.g. via \code{pip install umap-learn}). Details on this package can be
 found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
 discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 \url{https://arxiv.org/abs/1802.03426}.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Run a UMAP on a Seurat object
-}}
-
 \examples{
 \dontrun{
 pbmc_small

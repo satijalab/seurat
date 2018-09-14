@@ -6,8 +6,7 @@
 \alias{RunMultiCCA.Seurat}
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
-RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs,
-  standardize, verbose)
+RunMultiCCA(object.list, ...)
 
 \method{RunMultiCCA}{default}(object.list, niter = 25, num.ccs = 1,
   standardize = TRUE, verbose = TRUE, ...)
@@ -20,8 +19,8 @@ RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs,
 \arguments{
 \item{object.list}{List of Seurat objects}
 
-\item{features}{Set of genes to use in CCA. Default is the union of both
-the variable features sets present in both objects.}
+\item{...}{Arguments passed to other methods, \code{MergeSeurat} in case with two objects
+passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)}
 
 \item{niter}{Number of iterations to perform. Set by default to 25.}
 
@@ -30,9 +29,12 @@ the variable features sets present in both objects.}
 \item{standardize}{standardize scale.data matrices to be centered (mean zero)
 and scaled to have a standard deviation of 1.}
 
-\item{...}{Arguments passed to other methods}
+\item{verbose}{...}
 
 \item{assay}{Assay to use}
+
+\item{features}{Set of genes to use in CCA. Default is the union of both
+the variable features sets present in both objects.}
 
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
@@ -48,8 +50,6 @@ Runs a canonical correlation analysis
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Run mCCA on a list of matrices
-
 \item \code{Seurat}: Run mCCA on a Seurat object
 }}
 
@@ -70,4 +70,7 @@ pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.gene
 PrintDim(pbmc_cca,reduction.type = 'cca')
 }
 
+}
+\seealso{
+\code{\link{MergeSeurat}} \code{\link{ScaleData}}
 }

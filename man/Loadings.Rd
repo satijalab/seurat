@@ -7,7 +7,7 @@
 \alias{Loadings<-.DimReduc}
 \title{Get feature loadings}
 \usage{
-Loadings(object, projected, ...)
+Loadings(object, ...)
 
 Loadings(object, ...) <- value
 
@@ -18,21 +18,14 @@ Loadings(object, ...) <- value
 \arguments{
 \item{object}{An object}
 
-\item{projected}{Pull the projected feature loadings?}
-
 \item{...}{Arguments passed to other methods}
 
 \item{value}{Feature loadings to add}
+
+\item{projected}{Pull the projected feature loadings?}
 }
 \description{
 Get feature loadings
 
 Add feature loadings
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Get the feature loadings from a DimReduc object
-
-\item \code{DimReduc}: Add projected feature loadings to a DimReduc object
-}}
-

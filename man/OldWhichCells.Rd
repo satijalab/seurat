@@ -6,8 +6,7 @@
 \alias{OldWhichCells.Seurat}
 \title{Identify cells matching certain criteria}
 \usage{
-OldWhichCells(object, cells, subset.name, low.threshold, high.threshold,
-  accept.value, ...)
+OldWhichCells(object, ...)
 
 \method{OldWhichCells}{Assay}(object, cells, subset.name = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
@@ -19,7 +18,9 @@ OldWhichCells(object, cells, subset.name, low.threshold, high.threshold,
   max.cells.per.ident = Inf, random.seed = 1, assay = NULL, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{cells}{Subset of cell names}
 
@@ -32,8 +33,6 @@ using FetchData}
 \item{high.threshold}{High cutoff for the parameter (default is Inf)}
 
 \item{accept.value}{Returns all cells with the subset name equal to this value}
-
-\item{...}{Arguments passed to other methods}
 
 \item{ident.keep}{Create a cell subset based on the provided identity classes}
 

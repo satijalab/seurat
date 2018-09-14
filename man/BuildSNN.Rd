@@ -7,7 +7,7 @@
 \alias{BuildSNN.Seurat}
 \title{SNN Graph Construction}
 \usage{
-BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
+BuildSNN(object, ...)
 
 \method{BuildSNN}{default}(object, distance.matrix = FALSE,
   k.param = 10, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
@@ -23,7 +23,12 @@ BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
   do.plot = FALSE, graph.name = NULL, workflow.name = NULL, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
+
+\item{distance.matrix}{Boolean value of whether the provided matrix is a
+distance matrix}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
@@ -39,11 +44,6 @@ default of 0.0 implies exact nearest neighbor search}
 \item{verbose}{Whether or not to print output to the console}
 
 \item{force.recalc}{Force recalculation of SNN.}
-
-\item{...}{Arguments passed to other methods}
-
-\item{distance.matrix}{Boolean value of whether the provided matrix is a
-distance matrix}
 
 \item{features}{Features to use as input for building the SNN}
 

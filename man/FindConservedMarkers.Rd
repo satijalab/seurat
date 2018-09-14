@@ -37,11 +37,7 @@ Finds markers that are conserved between the two groups
 \dontrun{
 pbmc_small
 # Create a simulated grouping variable
-pbmc_small@meta.data$groups <- sample(
-  x = c("g1", "g2"),
-  size = length(x = pbmc_small@cell.names),
-  replace = TRUE
-)
+pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
 }
 

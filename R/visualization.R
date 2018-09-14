@@ -1268,7 +1268,8 @@ ElbowPlot <- function(
 #'
 #' @return A ggplot object
 #'
-#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#' @author Omri Wurtzel
+#' @seealso \code{\link{ScoreJackStraw}}
 #'
 #' @importFrom stats qunif
 #' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim

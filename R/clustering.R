@@ -12,7 +12,18 @@ NULL
 
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
+#' @param verbose Whether or not to print output to the console
+#' @param force.recalc Force recalculation of SNN.
 #'
+#' @importFrom RANN nn2
 #' @importFrom methods as
 #'
 #' @describeIn BuildSNN Build an SNN on a given matrix
@@ -66,7 +77,7 @@ BuildSNN.default <- function(
   )
   rownames(x = snn.matrix) <- rownames(x = object)
   colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- methods::as(object = snn.matrix, Class = "Graph")
+  snn.matrix <- as(object = snn.matrix, Class = "Graph")
   return(snn.matrix)
 }
 
@@ -105,6 +116,8 @@ BuildSNN.Assay <- function(
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
 #' @param workflow.name Name of workflow
+#'
+#' @importFrom igraph graph.adjacency plot.igraph E
 #'
 #' @rdname BuildSNN
 #' @export
@@ -160,7 +173,6 @@ BuildSNN.Seurat <- function(
       force.recalc = force.recalc
     )
   }
-
   graph.name <- graph.name %||% paste0(assay, "_snn")
   object[[graph.name]] <- snn.matrix
   if (do.plot) {
@@ -197,7 +209,23 @@ BuildSNN.Seurat <- function(
   return(object)
 }
 
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
+#' @param n.start Number of random starts.
+#' @param n.iter Maximal number of iterations per random start.
+#' @param random.seed Seed of the random number generator.
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
+#' @param verbose Print output
+#'
 #' @importFrom methods is
+#'
+#' @rdname FindClusters
 #' @export
 #'
 FindClusters.default <- function(

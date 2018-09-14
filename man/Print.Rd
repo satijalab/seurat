@@ -11,7 +11,7 @@ Print(object, ...)
   projected = FALSE, ...)
 }
 \arguments{
-\item{object}{DimReduc object}
+\item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
@@ -27,8 +27,3 @@ Set of features defining the components
 \description{
 Prints a set of genes that most strongly define a set of components
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Print top features for DimReduc
-}}
-

@@ -18,7 +18,7 @@ SubsetData(object, slot, ...)
   max.cells.per.ident = Inf, random.seed = 1, do.clean = FALSE, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
@@ -57,8 +57,6 @@ max per cell ident. Default is INF.}
 \item{do.center}{Recenter the new object@scale.data}
 
 \item{do.scale}{Rescale the new object@scale.data. FALSE by default}
-
-\item{subset.raw}{Also subset object@raw.data}
 }
 \value{
 Returns a Seurat object containing only the relevant subset of cells
@@ -68,13 +66,6 @@ Creates a Seurat object containing only a subset of the cells in the
 original object. Takes either a list of cells to use as a subset, or a
 parameter (for example, a gene), to subset on.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Subset an Assay object
-
-\item \code{Seurat}: Subset an Seurat object
-}}
-
 \examples{
 pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc1

@@ -68,12 +68,3 @@ Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
 SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
 and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{anndata.base.AnnData}: from Anndata file to a Seurat object
-
-\item \code{SingleCellExperiment}: Convert from SingleCellExperiment to a Seurat object
-
-\item \code{seurat}: Convert a Seurat object
-}}
-

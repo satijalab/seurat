@@ -22,10 +22,3 @@ Stdev(object, ...)
 \description{
 Get the standard deviations for an object
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Get the standard deviations from a DimReduc object
-
-\item \code{Seurat}: Get the standard deviations of a dimensional reduction from a Seurat object
-}}
-
