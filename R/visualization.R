@@ -166,6 +166,10 @@ DimHeatmap <- function(
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay Assay to pull from
 # @param check.plot Check that plotting will finish in a reasonable amount of time
+#' @param label Label the cell identies above the color bar
+#' @param size Size of text above color bar
+#' @param hjust Horizontal justification of text above color bar
+#' @param angle Angle of text above color bar
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -187,6 +191,10 @@ DoHeatmap <- function(
   disp.max = 2.5,
   slot = 'scale.data',
   assay = NULL,
+  label = TRUE,
+  size = 5.5,
+  hjust = 0,
+  angle = 45,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
@@ -235,6 +243,25 @@ DoHeatmap <- function(
       ymax = y.max
     ) +
       coord_cartesian(ylim = c(0, y.max), clip = 'off')
+    if (label) {
+      x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
+      x.divs <- pbuild$layout$panel_params[[1]]$x.major
+      x <- data.frame(group = sort(x = group.use), x = x.divs)
+      label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
+      label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
+      plot <- plot + geom_text(
+        stat = "identity",
+        data = label.x.pos, aes(label = group, x = label.x.pos),
+        y = y.max + y.max * 0.03 * 0.5,
+        angle = angle,
+        hjust = hjust,
+        size = size
+      )
+      plot <- suppressMessages(plot + coord_cartesian(
+        ylim = c(0, y.max + y.max * 0.002 * max(nchar(x = levels(x = group.use))) * size),
+        clip = 'off')
+      )
+    }
   }
   plot <- plot + theme(line = element_blank())
   return(plot)

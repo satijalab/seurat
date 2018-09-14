@@ -6,7 +6,8 @@
 \usage{
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
   group.bar = TRUE, disp.min = -2.5, disp.max = 2.5,
-  slot = "scale.data", assay = NULL, ...)
+  slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
+  hjust = 0, angle = 45, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +27,14 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
 \item{assay}{Assay to pull from}
+
+\item{label}{Label the cell identies above the color bar}
+
+\item{size}{Size of text above color bar}
+
+\item{hjust}{Horizontal justification of text above color bar}
+
+\item{angle}{Angle of text above color bar}
 
 \item{...}{Ignored for now}
 }
