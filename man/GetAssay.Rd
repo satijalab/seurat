@@ -7,7 +7,7 @@
 \usage{
 GetAssay(object, assay, ...)
 
-\method{GetAssay}{Seurat}(object, assay = NULL)
+\method{GetAssay}{Seurat}(object, assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

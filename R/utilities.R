@@ -160,7 +160,7 @@ AddModuleScore <- function(
   rownames(x = features.scores.use) <- paste0(name, 1:cluster.length)
   features.scores.use <- as.data.frame(x = t(x = features.scores.use))
   rownames(x = features.scores.use) <- colnames(x = object)
-  object[colnames(x = features.scores.use)] <- features.scores.use
+  object[[colnames(x = features.scores.use)]] <- features.scores.use
   gc(verbose = FALSE)
   DefaultAssay(object = object) <- assay.old
   return(object)
@@ -214,7 +214,7 @@ AverageExpression <- function(
       warning("Requested assays that do not exist in object. Proceeding with existing assays only.")
     }
   }
-  if (! is.null(x = add.ident)) {
+  if (!is.null(x = add.ident)) {
     new.data <- FetchData(object = object, vars = add.ident)
     new.ident <- paste(
       Idents(object)[rownames(x = new.data)],
@@ -241,21 +241,21 @@ AverageExpression <- function(
       slot = slot.use
     )
     features.assay <- features
-    if (length(x = intersect(x = features, y = rownames(x = data.use))) <1 ) {
+    if (length(x = intersect(x = features, y = rownames(x = data.use))) < 1 ) {
       features.assay <- rownames(x = data.use)
     }
     data.all <- data.frame(row.names = features.assay)
     for (j in levels(x = Idents(object))) {
-      temp.cells <- WhichCells(object = object, ident.keep = j)
+      temp.cells <- WhichCells(object = object, idents = j)
       features.assay <- unique(x = intersect(x = features.assay, y = rownames(x = data.use)))
       if (length(x = temp.cells) == 1) {
         data.temp <- (data.use[features.assay, temp.cells])
         # transform data if needed (alternative: apply fxn.average to single value above)
-        if(!(use.scale | use.counts)) { # equivalent: slot.use == "data"
+        if (!(use.scale | use.counts)) { # equivalent: slot.use == "data"
           data.temp <- expm1(data.temp)
         }
       }
-      if (length(x = temp.cells) >1 ) {
+      if (length(x = temp.cells) > 1 ) {
         data.temp <- apply(
           X = data.use[features.assay, temp.cells, drop = FALSE],
           MARGIN = 1,
@@ -377,8 +377,8 @@ CellCycleScoring <- function(
     name = name,
     ctrl = min(vapply(X = features, FUN = length, FUN.VALUE = numeric(length = 1)))
   )
-  cc.columns <- grep(pattern = name, x = colnames(x = object.cc[]), value = TRUE)
-  cc.scores <- object.cc[cc.columns]
+  cc.columns <- grep(pattern = name, x = colnames(x = object.cc[[]]), value = TRUE)
+  cc.scores <- object.cc[[cc.columns]]
   rm(object.cc)
   gc(verbose = FALSE)
   assignments <- apply(
@@ -400,9 +400,9 @@ CellCycleScoring <- function(
   colnames(x = cc.scores) <- c('rownames', 'S.Score', 'G2M.Score', 'Phase')
   rownames(x = cc.scores) <- cc.scores$rownames
   cc.scores <- cc.scores[, c('S.Score', 'G2M.Score', 'Phase')]
-  object[colnames(x = cc.scores)] <- cc.scores
+  object[[colnames(x = cc.scores)]] <- cc.scores
   if (set.ident) {
-    object['old.ident'] <- Idents(object = object)
+    object[['old.ident']] <- Idents(object = object)
     Idents(object = object) <- 'Phase'
   }
   return(object)
@@ -651,8 +651,24 @@ ExtractField <- function(string, field = 1, delim = "_") {
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
+# Check if a matrix is empty
+#
+# Takes a matrix and asks if it's empty (either 0x0 or 1x1 with a value of NA)
+#
+# @param x A matrix
+#
+# @return Whether or not \code{x} is empty
+#
+IsMatrixEmpty <- function(x) {
+  matrix.dims <- dim(x = x)
+  matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
+  return(all(matrix.dims == 0) || matrix.na)
+}
+
 # Documentation
 #Internal, not documented for now
+#
+#' @importFrom lars lars predict.lars
 #
 LassoFxn <- function(
   lasso.input,
@@ -755,7 +771,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
 #
 # @return Returns a scrambled matrix, where each row is shuffled independently
 #
-# @importFrom stats runif
+#' @importFrom stats runif
 #
 # @export
 #

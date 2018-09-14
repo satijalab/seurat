@@ -84,47 +84,69 @@ AlignSubspace <- function(
   #   calculation = paste0("AlignSubspace.", reduction.type),
   #   ... = parameters.to.store
   # )
-  ident.orig <- object@ident
-  object <- SetAllIdent(object = object, id = grouping.var)
-  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
-  num.groups <- length(levels.split)
+  # ident.orig <- object@ident
+  ident.orig <- Idents(object = object)
+  # object <- SetAllIdent(object = object, id = grouping.var)
+  Idents(object) <- grouping.var
+  # levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
+  levels.split <- names(x = sort(
+    x = table(Idents(object = object)),
+    decreasing = TRUE
+  ))
+  num.groups <- length(x = levels.split)
   objects <- list()
-  for (i in 1:num.groups){
-    objects[[i]] <- SubsetData(object = object, ident.use = levels.split[i])
+  for (i in 1:num.groups) {
+    objects[[i]] <- subset(x = object, select = levels.split[i])
   }
   object@ident <- ident.orig
   cc.loadings <- list()
   scaled.data <- list()
   cc.embeds <- list()
   for (i in 1:num.groups) {
-    if (verbose){
+    if (verbose) {
       cat(paste0("Rescaling group ", i, "\n"), file = stderr())
     }
-    objects[[i]] <- ScaleData(object = objects[[i]], display.progress = verbose, ...)
-    objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
+    # objects[[i]] <- ScaleData(object = objects[[i]], display.progress = verbose, ...)
+    sdi <- ScaleData(object = objects[[i]], verbose = verbose, ...)
+    sdi[is.na(x = sdi)] <- 0
+    object[[i]] <- SetAssayData(
+      object = object[[i]],
+      slot = 'scale.data',
+      new.data = sdi
+    )
+    # objects[[i]]@scale.data[is.na(x = objects[[i]]@scale.data)] <- 0
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
-      reduction.type = reduction.type,
-      do.print = FALSE
+      reduction = reduction.type,
+      verbose = FALSE
     )
-    cc.loadings[[i]] <- GetGeneLoadings(
-      object = objects[[i]],
-      reduction.type = reduction.type,
-      use.full = TRUE
+    cc.loadings[[i]] <- Loadings(
+      object = objects[[i]][[reduction.type]],
+      projected = TRUE
     )
-    cc.embeds[[i]] <- GetCellEmbeddings(
-      object = objects[[i]],
-      reduction.type = reduction.type
-    )
-    scaled.data[[i]] <- objects[[i]]@scale.data
+    # cc.loadings[[i]] <- GetGeneLoadings(
+    #   object = objects[[i]],
+    #   reduction.type = reduction.type,
+    #   use.full = TRUE
+    # )
+    # cc.embeds[[i]] <- GetCellEmbeddings(
+    #   object = objects[[i]],
+    #   reduction.type = reduction.type
+    # )
+    cc.embeds[[i]] <- Embeddings(object = objects[[i]][[reduction.type]])
+    # scaled.data[[i]] <- objects[[i]]@scale.data
+    scaled.data[[i]] <- GetAssayData(object = objects[[i]], slot = 'scale.data')
   }
-  cc.embeds.all <- GetCellEmbeddings(object = object,
-                                     reduction.type = reduction.type,
-                                     dims = dims.align)
-  colnames(cc.embeds.all) <- paste0("A", colnames(x = cc.embeds.all))
+  # cc.embeds.all <- GetCellEmbeddings(
+  #   object = object,
+  #   reduction.type = reduction.type,
+  #   dims = dims.align
+  # )
+  cc.embeds.all <- Embeddings(object = object[[reduction.type]])[, dims.align]
+  colnames(x = cc.embeds.all) <- paste0("A", colnames(x = cc.embeds.all))
   cc.embeds.orig <- cc.embeds.all
   for (cc.use in dims.align) {
-    for (g in 2:num.groups){
+    for (g in 2:num.groups) {
       if (verbose) {
         cat(paste0("Aligning dimension ", cc.use, "\n"), file = stderr())
       }
@@ -136,11 +158,11 @@ AlignSubspace <- function(
       )
       genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(x = genes.rank))]
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]
-        if(verbose) {
+        if (verbose) {
           bicors[[i]] <- pbsapply(
             X = genes.top,
             FUN = function(x) {
@@ -167,7 +189,7 @@ AlignSubspace <- function(
       genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
       genes.use <- rownames(x = genes.rank)[1:min(num.genes, nrow(genes.rank))]
-      if(length(genes.use) == 0) {
+      if (length(x = genes.use) == 0) {
         stop("Can't align group ", g, " for dimension ", cc.use)
       }
       metagenes <- list()
@@ -207,17 +229,19 @@ AlignSubspace <- function(
         print(iqrmin)
       }
       align.2 <- align.2 + iqrmin
-      alignment <- dtw(x = align.1,
-                       y = align.2,
-                       keep.internals = TRUE)
+      alignment <- dtw(
+        x = align.1,
+        y = align.2,
+        keep.internals = TRUE
+      )
       alignment.map <- data.frame(alignment$index1, alignment$index2)
       alignment.map$cc_data1 <- sort(cc.embeds[[g]][, cc.use])[alignment$index1]
       alignment.map$cc_data2 <- sort(cc.embeds[[1]][, cc.use])[alignment$index2]
       alignment.map.orig <- alignment.map
       alignment.map$dups <- duplicated(x = alignment.map$alignment.index1) |
         duplicated(x = alignment.map$alignment.index1, fromLast = TRUE)
-      alignment.map %>% group_by(alignment.index1) %>% mutate(cc_data1_mapped = ifelse(dups, mean(cc_data2), cc_data2)) -> alignment.map
-      alignment.map <- alignment.map[! duplicated(x = alignment.map$alignment.index1), ]
+      alignment.map %>% group_by(alignment.index1) %>% mutate(cc_data1_mapped = ifelse(test = dups, yes = mean(x = cc_data2), no = cc_data2)) -> alignment.map
+      alignment.map <- alignment.map[!duplicated(x = alignment.map$alignment.index1), ]
       cc.embeds.all[names(x = sort(x = cc.embeds[[g]][, cc.use])), cc.use] <- alignment.map$cc_data1_mapped
       if (show.plots) {
         par(mfrow = c(3, 2))
@@ -241,26 +265,24 @@ AlignSubspace <- function(
     }
   }
   new.type <- paste0(reduction.type, ".aligned")
-  new.key <- paste0(
-    "A",
-    GetDimReduction(
-      object = object,
-      reduction.type = reduction.type,
-      slot = "key"
-    )
+  new.key <- paste0("A", Key(object = object[[reduction.type]]))
+  object[[new.type]] <- CreateDimReducObject(
+    embeddings = scale(x = cc.embeds.all),
+    key = new.key,
+    assay = DefaultAssay(object = object[[reduction.type]])
   )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = new.type,
-    slot = "cell.embeddings",
-    new.data = scale(x = cc.embeds.all)
-  )
-  object <- SetDimReduction(
-    object = object,
-    reduction.type = new.type,
-    slot = "key",
-    new.data = new.key
-  )
+  # object <- SetDimReduction(
+  #   object = object,
+  #   reduction.type = new.type,
+  #   slot = "cell.embeddings",
+  #   new.data = scale(x = cc.embeds.all)
+  # )
+  # object <- SetDimReduction(
+  #   object = object,
+  #   reduction.type = new.type,
+  #   slot = "key",
+  #   new.data = new.key
+  # )
   return(object)
 }
 
@@ -315,7 +337,11 @@ CalcAlignmentMetric <- function(
   nn.eps = 0
 ) {
   object <- SetAllIdent(object = object, id = grouping.var)
-  object <- SubsetData(object = object, max.cells.per.ident = min(table(object@ident)))
+  object <- subset(
+    object = object,
+    select = levels(x = Idents(object = object)),
+    downsample = min(table(object@ident))
+  )
   num.groups <- length(x = unique(x = object@ident))
   if (missing(x = nn)) {
     nn <- ceiling(x = table(object@ident)[1] * 0.01 * num.groups)
@@ -380,7 +406,8 @@ CalcVarExpRatio <- function(
     stop("Need to provide grouping variable")
   }
   if (missing(x = dims)) {
-    dims <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
+    # dims <- 1:ncol(x = GetCellEmbeddings(object = object, reduction.type = "cca"))
+    dims <- 1:ncol(x = object[['cca']])
   }
   # parameters.to.store <- as.list(environment(), all = TRUE)[names(formals("CalcVarExpRatio"))]
   # object <- SetCalcParams(object = object,
@@ -390,21 +417,23 @@ CalcVarExpRatio <- function(
     object = object,
     vars = grouping.var
   )[, 1]))
-  genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
+  # genes.use <- rownames(x = GetGeneLoadings(object = object, reduction.type = "cca"))
+  genes.use <- rownames(x = object[['cca']])
   var.ratio <- data.frame()
   for (group in groups) {
     if (verbose) {
       cat(paste("Calculating for", group, "\n"), file = stderr())
     }
-    group.cells <- WhichCells(
-      object = object,
-      subset.name = grouping.var,
-      accept.value = group
-    )
+    # group.cells <- WhichCells(
+    #   object = object,
+    #   subset.name = grouping.var,
+    #   accept.value = group
+    # )
+    group.cells <- colnames(x = object)[object[[grouping.var]] == group]
     if (verbose) {
       cat(paste("\t Separating", group, "cells\n"), file = stderr())
     }
-    group.object <- SubsetData(object = object, cells = group.cells)
+    group.object <- subset(x = object, select = group.cells)
     if (verbose) {
       cat("\t Running Dimensional Reduction \n", file = stderr())
     }
@@ -422,7 +451,7 @@ CalcVarExpRatio <- function(
       genes.use = genes.use
     )
     if (reduction.type == "pca") {
-      temp.matrix <- PrepDR(group.object, genes.use = genes.use)
+      temp.matrix <- PrepDR(group.object, features = genes.use)
       group.object <- RunPCA(
         object = group.object,
         pc.genes = genes.use,
@@ -505,7 +534,7 @@ CalcVarExpRatio <- function(
 #
 # @return returns the prepped vector
 #
-BicorPrep <- function(x, verbose = FALSE){
+BicorPrep <- function(x, verbose = FALSE) {
   if (stats::mad(x) == 0) {
     if (verbose){
       warning('mad == 0, using robust standardization')

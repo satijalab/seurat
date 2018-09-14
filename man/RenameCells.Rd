@@ -9,17 +9,19 @@
 \usage{
 RenameCells(object, new.names, ...)
 
-\method{RenameCells}{Assay}(object, new.names = NULL)
+\method{RenameCells}{Assay}(object, new.names = NULL, ...)
 
-\method{RenameCells}{DimReduc}(object, new.names = NULL)
+\method{RenameCells}{DimReduc}(object, new.names = NULL, ...)
 
 \method{RenameCells}{Seurat}(object, add.cell.id = NULL,
-  new.names = NULL, for.merge = FALSE)
+  new.names = NULL, for.merge = FALSE, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{new.names}{vector of new cell names}
+
+\item{...}{Arguments passed to other methods}
 
 \item{add.cell.id}{prefix to add cell names}
 

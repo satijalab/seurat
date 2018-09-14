@@ -10,7 +10,7 @@ RunMultiCCA(object.list, features, add.cell.ids, niter, num.ccs,
   standardize, verbose)
 
 \method{RunMultiCCA}{default}(object.list, niter = 25, num.ccs = 1,
-  standardize = TRUE, verbose = TRUE)
+  standardize = TRUE, verbose = TRUE, ...)
 
 \method{RunMultiCCA}{Seurat}(object.list, assay = NULL,
   features = NULL, add.cell.ids = NULL, niter = 25, num.ccs = 1,
@@ -29,6 +29,8 @@ the variable features sets present in both objects.}
 
 \item{standardize}{standardize scale.data matrices to be centered (mean zero)
 and scaled to have a standard deviation of 1.}
+
+\item{...}{Arguments passed to other methods}
 
 \item{assay}{Assay to use}
 

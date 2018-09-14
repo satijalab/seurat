@@ -8,10 +8,12 @@
 Print(object, ...)
 
 \method{Print}{DimReduc}(object, dims = 1:5, nfeatures = 20,
-  projected = FALSE)
+  projected = FALSE, ...)
 }
 \arguments{
 \item{object}{DimReduc object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{dims}{Number of dimensions to display}
 

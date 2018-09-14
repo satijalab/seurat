@@ -8,7 +8,7 @@
 \usage{
 SetAssayData(object, slot, new.data, ...)
 
-\method{SetAssayData}{Assay}(object, slot, new.data)
+\method{SetAssayData}{Assay}(object, slot, new.data, ...)
 
 \method{SetAssayData}{Seurat}(object, slot = "data", new.data,
   assay = NULL, ...)

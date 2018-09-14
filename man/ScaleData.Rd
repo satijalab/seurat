@@ -54,6 +54,8 @@ don't block for scaling calculations.}
 
 \item{verbose}{Displays a progress bar for scaling procedure}
 
+\item{...}{Arguments passed to other methods}
+
 \item{latent.data}{Extra data to regress out, should be cells x latent data}
 
 \item{assay}{Name of Assay to scale}

@@ -9,6 +9,7 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
 #'
@@ -25,7 +26,8 @@ BuildSNN.default <- function(
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   n.cells <- nrow(x = object)
   if (n.cells < k.param) {
@@ -68,16 +70,7 @@ BuildSNN.default <- function(
   return(snn.matrix)
 }
 
-#' @param features A vector of feature names to use in construction of SNN
-#' graph if building directly based on data rather than a dimensionally reduced
-#' representation (i.e. PCs).
-#' @param reduction Name of dimensional reduction technique to use in
-#' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims A vector of the dimensions to use in construction of the SNN
-#' graph (e.g. To use the first 10 PCs, pass 1:10)
-#'
-#'
-#' @describeIn BuildSNN Build an SNN on an Assay object
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN Assay
 #'
@@ -88,7 +81,8 @@ BuildSNN.Assay <- function(
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
@@ -112,7 +106,7 @@ BuildSNN.Assay <- function(
 #' assay.name_snn.
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn BuildSNN Build an SNN on a Seurat object
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN Seurat
 #'
@@ -129,7 +123,8 @@ BuildSNN.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(x = workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
@@ -202,6 +197,7 @@ BuildSNN.Seurat <- function(
   return(object)
 }
 
+#' @importFrom methods is
 #' @export
 #'
 FindClusters.default <- function(
@@ -214,7 +210,8 @@ FindClusters.default <- function(
   random.seed = 0,
   temp.file.location = NULL,
   edge.file.name = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
@@ -242,7 +239,7 @@ FindClusters.default <- function(
 #' @param graph.name Name of graph to use for the clustering algorithm
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn FindClusters FindClusters on a Seurat object
+#' @rdname FindClusters
 #' @export
 #' @method FindClusters Seurat
 #'
@@ -258,7 +255,8 @@ FindClusters.Seurat <- function(
   temp.file.location = NULL,
   edge.file.name = NULL,
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)

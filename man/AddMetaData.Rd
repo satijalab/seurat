@@ -34,6 +34,6 @@ pbmc_small <- AddMetaData(
   metadata = cluster_letters,
   col.name = 'letter.idents'
 )
-head(x = pbmc_small[])
+head(x = pbmc_small[[]])
 
 }

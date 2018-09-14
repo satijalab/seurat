@@ -56,7 +56,7 @@ a user defined function can be passed as long as it has been JITd by numba.}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
 
-\item{...}{Additional arguments to the umap}
+\item{...}{Arguments passed to other methods and UMAP}
 }
 \value{
 Returns a Seurat object containing a UMAP representation

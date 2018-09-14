@@ -7,11 +7,11 @@
 \title{Merge Seurat Objects}
 \usage{
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
-  min.cells = 0, min.features = 0, merge.data = TRUE)
+  min.cells = 0, min.features = 0, merge.data = TRUE, ...)
 
 \method{merge}{Seurat}(x = NULL, y = NULL, add.cell.ids = NULL,
   merge.data = TRUE, project = "SeuratProject", min.cells = 0,
-  min.features = 0)
+  min.features = 0, ...)
 }
 \arguments{
 \item{x}{Object}

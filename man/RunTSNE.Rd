@@ -60,6 +60,8 @@ instead of data matrix (experimental)}
 \item{reduction.name}{dimensional reduction name, specifies the position in the object$dr list. tsne by default}
 
 \item{workflow.name}{Name of workflow}
+
+\item{...}{Arguments passed to other methods}
 }
 \description{
 Run t-SNE dimensionality reduction on selected features. Has the option of

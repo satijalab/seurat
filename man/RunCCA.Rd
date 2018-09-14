@@ -9,7 +9,7 @@
 RunCCA(object1, object2, num.cc, ...)
 
 \method{RunCCA}{default}(object1, object2, standardize = TRUE,
-  num.cc = 20, verbose = FALSE, use.cpp = TRUE)
+  num.cc = 20, verbose = FALSE, use.cpp = TRUE, ...)
 
 \method{RunCCA}{Seurat}(object1, object2, assay1 = NULL, assay2 = NULL,
   num.cc = 20, features = NULL, renormalize = FALSE,
@@ -23,9 +23,7 @@ RunCCA(object1, object2, num.cc, ...)
 
 \item{num.cc}{Number of canonical vectors to calculate}
 
-\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
-passed, passed onto ScaleData in case with single object and rescale.groups
-set to TRUE)}
+\item{...}{Arguments passed to other methods}
 
 \item{standardize}{Standardize matrices - scales columns to have unit variance
 and mean 0}
@@ -44,6 +42,10 @@ scale every gene in the dataset which may impose a high memory cost.}
 
 \item{renormlize}{Renormalize raw data after merging the objects. If FALSE,
 merge the data matrices also.}
+
+\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
+passed, passed onto ScaleData in case with single object and rescale.groups
+set to TRUE)}
 }
 \value{
 Returns a combined Seurat object with the CCA results stored.
@@ -65,13 +67,13 @@ pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
 pbmc1 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 pbmc2 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[41:80])
-pbmc1["group"] <- "group1"
-pbmc2["group"] <- "group2"
+pbmc1[["group"]] <- "group1"
+pbmc2[["group"]] <- "group2"
 pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 # Print results
 Print(object = pbmc_cca[["cca"]])
 
 }
 \seealso{
-\code{MergeSeurat}
+\code{\link{MergeSeurat}}
 }

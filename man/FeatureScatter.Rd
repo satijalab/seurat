@@ -6,12 +6,13 @@
 \title{Scatter plot of single cell data}
 \usage{
 FeatureScatter(object, feature1, feature2, cells = NULL, cols = NULL,
-  pt.size = 1, shape.by = NULL, span = NULL, slot = "data", ...)
+  pt.size = 1, shape.by = NULL, span = NULL, smooth = FALSE,
+  slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{feature1}{First feature to plot. Typically gene expression but can also
+\item{feature1}{First feature to plot. Typically feature expression but can also
 be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{feature2}{Second feature to plot.}
@@ -26,7 +27,9 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 
 \item{span}{Spline span in loess function call, if \code{NULL}, no spline added}
 
-\item{slot}{Use non-normalized counts data for plotting}
+\item{smooth}{Smooth the graph (similar to smoothScatter)}
+
+\item{slot}{Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'}
 
 \item{...}{Ignored for now}
 }
@@ -34,7 +37,7 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 A ggplot object
 }
 \description{
-Creates a scatter plot of two features (typically gene expression), across a
+Creates a scatter plot of two features (typically feature expression), across a
 set of single cells. Cells are colored by their identity class. Pearson
 correlation between the two features is displayed above the plot.
 }

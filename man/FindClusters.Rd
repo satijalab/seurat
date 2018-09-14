@@ -12,7 +12,7 @@ FindClusters(object, modularity.fxn, resolution, algorithm, n.start,
   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
   n.start = 10, n.iter = 10, random.seed = 0,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  workflow.name = NULL)
+  workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -39,6 +39,8 @@ Specify the ABSOLUTE path.}
 
 \item{verbose}{Print output}
 
+\item{...}{Arguments passed to other methods}
+
 \item{graph.name}{Name of graph to use for the clustering algorithm}
 
 \item{workflow.name}{Name of workflow}
@@ -56,8 +58,3 @@ van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
 Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 optimizer code in Rcpp!
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: FindClusters on a Seurat object
-}}
-

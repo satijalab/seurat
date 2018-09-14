@@ -5,8 +5,8 @@
 \title{Single cell ridge plot}
 \usage{
 RidgePlot(object, features, cols = NULL, idents = NULL, sort = FALSE,
-  group.by = NULL, y.max = NULL, same.y.lims = FALSE, log = FALSE,
-  ncol = NULL, combine = TRUE, slot = "data", ...)
+  assay = NULL, group.by = NULL, y.max = NULL, same.y.lims = FALSE,
+  log = FALSE, ncol = NULL, combine = TRUE, slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -20,6 +20,8 @@ anything that can be retreived by FetchData)}
 
 \item{sort}{Sort identity classes (on the x-axis) by the average
 expression of the attribute being potted}
+
+\item{assay}{Name of assay to use, defaults to the active assay}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
@@ -35,7 +37,7 @@ expression of the attribute being potted}
 
 \item{slot}{Use non-normalized counts data for plotting}
 
-\item{\dots}{additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)}
+\item{...}{Ignored}
 }
 \value{
 A ggplot object

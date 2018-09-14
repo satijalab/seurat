@@ -3,6 +3,7 @@
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
 #' slot<- setMethod new signature
+#' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
 NULL
@@ -31,7 +32,6 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #'
 #' @name Assay
 #' @exportClass Assay
-#' @importClassesFrom Matrix dgCMatrix
 #'
 Assay <- setClass(
   Class = 'Assay',
@@ -104,7 +104,6 @@ DimReduc <- setClass(
 #'
 #' @name Graph
 #' @exportClass Graph
-#' @importClassesFrom Matrix dgCMatrix
 #'
 Graph <- setClass(
   Class = 'Graph',
@@ -296,7 +295,7 @@ seurat <- setClass(
 #'   metadata = cluster_letters,
 #'   col.name = 'letter.idents'
 #' )
-#' head(x = pbmc_small[])
+#' head(x = pbmc_small[[]])
 #'
 AddMetaData <- function(object, metadata, col.name = NULL) {
   if (typeof(x = metadata) != "list") {
@@ -308,7 +307,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   }
   cols.add <- colnames(x = metadata)
   #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(rownames(object[]), rownames(metadata))
+  meta.order <- match(x = rownames(x = object[[]]), rownames(x = metadata))
   meta.add <- metadata[meta.order, ]
   if (all(is.null(x = meta.add))) {
     stop("Metadata provided doesn't match the cells in this object")
@@ -335,7 +334,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 CheckWorkflow <- function(object, workflow.name) {
   # Check if workflow is there
   workflow.present <- FALSE
-  if (workflow.name%in%names(object)) {
+  if (workflow.name %in% names(x = object)) {
     if (class(x = object[[workflow.name]])[[1]] == "SeuratWorkflow") {
       workflow.present <- TRUE
     }
@@ -598,11 +597,11 @@ CreateSeuratObject <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  object['orig.ident'] <- idents
+  object[['orig.ident']] <- idents
   # Calculate nCount and nFeature
   filtered.counts <- GetAssayData(object = object, assay = assay, slot = 'counts')
-  object[paste('nCount', assay, sep = '_')] <- Matrix::colSums(filtered.counts)
-  object[paste('nFeature', assay, sep = '_')] <- Matrix::colSums(filtered.counts > 0)
+  object[[paste('nCount', assay, sep = '_')]] <- Matrix::colSums(filtered.counts)
+  object[[paste('nFeature', assay, sep = '_')]] <- Matrix::colSums(filtered.counts > 0)
   if (!is.null(meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
@@ -679,8 +678,8 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
     }
   )
   data.fetched <- unlist(x = data.fetched, recursive = FALSE)
-  meta.vars <- vars[vars %in% colnames(x = object[])]
-  data.fetched <- c(data.fetched, object[meta.vars][cells, , drop = FALSE])
+  meta.vars <- vars[vars %in% colnames(x = object[[]])]
+  data.fetched <- c(data.fetched, object[[meta.vars]][cells, , drop = FALSE])
   default.vars <- vars[vars %in% rownames(x = object)]
   data.fetched <- c(
     data.fetched,
@@ -745,7 +744,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
 #' }
 #'
 InitializeWorkflow <- function(object, file) {
-  if(!file.exists(... = file)) {
+  if (!file.exists(... = file)) {
     stop("Provided workflow file does not exist.")
   }
   config <- read.ini(filepath = file)
@@ -753,23 +752,25 @@ InitializeWorkflow <- function(object, file) {
   workflow.name <- gsub(
     pattern = ".workflow.ini",
     replacement = "",
-    x = basename(path = file))
-
-  depend.fxns <- unlist(strsplit(x = unname(unlist(config$dependencies)), split = ","))
-  fxns <- union(depend.fxns, names(config$dependencies))
+    x = basename(path = file)
+  )
+  depend.fxns <- unlist(x = strsplit(
+    x = unname(obj = unlist(x = config$dependencies)),
+    split = ","
+  ))
+  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
   depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
-  rownames(depends) <- colnames(depends) <- fxns
-  for(cmd in 1:length(config$dependencies)) {
-    cmd.name <- names(config$dependencies[cmd])
-    cmd.vals <- unlist(strsplit(x = config$dependencies[[cmd]], split = ","))
-    for(cv in cmd.vals){
+  rownames(x = depends) <- colnames(x = depends) <- fxns
+  for(cmd in 1:length(x = config$dependencies)) {
+    cmd.name <- names(x = config$dependencies[cmd])
+    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
+    for(cv in cmd.vals) {
       depends[cmd.name, cv] <- 1
     }
   }
-  mostRecent <- rep(x = as.POSIXct("1900-01-01"), length(fxns))
-  names(mostRecent) <- fxns
-
-  for(mr in names(mostRecent)) {
+  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
+  names(x = mostRecent) <- fxns
+  for (mr in names(x = mostRecent)) {
     assay <- config$global$assay
     assay <- assay %iff% config[mr]$assay
     assay <- assay %||% DefaultAssay(object = object)
@@ -777,26 +778,39 @@ InitializeWorkflow <- function(object, file) {
     reduction <- config[mr]$reduction
     reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
     command.name <- paste0(mr, ".", assay, ".", reduction)
-    command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-    command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-    if(command.name %in% names(x = object)) {
+    command.name <- sub(
+      pattern = "[\\.]+$",
+      replacement = "",
+      x = command.name,
+      perl = TRUE
+    )
+    command.name <- sub(
+      pattern = "\\.\\.",
+      replacement = "\\.",
+      x = command.name,
+      perl = TRUE
+    )
+    if (command.name %in% names(x = object)) {
       seurat.timestamp <- slot(object = object[[command.name]], name = "time.stamp")
       mostRecent[mr] <- seurat.timestamp
     }
   }
   params <- list()
-  if (!is.null(config$global)){
+  if (!is.null(x = config$global)) {
     params[["global"]] <- config$global
-    for(p in 1:length(params$global)){
-      params$global[names(params$global[p])] <- ToNumeric(x = params$global[[p]])
+    for (p in 1:length(x = params$global)){
+      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
     }
   }
   # set fxn specific params
-  fxn.param.names <- setdiff(names(config), c("dependencies", "global"))
-  if(length(x = fxn.param.names) > 0) {
-    for(i in 1:length(fxn.param.names)) {
+  fxn.param.names <- setdiff(
+    x = names(x = config),
+    y = c("dependencies", "global")
+  )
+  if (length(x = fxn.param.names) > 0) {
+    for(i in 1:length(x = fxn.param.names)) {
       params[fxn.param.names[i]] <- config[fxn.param.names[i]]
-      for(p in 1:length(params[[fxn.param.names[i]]])){
+      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
         params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
       }
     }
@@ -912,7 +926,8 @@ SetWorkflowParams <- function(
 #' @param object Seurat object
 #' @param split.by Attribute for splitting. Default is "ident". Currently
 #' only supported for class-level (i.e. non-quantitative) attributes.
-#' @param \dots Additional parameters to pass to SubsetData
+#' @param ... Ignored
+#'
 #' @return A named list of Seurat objects, each containing a subset of cells
 #' from the original object.
 #'
@@ -935,14 +950,12 @@ SplitObject <- function(object, split.by = "ident", ...) {
   obj.list <- list()
   for (i in groupings) {
     if (split.by == "ident") {
-      obj.list[[i]] <- SubsetData(object = object, ident.use = i, ...)
+      obj.list[[i]] <- subset(x = object, select = i)
     }
     else {
-      obj.list[[i]] <- SubsetData(
-        object = object,
-        subset.name = split.by,
-        accept.value = i, ...
-      )
+      cells <- which(x = object[[split.by, drop = TRUE]] == i)
+      cells <- colnames(x = object)[cells]
+      obj.list[[i]] <- subset(x = object, select = cells)
     }
   }
   return(obj.list)
@@ -1113,21 +1126,24 @@ UpdateSeuratObject <- function(object) {
 #'
 #' @examples
 #' \dontrun{
-#' WorkflowStatus(object = pbmc_small,workflow.name = "cluster")
+#' WorkflowStatus(object = pbmc_small, workflow.name = "cluster")
 #' }
 #'
 WorkflowStatus <- function(object, workflow.name, command.name) {
   CheckWorkflow(object = object, workflow.name = workflow.name)
-  message(paste0("Status  for ", workflow.name, " workflow"))
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  all.cmds <- rownames(depends)
-  for(i in all.cmds) {
-    is.updated <- (!CheckWorkflowUpdate(object = object,workflow.name = workflow.name,command.name = i))
+  message(paste("Status  for", workflow.name, "workflow"))
+  depends <- slot(object = object[[workflow.name]], name = "depends")
+  all.cmds <- rownames(x = depends)
+  for (i in all.cmds) {
+    is.updated <- !CheckWorkflowUpdate(
+      object = object,
+      workflow.name = workflow.name,
+      command.name = i
+    )
     if (is.updated) {
-      message(paste0("\t",i, " up to date"))
-    }
-    else {
-      message(paste0("\t\t",i, " is out of date"))
+      message(paste0("\t", i, " up to date"))
+    } else {
+      message(paste0("\t\t", i, " is out of date"))
     }
   }
 }
@@ -1140,7 +1156,7 @@ WorkflowStatus <- function(object, workflow.name, command.name) {
 #' @export
 #' @method as.SingleCellExperiment seurat
 #'
-as.SingleCellExperiment.seurat <- function(from) {
+as.SingleCellExperiment.seurat <- function(from, ...) {
   return(Convert(from = from, to = 'sce'))
 }
 
@@ -1148,7 +1164,7 @@ as.SingleCellExperiment.seurat <- function(from) {
 #' @export
 #' @method as.seurat SingleCellExperiment
 #'
-as.seurat.SingleCellExperiment <- function(from) {
+as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
 }
 
@@ -1156,7 +1172,7 @@ as.seurat.SingleCellExperiment <- function(from) {
 #' @export
 #' @method Command Seurat
 #'
-Command.Seurat <- function(object, command, value = NULL) {
+Command.Seurat <- function(object, command, value = NULL, ...) {
   commands <- slot(object = object, name = "commands")
   if (is.null(x = commands[[command]])) {
     stop(command, " has not been run or is not a valid command.")
@@ -1178,7 +1194,6 @@ Command.Seurat <- function(object, command, value = NULL) {
 #' @importFrom reticulate py_to_r
 #' @export
 #' @method Convert anndata.base.AnnData
-#'
 #'
 Convert.anndata.base.AnnData <- function(
   from,
@@ -1217,7 +1232,7 @@ Convert.anndata.base.AnnData <- function(
         )
       }
       seurat.object <- CreateSeuratObject(
-        raw.data = raw.data.matrix,
+        counts = raw.data.matrix,
         meta.data = meta.data
       )
       seurat.object <- SetAssayData(
@@ -1241,19 +1256,24 @@ Convert.anndata.base.AnnData <- function(
           dr.key <- toupper(x = dr.name)
         }
         colnames(x = dr.embed) <- paste0(dr.key, 1:ncol(x = dr.embed))
-        rownames(x = dr.embed) <- seurat.object@cell.names
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "cell.embeddings",
-          new.data = dr.embed
+        rownames(x = dr.embed) <- colnames(x = seurat.object)
+        seurat.object[[dr.name]] <- CreateDimReducObject(
+          embeddings = dr.embed,
+          key = dr.key,
+          assay = DefaultAssay(object = seurat.object)
         )
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "key",
-          new.data = dr.key
-        )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "cell.embeddings",
+        #   new.data = dr.embed
+        # )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "key",
+        #   new.data = dr.key
+        # )
       }
       seurat.object
     },
@@ -1279,7 +1299,7 @@ Convert.SingleCellExperiment <- function(
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      raw.data <- tryCatch(
+      counts <- tryCatch(
         expr = SummarizedExperiment::assay(from, raw.data.slot),
         error = function(e) {
           stop(paste0("No data in provided assay - ", raw.data.slot))
@@ -1292,27 +1312,37 @@ Convert.SingleCellExperiment <- function(
         }
       )
       meta.data <- as.data.frame(SummarizedExperiment::colData(from))
-      seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
-      seurat.object@data <- data
+      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+      # seurat.object@data <- data
+      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
         for (dr in SingleCellExperiment::reducedDimNames(from)) {
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "cell.embeddings",
-            new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          seurat.object[[dr]] <- CreateDimReducObject(
+            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
+            key = gsub(
+              pattern = "[[:digit:]]",
+              replacement = "",
+              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+              )[1]),
+            assay = DefaultAssay(object = seurat.object)
           )
-          key <- gsub(
-            pattern = "[[:digit:]]",
-            replacement = "",
-            x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-            )[1])
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "key",
-            new.data = key
-          )
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "cell.embeddings",
+          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          # )
+          # key <- gsub(
+          #   pattern = "[[:digit:]]",
+          #   replacement = "",
+          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+          #   )[1])
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "key",
+          #   new.data = key
+          # )
         }
       }
       seurat.object
@@ -1357,20 +1387,21 @@ Convert.seurat <- function(
       if (!'loomR' %in% rownames(x = installed.packages())) {
         stop("Please install loomR from GitHub before converting to a loom object")
       }
-      cell.order <- from@cell.names
-      gene.order <- rownames(x = from@raw.data)
+      # cell.order <- from@cell.names
+      cell.order <- colnames(x = from)
+      gene.order <- rownames(x = from)
       loomfile <- loomR::create(
         filename = filename,
-        data = from@raw.data[, cell.order],
-        cell.attrs = from@meta.data[cell.order, ],
-        layers = list('norm_data' = t(x = from@data[, cell.order])),
+        data = GetAssayData(object = from, slot = 'counts')[, cell.order],
+        cell.attrs = from[[]][cell.order, ],
+        layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
         chunk.dims = chunk.dims,
         chunk.size = chunk.size,
         overwrite = overwrite,
         display.progress = display.progress
       )
-      if (nrow(x = from@hvg.info) > 0) {
-        hvg.info <- from@hvg.info
+      if (nrow(x = HVFInfo(object = from)) > 0) {
+        hvg.info <- HVFInfo(object = from)
         colnames(x = hvg.info) <- gsub(
           pattern = '.',
           replacement = '_',
@@ -1379,33 +1410,33 @@ Convert.seurat <- function(
         )
         loomfile$add.row.attribute(hvg.info[gene.order, ])
       }
-      if (length(x = from@var.genes) > 0) {
-        loomfile$add.row.attribute(list('var_genes' = gene.order %in% from@var.genes))
+      if (length(x = VariableFeatures(object = from)) > 0) {
+        loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
       }
-      if (!is.null(x = from@scale.data) && dim(x = from@scale.data) != c(1, 1)) {
+      if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
         loomfile$add.layer(list(
-          'scale_data' = as.matrix(x = t(x = as.data.frame(x = from@scale.data)[gene.order, cell.order]))
+          'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
         ))
       }
-      for (dim.reduc in names(x = from@dr)) {
-        cell.embeddings <- from@dr[[dim.reduc]]@cell.embeddings
+      for (dim.reduc in FilterObjects(object = from, classes.keey = 'DimReduc')) {
+        cell.embeddings <- Embeddings(object = from[[dim.reduc]])
         ce.dims <- unique(x = dim(x = cell.embeddings))
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
           if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
             cell.embeddings.padded <- matrix(
-              nrow = ncol(x = from@raw.data),
+              nrow = ncol(x = from),
               ncol = ncol(x = cell.embeddings)
             )
-            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = from@cell.names)) {
+            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
               pad.order <- 1:nrow(x = cell.embeddings)
             } else {
               pad.order <- match(
                 x = rownames(x = cell.embeddings),
-                table = from@cell.names
+                table = colnames(x = from)
               )
             }
             cell.embeddings.padded[pad.order, ] <- cell.embeddings
-          } else if (nrow(x = cell.embeddings) > ncol(x = from@raw.data)) {
+          } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
             stop("Cannot have more cells in the dimmensional reduction than in the dataset")
           } else {
             cell.embeddings.padded <- cell.embeddings
@@ -1414,28 +1445,28 @@ Convert.seurat <- function(
           names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
           loomfile$add.col.attribute(cell.embeddings.padded)
         }
-        gene.loadings <- from@dr[[dim.reduc]]@gene.loadings
+        gene.loadings <- Loadings(object = from[[dim.reduc]])
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) == 1 && gl.dims == 0) {
-          gene.loadings <- from@dr[[dim.reduc]]@gene.loadings.full
+          gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
         }
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) != 1 || gl.dims != 0) {
           if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
             gene.loadings.padded <- matrix(
-              nrow = nrow(x = from@raw.data),
+              nrow = nrow(x = from),
               ncol = ncol(x = gene.loadings)
             )
-            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@raw.data))) {
+            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
               pad.order <- seq_len(nrow(x = gene.loadings))
             } else {
               pad.order <- match(
                 x = rownames(x = gene.loadings),
-                table = rownames(x = from@raw.data)
+                table = rownames(x = from)
               )
             }
             gene.loadings.padded[pad.order, ] <- gene.loadings
-          } else if (nrow(x = gene.loadings) > nrow(x = from@raw.data)) {
+          } else if (nrow(x = gene.loadings) > nrow(x = from)) {
             stop("Cannot have more genes in the dimmensional reduction than in the dataset")
           } else {
             gene.loadings.padded <- gene.loadings
@@ -1448,6 +1479,7 @@ Convert.seurat <- function(
       loomfile
     },
     'sce' = {
+      .NotYetImplemented()
       if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
         stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
       }
@@ -1486,6 +1518,7 @@ Convert.seurat <- function(
       sce
     },
     'anndata' = {
+      .NotYetImplemented()
       if (!py_module_available("anndata")) {
         stop("Please install the anndata python module")
       }
@@ -1626,7 +1659,7 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @export
 #' @method GetAssay Seurat
 #'
-GetAssay.Seurat <- function(object, assay = NULL) {
+GetAssay.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   if (!assay %in% object.assays) {
@@ -1643,7 +1676,7 @@ GetAssay.Seurat <- function(object, assay = NULL) {
 #' @export
 #' @method GetAssayData Assay
 #'
-GetAssayData.Assay <- function(object, slot = 'data') {
+GetAssayData.Assay <- function(object, slot = 'data', ...) {
   return(slot(object = object, name = slot))
 }
 
@@ -1689,7 +1722,7 @@ HVFInfo.Seurat <- function(object, assay = NULL, ...) {
   return(HVFInfo(object = GetAssay(object = object, assay = assay)))
 }
 
-#' @describeIn Idents Get the active identities of a Seurat object
+#' @rdname Idents
 #' @export
 #' @method Idents Seurat
 #'
@@ -1699,7 +1732,7 @@ Idents.Seurat <- function(object, ...) {
 
 #' @param cells Set cell identities for specific cells
 #'
-#' @describeIn Idents Set the active identities of a Seurat object
+#' @rdname Idents
 #' @export
 #' @method Idents<- Seurat
 #'
@@ -1710,8 +1743,11 @@ Idents.Seurat <- function(object, ...) {
   }
   cells <- intersect(x = cells, y = colnames(x = object))
   cells <- match(x = cells, table = colnames(x = object))
-  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[])) {
-    unlist(x = object[value], use.names = FALSE)[cells]
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
+  idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[[]])) {
+    unlist(x = object[[value]], use.names = FALSE)[cells]
   } else {
     if (is.list(x = value)) {
       value <- unlist(x = value, use.names = FALSE)
@@ -1722,8 +1758,12 @@ Idents.Seurat <- function(object, ...) {
   idents <- as.vector(x = Idents(object = object))
   idents[cells] <- idents.new
   idents[is.na(x = idents)] <- 'NA'
-  idents <- factor(x = idents)
   names(x = idents) <- colnames(x = object)
+  missing.cells <- which(x = is.na(x = names(x = idents)))
+  if (length(x = missing.cells) > 0) {
+    idents <- idents[-missing.cells]
+  }
+  idents <- factor(x = idents)
   slot(object = object, name = 'active.ident') <- idents
   return(object)
 }
@@ -1867,6 +1907,138 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(object)
 }
 
+#' @rdname OldWhichCells
+#' @export
+#' @method OldWhichCells Assay
+#'
+OldWhichCells.Assay <- function(
+  object,
+  cells,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ...
+) {
+  cells <- cells %||% colnames(x = object)
+  # input checking
+  if (length(x = subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
+  }
+  if (low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
+  }
+  if (!is.null(x = subset.name)) {
+    subset.name <- as.character(x = subset.name)
+    data.use <- GetAssayData(
+      object = object,
+      ... = ...
+    )
+    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
+    if (!is.null(x = accept.value)) {
+      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
+        stop("Identity: ", bad.vals, " not found.")
+      }
+      pass.inds <- which(x = apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells <- rownames(x = data.use)[pass.inds]
+  }
+  return(cells)
+}
+
+#' @param ident.keep Create a cell subset based on the provided identity classes
+#' @param ident.remove Subtract out cells from these identity classes (used for
+#' filtration)
+#' @param max.cells.per.ident Can be used to downsample the data to a certain
+#' max per cell ident. Default is INF.
+#' @param random.seed Random seed for downsampling
+#' @param assay Which assay to filter on
+#' @param ... Extra parameters passed to \code{FetchData}
+#'
+#' @seealso \code{\link{FetchData}}
+#'
+#' @rdname OldWhichCells
+#' @export
+#' @method OldWhichCells Seurat
+#'
+OldWhichCells.Seurat <- function(
+  object,
+  cells = NULL,
+  subset.name = NULL,
+  low.threshold = -Inf,
+  high.threshold = Inf,
+  accept.value = NULL,
+  ident.keep = NULL,
+  ident.remove = NULL,
+  max.cells.per.ident = Inf,
+  random.seed = 1,
+  assay = NULL,
+  ...
+) {
+  # input checking
+  if (length(x = subset.name) > 1) {
+    stop("subset.name must be a single parameter")
+  }
+  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
+    stop("Multiple values passed to low.threshold or high.threshold")
+  }
+  if (low.threshold >= high.threshold) {
+    stop("low.threshold is greater than or equal to high.threshold")
+  }
+  if (!is.na(x = random.seed)) {
+    set.seed(seed = random.seed)
+  }
+  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  ident.keep <- ident.keep %||% unique(x = Idents(object = object))
+  bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
+  if (length(bad.remove.idents) > 0) {
+    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  }
+  ident.keep <- setdiff(x = ident.keep, y = ident.remove)
+  if (!all(ident.keep %in% unique(Idents(object = object)))) {
+    bad.idents <- ident.keep[!(ident.keep %in% unique(x = Idents(object = object)))]
+    stop("Identity: ", bad.idents, " not found.")
+  }
+  cells.to.use <- character()
+  for (id in ident.keep) {
+    cells.in.ident <- Idents(object = object)[cells]
+    cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
+    cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
+    if (length(x = cells.in.ident) > max.cells.per.ident) {
+      cells.in.ident <- sample(x = cells.in.ident, size = max.cells.per.ident)
+    }
+    cells.to.use <- c(cells.to.use, cells.in.ident)
+  }
+  cells <- cells.to.use
+  if (!is.null(x = subset.name)) {
+    subset.name <- as.character(subset.name)
+    data.use <- FetchData(
+      object = object,
+      vars = subset.name,
+      cells = cells,
+      ...
+    )
+    if (!is.null(x = accept.value)) {
+      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
+        bad.vals <- accept.value[!accept.value %in% unique(x = data.use[, 1])]
+        stop("Identity: ", bad.vals, " not found.")
+      }
+      pass.inds <- which(x = apply(X = data.use, MARGIN = 1, FUN = function(x) x %in% accept.value))
+    } else {
+      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
+    }
+    cells <- rownames(x = data.use)[pass.inds]
+  }
+  return(cells)
+}
+
 #' @param dims Number of dimensions to display
 #' @param nfeatures Number of genes to display
 #' @param projected Use projected slot
@@ -1880,7 +2052,8 @@ Print.DimReduc <- function(
   object,
   dims = 1:5,
   nfeatures = 20,
-  projected = FALSE
+  projected = FALSE,
+  ...
 ) {
   loadings <- Loadings(object = object, projected = projected)
   nfeatures <- min(nfeatures, nrow(x = loadings))
@@ -1925,10 +2098,7 @@ Print.DimReduc <- function(
 #' @export
 #' @method RenameCells Assay
 #'
-RenameCells.Assay <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) == 0) {
@@ -1943,10 +2113,7 @@ RenameCells.Assay <- function(
 #' @export
 #' @method RenameCells DimReduc
 #'
-RenameCells.DimReduc <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
   rownames(old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
@@ -1965,7 +2132,8 @@ RenameCells.Seurat <- function(
   object,
   add.cell.id = NULL,
   new.names = NULL,
-  for.merge = FALSE
+  for.merge = FALSE,
+  ...
 ) {
   if (missing(x = add.cell.id) && missing(x = new.names)) {
     stop("One of 'add.cell.id' and 'new.names' must be set")
@@ -2007,16 +2175,41 @@ RenameCells.Seurat <- function(
   # rename the active.idents
   old.ids <- Idents(object = object)
   names(x = old.ids) <- new.cell.names
-  Idents(object = object, cells = rownames(x = object[])) <- old.ids
+  Idents(object = object) <- old.ids
   # rename the cell-level metadata
-  old.meta.data <- object[]
+  old.meta.data <- object[[]]
   rownames(x = old.meta.data) <- new.cell.names
   slot(object = object, name = "meta.data") <- old.meta.data
   # rename the graphs
   graphs <- FilterObjects(object = object, classes.keep = "Graph")
   for (g in graphs) {
-    colnames(x = object[[g]]) <- new.cell.names
-    rownames(x = object[[g]]) <- new.cell.names
+    rownames(x = object[[g]]) <- colnames(x = object[[g]]) <- new.cell.names
+  }
+  return(object)
+}
+
+#' @rdname Idents
+#' @export
+#' @method RenameIdents Seurat
+#'
+RenameIdents.Seurat <- function(object, ...) {
+  ident.pairs <- list(...)
+  if (is.null(x = names(x = ident.pairs))) {
+    stop("All arguments must be named with the old identity class")
+  }
+  if (!all(sapply(X = ident.pairs, FUN = length) == 1)) {
+    stop("Can only rename identity classes to one value")
+  }
+  if (!any(names(x = ident.pairs) %in% levels(x = object))) {
+    stop("Cannot find any of the provided identities")
+  }
+  cells.idents <- CellsByIdentities(object = object)
+  for (i in names(x = ident.pairs)) {
+    if (!i %in% names(x = cells.idents)) {
+      warning("Cannot find identity ", i, call. = FALSE, immediate. = TRUE)
+      next
+    }
+    Idents(object = object, cells = cells.idents[[i]]) <- ident.pairs[[i]]
   }
   return(object)
 }
@@ -2025,39 +2218,45 @@ RenameCells.Seurat <- function(
 #' @export
 #' @method SetAssayData Assay
 #'
-SetAssayData.Assay <- function(object, slot, new.data) {
+SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
   }
-  if (ncol(x = new.data) != ncol(x = object)) {
-    stop("The new data doesn't have the same number of cells as the current data")
+  if (!IsMatrixEmpty(x = new.data) && !slot %in% c('counts', 'scale.data')) {
+    if (ncol(x = new.data) != ncol(x = object)) {
+      stop("The new data doesn't have the same number of cells as the current data")
+    }
+    num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
+    counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
+    if (num.counts <= 1) {
+      num.counts <- nrow(x = object)
+      counts.names <- rownames(x = object)
+    }
+    if (slot == 'counts' && nrow(x = new.data) != num.counts) {
+      warning("The new data doesn't have the same number of features as the current data")
+    } else if (slot %in% c('data', 'scale.data') && nrow(x = new.data) > num.counts) {
+      warning("Adding more features than present in current data")
+    }
+    if (!all(rownames(x = new.data) %in% counts.names)) {
+      warning("Adding features not currently present in the object")
+    }
+    new.features <- na.omit(object = match(
+      x = counts.names,
+      table = rownames(x = new.data)
+    ))
+    #if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
+    #  stop("Cannot add more features than present in current data")
+    #} else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
+    #  stop("The new data doesn't have the same number of features as the current data")
+    #}
+    new.cells <- colnames(x = new.data)
+    if (!all(new.cells %in% colnames(x = object))) {
+      stop("All cell names must match current cell names")
+    }
+    new.data <- new.data[new.features, colnames(x = object)]
   }
-  num.counts <- nrow(x = GetAssayData(object = object, slot = 'counts'))
-  counts.names <- rownames(x = GetAssayData(object = object, slot = 'counts'))
-  if (num.counts == 0) {
-    num.counts <- nrow(x = object)
-    counts.names <- rownames(x = object)
-  }
-  if (slot == 'counts' && nrow(x = new.data) != num.counts) {
-    warning("The new data doesn't have the same number of features as the current data")
-  } else if (slot %in% c('data', 'scale.data') && nrow(x = new.data) > num.counts) {
-    warning("Adding more features than present in current data")
-  }
-  if (!all(rownames(x = new.data) %in% counts.names)) {
-    warning("Adding features not currently present in the object")
-  }
-  new.features <- na.omit(object = match(x = counts.names, table = rownames(x = new.data)))
-  #if (slot == 'scale.data' && nrow(x = new.data) > nrow(x = object)) {
-  #  stop("Cannot add more features than present in current data")
-  #} else if (slot != 'scale.data' && nrow(x = new.data) != nrow(x = object)) {
-  #  stop("The new data doesn't have the same number of features as the current data")
-  #}
-  new.cells <- colnames(x = new.data)
-  if (!all(new.cells %in% colnames(x = object))) {
-    stop("All cell names must match current cell names")
-  }
-  slot(object = object, name = slot) <- new.data[new.features, colnames(x = object)]
+  slot(object = object, name = slot) <- new.data
   return(object)
 }
 
@@ -2079,12 +2278,23 @@ SetAssayData.Seurat <- function(
   return(object)
 }
 
-#' @describeIn Idents Stash cell identities of a Seurat object
+#' @inheritParams Idents
+#'
+#' @rdname Idents
+#' @export
+#' @method SetIdent Seurat
+#'
+SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
+  Idents(object = object, cells = cells) <- value
+  return(object)
+}
+
+#' @rdname Idents
 #' @export
 #' @method StashIdent Seurat
 #'
 StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
-  object[save.name] <- Idents(object = object)
+  object[[save.name]] <- Idents(object = object)
   return(object)
 }
 
@@ -2092,7 +2302,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 #' @export
 #' @method Stdev DimReduc
 #'
-Stdev.DimReduc <- function(object) {
+Stdev.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'stdev'))
 }
 
@@ -2121,7 +2331,7 @@ SubsetData.Assay <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
-  cells <- WhichCells(
+  cells <- OldWhichCells(
     object = object,
     cells = cells,
     subset.name = subset.name,
@@ -2170,7 +2380,7 @@ SubsetData.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  cells <- WhichCells(
+  cells <- OldWhichCells(
     object = object,
     assay = assay,
     ident = ident.use,
@@ -2257,55 +2467,47 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #'
 WhichCells.Assay <- function(
   object,
-  cells,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
+  cells = NULL,
+  expression,
+  invert = FALSE,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(x = subset.name)
-    data.use <- GetAssayData(
-      object = object,
-      ... = ...
+  if (!missing(x = expression)) {
+    key.pattern <- paste0('^', Key(object = object))
+    expr <- substitute(expr = expression)
+    expr.char <- as.character(x = expr)
+    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    expr.char <- gsub(
+      pattern = key.pattern,
+      replacement = '',
+      x = expr.char,
+      perl = TRUE
     )
-    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
-        stop("Identity: ", bad.vals, " not found.")
-      }
-      pass.inds <- which(x = apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
+    expr.char <- gsub(
+      pattern = '(',
+      replacement = '',
+      x = expr.char,
+      fixed = TRUE
+    )
+    vars.use <- which(x = expr.char %in% rownames(x = object))
+    expr.char <- expr.char[vars.use]
+    data.subset <- as.data.frame(x = t(x = as.matrix(x = object[expr.char, ])))
+    colnames(x = data.subset) <- expr.char
+    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+    cells <- rownames(x = data.subset)
+  }
+  if (invert) {
+    cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
   return(cells)
 }
 
-#' @param ident.keep Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for
-#' filtration)
-#' @param max.cells.per.ident Can be used to downsample the data to a certain
-#' max per cell ident. Default is INF.
-#' @param random.seed Random seed for downsampling
-#' @param assay Which assay to filter on
-#' @param ... Extra parameters passed to \code{FetchData}
-#'
-#' @seealso \code{\link{FetchData}}
+#' @param idents A vector of identity classes to keep
+#' @param downsample Maximum number of cells per identity class, default is \code{Inf};
+#' downsampling will happen after all other operations, including inverting the
+#' cell selection
+#' @param seed Random seed for downsampling
 #'
 #' @describeIn WhichCells Get cells from a Seurat object
 #' @export
@@ -2314,73 +2516,87 @@ WhichCells.Assay <- function(
 WhichCells.Seurat <- function(
   object,
   cells = NULL,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  ident.keep = NULL,
-  ident.remove = NULL,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  assay = NULL,
+  idents = NULL,
+  expression,
+  invert = FALSE,
+  downsample = Inf,
+  seed = 1,
   ...
 ) {
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.na(x = random.seed)) {
-    set.seed(seed = random.seed)
-  }
   cells <- cells %||% colnames(x = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  ident.keep <- ident.keep %||% unique(x = Idents(object = object))
-  bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
-  if (length(bad.remove.idents) > 0) {
-    stop(paste("Identity :", bad.remove.idents, "not found.   "))
+  if (is.numeric(x = cells)) {
+    cells <- colnames(x = object)[cells]
   }
-  ident.keep <- setdiff(x = ident.keep, y = ident.remove)
-  if (!all(ident.keep %in% unique(Idents(object = object)))) {
-    bad.idents <- ident.keep[!(ident.keep %in% unique(x = Idents(object = object)))]
-    stop("Identity: ", bad.idents, " not found.")
-  }
-  cells.to.use <- character()
-  for (id in ident.keep) {
-    cells.in.ident <- Idents(object = object)[cells]
-    cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
-    cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
-    if (length(x = cells.in.ident) > max.cells.per.ident) {
-      cells.in.ident <- sample(x = cells.in.ident, size = max.cells.per.ident)
+  if (!is.null(x = idents)) {
+    set.seed(seed = seed)
+    if (any(!idents %in% levels(x = Idents(object = object)))) {
+      stop(
+        "Cannot find the following identities in the object: ",
+        paste(
+          idents[!idents %in% levels(x = Idents(object = object))],
+          sep = ', '
+        )
+      )
     }
-    cells.to.use <- c(cells.to.use, cells.in.ident)
-  }
-  cells <- cells.to.use
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(subset.name)
-    data.use <- FetchData(
-      object = object,
-      vars = subset.name,
-      cells = cells,
-      ...
-    )
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!accept.value %in% unique(x = data.use[, 1])]
-        stop("Identity: ", bad.vals, " not found.")
+    cells.idents <- unlist(x = lapply(
+      X = idents,
+      FUN = function(i) {
+        cells.use <- which(x = as.vector(x = Idents(object = object)) == i)
+        cells.use <- names(x = Idents(object = object)[cells.use])
+        return(cells.use)
       }
-      pass.inds <- which(x = apply(X = data.use, MARGIN = 1, FUN = function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
+    ))
+    cells <- intersect(x = cells, y = cells.idents)
   }
-  return(cells)
+  if (!missing(x = expression)) {
+    objects.use <- FilterObjects(object = object)
+    object.keys <- sapply(
+      X = objects.use,
+      FUN = function(i) {
+        return(Key(object = object[[i]]))
+      }
+    )
+    key.pattern <- paste0('^', object.keys, collapse = '|')
+    expr <- if (is.call(x = substitute(expr = expression))) {
+      substitute(expr = expression)
+    } else {
+      parse(text = expression)
+    }
+    expr.char <- as.character(x = expr)
+    expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
+    expr.char <- gsub(
+      pattern = '(',
+      replacement = '',
+      x = expr.char,
+      fixed = TRUE
+    )
+    vars.use <- which(
+      x = expr.char %in% rownames(x = object) |
+        expr.char %in% colnames(x = object[[]]) |
+        grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+    )
+    data.subset <- FetchData(
+      object = object,
+      vars = expr.char[vars.use],
+      cells = cells
+    )
+    data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
+    cells <- rownames(x = data.subset)
+  }
+  if (invert) {
+    cells <- colnames(x = object)[!colnames(x = object) %in% cells]
+  }
+  cells <- CellsByIdentities(object = object, cells = cells)
+  cells <- lapply(
+    X = cells,
+    FUN = function(x) {
+      if (length(x = x) > downsample) {
+        x <- sample(x = x, size = downsample, replace = FALSE)
+      }
+      return(x)
+    }
+  )
+  return(unlist(x = cells, use.names = FALSE))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2397,14 +2613,15 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 ".DollarNames.Seurat" <- function(x, pattern = '') {
-  utils:::findMatches(pattern, colnames(x = x[]))
+  utils:::findMatches(pattern = pattern, values = colnames(x = x[[]]))
 }
 
+#' @importFrom utils .DollarNames
 #' @export
 #'
-".DollarNames.SeuratCommand" <- function(x, pattern = ''){
+".DollarNames.SeuratCommand" <- function(x, pattern = '') {
   params <- slot(object = x, name = "params")
-  utils:::findMatches(pattern, names(x = params))
+  utils:::findMatches(pattern = pattern, names(x = params))
 }
 
 #' @export
@@ -2416,7 +2633,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 "$.Seurat" <- function(x, i, ...) {
-  return(x[i, drop = TRUE])
+  return(x[[i, drop = TRUE]])
 }
 
 #' @export
@@ -2429,7 +2646,7 @@ WhichCells.Seurat <- function(
 #' @export
 #'
 "$<-.Seurat" <- function(x, i, ..., value) {
-  x[i] <- value
+  x[[i]] <- value
   return(x)
 }
 
@@ -2442,7 +2659,7 @@ WhichCells.Seurat <- function(
   if (missing(x = j)) {
     j <- 1:ncol(x = x)
   }
-  return(GetAssayData(object = x)[i, j, ...])
+  return(GetAssayData(object = x)[i, j, ..., drop = FALSE])
 }
 
 #' @export
@@ -2457,34 +2674,33 @@ WhichCells.Seurat <- function(
   return(Loadings(object = x)[i, j, ...])
 }
 
+#' @inheritParams subset.Seurat
+#' @param i A vector of features to keep
+#' @param j A vector of cells to keep
+#'
+#' @rdname subset.Seurat
 #' @export
 #'
-"[.Seurat" <- function(x, i, j, ..., drop = FALSE) {
+#' @examples
+#' pbmc_small[VariableFeatures(object = pbmc_small), ]
+#' pbmc_small[, 1:10]
+#'
+"[.Seurat" <- function(x, i, j, ...) {
+  if (missing(x = i) && missing(x = j)) {
+    return(x)
+  }
   if (missing(x = i)) {
-    i <- if (missing(x = j)) {
-      colnames(x = slot(object = x, name = 'meta.data'))
-    } else {
-      rownames(x = x)
-    }
+    i <- NULL
+  } else if (missing(x = j)) {
+    j <- colnames(x = x)
   }
-  meta.count <- sum(i %in% colnames(x = slot(object = x, name = 'meta.data')))
-  feat.count <- sum(
-    i %in% rownames(x = x),
-    vapply(X = i, FUN = is.numeric, FUN.VALUE = logical(length = 1L))
-  )
-  if (feat.count == 0 || meta.count > feat.count) {
-    data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
-    if (drop) {
-      data.return <- unlist(x = data.return, use.names = FALSE)
-      names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
-    }
-  } else {
-    if (missing(x = j)) {
-      j <- colnames(x = x)
-    }
-    data.return <- GetAssayData(object = x)[i, j, drop = drop]
+  if (is.numeric(x = i)) {
+    i <- rownames(x = x)[i]
   }
-  return(data.return)
+  if (is.numeric(x = j)) {
+    j <- colnames(x = x)[j]
+  }
+  return(subset.Seurat(x = x, select = c(i, j), ...))
 }
 
 #' @export
@@ -2525,20 +2741,44 @@ WhichCells.Seurat <- function(
 
 #' @export
 #'
-"[[.Seurat" <- function(x, i, ...) {
-  slot.use <- unlist(x = lapply(
-    X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
-    FUN = function(s) {
-      if (i %in% names(x = slot(object = x, name = s))) {
-        return(s)
-      }
-      return(NULL)
-    }
-  ))
-  if (is.null(x = slot.use)) {
-    stop("Cannot find '", i, "' in this Seurat object")
+"[[.Seurat" <- function(x, i, ..., drop = FALSE) {
+  if (missing(x = i)) {
+    i <- colnames(x = slot(object = x, name = 'meta.data'))
   }
-  return(slot(object = x, name = slot.use)[[i]])
+  if (length(x = i) == 0) {
+    return(data.frame(row.names = colnames(x = x)))
+  } else if (length(x = i) > 1 || any(i %in% colnames(x = slot(object = x, name = 'meta.data')))) {
+    if (any(!i %in% colnames(x = slot(object = x, name = 'meta.data')))) {
+      warning(
+        "Cannot find the following bits of meta data: ",
+        paste0(
+          i[!i %in% colnames(x = slot(object = x, name = 'meta.data'))],
+          collapse = ', '
+        )
+      )
+    }
+    i <- i[i %in% colnames(x = slot(object = x, name = 'meta.data'))]
+    data.return <- slot(object = x, name = 'meta.data')[, i, drop = FALSE, ...]
+    if (drop) {
+      data.return <- unlist(x = data.return, use.names = FALSE)
+      names(x = data.return) <- rep.int(x = colnames(x = x), times = length(x = i))
+    }
+  } else {
+    slot.use <- unlist(x = lapply(
+      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
+      FUN = function(s) {
+        if (any(i %in% names(x = slot(object = x, name = s)))) {
+          return(s)
+        }
+        return(NULL)
+      }
+    ))
+    if (is.null(x = slot.use)) {
+      stop("Cannot find '", i, "' in this Seurat object")
+    }
+    data.return <- slot(object = x, name = slot.use)[[i]]
+  }
+  return(data.return)
 }
 
 #' @export
@@ -2644,8 +2884,17 @@ ggplot.DimReduc <- function(
 
 #' @export
 #' @method length DimReduc
+#'
 length.DimReduc <- function(x) {
   return(ncol(x = Embeddings(object = x)))
+}
+
+#' @rdname Idents
+#' @export
+#' @method levels Seurat
+#'
+levels.Seurat <- function(x) {
+  return(levels(x = Idents(object = x)))
 }
 
 #' @rdname merge.Seurat
@@ -2658,7 +2907,8 @@ merge.Assay <- function(
   add.cell.ids = NULL,
   min.cells = 0,
   min.features = 0,
-  merge.data = TRUE
+  merge.data = TRUE,
+  ...
 ) {
   assays <- c(x, y)
   if (!is.null(x = add.cell.ids)) {
@@ -2733,7 +2983,8 @@ merge.Seurat <- function(
   merge.data = TRUE,
   project = "SeuratProject",
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  ...
 ) {
   objects <- c(x, y)
   if (!is.null(add.cell.ids)) {
@@ -2745,12 +2996,12 @@ merge.Seurat <- function(
     }
   }
   assays.to.merge <- c()
-  for(i in 1:length(objects)) {
+  for (i in 1:length(objects)) {
     assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
   }
   assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
   combined.assays <- list()
-  for(assay in assays.to.merge) {
+  for (assay in assays.to.merge) {
     assay1 <- objects[[1]][[assay]]
     assay2 <- list()
     for(i in 2:length(objects)) {
@@ -2768,8 +3019,8 @@ merge.Seurat <- function(
   # get rid of nCount_ and nFeature_*
   combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
   new.idents <- c()
-  for(object in objects) {
-    old.meta.data <- object[]
+  for (object in objects) {
+    old.meta.data <- object[[]]
     old.meta.data[, which(grepl(pattern = "nCount_", x = colnames(old.meta.data)))] <- NULL
     old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
     if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
@@ -2784,7 +3035,7 @@ merge.Seurat <- function(
   }
   names(new.idents) <- rownames(combined.meta.data)
   new.idents <- factor(new.idents)
-  if(DefaultAssay(object = x) %in% assays.to.merge){
+  if (DefaultAssay(object = x) %in% assays.to.merge){
     new.default.assay <- DefaultAssay(object = x)
   } else if (DefaultAssay(object = y) %in% assays.to.merge) {
     new.default.assay <- DefaultAssay(object = y)
@@ -2800,12 +3051,12 @@ merge.Seurat <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  for(assay in assays.to.merge) {
-    merged.object[paste('nFeature', assay, sep = '_')] <-
+  for (assay in assays.to.merge) {
+    merged.object[[paste('nFeature', assay, sep = '_')]] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
         assay = assay, slot = "counts") > 0)
-    merged.object[paste('nCount', assay, sep = '_')] <-
+    merged.object[[paste('nCount', assay, sep = '_')]] <-
       Matrix::colSums(x = GetAssayData(
         object = merged.object,
         assay = assay,
@@ -2829,70 +3080,197 @@ names.Seurat <- function(x) {
   ))
 }
 
+#' @export
+#' @method subset Assay
+#'
+subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
+  cells <- cells %||% colnames(x = x)
+  features <- features %||% rownames(x = x)
+  if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
+    return(x)
+  }
+  if (is.numeric(x = features)) {
+    features <- rownames(x = x)[features]
+  }
+  features <- gsub(
+    pattern = paste0('^', Key(object = x)),
+    replacement = '',
+    x = features
+  )
+  features <- intersect(x = rownames(x = x), y = features)
+  if (length(x = features) == 0) {
+    stop("Cannot find features provided")
+  }
+  if (ncol(x = GetAssayData(object = x, slot = 'counts')) == ncol(x = x)) {
+    slot(object = x, name = "counts") <- GetAssayData(object = x, slot = "counts")[features, cells, drop = FALSE]
+  }
+  slot(object = x, name = "data") <- GetAssayData(object = x, slot = "data")[features, cells, drop = FALSE]
+  cells.scaled <- colnames(x = GetAssayData(object = x, slot = "scale.data"))
+  cells.scaled <- cells.scaled[cells.scaled %in% cells]
+  features.scaled <- rownames(x = GetAssayData(object = x, slot = 'scale.data'))
+  features.scaled <- features.scaled[features.scaled %in% features]
+  slot(object = x, name = "scale.data") <- if (length(x = cells.scaled) > 0 && length(x = features.scaled) > 0) {
+    GetAssayData(object = x, slot = "scale.data")[features.scaled, cells.scaled, drop = FALSE]
+  } else {
+    new(Class = 'matrix')
+  }
+  VariableFeatures(object = x) <- VariableFeatures(object = x)[VariableFeatures(object = x) %in% features]
+  slot(object = x, name = 'meta.features') <- x[[]][features, , drop = FALSE]
+  return(x)
+}
+
+#' @export
+#' @method subset DimReduc
+#'
+subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
+  cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
+  features <- rownames(x = x) %iff% features %||% rownames(x = x)
+  if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
+    return(x)
+  }
+  slot(object = x, name = 'cell.embeddings') <- if (is.null(x = cells)) {
+    new(Class = 'matrix')
+  } else {
+    if (is.numeric(x = cells)) {
+      cells <- colnames(x = x)[cells]
+    }
+    cells <- intersect(x = cells, y = colnames(x = x))
+    if (length(x = cells) == 0) {
+      stop("Cannot find cell provided", call. = FALSE)
+    }
+    x[[cells, , drop = FALSE]]
+  }
+  slot(object = x, name = 'feature.loadings') <- if (is.null(x = features)) {
+    new(Class = 'matrix')
+  } else {
+    if (is.numeric(x = features)) {
+      features <- rownames(x = x)[features]
+    }
+    features.loadings <- intersect(
+      x = rownames(x = Loadings(object = x, projected = FALSE)),
+      y = features
+    )
+    if (length(x = features.loadings) == 0) {
+      stop("Cannot find features provided", call. = FALSE)
+    }
+    Loadings(object = x, projected = FALSE)[features.loadings, , drop = FALSE]
+  }
+  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) || !Projected(object = x)) {
+    new(Class = 'matrix')
+  } else {
+    features.projected <- intersect(
+      x = rownames(x = Loadings(object = x, projected = TRUE)),
+      y = features
+    )
+    if (length(x = features.projected) == 0) {
+      stop("Cannot find features provided", call. = FALSE)
+    }
+    Loadings(object = x, projected = TRUE)[features.projected, , drop = FALSE]
+  }
+  slot(object = x, name = 'jackstraw') <- new(Class = 'JackStrawData')
+  return(x)
+}
+
 #' Subset a Seurat object
 #'
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
-#' @param ... Arguments passed to other methods
+#' @param select A vector of cells, identity classes, or features to keep
+#' @param ... Arguments passed to \code{WhichCells}
 #'
 #' @return A subsetted Seurat object
 #'
 #' @rdname subset.Seurat
 #' @aliases subset
-#' @seealso \code{\link{base::subset}}
+#' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
 #'
 #' @export
 #' @method subset Seurat
 #'
 #' @examples
-#' subset(x = pbmc_small, subset = MS4A1 > 7)
+#' subset(x = pbmc_small, subset = MS4A1 > 4)
+#' subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 #'
-subset.Seurat <- function(x, subset, ...) {
-  objects.use <- FilterObjects(object = x)
-  object.keys <- sapply(X = objects.use, FUN = function(i) {return(Key(x[[i]]))})
-  key.pattern <- paste0('^', object.keys, collapse = '|')
-  expr <- substitute(expr = subset)
-  expr.char <- as.character(x = expr)
-  expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
-  vars.use <- which(
-    x = expr.char %in% rownames(x = x) | expr.char %in% colnames(x = x[]) | grepl(pattern = key.pattern, x = expr.char, perl = TRUE)
+subset.Seurat <- function(x, subset, select = NULL, ...) {
+  if (!missing(x = subset)) {
+    subset <- deparse(expr = substitute(expr = subset))
+  }
+  cells <- select %iff% if (any(select %in% colnames(x = x))) {
+    select[select %in% colnames(x = x)]
+  } else {
+    NULL
+  }
+  idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
+    select[select %in% levels(x = Idents(object = x))]
+  } else {
+    NULL
+  }
+  cells <- WhichCells(
+    object = x,
+    cells = cells,
+    idents = idents,
+    expression = subset,
+    ...
   )
-  data.subset <- FetchData(object = x, vars = expr.char[vars.use])
-  data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
-  return(SubsetData(object = x, cells = rownames(x = data.subset)))
+  if (length(x = cells) == 0) {
+    stop("No cells found", call. = FALSE)
+  }
+  assays <- FilterObjects(object = x, classes.keep = 'Assay')
+  assay.keys <- sapply(
+    X = assays,
+    FUN = function(i) {
+      return(Key(object = x[[i]]))
+    }
+  )
+  assay.features <- unlist(
+    x = lapply(
+      X = assays,
+      FUN = function(i) {
+        return(rownames(x = x[[i]]))
+      }
+    ),
+    use.names = FALSE
+  )
+  assay.features <- unique(x = assay.features)
+  key.patterns <- paste0('^', assay.keys, collapse = '|')
+  features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
+    select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
+  } else {
+    NULL
+  }
+  for (assay in assays) {
+    assay.features <- features %||% rownames(x = x[[assay]])
+    slot(object = x, name = 'assays')[[assay]] <- tryCatch(
+      expr = subset.Assay(x = x[[assay]], cells = cells, features = assay.features),
+      error = function(e) {
+        return(NULL)
+      }
+    )
+  }
+  slot(object = x, name = 'assays') <- Filter(
+    f = Negate(f = is.null),
+    x = slot(object = x, name = 'assays')
+  )
+  if (length(x = FilterObjects(object = x, classes.keep = 'Assay')) == 0 || is.null(x = x[[DefaultAssay(object = x)]])) {
+    stop("Cannot delete the default assay", call. = FALSE)
+  }
+  for (dimreduc in FilterObjects(object = x, classes.keep = 'DimReduc')) {
+    x[[dimreduc]] <- tryCatch(
+      expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
+      error = function(e) {
+        return(NULL)
+      }
+    )
+  }
+  slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
+  slot(object = x, name = 'graphs') <- list()
+  Idents(object = x) <- Idents(object = x)[cells]
+  return(x)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-setMethod(
-  f = '[<-',
-  signature = c('x' = 'Seurat'),
-  definition = function(x, i, ..., value) {
-    meta.data <- x[]
-    cell.names <- rownames(x = meta.data)
-    if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
-      value <- value[cell.names, , drop = FALSE]
-    }
-    if (length(x = i) > 1) {
-      value <- rep_len(x = value, length.out = length(x = i))
-      for (index in 1:length(x = i)) {
-        meta.data[i[index]] <- value[index]
-      }
-    } else {
-      if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
-        meta.data[, i] <- value[cell.names]
-      } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
-        meta.data[, i] <- value
-      } else {
-        stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
-      }
-    }
-    slot(object = x, name = 'meta.data') <- meta.data
-    return(x)
-  }
-)
 
 setMethod(
   f = '[[<-',
@@ -2924,43 +3302,73 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   signature = c('x' = 'Seurat'),
   definition = function(x, i, ..., value) {
     if (!is.character(x = i)) {
-      stop("'i' must be a character")
+      stop("'i' must be a character", call. = FALSE)
     }
     if (is.null(x = value)) {
       slot.use <- FindObject(object = x, name = i)
       if (is.null(x = slot.use)) {
-        stop("Cannot find object ", i)
+        stop("Cannot find object ", i, call. = FALSE)
       }
-    } else {
-      slot.use <- switch(
-        EXPR = as.character(x = class(x = value)),
-        'Assay' = {
-          if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
-            for (slot in c('counts', 'data', 'scale.data')) {
-              assay.data <- GetAssayData(object = value, slot = slot)
-              if (nrow(x = assay.data) > 0) {
-                assay.data <- assay.data[, colnames(x = x), drop = FALSE]
-              }
-              value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
+      if (i == DefaultAssay(object = x)) {
+        stop("Cannot delete the default assay", call. = FALSE)
+      }
+    }
+    slot.use <- switch(
+      EXPR = as.character(x = class(x = value)),
+      'Assay' = {
+        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+          for (slot in c('counts', 'data', 'scale.data')) {
+            assay.data <- GetAssayData(object = value, slot = slot)
+            if (!IsMatrixEmpty(x = assay.data)) {
+              assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
+            value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
           }
-          'assays'
-        },
-        'Graph' = 'graphs',
-        'DimReduc' = {
-          if (is.null(x = DefaultAssay(object = value))) {
-            stop("Cannot add a DimReduc without an assay associated with it")
-          }
-          'reductions'
-        },
-        'SeuratCommand' = 'commands',
-        'SeuratWorkflow' = 'workflows',
-        stop("Unknown object type: ", class(x = value))
-      )
-      if (class(x = value) != 'SeuratCommand' && !all(colnames(x = value) == colnames(x = x))) {
-        stop("All cells in the object being added must match the cells in this object")
+        }
+        'assays'
+      },
+      'Graph' = 'graphs',
+      'DimReduc' = {
+        if (is.null(x = DefaultAssay(object = value))) {
+          stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+        }
+        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+          slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
+        }
+        'reductions'
+      },
+      'SeuratCommand' = 'commands',
+      'SeuratWorkflow' = 'workflows',
+      'NULL' = slot.use,
+      # stop("Unknown object type: ", class(x = value))
+      'meta.data'
+    )
+    if (slot.use == 'meta.data') {
+      meta.data <- x[[]]
+      cell.names <- rownames(x = meta.data)
+      if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
+        value <- value[cell.names, , drop = FALSE]
       }
-      if (!is.null(x = FindObject(object = x, name = i)) && class(x = value) != class(x = x[[i]])) {
+      if (length(x = i) > 1) {
+        value <- rep_len(x = value, length.out = length(x = i))
+        for (index in 1:length(x = i)) {
+          meta.data[i[index]] <- value[index]
+        }
+      } else {
+        if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
+          meta.data[, i] <- value[cell.names]
+        } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+          meta.data[, i] <- value
+        } else {
+          stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
+        }
+      }
+      slot(object = x, name = 'meta.data') <- meta.data
+    } else {
+      if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
+        stop("All cells in the object being added must match the cells in this object", call. = FALSE)
+      }
+      if (!is.null(x = FindObject(object = x, name = i)) && !(class(x = value) %in% c(class(x = x[[i]]), 'NULL'))) {
         stop(
           "This object already contains ",
           i,
@@ -2978,12 +3386,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
         Key(object = value) <- paste0(tolower(x = i), '_')
       }
+      slot(object = x, name = slot.use)[[i]] <- value
+      slot(object = x, name = slot.use) <- Filter(
+        f = Negate(f = is.null),
+        x = slot(object = x, name = slot.use)
+      )
     }
-    slot(object = x, name = slot.use)[[i]] <- value
-    slot(object = x, name = slot.use) <- Filter(
-      f = Negate(f = is.null),
-      x = slot(object = x, name = slot.use)
-    )
     gc(verbose = FALSE)
     return(x)
   }
@@ -3099,10 +3507,13 @@ setMethod(
   definition = function(object) {
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = VariableFeatures(object = object)) > 0) {
-      top.ten <- VariableFeatures(object = object)[1:10]
+      top.ten <- head(x = VariableFeatures(object = object), n = 10L)
       cat(
-        "Top 10 variable features:\n",
-        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n ')
+        "Top",
+        length(x = top.ten),
+        paste0("variable feature", if (length(x = top.ten) > 1) {'s'}, ":\n"),
+        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n '),
+        '\n'
       )
     }
   }
@@ -3117,7 +3528,7 @@ setMethod(
       'Number of dimensions:', length(x = object), '\n',
       'Projected dimensional reduction calculated: ', Projected(object = object), '\n',
       'Jackstraw run:', as.logical(x = JS(object = object)), '\n',
-      'Computed using assay:', DefaultAssay(object)
+      'Computed using assay:', DefaultAssay(object), '\n'
     )
   }
 )
@@ -3138,7 +3549,7 @@ setMethod(
       "dimensions.\n",
       "Scored for:",
       nrow(x = scored),
-      "dimensions."
+      "dimensions.\n"
     )
   }
 )
@@ -3179,7 +3590,6 @@ setMethod(
       )
     }
     cat('\n')
-    invisible(x = NULL)
   }
 )
 
@@ -3205,13 +3615,45 @@ setMethod(
   f = 'show',
   signature = 'seurat',
   definition = function(object) {
-    cat("An old seurat object\n", nrow(x = object@data), 'genes across', ncol(x = object@data), 'samples')
+    cat(
+      "An old seurat object\n",
+      nrow(x = object@data),
+      'genes across',
+      ncol(x = object@data),
+      'samples\n'
+    )
   }
 )
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Get cell names grouped by identity class
+#
+# @param object A Seurat object
+# @param cells A vector of cells to grouping to
+#
+# @return A named list where names are identity classes and values are vectors
+# of cells beloning to that class
+#
+CellsByIdentities <- function(object, cells = NULL) {
+  cells <- cells %||% colnames(x = object)
+  cells <- intersect(x = cells, y = colnames(x = object))
+  if (length(x = cells) == 0) {
+    stop("Cannot find cells provided")
+  }
+  idents <- levels(x = object)
+  cells.idents <- sapply(
+    X = idents,
+    FUN = function(i) {
+      return(cells[as.vector(x = Idents(object = object)[cells]) == i])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  return(cells.idents)
+}
 
 # Get the names of objects within a Seurat object that are of a certain class
 #
@@ -3461,29 +3903,38 @@ UpdateJackstraw <- function(old.jackstraw) {
   return(new.jackstraw)
 }
 
-
 # UpdateWorkflow
 #
 # Updates a workflow object after a command is run, and makes sure timestamps are properly set.
 #
 UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
   CheckWorkflow(object = object,workflow.name = workflow.name)
-  if(is.null(command.name)) {
-    command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
-    command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-    command.name <- ExtractField(string = command.name,field = 1,delim = "\\(")
-    command.name.seurat <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
+  if (is.null(x = command.name)) {
+    command.name <- as.character(x = deparse(expr = sys.calls()[[sys.nframe() - 1]]))
+    command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
+    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
+    command.name.seurat <- intersect(
+      x = c(command.name, paste0(command.name, ".", DefaultAssay(object = object))),
+      names(x = object)
+    )
   } else {
     command.name.seurat <- command.name
     command.name <- ExtractField(string = command.name, field = 1, delim = "\\.")
   }
-
   #TODO - Deal with Assay better
   seurat.timestamp <- Sys.time()
-  if (length(x = command.name)==1) {
-    seurat.timestamp <- slot(object = object[[command.name.seurat]], name = "time.stamp")
+  if (length(x = command.name) == 1) {
+    seurat.timestamp <- slot(
+      object = object[[command.name.seurat]],
+      name = "time.stamp"
+    )
   }
-  object <- TouchWorkflow(object = object,workflow.name = workflow.name, command.name = command.name,time.stamp = seurat.timestamp)
+  object <- TouchWorkflow(
+    object = object,
+    workflow.name = workflow.name,
+    command.name = command.name,
+    time.stamp = seurat.timestamp
+  )
   return(object)
 }
 
@@ -3493,7 +3944,7 @@ UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
 #
 # @return No return
 #
-ValidateWorkflowFile <- function(config){
+ValidateWorkflowFile <- function(config) {
   sections <- names(x = config)
   if (!'dependencies' %in% sections) {
     stop("Workflow file is missing the dependencies section")
