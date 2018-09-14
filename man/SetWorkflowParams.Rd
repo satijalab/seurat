@@ -4,8 +4,8 @@
 \alias{SetWorkflowParams}
 \title{Set Seurat workflow parameters}
 \usage{
-SetWorkflowParams(object, workflow.name = NULL, ..., fxn.param.names = NULL,
-  fxn.param.values = NULL)
+SetWorkflowParams(object, workflow.name = NULL, ...,
+  fxn.param.names = NULL, fxn.param.values = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

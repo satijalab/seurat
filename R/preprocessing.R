@@ -579,6 +579,8 @@ SampleUMI <- function(
 #'
 #' @return A Seurat object with demultiplexing results stored at object@meta.data$MULTI_ID
 #'
+#' @import Matrix
+#'
 #' @export
 #'
 #' @examples
@@ -587,12 +589,13 @@ SampleUMI <- function(
 #' }
 #'
 
-MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1)){
+MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1),verbose = TRUE){
   
   assay <- assay %||% DefaultAssay(object = object)
   multi_data <- GetAssayData(object = object,slot = "counts", assay = assay)
   multi_data <- as.data.frame(t(as.matrix(multi_data)))
   
+  multi_data_norm <- t(GetAssayData(object = object,slot = "data",assay = assay))
   
   if (autoThresh){
     iter <- 1
@@ -640,6 +643,18 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,m
   
   object@meta.data$MULTI_ID <- factor(demux_result[rownames(object@meta.data)])
   Idents(object) <- "MULTI_ID"
+  
+  bcs <- colnames(multi_data_norm)
+  bc.max <- bcs[apply(multi_data_norm,1,which.max)]
+  bc.second <- bcs[unlist(apply(multi_data_norm,1,function(x) which(x == MaxN(x))))]
+  doublet.names <- unlist(lapply(1:length(bc.max),function(x) paste(sort(c(bc.max[x], bc.second[x])), collapse =  "_")))
+  
+  doublet.id <- which(demux_result[rownames(object@meta.data)]=="Doublet")
+  
+  MULTI_classification <- as.character(object@meta.data$MULTI_ID)
+  MULTI_classification[doublet.id] <- doublet.names[doublet.id]
+  object@meta.data$MULTI_classification <- factor(MULTI_classification)
+  
   return (object)
 }
 

@@ -5,8 +5,8 @@
 \title{Visualize Dimensional Reduction genes}
 \usage{
 VizDimReduction(object, dims = 1:5, nfeatures = 30, col = "blue",
-  reduction = "pca", projected = FALSE, balanced = FALSE, ncol = NULL,
-  combine = TRUE, ...)
+  reduction = "pca", projected = FALSE, balanced = FALSE,
+  ncol = NULL, combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

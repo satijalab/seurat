@@ -9,15 +9,17 @@
 ScaleData(object, features, vars.to.regress, model.use, use.umi, do.scale,
   do.center, scale.max, block.size, min.cells.to.block, verbose, ...)
 
-\method{ScaleData}{Assay}(object, features = NULL, vars.to.regress = NULL,
-  latent.data = NULL, model.use = "linear", use.umi = FALSE,
-  do.scale = TRUE, do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, verbose = TRUE, ...)
+\method{ScaleData}{Assay}(object, features = NULL,
+  vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
+  scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
+  verbose = TRUE, ...)
 
 \method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
   vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
-  do.scale = TRUE, do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, verbose = TRUE, workflow.name = NULL, ...)
+  do.scale = TRUE, do.center = TRUE, scale.max = 10,
+  block.size = 1000, min.cells.to.block = 3000, verbose = TRUE,
+  workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

@@ -6,12 +6,13 @@
 \title{Run UMAP}
 \usage{
 RunUMAP(object, cells, dims, reduction, features, assay, max.dim,
-  reduction.name, reduction.key, n_neighbors, min_dist, metric, seed.use, ...)
+  reduction.name, reduction.key, n_neighbors, min_dist, metric, seed.use,
+  ...)
 
 \method{RunUMAP}{Seurat}(object, dims = 1:5, reduction = "pca",
-  features = NULL, assay = "RNA", max.dim = 2L, reduction.name = "umap",
-  reduction.key = "UMAP", n_neighbors = 30L, min_dist = 0.3,
-  metric = "correlation", seed.use = 42, ...)
+  features = NULL, assay = "RNA", max.dim = 2L,
+  reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
+  min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}

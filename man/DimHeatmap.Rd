@@ -5,9 +5,9 @@
 \title{Dimensional reduction heatmap}
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
-  reduction = "pca", disp.min = -2.5, disp.max = 2.5, balanced = FALSE,
-  ncol = NULL, combine = TRUE, fast = TRUE, slot = "scale.data",
-  assays = NULL, ...)
+  reduction = "pca", disp.min = -2.5, disp.max = 2.5,
+  balanced = FALSE, ncol = NULL, combine = TRUE, fast = TRUE,
+  slot = "scale.data", assays = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}

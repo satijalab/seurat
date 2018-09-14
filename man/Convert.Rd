@@ -24,8 +24,8 @@ Convert(from, ...)
 \method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)
 
-\method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
-  data.slot = "logcounts", ...)
+\method{Convert}{SingleCellExperiment}(from, to,
+  raw.data.slot = "counts", data.slot = "logcounts", ...)
 
 \method{Convert}{seurat}(from, to, filename, chunk.dims = "auto",
   chunk.size = 1000, overwrite = FALSE, display.progress = TRUE,

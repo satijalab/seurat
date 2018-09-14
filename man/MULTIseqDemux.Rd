@@ -4,8 +4,9 @@
 \alias{MULTIseqDemux}
 \title{Demultiplex samples based on classification method from MULTI-seq (McGinnis et al., bioRxiv 2018)}
 \usage{
-MULTIseqDemux(object, assay = "HTO", quantile = NULL, autoThresh = FALSE,
-  maxiter = 3, qrange = seq(from = 0.1, to = 0.9, by = 0.1))
+MULTIseqDemux(object, assay = "HTO", quantile = NULL,
+  autoThresh = FALSE, maxiter = 3, qrange = seq(from = 0.1, to = 0.9,
+  by = 0.1), verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the specified assay data has been added}

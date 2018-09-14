@@ -5,13 +5,14 @@
 \alias{FindClusters.Seurat}
 \title{Cluster Determination}
 \usage{
-FindClusters(object, modularity.fxn, resolution, algorithm, n.start, n.iter,
-  random.seed, temp.file.location, edge.file.name, verbose, ...)
+FindClusters(object, modularity.fxn, resolution, algorithm, n.start,
+  n.iter, random.seed, temp.file.location, edge.file.name, verbose, ...)
 
-\method{FindClusters}{Seurat}(object, graph.name = NULL, modularity.fxn = 1,
-  resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
-  random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
-  verbose = TRUE, workflow.name = NULL)
+\method{FindClusters}{Seurat}(object, graph.name = NULL,
+  modularity.fxn = 1, resolution = 0.8, algorithm = 1,
+  n.start = 10, n.iter = 10, random.seed = 0,
+  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
+  workflow.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}

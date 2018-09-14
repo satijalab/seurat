@@ -6,18 +6,18 @@
 \alias{RunTSNE.Seurat}
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
-RunTSNE(object, reduction, cells, seed.use, tsne.method, add.iter, dim.embed,
-  reduction.key, ...)
+RunTSNE(object, reduction, cells, seed.use, tsne.method, add.iter,
+  dim.embed, reduction.key, ...)
 
-\method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5, seed.use = 1,
-  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
+\method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
+  seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
   reduction.key = "tSNE_", ...)
 
 \method{RunTSNE}{Seurat}(object, reduction = "pca", cells = NULL,
   dims = 1:5, features = NULL, seed.use = 1, tsne.method = "Rtsne",
   add.iter = 0, dim.embed = 2, distance.matrix = NULL,
-  reduction.name = "tsne", reduction.key = "tSNE_", workflow.name = NULL,
-  ...)
+  reduction.name = "tsne", reduction.key = "tSNE_",
+  workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}

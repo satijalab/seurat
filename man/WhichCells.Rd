@@ -10,7 +10,8 @@ WhichCells(object, cells, subset.name, low.threshold, high.threshold,
   accept.value, ...)
 
 \method{WhichCells}{Assay}(object, cells, subset.name = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL, ...)
+  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
+  ...)
 
 \method{WhichCells}{Seurat}(object, cells = NULL, subset.name = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
