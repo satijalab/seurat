@@ -246,6 +246,7 @@ FindConservedMarkers <- function(
 #' @param cells.2 Vector of cell names belonging to group 2
 #'
 #' @importFrom Matrix rowSums
+#' @importFrom stats p.adjust
 #'
 #' @describeIn FindMarkers Run differential expression test on matrix
 #' @export
@@ -354,11 +355,12 @@ FindMarkers.default <- function(
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
-    if (length(ident.1) > max.cells.per.ident) {
+    # Should be cells.1 and cells.2?
+    if (length(x = cells.1) > max.cells.per.ident) {
       cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
     }
-    if (length(ident.2) > max.cells.per.ident) {
-      cells.2 = sample(x = cells.2, size = max.cells.per.ident)
+    if (length(x = cells.2) > max.cells.per.ident) {
+      cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
     }
   }
   # perform DE
@@ -745,8 +747,8 @@ DiffExpTest <- function(
 # @return Returns a p-value ranked matrix of putative differentially expressed
 # genes.
 #
-# @importFrom stats t.test
-# @importFrom pbapply pblapply
+#' @importFrom stats t.test
+#' @importFrom pbapply pblapply
 #
 # @export
 #
@@ -887,6 +889,8 @@ GLMDETest <- function(
 # @param latent.vars Latent variables to include in model
 # @param verbose Print messages
 #
+#' @importFrom lmtest lrtest
+#
 LRDETest <- function(
   data.use,
   cells.1,
@@ -901,11 +905,11 @@ LRDETest <- function(
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(group.info)]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
-  mysapply <- if (verbose) {pbsapply} else {sapply}
+  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   p_val <- mysapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
-      if(is.null(x = latent.vars)) {
+      if (is.null(x = latent.vars)) {
         model.data <- cbind(GENE = data.use[x, ], group.info)
         fmla <- as.formula(paste0("group  ~ GENE"))
         fmla2 <- as.formula("group ~ 1")

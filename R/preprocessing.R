@@ -528,7 +528,8 @@ FindVariableFeatures.default <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (!inherits(x = object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
@@ -624,7 +625,8 @@ FindVariableFeatures.Assay <- function(
   nfeatures = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
@@ -688,7 +690,8 @@ FindVariableFeatures.Seurat <- function(
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
@@ -815,7 +818,7 @@ NormalizeData.Seurat <- function(
 
 #' @export
 #'
-RunALRA.default <- function(object, k = NULL, q = 10) {
+RunALRA.default <- function(object, k = NULL, q = 10, ...) {
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
@@ -911,7 +914,8 @@ RunALRA.Seurat <- function(
   p.val.th = 1e-10,
   noise.start = NULL,
   q.k = 2,
-  k.only = FALSE
+  k.only = FALSE,
+  ...
 ) {
   if (!is.null(x = k) && k.only) {
     warning("Stop: k is already given, set k.only = FALSE or k = NULL")
@@ -1270,7 +1274,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 # @param use.umi Regress on UMI count data
 # @param verbose Display a progress bar
 #
-#' @importFrom stats as.formula
+#' @importFrom stats as.formula lm
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutMatrix <- function(

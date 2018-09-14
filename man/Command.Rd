@@ -5,9 +5,9 @@
 \alias{Command.Seurat}
 \title{Get SeuratCommands}
 \usage{
-Command(object, command, ..., value)
+Command(object, command, value, ...)
 
-\method{Command}{Seurat}(object, command, value = NULL)
+\method{Command}{Seurat}(object, command, value = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -15,6 +15,8 @@ Command(object, command, ..., value)
 \item{command}{Name of the command to pull}
 
 \item{value}{Name of the parameter to pull the value for}
+
+\item{...}{Arguments passed to other methods}
 }
 \value{
 Either the SeuratCommand object or the paramter value

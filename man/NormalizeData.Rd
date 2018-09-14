@@ -32,7 +32,7 @@ More methods to be added.}
 
 \item{verbose}{display progress bar for normalization procedure}
 
-\item{...}{arguments passed to other methods}
+\item{...}{Arguments passed to other methods}
 
 \item{assay}{Name of assay to use}
 }

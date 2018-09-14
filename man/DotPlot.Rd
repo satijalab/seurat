@@ -54,7 +54,7 @@ cells within a class (blue is high).
 \examples{
 cd_genes <- c("CD247", "CD3E", "CD9")
 DotPlot(object = pbmc_small, features = cd_genes)
-pbmc_small['groups'] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 
 }

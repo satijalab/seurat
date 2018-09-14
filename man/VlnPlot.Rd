@@ -5,7 +5,7 @@
 \title{Single cell violin plot}
 \usage{
 VlnPlot(object, features, cols = NULL, pt.size = 1, idents = NULL,
-  sort = FALSE, assay = NULL, group.by = NULL, adjust.use = 1,
+  sort = FALSE, assay = NULL, group.by = NULL, adjust = 1,
   y.max = NULL, same.y.lims = FALSE, log = FALSE, ncol = NULL,
   combine = TRUE, slot = "data", ...)
 }
@@ -28,7 +28,7 @@ expression of the attribute being potted}
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
-\item{adjust.use}{Adjust parameter for geom_violin}
+\item{adjust}{Adjust parameter for geom_violin}
 
 \item{y.max}{Maximum y axis value}
 

@@ -1156,7 +1156,7 @@ WorkflowStatus <- function(object, workflow.name, command.name) {
 #' @export
 #' @method as.SingleCellExperiment seurat
 #'
-as.SingleCellExperiment.seurat <- function(from) {
+as.SingleCellExperiment.seurat <- function(from, ...) {
   return(Convert(from = from, to = 'sce'))
 }
 
@@ -1164,7 +1164,7 @@ as.SingleCellExperiment.seurat <- function(from) {
 #' @export
 #' @method as.seurat SingleCellExperiment
 #'
-as.seurat.SingleCellExperiment <- function(from) {
+as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
 }
 
@@ -1172,7 +1172,7 @@ as.seurat.SingleCellExperiment <- function(from) {
 #' @export
 #' @method Command Seurat
 #'
-Command.Seurat <- function(object, command, value = NULL) {
+Command.Seurat <- function(object, command, value = NULL, ...) {
   commands <- slot(object = object, name = "commands")
   if (is.null(x = commands[[command]])) {
     stop(command, " has not been run or is not a valid command.")
@@ -1232,7 +1232,7 @@ Convert.anndata.base.AnnData <- function(
         )
       }
       seurat.object <- CreateSeuratObject(
-        raw.data = raw.data.matrix,
+        counts = raw.data.matrix,
         meta.data = meta.data
       )
       seurat.object <- SetAssayData(
@@ -1256,19 +1256,24 @@ Convert.anndata.base.AnnData <- function(
           dr.key <- toupper(x = dr.name)
         }
         colnames(x = dr.embed) <- paste0(dr.key, 1:ncol(x = dr.embed))
-        rownames(x = dr.embed) <- seurat.object@cell.names
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "cell.embeddings",
-          new.data = dr.embed
+        rownames(x = dr.embed) <- colnames(x = seurat.object)
+        seurat.object[[dr.name]] <- CreateDimReducObject(
+          embeddings = dr.embed,
+          key = dr.key,
+          assay = DefaultAssay(object = seurat.object)
         )
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "key",
-          new.data = dr.key
-        )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "cell.embeddings",
+        #   new.data = dr.embed
+        # )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "key",
+        #   new.data = dr.key
+        # )
       }
       seurat.object
     },
@@ -1294,7 +1299,7 @@ Convert.SingleCellExperiment <- function(
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      raw.data <- tryCatch(
+      counts <- tryCatch(
         expr = SummarizedExperiment::assay(from, raw.data.slot),
         error = function(e) {
           stop(paste0("No data in provided assay - ", raw.data.slot))
@@ -1307,27 +1312,37 @@ Convert.SingleCellExperiment <- function(
         }
       )
       meta.data <- as.data.frame(SummarizedExperiment::colData(from))
-      seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
-      seurat.object@data <- data
+      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+      # seurat.object@data <- data
+      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
         for (dr in SingleCellExperiment::reducedDimNames(from)) {
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "cell.embeddings",
-            new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          seurat.object[[dr]] <- CreateDimReducObject(
+            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
+            key = gsub(
+              pattern = "[[:digit:]]",
+              replacement = "",
+              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+              )[1]),
+            assay = DefaultAssay(object = seurat.object)
           )
-          key <- gsub(
-            pattern = "[[:digit:]]",
-            replacement = "",
-            x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-            )[1])
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "key",
-            new.data = key
-          )
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "cell.embeddings",
+          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          # )
+          # key <- gsub(
+          #   pattern = "[[:digit:]]",
+          #   replacement = "",
+          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+          #   )[1])
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "key",
+          #   new.data = key
+          # )
         }
       }
       seurat.object
@@ -1372,20 +1387,21 @@ Convert.seurat <- function(
       if (!'loomR' %in% rownames(x = installed.packages())) {
         stop("Please install loomR from GitHub before converting to a loom object")
       }
-      cell.order <- from@cell.names
-      gene.order <- rownames(x = from@raw.data)
+      # cell.order <- from@cell.names
+      cell.order <- colnames(x = from)
+      gene.order <- rownames(x = from)
       loomfile <- loomR::create(
         filename = filename,
-        data = from@raw.data[, cell.order],
-        cell.attrs = from@meta.data[cell.order, ],
-        layers = list('norm_data' = t(x = from@data[, cell.order])),
+        data = GetAssayData(object = from, slot = 'counts')[, cell.order],
+        cell.attrs = from[[]][cell.order, ],
+        layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
         chunk.dims = chunk.dims,
         chunk.size = chunk.size,
         overwrite = overwrite,
         display.progress = display.progress
       )
-      if (nrow(x = from@hvg.info) > 0) {
-        hvg.info <- from@hvg.info
+      if (nrow(x = HVFInfo(object = from)) > 0) {
+        hvg.info <- HVFInfo(object = from)
         colnames(x = hvg.info) <- gsub(
           pattern = '.',
           replacement = '_',
@@ -1394,33 +1410,33 @@ Convert.seurat <- function(
         )
         loomfile$add.row.attribute(hvg.info[gene.order, ])
       }
-      if (length(x = from@var.genes) > 0) {
-        loomfile$add.row.attribute(list('var_genes' = gene.order %in% from@var.genes))
+      if (length(x = VariableFeatures(object = from)) > 0) {
+        loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
       }
-      if (!is.null(x = from@scale.data) && dim(x = from@scale.data) != c(1, 1)) {
+      if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
         loomfile$add.layer(list(
-          'scale_data' = as.matrix(x = t(x = as.data.frame(x = from@scale.data)[gene.order, cell.order]))
+          'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
         ))
       }
-      for (dim.reduc in names(x = from@dr)) {
-        cell.embeddings <- from@dr[[dim.reduc]]@cell.embeddings
+      for (dim.reduc in FilterObjects(object = from, classes.keey = 'DimReduc')) {
+        cell.embeddings <- Embeddings(object = from[[dim.reduc]])
         ce.dims <- unique(x = dim(x = cell.embeddings))
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
           if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
             cell.embeddings.padded <- matrix(
-              nrow = ncol(x = from@raw.data),
+              nrow = ncol(x = from),
               ncol = ncol(x = cell.embeddings)
             )
-            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = from@cell.names)) {
+            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
               pad.order <- 1:nrow(x = cell.embeddings)
             } else {
               pad.order <- match(
                 x = rownames(x = cell.embeddings),
-                table = from@cell.names
+                table = colnames(x = from)
               )
             }
             cell.embeddings.padded[pad.order, ] <- cell.embeddings
-          } else if (nrow(x = cell.embeddings) > ncol(x = from@raw.data)) {
+          } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
             stop("Cannot have more cells in the dimmensional reduction than in the dataset")
           } else {
             cell.embeddings.padded <- cell.embeddings
@@ -1429,28 +1445,28 @@ Convert.seurat <- function(
           names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
           loomfile$add.col.attribute(cell.embeddings.padded)
         }
-        gene.loadings <- from@dr[[dim.reduc]]@gene.loadings
+        gene.loadings <- Loadings(object = from[[dim.reduc]])
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) == 1 && gl.dims == 0) {
-          gene.loadings <- from@dr[[dim.reduc]]@gene.loadings.full
+          gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
         }
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) != 1 || gl.dims != 0) {
           if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
             gene.loadings.padded <- matrix(
-              nrow = nrow(x = from@raw.data),
+              nrow = nrow(x = from),
               ncol = ncol(x = gene.loadings)
             )
-            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@raw.data))) {
+            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
               pad.order <- seq_len(nrow(x = gene.loadings))
             } else {
               pad.order <- match(
                 x = rownames(x = gene.loadings),
-                table = rownames(x = from@raw.data)
+                table = rownames(x = from)
               )
             }
             gene.loadings.padded[pad.order, ] <- gene.loadings
-          } else if (nrow(x = gene.loadings) > nrow(x = from@raw.data)) {
+          } else if (nrow(x = gene.loadings) > nrow(x = from)) {
             stop("Cannot have more genes in the dimmensional reduction than in the dataset")
           } else {
             gene.loadings.padded <- gene.loadings
@@ -1463,6 +1479,7 @@ Convert.seurat <- function(
       loomfile
     },
     'sce' = {
+      .NotYetImplemented()
       if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
         stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
       }
@@ -1501,6 +1518,7 @@ Convert.seurat <- function(
       sce
     },
     'anndata' = {
+      .NotYetImplemented()
       if (!py_module_available("anndata")) {
         stop("Please install the anndata python module")
       }
@@ -1641,7 +1659,7 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @export
 #' @method GetAssay Seurat
 #'
-GetAssay.Seurat <- function(object, assay = NULL) {
+GetAssay.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   if (!assay %in% object.assays) {
@@ -1658,7 +1676,7 @@ GetAssay.Seurat <- function(object, assay = NULL) {
 #' @export
 #' @method GetAssayData Assay
 #'
-GetAssayData.Assay <- function(object, slot = 'data') {
+GetAssayData.Assay <- function(object, slot = 'data', ...) {
   return(slot(object = object, name = slot))
 }
 
@@ -1889,7 +1907,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(object)
 }
 
-#' @describeIn WhichCells Get cells from an Assay object
+#' @rdname OldWhichCells
 #' @export
 #' @method OldWhichCells Assay
 #'
@@ -1945,7 +1963,7 @@ OldWhichCells.Assay <- function(
 #'
 #' @seealso \code{\link{FetchData}}
 #'
-#' @describeIn WhichCells Get cells from a Seurat object
+#' @rdname OldWhichCells
 #' @export
 #' @method OldWhichCells Seurat
 #'
@@ -2034,7 +2052,8 @@ Print.DimReduc <- function(
   object,
   dims = 1:5,
   nfeatures = 20,
-  projected = FALSE
+  projected = FALSE,
+  ...
 ) {
   loadings <- Loadings(object = object, projected = projected)
   nfeatures <- min(nfeatures, nrow(x = loadings))
@@ -2079,10 +2098,7 @@ Print.DimReduc <- function(
 #' @export
 #' @method RenameCells Assay
 #'
-RenameCells.Assay <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) == 0) {
@@ -2097,10 +2113,7 @@ RenameCells.Assay <- function(
 #' @export
 #' @method RenameCells DimReduc
 #'
-RenameCells.DimReduc <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
   rownames(old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
@@ -2119,7 +2132,8 @@ RenameCells.Seurat <- function(
   object,
   add.cell.id = NULL,
   new.names = NULL,
-  for.merge = FALSE
+  for.merge = FALSE,
+  ...
 ) {
   if (missing(x = add.cell.id) && missing(x = new.names)) {
     stop("One of 'add.cell.id' and 'new.names' must be set")
@@ -2161,7 +2175,7 @@ RenameCells.Seurat <- function(
   # rename the active.idents
   old.ids <- Idents(object = object)
   names(x = old.ids) <- new.cell.names
-  Idents(object = object, cells = rownames(x = object[[]])) <- old.ids
+  Idents(object = object) <- old.ids
   # rename the cell-level metadata
   old.meta.data <- object[[]]
   rownames(x = old.meta.data) <- new.cell.names
@@ -2169,8 +2183,7 @@ RenameCells.Seurat <- function(
   # rename the graphs
   graphs <- FilterObjects(object = object, classes.keep = "Graph")
   for (g in graphs) {
-    colnames(x = object[[g]]) <- new.cell.names
-    rownames(x = object[[g]]) <- new.cell.names
+    rownames(x = object[[g]]) <- colnames(x = object[[g]]) <- new.cell.names
   }
   return(object)
 }
@@ -2205,7 +2218,7 @@ RenameIdents.Seurat <- function(object, ...) {
 #' @export
 #' @method SetAssayData Assay
 #'
-SetAssayData.Assay <- function(object, slot, new.data) {
+SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
@@ -2271,7 +2284,7 @@ SetAssayData.Seurat <- function(
 #' @export
 #' @method SetIdent Seurat
 #'
-SetIdent.Seurat <- function(object, cells = NULL, value) {
+SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
   Idents(object = object, cells = cells) <- value
   return(object)
 }
@@ -2289,7 +2302,7 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 #' @export
 #' @method Stdev DimReduc
 #'
-Stdev.DimReduc <- function(object) {
+Stdev.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'stdev'))
 }
 
@@ -2894,7 +2907,8 @@ merge.Assay <- function(
   add.cell.ids = NULL,
   min.cells = 0,
   min.features = 0,
-  merge.data = TRUE
+  merge.data = TRUE,
+  ...
 ) {
   assays <- c(x, y)
   if (!is.null(x = add.cell.ids)) {
@@ -2969,7 +2983,8 @@ merge.Seurat <- function(
   merge.data = TRUE,
   project = "SeuratProject",
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  ...
 ) {
   objects <- c(x, y)
   if (!is.null(add.cell.ids)) {
@@ -3068,7 +3083,7 @@ names.Seurat <- function(x) {
 #' @export
 #' @method subset Assay
 #'
-subset.Assay <- function(x, cells = NULL, features = NULL) {
+subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   cells <- cells %||% colnames(x = x)
   features <- features %||% rownames(x = x)
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
@@ -3107,7 +3122,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL) {
 #' @export
 #' @method subset DimReduc
 #'
-subset.DimReduc <- function(x, cells = NULL, features = NULL) {
+subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
   features <- rownames(x = x) %iff% features %||% rownames(x = x)
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
@@ -3166,14 +3181,14 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL) {
 #' @return A subsetted Seurat object
 #'
 #' @rdname subset.Seurat
-#' @aliases subset SubsetData
+#' @aliases subset
 #' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
 #'
 #' @export
 #' @method subset Seurat
 #'
 #' @examples
-#' subset(x = pbmc_small, subset = MS4A1 > 7)
+#' subset(x = pbmc_small, subset = MS4A1 > 4)
 #' subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, select = NULL, ...) {
@@ -3258,18 +3273,6 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 setMethod(
-  f = '[<-',
-  signature = c('x' = 'Seurat'),
-  definition = function(x, i, ..., value) {
-    .Defunct(
-      new = '[[<-',
-      package = 'Seurat',
-      msg = "When setting meta data, please use '[[<-' instead"
-    )
-  }
-)
-
-setMethod(
   f = '[[<-',
   signature = c('x' = 'Assay'),
   definition = function(x, i, ..., value) {
@@ -3316,7 +3319,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
-            # if (nrow(x = assay.data) > 0) {
             if (!IsMatrixEmpty(x = assay.data)) {
               assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
@@ -3329,6 +3331,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'DimReduc' = {
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+        }
+        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+          slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
         }
         'reductions'
       },

@@ -87,7 +87,7 @@ calculating logFC. 1 by default.}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{...}{Additional parameters to pass to specific DE functions}
+\item{...}{Arguments passed to other methods and to specific DE methods}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

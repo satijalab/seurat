@@ -8,7 +8,7 @@
 \usage{
 Stdev(object, ...)
 
-\method{Stdev}{DimReduc}(object)
+\method{Stdev}{DimReduc}(object, ...)
 
 \method{Stdev}{Seurat}(object, reduction, ...)
 }

@@ -8,7 +8,7 @@
 \usage{
 GetAssayData(object, slot, ...)
 
-\method{GetAssayData}{Assay}(object, slot = "data")
+\method{GetAssayData}{Assay}(object, slot = "data", ...)
 
 \method{GetAssayData}{Seurat}(object, slot = "data", assay = NULL, ...)
 }

@@ -33,6 +33,7 @@ Imports:
     igraph,
     ini,
     irlba,
+    lars,
     lmtest,
     MASS,
     Matrix (>= 1.2.14),
@@ -50,6 +51,8 @@ Imports:
     Rtsne,
     scales,
     SDMTools,
+    tidyr,
+    tsne,
     stats,
     utils
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress

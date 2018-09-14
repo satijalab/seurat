@@ -96,7 +96,7 @@ Default is no downsampling. Not activated by default (set to Inf)}
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
-\item{\dots}{Additional parameters to pass to specific DE functions}
+\item{...}{Arguments passed to other methods and to specific DE methods}
 
 \item{cells.1}{Vector of cell names belonging to group 1}
 

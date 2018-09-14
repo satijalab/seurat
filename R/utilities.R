@@ -668,6 +668,8 @@ IsMatrixEmpty <- function(x) {
 # Documentation
 #Internal, not documented for now
 #
+#' @importFrom lars lars predict.lars
+#
 LassoFxn <- function(
   lasso.input,
   genes.obs,
@@ -769,7 +771,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
 #
 # @return Returns a scrambled matrix, where each row is shuffled independently
 #
-# @importFrom stats runif
+#' @importFrom stats runif
 #
 # @export
 #

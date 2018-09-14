@@ -268,8 +268,6 @@ PCASigGenes <- function(
   # pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values
   empirical.use <- ifelse(test = use.full, yes = 'full', no = 'empirical')
   pvals.use <- JS(object = object[['pca']], slot = empirical.use)
-  # pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings")
-  # pcx.use <- Loadings.DimReduc(object = object[['pca']], projected = use.full)
   if (length(x = pcs.use) == 1) {
     pvals.min <- pvals.use[, pcs.use]
   }
@@ -281,23 +279,13 @@ PCASigGenes <- function(
   if (!is.null(x = max.per.pc)) {
     top.features <- TopFeatures(
       object = object[['pca']],
-      dim.use = pcs.use,
+      dim = pcs.use,
       nfeatures = max.per.pc,
       projected = use.full,
       balanced = FALSE
     )
     features <- intersect(x = top.features, y = features)
   }
-  # if (!is.null(x = max.per.pc)) {
-  #   pc.top.genes <- PCTopGenes(
-  #     object = object,
-  #     pc.use = pcs.use,
-  #     num.genes = max.per.pc,
-  #     use.full = use.full,
-  #     balanced = FALSE
-  #   )
-  #   genes.use <- intersect(x = pc.top.genes, y = genes.use)
-  # }
   return(features)
 }
 
@@ -312,7 +300,7 @@ PCASigGenes <- function(
 #' @param reduction Reduction to use
 #' @param assay Assay to use
 #' @param dims.print Number of dims to print features for
-#' @param features.print Number of features with highest/lowest loadings to print for
+#' @param nfeatures.print Number of features with highest/lowest loadings to print for
 #' each dimension
 #' @param overwrite Replace the existing data in feature.loadings
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
@@ -333,7 +321,7 @@ ProjectDim <- function(
   reduction = "pca",
   assay = NULL,
   dims.print = 1:5,
-  features.print = 20,
+  nfeatures.print = 20,
   overwrite = FALSE,
   do.center = FALSE,
   verbose = TRUE
@@ -361,7 +349,7 @@ ProjectDim <- function(
     Print(
       object = redeuc,
       dims = dims.print,
-      nfeatures = features.print,
+      nfeatures = nfeatures.print,
       projected = TRUE
     )
   }
@@ -386,7 +374,8 @@ RunCCA.default <- function(
   standardize = TRUE,
   num.cc = 20,
   verbose = FALSE,
-  use.cpp=TRUE
+  use.cpp = TRUE,
+  ...
 ) {
   set.seed(seed = 42)
   cells1 <- colnames(object1)
@@ -542,7 +531,8 @@ RunMultiCCA.default <- function(
   niter = 25,
   num.ccs = 1,
   standardize = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   cell.names <- c()
   set.seed(seed = 42)
@@ -739,7 +729,7 @@ RunPCA.default <- function(
   weight.by.var = TRUE,
   verbose = TRUE,
   print.dims = 1:5,
-  features.print = 30,
+  nfeatures.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
@@ -782,7 +772,7 @@ RunPCA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = print.dims, nfeatures = features.print)
+    Print(object = reduction.data, dims = print.dims, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }
@@ -800,7 +790,7 @@ RunPCA.Assay <- function(
   weight.by.var = TRUE,
   verbose = TRUE,
   print.dims = 1:5,
-  features.print = 30,
+  nfeatures.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
@@ -819,7 +809,7 @@ RunPCA.Assay <- function(
     weight.by.var = weight.by.var,
     verbose = verbose,
     print.dims = print.dims,
-    features.print = features.print,
+    nfeatures.print = nfeatures.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     seed.use = seed.use,
@@ -844,7 +834,7 @@ RunPCA.Seurat <- function(
   weight.by.var = TRUE,
   verbose = TRUE,
   print.dims = 1:5,
-  features.print = 30,
+  nfeatures.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
@@ -865,7 +855,7 @@ RunPCA.Seurat <- function(
     weight.by.var = weight.by.var,
     verbose = verbose,
     print.dims = print.dims,
-    feature.print = features.print,
+    nfeatures.print = nfeatures.print,
     reduction.name = reduction.name,
     reduction.key = reduction.key,
     seed.use = seed.use,
@@ -879,7 +869,7 @@ RunPCA.Seurat <- function(
   return(object)
 }
 
-# @importFrom tsne tsne
+#' @importFrom tsne tsne
 #' @importFrom Rtsne Rtsne
 #'
 #' @export
@@ -906,7 +896,6 @@ RunTSNE.matrix <- function(
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
-    # 'tsne' = tsne(X = object, k = dim.embed, ...),
     stop("Invalid tSNE method: please choose from 'Rtsne' or 'FIt-SNE'")
   )
   if (add.iter > 0) {

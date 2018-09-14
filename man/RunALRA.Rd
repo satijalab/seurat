@@ -10,7 +10,7 @@ RunALRA(object, k, q, ...)
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
   K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
-  k.only = FALSE)
+  k.only = FALSE, ...)
 }
 \arguments{
 \item{object}{a Seurat object}
@@ -19,6 +19,8 @@ RunALRA(object, k, q, ...)
 
 \item{q}{The number of additional power iterations in randomized SVD when
 computing rank k approximation. By default, q=10.}
+
+\item{...}{Arguments passed to other methods}
 
 \item{assay}{Assay to use}
 
@@ -66,6 +68,7 @@ do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
 # Run ALRA with the chosen k
 pbmc_small_alra <- RunALRA(pbmc_small_alra)
 }
+
 }
 \references{
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation

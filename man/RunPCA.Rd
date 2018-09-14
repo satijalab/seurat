@@ -7,16 +7,16 @@
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
 RunPCA(object, pcs.compute, rev.pca, weight.by.var, verbose, pcs.print,
-  features.print, reduction.name, reduction.key, seed.use, ...)
+  nfeatures.print, reduction.name, reduction.key, seed.use, ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
   compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, print.dims = 1:5, features.print = 30,
+  verbose = TRUE, print.dims = 1:5, nfeatures.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
   compute.dims = 20, rev.pca = FALSE, weight.by.var = TRUE,
-  verbose = TRUE, print.dims = 1:5, features.print = 30,
+  verbose = TRUE, print.dims = 1:5, nfeatures.print = 30,
   reduction.name = "pca", reduction.key = "PC", seed.use = 42,
   workflow.name = NULL, ...)
 }
@@ -32,7 +32,7 @@ to true will compute it on gene x cell matrix.}
 \item{verbose}{Print the top genes associated with high/low loadings for
 the PCs}
 
-\item{features.print}{Number of genes to print for each PC}
+\item{nfeatures.print}{Number of genes to print for each PC}
 
 \item{reduction.name}{dimensional reduction name,  pca by default}
 
@@ -42,7 +42,7 @@ the number for the dimension names. PC by default}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
 
-\item{\dots}{Additional arguments to be passed to IRLBA}
+\item{...}{Arguments passed to other methods and IRLBA}
 
 \item{assay}{Name of Assay PCA is being run on}
 

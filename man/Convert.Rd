@@ -17,9 +17,9 @@ as.seurat(from)
 
 Convert(from, ...)
 
-\method{as.SingleCellExperiment}{seurat}(from)
+\method{as.SingleCellExperiment}{seurat}(from, ...)
 
-\method{as.seurat}{SingleCellExperiment}(from)
+\method{as.seurat}{SingleCellExperiment}(from, ...)
 
 \method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)
@@ -34,7 +34,7 @@ Convert(from, ...)
 \arguments{
 \item{from}{Object to convert from}
 
-\item{...}{Arguments passed to and from other methods}
+\item{...}{Arguments passed to other methods}
 
 \item{to}{Class of object to convert to}
 

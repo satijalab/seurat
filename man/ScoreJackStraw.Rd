@@ -26,6 +26,8 @@ ScoreJackStraw(object, dims, score.thresh, ...)
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
 
+\item{...}{Arguments passed to other methods}
+
 \item{do.plot}{Show plot. To return ggplot object, use \code{JackStrawPlot} after
 running ScoreJackStraw.}
 

@@ -380,7 +380,7 @@ RidgePlot <- function(
 #'
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
-#' @param adjust.use Adjust parameter for geom_violin
+#' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A ggplot object
 #'
@@ -398,7 +398,7 @@ VlnPlot <- function(
   sort = FALSE,
   assay = NULL,
   group.by = NULL,
-  adjust.use = 1,
+  adjust = 1,
   y.max = NULL,
   same.y.lims = FALSE,
   log = FALSE,
@@ -417,7 +417,7 @@ VlnPlot <- function(
     assay = assay,
     y.max = y.max,
     same.y.lims = same.y.lims,
-    adjust.use = adjust.use,
+    adjust = adjust,
     pt.size = pt.size,
     cols = cols,
     group.by = group.by,
@@ -1069,6 +1069,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #'
 #' @return A ggplot object
 #'
+#' @importFrom grDevices colorRampPalette
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string scale_size scale_radius geom_point theme element_blank labs
 #' scale_color_identity scale_color_distiller scale_color_gradient guides guide_legend guide_colorbar
@@ -1080,7 +1081,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #' @examples
 #' cd_genes <- c("CD247", "CD3E", "CD9")
 #' DotPlot(object = pbmc_small, features = cd_genes)
-#' pbmc_small['groups'] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
+#' pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 #' DotPlot(object = pbmc_small, features = cd_genes, split.by = 'groups')
 #'
 DotPlot <- function(
@@ -1269,6 +1270,7 @@ ElbowPlot <- function(
 #'
 #' @author Thanks to Omri Wurtzel for integrating with ggplot
 #'
+#' @importFrom stats qunif
 #' @importFrom ggplot2 ggplot aes_string stat_qq labs xlim ylim
 #' coord_flip geom_abline guides guide_legend
 #' @importFrom cowplot theme_cowplot
@@ -1495,7 +1497,7 @@ BlueAndRed <- function(k = 50) {
 #' @export
 #'
 #' @examples
-#' pbmc_small['group'] <- sample(
+#' pbmc_small[['group']] <- sample(
 #'   x = c('g1', 'g2'),
 #'   size = ncol(x = pbmc_small),
 #'   replace = TRUE
@@ -1509,7 +1511,7 @@ BlueAndRed <- function(k = 50) {
 #' CombinePlots(
 #'   plots = plots,
 #'   legend = 'none',
-#'   nrow = length(x = unique(x = pbmc_small['group', drop = TRUE]))
+#'   nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 #' )
 #'
 CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
@@ -1762,8 +1764,9 @@ HoverLocator <- function(
 #' @seealso \code{\link{ggplot2::geom_text}}
 #'
 #' @examples
-#' plot <- CellScatter(object = pbmc_small)
+#' ff <- TopFeatures(object = pbmc_small[['pca']])
 #' cc <- TopCells(object = pbmc_small[['pca']])
+#' plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
 #' Labeler(plot = plot, points = cc)
 #'
 Labeler <- function(
@@ -2416,6 +2419,9 @@ globalVariables(
 # but may result in metagenes constructed on fewer than num.genes genes.
 # @param display.progress Show progress bar
 #
+#' @importFrom tidyr gather
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#
 EvaluateCCs <- function(
   object,
   grouping.var,
@@ -2425,15 +2431,20 @@ EvaluateCCs <- function(
   display.progress
 ) {
   reduction.type <-  "cca"
-  ident.orig <- object@ident
-  object <- SetAllIdent(object = object, id = grouping.var)
-  levels.split <- names(x = sort(x = table(object@ident), decreasing = T))
-  num.groups <- length(levels.split)
+  ident.orig <- Idents(object = object)
+  # object <- SetAllIdent(object = object, id = grouping.var)
+  Idents(object = object) <- grouping.var
+  levels.split <- names(x = sort(
+    x = table(Idents(object = object)),
+    decreasing = TRUE
+  ))
+  num.groups <- length(x = levels.split)
   objects <- list()
   for (i in 1:num.groups) {
     objects[[i]] <- subset(x = object, select = levels.split[i])
   }
-  object@ident <- ident.orig
+  # object@ident <- ident.orig
+  Idents(object = object) <- ident.orig
   cc.loadings <- list()
   scaled.data <- list()
   cc.embeds <- list()
@@ -2446,24 +2457,24 @@ EvaluateCCs <- function(
     )
     objects[[i]] <- ProjectDim(
       object = objects[[i]],
-      reduction.type = reduction.type,
-      do.print = FALSE
+      reduction = reduction.type,
+      verbose = FALSE
     )
-    cc.loadings[[i]] <- GetGeneLoadings(
-      object = objects[[i]],
-      reduction.type = reduction.type,
-      use.full = TRUE
+    cc.loadings[[i]] <- Loadings(
+      object = objects[[i]][[reduction.type]],
+      projected = TRUE
     )
-    cc.embeds[[i]] <- GetCellEmbeddings(
-      object = objects[[i]],
-      reduction.type = reduction.type
-    )
-    scaled.data[[i]] <- objects[[i]]@scale.data
+    cc.embeds[[i]] <- Embeddings(object = objects[[i]][[reduction.type]])
+    scaled.data[[i]] <- GetAssayData(object = objects[[i]], slot = 'scale.data')
   }
   bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
   if (display.progress) {
     cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
-    pb <- txtProgressBar(min = 0, max = length(dims.eval) * (num.groups - 1), style = 3)
+    pb <- txtProgressBar(
+      min = 0,
+      max = length(x = dims.eval) * (num.groups - 1),
+      style = 3
+    )
     pb.idx <- 0
   }
   for (cc.use in dims.eval) {
@@ -2471,7 +2482,7 @@ EvaluateCCs <- function(
     for (g in 2:num.groups) {
       if (display.progress) {
         pb.idx <- pb.idx + 1
-        setTxtProgressBar(pb, pb.idx)
+        setTxtProgressBar(pb = pb, value = pb.idx)
       }
       genes.rank <- data.frame(
         rank(x = abs(x = cc.loadings[[1]][, cc.use])),
@@ -2481,7 +2492,7 @@ EvaluateCCs <- function(
       )
       genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(genes.rank))]
+      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(x = genes.rank))]
       bicors <- list()
       for (i in c(1, g)) {
         cc.vals <- cc.embeds[[i]][, cc.use]
@@ -2500,21 +2511,21 @@ EvaluateCCs <- function(
       )
       genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
       # genes must be correlated in same direction in both datasets
-      genes.rank <- genes.rank[sign(genes.rank[,3]) == sign(genes.rank[,4]), ]
+      genes.rank <- genes.rank[sign(x = genes.rank[,3]) == sign(x = genes.rank[,4]), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
       genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      bc.gene[cc.use, g] <- mean(abs(genes.rank[1:gene.num, 4]))
-      bc.gene.g1 <- c(bc.gene.g1, mean(abs(genes.rank[1:gene.num, 3])))
+      bc.gene[cc.use, g] <- mean(x = abs(x = genes.rank[1:gene.num, 4]))
+      bc.gene.g1 <- c(bc.gene.g1, mean(x = abs(x = genes.rank[1:gene.num, 3])))
     }
-    bc.gene[cc.use, 1] <- abs(mean(bc.gene.g1))
+    bc.gene[cc.use, 1] <- abs(x = mean(x = bc.gene.g1))
   }
   if (display.progress) {
-    close(pb)
+    close(con = pb)
   }
-  colnames(bc.gene) <- levels.split
-  bc.gene <- as.data.frame(bc.gene)
-  bc.gene$cc <- 1:nrow(bc.gene)
-  bc.gene <- gather(bc.gene, key = "Group",  value = "bicor", -cc)
+  colnames(x = bc.gene) <- levels.split
+  bc.gene <- as.data.frame(x = bc.gene)
+  bc.gene$cc <- 1:nrow(x = bc.gene)
+  bc.gene <- gather(data = bc.gene, key = "Group",  value = "bicor", -cc)
   return(bc.gene)
 }
 
@@ -2618,11 +2629,11 @@ ExIPlot <- function(
 #
 FixPlotParam <- function(object, function.name, param.name, param.value) {
   if ("PlotParams" %in% names(object@misc)) {
-    object@misc[["PlotParams"]][paste(function.name, param.name, sep=":")] <- param.value
+    object@misc[["PlotParams"]][paste(function.name, param.name, sep = ":")] <- param.value
   }
   else {
-    plotParamsList=list()
-    plotParamsList[paste(function.name, param.name, sep=":")] <- param.value
+    plotParamsList <- list()
+    plotParamsList[paste(function.name, param.name, sep = ":")] <- param.value
     object@misc[["PlotParams"]] <- plotParamsList
   }
   return(object)
@@ -2672,6 +2683,8 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # The first column should be the X axis, the second the Y, and the third should be grouping information
 #
 # @return A dataframe with three columns: centers along the X axis, centers along the Y axis, and group information
+#
+#' @importFrom stats median
 #
 MakeLabels <- function(data) {
   groups <- as.character(x = na.omit(object = unique(x = data[, 3])))
@@ -3188,7 +3201,7 @@ SingleDimPlot <- function(
 # @param sort Sort identity classes (on the x-axis) by the average
 # expression of the attribute being potted
 # @param y.max Maximum Y value to plot
-# @param adjust.use Adjust parameter for geom_violin
+# @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
 # @param feature.names
 # @param log plot Y axis on log scale
@@ -3210,7 +3223,7 @@ SingleExIPlot <- function(
   type = 'violin',
   sort = FALSE,
   y.max = NULL,
-  adjust.use = 1,
+  adjust = 1,
   pt.size = 0,
   cols = NULL,
   log = FALSE,
@@ -3253,7 +3266,7 @@ SingleExIPlot <- function(
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
-        geom_violin(scale = 'width', adjust = adjust.use, trim = TRUE),
+        geom_violin(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       jitter <- geom_jitter(height = 0, size = pt.size)
@@ -3302,6 +3315,8 @@ SingleExIPlot <- function(
 # @param data matrix of data to plot
 # @param order optional vector of cell names to specify order in plot
 # @param title Title for plot
+#
+#' @importFrom graphics par plot.new
 #
 SingleImageMap <- function(data, order = NULL, title = NULL) {
   if (!is.null(x = order)) {
