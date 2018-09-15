@@ -1164,10 +1164,10 @@ RunUMAP.Seurat <- function(
   ...
 ) {
   data.use <- if (is.null(x = features)) {
-    Embeddings(object[[reduction]])[cells, dims]
+    Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[['reduction']])
   } else {
-    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, cells])
+    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
