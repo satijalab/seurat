@@ -14,7 +14,7 @@ RunMultiCCA(object.list, ...)
 \method{RunMultiCCA}{Seurat}(object.list, assay = NULL,
   features = NULL, add.cell.ids = NULL, niter = 25, num.ccs = 1,
   standardize = TRUE, renormalize = TRUE,
-  compute.gene.loadings = TRUE, verbose = TRUE)
+  compute.gene.loadings = TRUE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object.list}{List of Seurat objects}
@@ -36,11 +36,13 @@ and scaled to have a standard deviation of 1.}
 \item{features}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
 
+\item{add.cell.ids}{...}
+
+\item{renormalize}{Renormalize raw data after merging the objects. If FALSE,
+merge the data matrices also.}
+
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
-
-\item{renormlize}{Renormalize raw data after merging the objects. If FALSE,
-merge the data matrices also.}
 }
 \value{
 Returns a combined Seurat object with the CCA stored as a DimReduc
@@ -48,11 +50,6 @@ Returns a combined Seurat object with the CCA stored as a DimReduc
 \description{
 Runs a canonical correlation analysis
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Run mCCA on a Seurat object
-}}
-
 \examples{
 \dontrun{
 pbmc_small

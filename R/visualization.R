@@ -1934,6 +1934,8 @@ DarkTheme <- function(...) {
 }
 
 #' @inheritParams SeuratTheme
+#' @param keep.text Keep axis text
+#' @param keep.ticks Keep axis ticks
 #'
 #' @importFrom ggplot2 theme element_blank
 #' @export

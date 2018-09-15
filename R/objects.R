@@ -966,7 +966,7 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #' Return a list of features with the strongest contribution to a set of components
 #'
 #' @param object DimReduc object
-#' @param dim.use Dimension to use
+#' @param dim Dimension to use
 #' @param nfeatures Number of features to return
 #' @param projected Use the full PCA (projected PCA). Default i s FALSE
 #' @param balanced Return an equal number of features with both + and - scores.
@@ -1001,8 +1001,8 @@ TopFeatures <- function(
 #' Return a list of genes with the strongest contribution to a set of components
 #'
 #' @param object DimReduc object
-#' @param dim.use Dimension to use
-#' @param num.cells Number of cells to return
+#' @param dim Dimension to use
+#' @param ncells Number of cells to return
 #' @param balanced Return an equal number of cells with both + and - scores.
 #'
 #' @return Returns a vector of cells
@@ -1983,7 +1983,6 @@ OldWhichCells.Assay <- function(
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
 #' @param assay Which assay to filter on
-#' @param ... Extra parameters passed to \code{FetchData}
 #'
 #' @seealso \code{\link{FetchData}}
 #'
@@ -2361,13 +2360,6 @@ Stdev.Seurat <- function(object, reduction, ...) {
 #' @param low.threshold Low cutoff for the parameter (default is -Inf)
 #' @param high.threshold High cutoff for the parameter (default is Inf)
 #' @param accept.value Returns cells with the subset name equal to this value
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data. FALSE by default
-#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
-#' other slots. Can be useful if you want to start a fresh analysis on just a
-#' subset of the data. Also clears out stored clustering results in
-#' object@@meta.data (any columns containing "res"). Will by default subset the
-#' raw.data slot.
 #'
 #' @rdname SubsetData
 #' @export
@@ -2380,7 +2372,6 @@ SubsetData.Assay <- function(
   low.threshold = -Inf,
   high.threshold = Inf,
   accept.value = NULL,
-  do.clean = FALSE,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
@@ -2429,7 +2420,6 @@ SubsetData.Seurat <- function(
   accept.value = NULL,
   max.cells.per.ident = Inf,
   random.seed = 1,
-  do.clean = FALSE,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -3017,6 +3007,7 @@ merge.Assay <- function(
 #' The merge will not preserve reductions, graphs or logged commands that were
 #' present in the original objects.
 #'
+#' @inheritParams CreateSeuratObject
 #' @param x Object
 #' @param y Object (or a list of multiple objects)
 #' @param add.cell.ids A character vector of length(x = c(x, y)). Appends the
@@ -3024,7 +3015,7 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
-#' @inheritParams CreateSeuratObject
+#' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
 #'

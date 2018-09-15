@@ -94,7 +94,6 @@ DefaultAssay <- function(object, ...) {
 
 #' @inheritParams DefaultAssay
 #' @param value Name of assay to set as default
-#' @param ... Arguments passed to other methods
 #'
 #' @return An object with the new default assay
 #'
@@ -256,8 +255,9 @@ HVFInfo <- function(object, ...) {
 
 #' Get, set, and manipulate an object's identity classes
 #'
-#' @param object An object
-#' @param ... Arguments passed to other methods
+#' @param x,object An object
+#' @param ... Arguments passed to other methods; for \code{RenameIdents}: named
+#' arguments as \code{old.ident = new.ident}
 #'
 #' @return \code{Idents}: The cell identies
 #'
@@ -273,7 +273,7 @@ Idents <- function(object, ... ) {
 }
 
 #' @inheritParams Idents
-#' @param value,idents The name of the identites to pull from object metadata or the identities themselves
+#' @param value The name of the identites to pull from object metadata or the identities themselves
 #'
 #' @return \code{Idents<-}: An object with the cell identites changed
 #'
@@ -417,7 +417,7 @@ NormalizeData <- function(object, ...) {
 #' identity class, high/low values for particular PCs, ect..
 #'
 #' @param object An object
-#' @param ... Arguments passed to other methods
+#' @param ... Arguments passed to other methods and \code{FetchData}
 #'
 #' @return A vector of cell names
 #'
@@ -470,7 +470,6 @@ RenameCells <- function(object, ...) {
 }
 
 #' @inheritParams Idents
-#' @param ... \code{RenameIdents}: named arguments as \code{old.ident = new.ident}
 #'
 #' @return \code{RenameIdents}: An object with selected
 #'
@@ -716,7 +715,7 @@ ScaleData <- function(object, ...) {
 #' @rdname ScoreJackStraw
 #' @export ScoreJackStraw
 #'
-ScoreJackStraw <- function(object, dims, score.thresh, ...) {
+ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
@@ -745,7 +744,7 @@ SetAssayData <- function(object, ...) {
 #' cells.use <- WhichCells(object = pbmc_small, idents = ident.levels[1])
 #' pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'cluster0')
 #'
-SetIdent <- function(object, value, ...) {
+SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
@@ -793,7 +792,7 @@ Stdev <- function(object, ...) {
 #' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc1
 #'
-SubsetData <- function(object, slot, ...) {
+SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 

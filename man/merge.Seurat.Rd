@@ -30,6 +30,8 @@ matrix as well. To reintroduce excluded features, create a new object with a low
 (which requires renormalization). This is recommended if the same normalization
 approach was applied to all objects.}
 
+\item{...}{Arguments passed to other methods}
+
 \item{project}{Sets the project name for the Seurat object.}
 }
 \value{

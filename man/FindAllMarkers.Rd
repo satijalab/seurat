@@ -82,6 +82,9 @@ Default is no downsampling. Not activated by default (set to Inf)}
 \item{latent.vars}{Variables to test, used only when \code{test.use} is one of
 'negbinom', 'poisson', or 'MAST'}
 
+\item{min.cells.feature}{Minimum number of cells expressing the feature in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when

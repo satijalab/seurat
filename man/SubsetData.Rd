@@ -6,16 +6,16 @@
 \alias{SubsetData.Seurat}
 \title{Return a subset of the Seurat object}
 \usage{
-SubsetData(object, slot, ...)
+SubsetData(object, ...)
 
 \method{SubsetData}{Assay}(object, cells = NULL, subset.name = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  do.clean = FALSE, ...)
+  ...)
 
 \method{SubsetData}{Seurat}(object, assay = NULL, cells = NULL,
   subset.name = NULL, ident.use = NULL, ident.remove = NULL,
   low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  max.cells.per.ident = Inf, random.seed = 1, do.clean = FALSE, ...)
+  max.cells.per.ident = Inf, random.seed = 1, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -36,12 +36,6 @@ using FetchData}
 
 \item{accept.value}{Returns cells with the subset name equal to this value}
 
-\item{do.clean}{Only keep object@raw.data and object@data. Cleans out most
-other slots. Can be useful if you want to start a fresh analysis on just a
-subset of the data. Also clears out stored clustering results in
-object@meta.data (any columns containing "res"). Will by default subset the
-raw.data slot.}
-
 \item{assay}{Assay to subset on}
 
 \item{ident.use}{Create a cell subset based on the provided identity classes}
@@ -53,10 +47,6 @@ filtration)}
 max per cell ident. Default is INF.}
 
 \item{random.seed}{Random seed for downsampling}
-
-\item{do.center}{Recenter the new object@scale.data}
-
-\item{do.scale}{Rescale the new object@scale.data. FALSE by default}
 }
 \value{
 Returns a Seurat object containing only the relevant subset of cells

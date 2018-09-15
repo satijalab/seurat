@@ -35,6 +35,10 @@ WhiteBackground(...)
 }
 \arguments{
 \item{...}{Extra parameters to be passed to \code{theme}}
+
+\item{keep.text}{Keep axis text}
+
+\item{keep.ticks}{Keep axis ticks}
 }
 \value{
 A ggplot2 theme object

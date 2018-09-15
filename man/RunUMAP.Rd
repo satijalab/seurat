@@ -35,6 +35,12 @@ general this parameter should often be in the range 5 to 50.}
 distance in the input space. A wide variety of metrics are already coded, and
 a user defined function can be passed as long as it has been JITd by numba.}
 
+\item{min.dist}{min_dist: This controls how tightly the embedding is allowed
+compress points together. Larger values ensure embedded points are more
+evenly distributed, while smaller values allow the algorithm to optimise more
+accurately with regard to local structure. Sensible values are in the range
+0.001 to 0.5.}
+
 \item{reduction.key}{dimensional reduction key, specifies the string before
 the number for the dimension names. UMAP by default}
 
@@ -52,14 +58,6 @@ set of reduced dimensions). Not set (NULL) by default}
 
 \item{reduction.name}{dimensional reduction name, specifies the position in
 the object$dr list. umap by default}
-
-\item{min_dist}{min_dist: This controls how tightly the embedding is allowed
-compress points together. Larger values ensure embedded points are more
-evenly distributed, while smaller values allow the algorithm to optimise more
-accurately with regard to local structure. Sensible values are in the range
-0.001 to 0.5.}
-
-\item{cells}{Which cells to analyze (default, all cells)}
 }
 \value{
 Returns a Seurat object containing a UMAP representation

@@ -7,7 +7,7 @@
 \alias{ScoreJackStraw.Seurat}
 \title{Compute Jackstraw scores significance.}
 \usage{
-ScoreJackStraw(object, dims, score.thresh, ...)
+ScoreJackStraw(object, ...)
 
 \method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5,
   score.thresh = 1e-05, ...)
@@ -21,12 +21,12 @@ ScoreJackStraw(object, dims, score.thresh, ...)
 \arguments{
 \item{object}{An object}
 
+\item{...}{Arguments passed to other methods}
+
 \item{dims}{Which dimensions to examine}
 
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
-
-\item{...}{Arguments passed to other methods}
 
 \item{reduction}{Reduction associated with JackStraw to score}
 

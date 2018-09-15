@@ -24,8 +24,6 @@ DefaultAssay(object, ...) <- value
 \item{...}{Arguments passed to other methods}
 
 \item{value}{Name of assay to set as default}
-
-\item{...}{Arguments passed to other methods}
 }
 \value{
 The name of the default assay

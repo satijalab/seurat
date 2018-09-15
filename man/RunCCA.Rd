@@ -37,13 +37,15 @@ and mean 0}
 \item{features}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
 
+\item{renormalize}{Renormalize raw data after merging the objects. If FALSE,
+merge the data matrices also.}
+
 \item{rescale}{Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.}
 
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
 
-\item{renormlize}{Renormalize raw data after merging the objects. If FALSE,
-merge the data matrices also.}
+\item{add.cell.id1, add.cell.id2}{Add ...}
 }
 \value{
 Returns a combined Seurat object with the CCA results stored.

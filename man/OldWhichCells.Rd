@@ -20,7 +20,7 @@ OldWhichCells(object, ...)
 \arguments{
 \item{object}{An object}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Arguments passed to other methods and \code{FetchData}}
 
 \item{cells}{Subset of cell names}
 
@@ -45,8 +45,6 @@ max per cell ident. Default is INF.}
 \item{random.seed}{Random seed for downsampling}
 
 \item{assay}{Which assay to filter on}
-
-\item{...}{Extra parameters passed to \code{FetchData}}
 }
 \value{
 A vector of cell names

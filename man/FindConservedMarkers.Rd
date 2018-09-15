@@ -8,7 +8,7 @@ FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
   assay.type = "RNA", meta.method = minimump, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{ident.1}{Identity class to define markers for}
 

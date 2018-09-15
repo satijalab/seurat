@@ -411,11 +411,12 @@ RunCCA.default <- function(
 #' @param assay1,assay2 Assays to pull from in the first and second objects, respectively
 #' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
-#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' @param renormalize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
 #' @param rescale Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.
 #' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
 #' scale every gene in the dataset which may impose a high memory cost.
+#' @param add.cell.id1,add.cell.id2 Add ...
 #'
 #' @rdname RunCCA
 #' @export
@@ -613,11 +614,13 @@ RunMultiCCA.default <- function(
 #' @param assay Assay to use
 #' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
-#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' @param add.cell.ids ...
+#' @param renormalize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
 #' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
 #' scale every gene in the dataset which may impose a high memory cost.
-#' @describeIn RunMultiCCA Run mCCA on a Seurat object
+#'
+#' @rdname RunMultiCCA
 #' @export
 #' @method RunMultiCCA Seurat
 #'
@@ -631,7 +634,8 @@ RunMultiCCA.Seurat <- function(
   standardize = TRUE,
   renormalize = TRUE,
   compute.gene.loadings = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   set.seed(seed = 42)
   for(object in object.list) {
@@ -1080,7 +1084,7 @@ RunTSNE.Seurat <- function(
 #' @param metric metric: This determines the choice of metric used to measure
 #' distance in the input space. A wide variety of metrics are already coded, and
 #' a user defined function can be passed as long as it has been JITd by numba.
-#' @param min_dist min_dist: This controls how tightly the embedding is allowed
+#' @param min.dist min_dist: This controls how tightly the embedding is allowed
 #' compress points together. Larger values ensure embedded points are more
 #' evenly distributed, while smaller values allow the algorithm to optimise more
 #' accurately with regard to local structure. Sensible values are in the range
@@ -1131,7 +1135,6 @@ RunUMAP.default <- function(
   return(umap.reduction)
 }
 
-#' @param cells Which cells to analyze (default, all cells)
 #' @param dims Which dimensions to use as input features, used only if
 #' \code{genes.use} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
@@ -1161,10 +1164,10 @@ RunUMAP.Seurat <- function(
   ...
 ) {
   data.use <- if (is.null(x = features)) {
-    Embeddings(object[[reduction]])[,dims]
+    Embeddings(object[[reduction]])[cells, dims]
     assay <- DefaultAssay(object = object[['reduction']])
   } else {
-    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, cells])
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
@@ -1228,12 +1231,7 @@ ScoreJackStraw.JackStrawData <- function(
 #' @export
 #' @method ScoreJackStraw DimReduc
 #'
-ScoreJackStraw.DimReduc <- function(
-  object,
-  dims = 1:5,
-  score.thresh = 1e-5,
-  ...
-) {
+ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...) {
   JS(object = object) <- ScoreJackStraw(
     object = JS(object = object),
     dims = dims,

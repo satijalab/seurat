@@ -40,6 +40,8 @@ More methods to be added.}
 \item{verbose}{display progress bar for normalization procedure}
 
 \item{assay}{Name of assay to use}
+
+\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns object after normalization

@@ -291,7 +291,7 @@ Read10X <- function(data.dir = NULL){
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
-  if (!require(hdf5r)) {
+  if (!requireNamespace('hdf5r')) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -348,7 +348,11 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
+#' @importFrom stats setNames
+#' @importFrom utils installed.packages
+#'
 #' @export
+#'
 RegressRegNB <- function(
   object,
   assay = NULL,
@@ -361,14 +365,18 @@ RegressRegNB <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!requireNamespace('sctransform')) {
+  if (PackageCheck('sctransform')) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
-
-  vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
+  vst.out <- sctransform::vst(
+    umi,
+    show_progress = verbose,
+    return_cell_attr = TRUE,
+    ...
+  )
   # cell_attr = NULL,
   # latent_var = c('log_umi_per_gene'),
   # batch_var = NULL,
@@ -380,14 +388,13 @@ RegressRegNB <- function(
   # min_cells = 5,
   # return_cell_attr = FALSE,
   # return_gene_attr = FALSE)
-
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
       message('Calculate corrected UMI matrix and place in data slot')
     }
     umi.corrected <- sctransform::denoise(x = vst.out)
-    umi.corrected <- as(umi.corrected, 'dgCMatrix')
+    umi.corrected <- as(object = umi.corrected, Class = 'dgCMatrix')
     # skip SetAssayData.Assay because of restrictive dimension checks there
     slot(object = assay.obj, name = 'data') <- umi.corrected
     # assay.obj <- SetAssayData(
@@ -396,29 +403,30 @@ RegressRegNB <- function(
     #   new.data = umi.corrected
     # )
   }
-
   # set variable features
   if (verbose) {
     message('Determine variable features')
   }
-  if ('residual_variance' %in% names(vst.out$gene_attr)) {
-    feature.variance <- setNames(vst.out$gene_attr$residual_variance, rownames(vst.out$gene_attr))
+  if ('residual_variance' %in% names(x = vst.out$gene_attr)) {
+    feature.variance <- setNames(
+      object = vst.out$gene_attr$residual_variance,
+      nm = rownames(x = vst.out$gene_attr)
+    )
   } else {
     feature.variance <- RowVar(vst.out$y)
-    names(feature.variance) <- rownames(vst.out$y)
+    names(x = feature.variance) <- rownames(x = vst.out$y)
   }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(variable.features.n)) {
-    top.features <- names(feature.variance)[1:variable.features.n]
+  if (!is.null(x = variable.features.n)) {
+    top.features <- names(x = feature.variance)[1:variable.features.n]
   } else {
-    feature.variance <- scale(feature.variance)[, 1]
-    top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
+    feature.variance <- scale(x = feature.variance)[, 1]
+    top.features <- names(x = feature.variance)[feature.variance > variable.features.zscore]
   }
   VariableFeatures(object = assay.obj) <- top.features
   if (verbose) {
-    message('Set ', length(top.features), ' variable features')
+    message('Set ', length(x = top.features), ' variable features')
   }
-
   scale.data <- vst.out$y
   # re-scale the residuals
   if (do.scale || do.center) {
@@ -434,14 +442,12 @@ RegressRegNB <- function(
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-
   assay.obj <- SetAssayData(
     object = assay.obj,
     slot = 'scale.data',
     new.data = scale.data
   )
   object[[assay]] <- assay.obj
-
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
@@ -812,6 +818,7 @@ NormalizeData.Assay <- function(
 }
 
 #' @param assay Name of assay to use
+#' @param workflow.name Name of workflow
 #'
 #' @rdname NormalizeData
 #' @export

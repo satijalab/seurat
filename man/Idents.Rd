@@ -21,7 +21,7 @@ Idents(object, ...) <- value
 
 RenameIdents(object, ...)
 
-SetIdent(object, value, ...)
+SetIdent(object, ...)
 
 StashIdent(object, save.name, ...)
 
@@ -38,17 +38,16 @@ StashIdent(object, save.name, ...)
 \method{levels}{Seurat}(x)
 }
 \arguments{
-\item{object}{An object}
+\item{...}{Arguments passed to other methods; for \code{RenameIdents}: named
+arguments as \code{old.ident = new.ident}}
 
-\item{...}{Arguments passed to other methods}
-
-\item{value, idents}{The name of the identites to pull from object metadata or the identities themselves}
+\item{value}{The name of the identites to pull from object metadata or the identities themselves}
 
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
 
-\item{...}{\code{RenameIdents}: named arguments as \code{old.ident = new.ident}}
+\item{x, object}{An object}
 }
 \value{
 \code{Idents}: The cell identies

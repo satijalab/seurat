@@ -119,7 +119,7 @@ FindAllMarkers <- function(
 
 #' Finds markers that are conserved between the two groups
 #'
-#' @param object Seurat object
+#' @inheritParams FindMarkers
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
@@ -314,7 +314,7 @@ FindConservedMarkers <- function(
 #' @param random.seed Random seed for downsampling
 #' @param latent.vars Variables to test, used only when \code{test.use} is one of
 #' 'negbinom', 'poisson', or 'MAST'
-#' @param min.cells.features Minimum number of cells expressing the feature in at least one
+#' @param min.cells.feature Minimum number of cells expressing the feature in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
 #' @param pseudocount.use Pseudocount to add to averaged expression values when
