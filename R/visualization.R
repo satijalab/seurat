@@ -545,6 +545,86 @@ DimPlot <- function(
   return(plot)
 }
 
+
+#' Visualize 'two features co-expression' on a dimensional reduction plot
+#' @param col.threshold the color cutoff from weak signal to strong signal. It ranges from 0 to 1.
+
+BlendPlot <- function(data, col.threshold = 0.5) {
+  library(reshape2)
+  library(tidyverse)
+  library(grid)
+  colour.matirx <- matrix(, nrow = 10, ncol = 10)
+  unit <- 10
+  for (i in 1:unit) {
+    for (j in 1:unit) {
+      i.unit <- (i - col.threshold * unit)/0.9
+      j.unit <- (j - col.threshold * unit)/0.9
+      R <- 1/(1 + exp(-i.unit))
+      G <- 1/(1 + exp(-j.unit))
+      B <- 0.2
+      A <- 0.99 - 0.1 * exp(-(R^40 + G^40 + B^40)/1)
+      colour.matirx[i, j] <- rgb(R, G, B, A)
+    }
+  }
+  features <- colnames(x = data)[3:ncol(x = data)]
+  data[, 5] <- 9 * (data[, 3] - min(data[, 3]))/(max(data[, 3]) - min(data[, 3]))
+  data[, 6] <- 9 * (data[, 4] - min(data[, 4]))/(max(data[, 4]) - min(data[, 4]))
+  data[, 5] <- round(data[, 5])
+  data[, 6] <- round(data[, 6])
+  overlay_feature <- paste(features[1], features[2], sep = "_")
+  data[, overlay_feature] <- data[, 5] + data[, 6] * 10
+  colour.vector <- as.vector(colour.matirx)
+  colour.vector <- colour.vector[sort(unique(data[, overlay_feature])) +1]
+  colour.f1 <- colour.matirx[, 1]
+  colour.f1 <- colour.f1[sort(unique(data[, 5])) + 1]
+  colour.f2 <- colour.matirx[1, ]
+  colour.f2 <- colour.f2[sort(unique(data[, 6])) + 1]
+  data[, 5] <- factor(data[, 5], levels = c(0:9))
+  data[, 6] <- factor(data[, 6], levels = c(0:9))
+  data[, overlay_feature] <- factor(data[, overlay_feature], 
+                                    c(0:99))
+  p1 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[,5])) + ggtitle(colnames(data)[3]) + geom_point(size = 0.2, 
+                                                                                                             show.legend = F) + scale_color_manual(values = colour.f1) + 
+    theme(panel.background = element_rect(fill = "black")) + 
+    theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+          panel.grid.major = element_line(colour = "black"), 
+          panel.grid.minor = element_line(colour = "black"))
+  p2 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 6])) + ggtitle(colnames(data)[4]) + geom_point(size = 0.2,  show.legend = F) + 
+    scale_color_manual(values = colour.f2) + 
+    theme(panel.background = element_rect(fill = "black")) + 
+    theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+          panel.grid.major = element_line(colour = "black"), 
+          panel.grid.minor = element_line(colour = "black"))
+  
+  p3 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 7])) + ggtitle(colnames(data)[7]) + geom_point(size = 0.2,  show.legend = F) +
+    scale_color_manual(values = colour.vector) + 
+    theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+          panel.grid.major = element_line(colour = "black"), 
+          panel.grid.minor = element_line(colour = "black"))
+ 
+  #generate color matrix
+  colour.heat <- matrix(0:99, nrow = 10, ncol = 10)
+  colour.heat.df <- melt(colour.heat)
+  colour.heat.df$value <- factor(colour.heat.df$value, 
+                                 levels = c(0:99))
+  colour.vector.all <- as.vector(colour.matirx)
+  
+  p4<- ggplot(colour.heat.df, aes(Var1,Var2, fill=value)) + scale_fill_manual(
+    values = colour.vector.all)+geom_raster( show.legend = F)+theme_bw()+theme(plot.margin=unit(c(0,0,0,0),"cm"))+
+    scale_y_continuous(breaks = seq(0, 10, by = 2) ,expand = c(0, 0),labels=c(0,2,4,6,8,10))+
+    scale_x_continuous(breaks = seq(0, 10, by = 2) ,expand = c(0, 0),labels=c(0,2,4,6,8,10))+ggtitle(paste("Legend", "; color threshold ",col.threshold, sep=''))+
+    xlab(colnames(data)[3])+ylab(colnames(data)[4])
+  
+   plots <- vector(mode = "list", length = 4)
+  plots[[1]] <- p1
+  plots[[2]] <- p2
+  plots[[3]] <- p3
+  plots[[4]] <- p4
+  plots <- CombinePlots(plots = plots, ncol = 4, legend = NULL,  nrow = 1)
+  return(plots)
+}
+
+
 #' Visualize 'features' on a dimensional reduction plot
 #'
 #' Colors single cells on a dimensional reduction plot according to a 'feature'
@@ -579,95 +659,15 @@ DimPlot <- function(
 #' @examples
 #' FeaturePlot(object = pbmc_small, features = 'PC1')
 #'
-FeaturePlot <-function (object, features, dims = c(1, 2), cells = NULL, cols = c("lightgrey", 
-                                                                                 "blue"), pt.size = NULL, min.cutoff = NA, max.cutoff = NA, 
+FeaturePlot <-function (object, features, dims = c(1, 2), cells = NULL, cols = c("lightgrey",  "blue"), 
+                        pt.size = NULL, min.cutoff = NA, max.cutoff = NA, 
                         reduction = "tsne", group.by = NULL, split.by = NULL, shape.by = NULL, 
                         order = NULL, label = FALSE, label.size = 4, ncol = NULL, 
                         combine = TRUE, coord.fixed = FALSE, blend = FALSE, blend.threshold = 0.5, 
                         ...) {
   
   
-  BlendPlot <- function(data, col.threshold = 0.5) {
-    library(reshape2)
-    library(tidyverse)
-    library(grid)
-    colour.matirx <- matrix(, nrow = 10, ncol = 10)
-    unit <- 10
-    for (i in 1:unit) {
-      for (j in 1:unit) {
-        i.unit <- (i - col.threshold * unit)/0.9
-        j.unit <- (j - col.threshold * unit)/0.9
-        R <- 1/(1 + exp(-i.unit))
-        G <- 1/(1 + exp(-j.unit))
-        B <- 0.2
-        A <- 0.99 - 0.1 * exp(-(R^40 + G^40 + B^40)/1)
-        colour.matirx[i, j] <- rgb(R, G, B, A)
-      }
-    }
-    features <- colnames(x = data)[3:ncol(x = data)]
-    data[, 5] <- 9 * (data[, 3] - min(data[, 3]))/(max(data[, 
-                                                            3]) - min(data[, 3]))
-    data[, 6] <- 9 * (data[, 4] - min(data[, 4]))/(max(data[, 
-                                                            4]) - min(data[, 4]))
-    data[, 5] <- round(data[, 5])
-    data[, 6] <- round(data[, 6])
-    overlay_feature <- paste(features[1], features[2], sep = "_")
-    data[, overlay_feature] <- data[, 5] + data[, 6] * 10
-    colour.vector <- as.vector(colour.matirx)
-    colour.vector <- colour.vector[sort(unique(data[, overlay_feature])) + 
-                                     1]
-    colour.f1 <- colour.matirx[, 1]
-    colour.f1 <- colour.f1[sort(unique(data[, 5])) + 1]
-    colour.f2 <- colour.matirx[1, ]
-    colour.f2 <- colour.f2[sort(unique(data[, 6])) + 1]
-    data[, 5] <- factor(data[, 5], levels = c(0:9))
-    data[, 6] <- factor(data[, 6], levels = c(0:9))
-    data[, overlay_feature] <- factor(data[, overlay_feature], 
-                                      c(0:99))
-    p1 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
-                                                                5])) + ggtitle(colnames(data)[3]) + geom_point(size = 0.2, 
-                                                                                                               show.legend = F) + scale_color_manual(values = colour.f1) + 
-      theme(panel.background = element_rect(fill = "black")) + 
-      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
-            panel.grid.major = element_line(colour = "black"), 
-            panel.grid.minor = element_line(colour = "black"))
-    p2 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
-                                                                6])) + ggtitle(colnames(data)[4]) + geom_point(size = 0.2, 
-                                                                                                               show.legend = F) + scale_color_manual(values = colour.f2) + 
-      theme(panel.background = element_rect(fill = "black")) + 
-      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
-            panel.grid.major = element_line(colour = "black"), 
-            panel.grid.minor = element_line(colour = "black"))
-    p3 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
-                                                                7])) + ggtitle(colnames(data)[7]) + geom_point(size = 0.2, 
-                                                                                                               show.legend = F) + scale_color_manual(values = colour.vector) + 
-      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
-            panel.grid.major = element_line(colour = "black"), 
-            panel.grid.minor = element_line(colour = "black"))
-    colour.heat <- matrix(0:99, nrow = 10, ncol = 10)
-    colour.heat.df <- melt(colour.heat)
-    colour.heat.df$value <- factor(colour.heat.df$value, 
-                                   levels = c(0:99))
-    colour.vector.all <- as.vector(colour.matirx)
-    p4 <- ggplot(colour.heat.df, aes(Var1, Var2, fill = value)) + 
-      scale_fill_manual(values = colour.vector.all) + 
-      geom_raster(show.legend = F) + theme_bw() + theme(plot.margin = unit(c(0, 
-                                                                             0, 0, 0), "cm")) + scale_y_continuous(breaks = seq(0, 
-                                                                                                                                10, by = 2), expand = c(0, 0), labels = c(0, 2, 
-                                                                                                                                                                          4, 6, 8, 10)) + scale_x_continuous(breaks = seq(0, 
-                                                                                                                                                                                                                          10, by = 2), expand = c(0, 0), labels = c(0, 2, 
-                                                                                                                                                                                                                                                                    4, 6, 8, 10)) + ggtitle(paste("Legend", "; color threshold ", 
-                                                                                                                                                                                                                                                                                                  col.threshold, sep = "")) + xlab(colnames(data)[3]) + 
-      ylab(colnames(data)[4])
-    plots <- vector(mode = "list", length = 4)
-    plots[[1]] <- p1
-    plots[[2]] <- p2
-    plots[[3]] <- p3
-    plots[[4]] <- p4
-    plots <- CombinePlots(plots = plots, ncol = 4, legend = NULL, 
-                          nrow = 1)
-    return(plots)
-  }
+
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
