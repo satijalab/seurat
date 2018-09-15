@@ -538,7 +538,7 @@ SampleUMI <- function(
 #' }
 #'
 
-MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1),verbose = TRUE){
+MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1),verbose = TRUE){
   
   assay <- assay %||% DefaultAssay(object = object)
   multi_data <- GetAssayData(object = object,slot = "counts", assay = assay)
@@ -546,7 +546,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,m
   
   multi_data_norm <- t(GetAssayData(object = object,slot = "data",assay = assay))
   
-  if (autoThresh){
+  if (autoThresh == TRUE){
     iter <- 1
     negatives <- c()
     neg.vector <- c()
