@@ -551,7 +551,6 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,m
     negatives <- c()
     neg.vector <- c()
     while (iter <= maxiter){
-      print (paste("Iteration",iter,sep = " "))
       
       #iterate over q to examine pSinglet
       bar.table_sweep.list <- list()
@@ -567,6 +566,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,m
       res.use <- res_round[res_round$Subset=="pSinglet",]
       q.use <- res.use[which.max(res.use$Proportion),"q"]
       if (verbose){
+        print (paste("Iteration",iter,sep = " "))
         print (paste0("Using quantile: ",q.use))
       }
       round.calls <- classifyCells(multi_data, q=q.use)
@@ -583,7 +583,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = NULL,autoThresh = FALSE,m
     
     names(neg.vector) <- negatives
     demux_result <- c(round.calls,neg.vector)
-    demux_result <- demux_result[rownames(object[])]
+    demux_result <- demux_result[rownames(object@meta.data)]
   }
   
   else{
