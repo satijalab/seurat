@@ -30,7 +30,8 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' @slot meta.features Feature-level metadata
 #' @slot misc Utility slot for storing additional data associated with the assay
 #'
-#' @name Assay
+#' @name Assay-class
+#' @rdname Assay-class
 #' @exportClass Assay
 #'
 Assay <- setClass(
@@ -55,7 +56,8 @@ Assay <- setClass(
 #' @slot empirical.p.values.full Empirical p-values on full
 #' @slot overall.p.values Overall p-values from ScoreJackStraw
 #'
-#' @name JackStrawData
+#' @name JackStrawData-class
+#' @rdname JackStrawData-class
 #' @exportClass JackStrawData
 #'
 JackStrawData <- setClass(
@@ -81,7 +83,8 @@ JackStrawData <- setClass(
 #' @slot jackstraw ...
 #' @slot misc ...
 #'
-#' @name DimReduc
+#' @name DimReduc-class
+#' @rdname DimReduc-class
 #' @exportClass DimReduc
 #'
 DimReduc <- setClass(
@@ -102,7 +105,8 @@ DimReduc <- setClass(
 #'
 #' The Graph class simply inherits from dgCMatrix
 #'
-#' @name Graph
+#' @name Graph-class
+#' @name Graph-class
 #' @exportClass Graph
 #'
 Graph <- setClass(
@@ -115,10 +119,12 @@ Graph <- setClass(
 #' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
 #'
 #' @slot name Command name
-#' @slot timestamp Timestamp of when command was tun
-#' @slot call_string String of the command call
+#' @slot time.stamp Timestamp of when command was tun
+#' @slot call.string String of the command call
 #' @slot params List of parameters used in the command call
-#' @name SeuratCommand
+#'
+#' @name SeuratCommand-class
+#' @name SeuratCommand-class
 #' @exportClass SeuratCommand
 #'
 SeuratCommand <- setClass(
@@ -148,7 +154,9 @@ SeuratCommand <- setClass(
 #' @slot params List of parameters used across the workflow
 #' @slot mostRecent Vector specifying for each command, the most recent
 #' timestamp. If the current timestamp matches this, should not need to be rerun.
-#' @name SeuratWorkflow
+#'
+#' @name SeuratWorkflow-class
+#' @rdname SeuratWorkflow-class
 #' @exportClass SeuratWorkflow
 #'
 SeuratWorkflow <- setClass(
@@ -156,6 +164,7 @@ SeuratWorkflow <- setClass(
   slots = c(
     name = 'character',
     depends = 'ANY',
+    update = 'ANY',
     params = 'ANY',
     mostRecent = 'ANY'
   )
@@ -177,8 +186,12 @@ SeuratWorkflow <- setClass(
 #' @slot calc.params A list of calculation parameters performed on this Seurat object
 #' @slot misc A list of miscellaneous information
 #' @slot version Version of Seurat this object was built under
+#' @slot commands ...
+#' @slot workflows ...
+#' @slot tools ...
 #'
-#' @name Seurat
+#' @name Seurat-class
+#' @rdname Seurat-class
 #' @exportClass Seurat
 #'
 Seurat <- setClass(
@@ -201,45 +214,44 @@ Seurat <- setClass(
   )
 )
 
-# The Seurat Class
-#
-# The Seurat object is the center of each single cell analysis. It stores all information
-# associated with the dataset, including data, annotations, analyes, etc. All that is needed
-# to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
-# should be log-scale
-#
-# Each Seurat object has a number of slots which store information. Key slots to access
-# are listed below.
-#
-# @slot raw.data The raw project data
-# @slot data The normalized expression matrix (log-scale)
-# @slot scale.data scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization
-# @slot var.genes Vector of genes exhibiting high variance across single cells
-# @slot is.expr Expression threshold to determine if a gene is expressed (0 by default)
-# @slot ident THe 'identity class' for each cell
-# @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
-# and the original identity class (orig.ident); more information is added using \code{AddMetaData}
-# @slot project.name Name of hte project (for record keeping)
-# @slot dr List of stored dimmensional reductions; named by technique
-# @slot assay List of additional assays for multimodal analysis; named by technique
-# @slot hvg.info The output of the mean/variability analysis for all genes
-# @slot imputed Matrix of imputed gene scores
-# @slot cell.names Names of all single cells (column names of the expression matrix)
-# @slot cluster.tree List where the first element is a phylo object containing the phylogenetic tree relating different identity classes
-# @slot snn Spare matrix object representation of the SNN graph
-# @slot calc.params Named list to store all calculation-related parameter choices
-# @slot kmeans Stores output of gene-based clustering from \code{DoKMeans}
-# @slot spatial Stores internal data and calculations for spatial mapping of single cells
-# @slot misc Miscellaneous spot to store any data alongisde the object (for example, gene lists)
-# @slot version Version of package used in object creation
-#
-# @name seurat
-# @rdname seurat
-# @aliases seurat-class
-#' @exportClass seurat
-#
+#' The Seurat Class
+#'
+#' The Seurat object is the center of each single cell analysis. It stores all information
+#' associated with the dataset, including data, annotations, analyes, etc. All that is needed
+#' to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
+#' should be log-scale
+#'
+#' Each Seurat object has a number of slots which store information. Key slots to access
+#' are listed below.
+#'
+#' @slot raw.data The raw project data
+#' @slot data The normalized expression matrix (log-scale)
+#' @slot scale.data scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization
+#' @slot var.genes Vector of genes exhibiting high variance across single cells
+#' @slot is.expr Expression threshold to determine if a gene is expressed (0 by default)
+#' @slot ident THe 'identity class' for each cell
+#' @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
+#' and the original identity class (orig.ident); more information is added using \code{AddMetaData}
+#' @slot project.name Name of hte project (for record keeping)
+#' @slot dr List of stored dimmensional reductions; named by technique
+#' @slot assay List of additional assays for multimodal analysis; named by technique
+#' @slot hvg.info The output of the mean/variability analysis for all genes
+#' @slot imputed Matrix of imputed gene scores
+#' @slot cell.names Names of all single cells (column names of the expression matrix)
+#' @slot cluster.tree List where the first element is a phylo object containing the phylogenetic tree relating different identity classes
+#' @slot snn Spare matrix object representation of the SNN graph
+#' @slot calc.params Named list to store all calculation-related parameter choices
+#' @slot kmeans Stores output of gene-based clustering from \code{DoKMeans}
+#' @slot spatial Stores internal data and calculations for spatial mapping of single cells
+#' @slot misc Miscellaneous spot to store any data alongisde the object (for example, gene lists)
+#' @slot version Version of package used in object creation
+#'
+#' @name seurat-class
+#' @rdname oldseurat-class
+#' @aliases seurat-class
+#'
 seurat <- setClass(
-  "seurat",
+  Class = "seurat",
   slots = c(
     raw.data = "ANY",
     data = "ANY",
@@ -3321,6 +3333,8 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @rdname SeuratAccess
+#'
 setMethod(
   f = '[[<-',
   signature = c('x' = 'Assay'),
@@ -3346,6 +3360,19 @@ setMethod(
   }
 )
 
+#' Set metadata and add objects
+#'
+#' @param x An object
+#' @param i Name of metadata or object to add
+#' @param j Not used
+#' @param ... Arguments passed to other methods
+#' @param value Metadata or object to add
+#'
+#' @return An object with metadata or and object added
+#'
+#' @rdname SeuratAccess
+#' @docType methods
+#'
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',
   signature = c('x' = 'Seurat'),
