@@ -541,8 +541,6 @@ SampleUMI <- function(
 MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,maxiter = 3,qrange = seq(from = 0.1,to = 0.9,by = 0.1),verbose = TRUE){
   
   assay <- assay %||% DefaultAssay(object = object)
-  multi_data <- GetAssayData(object = object,slot = "counts", assay = assay)
-  multi_data <- as.data.frame(t(as.matrix(multi_data)))
   
   multi_data_norm <- t(GetAssayData(object = object,slot = "data",assay = assay))
   
@@ -558,7 +556,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,ma
       for (q in qrange) {
         # print(q)
         n <- n + 1
-        bar.table_sweep.list[[n]] <- classifyCells(data=multi_data, q=q)
+        bar.table_sweep.list[[n]] <- classifyCells(data=multi_data_norm, q=q)
         names(bar.table_sweep.list)[n] <- paste("q=",q,sep="")
       }
       findThresh(call.list=bar.table_sweep.list, id="round")
@@ -569,7 +567,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,ma
         print (paste("Iteration",iter,sep = " "))
         print (paste0("Using quantile: ",q.use))
       }
-      round.calls <- classifyCells(multi_data, q=q.use)
+      round.calls <- classifyCells(multi_data_norm, q=q.use)
       
       #remove negative cells
       neg.cells <- names(round.calls)[which(round.calls == "Negative")]
@@ -577,7 +575,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,ma
       neg.vector <- c(neg.vector, rep("Negative",length(neg.cells)))
       negatives <- c(negatives, neg.cells)
       if (length(neg.cells) == 0) break
-      multi_data <- multi_data[-which(rownames(multi_data) %in% neg.cells), ]
+      multi_data_norm <- multi_data_norm[-which(rownames(multi_data_norm) %in% neg.cells), ]
       iter <- iter + 1
     }
     
@@ -587,7 +585,7 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,ma
   }
   
   else{
-    demux_result <- classifyCells(data = multi_data,q = quantile)
+    demux_result <- classifyCells(data = multi_data_norm,q = quantile)
   }
   
   object@meta.data$MULTI_ID <- factor(demux_result[rownames(object@meta.data)])
@@ -625,17 +623,17 @@ MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7,autoThresh = FALSE,ma
 #' @examples
 #' demux_result <- classifyCells(data = counts_data,q = 0.7)
 #'
-classifyCells <- function(data, q) {
+classifyCells <- function(data.n, q) {
   # require(KernSmooth)
   
   ## Normalize Data: Log2 Transform, replace -Infs, mean-center
   # print("Normalizing Data...")
-  data.n <- as.data.frame(log2(data))
-  for (i in 1:ncol(data)) {
-    ind <- which(is.finite(data.n[,i]) == FALSE)
-    data.n[ind,i] <- 0
-    data.n[,i] <- data.n[,i]-mean(data.n[,i])
-  }
+  # data.n <- as.data.frame(log2(data))
+  # for (i in 1:ncol(data)) {
+  #   ind <- which(is.finite(data.n[,i]) == FALSE)
+  #   data.n[ind,i] <- 0
+  #   data.n[,i] <- data.n[,i]-mean(data.n[,i])
+  # }
   
   ## Generate Thresholds: Gaussian KDE with bad barcode detection, outlier trimming
   ## local maxima estiamtion with bad barcode detection, threshold definition and adjustment
