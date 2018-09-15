@@ -579,214 +579,256 @@ DimPlot <- function(
 #' @examples
 #' FeaturePlot(object = pbmc_small, features = 'PC1')
 #'
-FeaturePlot <- function(
-  object,
-  features,
-  dims = c(1, 2),
-  cells = NULL,
-  cols = c('lightgrey', 'blue'),
-  pt.size = NULL,
-  min.cutoff = NA,
-  max.cutoff = NA,
-  reduction = 'tsne',
-  group.by = NULL,
-  split.by = NULL,
-  shape.by = NULL,
-  order = NULL,
-  label = FALSE,
-  label.size = 4,
-  ncol = NULL,
-  combine = TRUE,
-  coord.fixed = FALSE,
-  ...
-) {
-  ReadPlotParams(object)
+FeaturePlot <-function (object, features, dims = c(1, 2), cells = NULL, cols = c("lightgrey", 
+                                                                                 "blue"), pt.size = NULL, min.cutoff = NA, max.cutoff = NA, 
+                        reduction = "tsne", group.by = NULL, split.by = NULL, shape.by = NULL, 
+                        order = NULL, label = FALSE, label.size = 4, ncol = NULL, 
+                        combine = TRUE, coord.fixed = FALSE, blend = FALSE, blend.threshold = 0.5, 
+                        ...) {
+  
+  
+  BlendPlot <- function(data, col.threshold = 0.5) {
+    library(reshape2)
+    library(tidyverse)
+    library(grid)
+    colour.matirx <- matrix(, nrow = 10, ncol = 10)
+    unit <- 10
+    for (i in 1:unit) {
+      for (j in 1:unit) {
+        i.unit <- (i - col.threshold * unit)/0.9
+        j.unit <- (j - col.threshold * unit)/0.9
+        R <- 1/(1 + exp(-i.unit))
+        G <- 1/(1 + exp(-j.unit))
+        B <- 0.2
+        A <- 0.99 - 0.1 * exp(-(R^40 + G^40 + B^40)/1)
+        colour.matirx[i, j] <- rgb(R, G, B, A)
+      }
+    }
+    features <- colnames(x = data)[3:ncol(x = data)]
+    data[, 5] <- 9 * (data[, 3] - min(data[, 3]))/(max(data[, 
+                                                            3]) - min(data[, 3]))
+    data[, 6] <- 9 * (data[, 4] - min(data[, 4]))/(max(data[, 
+                                                            4]) - min(data[, 4]))
+    data[, 5] <- round(data[, 5])
+    data[, 6] <- round(data[, 6])
+    overlay_feature <- paste(features[1], features[2], sep = "_")
+    data[, overlay_feature] <- data[, 5] + data[, 6] * 10
+    colour.vector <- as.vector(colour.matirx)
+    colour.vector <- colour.vector[sort(unique(data[, overlay_feature])) + 
+                                     1]
+    colour.f1 <- colour.matirx[, 1]
+    colour.f1 <- colour.f1[sort(unique(data[, 5])) + 1]
+    colour.f2 <- colour.matirx[1, ]
+    colour.f2 <- colour.f2[sort(unique(data[, 6])) + 1]
+    data[, 5] <- factor(data[, 5], levels = c(0:9))
+    data[, 6] <- factor(data[, 6], levels = c(0:9))
+    data[, overlay_feature] <- factor(data[, overlay_feature], 
+                                      c(0:99))
+    p1 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
+                                                                5])) + ggtitle(colnames(data)[3]) + geom_point(size = 0.2, 
+                                                                                                               show.legend = F) + scale_color_manual(values = colour.f1) + 
+      theme(panel.background = element_rect(fill = "black")) + 
+      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+            panel.grid.major = element_line(colour = "black"), 
+            panel.grid.minor = element_line(colour = "black"))
+    p2 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
+                                                                6])) + ggtitle(colnames(data)[4]) + geom_point(size = 0.2, 
+                                                                                                               show.legend = F) + scale_color_manual(values = colour.f2) + 
+      theme(panel.background = element_rect(fill = "black")) + 
+      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+            panel.grid.major = element_line(colour = "black"), 
+            panel.grid.minor = element_line(colour = "black"))
+    p3 <- ggplot(data, aes(x = tSNE_1, y = tSNE_2, color = data[, 
+                                                                7])) + ggtitle(colnames(data)[7]) + geom_point(size = 0.2, 
+                                                                                                               show.legend = F) + scale_color_manual(values = colour.vector) + 
+      theme(plot.title = element_text(hjust = 0.5), panel.background = element_rect(fill = "black"), 
+            panel.grid.major = element_line(colour = "black"), 
+            panel.grid.minor = element_line(colour = "black"))
+    colour.heat <- matrix(0:99, nrow = 10, ncol = 10)
+    colour.heat.df <- melt(colour.heat)
+    colour.heat.df$value <- factor(colour.heat.df$value, 
+                                   levels = c(0:99))
+    colour.vector.all <- as.vector(colour.matirx)
+    p4 <- ggplot(colour.heat.df, aes(Var1, Var2, fill = value)) + 
+      scale_fill_manual(values = colour.vector.all) + 
+      geom_raster(show.legend = F) + theme_bw() + theme(plot.margin = unit(c(0, 
+                                                                             0, 0, 0), "cm")) + scale_y_continuous(breaks = seq(0, 
+                                                                                                                                10, by = 2), expand = c(0, 0), labels = c(0, 2, 
+                                                                                                                                                                          4, 6, 8, 10)) + scale_x_continuous(breaks = seq(0, 
+                                                                                                                                                                                                                          10, by = 2), expand = c(0, 0), labels = c(0, 2, 
+                                                                                                                                                                                                                                                                    4, 6, 8, 10)) + ggtitle(paste("Legend", "; color threshold ", 
+                                                                                                                                                                                                                                                                                                  col.threshold, sep = "")) + xlab(colnames(data)[3]) + 
+      ylab(colnames(data)[4])
+    plots <- vector(mode = "list", length = 4)
+    plots[[1]] <- p1
+    plots[[2]] <- p2
+    plots[[3]] <- p3
+    plots[[4]] <- p4
+    plots <- CombinePlots(plots = plots, ncol = 4, legend = NULL, 
+                          nrow = 1)
+    return(plots)
+  }
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(object)
-  data <- FetchData(
-    object = object,
-    vars = c(dims, features),
-    cells = cells
-  )
+  data <- FetchData(object = object, vars = c(dims, features), 
+                    cells = cells)
   features <- colnames(x = data)[3:ncol(x = data)]
-  min.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      ifelse(
-        test = is.na(x = cutoff),
-        yes = min(data[, feature]),
-        no = cutoff
-      )
-    },
-    cutoff = min.cutoff,
-    feature = features
-  )
-  max.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      ifelse(
-        test = is.na(x = cutoff),
-        yes = max(data[, feature]),
-        no = cutoff
-      )
-    },
-    cutoff = max.cutoff,
-    feature = features
-  )
-  check.lengths <- unique(x = vapply(
-    X = list(features, min.cutoff, max.cutoff),
-    FUN = length,
-    FUN.VALUE = numeric(length = 1)
-  ))
+  min.cutoff <- mapply(FUN = function(cutoff, feature) {
+    ifelse(test = is.na(x = cutoff), yes = min(data[, feature]), 
+           no = cutoff)
+  }, cutoff = min.cutoff, feature = features)
+  max.cutoff <- mapply(FUN = function(cutoff, feature) {
+    ifelse(test = is.na(x = cutoff), yes = max(data[, feature]), 
+           no = cutoff)
+  }, cutoff = max.cutoff, feature = features)
+  check.lengths <- unique(x = vapply(X = list(features, min.cutoff, 
+                                              max.cutoff), FUN = length, FUN.VALUE = numeric(length = 1)))
   if (length(x = check.lengths) != 1) {
-    stop('There must be the same number of minimum and maximum cuttoffs as there are features')
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
   }
-  brewer.gran <- ifelse(
-    test = length(x = cols) == 1,
-    yes = brewer.pal.info[cols, ]$maxcolors,
-    no = length(x = cols)
-  )
-  data[, 3:ncol(x = data)] <- sapply(
-    X = 3:ncol(x = data),
-    FUN = function(index) {
-      data.feature <- as.vector(x = data[, index])
-      min.use <- SetQuantile(cutoff = min.cutoff[index - 2], data.feature)
-      max.use <- SetQuantile(cutoff = max.cutoff[index - 2], data.feature)
-      data.feature[data.feature < min.use] <- min.use
-      data.feature[data.feature > max.use] <- max.use
-      if (brewer.gran == 2) {
-        return(data.feature)
-      }
-      data.cut <- if (all(data.feature == 0)) {
-        0
-      } else {
-        as.numeric(x = as.factor(x = cut(
-          x = as.numeric(x = data.feature),
-          breaks = brewer.gran
-        )))
-      }
-      return(data.cut)
-    }
-  )
+  brewer.gran <- ifelse(test = length(x = cols) == 1, yes = brewer.pal.info[cols, 
+                                                                            ]$maxcolors, no = length(x = cols))
+  data[, 3:ncol(x = data)] <- sapply(X = 3:ncol(x = data), 
+                                     FUN = function(index) {
+                                       data.feature <- as.vector(x = data[, index])
+                                       min.use <- SetQuantile(cutoff = min.cutoff[index - 
+                                                                                    2], data.feature)
+                                       max.use <- SetQuantile(cutoff = max.cutoff[index - 
+                                                                                    2], data.feature)
+                                       data.feature[data.feature < min.use] <- min.use
+                                       data.feature[data.feature > max.use] <- max.use
+                                       if (brewer.gran == 2) {
+                                         return(data.feature)
+                                       }
+                                       data.cut <- if (all(data.feature == 0)) {
+                                         0
+                                       }
+                                       else {
+                                         as.numeric(x = as.factor(x = cut(x = as.numeric(x = data.feature), 
+                                                                          breaks = brewer.gran)))
+                                       }
+                                       return(data.cut)
+                                     })
   colnames(x = data)[3:ncol(x = data)] <- features
   rownames(x = data) <- cells
   data$split <- if (is.null(x = split.by)) {
     RandomName()
   } else {
-    switch(
-      EXPR = split.by,
-      'ident' = Idents(object = object)[cells],
-      object[[split.by, drop = TRUE]][cells]
-    )
+    switch(EXPR = split.by, ident = Idents(object = object)[cells], 
+           object[[split.by, drop = TRUE]][cells])
   }
   if (!is.factor(x = data$split)) {
     data$split <- factor(x = data$split)
   }
-  plots <- vector(
-    mode = 'list',
-    length = length(x = features) * length(x = levels(x = data$split))
-  )
-  xlims <- c(floor(x = min(data[, dims[1]])), ceiling(x = max(data[, dims[1]])))
-  ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, dims[2]])))
-  for (i in 1:length(x = levels(x = data$split))) {
-    ident <- levels(x = data$split)[i]
-    data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
-    for (j in 1:length(x = features)) {
-      feature <- features[j]
-      plot <- SingleDimPlot(
-        data = data.plot[, c(dims, feature)],
-        dims = dims,
-        col.by = feature,
-        pt.size = pt.size,
-        do.label = label,
-        label.size = label.size
-      ) + scale_x_continuous(limits = xlims) + scale_y_continuous(limits = ylims)
-      if (length(x = levels(x = data$split)) > 1) {
-        plot <- plot + theme(panel.border = element_rect(fill = NA, colour = 'black'))
-        plot <- plot + if (i == 1) {
-          labs(title = feature)
-        } else {
-          labs(title = NULL)
-        }
-        if (j == length(x = features)) {
-          suppressMessages(
-            expr = plot <- plot +
-              scale_y_continuous(sec.axis = dup_axis(name = ident)) +
-              theme(
-                axis.line.y.right = element_blank(),
-                axis.ticks.y.right = element_blank(),
-                axis.text.y.right = element_blank(),
-                axis.title.y.right = element_text(
-                  face = 'bold',
-                  size = 14,
-                  margin = margin(r = 7)
-                )
-              )
-          )
-        }
-        if (j != 1) {
-          plot <- plot + theme(
-            axis.line.y = element_blank(),
-            axis.ticks.y = element_blank(),
-            axis.text.y = element_blank(),
-            axis.title.y.left = element_blank()
-          )
-        }
-        if (i != length(x = levels(x = data$split))) {
-          plot <- plot + theme(
-            axis.line.x = element_blank(),
-            axis.ticks.x = element_blank(),
-            axis.text.x = element_blank(),
-            axis.title.x = element_blank()
-          )
-        }
-      } else {
-        plot <- plot + labs(title = feature)
-      }
-      if (length(x = cols) == 1) {
-        plot <- plot + scale_color_brewer(palette = cols)
-      } else if (length(x = cols) > 1) {
-        plot <- suppressMessages(expr = plot + scale_color_gradientn(
-          colors = cols,
-          guide = 'colorbar'
-        ))
-      }
-      if (coord.fixed) {
-        plot <- plot + coord_fixed()
-      }
-      plots[[(length(x = features) * (i - 1)) + j]] <- plot
+  if (blend & is.null(split.by)) {
+    blend.plot <- BlendPlot(data, blend.threshold)
+    return(blend.plot)
+  }else if(blend & !is.null(split.by)  ){
+    plots.split<-vector(mode = "list", length = length(x = levels(x = data$split)))
+    for ( i in 1:length(x = levels(x = data$split))){
+      ident <- levels(x = data$split)[i]
+      data.plot <- data[as.character(x = data$split) == 
+                          ident, , drop = FALSE]
+      data.plot$split<-NULL
+      split.blend<-BlendPlot(data.plot, blend.threshold)
+      plots.split[[i]] <- split.blend
+      
     }
+    
+    plots.split <- CombinePlots(plots = plots.split, nrow =  length(x = levels(x = data$split)))
+    return(plots.split)
+  } else {
+    plots <- vector(mode = "list", length = length(x = features) * 
+                      length(x = levels(x = data$split)))
+    xlims <- c(floor(x = min(data[, dims[1]])), ceiling(x = max(data[, 
+                                                                     dims[1]])))
+    ylims <- c(floor(min(data[, dims[2]])), ceiling(x = max(data[, 
+                                                                 dims[2]])))
+    for (i in 1:length(x = levels(x = data$split))) {
+      ident <- levels(x = data$split)[i]
+      data.plot <- data[as.character(x = data$split) == 
+                          ident, , drop = FALSE]
+      for (j in 1:length(x = features)) {
+        feature <- features[j]
+        plot <- SingleDimPlot(data = data.plot[, c(dims, 
+                                                   feature)], dims = dims, col.by = feature, 
+                              pt.size = pt.size, do.label = label, label.size = label.size) + 
+          scale_x_continuous(limits = xlims) + scale_y_continuous(limits = ylims)
+        if (length(x = levels(x = data$split)) > 1) {
+          plot <- plot + theme(panel.border = element_rect(fill = NA, 
+                                                           colour = "black"))
+          plot <- plot + if (i == 1) {
+            labs(title = feature)
+          }
+          else {
+            labs(title = NULL)
+          }
+          if (j == length(x = features)) {
+            suppressMessages(expr = plot <- plot + scale_y_continuous(sec.axis = dup_axis(name = ident)) + 
+                               theme(axis.line.y.right = element_blank(), 
+                                     axis.ticks.y.right = element_blank(), 
+                                     axis.text.y.right = element_blank(), 
+                                     axis.title.y.right = element_text(face = "bold", 
+                                                                       size = 14, margin = margin(r = 7))))
+          }
+          if (j != 1) {
+            plot <- plot + theme(axis.line.y = element_blank(), 
+                                 axis.ticks.y = element_blank(), axis.text.y = element_blank(), 
+                                 axis.title.y.left = element_blank())
+          }
+          if (i != length(x = levels(x = data$split))) {
+            plot <- plot + theme(axis.line.x = element_blank(), 
+                                 axis.ticks.x = element_blank(), axis.text.x = element_blank(), 
+                                 axis.title.x = element_blank())
+          }
+        }
+        else {
+          plot <- plot + labs(title = feature)
+        }
+        if (length(x = cols) == 1) {
+          plot <- plot + scale_color_brewer(palette = cols)
+        }
+        else if (length(x = cols) > 1) {
+          plot <- suppressMessages(expr = plot + scale_color_gradientn(colors = cols, 
+                                                                       guide = "colorbar"))
+        }
+        if (coord.fixed) {
+          plot <- plot + coord_fixed()
+        }
+        plots[[(length(x = features) * (i - 1)) + j]] <- plot
+      }
+    }
+    if (combine) {
+      if (is.null(x = ncol)) {
+        ncol <- 2
+        if (length(x = features) == 1) {
+          ncol <- 1
+        }
+        if (length(x = features) > 6) {
+          ncol <- 3
+        }
+        if (length(x = features) > 9) {
+          ncol <- 4
+        }
+      }
+      ncol <- ifelse(test = is.null(x = split.by), yes = ncol, 
+                     no = length(x = features))
+      legend <- if (is.null(x = split.by)) {
+        "none"
+      }
+      else {
+        NULL
+      }
+      plots <- CombinePlots(plots = plots, ncol = ncol, 
+                            legend = legend, nrow = split.by %iff% length(x = levels(x = data$split)))
+    }
+    return(plots)
   }
-  if (combine) {
-    if (is.null(x = ncol)) {
-      ncol <- 2
-      if (length(x = features) == 1) {
-        ncol <- 1
-      }
-      if (length(x = features) > 6) {
-        ncol <- 3
-      }
-      if (length(x = features) > 9) {
-        ncol <- 4
-      }
-    }
-    ncol <- ifelse(test = is.null(x = split.by), yes = ncol, no = length(x = features))
-    legend <- if (is.null(x = split.by)) {
-      'none'
-    } else {
-      NULL
-    }
-    plots <- CombinePlots(
-      plots = plots,
-      ncol = ncol,
-      legend = legend,
-      nrow = split.by %iff% length(x = levels(x = data$split))
-    )
-  }
-  return(plots)
+  
 }
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Scatter plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
