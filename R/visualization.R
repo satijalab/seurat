@@ -174,8 +174,9 @@ DimHeatmap <- function(
 #'
 #' @return A ggplot object
 #'
+#' @importFrom stats median
 #' @importFrom scales hue_pal
-#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build
+#' @importFrom ggplot2 annotation_raster coord_cartesian ggplot_build aes_string
 #' @export
 #'
 #' @examples
@@ -251,7 +252,8 @@ DoHeatmap <- function(
       label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
       plot <- plot + geom_text(
         stat = "identity",
-        data = label.x.pos, aes(label = group, x = label.x.pos),
+        data = label.x.pos,
+        aes_string(label = 'group', x = 'label.x.pos'),
         y = y.max + y.max * 0.03 * 0.5,
         angle = angle,
         hjust = hjust,
