@@ -604,7 +604,8 @@ FeaturePlot <- function(
   coord.fixed = FALSE,
   blend = FALSE,
   blend.threshold = 0.5,
-  ...) {
+  ...
+) {
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
@@ -613,11 +614,7 @@ FeaturePlot <- function(
   }
   dims <- paste0(Key(object = object[[reduction]]), dims)
   cells <- cells %||% colnames(x = object)
-  data <- FetchData(
-    object = object,
-    vars = c(dims, features),
-    cells = cells
-  )
+  data <- FetchData(object = object, vars = c(dims, features), cells = cells)
   features <- colnames(x = data)[3:ncol(x = data)]
   min.cutoff <- mapply(
     FUN = function(cutoff, feature) {
@@ -802,8 +799,8 @@ FeaturePlot <- function(
   if (blend) {
     plots[[4]] <- BlendMap(color.matrix = color.matrix) +
       labs(
-        x = features[3],
-        y = features[1],
+        x = features[1],
+        y = features[3],
         title = paste('Color threshold:', blend.threshold)
       )
   }
