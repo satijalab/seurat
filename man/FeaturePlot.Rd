@@ -10,7 +10,7 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   max.cutoff = NA, reduction = "tsne", group.by = NULL,
   split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
   label.size = 4, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
-  ...)
+  blend = FALSE, blend.threshold = 0.5, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -53,7 +53,11 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
-\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio.}
+\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
+
+\item{blend}{...}
+
+\item{blend.threshold}{...}
 
 \item{...}{Ignored for now}
 }
