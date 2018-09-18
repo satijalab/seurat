@@ -18,7 +18,6 @@ NULL
 #' @param reduction Which dimmensional reduction to use
 #' @param balanced Plot an equal number of genes with both + and - scores.
 #' @param ncol Number of columns to plot
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
 #'
@@ -165,7 +164,7 @@ DimHeatmap <- function(
 #' @param cells A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
 #' @param disp.max Maximum display value (all values above are clipped)
-#' @param group.by Name of variable to group cells by
+#' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
 #' @param assay Assay to pull from
@@ -174,6 +173,7 @@ DimHeatmap <- function(
 #' @param size Size of text above color bar
 #' @param hjust Horizontal justification of text above color bar
 #' @param angle Angle of text above color bar
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -200,9 +200,13 @@ DoHeatmap <- function(
   size = 5.5,
   hjust = 0,
   angle = 45,
+  combine = TRUE,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
+  if (is.numeric(x = cells)) {
+    cells <- colnames(x = object)[cells]
+  }
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
@@ -218,59 +222,71 @@ DoHeatmap <- function(
     cells = cells,
     slot = slot
   )
+  object <- StashIdent(object = object, save.name = 'ident')
   group.by <- group.by %||% 'ident'
-  group.use <- switch(
-    EXPR = group.by,
-    'ident' = Idents(object = object),
-    object[[group.by, drop = TRUE]]
-  )
-  group.use <- factor(x = group.use[cells])
-  plot <- SingleRasterMap(
-    data = data,
-    disp.min = disp.min,
-    disp.max = disp.max,
-    feature.order = features,
-    cell.order = names(x = sort(x = group.use)),
-    group.by = group.use
-  )
-  if (group.bar) {
-    # TODO: Change group.bar to annotation.bar
-    pbuild <- ggplot_build(plot = plot)
-    cols <- hue_pal()(length(x = levels(x = group.use)))
-    names(x = cols) <- levels(x = group.use)
-    y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
-    y.max <- y.pos + 0.5
-    plot <- plot + annotation_raster(
-      raster = t(x = cols[sort(x = group.use)]),
-      xmin = -Inf,
-      xmax = Inf,
-      ymin = y.pos,
-      ymax = y.max
-    ) +
-      coord_cartesian(ylim = c(0, y.max), clip = 'off')
-    if (label) {
-      x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
-      x.divs <- pbuild$layout$panel_params[[1]]$x.major
-      x <- data.frame(group = sort(x = group.use), x = x.divs)
-      label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
-      label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
-      plot <- plot + geom_text(
-        stat = "identity",
-        data = label.x.pos,
-        aes_string(label = 'group', x = 'label.x.pos'),
-        y = y.max + y.max * 0.03 * 0.5,
-        angle = angle,
-        hjust = hjust,
-        size = size
-      )
-      plot <- suppressMessages(plot + coord_cartesian(
-        ylim = c(0, y.max + y.max * 0.002 * max(nchar(x = levels(x = group.use))) * size),
-        clip = 'off')
-      )
+  groups.use <- object[[group.by]][cells, , drop = FALSE]
+  # group.use <- switch(
+  #   EXPR = group.by,
+  #   'ident' = Idents(object = object),
+  #   object[[group.by, drop = TRUE]]
+  # )
+  # group.use <- factor(x = group.use[cells])
+  plots <- vector(mode = 'list', length = ncol(x = groups.use))
+  for (i in 1:ncol(x = groups.use)) {
+    group.use <- groups.use[, i, drop = TRUE]
+    group.use <- factor(x = group.use)
+    names(x = group.use) <- cells
+    plot <- SingleRasterMap(
+      data = data,
+      disp.min = disp.min,
+      disp.max = disp.max,
+      feature.order = features,
+      cell.order = names(x = sort(x = group.use)),
+      group.by = group.use
+    )
+    if (group.bar) {
+      # TODO: Change group.bar to annotation.bar
+      pbuild <- ggplot_build(plot = plot)
+      cols <- hue_pal()(length(x = levels(x = group.use)))
+      names(x = cols) <- levels(x = group.use)
+      y.pos <- max(pbuild$layout$panel_params[[1]]$y.range) + 0.25
+      y.max <- y.pos + 0.5
+      plot <- plot + annotation_raster(
+        raster = t(x = cols[sort(x = group.use)]),
+        xmin = -Inf,
+        xmax = Inf,
+        ymin = y.pos,
+        ymax = y.max
+      ) +
+        coord_cartesian(ylim = c(0, y.max), clip = 'off')
+      if (label) {
+        x.max <- max(pbuild$layout$panel_params[[1]]$x.range)
+        x.divs <- pbuild$layout$panel_params[[1]]$x.major
+        x <- data.frame(group = sort(x = group.use), x = x.divs)
+        label.x.pos <- tapply(X = x$x, INDEX = x$group, FUN = median) * x.max
+        label.x.pos <- data.frame(group = names(x = label.x.pos), label.x.pos)
+        plot <- plot + geom_text(
+          stat = "identity",
+          data = label.x.pos,
+          aes_string(label = 'group', x = 'label.x.pos'),
+          y = y.max + y.max * 0.03 * 0.5,
+          angle = angle,
+          hjust = hjust,
+          size = size
+        )
+        plot <- suppressMessages(plot + coord_cartesian(
+          ylim = c(0, y.max + y.max * 0.002 * max(nchar(x = levels(x = group.use))) * size),
+          clip = 'off')
+        )
+      }
     }
+    plot <- plot + theme(line = element_blank())
+    plots[[i]] <- plot
   }
-  plot <- plot + theme(line = element_blank())
-  return(plot)
+  if (combine) {
+    plots <- CombinePlots(plots = plots)
+  }
+  return(plots)
 }
 
 #' Hashtag oligo heatmap
