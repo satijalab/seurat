@@ -28,6 +28,6 @@ cells.located
 
 }
 \seealso{
-\code{\link{graphics::locator}} \code{\link{ggplot2::ggplot_build}}
-\code{\link{SDMTools::pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+\code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
+\code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 }

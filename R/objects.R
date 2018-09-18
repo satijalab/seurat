@@ -3328,7 +3328,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @rdname subset.Seurat
 #' @aliases subset
-#' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
+#' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
 #'
 #' @export
 #' @method subset Seurat

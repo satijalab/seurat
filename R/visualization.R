@@ -25,7 +25,7 @@ NULL
 #'
 #' @export
 #'
-#' @seealso \code{\link{graphics::image}} \code{\link{ggplot2::geom_raster}}
+#' @seealso \code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 #'
 #' @examples
 #' DimHeatmap(object = pbmc_small)
@@ -1679,8 +1679,8 @@ CustomPalette <- function(
 #' @importFrom ggplot2 ggplot_build
 #' @export
 #'
-#' @seealso \code{\link{graphics::locator}} \code{\link{ggplot2::ggplot_build}}
-#' \code{\link{SDMTools::pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
+#' @seealso \code{\link[graphics]{locator}} \code{\link[ggplot2]{ggplot_build}}
+#' \code{\link[SDMTools]{pnt.in.poly}} \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
 #' \dontrun{
@@ -1710,7 +1710,7 @@ FeatureLocator <- function(plot, ...) {
 #' @importFrom plotly plot_ly layout
 #' @export
 #'
-#' @seealso \code{\link{plotly::layout}} \code{\link{ggplot2::ggplot_build}}
+#' @seealso \code{\link[plotly]{layout}} \code{\link[ggplot2]{ggplot_build}}
 #' \code{\link{DimPlot}} \code{\link{FeaturePlot}}
 #'
 #' @examples
@@ -1820,7 +1820,7 @@ HoverLocator <- function(
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
-#' @seealso \code{\link{ggplot2::geom_text}}
+#' @seealso \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
 #' ff <- TopFeatures(object = pbmc_small[['pca']])
@@ -1925,7 +1925,7 @@ PurpleAndYellow <- function(k = 50) {
 #' @export
 #'
 #' @rdname SeuratTheme
-#' @seealso \code{\link{ggplot2::theme}}
+#' @seealso \code{\link[ggplot2]{theme}}
 #' @aliases SeuratTheme
 #'
 SeuratTheme <- function() {
@@ -2801,7 +2801,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 #
 # @author jan-glx on StackOverflow
 # @references \url{https://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2}
-# @seealso \code{\link{ggplot2::geom_violin}}
+# @seealso \code{\link[ggplot2]{geom_violin}}
 #
 GeomSplitViolin <- ggproto(
   "GeomSplitViolin",
@@ -2860,7 +2860,7 @@ GeomSplitViolin <- ggproto(
 #
 # @author jan-glx on StackOverflow
 # @references \url{https://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2}
-# @seealso \code{\link{ggplot2::geom_violin}}
+# @seealso \code{\link[ggplot2]{geom_violin}}
 #
 geom_split_violin <- function(
   mapping = NULL,
@@ -3065,7 +3065,7 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
 #' @importFrom stats approxfun
 #
 # @author Hadley Wickham (I presume)
-# @seealso \code{\link{ggplot2::geom_violin}}
+# @seealso \code{\link[ggplot2]{geom_violin}}
 #
 QuantileSegments <- function(data, draw.quantiles) {
   densities <- cumsum(x = data$density) / sum(data$density)

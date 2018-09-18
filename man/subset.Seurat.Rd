@@ -38,5 +38,5 @@ subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 
 }
 \seealso{
-\code{\link{base::subset}} \code{\link{WhichCells}}
+\code{\link[base]{subset}} \code{\link{WhichCells}}
 }
