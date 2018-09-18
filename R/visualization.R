@@ -2661,7 +2661,7 @@ ExIPlot <- function(
   cols = NULL,
   pt.size = 0,
   group.by = NULL,
-  split.by = split.by,
+  split.by = NULL,
   log = FALSE,
   combine = TRUE,
   slot = 'data',
@@ -2796,6 +2796,7 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # A split violin plot geom
 #
 #' @importFrom scales zero_range
+#' @importFrom ggplot2 GeomPolygon
 #' @importFrom grid grobTree grobName
 #
 # @author jan-glx on StackOverflow
@@ -2815,7 +2816,7 @@ GeomSplitViolin <- ggproto(
   #   return(data)
   # },
   draw_group = function(self, data, ..., draw_quantiles = NULL) {
-    browser()
+    # browser()
     data$xminv <- data$x - data$violinwidth * (data$x - data$xmin)
     data$xmaxv <- data$x + data$violinwidth * (data$xmax - data$x)
     grp <- data[1, 'group']
