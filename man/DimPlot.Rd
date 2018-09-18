@@ -8,7 +8,7 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   pt.size = NULL, reduction = "pca", group.by = NULL,
   shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
   cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", ...)
+  sizes.highlight = 1, na.value = "grey50", combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,7 +23,8 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
 
 \item{reduction}{Which dimensionality reduction to use}
 
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+\item{group.by}{A vector of variables to group (color) cells by (for example, orig.ident);
+pass 'ident' to group by identity class}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
@@ -49,7 +50,9 @@ repeat to the length groups in cells.highlight}
 \item{sizes.highlight}{Size of highlighted cells; will repeat to the length
 groups in cells.highlight}
 
-\item{na.value}{Color value for NA points when using custom scale.}
+\item{na.value}{Color value for NA points when using custom scale}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{...}{Ignored for now}
 }

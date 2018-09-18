@@ -493,7 +493,8 @@ VlnPlot <- function(
 #' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use
-#' @param group.by Group (color) cells in different ways (for example, orig.ident)
+#' @param group.by A vector of variables to group (color) cells by (for example, orig.ident);
+#' pass 'ident' to group by identity class
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -511,7 +512,8 @@ VlnPlot <- function(
 #' repeat to the length groups in cells.highlight
 #' @param sizes.highlight Size of highlighted cells; will repeat to the length
 #' groups in cells.highlight
-#' @param na.value Color value for NA points when using custom scale.
+#' @param na.value Color value for NA points when using custom scale
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -543,6 +545,7 @@ DimPlot <- function(
   cols.highlight = 'red',
   sizes.highlight = 1,
   na.value = 'grey50',
+  combine = TRUE,
   ...
 ) {
   ReadPlotParams(object)
@@ -553,31 +556,36 @@ DimPlot <- function(
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
+  object <- StashIdent(object = object, save.name = 'ident')
   group.by <- group.by %||% 'ident'
-  data[, group.by] <- switch(
-    EXPR = group.by,
-    'ident' = Idents(object = object),
-    object[[group.by, drop = TRUE]]
-  )
+  data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
-  plot <- SingleDimPlot(
-    data = data,
-    dims = dims,
-    col.by = group.by,
-    cols = cols,
-    pt.size = pt.size,
-    shape.by = shape.by,
-    plot.order = order,
-    label = label,
-    label.size = label.size,
-    cells.highlight = cells.highlight,
-    cols.highlight = cols.highlight,
-    sizes.highlight = sizes.highlight,
-    na.value = na.value
+  plots <- lapply(
+    X = group.by,
+    FUN = function(x) {
+      return(SingleDimPlot(
+        data = data[, c(dims, x)],
+        dims = dims,
+        col.by = x,
+        cols = cols,
+        pt.size = pt.size,
+        shape.by = shape.by,
+        plot.order = order,
+        label = label,
+        label.size = label.size,
+        cells.highlight = cells.highlight,
+        cols.highlight = cols.highlight,
+        sizes.highlight = sizes.highlight,
+        na.value = na.value
+      ))
+    }
   )
-  return(plot)
+  if (combine) {
+    plots <- CombinePlots(plots = plots)
+  }
+  return(plots)
 }
 
 #' Visualize 'features' on a dimensional reduction plot
@@ -594,7 +602,6 @@ DimPlot <- function(
 #' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
 #' @param split.by A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio.
 #'
 #' @return A ggplot object
@@ -624,7 +631,6 @@ FeaturePlot <- function(
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = 'tsne',
-  group.by = NULL,
   split.by = NULL,
   shape.by = NULL,
   order = NULL,
@@ -2793,7 +2799,7 @@ GeomSplitViolin <- ggproto(
   #   return(data)
   # },
   draw_group = function(self, data, ..., draw_quantiles = NULL) {
-    # browser()
+    browser()
     data$xminv <- data$x - data$violinwidth * (data$x - data$xmin)
     data$xmaxv <- data$x + data$violinwidth * (data$xmax - data$x)
     grp <- data[1, 'group']
@@ -2842,12 +2848,12 @@ GeomSplitViolin <- ggproto(
 geom_split_violin <- function(
   mapping = NULL,
   data = NULL,
-  stat = "ydensity",
-  position = "identity",
+  stat = 'ydensity',
+  position = 'identity',
   ...,
   draw_quantiles = NULL,
   trim = TRUE,
-  scale = "area",
+  scale = 'area',
   na.rm = FALSE,
   show.legend = NA,
   inherit.aes = TRUE
