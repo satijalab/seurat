@@ -606,6 +606,7 @@ FeaturePlot <- function(
   blend.threshold = 0.5,
   ...
 ) {
+
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
@@ -676,21 +677,7 @@ FeaturePlot <- function(
   )
   colnames(x = data)[3:ncol(x = data)] <- features
   rownames(x = data) <- cells
-  if (blend) {
-    data <- cbind(data[, dims], BlendExpression(data = data[, features]))
-    features <- colnames(x = data)[3:ncol(x = data)]
-    if (!is.null(x = split.by)) {
-      warning("We cannot currently blend feature heatmaps")
-    }
-    ncol <- 4
-    split.by <- NULL
-    color.matrix <- BlendMatrix(col.threshold = blend.threshold)
-    colors <- list(
-      color.matrix[, 1],
-      color.matrix[1, ],
-      as.vector(x = color.matrix)
-    )
-  }
+
   data$split <- if (is.null(x = split.by)) {
     RandomName()
   } else {
@@ -716,14 +703,32 @@ FeaturePlot <- function(
   for (i in 1:length(x = levels(x = data$split))) {
     ident <- levels(x = data$split)[i]
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
+    
+    if (blend) {
+      data.plot <- cbind(data.plot[, dims], BlendExpression(data = data.plot[, features[1:2]]))
+      features <- colnames(x = data.plot)[3:ncol(x = data.plot)]
+    }
+    
     for (j in 1:length(x = features)) {
       feature <- features[j]
       if (blend) {
-        cols.use <- as.numeric(x = as.character(x = data[, feature])) + 1
+          ncol <- 4
+          color.matrix <- BlendMatrix(col.threshold = blend.threshold)
+          colors <- list(
+            color.matrix[, 1],
+            color.matrix[1, ],
+            as.vector(x = color.matrix)
+          )
+        
+        
+        cols.use <- as.numeric(x = as.character(x = data.plot[, feature])) + 1
         cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
       } else {
         cols.use <- NULL
       }
+      
+      
+      
       plot <- SingleDimPlot(
         data = data.plot[, c(dims, feature)],
         dims = dims,
@@ -793,22 +798,37 @@ FeaturePlot <- function(
       if (coord.fixed) {
         plot <- plot + coord_fixed()
       }
+
       plot <- plot
       # print(plot)
       # Sys.sleep(time = 5)
       plots[[(length(x = features) * (i - 1)) + j]] <- plot
       # rm(plot)
       # gc(verbose = FALSE)
+      
+      
     }
+    
+  
   }
   if (blend) {
-    plots[[4]] <- BlendMap(color.matrix = color.matrix) +
+    for (b in 1:length(plots)){
+    #  plots[[b]]<- plots[[b]]+theme(panel.background = element_rect(fill = "black"))
+      
+    }
+
+    blend.legned<- BlendMap(color.matrix = color.matrix) +
       labs(
         x = features[1],
         y = features[2],
         title = paste('Color threshold:', blend.threshold)
       )
+    for (i in 1:length(x = levels(x = data$split))){
+    plots<- append(plots, list(blend.legned),4*i-1)
+    }
   }
+
+  
   if (combine) {
     if (is.null(x = ncol)) {
       ncol <- 2
@@ -827,6 +847,9 @@ FeaturePlot <- function(
       yes = ncol,
       no = length(x = features)
     )
+   if(blend){
+     ncol<-4
+   }
     legend <- if (blend) {
       'none'
     } else {

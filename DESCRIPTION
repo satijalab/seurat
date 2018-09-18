@@ -65,6 +65,7 @@ Collate:
     'objects.R'
     'preprocessing.R'
     'utilities.R'
+    'visualization copy.R'
     'visualization.R'
 RoxygenNote: 6.1.0
 Encoding: UTF-8
