@@ -651,6 +651,16 @@ ExtractField <- function(string, field = 1, delim = "_") {
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
+# Interleave vectors together
+#
+# @param ... Vectors to be interleaved
+#
+# @return A vector with the values from each vector in ... interleaved
+#
+Interleave <- function(...) {
+  return(as.vector(x = t(x = as.data.frame(x = list(...)))))
+}
+
 # Check if a matrix is empty
 #
 # Takes a matrix and asks if it's empty (either 0x0 or 1x1 with a value of NA)

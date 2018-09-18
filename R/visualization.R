@@ -1,3 +1,7 @@
+#' @importFrom ggplot2 ggproto GeomViolin
+#'
+NULL
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Heatmaps
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -409,6 +413,7 @@ RidgePlot <- function(
 #'
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
+#' @param split.by A variable to split the violin plots by
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A ggplot object
@@ -427,6 +432,7 @@ VlnPlot <- function(
   sort = FALSE,
   assay = NULL,
   group.by = NULL,
+  split.by = NULL,
   adjust = 1,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -450,6 +456,7 @@ VlnPlot <- function(
     pt.size = pt.size,
     cols = cols,
     group.by = group.by,
+    split.by = split.by,
     log = log,
     slot = slot,
     ...
@@ -2432,6 +2439,38 @@ BlendPlot <- function(
   return(p)
 }
 
+# Convert R colors to hexadecimal
+#
+# @param ... R colors
+#
+# @return The hexadecimal representations of input colors
+#
+#' @importFrom grDevices rgb col2rgb
+#
+Col2Hex <- function(...) {
+  colors <- as.character(x = c(...))
+  alpha <- rep.int(x = 255, times = length(x = colors))
+  if (sum(sapply(X = colors, FUN = grepl, pattern = '^#')) != 0) {
+    hex <- colors[which(x = grepl(pattern = '^#', x = colors))]
+    hex.length <- sapply(X = hex, FUN = nchar)
+    if (9 %in% hex.length) {
+      hex.alpha <- hex[which(x = hex.length == 9)]
+      hex.vals <- sapply(X = hex.alpha, FUN = substr, start = 8, stop = 9)
+      dec.vals <- sapply(X = hex.vals, FUN = strtoi, base = 16)
+      alpha[match(x = hex[which(x = hex.length == 9)], table = colors)] <- dec.vals
+    }
+  }
+  colors <- t(x = col2rgb(col = colors))
+  colors <- mapply(
+    FUN = function(i, alpha) {
+      return(rgb(colors[i, , drop = FALSE], alpha = alpha, maxColorValue = 255))
+    },
+    i = 1:nrow(x = colors),
+    alpha = alpha
+  )
+  return(colors)
+}
+
 globalVariables(
   names = 'cc',
   package = 'Seurat',
@@ -2578,11 +2617,13 @@ EvaluateCCs <- function(
 # @param pt.size Point size for geom_violin
 # @param cols Colors to use for plotting
 # @param group.by Group (color) cells in different ways (for example, orig.ident)
+# @param split.by A variable to split the plot by
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
 # @param ... Ignored
 #
+#' @importFrom scales hue_pal
 #
 ExIPlot <- function(
   object,
@@ -2598,6 +2639,7 @@ ExIPlot <- function(
   cols = NULL,
   pt.size = 0,
   group.by = NULL,
+  split.by = split.by,
   log = FALSE,
   combine = TRUE,
   slot = 'data',
@@ -2620,9 +2662,29 @@ ExIPlot <- function(
   idents <- if (is.null(x = group.by)) {
     Idents(object = object)[cells]
   } else {
-    object[[group.by]][cells, , drop = TRUE]
+    object[[group.by, drop = TRUE]][cells]
   }
-  # feature.names <- colnames(x = data)[colnames(x = data) %in% rownames(x = object)]
+  if (!is.factor(x = idents)) {
+    idents <- factor(x = idents)
+  }
+  if (is.null(x = split.by)) {
+    split <- NULL
+  } else {
+    split <- object[[split.by, drop = TRUE]][cells]
+    if (!is.factor(x = split)) {
+      split <- factor(x = split)
+    }
+    if (is.null(x = cols)) {
+      cols <- hue_pal()(length(x = levels(x = idents)))
+    } else if (cols == 'interaction') {
+      split <- interaction(idents, split)
+      cols <- hue_pal()(length(x = levels(x = idents)))
+    } else {
+      cols <- Col2Hex(cols)
+    }
+    cols <- Interleave(cols, InvertHex(hexadecimal = cols))
+    names(x = cols) <- sort(x = levels(x = split))
+  }
   if (same.y.lims && is.null(x = y.max)) {
     y.max <- max(data)
   }
@@ -2634,12 +2696,12 @@ ExIPlot <- function(
         type = type,
         data = data[, x, drop = FALSE],
         idents = idents,
+        split = split,
         sort = sort,
         y.max = y.max,
         adjust = adjust,
         cols = cols,
         pt.size = pt.size,
-        # feature.names = feature.names,
         log = log
       ))
     }
@@ -2707,6 +2769,150 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
     PlotBuild(data = plot.data, ...)
   }
   return(plot.data)
+}
+
+# A split violin plot geom
+#
+#' @importFrom scales zero_range
+#' @importFrom grid grobTree grobName
+#
+# @author jan-glx on StackOverflow
+# @references \url{https://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2}
+# @seealso \code{\link{ggplot2::geom_violin}}
+#
+GeomSplitViolin <- ggplot2::ggproto(
+  "GeomSplitViolin",
+  ggplot2::GeomViolin,
+  # setup_data = function(data, params) {
+  #   data$width <- data$width %||% params$width %||% (resolution(data$x, FALSE) * 0.9)
+  #   data <- plyr::ddply(data, "group", transform, xmin = x - width/2, xmax = x + width/2)
+  #   e <- globalenv()
+  #   name <- paste(sample(x = letters, size = 5), collapse = '')
+  #   message("Saving initial data to ", name)
+  #   e[[name]] <- data
+  #   return(data)
+  # },
+  draw_group = function(self, data, ..., draw_quantiles = NULL) {
+    # browser()
+    data$xminv <- data$x - data$violinwidth * (data$x - data$xmin)
+    data$xmaxv <- data$x + data$violinwidth * (data$xmax - data$x)
+    grp <- data[1, 'group']
+    if (grp %% 2 == 1) {
+      data$x <- data$xminv
+      data.order <- data$y
+    } else {
+      data$x <- data$xmaxv
+      data.order <- -data$y
+    }
+    newdata <- data[order(data.order), , drop = FALSE]
+    newdata <- rbind(
+      newdata[1, ],
+      newdata,
+      newdata[nrow(x = newdata), ],
+      newdata[1, ]
+    )
+    newdata[c(1, nrow(x = newdata) - 1, nrow(x = newdata)), 'x'] <- round(x = newdata[1, 'x'])
+    grob <- if (length(x = draw_quantiles) > 0 & !zero_range(x = range(data$y))) {
+      stopifnot(all(draw_quantiles >= 0), all(draw_quantiles <= 1))
+      quantiles <- QuantileSegments(data = data, draw.quantiles = draw_quantiles)
+      aesthetics <- data[rep.int(x = 1, times = nrow(x = quantiles)), setdiff(x = names(x = data), y = c("x", "y")), drop = FALSE]
+      aesthetics$alpha <- rep.int(x = 1, nrow(x = quantiles))
+      both <- cbind(quantiles, aesthetics)
+      quantile.grob <- GeomPath$draw_panel(both, ...)
+      grobTree(GeomPolygon$draw_panel(newdata, ...), name = quantile.grob)
+    }
+    else {
+      GeomPolygon$draw_panel(newdata, ...)
+    }
+    grob$name <- grobName(grob = grob, prefix = 'geom_split_violin')
+    return(grob)
+  }
+)
+
+# Create a split violin plot geom
+#
+# @inheritParams ggplot2::geom_violin
+#
+#' @importFrom ggplot2 layer
+#
+# @author jan-glx on StackOverflow
+# @references \url{https://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2}
+# @seealso \code{\link{ggplot2::geom_violin}}
+#
+geom_split_violin <- function(
+  mapping = NULL,
+  data = NULL,
+  stat = "ydensity",
+  position = "identity",
+  ...,
+  draw_quantiles = NULL,
+  trim = TRUE,
+  scale = "area",
+  na.rm = FALSE,
+  show.legend = NA,
+  inherit.aes = TRUE
+) {
+  return(layer(
+    data = data,
+    mapping = mapping,
+    stat = stat,
+    geom = GeomSplitViolin,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
+    params = list(
+      trim = trim,
+      scale = scale,
+      draw_quantiles = draw_quantiles,
+      na.rm = na.rm,
+      ...
+    )
+  ))
+}
+
+# Invert a Hexadecimal color
+#
+# @param hexadecimal A character vector of hexadecimal colors
+#
+# @return Hexadecimal representations of the inverted color
+#
+# @author Matt Lagrandeur
+# @references \url{http://www.mattlag.com/scripting/hexcolorinverter.php}
+#
+InvertHex <- function(hexadecimal) {
+  return(vapply(
+    X = hexadecimal,
+    FUN = function(hex) {
+      hex <- unlist(x = strsplit(
+        x = gsub(pattern = '#', replacement = '', x = hex),
+        split = ''
+      ))
+      key <- unlist(x = strsplit(x = 'FEDCBA9876543210', split = ''))
+      if (!all(hex %in% key)) {
+        stop('All hexadecimal colors must be valid hexidecimal numbers from 0-9 and A-F')
+      }
+      if (length(x = hex) == 8) {
+        alpha <- hex[7:8]
+        hex <- hex[1:6]
+      } else if (length(x = hex) == 6) {
+        alpha <- NULL
+      } else {
+        stop("All hexidecimal colors must be either 6 or 8 characters in length, excluding the '#'")
+      }
+      value <- rev(x = key)
+      inv.hex <- vapply(
+        X = hex,
+        FUN = function(x) {
+          return(value[grep(pattern = x, x = key)])
+        },
+        FUN.VALUE = character(length = 1L)
+      )
+      inv.hex <- paste(inv.hex, collapse = '')
+      return(paste0('#', inv.hex, paste(alpha, collapse = '')))
+    },
+    FUN.VALUE = character(length = 1L),
+    USE.NAMES = FALSE
+  ))
 }
 
 # Make label information for ggplot2-based scatter plots
@@ -2826,6 +3032,29 @@ PointLocator <- function(plot, recolor = TRUE, dark.theme = FALSE, ...) {
     PlotBuild(data = plot.data, dark.theme = dark.theme, ...)
   }
   return(points.located[, c(1, 2)])
+}
+
+# Create quantile segments for quantiles on violin plots in ggplot2
+#
+# @param data Data being plotted
+# @param draw.quantiles Quantiles to draw
+#
+#' @importFrom stats approxfun
+#
+# @author Hadley Wickham (I presume)
+# @seealso \code{\link{ggplot2::geom_violin}}
+#
+QuantileSegments <- function(data, draw.quantiles) {
+  densities <- cumsum(x = data$density) / sum(data$density)
+  ecdf <- approxfun(x = densities, y = data$y)
+  ys <- ecdf(v = draw.quantiles)
+  violin.xminvs <- approxfun(x = data$y, y = data$xminv)(v = ys)
+  violin.xmaxvs <- approxfun(x = data$y, y = data$xmaxv)(v = ys)
+  return(data.frame(
+    x = as.vector(x = t(x = data.frame(violin.xminvs, violin.xmaxvs))),
+    y = rep(x = ys, each = 2),
+    group = rep(x = ys, each = 2)
+  ))
 }
 
 # Documentation needed
@@ -3246,12 +3475,13 @@ SingleDimPlot <- function(
 #' @importFrom utils globalVariables
 #' @importFrom ggridges geom_density_ridges theme_ridges
 #' @importFrom ggplot2 ggplot aes_string theme labs geom_violin geom_jitter ylim
-#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous
+#' scale_fill_manual scale_y_log10 scale_x_log10 scale_y_discrete scale_x_continuous waiver
 #' @importFrom cowplot theme_cowplot
 #'
 SingleExIPlot <- function(
   data,
   idents,
+  split = NULL,
   type = 'violin',
   sort = FALSE,
   y.max = NULL,
@@ -3290,6 +3520,14 @@ SingleExIPlot <- function(
   }
   axis.label <- ifelse(test = log, yes = 'Log Expression Level', no = 'Expression Level')
   y.max <- y.max %||% max(data[, feature])
+  if (is.null(x = split) || type != 'violin') {
+    vln.geom <- geom_violin
+    fill <- 'ident'
+  } else {
+    data$split <- split
+    vln.geom <- geom_split_violin
+    fill <- 'split'
+  }
   switch(
     EXPR = type,
     'violin' = {
@@ -3298,7 +3536,7 @@ SingleExIPlot <- function(
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
-        geom_violin(scale = 'width', adjust = adjust, trim = TRUE),
+        vln.geom(scale = 'width', adjust = adjust, trim = TRUE),
         theme(axis.text.x = element_text(angle = 45, hjust = 1))
       )
       jitter <- geom_jitter(height = 0, size = pt.size)
@@ -3324,7 +3562,10 @@ SingleExIPlot <- function(
     },
     stop("Unknown plot type: ", type)
   )
-  plot <- ggplot(data = data, mapping = aes_string(x = x, y = y, fill = 'ident')) +
+  plot <- ggplot(
+    data = data,
+    mapping = aes_string(x = x, y = y, fill = fill)[c(2, 3, 1)]
+  ) +
     labs(x = xlab, y = ylab, title = feature, fill = NULL) +
     theme_cowplot()
   plot <- do.call(what = '+', args = list(plot, geom))
@@ -3337,7 +3578,36 @@ SingleExIPlot <- function(
     plot <- plot + jitter
   }
   if (!is.null(x = cols)) {
-    plot <- plot + scale_fill_manual(values = cols)
+    if (!is.null(x = split)) {
+      idents <- unique(x = as.vector(x = data$ident))
+      splits <- unique(x = as.vector(x = data$split))
+      labels <- if (length(x = splits) == 2) {
+        splits
+      } else {
+        unlist(x = lapply(
+          X = idents,
+          FUN = function(pattern, x) {
+            x.mod <- gsub(
+              pattern = paste0(pattern, '.'),
+              replacement = paste0(pattern, ': '),
+              x = x,
+              fixed = TRUE
+            )
+            x.keep <- grep(pattern = ': ', x = x.mod, fixed = TRUE)
+            x.return <- x.mod[x.keep]
+            names(x = x.return) <- x[x.keep]
+            return(x.return)
+          },
+          x = unique(x = as.vector(x = data$split))
+        ))
+      }
+      if (is.null(x = names(x = labels))) {
+        names(x = labels) <- labels
+      }
+    } else {
+      labels <- unique(x = as.vector(x = data$ident))
+    }
+    plot <- plot + scale_fill_manual(values = cols, labels = labels)
   }
   return(plot)
 }
