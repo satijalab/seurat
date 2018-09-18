@@ -678,17 +678,17 @@ FeaturePlot <- function(
   rownames(x = data) <- cells
   if (blend) {
     data <- cbind(data[, dims], BlendExpression(data = data[, features]))
-    features <- colnames(x = data)[c(3, 5, 4)]
+    features <- colnames(x = data)[3:ncol(x = data)]
     if (!is.null(x = split.by)) {
       warning("We cannot currently blend feature heatmaps")
     }
-    ncol <- 2
+    ncol <- 4
     split.by <- NULL
     color.matrix <- BlendMatrix(col.threshold = blend.threshold)
     colors <- list(
       color.matrix[, 1],
-      as.vector(x = color.matrix),
-      color.matrix[1, ]
+      color.matrix[1, ],
+      as.vector(x = color.matrix)
     )
   }
   data$split <- if (is.null(x = split.by)) {
@@ -718,11 +718,18 @@ FeaturePlot <- function(
     data.plot <- data[as.character(x = data$split) == ident, , drop = FALSE]
     for (j in 1:length(x = features)) {
       feature <- features[j]
+      if (blend) {
+        cols.use <- as.numeric(x = as.character(x = data[, feature])) + 1
+        cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
+      } else {
+        cols.use <- NULL
+      }
       plot <- SingleDimPlot(
         data = data.plot[, c(dims, feature)],
         dims = dims,
         col.by = feature,
         pt.size = pt.size,
+        cols = cols.use,
         do.label = label,
         label.size = label.size
       ) +
@@ -771,19 +778,17 @@ FeaturePlot <- function(
       } else {
         plot <- plot + labs(title = feature)
       }
-      if (blend) {
-        cols.use <- as.numeric(x = as.character(x = data[, feature])) + 1
-        cols.use <- colors[[j]][sort(x = unique(x = cols.use))]
-        plot <- plot + scale_color_manual(values = cols.use)
-      } else if (length(x = cols) == 1) {
-        plot <- plot + scale_color_brewer(palette = cols)
-      } else if (length(x = cols) > 1) {
-        plot <- suppressMessages(
-          expr = plot + scale_color_gradientn(
-            colors = cols,
-            guide = "colorbar"
+      if (!blend) {
+        if (length(x = cols) == 1) {
+          plot <- plot + scale_color_brewer(palette = cols)
+        } else if (length(x = cols) > 1) {
+          plot <- suppressMessages(
+            expr = plot + scale_color_gradientn(
+              colors = cols,
+              guide = "colorbar"
+            )
           )
-        )
+        }
       }
       if (coord.fixed) {
         plot <- plot + coord_fixed()
@@ -800,7 +805,7 @@ FeaturePlot <- function(
     plots[[4]] <- BlendMap(color.matrix = color.matrix) +
       labs(
         x = features[1],
-        y = features[3],
+        y = features[2],
         title = paste('Color threshold:', blend.threshold)
       )
   }
