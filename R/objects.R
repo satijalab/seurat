@@ -620,6 +620,91 @@ CreateSeuratObject <- function(
   return(object)
 }
 
+#' Create a workflow object
+#'
+#' @param file Path to workflow file
+#'
+#' @return A SeuratWorkflow object
+#'
+#' @export
+#'
+CreateWorkflowObject <- function(file) {
+  if (!file.exists(... = file)) {
+    stop("Provided workflow file does not exist.")
+  }
+  config <- read.ini(filepath = file)
+  ValidateWorkflowFile(config = config)
+  workflow.name <- gsub(
+    pattern = ".workflow.ini",
+    replacement = "",
+    x = basename(path = file)
+  )
+  depend.fxns <- unlist(x = strsplit(
+    x = unname(obj = unlist(x = config$dependencies)),
+    split = ","
+  ))
+  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
+  depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
+  rownames(x = depends) <- colnames(x = depends) <- fxns
+  for (cmd in 1:length(x = config$dependencies)) {
+    cmd.name <- names(x = config$dependencies[cmd])
+    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
+    for (cv in cmd.vals) {
+      depends[cmd.name, cv] <- 1
+    }
+  }
+  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
+  names(x = mostRecent) <- fxns
+  for (mr in names(x = mostRecent)) {
+    assay <- config$global$assay
+    assay <- assay %iff% config[mr]$assay
+    reduction <- config$global$reduction
+    reduction <- config[mr]$reduction
+    reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
+    command.name <- paste0(mr, ".", assay, ".", reduction)
+    command.name <- sub(
+      pattern = "[\\.]+$",
+      replacement = "",
+      x = command.name,
+      perl = TRUE
+    )
+    command.name <- sub(
+      pattern = "\\.\\.",
+      replacement = "\\.",
+      x = command.name,
+      perl = TRUE
+    )
+  }
+  params <- list()
+  if (!is.null(x = config$global)) {
+    params[["global"]] <- config$global
+    for (p in 1:length(x = params$global)) {
+      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
+    }
+  }
+  # set fxn specific params
+  fxn.param.names <- setdiff(
+    x = names(x = config),
+    y = c("dependencies", "global")
+  )
+  if (length(x = fxn.param.names) > 0) {
+    for (i in 1:length(x = fxn.param.names)) {
+      params[fxn.param.names[i]] <- config[fxn.param.names[i]]
+      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
+        params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
+      }
+    }
+  }
+  seurat.workflow <- new(
+    Class = 'SeuratWorkflow',
+    name = workflow.name,
+    depends = depends,
+    params = params,
+    mostRecent = mostRecent
+  )
+  return(seurat.workflow)
+}
+
 #' Access cellular data
 #'
 #' Retreives data (feature expression, PCA scores, metrics, etc.) for a set
@@ -773,10 +858,10 @@ InitializeWorkflow <- function(object, file) {
   fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
   depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
   rownames(x = depends) <- colnames(x = depends) <- fxns
-  for(cmd in 1:length(x = config$dependencies)) {
+  for (cmd in 1:length(x = config$dependencies)) {
     cmd.name <- names(x = config$dependencies[cmd])
     cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
-    for(cv in cmd.vals) {
+    for (cv in cmd.vals) {
       depends[cmd.name, cv] <- 1
     }
   }
@@ -810,7 +895,7 @@ InitializeWorkflow <- function(object, file) {
   params <- list()
   if (!is.null(x = config$global)) {
     params[["global"]] <- config$global
-    for (p in 1:length(x = params$global)){
+    for (p in 1:length(x = params$global)) {
       params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
     }
   }
@@ -820,7 +905,7 @@ InitializeWorkflow <- function(object, file) {
     y = c("dependencies", "global")
   )
   if (length(x = fxn.param.names) > 0) {
-    for(i in 1:length(x = fxn.param.names)) {
+    for (i in 1:length(x = fxn.param.names)) {
       params[fxn.param.names[i]] <- config[fxn.param.names[i]]
       for (p in 1:length(x = params[[fxn.param.names[i]]])) {
         params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])

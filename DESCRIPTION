@@ -68,6 +68,7 @@ Collate:
     'dimensional_reduction.R'
     'integration.R'
     'objects.R'
+    'package.R'
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
