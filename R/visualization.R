@@ -2780,9 +2780,9 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
 # @references \url{https://stackoverflow.com/questions/35717353/split-violin-plot-with-ggplot2}
 # @seealso \code{\link{ggplot2::geom_violin}}
 #
-GeomSplitViolin <- ggplot2::ggproto(
+GeomSplitViolin <- ggproto(
   "GeomSplitViolin",
-  ggplot2::GeomViolin,
+  GeomViolin,
   # setup_data = function(data, params) {
   #   data$width <- data$width %||% params$width %||% (resolution(data$x, FALSE) * 0.9)
   #   data <- plyr::ddply(data, "group", transform, xmin = x - width/2, xmax = x + width/2)
