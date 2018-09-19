@@ -26,7 +26,7 @@ NULL
 #' @importFrom RANN nn2
 #' @importFrom methods as
 #'
-#' @describeIn BuildSNN Build an SNN on a given matrix
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN default
 #'

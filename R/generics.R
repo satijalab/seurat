@@ -649,7 +649,8 @@ RunTSNE <- function(object, ...) {
 #'
 #' @return Returns a Seurat object containing a UMAP representation
 #'
-#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
+#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and
+#' Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 #'
 #' @export
 #'

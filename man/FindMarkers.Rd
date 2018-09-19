@@ -129,8 +129,6 @@ same genes tested for differential expression.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Run differential expression test on matrix
-
 \item \code{Seurat}: Run differential expression test on a Seurat object
 }}
 

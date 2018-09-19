@@ -69,11 +69,6 @@ first determine the k-nearest neighbors of each cell. We use this knn graph
 to construct the SNN graph by calculating the neighborhood overlap
 (Jaccard index) between every cell and its k.param nearest neighbors.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{default}: Build an SNN on a given matrix
-}}
-
 \examples{
 pbmc_small
 # Compute an SNN on the gene expression level

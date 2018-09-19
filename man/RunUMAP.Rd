@@ -81,5 +81,6 @@ DimPlot(object = pbmc_small, reduction = 'umap')
 
 }
 \references{
-McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
+McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and
+Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 }

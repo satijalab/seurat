@@ -323,7 +323,7 @@ FindConservedMarkers <- function(
 #' @importFrom Matrix rowSums
 #' @importFrom stats p.adjust
 #'
-#' @describeIn FindMarkers Run differential expression test on matrix
+#' @rdname FindMarkers
 #' @export
 #' @method FindMarkers default
 #'
