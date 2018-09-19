@@ -43,6 +43,20 @@ BuildSNN <- function(object, ...) {
   UseMethod(generic = 'BuildSNN', object = object)
 }
 
+#' Get cells present in an object
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return A vector of cell names
+#'
+#' @examples
+#' Cells(object = pbmc_small)
+#'
+Cells <- function(object, ...) {
+  UseMethod(generic = 'Cells', object = object)
+}
+
 #' Get SeuratCommands
 #'
 #' Pull information on previously run commands in the Seurat object.

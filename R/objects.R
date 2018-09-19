@@ -1265,6 +1265,13 @@ as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
 }
 
+#' @rdname Cells
+#' @export
+#'
+Cells.default <- function(object, ...) {
+  return(colnames(x = object))
+}
+
 #' @param command Name of the command to pull
 #' @param value Name of the parameter to pull the value for
 #'
