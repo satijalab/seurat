@@ -50,6 +50,9 @@ BuildSNN <- function(object, ...) {
 #'
 #' @return A vector of cell names
 #'
+#' @rdname Cells
+#' @export Cells
+#'
 #' @examples
 #' Cells(object = pbmc_small)
 #'
