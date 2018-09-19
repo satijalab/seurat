@@ -2343,6 +2343,9 @@ RenameIdents.Seurat <- function(object, ...) {
 #' @param slot Where to store the new data
 #' @param new.data New data to insert
 #'
+#'
+#' @importFrom stats na.omit
+#'
 #' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Assay

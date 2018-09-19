@@ -629,7 +629,7 @@ DimPlot <- function(
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis
-#' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual
+#' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see

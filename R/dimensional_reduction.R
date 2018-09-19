@@ -945,7 +945,7 @@ RunTSNE.matrix <- function(
   if (add.iter > 0) {
     tsne.data <- tsne(
       X = object,
-      intial_config = as.matrix(x = tsne.data),
+      initial_config = as.matrix(x = tsne.data),
       max_iter = add.iter,
       ...
     )
