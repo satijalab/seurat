@@ -3297,6 +3297,7 @@ SingleDimPlot <- function(
   na.value = 'grey50',
   ...
 ) {
+  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -3312,7 +3313,7 @@ SingleDimPlot <- function(
     highlight.info <- SetHighlight(
       cells.highlight = cells.highlight,
       cells.all = rownames(x = data),
-      sizes.highlight = sizes.highlight,
+      sizes.highlight = sizes.highlight %||% pt.size,
       cols.highlight = cols.highlight,
       col.base = cols[1] %||% 'black',
       pt.size = pt.size
@@ -3347,7 +3348,6 @@ SingleDimPlot <- function(
   if (!is.null(x = shape.by) && !shape.by %in% colnames(x = data)) {
     warning("Cannot find ", shape.by, " in plotting data, not shaping plot")
   }
-  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   plot <- ggplot(data = data) +
     geom_point(
       mapping = aes_string(
