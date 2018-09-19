@@ -812,11 +812,6 @@ FeaturePlot <- function(
   
   }
   if (blend) {
-    for (b in 1:length(plots)){
-    plots[[b]]<- plots[[b]]+theme(panel.background = element_rect(fill = "black"))
-      
-    }
-
     blend.legned<- BlendMap(color.matrix = color.matrix) +
       labs(
         x = features[1],
