@@ -1675,10 +1675,7 @@ Convert.seurat <- function(
       }
       obsm <- list()
       for (dr in names(from@dr)) {
-        obsm[[paste0("X_",dr)]] <- np_array(GetCellEmbeddings(
-          object = from,
-          reduction.type = dr
-        ))
+        obsm[[paste0("X_",dr)]] <- np_array(Embeddings(object = from[[dr]]))
       }
       obsm <- if (!identical(obsm, list())) dict(obsm) else NULL
       meta_data <- from@meta.data

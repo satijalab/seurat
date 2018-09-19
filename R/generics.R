@@ -557,7 +557,7 @@ RunALRA <- function(object, ...) {
 #' @rdname RunCCA
 #' @export RunCCA
 #'
-#' @seealso \code{\link{MergeSeurat}}
+#' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
 #' pbmc_small
@@ -582,7 +582,7 @@ RunCCA <- function(object1, object2, ...) {
 #' Runs a canonical correlation analysis
 #'
 #' @param object.list List of Seurat objects
-#' @param ... Arguments passed to other methods, \code{MergeSeurat} in case with two objects
+#' @param ... Arguments passed to other methods, \code{merge} in case with two objects
 #' passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)
 #'
 #' @return Returns a combined Seurat object with the CCA stored as a DimReduc
@@ -590,7 +590,7 @@ RunCCA <- function(object1, object2, ...) {
 #' @rdname RunMultiCCA
 #' @export RunMultiCCA
 #'
-#' @seealso \code{\link{MergeSeurat}} \code{\link{ScaleData}}
+#' @seealso \code{\link{merge.Seurat}} \code{\link{ScaleData}}
 #'
 #' @examples
 #' \dontrun{

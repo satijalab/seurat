@@ -297,7 +297,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
   if (!file.exists(filename)) {
     stop("File not found")
   }
-  infile <- H5File$new(filename)
+  infile <- hdf5r::H5File$new(filename)
   genomes <- names(infile)
   output <- list()
   for (genome in genomes) {
@@ -1448,81 +1448,4 @@ RegressOutMatrix <- function(
   }
   dimnames(x = data.resid) <- dimnames(x = data.expr)
   return(data.resid)
-}
-
-# Regress out technical effects and cell cycle using regularized Negative Binomial regression
-#
-# Remove unwanted effects from umi data and set scale.data to Pearson residuals
-# Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
-#
-# @param object Seurat object
-# @param latent.vars effects to regress out
-# @param genes.regress gene to run regression for (default is all genes)
-# @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
-#
-# @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
-#
-#' @import Matrix
-#' @import parallel
-#' @importFrom stats glm residuals
-#' @importFrom MASS theta.ml negative.binomial
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#
-RegressOutNB <- function(
-  object,
-  latent.vars,
-  genes.regress = NULL,
-  pr.clip.range = c(-30, 30),
-  min.theta = 0.01
-) {
-  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
-  latent.data <- FetchData(object = object, vars = latent.vars)
-  message(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
-  theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
-  message('Second run NB regression with fixed theta')
-  bin.size <- 128
-  bin.ind <- ceiling(1:length(genes.regress)/bin.size)
-  max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
-  pr <- c()
-  for (i in 1:max.bin) {
-    genes.bin.regress <- genes.regress[bin.ind == i]
-    bin.pr.lst <- parallel::mclapply(
-      X = genes.bin.regress,
-      FUN = function(j) {
-        fit <- 0
-        try(
-          expr = fit <- glm(
-            cm[j, ] ~ .,
-            data = latent.data,
-            family = MASS::negative.binomial(theta = theta.fit[j])
-          ),
-          silent=TRUE
-        )
-        if (class(fit)[1] == 'numeric') {
-          message(
-            sprintf(
-              'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
-              theta.fit[j],
-              j
-            )
-          )
-          res <- scale(log10(cm[j, ] + 1))[, 1]
-        } else {
-          res <- residuals(fit, type = 'pearson')
-        }
-        return(res)
-      }
-    )
-    pr <- rbind(pr, do.call(rbind, bin.pr.lst))
-    setTxtProgressBar(pb, i)
-  }
-  close(pb)
-  dimnames(x = pr) <- dimnames(x = cm)
-  pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
-  pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- pr
-  return(object)
 }
