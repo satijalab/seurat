@@ -9,12 +9,24 @@ NULL
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
+#' @param verbose Whether or not to print output to the console
+#' @param force.recalc Force recalculation of SNN.
 #'
+#' @importFrom RANN nn2
 #' @importFrom methods as
 #'
-#' @describeIn BuildSNN Build an SNN on a given matrix
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN default
 #'
@@ -25,7 +37,8 @@ BuildSNN.default <- function(
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   n.cells <- nrow(x = object)
   if (n.cells < k.param) {
@@ -64,20 +77,11 @@ BuildSNN.default <- function(
   )
   rownames(x = snn.matrix) <- rownames(x = object)
   colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- methods::as(object = snn.matrix, Class = "Graph")
+  snn.matrix <- as(object = snn.matrix, Class = "Graph")
   return(snn.matrix)
 }
 
-#' @param features A vector of feature names to use in construction of SNN
-#' graph if building directly based on data rather than a dimensionally reduced
-#' representation (i.e. PCs).
-#' @param reduction Name of dimensional reduction technique to use in
-#' construction of SNN graph. (e.g. "pca", "ica")
-#' @param dims A vector of the dimensions to use in construction of the SNN
-#' graph (e.g. To use the first 10 PCs, pass 1:10)
-#'
-#'
-#' @describeIn BuildSNN Build an SNN on an Assay object
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN Assay
 #'
@@ -88,7 +92,8 @@ BuildSNN.Assay <- function(
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE
+  force.recalc = FALSE,
+  ...
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
@@ -112,7 +117,9 @@ BuildSNN.Assay <- function(
 #' assay.name_snn.
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn BuildSNN Build an SNN on a Seurat object
+#' @importFrom igraph graph.adjacency plot.igraph E
+#'
+#' @rdname BuildSNN
 #' @export
 #' @method BuildSNN Seurat
 #'
@@ -129,7 +136,8 @@ BuildSNN.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(x = workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
@@ -165,7 +173,6 @@ BuildSNN.Seurat <- function(
       force.recalc = force.recalc
     )
   }
-
   graph.name <- graph.name %||% paste0(assay, "_snn")
   object[[graph.name]] <- snn.matrix
   if (do.plot) {
@@ -202,6 +209,23 @@ BuildSNN.Seurat <- function(
   return(object)
 }
 
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
+#' @param n.start Number of random starts.
+#' @param n.iter Maximal number of iterations per random start.
+#' @param random.seed Seed of the random number generator.
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
+#' @param verbose Print output
+#'
+#' @importFrom methods is
+#'
+#' @rdname FindClusters
 #' @export
 #'
 FindClusters.default <- function(
@@ -214,7 +238,8 @@ FindClusters.default <- function(
   random.seed = 0,
   temp.file.location = NULL,
   edge.file.name = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
@@ -242,7 +267,7 @@ FindClusters.default <- function(
 #' @param graph.name Name of graph to use for the clustering algorithm
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn FindClusters FindClusters on a Seurat object
+#' @rdname FindClusters
 #' @export
 #' @method FindClusters Seurat
 #'
@@ -258,7 +283,8 @@ FindClusters.Seurat <- function(
   temp.file.location = NULL,
   edge.file.name = NULL,
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)

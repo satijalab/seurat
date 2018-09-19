@@ -20,6 +20,9 @@ VariableFeaturePlot(object, cols = c("black", "red"), pt.size = 1,
 
 \item{assay}{Assay to pull variable features from}
 }
+\value{
+A ggplot object
+}
 \description{
 View variable features
 }

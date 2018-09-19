@@ -15,6 +15,7 @@ Authors@R: c(
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
+Remotes: ChristophH/sctransform
 Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
@@ -26,12 +27,14 @@ Imports:
     dtw,
     fitdistrplus,
     ggplot2 (>= 3.0.0),
+    ggrepel,
     ggridges,
     graphics,
     grDevices,
     igraph,
     ini,
     irlba,
+    lars,
     lmtest,
     MASS,
     Matrix (>= 1.2.14),
@@ -49,6 +52,8 @@ Imports:
     Rtsne,
     scales,
     SDMTools,
+    tidyr,
+    tsne,
     stats,
     utils
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
@@ -63,6 +68,7 @@ Collate:
     'dimensional_reduction.R'
     'integration.R'
     'objects.R'
+    'package.R'
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
@@ -73,6 +79,7 @@ Suggests:
     VGAM,
     tclust,
     testthat,
+    sctransform,
     caret,
     hdf5r,
     ranger,

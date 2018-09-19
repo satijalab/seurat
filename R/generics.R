@@ -21,21 +21,9 @@ as.seurat <- function(from) {
 #' to construct the SNN graph by calculating the neighborhood overlap
 #' (Jaccard index) between every cell and its k.param nearest neighbors.
 #'
-#' @param object Seurat object
-#' @param k.param Defines k for the k-nearest neighbor algorithm
-#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
-#' computing the neighborhood overlap for the SNN construction. Any edges with
-#' values less than or equal to this will be set to 0 and removed from the SNN
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
-#' prune everything).
-#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
-#' default of 0.0 implies exact nearest neighbor search
-#' @param verbose Whether or not to print output to the console
-#' @param force.recalc Force recalculation of SNN.
+#' @param object An object
+#' @param ... Arguments passed to other methods
 #'
-#' @importFrom RANN nn2
-#' @importFrom igraph plot.igraph graph.adjlist graph.adjacency E
-#' @importFrom Matrix sparseMatrix
 #' @return Returns the object with object@@snn filled
 #'
 #' @examples
@@ -51,15 +39,7 @@ as.seurat <- function(from) {
 #' @rdname BuildSNN
 #' @export BuildSNN
 #'
-BuildSNN <- function(
-  object,
-  k.param,
-  prune.SNN,
-  nn.eps,
-  verbose,
-  force.recalc,
-  ...
-) {
+BuildSNN <- function(object, ...) {
   UseMethod(generic = 'BuildSNN', object = object)
 }
 
@@ -68,15 +48,14 @@ BuildSNN <- function(
 #' Pull information on previously run commands in the Seurat object.
 #'
 #' @param object An object
-#' @param command Name of the command to pull
-#' @param value Name of the parameter to pull the value for
+#' @param ... Arguments passed to other methods
 #'
-#' @return Either the SeuratCommand object or the paramter value
+#' @return Either a SeuratCommand object or the requested paramter value
 #'
 #' @rdname Command
 #' @export Command
 #'
-Command <- function(object, command, ..., value) {
+Command <- function(object, ...) {
   UseMethod(generic = 'Command', object = object)
 }
 
@@ -88,7 +67,7 @@ Command <- function(object, command, ..., value) {
 #'
 #' @param from Object to convert from
 #' @param to Class of object to convert to
-#' @param ... Arguments passed to and from other methods
+#' @param ... Arguments passed to other methods
 #'
 #' @return An object of class \code{to}
 #'
@@ -147,24 +126,8 @@ Embeddings <- function(object, ...) {
 #' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 #' optimizer code in Rcpp!
 #'
-#' @param object Seurat object
-#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param resolution Value of the resolution parameter, use a value above
-#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
-#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm).
-#' @param n.start Number of random starts.
-#' @param n.iter Maximal number of iterations per random start.
-#' @param random.seed Seed of the random number generator.
-#' @param temp.file.location Directory where intermediate files will be written.
-#' Specify the ABSOLUTE path.
-#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
-#' @param verbose Print output
-#'
-#' @importFrom Matrix sparseMatrix
-#' @importFrom methods .hasSlot
-#' @importFrom igraph plot.igraph graph.adjlist
+#' @param object An object
+#' @param ... Arguments passed to other methods
 #'
 #' @return Returns a Seurat object and optionally the SNN matrix,
 #'         object idents have been updated with new cluster info
@@ -174,19 +137,7 @@ Embeddings <- function(object, ...) {
 #' @rdname FindClusters
 #' @export FindClusters
 #'
-FindClusters <- function(
-  object,
-  modularity.fxn,
-  resolution,
-  algorithm,
-  n.start,
-  n.iter,
-  random.seed,
-  temp.file.location,
-  edge.file.name,
-  verbose,
-  ...
-) {
+FindClusters <- function(object, ...) {
   UseMethod(generic = 'FindClusters', object = object)
 }
 
@@ -194,73 +145,12 @@ FindClusters <- function(
 #'
 #' Finds markers (differentially expressed genes) for identity classes
 #'
-#' @param object Seurat object
-#' @param features Genes to test. Default is to use all genes
-#' @param logfc.threshold Limit testing to genes which show, on average, at least
-#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
-#' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
-#' @param test.use Denotes which test to use. Available options are:
-#' \itemize{
-#'  \item{"wilcox"} : Identifies differentially expressed genes between two
-#'  groups of cells using a Wilcoxon Rank Sum test (default)
-#'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
-#'  (McDavid et al., Bioinformatics, 2013)
-#'  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
-#'  For each gene, evaluates (using AUC) a classifier built on that gene alone,
-#'  to classify between two groups of cells. An AUC value of 1 means that
-#'  expression values for this gene alone can perfectly classify the two
-#'  groupings (i.e. Each of the cells in cells.1 exhibit a higher level than
-#'  each of the cells in cells.2). An AUC value of 0 also means there is perfect
-#'  classification, but in the other direction. A value of 0.5 implies that
-#'  the gene has no predictive power to classify the two groups. Returns a
-#'  'predictive power' (abs(AUC-0.5)) ranked matrix of putative differentially
-#'  expressed genes.
-#'  \item{"t"} : Identify differentially expressed genes between two groups of
-#'  cells using the Student's t-test.
-#'  \item{"negbinom"} : Identifies differentially expressed genes between two
-#'   groups of cells using a negative binomial generalized linear model.
-#'   Use only for UMI-based datasets
-#'  \item{"poisson"} : Identifies differentially expressed genes between two
-#'   groups of cells using a poisson generalized linear model.
-#'   Use only for UMI-based datasets
-#'  \item{"LR"} : Uses a logistic regression framework to determine differentially
-#'  expressed genes. Constructs a logistic regression model predicting group
-#'  membership based on each feature individually and compares this to a null
-#'  model with a likelihood ratio test.
-#'  \item{"MAST} : Identifies differentially expressed genes between two groups
-#'  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
-#'  package to run the DE testing.
-#'  \item{"DESeq2} : Identifies differentially expressed genes between two groups
-#'  of cells based on a model using DESeq2 which uses a negative binomial
-#'  distribution (Love et al, Genome Biology, 2014).This test does not support
-#'  pre-filtering of genes based on average difference (or percent detection rate)
-#'  between cell groups. However, genes may be pre-filtered based on their
-#'  minimum detection rate (min.pct) across both cell groups. To use this method,
-#'  please install DESeq2, using the instructions at
-#'  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-#' }
-#' @param min.pct  only test genes that are detected in a minimum fraction of
-#' min.pct cells in either of the two populations. Meant to speed up the function
-#' by not testing genes that are very infrequently expressed. Default is 0.1
-#' @param min.diff.pct  only test genes that show a minimum difference in the
-#' fraction of detection between the two groups. Set to -Inf by default
-#' @param only.pos Only return positive markers (FALSE by default)
-#' @param print.bar Print a progress bar once expression testing begins (uses
-#' pbapply to do this)
-#' @param max.cells.per.ident Down sample each identity class to a max number.
-#' Default is no downsampling. Not activated by default (set to Inf)
-#' @param random.seed Random seed for downsampling
-#' @param latent.vars Variables to test, used only when \code{test.use} is one of
-#' 'negbinom', 'poisson', or 'MAST'
-#' @param min.cells.features Minimum number of cells expressing the feature in at least one
-#' of the two groups, currently only used for poisson and negative binomial tests
-#' @param min.cells.group Minimum number of cells in one of the groups
-#' @param pseudocount.use Pseudocount to add to averaged expression values when
-#' calculating logFC. 1 by default.
-#' @param \dots Additional parameters to pass to specific DE functions
+#' @param object An object
+#' @param ... Arguments passed to other methods and to specific DE methods
 
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
+#'
 #' @details p-value adjustment is performed using bonferroni correction based on
 #' the total number of genes in the dataset. Other correction methods are not
 #' recommended, as Seurat pre-filters genes using the arguments above, reducing
@@ -281,9 +171,6 @@ FindClusters <- function(
 #' fold change and dispersion for RNA-seq data with DESeq2." Genome Biology.
 #' https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #'
-#' @import pbapply
-#' @importFrom lmtest lrtest
-#'
 #' @export
 #'
 #' @examples
@@ -293,23 +180,7 @@ FindClusters <- function(
 #' @rdname FindMarkers
 #' @export FindMarkers
 #'
-FindMarkers <- function(
-  object,
-  features,
-  logfc.threshold,
-  test.use,
-  min.pct,
-  min.diff.pct,
-  verbose,
-  only.pos,
-  max.cells.per.ident,
-  random.seed,
-  latent.vars,
-  min.cells.feature,
-  min.cells.group,
-  pseudocount.use,
-  ...
-) {
+FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
 }
 
@@ -327,67 +198,20 @@ FindMarkers <- function(
 #' log-space - see relevant functions for exact details.
 #'
 #' @param object An object
-#' @param selection.method How to choose top variable features. Choose one of :
-#' \itemize{
-#'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
-#'   log(mean) using local polynomial regression (loess). Then standardizes the
-#'   feature values using the observed mean and expected variance (given by the
-#'   fitted line). Feature variance is the calculated on the standardized values
-#'   after clipping to a maximum (default is 50).}
-#'   \item{mean.var.plot:}{ First, uses a function to calculate average
-#'   expression (mean.function) and dispersion (dispersion.function) for each
-#'   feature. Next, divides features into num.bin (deafult 20) bins based on
-#'   their average expression, and calculates z-scores for dispersion within
-#'   each bin. The purpose of this is to identify variable features while
-#'   controlling for the strong relationship between variability and average
-#'   expression.}
-#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
-#' }
-#' @param loess.span (vst method) Loess span parameter used when fitting the
-#' variance-mean relationship
-#' @param clip.max (vst method) After standardization values larger than
-#' clip.max will be set to clip.max; default is 'auto' which sets this value to
-#' the square root of the number of cells
-#' @param mean.function Function to compute x-axis value (average expression).
-#'  Default is to take the mean of the detected (i.e. non-zero) values
-#' @param dispersion.function Function to compute y-axis value (dispersion).
-#' Default is to take the standard deviation of all values
-#' @param num.bin Total number of bins to use in the scaled analysis (default
-#' is 20)
-#' @param binning.method Specifies how the bins should be computed. Available
-#' methods are:
-#' \itemize{
-#'   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
-#'   \item{equal_frequency:}{ each bin contains an equal number of features (can
-#'   increase statistical power to detect overdispersed features at high
-#'   expression values, at the cost of reduced resolution along the x-axis)}
-#' }
-#' @param verbose show progress bar for calculations
+#' @param ... Arguments passed to other methods
 #'
 #' @rdname FindVariableFeatures
 #' @export FindVariableFeatures
 #'
 #' @aliases FindVariableGenes
 #'
-FindVariableFeatures <- function(
-  object,
-  selection.method,
-  loess.span,
-  clip.max,
-  mean.function,
-  dispersion.function,
-  num.bin,
-  binning.method,
-  verbose,
-  ...
-) {
+FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
 #' Get an assay from an object
 #'
 #' @param object An object
-#' @param assay Assay to get
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns an Assay object
@@ -395,7 +219,7 @@ FindVariableFeatures <- function(
 #' @rdname GetAssay
 #' @export GetAssay
 #'
-GetAssay <- function(object, assay, ...) {
+GetAssay <- function(object, ...) {
   UseMethod(generic = 'GetAssay', object = object)
 }
 
@@ -404,7 +228,6 @@ GetAssay <- function(object, assay, ...) {
 #' Pull information for specified stored dimensional reduction analysis
 #'
 #' @param object An object
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
 #' @param ... Arguments passed to other methods
 #'
 #' @return Returns assay data
@@ -412,7 +235,7 @@ GetAssay <- function(object, assay, ...) {
 #' @rdname GetAssayData
 #' @export GetAssayData
 #'
-GetAssayData <- function(object, slot, ...) {
+GetAssayData <- function(object, ...) {
   UseMethod(generic = 'GetAssayData', object = object)
 }
 
@@ -432,8 +255,9 @@ HVFInfo <- function(object, ...) {
 
 #' Get, set, and manipulate an object's identity classes
 #'
-#' @param object An object
-#' @param ... Arguments passed to other methods
+#' @param x,object An object
+#' @param ... Arguments passed to other methods; for \code{RenameIdents}: named
+#' arguments as \code{old.ident = new.ident}
 #'
 #' @return \code{Idents}: The cell identies
 #'
@@ -449,7 +273,7 @@ Idents <- function(object, ... ) {
 }
 
 #' @inheritParams Idents
-#' @param value,idents The name of the identites to pull from object metadata or the identities themselves
+#' @param value The name of the identites to pull from object metadata or the identities themselves
 #'
 #' @return \code{Idents<-}: An object with the cell identites changed
 #'
@@ -474,14 +298,12 @@ Idents <- function(object, ... ) {
 #' Get JackStraw information
 #'
 #' @param object An object
-#' @param slot Name of slot to store JackStraw scores to
-#' Can shorten to 'empirical', 'fake', 'full', or 'overall'
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname JS
 #' @export JS
 #'
-JS <- function(object, slot, ...) {
+JS <- function(object, ...) {
   UseMethod(generic = 'JS', object = object)
 }
 
@@ -524,13 +346,12 @@ Key <- function(object, ...) {
 #' Get feature loadings
 #'
 #' @param object An object
-#' @param projected Pull the projected feature loadings?
 #' @param ... Arguments passed to other methods
 #'
 #' @rdname Loadings
 #' @export Loadings
 #'
-Loadings <- function(object, projected, ...) {
+Loadings <- function(object, ...) {
   UseMethod(generic = 'Loadings', object = object)
 }
 
@@ -549,7 +370,6 @@ Loadings <- function(object, projected, ...) {
 #' Access miscellaneous data
 #'
 #' @param object An object
-#' @param slot Name of specific bit of meta data to pull
 #' @param ... Arguments passed to other methods
 #'
 #' @return Miscellaneous data
@@ -557,7 +377,7 @@ Loadings <- function(object, projected, ...) {
 #' @rdname Misc
 #' @export Misc
 #'
-Misc <- function(object, slot, ...) {
+Misc <- function(object, ...) {
   UseMethod(generic = 'Misc', object = object)
 }
 
@@ -571,7 +391,7 @@ Misc <- function(object, slot, ...) {
 #' @rdname Misc
 #' @export Misc<-
 #'
-"Misc<-" <- function(object, slot, ..., value) {
+"Misc<-" <- function(object, ..., value) {
   UseMethod(generic = 'Misc<-', object = object)
 }
 
@@ -580,30 +400,14 @@ Misc <- function(object, slot, ...) {
 #' Normalize the count data present in a given assay.
 #'
 #' @param object An object
-#' @param normalization.method Method for normalization.
-#'  \itemize{
-#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. This is then
-#'   natural-log transformed using log1p.}
-#'   \item{CLR: }{Applies a centered log ratio transformation}
-#' }
-#' More methods to be added.
-#' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param verbose display progress bar for normalization procedure
-#' @param ... arguments passed to other methods
+#' @param ... Arguments passed to other methods
 #'
 #' @return Returns object after normalization
 #'
 #' @rdname NormalizeData
 #' @export NormalizeData
 #'
-NormalizeData <- function(
-  object,
-  normalization.method,
-  scale.factor,
-  verbose,
-  ...
-) {
+NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
@@ -612,41 +416,27 @@ NormalizeData <- function(
 #' Returns a list of cells that match a particular set of criteria such as
 #' identity class, high/low values for particular PCs, ect..
 #'
-#' @param object Seurat object
-#' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
-#' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData
+#' @param object An object
+#' @param ... Arguments passed to other methods and \code{FetchData}
 #'
 #' @return A vector of cell names
 #'
-#' @rdname WhichCells
+#' @rdname OldWhichCells
 #' @export OldWhichCells
 #'
 #' @examples
 #' OldWhichCells(object = pbmc_small, ident.keep = 2)
 #'
-OldWhichCells <- function(
-  object,
-  cells,
-  subset.name,
-  low.threshold,
-  high.threshold,
-  accept.value,
-  ...
-) {
+OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
 }
+
 #' Print the results of a dimensional reduction analysis
 #'
 #' Prints a set of genes that most strongly define a set of components
 #'
-#' @param object DimReduc object
+#' @param object An object
+#' @param ... Arguments passed to other methods
 #'
 #' @return Set of features defining the components
 #'
@@ -663,11 +453,7 @@ Print <- function(object, ...) {
 #' be useful before combining multiple objects.
 #'
 #' @param object An object
-#' @param new.names vector of new cell names
-#'
-#' @details
-#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
-#' \code{new.names} is set these will be used to replace existing names.
+#' @param ... Arguments passed to other methods
 #'
 #' @return An object with new cell names
 #'
@@ -679,12 +465,11 @@ Print <- function(object, ...) {
 #' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
 #' head(x = colnames(x = pbmc_small))
 #'
-RenameCells <- function(object, new.names, ...) {
+RenameCells <- function(object, ...) {
   UseMethod(generic = 'RenameCells', object = object)
 }
 
 #' @inheritParams Idents
-#' @param ... \code{RenameIdents}: named arguments as \code{old.ident = new.ident}
 #'
 #' @return \code{RenameIdents}: An object with selected
 #'
@@ -695,7 +480,8 @@ RenameCells <- function(object, new.names, ...) {
 #' @examples
 #' # Rename cell identity classes
 #' # Can provide an arbitrary amount of idents to rename
-#' pbmc_small <- RenameIdents(object = pbmc_small, '0' = 'cluster0', '1' = 'cluster1')
+#' levels(x = pbmc_small)
+#' pbmc_small <- RenameIdents(object = pbmc_small, 'g1' = 'clusterA', 'g2' = 'clusterB')
 #' levels(x = pbmc_small)
 #'
 RenameIdents <- function(object, ...) {
@@ -710,13 +496,11 @@ RenameIdents <- function(object, ...) {
 #' Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 #' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 #'
-#' @param object a Seurat object
-#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
-#' @param q  The number of additional power iterations in randomized SVD when
-#' computing rank k approximation. By default, q=10.
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
 #' @rdname RunALRA
 #' @export RunALRA
-# @import rsvd
 #'
 #' @author Jun Zhao, George Linderman
 #' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
@@ -737,8 +521,8 @@ RenameIdents <- function(object, ...) {
 #' # Run ALRA with the chosen k
 #' pbmc_small_alra <- RunALRA(pbmc_small_alra)
 #' }
-
-RunALRA <- function(object, k, q, ...) {
+#'
+RunALRA <- function(object, ...) {
   UseMethod(generic = 'RunALRA', object = object)
 }
 
@@ -749,22 +533,22 @@ RunALRA <- function(object, k, q, ...) {
 #' \code{PrintCCAParams}.
 #' @param object1 First Seurat object
 #' @param object2 Second Seurat object.
-#' @param num.cc Number of canonical vectors to calculate
+#' @param ... Arguments passed to other methods
 #'
 #' @return Returns a combined Seurat object with the CCA results stored.
 #'
-#' @seealso \code{MergeSeurat}
+#' @rdname RunCCA
+#' @export RunCCA
 #'
-#' @export
-#' @importFrom irlba irlba
+#' @seealso \code{\link{MergeSeurat}}
 #'
 #' @examples
 #' pbmc_small
 #' # As CCA requires two datasets, we will split our test object into two just for this example
 #' pbmc1 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc2 <- SubsetData(pbmc_small, cells = colnames(x = pbmc_small)[41:80])
-#' pbmc1["group"] <- "group1"
-#' pbmc2["group"] <- "group2"
+#' pbmc1[["group"]] <- "group1"
+#' pbmc2[["group"]] <- "group2"
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
 #' Print(object = pbmc_cca[["cca"]])
@@ -772,7 +556,7 @@ RunALRA <- function(object, k, q, ...) {
 #' @rdname RunCCA
 #' @export RunCCA
 #'
-RunCCA <- function(object1, object2, num.cc, ...) {
+RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
 
@@ -781,16 +565,15 @@ RunCCA <- function(object1, object2, num.cc, ...) {
 #' Runs a canonical correlation analysis
 #'
 #' @param object.list List of Seurat objects
-#' @param niter Number of iterations to perform. Set by default to 25.
-#' @param num.ccs Number of canonical vectors to calculate
-#' @param standardize standardize scale.data matrices to be centered (mean zero)
-#' and scaled to have a standard deviation of 1.
+#' @param ... Arguments passed to other methods, \code{MergeSeurat} in case with two objects
+#' passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)
 #'
 #' @return Returns a combined Seurat object with the CCA stored as a DimReduc
 #'
-#' @importFrom methods slot
+#' @rdname RunMultiCCA
+#' @export RunMultiCCA
 #'
-#' @export
+#' @seealso \code{\link{MergeSeurat}} \code{\link{ScaleData}}
 #'
 #' @examples
 #' \dontrun{
@@ -809,15 +592,7 @@ RunCCA <- function(object1, object2, num.cc, ...) {
 #' PrintDim(pbmc_cca,reduction.type = 'cca')
 #' }
 #'
-RunMultiCCA <- function(
-  object.list,
-  features,
-  add.cell.ids,
-  niter,
-  num.ccs,
-  standardize,
-  verbose
-) {
+RunMultiCCA <- function(object.list, ...) {
   if (length(x = object.list) < 3) {
     stop("Must give at least 3 objects for MultiCCA")
   }
@@ -829,49 +604,17 @@ RunMultiCCA <- function(
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
 #' parameters, see \code{PrintPCAParams}.
 #'
-#' @param object Seurat object
-#' @param assay Name of Assay PCA is being run on
-#' @param compute.dims Total Number of PCs to compute and store (20 by default)
-#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
-#' to true will compute it on gene x cell matrix.
-#' @param weight.by.var Weight the cell embeddings by the variance of each PC
-#' (weights the gene loadings if rev.pca is TRUE)
-#' @param verbose Print the top genes associated with high/low loadings for
-#' the PCs
-#' @param print.dims PCs to print genes for
-#' @param features.print Number of genes to print for each PC
-#' @param reduction.name dimensional reduction name,  pca by default
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. PC by default
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#' @param \dots Additional arguments to be passed to IRLBA
-#'
-#' @importFrom irlba irlba
-#' @importFrom methods new
+#' @param object An object
+#' @param ... Arguments passed to other methods and IRLBA
 #'
 #' @return Returns Seurat object with the PCA calculation stored in the reductions slot
-#'
-#' @importFrom irlba irlba
 #'
 #' @export
 #'
 #' @rdname RunPCA
 #' @export RunPCA
 #'
-RunPCA <- function(
-  object,
-  pcs.compute,
-  rev.pca,
-  weight.by.var,
-  verbose,
-  pcs.print,
-  features.print,
-  reduction.name,
-  reduction.key,
-  seed.use,
-  ...
-) {
+RunPCA <- function(object, ...) {
   UseMethod(generic = 'RunPCA', object = object)
 }
 
@@ -883,41 +626,12 @@ RunPCA <- function(
 #' parameters, see \code{PrintTSNEParams}.
 #'
 #' @param object Seurat object
-#' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
-#' the tSNE. Default is PCA
-#' @param cells Which cells to analyze (default, all cells)
-#' @param seed.use Random seed for the t-SNE
-#' @param tsne.method Select the method to use to compute the tSNE. Available
-#' methods are:
-#' \itemize{
-#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
-# \item{tsne: }{standard tsne - not recommended for large datasets}
-#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
-#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
-#' }
-#' @param add.iter If an existing tSNE has already been computed, uses the
-#' current tSNE to seed the algorithm and then adds additional iterations on top
-#' of this
-#' @param dim.embed The dimensional space of the resulting tSNE embedding
-#' (default is 2). For example, set to 3 for a 3d tSNE
-#' @param \dots Additional arguments to the tSNE call. Most commonly used is
-#' perplexity (expected number of neighbors default is 30)
-#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
+#' @param ... Arguments passed to other methods and to t-SNE call (most commonly used is perplexity)
 #'
 #' @rdname RunTSNE
 #' @export RunTSNE
 #'
-RunTSNE <- function(
-  object,
-  reduction,
-  cells,
-  seed.use,
-  tsne.method,
-  add.iter,
-  dim.embed,
-  reduction.key,
-  ...
-) {
+RunTSNE <- function(object, ...) {
   UseMethod(generic = 'RunTSNE', object = object)
 }
 
@@ -925,46 +639,18 @@ RunTSNE <- function(
 #'
 #' Runs the Uniform Manifold Approximation and Projection (UMAP) dimensional
 #' reduction technique. To run, you must first install the umap-learn python
-#' package (e.g. via pip install umap-learn). Details on this package can be
+#' package (e.g. via \code{pip install umap-learn}). Details on this package can be
 #' found here: \url{https://github.com/lmcinnes/umap}. For a more in depth
 #' discussion of the mathematics underlying UMAP, see the ArXiv paper here:
 #' \url{https://arxiv.org/abs/1802.03426}.
 #'
-#' @param object Seurat object
-#' @param cells Which cells to analyze (default, all cells)
-#' @param dims Which dimensions to use as input features, used only if
-#' \code{genes.use} is NULL
-#' @param reduction Which dimensional reduction (PCA or ICA) to use for the
-#' UMAP input. Default is PCA
-#' @param features If set, run UMAP on this subset of features (instead of running on a
-#' set of reduced dimensions). Not set (NULL) by default
-#' @param assay Assay to pull data for when using \code{genes.use}
-#' @param max.dim Max dimension to keep from UMAP procedure.
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. umap by default
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. UMAP by default
-#' @param n_neighbors This determines the number of neighboring points used in
-#' local approximations of manifold structure. Larger values will result in more
-#' global structure being preserved at the loss of detailed local structure. In
-#' general this parameter should often be in the range 5 to 50.
-#' @param min_dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more
-#' evenly distributed, while smaller values allow the algorithm to optimise more
-#' accurately with regard to local structure. Sensible values are in the range
-#' 0.001 to 0.5.
-#' @param metric metric: This determines the choice of metric used to measure
-#' distance in the input space. A wide variety of metrics are already coded, and
-#' a user defined function can be passed as long as it has been JITd by numba.
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed.
-#' @param ... Additional arguments to the umap
+#' @param object An object
+#' @param ... Arguments passed to other methods and UMAP
 #'
 #' @return Returns a Seurat object containing a UMAP representation
 #'
-#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
-#'
-#' @importFrom reticulate import py_module_available py_set_seed
+#' @references McInnes, L, Healy, J, UMAP: Uniform Manifold Approximation and
+#' Projection for Dimension Reduction, ArXiv e-prints 1802.03426, 2018
 #'
 #' @export
 #'
@@ -980,22 +666,7 @@ RunTSNE <- function(
 #' @rdname RunUMAP
 #' @export RunUMAP
 #'
-RunUMAP <- function(
-  object,
-  cells,
-  dims,
-  reduction,
-  features,
-  assay,
-  max.dim ,
-  reduction.name,
-  reduction.key,
-  n_neighbors ,
-  min_dist,
-  metric,
-  seed.use,
-  ...
-) {
+RunUMAP <- function(object, ...) {
   UseMethod(generic = 'RunUMAP', object = object)
 }
 
@@ -1017,44 +688,12 @@ RunUMAP <- function(
 #' square otherwise.
 #'
 #' @param object An object
-#' @param features Vector of features names to scale/center. Default is all features
-#' @param vars.to.regress Variables to regress out (previously latent.vars in
-#' RegressOut). For example, nUMI, or percent.mito.
-#' @param model.use Use a linear model or generalized linear model
-#' (poisson, negative binomial) for the regression. Options are 'linear'
-#' (default), 'poisson', and 'negbinom'
-#' @param use.umi Regress on UMI count data. Default is FALSE for linear
-#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
-#' @param do.scale Whether to scale the data.
-#' @param do.center Whether to center the data.
-#' @param scale.max Max value to return for scaled data. The default is 10.
-#' Setting this can help reduce the effects of feautres that are only expressed in
-#' a very small number of cells. If regressing out latent variables and using a
-#' non-linear model, the default is 50.
-#' @param block.size Default size for number of feautres to scale at in a single
-#' computation. Increasing block.size may speed up calculations but at an
-#' additional memory cost.
-#' @param min.cells.to.block If object contains fewer than this number of cells,
-#' don't block for scaling calculations.
-#' @param verbose Displays a progress bar for scaling procedure
+#' @param ... Arguments passed to other methods
 #'
 #' @rdname ScaleData
 #' @export ScaleData
 #'
-ScaleData <- function(
-  object,
-  features,
-  vars.to.regress,
-  model.use,
-  use.umi,
-  do.scale,
-  do.center,
-  scale.max,
-  block.size,
-  min.cells.to.block,
-  verbose,
-  ...
-) {
+ScaleData <- function(object, ...) {
   UseMethod(generic = 'ScaleData', object = object)
 }
 
@@ -1067,26 +706,23 @@ ScaleData <- function(
 #' proportion of genes expected under a uniform distribution of p-values.
 #'
 #' @param object An object
-#' @param dims Which dimensions to examine
-#' @param score.thresh Threshold to use for the proportion test of PC
-#' significance (see Details)
+#' @param ... Arguments passed to other methods
 #'
 #' @return Returns a Seurat object
 #'
-#' @author Thanks to Omri Wurtzel for integrating with ggplot
+#' @author Omri Wurtzel
+#' @seealso \code{\link{JackStrawPlot}}
 #'
 #' @rdname ScoreJackStraw
 #' @export ScoreJackStraw
 #'
-ScoreJackStraw <- function(object, dims, score.thresh, ...) {
+ScoreJackStraw <- function(object, ...) {
   UseMethod(generic = 'ScoreJackStraw', object = object)
 }
 
 #' Setter for multimodal data
 #'
 #' @param object An object
-#' @param slot Where to store the new data
-#' @param new.data New data to insert
 #' @param ... Arguments passed to other methods
 #'
 #' @return object with the assay data set
@@ -1094,12 +730,10 @@ ScoreJackStraw <- function(object, dims, score.thresh, ...) {
 #' @rdname SetAssayData
 #' @export SetAssayData
 #'
-SetAssayData <- function(object, slot, new.data, ...) {
+SetAssayData <- function(object, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
 }
 
-#' @inheritParams Idents
-#'
 #' @return \code{SetIdent}: An object with new identity classes set
 #'
 #' @rdname Idents
@@ -1107,25 +741,23 @@ SetAssayData <- function(object, slot, new.data, ...) {
 #'
 #' @examples
 #' # Set cell identity classes using SetIdent
-#' cells.use <- WhichCells(object = pbmc_small, idents = '0')
+#' ident.levels <- levels(x = pbmc_small)
+#' cells.use <- WhichCells(object = pbmc_small, idents = ident.levels[1])
 #' pbmc_small <- SetIdent(object = pbmc_small, cells = cells.use, value = 'cluster0')
 #'
-SetIdent <- function(object, value, ...) {
+SetIdent <- function(object, ...) {
   UseMethod(generic = 'SetIdent', object = object)
 }
 
-#' @inheritParams Idents
-#' @param save.name Store current identity information under this name
-#'
 #' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
 #' @export StashIdent
 #'
 #' @examples
-#' head(x = pbmc_small[])
-#' pbmc_small <- StashIdent(object = pbmc_small, save.name = 'cluster.ident')
-#' head(x = pbmc_small[])
+#' head(x = pbmc_small[[]])
+#' pbmc_small <- StashIdent(object = pbmc_small, save.name = 'idents')
+#' head(x = pbmc_small[[]])
 #'
 StashIdent <- function(object, save.name, ...) {
   UseMethod(generic = 'StashIdent', object = object)
@@ -1149,27 +781,8 @@ Stdev <- function(object, ...) {
 #' original object. Takes either a list of cells to use as a subset, or a
 #' parameter (for example, a gene), to subset on.
 #'
-#' @param object Seurat object
-#' @param cells A vector of cell names to use as a subset. If NULL
-#' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns cells with the subset name equal to this value
-#' @param do.center Recenter the new object@@scale.data
-#' @param do.scale Rescale the new object@@scale.data. FALSE by default
-#' @param do.clean Only keep object@@raw.data and object@@data. Cleans out most
-#' other slots. Can be useful if you want to start a fresh analysis on just a
-#' subset of the data. Also clears out stored clustering results in
-#' object@@meta.data (any columns containing "res"). Will by default subset the
-#' raw.data slot.
-#' @param subset.raw Also subset object@@raw.data
+#' @param object An object
 #' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData (for example,
-# use.imputed=TRUE)
 #'
 #' @return Returns a Seurat object containing only the relevant subset of cells
 #'
@@ -1180,7 +793,7 @@ Stdev <- function(object, ...) {
 #' pbmc1 <- SubsetData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:40])
 #' pbmc1
 #'
-SubsetData <- function(object, slot, ...) {
+SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 
@@ -1211,11 +824,7 @@ VariableFeatures <- function(object, ...) {
 #' Returns a list of cells that match a particular set of criteria such as
 #' identity class, high/low values for particular PCs, ect..
 #'
-#' @param object Seurat object
-#' @param cells Subset of cell names
-#' @param expression A predicate expression for feature/variable expression, can
-#' evalue anything that can be pulled by \code{FetchData}
-#' @param invert Invert the selection of cells
+#' @param object An object
 #' @param ... Arguments passed to other methods
 #'
 #' @return A vector of cell names
@@ -1227,14 +836,9 @@ VariableFeatures <- function(object, ...) {
 #' @examples
 #' WhichCells(object = pbmc_small, idents = 2)
 #' WhichCells(object = pbmc_small, expression = MS4A1 > 3)
-#' WhichCells(object = pbmc_small, idents = c(1, 3), invert = TRUE)
+#' levels(x = pbmc_small)
+#' WhichCells(object = pbmc_small, idents = c(1, 2), invert = TRUE)
 #'
-WhichCells <- function(
-  object,
-  cells,
-  expression,
-  invert,
-  ...
-) {
+WhichCells <- function(object, ...) {
   UseMethod(generic = 'WhichCells', object = object)
 }

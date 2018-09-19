@@ -8,10 +8,12 @@
 Print(object, ...)
 
 \method{Print}{DimReduc}(object, dims = 1:5, nfeatures = 20,
-  projected = FALSE)
+  projected = FALSE, ...)
 }
 \arguments{
-\item{object}{DimReduc object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{dims}{Number of dimensions to display}
 
@@ -25,8 +27,3 @@ Set of features defining the components
 \description{
 Prints a set of genes that most strongly define a set of components
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Print top features for DimReduc
-}}
-

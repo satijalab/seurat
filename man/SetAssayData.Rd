@@ -6,9 +6,9 @@
 \alias{SetAssayData.Seurat}
 \title{Setter for multimodal data}
 \usage{
-SetAssayData(object, slot, new.data, ...)
+SetAssayData(object, ...)
 
-\method{SetAssayData}{Assay}(object, slot, new.data)
+\method{SetAssayData}{Assay}(object, slot, new.data, ...)
 
 \method{SetAssayData}{Seurat}(object, slot = "data", new.data,
   assay = NULL, ...)
@@ -16,11 +16,11 @@ SetAssayData(object, slot, new.data, ...)
 \arguments{
 \item{object}{An object}
 
+\item{...}{Arguments passed to other methods}
+
 \item{slot}{Where to store the new data}
 
 \item{new.data}{New data to insert}
-
-\item{...}{Arguments passed to other methods}
 
 \item{assay}{Name of assay whose data should be set}
 }
@@ -30,10 +30,3 @@ object with the assay data set
 \description{
 Setter for multimodal data
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Set assay data for an Assay object
-
-\item \code{Seurat}: Set assay data for an Assay object in a Seurat object
-}}
-

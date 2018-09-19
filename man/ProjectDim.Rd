@@ -5,7 +5,7 @@
 \title{Project Dimensional reduction onto full dataset}
 \usage{
 ProjectDim(object, reduction = "pca", assay = NULL, dims.print = 1:5,
-  features.print = 20, overwrite = FALSE, do.center = FALSE,
+  nfeatures.print = 20, overwrite = FALSE, do.center = FALSE,
   verbose = TRUE)
 }
 \arguments{
@@ -17,7 +17,7 @@ ProjectDim(object, reduction = "pca", assay = NULL, dims.print = 1:5,
 
 \item{dims.print}{Number of dims to print features for}
 
-\item{features.print}{Number of features with highest/lowest loadings to print for
+\item{nfeatures.print}{Number of features with highest/lowest loadings to print for
 each dimension}
 
 \item{overwrite}{Replace the existing data in feature.loadings}

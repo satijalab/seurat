@@ -2,18 +2,23 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{RunALRA}
 \alias{RunALRA}
+\alias{RunALRA.default}
 \alias{RunALRA.Seurat}
 \title{Run Adaptively-thresholded Low Rank Approximation (ALRA)}
 \usage{
-RunALRA(object, k, q, ...)
+RunALRA(object, ...)
+
+\method{RunALRA}{default}(object, k = NULL, q = 10, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
   K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
-  k.only = FALSE)
+  k.only = FALSE, ...)
 }
 \arguments{
-\item{object}{a Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{k}{The rank of the rank-k approximation. Set to NULL for automated choice of k.}
 
@@ -47,11 +52,6 @@ error distribution learned from the negative values. Described in
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Run ALRA on a Seurat object
-}}
-
 \examples{
 pbmc_small
 # Example 1: Simple usage, with automatic choice of k.
@@ -66,6 +66,7 @@ do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
 # Run ALRA with the chosen k
 pbmc_small_alra <- RunALRA(pbmc_small_alra)
 }
+
 }
 \references{
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation

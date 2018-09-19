@@ -268,8 +268,6 @@ PCASigGenes <- function(
   # pvals.use <- GetDimReduction(object,reduction.type = "pca",slot = "jackstraw")@empirical.p.values
   empirical.use <- ifelse(test = use.full, yes = 'full', no = 'empirical')
   pvals.use <- JS(object = object[['pca']], slot = empirical.use)
-  # pcx.use <- GetDimReduction(object,reduction.type = "pca",slot = "gene.loadings")
-  # pcx.use <- Loadings.DimReduc(object = object[['pca']], projected = use.full)
   if (length(x = pcs.use) == 1) {
     pvals.min <- pvals.use[, pcs.use]
   }
@@ -281,23 +279,13 @@ PCASigGenes <- function(
   if (!is.null(x = max.per.pc)) {
     top.features <- TopFeatures(
       object = object[['pca']],
-      dim.use = pcs.use,
+      dim = pcs.use,
       nfeatures = max.per.pc,
       projected = use.full,
       balanced = FALSE
     )
     features <- intersect(x = top.features, y = features)
   }
-  # if (!is.null(x = max.per.pc)) {
-  #   pc.top.genes <- PCTopGenes(
-  #     object = object,
-  #     pc.use = pcs.use,
-  #     num.genes = max.per.pc,
-  #     use.full = use.full,
-  #     balanced = FALSE
-  #   )
-  #   genes.use <- intersect(x = pc.top.genes, y = genes.use)
-  # }
   return(features)
 }
 
@@ -312,7 +300,7 @@ PCASigGenes <- function(
 #' @param reduction Reduction to use
 #' @param assay Assay to use
 #' @param dims.print Number of dims to print features for
-#' @param features.print Number of features with highest/lowest loadings to print for
+#' @param nfeatures.print Number of features with highest/lowest loadings to print for
 #' each dimension
 #' @param overwrite Replace the existing data in feature.loadings
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
@@ -333,7 +321,7 @@ ProjectDim <- function(
   reduction = "pca",
   assay = NULL,
   dims.print = 1:5,
-  features.print = 20,
+  nfeatures.print = 20,
   overwrite = FALSE,
   do.center = FALSE,
   verbose = TRUE
@@ -361,7 +349,7 @@ ProjectDim <- function(
     Print(
       object = redeuc,
       dims = dims.print,
-      nfeatures = features.print,
+      nfeatures = nfeatures.print,
       projected = TRUE
     )
   }
@@ -375,10 +363,14 @@ ProjectDim <- function(
 
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
+#' @param num.cc Number of canonical vectors to calculate
+#' @param verbose ...
+#' @param use.cpp ...
 #'
-#' @describeIn RunCCA Run diagonal CCA on matrices
+#' @importFrom irlba irlba
+#'
+#' @rdname RunCCA
 #' @export
-#' @method RunCCA default
 #'
 RunCCA.default <- function(
   object1,
@@ -386,7 +378,8 @@ RunCCA.default <- function(
   standardize = TRUE,
   num.cc = 20,
   verbose = FALSE,
-  use.cpp=TRUE
+  use.cpp = TRUE,
+  ...
 ) {
   set.seed(seed = 42)
   cells1 <- colnames(object1)
@@ -415,19 +408,17 @@ RunCCA.default <- function(
   return(list(ccv = cca.data, d = cca.svd$d))
 }
 
-#' @param assay1 Assay to pull from in the first object
-#' @param assay1 Assay to pull from in the second object
+#' @param assay1,assay2 Assays to pull from in the first and second objects, respectively
 #' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
-#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' @param renormalize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
 #' @param rescale Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.
 #' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
 #' scale every gene in the dataset which may impose a high memory cost.
-#' @param ... Extra parameters (passed onto MergeSeurat in case with two objects
-#' passed, passed onto ScaleData in case with single object and rescale.groups
-#' set to TRUE)
-#' @describeIn RunCCA Run CCA on a Seurat object
+#' @param add.cell.id1,add.cell.id2 Add ...
+#'
+#' @rdname RunCCA
 #' @export
 #' @method RunCCA Seurat
 #'
@@ -533,42 +524,50 @@ RunCCA.Seurat <- function(
   return(combined.object)
 }
 
-#' @describeIn RunMultiCCA Run mCCA on a list of matrices
+#' @param niter Number of iterations to perform. Set by default to 25.
+#' @param num.ccs Number of canonical vectors to calculate
+#' @param standardize standardize scale.data matrices to be centered (mean zero)
+#' and scaled to have a standard deviation of 1.
+#' @param verbose ...
+#'
+#' @importFrom irlba irlba
+#'
+#' @rdname RunMultiCCA
 #' @export
-#' @method RunMultiCCA default
 #'
 RunMultiCCA.default <- function(
   object.list,
   niter = 25,
   num.ccs = 1,
   standardize = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   cell.names <- c()
   set.seed(seed = 42)
-  for(object in object.list) {
+  for (object in object.list) {
     cell.names <- c(cell.names, colnames(x = object))
     if (!class(x = object) %in% c("matrix", "dgCMatrix")) {
       stop("Not all objects in object.list are matrices")
     }
   }
   num.sets <- length(x = object.list)
-  if (standardize){
+  if (standardize) {
     for (i in 1:num.sets){
       object.list[[i]] <- Standardize(object.list[[i]], display_progress = FALSE)
     }
   }
   ws <- list()
-  for (i in 1:num.sets){
+  for (i in 1:num.sets) {
     ws[[i]] <- irlba(object.list[[i]], nv = num.ccs)$v[, 1:num.ccs, drop = FALSE]
   }
   ws.init <- ws
   ws.final <- list()
   cors <- NULL
-  for(i in 1:length(x = ws)) {
+  for (i in 1:length(x = ws)) {
     ws.final[[i]] <- matrix(0, nrow = ncol(object.list[[i]]), ncol = num.ccs)
   }
-  for (cc in 1:num.ccs){
+  for (cc in 1:num.ccs ) {
     if (verbose) {
       message("Computing CC", cc)
     }
@@ -595,7 +594,7 @@ RunMultiCCA.default <- function(
     cors <- c(cors, GetCors(mat.list = object.list, ws = ws, num.sets = num.sets))
   }
   cca.data <- ws.final[[1]]
-  for(i in 2:length(x = object.list)){
+  for (i in 2:length(x = object.list)) {
     cca.data <- rbind(cca.data, ws.final[[i]])
   }
   rownames(cca.data) <- cell.names
@@ -615,11 +614,13 @@ RunMultiCCA.default <- function(
 #' @param assay Assay to use
 #' @param features Set of genes to use in CCA. Default is the union of both
 #' the variable features sets present in both objects.
-#' @param renormlize Renormalize raw data after merging the objects. If FALSE,
+#' @param add.cell.ids ...
+#' @param renormalize Renormalize raw data after merging the objects. If FALSE,
 #' merge the data matrices also.
 #' @param compute.gene.loadings Also compute the gene loadings. NOTE - this will
 #' scale every gene in the dataset which may impose a high memory cost.
-#' @describeIn RunMultiCCA Run mCCA on a Seurat object
+#'
+#' @rdname RunMultiCCA
 #' @export
 #' @method RunMultiCCA Seurat
 #'
@@ -633,7 +634,8 @@ RunMultiCCA.Seurat <- function(
   standardize = TRUE,
   renormalize = TRUE,
   compute.gene.loadings = TRUE,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   set.seed(seed = 42)
   for(object in object.list) {
@@ -728,19 +730,35 @@ RunMultiCCA.Seurat <- function(
   return(combined.object)
 }
 
+#' @param assay Name of Assay PCA is being run on
+#' @param npcs Total Number of PCs to compute and store (20 by default)
+#' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
+#' to true will compute it on gene x cell matrix.
+#' @param weight.by.var Weight the cell embeddings by the variance of each PC
+#' (weights the gene loadings if rev.pca is TRUE)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the PCs
+#' @param ndims.print PCs to print genes for
+#' @param nfeatures.print Number of genes to print for each PC
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. PC by default
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#'
+#' @importFrom irlba irlba
+#'
+#' @rdname RunPCA
 #' @export
 #'
 RunPCA.default <- function(
   object,
   assay = NULL,
-  features = NULL,
-  compute.dims = 20,
+  npcs = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
-  reduction.name = "pca",
+  ndims.print = 1:5,
+  nfeatures.print = 30,
   reduction.key = "PC",
   seed.use = 42,
   ...
@@ -749,8 +767,8 @@ RunPCA.default <- function(
     set.seed(seed = seed.use)
   }
   if (rev.pca) {
-    compute.dims <- min(compute.dims, ncol(x = object) - 1)
-    pca.results <- irlba(A = object, nv = compute.dims, ...)
+    npcs <- min(npcs, ncol(x = object) - 1)
+    pca.results <- irlba(A = object, nv = npcs, ...)
     sdev <- pca.results$d/sqrt(max(1, nrow(x = object) - 1))
     if (weight.by.var) {
       feature.loadings <- pca.results$u %*% diag(pca.results$d)
@@ -760,8 +778,8 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    compute.dims <- min(compute.dims, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = compute.dims, ...)
+    npcs <- min(npcs, nrow(x = object) - 1)
+    pca.results <- irlba(A = t(x = object), nv = npcs, ...)
     feature.loadings <- pca.results$v
     sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
     if (weight.by.var) {
@@ -771,7 +789,7 @@ RunPCA.default <- function(
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
-  colnames(x = feature.loadings) <- paste0(reduction.key, 1:compute.dims)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:npcs)
   rownames(x = cell.embeddings) <- colnames(x = object)
   colnames(x = cell.embeddings) <- colnames(x = feature.loadings)
   reduction.data <- CreateDimReducObject(
@@ -782,12 +800,14 @@ RunPCA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = print.dims, nfeatures = features.print)
+    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }
 
-#' @describeIn RunPCA Run a PCA on an Assay object
+#' @param features Features to compute PCA on
+#'
+#' @rdname RunPCA
 #' @export
 #' @method RunPCA Assay
 #'
@@ -795,13 +815,12 @@ RunPCA.Assay <- function(
   object,
   assay = NULL,
   features = NULL,
-  compute.dims = 20,
+  npcs = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
-  reduction.name = "pca",
+  ndims.print = 1:5,
+  nfeatures.print = 30,
   reduction.key = "PC",
   seed.use = 42,
   ...
@@ -814,13 +833,12 @@ RunPCA.Assay <- function(
     object = data.use,
     assay = assay,
     pc.features = features,
-    compute.dims = compute.dims,
+    npcs = npcs,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
-    print.dims = print.dims,
-    features.print = features.print,
-    reduction.name = reduction.name,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
@@ -829,9 +847,10 @@ RunPCA.Assay <- function(
   return(reduction.data)
 }
 
+#' @param reduction.name dimensional reduction name,  pca by default
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn RunPCA Run a PCA on a Seurat object
+#' @rdname RunPCA
 #' @export
 #' @method RunPCA Seurat
 #'
@@ -839,12 +858,12 @@ RunPCA.Seurat <- function(
   object,
   assay = NULL,
   features = NULL,
-  compute.dims = 20,
+  npcs = 20,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
-  print.dims = 1:5,
-  features.print = 30,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
   reduction.name = "pca",
   reduction.key = "PC",
   seed.use = 42,
@@ -860,13 +879,12 @@ RunPCA.Seurat <- function(
     object = assay.data,
     assay = assay,
     features = features,
-    compute.dims = compute.dims,
+    npcs = npcs,
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
     verbose = verbose,
-    print.dims = print.dims,
-    feature.print = features.print,
-    reduction.name = reduction.name,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
@@ -879,9 +897,27 @@ RunPCA.Seurat <- function(
   return(object)
 }
 
-# @importFrom tsne tsne
+#' @param assay Name of assay that that t-SNE is being run on
+#' @param seed.use Random seed for the t-SNE
+#' @param tsne.method Select the method to use to compute the tSNE. Available
+#' methods are:
+#' \itemize{
+#' \item{Rtsne: }{Use the Rtsne package Barnes-Hut implementation of tSNE (default)}
+# \item{tsne: }{standard tsne - not recommended for large datasets}
+#' \item{FIt-SNE: }{Use the FFT-accelerated Interpolation-based t-SNE. Based on
+#' Kluger Lab code found here: https://github.com/KlugerLab/FIt-SNE}
+#' }
+#' @param add.iter If an existing tSNE has already been computed, uses the
+#' current tSNE to seed the algorithm and then adds additional iterations on top
+#' of this
+#' @param dim.embed The dimensional space of the resulting tSNE embedding
+#' (default is 2). For example, set to 3 for a 3d tSNE
+#' @param reduction.key dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default
+#'
+#' @importFrom tsne tsne
 #' @importFrom Rtsne Rtsne
 #'
+#' @rdname RunTSNE
 #' @export
 #' @method RunTSNE matrix
 #'
@@ -892,8 +928,6 @@ RunTSNE.matrix <- function(
   tsne.method = "Rtsne",
   add.iter = 0,
   dim.embed = 2,
-  distance.matrix = NULL,
-  reduction.name = "tsne",
   reduction.key = "tSNE_",
   ...
 ) {
@@ -906,7 +940,6 @@ RunTSNE.matrix <- function(
       ... # PCA/is_distance
     )$Y,
     'FIt-SNE' = fftRtsne(X = object, dims = dim.embed, rand_seed = seed.use, ...),
-    # 'tsne' = tsne(X = object, k = dim.embed, ...),
     stop("Invalid tSNE method: please choose from 'Rtsne' or 'FIt-SNE'")
   )
   if (add.iter > 0) {
@@ -927,9 +960,10 @@ RunTSNE.matrix <- function(
   return(tsne.reduction)
 }
 
+#' @param cells Which cells to analyze (default, all cells)
 #' @param dims Which dimensions to use as input features
 #'
-#' @describeIn RunTSNE Run tSNE on a DimReduc object
+#' @rdname RunTSNE
 #' @export
 #' @method RunTSNE DimReduc
 #'
@@ -957,14 +991,16 @@ RunTSNE.DimReduc <- function(
   return(tsne.reduction)
 }
 
-#' @param distance.matrix If set, runs tSNE on the given distance matrix
-#' instead of data matrix (experimental)
+#' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
+#' the tSNE. Default is PCA
 #' @param features If set, run the tSNE on this subset of features
 #' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' @param distance.matrix If set, runs tSNE on the given distance matrix
+#' instead of data matrix (experimental)
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn RunTSNE Run tSNE on a Seurat object
+#' @rdname RunTSNE
 #' @export
 #' @method RunTSNE Seurat
 #'
@@ -1039,22 +1075,38 @@ RunTSNE.Seurat <- function(
   return(object)
 }
 
-#' @describeIn RunUMAP Run a UMAP on a Seurat object
-#' @export
-#' @method RunUMAP Seurat
+#' @param assay Assay to pull data for when using \code{genes.use}
+#' @param nneighbors This determines the number of neighboring points used in
+#' local approximations of manifold structure. Larger values will result in more
+#' global structure being preserved at the loss of detailed local structure. In
+#' general this parameter should often be in the range 5 to 50.
+#' @param max.dim Max dimension to keep from UMAP procedure.
+#' @param metric metric: This determines the choice of metric used to measure
+#' distance in the input space. A wide variety of metrics are already coded, and
+#' a user defined function can be passed as long as it has been JITd by numba.
+#' @param min.dist min_dist: This controls how tightly the embedding is allowed
+#' compress points together. Larger values ensure embedded points are more
+#' evenly distributed, while smaller values allow the algorithm to optimise more
+#' accurately with regard to local structure. Sensible values are in the range
+#' 0.001 to 0.5.
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed
 #'
-RunUMAP.Seurat <- function(
+#' @importFrom reticulate py_module_available py_set_seed import
+#'
+#' @rdname RunUMAP
+#' @export
+#'
+RunUMAP.default <- function(
   object,
-  dims = 1:5,
-  reduction = 'pca',
-  features = NULL,
-  assay = 'RNA',
+  assay = NULL,
+  nneighbors = 30L,
   max.dim = 2L,
-  reduction.name = "umap",
-  reduction.key = "UMAP",
-  n_neighbors = 30L,
-  min_dist = 0.3,
-  metric = "correlation",
+  metric = 'correlation',
+  min.dist = 0.3,
+  reduction.key = 'umap',
   seed.use = 42,
   ...
 ) {
@@ -1065,19 +1117,14 @@ RunUMAP.Seurat <- function(
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
-  if (is.null(x = features)) {
-    data.use <- Embeddings(object[[reduction]])[,dims]
-  } else {
-    data.use <- t(GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
-  }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
-    n_neighbors = as.integer(x = n_neighbors),
+    n_neighbors = as.integer(x = nneighbors),
     n_components = as.integer(x = max.dim),
     metric = metric,
-    min_dist = min_dist
+    min_dist = min.dist
   )
-  umap_output <- umap$fit_transform(as.matrix(x = data.use))
+  umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
   rownames(x = umap_output) <- colnames(object)
   umap.reduction <- CreateDimReducObject(
@@ -1085,13 +1132,64 @@ RunUMAP.Seurat <- function(
     key = reduction.key,
     assay = assay
   )
-  object[[reduction.name]] <- umap.reduction
+  return(umap.reduction)
+}
+
+#' @param dims Which dimensions to use as input features, used only if
+#' \code{genes.use} is NULL
+#' @param reduction Which dimensional reduction (PCA or ICA) to use for the
+#' UMAP input. Default is PCA
+#' @param features If set, run UMAP on this subset of features (instead of running on a
+#' set of reduced dimensions). Not set (NULL) by default
+#' @param reduction.name dimensional reduction name, specifies the position in
+#' the object$dr list. umap by default
+#'
+#' @rdname RunUMAP
+#' @export
+#' @method RunUMAP Seurat
+#'
+RunUMAP.Seurat <- function(
+  object,
+  dims = 1:5,
+  reduction = 'pca',
+  features = NULL,
+  assay = 'RNA',
+  nneighbors = 30L,
+  max.dim = 2L,
+  min.dist = 0.3,
+  reduction.name = "umap",
+  reduction.key = "UMAP",
+  metric = "correlation",
+  seed.use = 42,
+  ...
+) {
+  data.use <- if (is.null(x = features)) {
+    Embeddings(object[[reduction]])[, dims]
+    assay <- DefaultAssay(object = object[['reduction']])
+  } else {
+    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+  }
+  object[[reduction.name]] <- RunUMAP(
+    object = data.use,
+    assay = assay,
+    nneighbors = nneighbors,
+    max.dim = max.dim,
+    metric = metric,
+    min.dist = min.dist,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
   return(object)
 }
 
+#' @param dims Which dimensions to examine
+#' @param score.thresh Threshold to use for the proportion test of PC
+#' significance (see Details)
+#'
 #' @importFrom stats prop.test
 #'
-#' @describeIn ScoreJackStraw Score JackStraw results given a JackStrawData
+#' @rdname ScoreJackStraw
 #' @export
 #' @method ScoreJackStraw JackStrawData
 #'
@@ -1129,17 +1227,11 @@ ScoreJackStraw.JackStrawData <- function(
   return(object)
 }
 
-#' @describeIn ScoreJackStraw Score JackStraw results given a DimReduc
+#' @rdname ScoreJackStraw
 #' @export
 #' @method ScoreJackStraw DimReduc
 #'
-ScoreJackStraw.DimReduc <- function(
-  object,
-  dims = 1:5,
-  score.thresh = 1e-5,
-  do.plot = FALSE,
-  ...
-) {
+ScoreJackStraw.DimReduc <- function(object, dims = 1:5, score.thresh = 1e-5, ...) {
   JS(object = object) <- ScoreJackStraw(
     object = JS(object = object),
     dims = dims,
@@ -1155,7 +1247,7 @@ ScoreJackStraw.DimReduc <- function(
 #'
 #' @seealso \code{\link{JackStrawPlot}}
 #'
-#' @describeIn ScoreJackStraw Score JackStraw results given a Seurat object
+#' @rdname ScoreJackStraw
 #' @export
 #' @method ScoreJackStraw Seurat
 #'

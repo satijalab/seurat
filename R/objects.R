@@ -30,7 +30,8 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' @slot meta.features Feature-level metadata
 #' @slot misc Utility slot for storing additional data associated with the assay
 #'
-#' @name Assay
+#' @name Assay-class
+#' @rdname Assay-class
 #' @exportClass Assay
 #'
 Assay <- setClass(
@@ -55,7 +56,8 @@ Assay <- setClass(
 #' @slot empirical.p.values.full Empirical p-values on full
 #' @slot overall.p.values Overall p-values from ScoreJackStraw
 #'
-#' @name JackStrawData
+#' @name JackStrawData-class
+#' @rdname JackStrawData-class
 #' @exportClass JackStrawData
 #'
 JackStrawData <- setClass(
@@ -81,7 +83,8 @@ JackStrawData <- setClass(
 #' @slot jackstraw ...
 #' @slot misc ...
 #'
-#' @name DimReduc
+#' @name DimReduc-class
+#' @rdname DimReduc-class
 #' @exportClass DimReduc
 #'
 DimReduc <- setClass(
@@ -102,7 +105,8 @@ DimReduc <- setClass(
 #'
 #' The Graph class simply inherits from dgCMatrix
 #'
-#' @name Graph
+#' @name Graph-class
+#' @name Graph-class
 #' @exportClass Graph
 #'
 Graph <- setClass(
@@ -115,10 +119,12 @@ Graph <- setClass(
 #' The SeuratCommand is used for logging commands that are run on a SeuratObject. It stores parameters and timestamps
 #'
 #' @slot name Command name
-#' @slot timestamp Timestamp of when command was tun
-#' @slot call_string String of the command call
+#' @slot time.stamp Timestamp of when command was tun
+#' @slot call.string String of the command call
 #' @slot params List of parameters used in the command call
-#' @name SeuratCommand
+#'
+#' @name SeuratCommand-class
+#' @name SeuratCommand-class
 #' @exportClass SeuratCommand
 #'
 SeuratCommand <- setClass(
@@ -148,7 +154,9 @@ SeuratCommand <- setClass(
 #' @slot params List of parameters used across the workflow
 #' @slot mostRecent Vector specifying for each command, the most recent
 #' timestamp. If the current timestamp matches this, should not need to be rerun.
-#' @name SeuratWorkflow
+#'
+#' @name SeuratWorkflow-class
+#' @rdname SeuratWorkflow-class
 #' @exportClass SeuratWorkflow
 #'
 SeuratWorkflow <- setClass(
@@ -156,6 +164,7 @@ SeuratWorkflow <- setClass(
   slots = c(
     name = 'character',
     depends = 'ANY',
+    update = 'ANY',
     params = 'ANY',
     mostRecent = 'ANY'
   )
@@ -177,8 +186,12 @@ SeuratWorkflow <- setClass(
 #' @slot calc.params A list of calculation parameters performed on this Seurat object
 #' @slot misc A list of miscellaneous information
 #' @slot version Version of Seurat this object was built under
+#' @slot commands ...
+#' @slot workflows ...
+#' @slot tools ...
 #'
-#' @name Seurat
+#' @name Seurat-class
+#' @rdname Seurat-class
 #' @exportClass Seurat
 #'
 Seurat <- setClass(
@@ -201,45 +214,44 @@ Seurat <- setClass(
   )
 )
 
-# The Seurat Class
-#
-# The Seurat object is the center of each single cell analysis. It stores all information
-# associated with the dataset, including data, annotations, analyes, etc. All that is needed
-# to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
-# should be log-scale
-#
-# Each Seurat object has a number of slots which store information. Key slots to access
-# are listed below.
-#
-# @slot raw.data The raw project data
-# @slot data The normalized expression matrix (log-scale)
-# @slot scale.data scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization
-# @slot var.genes Vector of genes exhibiting high variance across single cells
-# @slot is.expr Expression threshold to determine if a gene is expressed (0 by default)
-# @slot ident THe 'identity class' for each cell
-# @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
-# and the original identity class (orig.ident); more information is added using \code{AddMetaData}
-# @slot project.name Name of hte project (for record keeping)
-# @slot dr List of stored dimmensional reductions; named by technique
-# @slot assay List of additional assays for multimodal analysis; named by technique
-# @slot hvg.info The output of the mean/variability analysis for all genes
-# @slot imputed Matrix of imputed gene scores
-# @slot cell.names Names of all single cells (column names of the expression matrix)
-# @slot cluster.tree List where the first element is a phylo object containing the phylogenetic tree relating different identity classes
-# @slot snn Spare matrix object representation of the SNN graph
-# @slot calc.params Named list to store all calculation-related parameter choices
-# @slot kmeans Stores output of gene-based clustering from \code{DoKMeans}
-# @slot spatial Stores internal data and calculations for spatial mapping of single cells
-# @slot misc Miscellaneous spot to store any data alongisde the object (for example, gene lists)
-# @slot version Version of package used in object creation
-#
-# @name seurat
-# @rdname seurat
-# @aliases seurat-class
-#' @exportClass seurat
-#
+#' The Seurat Class
+#'
+#' The Seurat object is the center of each single cell analysis. It stores all information
+#' associated with the dataset, including data, annotations, analyes, etc. All that is needed
+#' to construct a Seurat object is an expression matrix (rows are genes, columns are cells), which
+#' should be log-scale
+#'
+#' Each Seurat object has a number of slots which store information. Key slots to access
+#' are listed below.
+#'
+#' @slot raw.data The raw project data
+#' @slot data The normalized expression matrix (log-scale)
+#' @slot scale.data scaled (default is z-scoring each gene) expression matrix; used for dimmensional reduction and heatmap visualization
+#' @slot var.genes Vector of genes exhibiting high variance across single cells
+#' @slot is.expr Expression threshold to determine if a gene is expressed (0 by default)
+#' @slot ident THe 'identity class' for each cell
+#' @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
+#' and the original identity class (orig.ident); more information is added using \code{AddMetaData}
+#' @slot project.name Name of hte project (for record keeping)
+#' @slot dr List of stored dimmensional reductions; named by technique
+#' @slot assay List of additional assays for multimodal analysis; named by technique
+#' @slot hvg.info The output of the mean/variability analysis for all genes
+#' @slot imputed Matrix of imputed gene scores
+#' @slot cell.names Names of all single cells (column names of the expression matrix)
+#' @slot cluster.tree List where the first element is a phylo object containing the phylogenetic tree relating different identity classes
+#' @slot snn Spare matrix object representation of the SNN graph
+#' @slot calc.params Named list to store all calculation-related parameter choices
+#' @slot kmeans Stores output of gene-based clustering from \code{DoKMeans}
+#' @slot spatial Stores internal data and calculations for spatial mapping of single cells
+#' @slot misc Miscellaneous spot to store any data alongisde the object (for example, gene lists)
+#' @slot version Version of package used in object creation
+#'
+#' @name seurat-class
+#' @rdname oldseurat-class
+#' @aliases seurat-class
+#'
 seurat <- setClass(
-  "seurat",
+  Class = "seurat",
   slots = c(
     raw.data = "ANY",
     data = "ANY",
@@ -608,6 +620,91 @@ CreateSeuratObject <- function(
   return(object)
 }
 
+#' Create a workflow object
+#'
+#' @param file Path to workflow file
+#'
+#' @return A SeuratWorkflow object
+#'
+#' @export
+#'
+CreateWorkflowObject <- function(file) {
+  if (!file.exists(... = file)) {
+    stop("Provided workflow file does not exist.")
+  }
+  config <- read.ini(filepath = file)
+  ValidateWorkflowFile(config = config)
+  workflow.name <- gsub(
+    pattern = ".workflow.ini",
+    replacement = "",
+    x = basename(path = file)
+  )
+  depend.fxns <- unlist(x = strsplit(
+    x = unname(obj = unlist(x = config$dependencies)),
+    split = ","
+  ))
+  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
+  depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
+  rownames(x = depends) <- colnames(x = depends) <- fxns
+  for (cmd in 1:length(x = config$dependencies)) {
+    cmd.name <- names(x = config$dependencies[cmd])
+    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
+    for (cv in cmd.vals) {
+      depends[cmd.name, cv] <- 1
+    }
+  }
+  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
+  names(x = mostRecent) <- fxns
+  for (mr in names(x = mostRecent)) {
+    assay <- config$global$assay
+    assay <- assay %iff% config[mr]$assay
+    reduction <- config$global$reduction
+    reduction <- config[mr]$reduction
+    reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
+    command.name <- paste0(mr, ".", assay, ".", reduction)
+    command.name <- sub(
+      pattern = "[\\.]+$",
+      replacement = "",
+      x = command.name,
+      perl = TRUE
+    )
+    command.name <- sub(
+      pattern = "\\.\\.",
+      replacement = "\\.",
+      x = command.name,
+      perl = TRUE
+    )
+  }
+  params <- list()
+  if (!is.null(x = config$global)) {
+    params[["global"]] <- config$global
+    for (p in 1:length(x = params$global)) {
+      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
+    }
+  }
+  # set fxn specific params
+  fxn.param.names <- setdiff(
+    x = names(x = config),
+    y = c("dependencies", "global")
+  )
+  if (length(x = fxn.param.names) > 0) {
+    for (i in 1:length(x = fxn.param.names)) {
+      params[fxn.param.names[i]] <- config[fxn.param.names[i]]
+      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
+        params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
+      }
+    }
+  }
+  seurat.workflow <- new(
+    Class = 'SeuratWorkflow',
+    name = workflow.name,
+    depends = depends,
+    params = params,
+    mostRecent = mostRecent
+  )
+  return(seurat.workflow)
+}
+
 #' Access cellular data
 #'
 #' Retreives data (feature expression, PCA scores, metrics, etc.) for a set
@@ -761,10 +858,10 @@ InitializeWorkflow <- function(object, file) {
   fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
   depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
   rownames(x = depends) <- colnames(x = depends) <- fxns
-  for(cmd in 1:length(x = config$dependencies)) {
+  for (cmd in 1:length(x = config$dependencies)) {
     cmd.name <- names(x = config$dependencies[cmd])
     cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
-    for(cv in cmd.vals) {
+    for (cv in cmd.vals) {
       depends[cmd.name, cv] <- 1
     }
   }
@@ -798,7 +895,7 @@ InitializeWorkflow <- function(object, file) {
   params <- list()
   if (!is.null(x = config$global)) {
     params[["global"]] <- config$global
-    for (p in 1:length(x = params$global)){
+    for (p in 1:length(x = params$global)) {
       params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
     }
   }
@@ -808,7 +905,7 @@ InitializeWorkflow <- function(object, file) {
     y = c("dependencies", "global")
   )
   if (length(x = fxn.param.names) > 0) {
-    for(i in 1:length(x = fxn.param.names)) {
+    for (i in 1:length(x = fxn.param.names)) {
       params[fxn.param.names[i]] <- config[fxn.param.names[i]]
       for (p in 1:length(x = params[[fxn.param.names[i]]])) {
         params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
@@ -966,7 +1063,7 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #' Return a list of features with the strongest contribution to a set of components
 #'
 #' @param object DimReduc object
-#' @param dim.use Dimension to use
+#' @param dim Dimension to use
 #' @param nfeatures Number of features to return
 #' @param projected Use the full PCA (projected PCA). Default i s FALSE
 #' @param balanced Return an equal number of features with both + and - scores.
@@ -1001,8 +1098,8 @@ TopFeatures <- function(
 #' Return a list of genes with the strongest contribution to a set of components
 #'
 #' @param object DimReduc object
-#' @param dim.use Dimension to use
-#' @param num.cells Number of cells to return
+#' @param dim Dimension to use
+#' @param ncells Number of cells to return
 #' @param balanced Return an equal number of cells with both + and - scores.
 #'
 #' @return Returns a vector of cells
@@ -1156,7 +1253,7 @@ WorkflowStatus <- function(object, workflow.name, command.name) {
 #' @export
 #' @method as.SingleCellExperiment seurat
 #'
-as.SingleCellExperiment.seurat <- function(from) {
+as.SingleCellExperiment.seurat <- function(from, ...) {
   return(Convert(from = from, to = 'sce'))
 }
 
@@ -1164,15 +1261,18 @@ as.SingleCellExperiment.seurat <- function(from) {
 #' @export
 #' @method as.seurat SingleCellExperiment
 #'
-as.seurat.SingleCellExperiment <- function(from) {
+as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
 }
 
-#' @describeIn Command Get the SeuratCommands
+#' @param command Name of the command to pull
+#' @param value Name of the parameter to pull the value for
+#'
+#' @rdname Command
 #' @export
 #' @method Command Seurat
 #'
-Command.Seurat <- function(object, command, value = NULL) {
+Command.Seurat <- function(object, command, value = NULL, ...) {
   commands <- slot(object = object, name = "commands")
   if (is.null(x = commands[[command]])) {
     stop(command, " has not been run or is not a valid command.")
@@ -1190,8 +1290,10 @@ Command.Seurat <- function(object, command, value = NULL) {
 
 #' @param X.slot Seurat slot to transfer anndata X into. Default is scale.data
 #' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
-#' @describeIn Convert from Anndata file to a Seurat object
+#'
 #' @importFrom reticulate py_to_r
+#'
+#' @rdname Convert
 #' @export
 #' @method Convert anndata.base.AnnData
 #'
@@ -1232,7 +1334,7 @@ Convert.anndata.base.AnnData <- function(
         )
       }
       seurat.object <- CreateSeuratObject(
-        raw.data = raw.data.matrix,
+        counts = raw.data.matrix,
         meta.data = meta.data
       )
       seurat.object <- SetAssayData(
@@ -1256,19 +1358,24 @@ Convert.anndata.base.AnnData <- function(
           dr.key <- toupper(x = dr.name)
         }
         colnames(x = dr.embed) <- paste0(dr.key, 1:ncol(x = dr.embed))
-        rownames(x = dr.embed) <- seurat.object@cell.names
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "cell.embeddings",
-          new.data = dr.embed
+        rownames(x = dr.embed) <- colnames(x = seurat.object)
+        seurat.object[[dr.name]] <- CreateDimReducObject(
+          embeddings = dr.embed,
+          key = dr.key,
+          assay = DefaultAssay(object = seurat.object)
         )
-        seurat.object <- SetDimReduction(
-          object = seurat.object,
-          reduction.type = dr.name,
-          slot = "key",
-          new.data = dr.key
-        )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "cell.embeddings",
+        #   new.data = dr.embed
+        # )
+        # seurat.object <- SetDimReduction(
+        #   object = seurat.object,
+        #   reduction.type = dr.name,
+        #   slot = "key",
+        #   new.data = dr.key
+        # )
       }
       seurat.object
     },
@@ -1280,7 +1387,7 @@ Convert.anndata.base.AnnData <- function(
 #' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
 #' @param data.slot name of the SingleCellExperiment assay to slot into @@data
 #'
-#' @describeIn Convert Convert from SingleCellExperiment to a Seurat object
+#' @rdname Convert
 #' @export
 #' @method Convert SingleCellExperiment
 #'
@@ -1294,7 +1401,7 @@ Convert.SingleCellExperiment <- function(
   object.to <- switch(
     EXPR = to,
     'seurat' = {
-      raw.data <- tryCatch(
+      counts <- tryCatch(
         expr = SummarizedExperiment::assay(from, raw.data.slot),
         error = function(e) {
           stop(paste0("No data in provided assay - ", raw.data.slot))
@@ -1307,27 +1414,37 @@ Convert.SingleCellExperiment <- function(
         }
       )
       meta.data <- as.data.frame(SummarizedExperiment::colData(from))
-      seurat.object <- CreateSeuratObject(raw.data = raw.data, meta.data = meta.data)
-      seurat.object@data <- data
+      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+      # seurat.object@data <- data
+      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
       if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
         for (dr in SingleCellExperiment::reducedDimNames(from)) {
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "cell.embeddings",
-            new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          seurat.object[[dr]] <- CreateDimReducObject(
+            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
+            key = gsub(
+              pattern = "[[:digit:]]",
+              replacement = "",
+              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+              )[1]),
+            assay = DefaultAssay(object = seurat.object)
           )
-          key <- gsub(
-            pattern = "[[:digit:]]",
-            replacement = "",
-            x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-            )[1])
-          seurat.object <- SetDimReduction(
-            object = seurat.object,
-            reduction.type = dr,
-            slot = "key",
-            new.data = key
-          )
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "cell.embeddings",
+          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          # )
+          # key <- gsub(
+          #   pattern = "[[:digit:]]",
+          #   replacement = "",
+          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+          #   )[1])
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "key",
+          #   new.data = key
+          # )
         }
       }
       seurat.object
@@ -1345,12 +1462,12 @@ Convert.SingleCellExperiment <- function(
 #' @param anndata.raw Name of matrix (raw.data, data) to put in the anndata raw slot
 #' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
-#' @describeIn Convert Convert a Seurat object
 #'
-#' @importFrom utils installed.packages
 #' @importFrom methods as slot
+#' @importFrom utils installed.packages
 #' @importFrom reticulate import np_array tuple dict r_to_py
 #'
+#' @rdname Convert
 #' @export
 #' @method Convert seurat
 #'
@@ -1372,20 +1489,21 @@ Convert.seurat <- function(
       if (!'loomR' %in% rownames(x = installed.packages())) {
         stop("Please install loomR from GitHub before converting to a loom object")
       }
-      cell.order <- from@cell.names
-      gene.order <- rownames(x = from@raw.data)
+      # cell.order <- from@cell.names
+      cell.order <- colnames(x = from)
+      gene.order <- rownames(x = from)
       loomfile <- loomR::create(
         filename = filename,
-        data = from@raw.data[, cell.order],
-        cell.attrs = from@meta.data[cell.order, ],
-        layers = list('norm_data' = t(x = from@data[, cell.order])),
+        data = GetAssayData(object = from, slot = 'counts')[, cell.order],
+        cell.attrs = from[[]][cell.order, ],
+        layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
         chunk.dims = chunk.dims,
         chunk.size = chunk.size,
         overwrite = overwrite,
         display.progress = display.progress
       )
-      if (nrow(x = from@hvg.info) > 0) {
-        hvg.info <- from@hvg.info
+      if (nrow(x = HVFInfo(object = from)) > 0) {
+        hvg.info <- HVFInfo(object = from)
         colnames(x = hvg.info) <- gsub(
           pattern = '.',
           replacement = '_',
@@ -1394,33 +1512,33 @@ Convert.seurat <- function(
         )
         loomfile$add.row.attribute(hvg.info[gene.order, ])
       }
-      if (length(x = from@var.genes) > 0) {
-        loomfile$add.row.attribute(list('var_genes' = gene.order %in% from@var.genes))
+      if (length(x = VariableFeatures(object = from)) > 0) {
+        loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
       }
-      if (!is.null(x = from@scale.data) && dim(x = from@scale.data) != c(1, 1)) {
+      if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
         loomfile$add.layer(list(
-          'scale_data' = as.matrix(x = t(x = as.data.frame(x = from@scale.data)[gene.order, cell.order]))
+          'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
         ))
       }
-      for (dim.reduc in names(x = from@dr)) {
-        cell.embeddings <- from@dr[[dim.reduc]]@cell.embeddings
+      for (dim.reduc in FilterObjects(object = from, classes.keep = 'DimReduc')) {
+        cell.embeddings <- Embeddings(object = from[[dim.reduc]])
         ce.dims <- unique(x = dim(x = cell.embeddings))
         if (length(x = ce.dims) != 1 || ce.dims != 0) {
           if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
             cell.embeddings.padded <- matrix(
-              nrow = ncol(x = from@raw.data),
+              nrow = ncol(x = from),
               ncol = ncol(x = cell.embeddings)
             )
-            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = from@cell.names)) {
+            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
               pad.order <- 1:nrow(x = cell.embeddings)
             } else {
               pad.order <- match(
                 x = rownames(x = cell.embeddings),
-                table = from@cell.names
+                table = colnames(x = from)
               )
             }
             cell.embeddings.padded[pad.order, ] <- cell.embeddings
-          } else if (nrow(x = cell.embeddings) > ncol(x = from@raw.data)) {
+          } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
             stop("Cannot have more cells in the dimmensional reduction than in the dataset")
           } else {
             cell.embeddings.padded <- cell.embeddings
@@ -1429,28 +1547,28 @@ Convert.seurat <- function(
           names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
           loomfile$add.col.attribute(cell.embeddings.padded)
         }
-        gene.loadings <- from@dr[[dim.reduc]]@gene.loadings
+        gene.loadings <- Loadings(object = from[[dim.reduc]])
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) == 1 && gl.dims == 0) {
-          gene.loadings <- from@dr[[dim.reduc]]@gene.loadings.full
+          gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
         }
         gl.dims <- unique(x = dim(x = gene.loadings))
         if (length(x = gl.dims) != 1 || gl.dims != 0) {
           if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
             gene.loadings.padded <- matrix(
-              nrow = nrow(x = from@raw.data),
+              nrow = nrow(x = from),
               ncol = ncol(x = gene.loadings)
             )
-            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from@raw.data))) {
+            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
               pad.order <- seq_len(nrow(x = gene.loadings))
             } else {
               pad.order <- match(
                 x = rownames(x = gene.loadings),
-                table = rownames(x = from@raw.data)
+                table = rownames(x = from)
               )
             }
             gene.loadings.padded[pad.order, ] <- gene.loadings
-          } else if (nrow(x = gene.loadings) > nrow(x = from@raw.data)) {
+          } else if (nrow(x = gene.loadings) > nrow(x = from)) {
             stop("Cannot have more genes in the dimmensional reduction than in the dataset")
           } else {
             gene.loadings.padded <- gene.loadings
@@ -1463,6 +1581,7 @@ Convert.seurat <- function(
       loomfile
     },
     'sce' = {
+      .NotYetImplemented()
       if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
         stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
       }
@@ -1501,6 +1620,7 @@ Convert.seurat <- function(
       sce
     },
     'anndata' = {
+      .NotYetImplemented()
       if (!py_module_available("anndata")) {
         stop("Please install the anndata python module")
       }
@@ -1593,7 +1713,7 @@ Convert.seurat <- function(
   return(object.to)
 }
 
-#' @describeIn DefaultAssay Get the name of the assay.used to calculate this DimReduc
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay DimReduc
 #'
@@ -1601,7 +1721,7 @@ DefaultAssay.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'assay.used'))
 }
 
-#' @describeIn DefaultAssay Get the default assay of a Seurat object
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay Seurat
 #'
@@ -1617,7 +1737,7 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn DefaultAssay Set the default assay of a Seurat object
+#' @rdname DefaultAssay
 #' @export
 #' @method DefaultAssay<- Seurat
 #'
@@ -1629,7 +1749,7 @@ DefaultAssay.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn Embeddings Get the cell embeddings from a DimReduc object
+#' @rdname Embeddings
 #' @export
 #' @method Embeddings DimReduc
 #'
@@ -1637,11 +1757,13 @@ Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
-#' @describeIn GetAssay Get an assay from a Seurat object
+#' @param assay Assay to get
+#'
+#' @rdname GetAssay
 #' @export
 #' @method GetAssay Seurat
 #'
-GetAssay.Seurat <- function(object, assay = NULL) {
+GetAssay.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
   if (!assay %in% object.assays) {
@@ -1654,17 +1776,19 @@ GetAssay.Seurat <- function(object, assay = NULL) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
-#' @describeIn GetAssayData Get assay data for an Assay object
+#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
+#'
+#' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Assay
 #'
-GetAssayData.Assay <- function(object, slot = 'data') {
+GetAssayData.Assay <- function(object, slot = 'data', ...) {
   return(slot(object = object, name = slot))
 }
 
 #' @param assay Name of assay to pull data from
 #'
-#' @describeIn GetAssayData Get assay data from a Seurat object
+#' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Seurat
 #'
@@ -1676,7 +1800,7 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   ))
 }
 
-#' @describeIn HVFInfo Get highly variable feature information from an Assay
+#' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
 #'
@@ -1695,7 +1819,7 @@ HVFInfo.Assay <- function(object, ...) {
 
 #' @param assay Name of assay to pull highly variable feature information for
 #'
-#' @describeIn HVFInfo Get highly variable feature information from a Seurat object
+#' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
 #'
@@ -1750,7 +1874,10 @@ Idents.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn JS Get JackStraw information from a DimReduc object
+#' @param slot Name of slot to store JackStraw scores to
+#' Can shorten to 'empirical', 'fake', 'full', or 'overall'
+#'
+#' @rdname JS
 #' @export
 #' @method JS DimReduc
 #'
@@ -1762,7 +1889,7 @@ JS.DimReduc <- function(object, slot = NULL, ...) {
   return(jackstraw)
 }
 
-#' @describeIn JS Get Jackstraw information from a JackStrawData object
+#' @rdname JS
 #' @export
 #' @method JS JackStrawData
 #'
@@ -1778,7 +1905,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(slot(object = object, name = slot))
 }
 
-#' @describeIn JS Set JackStraw information for a DimReduc object
+#' @rdname JS
 #' @export
 #' @method JS<- DimReduc
 #'
@@ -1793,7 +1920,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(object)
 }
 
-#' @describeIn JS Get Jackstraw information from a JackStrawData object
+#' @rdname JS
 #' @export
 #' @method JS<- JackStrawData
 #'
@@ -1810,7 +1937,7 @@ JS.JackStrawData <- function(object, slot, ...) {
   return(object)
 }
 
-#' @describeIn Key Get the key for an Assay object
+#' @rdname Key
 #' @export
 #' @method Key Assay
 #'
@@ -1818,7 +1945,7 @@ Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
-#' @describeIn Key Get the key for a DimReduc object
+#' @rdname Key
 #' @export
 #' @method Key DimReduc
 #'
@@ -1826,7 +1953,7 @@ Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
 
-#' @describeIn Key Set the key for an Assay object
+#' @rdname Key
 #' @export
 #' @method Key<- Assay
 #'
@@ -1835,7 +1962,9 @@ Key.DimReduc <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn Loadings Get the feature loadings from a DimReduc object
+#' @param projected Pull the projected feature loadings?
+#'
+#' @rdname Loadings
 #' @export
 #' @method Loadings DimReduc
 #'
@@ -1849,7 +1978,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot))
 }
 
-#' @describeIn Loadings Add projected feature loadings to a DimReduc object
+#' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
 #'
@@ -1866,7 +1995,9 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(object)
 }
 
-#' @describeIn Misc Get miscellaneous data from a Seurat object
+#' @param slot Name of specific bit of meta data to pull
+#'
+#' @rdname Misc
 #' @export
 #' @method Misc Seurat
 #'
@@ -1877,7 +2008,7 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(slot(object = object, name = 'misc')[[slot]])
 }
 
-#' @describeIn Misc Set miscellaneous data for a Seurat object
+#' @rdname Misc
 #' @export
 #' @method Misc<- Seurat
 #'
@@ -1889,7 +2020,15 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
   return(object)
 }
 
-#' @describeIn WhichCells Get cells from an Assay object
+#' @param cells Subset of cell names
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns all cells with the subset name equal to this value
+#'
+#' @rdname OldWhichCells
 #' @export
 #' @method OldWhichCells Assay
 #'
@@ -1941,11 +2080,10 @@ OldWhichCells.Assay <- function(
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
 #' @param assay Which assay to filter on
-#' @param ... Extra parameters passed to \code{FetchData}
 #'
 #' @seealso \code{\link{FetchData}}
 #'
-#' @describeIn WhichCells Get cells from a Seurat object
+#' @rdname OldWhichCells
 #' @export
 #' @method OldWhichCells Seurat
 #'
@@ -2027,14 +2165,15 @@ OldWhichCells.Seurat <- function(
 #'
 #' @export
 #'
-#' @describeIn Print Print top features for DimReduc
+#' @rdname Print
 #' @method Print DimReduc
 #'
 Print.DimReduc <- function(
   object,
   dims = 1:5,
   nfeatures = 20,
-  projected = FALSE
+  projected = FALSE,
+  ...
 ) {
   loadings <- Loadings(object = object, projected = projected)
   nfeatures <- min(nfeatures, nrow(x = loadings))
@@ -2075,14 +2214,13 @@ Print.DimReduc <- function(
   }
 }
 
-#' @describeIn RenameCells Rename cells in an Assay object
+#' @param new.names vector of new cell names
+#'
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells Assay
 #'
-RenameCells.Assay <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
     if (ncol(x = old.data) == 0) {
@@ -2093,14 +2231,11 @@ RenameCells.Assay <- function(
   return(object)
 }
 
-#' @describeIn RenameCells Rename cells in a DimReduc object
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells DimReduc
 #'
-RenameCells.DimReduc <- function(
-  object,
-  new.names = NULL
-) {
+RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
   rownames(old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
@@ -2111,7 +2246,11 @@ RenameCells.DimReduc <- function(
 #' Currently only renames the raw.data and meta.data slots.
 #' @param add.cell.id prefix to add cell names
 #'
-#' @describeIn RenameCells Rename cells in a Seurat object
+#' @details
+#' If \code{add.cell.id} is set a prefix is added to existing cell names. If
+#' \code{new.names} is set these will be used to replace existing names.
+#'
+#' @rdname RenameCells
 #' @export
 #' @method RenameCells Seurat
 #'
@@ -2119,7 +2258,8 @@ RenameCells.Seurat <- function(
   object,
   add.cell.id = NULL,
   new.names = NULL,
-  for.merge = FALSE
+  for.merge = FALSE,
+  ...
 ) {
   if (missing(x = add.cell.id) && missing(x = new.names)) {
     stop("One of 'add.cell.id' and 'new.names' must be set")
@@ -2161,7 +2301,7 @@ RenameCells.Seurat <- function(
   # rename the active.idents
   old.ids <- Idents(object = object)
   names(x = old.ids) <- new.cell.names
-  Idents(object = object, cells = rownames(x = object[[]])) <- old.ids
+  Idents(object = object) <- old.ids
   # rename the cell-level metadata
   old.meta.data <- object[[]]
   rownames(x = old.meta.data) <- new.cell.names
@@ -2169,8 +2309,7 @@ RenameCells.Seurat <- function(
   # rename the graphs
   graphs <- FilterObjects(object = object, classes.keep = "Graph")
   for (g in graphs) {
-    colnames(x = object[[g]]) <- new.cell.names
-    rownames(x = object[[g]]) <- new.cell.names
+    rownames(x = object[[g]]) <- colnames(x = object[[g]]) <- new.cell.names
   }
   return(object)
 }
@@ -2201,11 +2340,14 @@ RenameIdents.Seurat <- function(object, ...) {
   return(object)
 }
 
-#' @describeIn SetAssayData Set assay data for an Assay object
+#' @param slot Where to store the new data
+#' @param new.data New data to insert
+#'
+#' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Assay
 #'
-SetAssayData.Assay <- function(object, slot, new.data) {
+SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
     stop("'slot' must be one of ", paste(slots.use, collapse = ', '))
@@ -2249,7 +2391,7 @@ SetAssayData.Assay <- function(object, slot, new.data) {
 
 #' @param assay Name of assay whose data should be set
 #'
-#' @describeIn SetAssayData Set assay data for an Assay object in a Seurat object
+#' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Seurat
 #'
@@ -2271,11 +2413,14 @@ SetAssayData.Seurat <- function(
 #' @export
 #' @method SetIdent Seurat
 #'
-SetIdent.Seurat <- function(object, cells = NULL, value) {
+SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
   Idents(object = object, cells = cells) <- value
   return(object)
 }
 
+#' @inheritParams Idents
+#' @param save.name Store current identity information under this name
+#'
 #' @rdname Idents
 #' @export
 #' @method StashIdent Seurat
@@ -2285,17 +2430,17 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
   return(object)
 }
 
-#' @describeIn Stdev Get the standard deviations from a DimReduc object
+#' @rdname Stdev
 #' @export
 #' @method Stdev DimReduc
 #'
-Stdev.DimReduc <- function(object) {
+Stdev.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'stdev'))
 }
 
 #' @param reduction Name of reduction to use
 #'
-#' @describeIn Stdev Get the standard deviations of a dimensional reduction from a Seurat object
+#' @rdname Stdev
 #' @export
 #' @method Stdev Seurat
 #'
@@ -2303,7 +2448,17 @@ Stdev.Seurat <- function(object, reduction, ...) {
   return(Stdev(object = object[[reduction]]))
 }
 
-#' @describeIn SubsetData Subset an Assay object
+#' @param cells A vector of cell names to use as a subset. If NULL
+#' (default), then this list will be computed based on the next three
+#' arguments. Otherwise, will return an object consissting only of these cells
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns cells with the subset name equal to this value
+#'
+#' @rdname SubsetData
 #' @export
 #' @method SubsetData Assay
 #'
@@ -2314,7 +2469,6 @@ SubsetData.Assay <- function(
   low.threshold = -Inf,
   high.threshold = Inf,
   accept.value = NULL,
-  do.clean = FALSE,
   ...
 ) {
   cells <- cells %||% colnames(x = object)
@@ -2347,7 +2501,7 @@ SubsetData.Assay <- function(
 #' max per cell ident. Default is INF.
 #' @param random.seed Random seed for downsampling
 #'
-#' @describeIn SubsetData Subset an Seurat object
+#' @rdname SubsetData
 #' @export
 #' @method SubsetData Seurat
 #'
@@ -2363,7 +2517,6 @@ SubsetData.Seurat <- function(
   accept.value = NULL,
   max.cells.per.ident = Inf,
   random.seed = 1,
-  do.clean = FALSE,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -2408,7 +2561,7 @@ SubsetData.Seurat <- function(
   return(object)
 }
 
-#' @describeIn VariableFeatures Get the variable features of an assay object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures Assay
 #'
@@ -2418,7 +2571,7 @@ VariableFeatures.Assay <- function(object, ...) {
 
 #' @param assay Name of assay to pull variable features for
 #'
-#' @describeIn VariableFeatures Get the variable features of a Seurat object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures Seurat
 #'
@@ -2427,7 +2580,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
   return(VariableFeatures(object = object[[assay]]))
 }
 
-#' @describeIn VariableFeatures Set the variable features of an assay object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures<- Assay
 #'
@@ -2438,7 +2591,7 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 
 #' @inheritParams VariableFeatures.Seurat
 #'
-#' @describeIn VariableFeatures Set variable features for a Seurat object
+#' @rdname VariableFeatures
 #' @export
 #' @method VariableFeatures<- Seurat
 #'
@@ -2448,7 +2601,12 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
   return(object)
 }
 
-#' @describeIn WhichCells Get cells from an Assay object
+#' @param cells Subset of cell names
+#' @param expression A predicate expression for feature/variable expression, can
+#' evalue anything that can be pulled by \code{FetchData}
+#' @param invert Invert the selection of cells
+#'
+#' @rdname WhichCells
 #' @export
 #' @method WhichCells Assay
 #'
@@ -2496,7 +2654,7 @@ WhichCells.Assay <- function(
 #' cell selection
 #' @param seed Random seed for downsampling
 #'
-#' @describeIn WhichCells Get cells from a Seurat object
+#' @rdname WhichCells
 #' @export
 #' @method WhichCells Seurat
 #'
@@ -2894,7 +3052,8 @@ merge.Assay <- function(
   add.cell.ids = NULL,
   min.cells = 0,
   min.features = 0,
-  merge.data = TRUE
+  merge.data = TRUE,
+  ...
 ) {
   assays <- c(x, y)
   if (!is.null(x = add.cell.ids)) {
@@ -2945,6 +3104,7 @@ merge.Assay <- function(
 #' The merge will not preserve reductions, graphs or logged commands that were
 #' present in the original objects.
 #'
+#' @inheritParams CreateSeuratObject
 #' @param x Object
 #' @param y Object (or a list of multiple objects)
 #' @param add.cell.ids A character vector of length(x = c(x, y)). Appends the
@@ -2952,7 +3112,7 @@ merge.Assay <- function(
 #' @param merge.data Merge the data slots instead of just merging the counts
 #' (which requires renormalization). This is recommended if the same normalization
 #' approach was applied to all objects.
-#' @inheritParams CreateSeuratObject
+#' @param ... Arguments passed to other methods
 #'
 #' @return Merged object
 #'
@@ -2969,7 +3129,8 @@ merge.Seurat <- function(
   merge.data = TRUE,
   project = "SeuratProject",
   min.cells = 0,
-  min.features = 0
+  min.features = 0,
+  ...
 ) {
   objects <- c(x, y)
   if (!is.null(add.cell.ids)) {
@@ -3068,7 +3229,7 @@ names.Seurat <- function(x) {
 #' @export
 #' @method subset Assay
 #'
-subset.Assay <- function(x, cells = NULL, features = NULL) {
+subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   cells <- cells %||% colnames(x = x)
   features <- features %||% rownames(x = x)
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
@@ -3107,7 +3268,7 @@ subset.Assay <- function(x, cells = NULL, features = NULL) {
 #' @export
 #' @method subset DimReduc
 #'
-subset.DimReduc <- function(x, cells = NULL, features = NULL) {
+subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
   features <- rownames(x = x) %iff% features %||% rownames(x = x)
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
@@ -3140,7 +3301,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL) {
     }
     Loadings(object = x, projected = FALSE)[features.loadings, , drop = FALSE]
   }
-  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) && !Projected(object = x)) {
+  slot(object = x, name = 'feature.loadings.projected') <- if (is.null(x = features) || !Projected(object = x)) {
     new(Class = 'matrix')
   } else {
     features.projected <- intersect(
@@ -3166,14 +3327,14 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL) {
 #' @return A subsetted Seurat object
 #'
 #' @rdname subset.Seurat
-#' @aliases subset SubsetData
-#' @seealso \code{\link{base::subset}} \code{\link{WhichCells}}
+#' @aliases subset
+#' @seealso \code{\link[base]{subset}} \code{\link{WhichCells}}
 #'
 #' @export
 #' @method subset Seurat
 #'
 #' @examples
-#' subset(x = pbmc_small, subset = MS4A1 > 7)
+#' subset(x = pbmc_small, subset = MS4A1 > 4)
 #' subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, select = NULL, ...) {
@@ -3257,18 +3418,8 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-setMethod(
-  f = '[<-',
-  signature = c('x' = 'Seurat'),
-  definition = function(x, i, ..., value) {
-    .Defunct(
-      new = '[[<-',
-      package = 'Seurat',
-      msg = "When setting meta data, please use '[[<-' instead"
-    )
-  }
-)
-
+#' @rdname SeuratAccess
+#'
 setMethod(
   f = '[[<-',
   signature = c('x' = 'Assay'),
@@ -3294,6 +3445,19 @@ setMethod(
   }
 )
 
+#' Set metadata and add objects
+#'
+#' @param x An object
+#' @param i Name of metadata or object to add
+#' @param j Not used
+#' @param ... Arguments passed to other methods
+#' @param value Metadata or object to add
+#'
+#' @return An object with metadata or and object added
+#'
+#' @rdname SeuratAccess
+#' @docType methods
+#'
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',
   signature = c('x' = 'Seurat'),
@@ -3316,7 +3480,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
-            # if (nrow(x = assay.data) > 0) {
             if (!IsMatrixEmpty(x = assay.data)) {
               assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
@@ -3329,6 +3492,9 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'DimReduc' = {
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
+        }
+        if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
+          slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
         }
         'reductions'
       },

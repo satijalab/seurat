@@ -25,10 +25,3 @@ A dataframe with feature means, dispersion, and scaled dispersion
 \description{
 Get highly variable feature information
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get highly variable feature information from an Assay
-
-\item \code{Seurat}: Get highly variable feature information from a Seurat object
-}}
-

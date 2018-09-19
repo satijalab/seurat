@@ -30,12 +30,3 @@ Get a key
 
 Set a key
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get the key for an Assay object
-
-\item \code{DimReduc}: Get the key for a DimReduc object
-
-\item \code{Assay}: Set the key for an Assay object
-}}
-

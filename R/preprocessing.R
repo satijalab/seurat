@@ -6,20 +6,6 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Filter out cells from a Seurat object
-#'
-#' Defunct, replaced with \code{subset.Seurat}
-#'
-#' @param ... Ignored
-#'
-#' @seealso \code{\link{subset.Seurat}}
-#'
-#' @export
-#'
-FilterCells <- function(...) {
-  .Defunct(new = 'subset.Seurat', package = 'Seurat')
-}
-
 #' Demultiplex samples based on data from cell 'hashing'
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
@@ -305,7 +291,7 @@ Read10X <- function(data.dir = NULL){
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
-  if (!require(hdf5r)) {
+  if (!requireNamespace('hdf5r')) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
@@ -362,7 +348,11 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
+#' @importFrom stats setNames
+#' @importFrom utils installed.packages
+#'
 #' @export
+#'
 RegressRegNB <- function(
   object,
   assay = NULL,
@@ -375,14 +365,18 @@ RegressRegNB <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!requireNamespace('sctransform')) {
+  if (PackageCheck('sctransform')) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
-
-  vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
+  vst.out <- sctransform::vst(
+    umi,
+    show_progress = verbose,
+    return_cell_attr = TRUE,
+    ...
+  )
   # cell_attr = NULL,
   # latent_var = c('log_umi_per_gene'),
   # batch_var = NULL,
@@ -394,14 +388,13 @@ RegressRegNB <- function(
   # min_cells = 5,
   # return_cell_attr = FALSE,
   # return_gene_attr = FALSE)
-
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
       message('Calculate corrected UMI matrix and place in data slot')
     }
     umi.corrected <- sctransform::denoise(x = vst.out)
-    umi.corrected <- as(umi.corrected, 'dgCMatrix')
+    umi.corrected <- as(object = umi.corrected, Class = 'dgCMatrix')
     # skip SetAssayData.Assay because of restrictive dimension checks there
     slot(object = assay.obj, name = 'data') <- umi.corrected
     # assay.obj <- SetAssayData(
@@ -410,29 +403,30 @@ RegressRegNB <- function(
     #   new.data = umi.corrected
     # )
   }
-
   # set variable features
   if (verbose) {
     message('Determine variable features')
   }
-  if ('residual_variance' %in% names(vst.out$gene_attr)) {
-    feature.variance <- setNames(vst.out$gene_attr$residual_variance, rownames(vst.out$gene_attr))
+  if ('residual_variance' %in% names(x = vst.out$gene_attr)) {
+    feature.variance <- setNames(
+      object = vst.out$gene_attr$residual_variance,
+      nm = rownames(x = vst.out$gene_attr)
+    )
   } else {
     feature.variance <- RowVar(vst.out$y)
-    names(feature.variance) <- rownames(vst.out$y)
+    names(x = feature.variance) <- rownames(x = vst.out$y)
   }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(variable.features.n)) {
-    top.features <- names(feature.variance)[1:variable.features.n]
+  if (!is.null(x = variable.features.n)) {
+    top.features <- names(x = feature.variance)[1:variable.features.n]
   } else {
-    feature.variance <- scale(feature.variance)[, 1]
-    top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
+    feature.variance <- scale(x = feature.variance)[, 1]
+    top.features <- names(x = feature.variance)[feature.variance > variable.features.zscore]
   }
   VariableFeatures(object = assay.obj) <- top.features
   if (verbose) {
-    message('Set ', length(top.features), ' variable features')
+    message('Set ', length(x = top.features), ' variable features')
   }
-
   scale.data <- vst.out$y
   # re-scale the residuals
   if (do.scale || do.center) {
@@ -448,14 +442,12 @@ RegressRegNB <- function(
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-
   assay.obj <- SetAssayData(
     object = assay.obj,
     slot = 'scale.data',
     new.data = scale.data
   )
   object[[assay]] <- assay.obj
-
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
@@ -517,6 +509,44 @@ SampleUMI <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param selection.method How to choose top variable features. Choose one of :
+#' \itemize{
+#'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
+#'   log(mean) using local polynomial regression (loess). Then standardizes the
+#'   feature values using the observed mean and expected variance (given by the
+#'   fitted line). Feature variance is the calculated on the standardized values
+#'   after clipping to a maximum (default is 50).}
+#'   \item{mean.var.plot:}{ First, uses a function to calculate average
+#'   expression (mean.function) and dispersion (dispersion.function) for each
+#'   feature. Next, divides features into num.bin (deafult 20) bins based on
+#'   their average expression, and calculates z-scores for dispersion within
+#'   each bin. The purpose of this is to identify variable features while
+#'   controlling for the strong relationship between variability and average
+#'   expression.}
+#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
+#' }
+#' @param loess.span (vst method) Loess span parameter used when fitting the
+#' variance-mean relationship
+#' @param clip.max (vst method) After standardization values larger than
+#' clip.max will be set to clip.max; default is 'auto' which sets this value to
+#' the square root of the number of cells
+#' @param mean.function Function to compute x-axis value (average expression).
+#'  Default is to take the mean of the detected (i.e. non-zero) values
+#' @param dispersion.function Function to compute y-axis value (dispersion).
+#' Default is to take the standard deviation of all values
+#' @param num.bin Total number of bins to use in the scaled analysis (default
+#' is 20)
+#' @param binning.method Specifies how the bins should be computed. Available
+#' methods are:
+#' \itemize{
+#'   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+#'   \item{equal_frequency:}{ each bin contains an equal number of features (can
+#'   increase statistical power to detect overdispersed features at high
+#'   expression values, at the cost of reduced resolution along the x-axis)}
+#' }
+#' @param verbose show progress bar for calculations
+#'
+#' @rdname FindVariableFeatures
 #' @export
 #'
 FindVariableFeatures.default <- function(
@@ -528,7 +558,8 @@ FindVariableFeatures.default <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (!inherits(x = object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
@@ -608,7 +639,7 @@ FindVariableFeatures.default <- function(
 #' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature dispersions
 #'
-#' @describeIn FindVariableFeatures Find variable features in an Assay object
+#' @rdname FindVariableFeatures
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -624,7 +655,8 @@ FindVariableFeatures.Assay <- function(
   nfeatures = 1000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
@@ -670,7 +702,7 @@ FindVariableFeatures.Assay <- function(
 #' @param assay Assay to use
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn FindVariableFeatures Find variable features in a Seurat object
+#' @rdname FindVariableFeatures
 #' @export
 #' @method FindVariableFeatures Seurat
 #'
@@ -688,7 +720,8 @@ FindVariableFeatures.Seurat <- function(
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   if (!is.null(workflow.name)) {
     object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
@@ -717,6 +750,18 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @param normalization.method Method for normalization.
+#'  \itemize{
+#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. This is then
+#'   natural-log transformed using log1p.}
+#'   \item{CLR: }{Applies a centered log ratio transformation}
+#' }
+#' More methods to be added.
+#' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param verbose display progress bar for normalization procedure
+#'
+#' @rdname NormalizeData
 #' @export
 #'
 NormalizeData.default <- function(
@@ -748,7 +793,7 @@ NormalizeData.default <- function(
   return(normalized.data)
 }
 
-#' @describeIn NormalizeData Normalize data in an Assay object
+#' @rdname NormalizeData
 #' @export
 #' @method NormalizeData Assay
 #'
@@ -773,8 +818,9 @@ NormalizeData.Assay <- function(
 }
 
 #' @param assay Name of assay to use
+#' @param workflow.name Name of workflow
 #'
-#' @describeIn NormalizeData Normalize data in a Seurat object
+#' @rdname NormalizeData
 #' @export
 #' @method NormalizeData Seurat
 #'
@@ -812,10 +858,14 @@ NormalizeData.Seurat <- function(
   return(object)
 }
 
-
+#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
+#' @param q  The number of additional power iterations in randomized SVD when
+#' computing rank k approximation. By default, q=10.
+#'
+#' @rdname RunALRA
 #' @export
 #'
-RunALRA.default <- function(object, k = NULL, q = 10) {
+RunALRA.default <- function(object, k = NULL, q = 10, ...) {
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
@@ -895,7 +945,7 @@ RunALRA.default <- function(object, k = NULL, q = 10) {
 #' @importFrom Matrix Matrix
 #' @importFrom stats pnorm sd
 #'
-#' @describeIn RunALRA Run ALRA on a Seurat object
+#' @rdname RunALRA
 #' @export
 #' @method RunALRA Seurat
 #'
@@ -911,7 +961,8 @@ RunALRA.Seurat <- function(
   p.val.th = 1e-10,
   noise.start = NULL,
   q.k = 2,
-  k.only = FALSE
+  k.only = FALSE,
+  ...
 ) {
   if (!is.null(x = k) && k.only) {
     warning("Stop: k is already given, set k.only = FALSE or k = NULL")
@@ -985,6 +1036,29 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
+#' @param features Vector of features names to scale/center. Default is all features
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
+#' @param latent.data Extra data to regress out, should be cells x latent data
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear
+#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param do.scale Whether to scale the data.
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of feautres that are only expressed in
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
+#' @param block.size Default size for number of feautres to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param verbose Displays a progress bar for scaling procedure
+#'
+#' @rdname ScaleData
 #' @export
 #'
 ScaleData.default <- function(
@@ -1079,9 +1153,7 @@ ScaleData.default <- function(
   return(scaled.data)
 }
 
-#' @param latent.data Extra data to regress out, should be cells x latent data
-#'
-#' @describeIn ScaleData Scale an Assay object
+#' @rdname ScaleData
 #' @export
 #' @method ScaleData Assay
 #'
@@ -1135,7 +1207,7 @@ ScaleData.Assay <- function(
 #' @param assay Name of Assay to scale
 #' @param workflow.name Name of workflow
 #'
-#' @describeIn ScaleData Scale a Seurat object
+#' @rdname ScaleData
 #' @export
 #' @method ScaleData Seurat
 #'
@@ -1270,7 +1342,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 # @param use.umi Regress on UMI count data
 # @param verbose Display a progress bar
 #
-#' @importFrom stats as.formula
+#' @importFrom stats as.formula lm
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutMatrix <- function(

@@ -9,7 +9,7 @@
 \alias{JS<-.JackStrawData}
 \title{Get JackStraw information}
 \usage{
-JS(object, slot, ...)
+JS(object, ...)
 
 JS(object, ...) <- value
 
@@ -24,26 +24,15 @@ JS(object, ...) <- value
 \arguments{
 \item{object}{An object}
 
-\item{slot}{Name of slot to store JackStraw scores to
-Can shorten to 'empirical', 'fake', 'full', or 'overall'}
-
 \item{...}{Arguments passed to other methods}
 
 \item{value}{JackStraw information}
+
+\item{slot}{Name of slot to store JackStraw scores to
+Can shorten to 'empirical', 'fake', 'full', or 'overall'}
 }
 \description{
 Get JackStraw information
 
 Set JackStraw information
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Get JackStraw information from a DimReduc object
-
-\item \code{JackStrawData}: Get Jackstraw information from a JackStrawData object
-
-\item \code{DimReduc}: Set JackStraw information for a DimReduc object
-
-\item \code{JackStrawData}: Get Jackstraw information from a JackStrawData object
-}}
-

@@ -7,11 +7,11 @@
 \title{Merge Seurat Objects}
 \usage{
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
-  min.cells = 0, min.features = 0, merge.data = TRUE)
+  min.cells = 0, min.features = 0, merge.data = TRUE, ...)
 
 \method{merge}{Seurat}(x = NULL, y = NULL, add.cell.ids = NULL,
   merge.data = TRUE, project = "SeuratProject", min.cells = 0,
-  min.features = 0)
+  min.features = 0, ...)
 }
 \arguments{
 \item{x}{Object}
@@ -29,6 +29,8 @@ matrix as well. To reintroduce excluded features, create a new object with a low
 \item{merge.data}{Merge the data slots instead of just merging the counts
 (which requires renormalization). This is recommended if the same normalization
 approach was applied to all objects.}
+
+\item{...}{Arguments passed to other methods}
 
 \item{project}{Sets the project name for the Seurat object.}
 }

@@ -17,8 +17,3 @@ Embeddings(object, ...)
 \description{
 Get cell embeddings
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Get the cell embeddings from a DimReduc object
-}}
-

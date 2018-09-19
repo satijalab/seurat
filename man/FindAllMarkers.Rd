@@ -12,7 +12,7 @@ FindAllMarkers(object, assay = NULL, features = NULL,
   return.thresh = 0.01, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
 
 \item{assay}{Assay to use in differential expression testing}
 
@@ -70,6 +70,8 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
+\item{verbose}{Print a progress bar once expression testing begins}
+
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
 \item{max.cells.per.ident}{Down sample each identity class to a max number.
@@ -80,6 +82,9 @@ Default is no downsampling. Not activated by default (set to Inf)}
 \item{latent.vars}{Variables to test, used only when \code{test.use} is one of
 'negbinom', 'poisson', or 'MAST'}
 
+\item{min.cells.feature}{Minimum number of cells expressing the feature in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
@@ -87,7 +92,7 @@ calculating logFC. 1 by default.}
 
 \item{return.thresh}{Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)}
 
-\item{...}{Additional parameters to pass to specific DE functions}
+\item{...}{Arguments passed to other methods and to specific DE methods}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated

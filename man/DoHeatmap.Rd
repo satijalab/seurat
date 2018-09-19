@@ -6,7 +6,8 @@
 \usage{
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
   group.bar = TRUE, disp.min = -2.5, disp.max = 2.5,
-  slot = "scale.data", assay = NULL, ...)
+  slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
+  hjust = 0, angle = 45, combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -15,7 +16,7 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 
 \item{cells}{A vector of cells to plot}
 
-\item{group.by}{Name of variable to group cells by}
+\item{group.by}{A vector of variables to group cells by; pass 'ident' to group by cell identity classes}
 
 \item{group.bar}{Add a color bar showing group status for cells}
 
@@ -26,6 +27,16 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
 \item{assay}{Assay to pull from}
+
+\item{label}{Label the cell identies above the color bar}
+
+\item{size}{Size of text above color bar}
+
+\item{hjust}{Horizontal justification of text above color bar}
+
+\item{angle}{Angle of text above color bar}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
 
 \item{...}{Ignored for now}
 }

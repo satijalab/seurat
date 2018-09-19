@@ -2,12 +2,16 @@
 % Please edit documentation in R/generics.R, R/dimensional_reduction.R
 \name{RunTSNE}
 \alias{RunTSNE}
+\alias{RunTSNE.matrix}
 \alias{RunTSNE.DimReduc}
 \alias{RunTSNE.Seurat}
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
-RunTSNE(object, reduction, cells, seed.use, tsne.method, add.iter,
-  dim.embed, reduction.key, ...)
+RunTSNE(object, ...)
+
+\method{RunTSNE}{matrix}(object, assay = NULL, seed.use = 1,
+  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
+  reduction.key = "tSNE_", ...)
 
 \method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
   seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
@@ -22,10 +26,9 @@ RunTSNE(object, reduction, cells, seed.use, tsne.method, add.iter,
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction}{Which dimensional reduction (e.g. PCA, ICA) to use for
-the tSNE. Default is PCA}
+\item{...}{Arguments passed to other methods and to t-SNE call (most commonly used is perplexity)}
 
-\item{cells}{Which cells to analyze (default, all cells)}
+\item{assay}{Name of assay that that t-SNE is being run on}
 
 \item{seed.use}{Random seed for the t-SNE}
 
@@ -46,10 +49,12 @@ of this}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before the number for the dimension names. tSNE_ by default}
 
-\item{\dots}{Additional arguments to the tSNE call. Most commonly used is
-perplexity (expected number of neighbors default is 30)}
+\item{cells}{Which cells to analyze (default, all cells)}
 
 \item{dims}{Which dimensions to use as input features}
+
+\item{reduction}{Which dimensional reduction (e.g. PCA, ICA) to use for
+the tSNE. Default is PCA}
 
 \item{features}{If set, run the tSNE on this subset of features
 (instead of running on a set of reduced dimensions). Not set (NULL) by default}
@@ -67,10 +72,3 @@ running in a reduced dimensional space (i.e. spectral tSNE, recommended),
 or running based on a set of genes. For details about stored TSNE calculation
 parameters, see \code{PrintTSNEParams}.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Run tSNE on a DimReduc object
-
-\item \code{Seurat}: Run tSNE on a Seurat object
-}}
-

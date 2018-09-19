@@ -6,9 +6,7 @@
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
 \usage{
-FindMarkers(object, features, logfc.threshold, test.use, min.pct,
-  min.diff.pct, verbose, only.pos, max.cells.per.ident, random.seed,
-  latent.vars, min.cells.feature, min.cells.group, pseudocount.use, ...)
+FindMarkers(object, ...)
 
 \method{FindMarkers}{default}(object, cells.1 = NULL, cells.2 = NULL,
   features = NULL, logfc.threshold = 0.25, test.use = "wilcox",
@@ -25,7 +23,13 @@ FindMarkers(object, features, logfc.threshold, test.use, min.pct,
   min.cells.group = 3, pseudocount.use = 1, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods and to specific DE methods}
+
+\item{cells.1}{Vector of cell names belonging to group 1}
+
+\item{cells.2}{Vector of cell names belonging to group 2}
 
 \item{features}{Genes to test. Default is to use all genes}
 
@@ -81,6 +85,8 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
+\item{verbose}{Print a progress bar once expression testing begins}
+
 \item{only.pos}{Only return positive markers (FALSE by default)}
 
 \item{max.cells.per.ident}{Down sample each identity class to a max number.
@@ -91,16 +97,13 @@ Default is no downsampling. Not activated by default (set to Inf)}
 \item{latent.vars}{Variables to test, used only when \code{test.use} is one of
 'negbinom', 'poisson', or 'MAST'}
 
+\item{min.cells.feature}{Minimum number of cells expressing the feature in at least one
+of the two groups, currently only used for poisson and negative binomial tests}
+
 \item{min.cells.group}{Minimum number of cells in one of the groups}
 
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
-
-\item{\dots}{Additional parameters to pass to specific DE functions}
-
-\item{cells.1}{Vector of cell names belonging to group 1}
-
-\item{cells.2}{Vector of cell names belonging to group 2}
 
 \item{ident.1}{Identity class to define markers for}
 
@@ -108,12 +111,6 @@ calculating logFC. 1 by default.}
 use all other cells for comparison.}
 
 \item{assay}{Assay to use in differential expression testing}
-
-\item{print.bar}{Print a progress bar once expression testing begins (uses
-pbapply to do this)}
-
-\item{min.cells.features}{Minimum number of cells expressing the feature in at least one
-of the two groups, currently only used for poisson and negative binomial tests}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
@@ -132,8 +129,6 @@ same genes tested for differential expression.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{default}: Run differential expression test on matrix
-
 \item \code{Seurat}: Run differential expression test on a Seurat object
 }}
 

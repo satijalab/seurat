@@ -25,4 +25,5 @@ ggsave(filename = 'pcaplot.png', plot = p, device = png)
 pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
 pmod
 }
+
 }

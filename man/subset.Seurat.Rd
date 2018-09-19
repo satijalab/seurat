@@ -4,7 +4,6 @@
 \alias{[.Seurat}
 \alias{subset.Seurat}
 \alias{subset}
-\alias{SubsetData}
 \title{Subset a Seurat object}
 \usage{
 \method{[}{Seurat}(x, i, j, ...)
@@ -34,10 +33,10 @@ Subset a Seurat object
 pbmc_small[VariableFeatures(object = pbmc_small), ]
 pbmc_small[, 1:10]
 
-subset(x = pbmc_small, subset = MS4A1 > 7)
+subset(x = pbmc_small, subset = MS4A1 > 4)
 subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
 
 }
 \seealso{
-\code{\link{base::subset}} \code{\link{WhichCells}}
+\code{\link[base]{subset}} \code{\link{WhichCells}}
 }

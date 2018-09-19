@@ -7,23 +7,28 @@
 \alias{BuildSNN.Seurat}
 \title{SNN Graph Construction}
 \usage{
-BuildSNN(object, k.param, prune.SNN, nn.eps, verbose, force.recalc, ...)
+BuildSNN(object, ...)
 
 \method{BuildSNN}{default}(object, distance.matrix = FALSE,
   k.param = 10, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE)
+  force.recalc = FALSE, ...)
 
 \method{BuildSNN}{Assay}(object, features = NULL, k.param = 10,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE)
+  force.recalc = FALSE, ...)
 
 \method{BuildSNN}{Seurat}(object, assay = NULL, features = NULL,
   reduction = "pca", dims = 1:10, k.param = 30, prune.SNN = 1/15,
   nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL, workflow.name = NULL)
+  do.plot = FALSE, graph.name = NULL, workflow.name = NULL, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
+
+\item{distance.matrix}{Boolean value of whether the provided matrix is a
+distance matrix}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 
@@ -40,20 +45,13 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{force.recalc}{Force recalculation of SNN.}
 
-\item{distance.matrix}{Boolean value of whether the provided matrix is a
-distance matrix}
-
-\item{features}{A vector of feature names to use in construction of SNN
-graph if building directly based on data rather than a dimensionally reduced
-representation (i.e. PCs).}
+\item{features}{Features to use as input for building the SNN}
 
 \item{assay}{Assay to use in construction of SNN}
 
-\item{reduction}{Name of dimensional reduction technique to use in
-construction of SNN graph. (e.g. "pca", "ica")}
+\item{reduction}{Reduction to use as input for building the SNN}
 
-\item{dims}{A vector of the dimensions to use in construction of the SNN
-graph (e.g. To use the first 10 PCs, pass 1:10)}
+\item{dims}{Dimensions of reduction to use as input}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
@@ -61,12 +59,6 @@ graph (e.g. To use the first 10 PCs, pass 1:10)}
 assay.name_snn.}
 
 \item{workflow.name}{Name of workflow}
-
-\item{features}{Features to use as input for building the SNN}
-
-\item{reduction}{Reduction to use as input for building the SNN}
-
-\item{dims}{Dimensions of reduction to use as input}
 }
 \value{
 Returns the object with object@snn filled
@@ -77,15 +69,6 @@ first determine the k-nearest neighbors of each cell. We use this knn graph
 to construct the SNN graph by calculating the neighborhood overlap
 (Jaccard index) between every cell and its k.param nearest neighbors.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{default}: Build an SNN on a given matrix
-
-\item \code{Assay}: Build an SNN on an Assay object
-
-\item \code{Seurat}: Build an SNN on a Seurat object
-}}
-
 \examples{
 pbmc_small
 # Compute an SNN on the gene expression level

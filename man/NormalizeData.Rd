@@ -2,11 +2,16 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{NormalizeData}
 \alias{NormalizeData}
+\alias{NormalizeData.default}
 \alias{NormalizeData.Assay}
 \alias{NormalizeData.Seurat}
 \title{Normalize Data}
 \usage{
-NormalizeData(object, normalization.method, scale.factor, verbose, ...)
+NormalizeData(object, ...)
+
+\method{NormalizeData}{default}(object,
+  normalization.method = "LogNormalize", scale.factor = 10000,
+  verbose = TRUE, ...)
 
 \method{NormalizeData}{Assay}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
@@ -18,6 +23,8 @@ NormalizeData(object, normalization.method, scale.factor, verbose, ...)
 }
 \arguments{
 \item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{normalization.method}{Method for normalization.
  \itemize{
@@ -32,9 +39,9 @@ More methods to be added.}
 
 \item{verbose}{display progress bar for normalization procedure}
 
-\item{...}{arguments passed to other methods}
-
 \item{assay}{Name of assay to use}
+
+\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns object after normalization
@@ -42,13 +49,6 @@ Returns object after normalization
 \description{
 Normalize the count data present in a given assay.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Normalize data in an Assay object
-
-\item \code{Seurat}: Normalize data in a Seurat object
-}}
-
 \examples{
 \dontrun{
 pbmc_small

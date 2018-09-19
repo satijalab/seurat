@@ -50,5 +50,5 @@ DimHeatmap(object = pbmc_small)
 
 }
 \seealso{
-\code{\link{graphics::image}} \code{\link{ggplot2::geom_raster}}
+\code{\link[graphics]{image}} \code{\link[ggplot2]{geom_raster}}
 }
