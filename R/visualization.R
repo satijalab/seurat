@@ -628,7 +628,7 @@ DimPlot <- function(
 #' @importFrom grDevices rgb
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis
+#' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis guides
 #' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
 #' @export
 #'
@@ -836,6 +836,7 @@ FeaturePlot <- function(
         plot <- plot + labs(title = feature)
       }
       if (!blend) {
+        plot <- plot + guides(color = NULL)
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
