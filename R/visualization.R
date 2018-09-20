@@ -37,7 +37,7 @@ DimHeatmap <- function(
   cells = NULL,
   reduction = 'pca',
   disp.min = -2.5,
-  disp.max = 2.5,
+  disp.max = NULL,
   balanced = FALSE,
   ncol = NULL,
   combine = TRUE,
@@ -49,6 +49,11 @@ DimHeatmap <- function(
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
   assays <- assays %||% DefaultAssay(object = object)
+  disp.max <- disp.max %||% ifelse(
+    test = slot == 'scale.data',
+    yes = 2.5,
+    no = 6
+  )
   if (!DefaultAssay(object = object[[reduction]]) %in% assays) {
     warning("assay")
   }
@@ -163,7 +168,8 @@ DimHeatmap <- function(
 #' @param features A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param cells A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
-#' @param disp.max Maximum display value (all values above are clipped)
+#' @param disp.max Maximum display value (all values above are clipped); defaults to 2.5
+#' if \code{slot} is 'scale.data', 6 otherwise
 #' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
@@ -193,7 +199,7 @@ DoHeatmap <- function(
   group.by = 'ident',
   group.bar = TRUE,
   disp.min = -2.5,
-  disp.max = 2.5,
+  disp.max = NULL,
   slot = 'scale.data',
   assay = NULL,
   label = TRUE,
@@ -211,10 +217,10 @@ DoHeatmap <- function(
   DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
-  disp.max <- ifelse(
-    test = slot != 'scale.data',
-    yes = max(disp.max, 10),
-    no = disp.max
+  disp.max <- disp.max %||% ifelse(
+    test = slot == 'scale.data',
+    yes = 2.5,
+    no = 6
   )
   data <- FetchData(
     object = object,

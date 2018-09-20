@@ -5,7 +5,7 @@
 \title{Dimensional reduction heatmap}
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
-  reduction = "pca", disp.min = -2.5, disp.max = 2.5,
+  reduction = "pca", disp.min = -2.5, disp.max = NULL,
   balanced = FALSE, ncol = NULL, combine = TRUE, fast = TRUE,
   slot = "scale.data", assays = NULL, ...)
 }
@@ -22,7 +22,8 @@ DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
-\item{disp.max}{Maximum display value (all values above are clipped)}
+\item{disp.max}{Maximum display value (all values above are clipped); defaults to 2.5
+if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{balanced}{Plot an equal number of genes with both + and - scores.}
 
