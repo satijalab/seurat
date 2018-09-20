@@ -1020,7 +1020,7 @@ RunUMAP.default <- function(
   )
   umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
-  rownames(x = umap_output) <- colnames(object)
+  rownames(x = umap_output) <- rownames(object)
   umap.reduction <- CreateDimReducObject(
     embeddings = umap_output,
     key = reduction.key,
@@ -1057,11 +1057,11 @@ RunUMAP.Seurat <- function(
   seed.use = 42,
   ...
 ) {
-  data.use <- if (is.null(x = features)) {
-    Embeddings(object[[reduction]])[, dims]
-    assay <- DefaultAssay(object = object[['reduction']])
+  if (is.null(x = features)) {
+    data.use <- Embeddings(object[[reduction]])[, dims]
+    assay <- DefaultAssay(object = object[[reduction]])
   } else {
-    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
