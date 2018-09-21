@@ -1185,9 +1185,9 @@ UpdateSeuratObject <- function(object) {
       seurat.version <- packageVersion(pkg = "Seurat")
       new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
       assay.list <- list(new.assay)
-      names(assay.list) <- "RNA"
-      for(i in names(object@assay)) {
-        assay.list[[i]] <- UpdateAssay(object@assay[[i]], assay = i)
+      names(x = assay.list) <- "RNA"
+      for (i in names(x = object@assay)) {
+        assay.list[[i]] <- UpdateAssay(old.assay = object@assay[[i]], assay = i)
       }
       new.dr <- UpdateDimReduction(old.dr = object@dr, assay = "RNA")
       new.object <- new(
@@ -1206,7 +1206,11 @@ UpdateSeuratObject <- function(object) {
       return(new.object)
     }
   }
-  stop("Cannot convert version <2")
+  stop(
+    "Cannot convert Seurat objects less than version 2.X\n",
+    'Please use devtools::install_version to install Seurat v2.3.4 and update your object to a 2.X object',
+    call. = FALSE
+  )
 }
 
 #' Output status of each command in the workflow
