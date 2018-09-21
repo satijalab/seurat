@@ -693,7 +693,8 @@ CheckDots <- function(..., fxns = NULL) {
       warning(
         "The following arguments are not used: ",
         paste(unused, collapse = ', '),
-        call. = FALSE
+        call. = FALSE,
+        immediate. = TRUE
       )
     }
   }
