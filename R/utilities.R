@@ -628,6 +628,77 @@ MinMax <- function(data, min, max) {
   }
 }
 
+# Check the use of ...
+#
+# @param ... Arguments passed to a function that fall under ...
+# @param fxns A list/vector of functions or function names
+#
+# @return ...
+#
+#' @importFrom utils argsAnywhere
+#
+# @examples
+#
+CheckDots <- function(..., fxns = NULL) {
+  args.names <- names(x = c(...))
+  if (length(x = c(...)) == 0) {
+    return(invisible(x = NULL))
+  }
+  if (is.null(x = args.names)) {
+    stop("No named arguments passed")
+  }
+  fxn.args <- lapply(
+    X = fxns,
+    FUN = function(x) {
+      if (is.character(x = x)) {
+        if (any(grepl(pattern = 'UseMethod', x = as.character(x = getAnywhere(x = x))))) {
+          x <- paste0(x, '.default')
+        }
+        x <- argsAnywhere(x = x)
+      }
+      if (is.function(x = x)) {
+        return(names(x = formals(fun = x)))
+      } else {
+        stop("CheckDots only works on characters or functions, not ", class(x = x))
+      }
+    }
+  )
+  if (any(grepl(pattern = '...', x = fxn.args, fixed = TRUE))) {
+    dotted <- grepl(pattern = '...', x = fxn.args, fixed = TRUE)
+    dfxn <- fxns[dotted]
+    if (any(sapply(X = dfxn, FUN = is.character))) {
+      message(
+        "The following functions accept the dots: ",
+        paste(Filter(f = is.character, x = dfxn), collapse = ', ')
+      )
+      dfxn <- Filter(f = Negate(f = is.character), x = dfxn)
+      if (length(x = dfxn) > 0) {
+        message(
+          "In addition, there are ",
+          length(x = dfxn),
+          " unnamed function(s) that accept the dots"
+        )
+      }
+    } else {
+      message("There are ", length(x = dfxn), ' functions provided that accept the dots')
+    }
+  } else {
+    unused <- Filter(
+      f = function(x) {
+        return(!x %in% unlist(x = fxn.args))
+      },
+      x = args.names
+    )
+    if (length(x = unused) > 0) {
+      warning(
+        "The following arguments are not used: ",
+        paste(unused, collapse = ', '),
+        call. = FALSE
+      )
+    }
+  }
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
