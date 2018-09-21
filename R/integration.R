@@ -48,7 +48,7 @@ globalVariables(
 #'
 #' @importFrom dtw dtw
 #' @importFrom stats density
-#' @importFrom pbapply pbapply
+#' @importFrom pbapply pbapply pbsapply
 #' @importFrom graphics plot lines
 #' @importFrom stats density quantile
 #'
@@ -108,9 +108,10 @@ AlignSubspace <- function(
     }
     # objects[[i]] <- ScaleData(object = objects[[i]], display.progress = verbose, ...)
     sdi <- ScaleData(object = objects[[i]], verbose = verbose, ...)
-    sdi[is.na(x = sdi)] <- 0
+    sdi <- sdi@assays$RNA@scale.data  # workaround for producing `sdi` matrix from `ScaleData()`
+    sdi[is.na(x = sdi)] <- 0          # ideally, above should be replaced with default assay type
     object[[i]] <- SetAssayData(
-      object = object[[i]],
+      object = objects[[i]],          # fix typo
       slot = 'scale.data',
       new.data = sdi
     )
