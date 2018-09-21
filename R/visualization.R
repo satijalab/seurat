@@ -875,7 +875,7 @@ FeaturePlot <- function(
             labs(
               x = features[1],
               y = features[2],
-              title = if (i == 1) {
+              title = if (i == 1 && length(x = levels(x = data$split)) > 1) {
                 paste('Color threshold:', blend.threshold)
               } else {
                 NULL

@@ -3,16 +3,21 @@
 \name{Embeddings}
 \alias{Embeddings}
 \alias{Embeddings.DimReduc}
+\alias{Embeddings.Seurat}
 \title{Get cell embeddings}
 \usage{
 Embeddings(object, ...)
 
 \method{Embeddings}{DimReduc}(object, ...)
+
+\method{Embeddings}{Seurat}(object, reduction, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
+
+\item{reduction}{Name of reduction to pull cell embeddings for}
 }
 \description{
 Get cell embeddings

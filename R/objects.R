@@ -1761,6 +1761,16 @@ Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
 }
 
+#' @param reduction Name of reduction to pull cell embeddings for
+#'
+#' @rdname Embeddings
+#' @export
+#' @method Embeddings Seurat
+#'
+Embeddings.Seurat <- function(object, reduction, ...) {
+  return(Embeddings(object = object[[reduction]], ...))
+}
+
 #' @param assay Assay to get
 #'
 #' @rdname GetAssay
@@ -1982,6 +1992,16 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
   return(slot(object = object, name = slot))
 }
 
+#' @param reduction Name of reduction to pull feature loadings for
+#'
+#' @rdname Loadings
+#' @export
+#' @method Loadings Seurat
+#'
+Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
+  return(Loadings(object = object[[reduction]], projected = projected, ...))
+}
+
 #' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
@@ -2118,6 +2138,50 @@ OldWhichCells.Seurat <- function(
   if (!is.na(x = random.seed)) {
     set.seed(seed = random.seed)
   }
+  expression <- character(length = 0L)
+  if (!is.null(x = subset.name)) {
+    sub <- gsub(
+      pattern = '"',
+      replacement = '',
+      x = deparse(expr = substitute(expr = subset.name))
+    )
+    if (!is.infinite(x = low.threshold)) {
+      expression <- c(
+        expression,
+        paste(sub, '>', deparse(expr = substitute(expr = low.threshold)))
+      )
+    }
+    if (!is.infinite(x = high.threshold)) {
+      expression <- c(
+        expression,
+        paste(sub, '<', deparse(expr = substitute(expr = high.threshold)))
+      )
+    }
+    if (!is.null(x = accept.value)) {
+      expression <- c(
+        expression,
+        paste(sub, '==', deparse(expr = substitute(expr = accept.value)))
+      )
+    }
+  }
+  message(
+    'With Seurat 3.X, identifying cells can now be done with:\n',
+    'WhichCells(object = ',
+    deparse(expr = substitute(expr = object)),
+    if (length(x = expression) > 0) {
+      paste0(', subset = ', paste(expression, collapse = ' & '))
+    },
+    if (!is.null(x = cells)) {
+      paste(', cells =', deparse(expr = substitute(expr = cells)))
+    },
+    if (!is.null(x = ident.keep)) {
+      paste(', idents =', deparse(expr = substitute(expr = ident.keep)))
+    },
+    if (!is.infinite(x = max.cells.per.ident)) {
+      paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
+    },
+    ')'
+  )
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
   ident.keep <- ident.keep %||% unique(x = Idents(object = object))
@@ -2421,6 +2485,16 @@ SetAssayData.Seurat <- function(
 #' @method SetIdent Seurat
 #'
 SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
+  message(
+    'With Seurat 3.X, setting identity classes can be done as follows:\n',
+    'Idents(object = ',
+    deparse(expr = substitute(expr = object)),
+    if (!is.null(x = cells)) {
+      paste0(', cells = ', deparse(expr = substitute(expr = cells)))
+    },
+    ') <- ',
+    deparse(expr = substitute(expr = value))
+  )
   Idents(object = object, cells = cells) <- value
   return(object)
 }
@@ -2433,6 +2507,15 @@ SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
 #' @method StashIdent Seurat
 #'
 StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
+  message(
+    'With Seurat 3.X, stashing identity classes can be accomplished with the following:\n',
+    deparse(expr = substitute(expr = object)),
+    '[[',
+    deparse(expr = substitute(expr = save.name)),
+    ']] <- Idents(object = ',
+    deparse(expr = substitute(expr = object)),
+    ')'
+  )
   object[[save.name]] <- Idents(object = object)
   return(object)
 }
@@ -2526,6 +2609,47 @@ SubsetData.Seurat <- function(
   random.seed = 1,
   ...
 ) {
+  expression <- character(length = 0L)
+  if (!is.null(x = subset.name)) {
+    sub <- gsub(
+      pattern = '"',
+      replacement = '',
+      x = deparse(expr = substitute(expr = subset.name))
+    )
+    if (!is.infinite(x = low.threshold)) {
+      expression <- c(
+        expression,
+        paste(sub, '>', deparse(expr = substitute(expr = low.threshold)))
+      )
+    }
+    if (!is.infinite(x = high.threshold)) {
+      expression <- c(
+        expression,
+        paste(sub, '<', deparse(expr = substitute(expr = high.threshold)))
+      )
+    }
+    if (!is.null(x = accept.value)) {
+      expression <- c(
+        expression,
+        paste(sub, '==', deparse(expr = substitute(expr = accept.value)))
+      )
+    }
+  }
+  message(
+    'With Seurat 3.X, subsetting Seurat objects can now be done with:\n',
+    'subset(x = ',
+    deparse(expr = substitute(expr = object)),
+    if (length(x = expression) > 0) {
+      paste0(', subset = ', paste(expression, collapse = ' & '))
+    },
+    if (length(x = c(cells, ident.use) > 0)) {
+      paste0(', select = c("', paste0(c(cells, ident.use), collapse = '", '), '")')
+    },
+    if (!is.infinite(x = max.cells.per.ident)) {
+      paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
+    },
+    ')'
+  )
   assay <- assay %||% DefaultAssay(object = object)
   cells <- OldWhichCells(
     object = object,
