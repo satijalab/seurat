@@ -1526,3 +1526,165 @@ RegressOutNB <- function(
   object@scale.data <- pr
   return(object)
 }
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Proposed feature: subset by barcode distribution inflection points
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Subsets a Seurat Object By Distribution of UMIs
+#'
+#' This function calculates an adaptive inflection point ("knee") of the barcode distribution
+#' for each sample group (as identified by `object@meta.data$orig.ident`).
+#' Returns the subsetted `object` with cells that passed the calculated threshold.
+#'
+#' The assumed assay is "RNA", and thus uses the "nCount_RNA" distribution for
+#' calculating the appropriate cutoff and returning a subsetted object.
+#'
+#' @param object Seurat object
+#' @param umi.column Column to use as proxy for barcodes ("nCount_RNA" by default)
+#' @param show.plot Whether to produce diagnostic plot showing inflection point and barcode distribution
+#' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
+#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param return.plot Returns the ggplot2 object in lieu of the subsetted Seurat object (useful for visually testing thresholds)
+#' @param return.cells Returns the vector of cells which pass the defined barcode thresholds
+#' @param return.inflections Returns a tibble with the grouping variable, data list-column with cell, umi.column, and rank, the calculated inflection point and associated umi_threshold, and a list-column of the cells which passed the calculated threshold per group
+#'
+#' @return Return Seurat object subsetted. Appends to the workflow slot 'nCount_RNA_threshold'
+#' with a `data.frame` showing the calculated thresholds per sample group that determine the passing cells.
+#'
+#' @importFrom dplyr mutate arrange group_by summarise select inner_join filter
+#' @importFrom tidyr nest
+#' @importFrom purrr map_int map2_dbl map2
+#' @importFrom ggplot2 ggplot geom_line theme_bw geom_vline
+#' @importFrom rlang sym
+#' @import tibble
+#'
+#' @rdname Preprocessing
+#'
+#' @export
+#' 
+#' @examples
+#' \dontrun{
+#' SubsetByBarcodeDistribution(pbmc_small)
+#' }
+
+SubsetByBarcodeDistribution <- function(object,
+                                       umi.column = 'nCount_RNA',
+                                       threshold.low = NULL,
+                                       threshold.high = NULL,
+                                       show.plot = FALSE,                                       
+                                       return.plot = FALSE,
+                                       return.cells = FALSE,
+                                       return.inflections = FALSE) {
+    ## Make sure there is a column for "cell" to subset the object by
+    if (!("cell" %in% colnames(object@meta.data))) {
+        object@meta.data$cell <- rownames(object@meta.data)
+        created_cell_col = TRUE
+    } else {
+        created_cell_col = FALSE
+    }
+
+    ## Check that umi.column exists in meta.data
+    if (!(umi.column %in% colnames(object@meta.data))) {
+        stop("`umi.column` specified not present in Seurat object provided")
+    }
+
+    ## Grab meta data
+    tmp_meta <- object@meta.data %>%
+        as.data.frame() %>%
+        dplyr::group_by(orig.ident) %>%
+        dplyr::mutate(rank = rank(-!!rlang::sym(umi.column))) %>%
+        dplyr::arrange(orig.ident, rank)
+
+    ## Set thresholds for rank of barcodes to ignore
+    if (is.null(threshold.low)) {
+        threshold.low <- 1
+    }
+    if (is.null(threshold.high)) {
+        threshold.high <- max(tmp_meta$rank)
+    }
+
+    ## Calculate inflection point within each group's barcode range
+    inflections <- tmp_meta %>%
+        tidyr::nest() %>%
+        dplyr::mutate(inflection = purrr::map_int(data, function(x) {
+            y <- x %>%
+                dplyr::mutate(
+                    rawdiff = c(NA, diff(log10(!!rlang::sym(umi.column) + 1)) / diff(rank))
+                ) %>%
+                dplyr::summarise(
+                    inflection = which(rawdiff == min(rawdiff[threshold.low:threshold.high], na.rm = TRUE))
+                )
+            y[[1]]
+        })) %>%
+        dplyr::select(-data)
+
+    ## Calculate inflection point plot for QC
+    if (show.plot == TRUE | return.plot == TRUE) {
+        g <- tmp_meta %>%
+            ggplot2::ggplot(aes(x = rank, y = log10(!!rlang::sym(umi.column)),
+                       group = orig.ident, colour = orig.ident)) +
+            ggplot2::geom_line() +
+            ggplot2::theme_bw() +
+            ggplot2::geom_vline(data = inflections,
+                               aes(xintercept = inflection,
+                                   group = orig.ident, colour = orig.ident),
+                               linetype = 'dashed')
+    }
+
+    ## Show the plot if desired
+    if (show.plot == TRUE) {
+        print(g)
+    }
+
+    ## Break: return ggplot2 object
+    if (return.plot == TRUE) {
+        return(g)
+    }
+
+    ## Filter the cells based on calculated inflection points per sample
+    cells_filtered <- tmp_meta %>%
+        dplyr::select(orig.ident, cell, !!rlang::sym(umi.column), rank) %>%
+        dplyr::group_by(orig.ident) %>%
+        tidyr::nest() %>%
+        dplyr::inner_join(inflections, by = 'orig.ident') %>%
+        dplyr::mutate(
+            umi_threshold = purrr::map2_dbl(data, inflection, function(d, i) {
+                x <- dplyr::filter(d, rank < i)
+                min(x[umi.column], na.rm = TRUE) # return the min nCount threshold used
+            }),
+            cells_pass = purrr::map2(data, inflection, function(d, i) {
+                x <- dplyr::filter(d, rank < i)
+                return(x$cell) # return passing cells
+            }))
+
+    ## Break: returns the calculated inflection points data and passing cells
+    if (return.inflections) {
+        return(cells_filtered)
+    }
+    
+    ## Get vector of which cells to keep
+    cells_pass <- unlist(cells_filtered$cells_pass)
+
+    ## Break: returns the names of the cells that pass only
+    if (return.cells == TRUE) {
+        return(cells_pass)
+    }
+
+    ## Subset the object object
+    object <- SubsetData(object, cells = cells_pass)
+    
+    ## Possible addon:
+    ## Append information about filter into @workflows slot
+    ## object@workflows$umi_threshold <- cells_filtered
+
+    ## Remove the cell column if it was created by the function
+    if (created_cell_col == TRUE) {
+        object@meta.data <- object@meta.data[, -which(colnames(object@meta.data) == 'cell')]
+    }
+
+    return(object)
+}
+

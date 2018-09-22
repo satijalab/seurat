@@ -56,7 +56,10 @@ Imports:
     tsne,
     stats,
     utils,
-    magrittr
+    magrittr,
+    rlang,
+    dplyr,
+    purrr
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
