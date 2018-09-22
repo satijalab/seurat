@@ -55,7 +55,8 @@ Imports:
     tidyr,
     tsne,
     stats,
-    utils
+    utils,
+    magrittr
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
 LazyData: true
@@ -71,6 +72,7 @@ Collate:
     'package.R'
     'preprocessing.R'
     'utilities.R'
+    'utils-pipe.R'
     'visualization.R'
 RoxygenNote: 6.1.0
 Encoding: UTF-8
