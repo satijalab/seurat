@@ -346,7 +346,7 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 CheckWorkflow <- function(object, workflow.name) {
   # Check if workflow is there
   workflow.present <- FALSE
-  if (workflow.name %in% names(x = object)) {
+  if (workflow.name %in% names(x = object@workflows)) {
     if (class(x = object[[workflow.name]])[[1]] == "SeuratWorkflow") {
       workflow.present <- TRUE
     }
@@ -395,13 +395,14 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
   reduction <- params$global$reduction
   reduction <- reduction %iff% params[[command.name]]$reduction
   reduction <- reduction %||% formals(fun = paste0(command.name, ".Seurat"))$reduction
-
   command.name <- paste0(command.name, ".", assay, ".", reduction)
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
   command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-
+  if (!(command.name %in% names(object@commands))) {
+    return(TRUE)
+  }
   if (length(x = command.name)==1) {
-    seurat.timestamp <- slot(object = object[[command.name]], name = "time.stamp")
+    seurat.timestamp <- slot(object = object@commands[[command.name]], name = "time.stamp")
   }
   if (seurat.timestamp == workflow.timestamp) {
     return(FALSE)
@@ -4067,6 +4068,12 @@ ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
   to.set <- intersect(x = param.list, y = names(workflow.params$global))
   p.env <- parent.frame(depth)
   for(i in to.set) {
+    if (workflow.params$global[[i]] == "FALSE") {
+      workflow.params$global[[i]] = FALSE
+    }
+    if (workflow.params$global[[i]] == "TRUE") {
+      workflow.params$global[[i]] = TRUE
+    }
     assign(x = names(workflow.params$global[i]),
            value = workflow.params$global[[i]],
            envir = p.env)
@@ -4224,7 +4231,7 @@ UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
     command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
     command.name.seurat <- intersect(
       x = c(command.name, paste0(command.name, ".", DefaultAssay(object = object))),
-      names(x = object)
+      names(x = object@commands)
     )
   } else {
     command.name.seurat <- command.name
