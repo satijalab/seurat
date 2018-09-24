@@ -228,7 +228,7 @@ DoHeatmap <- function(
     cells = cells,
     slot = slot
   )
-  object <- StashIdent(object = object, save.name = 'ident')
+  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
   # group.use <- switch(
@@ -578,7 +578,7 @@ DimPlot <- function(
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  object <- StashIdent(object = object, save.name = 'ident')
+  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   if (!is.null(x = shape.by)) {
@@ -1879,6 +1879,49 @@ HoverLocator <- function(
   )
 }
 
+#' Label clusters on a ggplto2-based scatter plot
+#'
+#' @param plot A ggplot2-based scatter plot
+#' @param id Name of variable used for coloring scatter plot
+#' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}
+#'
+#' @return A ggplot2-based scatter plot with cluster labels
+#'
+#' @importFrom stats median
+#' @importFrom ggplot2 aes_string
+#' @importFrom ggrepel geom_text_repel
+#' @export
+#'
+#' @seealso \code{\link[ggrepel]{geom_text_repel}}
+#'
+#' @examples
+#' plot <- DimPlot(object = pbmc_small)
+#' LabelClusters(plot = plot, id = 'ident')
+#'
+LabelClusters <- function(plot, id) {
+  xynames <- GetXYAesthetics(plot = plot)
+  if (!id %in% colnames(x = plot$data)) {
+    stop("Cannot find variable ", id, " in plotting data")
+  }
+  data <- plot$data[, c(unlist(x = xynames), id)]
+  groups <- as.character(x = na.omit(object = unique(x = data[, id])))
+  labels <- lapply(
+    X = groups,
+    FUN = function(group) {
+      data.use <- data[data[, id] == group, unlist(x = xynames)]
+      return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
+    }
+  )
+  names(x = labels) <- groups
+  labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
+  labels[, colnames(x = data)[3]] <- groups
+  plot <- plot + geom_text_repel(
+    data = labels,
+    mapping = aes_string(x = xynames$x, y = xynames$y, label = id)
+  )
+  return(plot)
+}
+
 #' Add text labels to a ggplot2 plot
 #'
 #' @param plot A ggplot2 plot with a GeomPoint layer
@@ -1897,15 +1940,16 @@ HoverLocator <- function(
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
+#' @aliases Labeler
 #' @seealso \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
 #' ff <- TopFeatures(object = pbmc_small[['pca']])
 #' cc <- TopCells(object = pbmc_small[['pca']])
 #' plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
-#' Labeler(plot = plot, points = cc)
+#' LabelPoints(plot = plot, points = cc)
 #'
-Labeler <- function(
+LabelPoints <- function(
   plot,
   points,
   labels = NULL,
@@ -1914,17 +1958,7 @@ Labeler <- function(
   ynudge = 0.05,
   ...
 ) {
-  geoms <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(layer$geom)[1])
-    }
-  )
-  geoms <- which(x = geoms == 'GeomPoint')
-  if (length(x = geoms) == 0) {
-    stop("Labelling only work on ggplot-based plots with a GeomPoint layer")
-  }
-  geoms <- min(geoms)
+  xynames <- GetXYAesthetics(plot = plot)
   points <- points %||% rownames(x = plot$data)
   if (is.numeric(x = points)) {
     points <- rownames(x = plot$data)
@@ -1937,8 +1971,6 @@ Labeler <- function(
   labels <- as.character(x = labels)
   plot$data$labels <- ''
   plot$data[points, 'labels'] <- labels
-  x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
-  y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   if (repel) {
     if (!all(c(xnudge, ynudge) == 0)) {
@@ -1953,7 +1985,7 @@ Labeler <- function(
     }
   }
   plot <- plot + geom.use(
-    mapping = aes_string(x = x, y = y, label = 'labels'),
+    mapping = aes_string(x = xynames$x, y = xynames$y, label = 'labels'),
     nudge_x = xnudge,
     nudge_y = ynudge,
     ...
@@ -2717,6 +2749,36 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
   return(plot.data)
 }
 
+# Get X and Y aesthetics from a plot for a certain geom
+#
+# @param plot A ggplot2 object
+# @param geom Geom class to filter to
+# @param plot.first Use plot-wide X/Y aesthetics before geom-specific aesthetics
+#
+# @return A named list with values 'x' for the name of the x aesthetic and 'y' for the y aesthetic
+#
+GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == geom)
+  if (length(x = geoms) == 0) {
+    stop("Cannot find a geom of class ", geom)
+  }
+  geoms <- min(geoms)
+  if (plot.first) {
+    x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+    y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+  } else {
+    x <- as.character(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)[2]
+    y <- as.character(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)[2]
+  }
+  return(list('x' = x, 'y' = y))
+}
+
 # A split violin plot geom
 #
 #' @importFrom scales zero_range
@@ -3284,9 +3346,9 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param ... Ignored for now
 #
+#' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
 #' scale_color_brewer scale_color_manual element_rect guide_legend
-#' @importFrom cowplot theme_cowplot
 #'
 SingleDimPlot <- function(
   data,
@@ -3368,26 +3430,27 @@ SingleDimPlot <- function(
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
-    plot <- plot +
-      geom_point(
-        data = labels,
-        mapping = aes_string(
-          x = colnames(x = labels)[1],
-          y = colnames(x = labels)[2]
-        ),
-        size = 0,
-        alpha = 0
-      ) +
-      geom_text(
-        data = labels,
-        mapping = aes_string(
-          x = colnames(x = labels)[1],
-          y = colnames(x = labels)[2],
-          label = colnames(x = labels)[3]
-        ),
-        size = label.size
-      )
+    plot <- LabelClusters(plot = plot, id = col.by)
+    # labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
+    # plot <- plot +
+    #   geom_point(
+    #     data = labels,
+    #     mapping = aes_string(
+    #       x = colnames(x = labels)[1],
+    #       y = colnames(x = labels)[2]
+    #     ),
+    #     size = 0,
+    #     alpha = 0
+    #   ) +
+    #   geom_text(
+    #     data = labels,
+    #     mapping = aes_string(
+    #       x = colnames(x = labels)[1],
+    #       y = colnames(x = labels)[2],
+    #       label = colnames(x = labels)[3]
+    #     ),
+    #     size = label.size
+    #   )
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {
