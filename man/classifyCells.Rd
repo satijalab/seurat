@@ -4,12 +4,12 @@
 \alias{classifyCells}
 \title{Sample classification from MULTI-seq}
 \usage{
-classifyCells(data, q)
+classifyCells(data.n, q)
 }
 \arguments{
-\item{data}{Data frame with the raw count data (cell x tags)}
-
 \item{q}{Scale the data. Default is 1e4}
+
+\item{data}{Data frame with the raw count data (cell x tags)}
 }
 \value{
 Returns a named vector with demultiplexed identities
