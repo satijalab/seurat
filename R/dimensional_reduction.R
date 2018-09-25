@@ -362,11 +362,10 @@ ProjectDim <- function(
 #' This function takes an adjacency matrix and transforms it to a simplicial set in RunkUMAP()
 #'
 #' @param data A square matrix with pairwise cell similarities
-#'
+#' @return Return a simplicial set
 #'
 #' @export
 
-#create graph connectivity in coo format
 CreateCoo <- function(data = NULL){
   
   #check if input is a sparse matrix
@@ -415,11 +414,15 @@ CreateCoo <- function(data = NULL){
 #' 
 #' @param ... Additional parameters passed to umap
 #'
+#' @return Returns Seurat object with the UMAP dimensional reduction
 #' @export
 #' 
-RunkUMP <- function(object, adjacency.use = NULL, knn.use = NULL, genes.for.knn = NULL, assay = "RNA", 
+RunkUMAP <- function(object, adjacency.use = NULL, knn.use = NULL, genes.for.knn = NULL, assay = "RNA", 
                     reduction = "pca", dims = 1:10, k.param = 30, eps = 0, min_dist = 0.3, 
                     metric = "correlation", ...){
+  if (!requireNamespace('umap')) {
+    stop('Install umap package from https://github.com/tkonopka/umap.')
+  }
   
   config <- umap::umap.defaults
   config$metric <- metric

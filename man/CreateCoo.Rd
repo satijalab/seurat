@@ -9,6 +9,9 @@ CreateCoo(data = NULL)
 \arguments{
 \item{data}{A square matrix with pairwise cell similarities}
 }
+\value{
+Return a simplicial set
+}
 \description{
 This function takes an adjacency matrix and transforms it to a simplicial set in RunkUMAP()
 }
