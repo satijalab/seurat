@@ -581,6 +581,11 @@ DimPlot <- function(
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
