@@ -2020,6 +2020,7 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{DarkTheme}}{A dark theme, axes and text turn to white, the background becomes black}
 #'   \item{\code{NoAxes}}{Removes axis lines, text, and ticks}
 #'   \item{\code{NoLegend}}{Removes the legend}
+#'   \item{\code{FontSize}}{Sets axis and title font sizes}
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
 #'   \item{\code{BarePlot}}{Remove all extraneous features}
@@ -2098,6 +2099,39 @@ DarkTheme <- function(...) {
     ...
   )
   return(dark.theme)
+}
+
+#' @inheritParams SeuratTheme
+#' @param x.text,y.text X and Y axis text sizes
+#' @param x.title,y.title X and Y axis title sizes
+#' @param main Plot title size
+#'
+#' @importFrom ggplot2 theme element_text
+#' @export
+#'
+#' @rdname SeuratTheme
+#' @aliases FontSize
+#'
+FontSize <- function(
+  x.text = NULL,
+  y.text = NULL,
+  x.title = NULL,
+  y.title = NULL,
+  main = NULL,
+  ...
+) {
+  font.size <- theme(
+    # Set font sizes
+    axis.text.x = element_text(size = x.text),
+    axis.text.y = element_text(size = y.text),
+    axis.title.x = element_text(size = x.title),
+    axis.title.y = element_text(size = y.title),
+    plot.title = element_text(size = main),
+    # Validate the theme
+    validate = TRUE,
+    # Extra parameters
+    ...
+  )
 }
 
 #' @inheritParams SeuratTheme

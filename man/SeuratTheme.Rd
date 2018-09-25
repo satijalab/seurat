@@ -3,6 +3,7 @@
 \name{SeuratTheme}
 \alias{SeuratTheme}
 \alias{DarkTheme}
+\alias{FontSize}
 \alias{NoAxes}
 \alias{NoLegend}
 \alias{NoGrid}
@@ -16,6 +17,9 @@
 SeuratTheme()
 
 DarkTheme(...)
+
+FontSize(x.text = NULL, y.text = NULL, x.title = NULL,
+  y.title = NULL, main = NULL, ...)
 
 NoAxes(..., keep.text = FALSE, keep.ticks = FALSE)
 
@@ -36,6 +40,12 @@ WhiteBackground(...)
 \arguments{
 \item{...}{Extra parameters to be passed to \code{theme}}
 
+\item{x.text, y.text}{X and Y axis text sizes}
+
+\item{x.title, y.title}{X and Y axis title sizes}
+
+\item{main}{Plot title size}
+
 \item{keep.text}{Keep axis text}
 
 \item{keep.ticks}{Keep axis ticks}
@@ -50,6 +60,7 @@ Various themes to be applied to ggplot2-based plots
   \item{\code{DarkTheme}}{A dark theme, axes and text turn to white, the background becomes black}
   \item{\code{NoAxes}}{Removes axis lines, text, and ticks}
   \item{\code{NoLegend}}{Removes the legend}
+  \item{\code{FontSize}}{Sets axis and title font sizes}
   \item{\code{NoGrid}}{Removes grid lines}
   \item{\code{SeuratAxes}}{Set Seurat-style axes}
   \item{\code{BarePlot}}{Remove all extraneous features}
