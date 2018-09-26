@@ -14,6 +14,20 @@ as.seurat <- function(from) {
   UseMethod(generic = 'as.seurat', object = from)
 }
 
+#' Convert between data frames and sparse matrices
+#'
+#' @param x An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return \code{as.sparse}: A sparse representation of the input data
+#'
+#' @rdname as.sparse
+#' @export as.sparse
+#'
+as.sparse <- function(x, ...) {
+  UseMethod(generic = 'as.sparse', object = x)
+}
+
 #' SNN Graph Construction
 #'
 #' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We

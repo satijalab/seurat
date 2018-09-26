@@ -412,11 +412,22 @@ CellCycleScoring <- function(
 #'
 #' Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
 #'
-#' @param data.matrix A UMI count matrix. Should contain rownames that start with the ensuing arguments prefix.1 or prefix.2
-#' @param prefix.1 The prefix denoting rownames for the species of interest. Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.
-#' @param prefix.controls The prefix denoting rownames for the species of 'negative control' cells. Default is "MOUSE_".
-#' @param features.controls.toKeep How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.
-#' @return A UMI count matrix. Rownames that started with prefix.1 have this prefix discarded. For rownames starting with prefix.2, only the most highly expressed features are kept, and the prefix is kept. All other rows are retained.
+#' @param object A UMI count matrix. Should contain rownames that start with
+#' the ensuing arguments prefix.1 or prefix.2
+#' @param prefix The prefix denoting rownames for the species of interest.
+#' Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.
+#' @param controls The prefix denoting rownames for the species of 'negative
+#' control' cells. Default is "MOUSE_".
+#' @param ncontrols How many of the most highly expressed (average) negative
+#' control features (by default, 100 mouse genes), should be kept? All other
+#' rownames starting with prefix.2 are discarded.
+#'
+#' @return A UMI count matrix. Rownames that started with \code{prefix} have this
+#' prefix discarded. For rownames starting with \code{controls}, only the
+#' \code{ncontrols} most highly expressed features are kept, and the
+#' prefix is kept. All other rows are retained.
+#'
+#' @importFrom Matrix rowSums
 #'
 #' @export
 #'
@@ -426,33 +437,26 @@ CellCycleScoring <- function(
 #' }
 #'
 CollapseSpeciesExpressionMatrix <- function(
-  data.matrix,
-  prefix.1 = "HUMAN_",
-  prefix.controls = "MOUSE_",
-  features.controls.toKeep = 100
+  object,
+  prefix = "HUMAN_",
+  controls = "MOUSE_",
+  ncontrols = 100
 ) {
-  # data.matrix.1 <- SubsetRow(data = data.matrix, code = prefix.1)
-  data.matrix.1 <- data.matrix[grep(pattern = prefix.1, x = rownames(x = data.matrix)), ]
-  # data.matrix.2 <- SubsetRow(data = data.matrix, code = prefix.controls)
-  data.matrix.2 <- data.matrix[grep(pattern = prefix.controls, x = rownames(x = data.matrix)), ]
-  data.matrix.3 <- data.matrix[setdiff(
-    x = rownames(x = data.matrix),
-    y = c(rownames(x = data.matrix.1), rownames(x = data.matrix.2))
-  ),]
-  rownames(x = data.matrix.1) <- make.unique(names = sapply(
-    X = rownames(x = data.matrix.1),
-    FUN = function(x) {
-      return(gsub(pattern = prefix.1, replacement = '', x = x))
-    }
+  features <- grep(pattern = prefix, x = rownames(x = object), value = TRUE)
+  controls <- grep(pattern = controls, x = rownames(x = object), value = TRUE)
+  others <- setdiff(x = rownames(x = object), y = c(features, controls))
+  controls <- rowSums(x = object[controls, ])
+  controls <- names(x = head(
+    x = sort(x = controls, decreasing = TRUE),
+    n = ncontrols
   ))
-  control.sums <- rowSums(x = data.matrix.2)
-  control.keep <- names(x = head(
-    x = sort(x = control.sums, decreasing = TRUE),
-    n = features.controls.toKeep
-  ))
-  control.matrix.keep <- data.matrix.2[control.keep, ]
-  final.matrix <- rbind(data.matrix.1, control.matrix.keep, data.matrix.3)
-  return(final.matrix)
+  object <- object[c(features, controls, others), ]
+  rownames(x = object) <- gsub(
+    pattern = prefix,
+    replacement = '',
+    x = rownames(x = object)
+  )
+  return(object)
 }
 
 #' Run a custom distance function on an input data matrix
@@ -587,6 +591,47 @@ MinMax <- function(data, min, max) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom methods as
+#' @importClassesFrom Matrix dgCMatrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse data.frame
+#'
+as.sparse.data.frame <- function(x, ...) {
+  return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @inheritParams base::as.data.frame
+#'
+#' @return \code{as.data.frame.Matrix}: A data frame representation of the S4 Matrix
+#'
+#' @importFrom Matrix as.matrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.data.frame Matrix
+#'
+as.data.frame.Matrix <- function(
+  x,
+  row.names = NULL,
+  optional = FALSE,
+  ...,
+  stringsAsFactors = default.stringsAsFactors()
+) {
+  return(as.data.frame(
+    x = as.matrix(x = x),
+    row.names = row.names,
+    optional = optional,
+    stringsAsFactors = stringsAsFactors,
+    ...
+  ))
+}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
