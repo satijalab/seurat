@@ -291,7 +291,7 @@ Read10X <- function(data.dir = NULL){
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
-  if (!requireNamespace('hdf5r')) {
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
