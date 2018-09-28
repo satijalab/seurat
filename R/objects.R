@@ -2453,7 +2453,12 @@ RenameCells.Seurat <- function(
 #' @method RenameIdents Seurat
 #'
 RenameIdents.Seurat <- function(object, ...) {
-  ident.pairs <- list(...)
+  ident.pairs <- tryCatch(
+    expr = as.list(x = ...),
+    error = function(e) {
+      return(list(...))
+    }
+  )
   if (is.null(x = names(x = ident.pairs))) {
     stop("All arguments must be named with the old identity class")
   }
@@ -2464,7 +2469,7 @@ RenameIdents.Seurat <- function(object, ...) {
     stop("Cannot find any of the provided identities")
   }
   cells.idents <- CellsByIdentities(object = object)
-  for (i in names(x = ident.pairs)) {
+  for (i in rev(x = names(x = ident.pairs))) {
     if (!i %in% names(x = cells.idents)) {
       warning("Cannot find identity ", i, call. = FALSE, immediate. = TRUE)
       next
@@ -3951,7 +3956,11 @@ setMethod(
       ifelse(test = num.assays == 1, yes = 'assay', no = 'assays'),
       "\n"
     )
-    cat("Active assay:", DefaultAssay(object = object))
+    cat(
+      "Active assay:",
+      DefaultAssay(object = object),
+      paste0('(', nrow(x = object), ' features)')
+    )
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(
