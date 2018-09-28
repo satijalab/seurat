@@ -1117,6 +1117,70 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
   ))
 }
 
+#' Run a command from a workflow
+#'
+#' Run workflow
+#'
+#' @param object Seurat object
+#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
+#' @param command.name Name of the command to run
+#' @param time.stamp Timestamp to assign
+#'
+#' @return Seurat object with updated workflow
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
+#' }
+#'
+RunWorkflow <- function(object, workflow.name = "cluster", end = "FindClusters", start = NULL, ...) {
+  #browser()
+  start <- start %||% end
+  CheckWorkflow(object = object, workflow.name = workflow.name)
+  depends <- slot(object@workflows[[workflow.name]],name = "depends")
+  if (!(start %in% rownames(depends))) {
+    stop(paste0(start, " is not a command in the workflow"))
+  }
+  if (!(end %in% rownames(depends))) {
+    stop(paste0(end, " is not a command in the workflow"))
+  }
+  if (length(list(...)) > 0) {
+    object <- SetWorkflowParams(object = object,workflow.name = workflow.name, ...)
+  }
+  current.command <-  end
+  depends <- slot(object = object[[workflow.name]],name = "depends")
+  prereqs <- names(which(depends[current.command,]>0))
+  if (current.command != start) {
+    for(i in prereqs) {
+      object <- RunWorkflow(object = object, workflow.name = workflow.name,end = i,start = start)
+    }
+  }
+  workflow.args <- slot(object[[workflow.name]],name = "params")$global
+  my.args <- formals(paste0(current.command,".Seurat"))
+  args_ignore <- c("", "object", "workflow.name")
+  args_use <- setdiff(intersect(x = names(my.args), y = names(workflow.args)),args_ignore)
+  for(i in args_use) {
+    my.args[[i]] <- workflow.args[[i]]
+  }  
+  args <- my.args[args_use]
+  #browser()
+  command <- paste0("object <-  ", current.command,"(object = object")
+  if (length(args) > 0) {
+    for(i in 1:length(args)) {
+      command <- paste0(command, ", ", names(args)[i], " = ", args[i])
+    }
+  }
+  command <- paste0(command, ")")
+  message("")
+  message(paste0("\t","Running command:"))
+  message(paste0("\t",command))
+  message("")
+  eval(expr = parse(text = command))
+  return(object)
+}
+
 #' Updates workflow timestamps
 #'
 #' Like the touch command in linux. Updates a workflow command's timestamp, and its dependencies
@@ -2166,24 +2230,24 @@ OldWhichCells.Seurat <- function(
       )
     }
   }
-  message(
-    'With Seurat 3.X, identifying cells can now be done with:\n',
-    'WhichCells(object = ',
-    deparse(expr = substitute(expr = object)),
-    if (length(x = expression) > 0) {
-      paste0(', subset = ', paste(expression, collapse = ' & '))
-    },
-    if (!is.null(x = cells)) {
-      paste(', cells =', deparse(expr = substitute(expr = cells)))
-    },
-    if (!is.null(x = ident.keep)) {
-      paste(', idents =', deparse(expr = substitute(expr = ident.keep)))
-    },
-    if (!is.infinite(x = max.cells.per.ident)) {
-      paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
-    },
-    ')'
-  )
+  #message(
+  #  'With Seurat 3.X, identifying cells can now be done with:\n',
+  #  'WhichCells(object = ',
+  #  deparse(expr = substitute(expr = object)),
+  #  if (length(x = expression) > 0) {
+  #    paste0(', subset = ', paste(expression, collapse = ' & '))
+  #  },
+  #  if (!is.null(x = cells)) {
+  #    paste(', cells =', deparse(expr = substitute(expr = cells)))
+  #  },
+  #  if (!is.null(x = ident.keep)) {
+  #    paste(', idents =', deparse(expr = substitute(expr = ident.keep)))
+  #  },
+  #  if (!is.infinite(x = max.cells.per.ident)) {
+  #    paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
+  #  },
+  #  ')'
+  #)
   cells <- cells %||% colnames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
   ident.keep <- ident.keep %||% unique(x = Idents(object = object))
@@ -2487,16 +2551,16 @@ SetAssayData.Seurat <- function(
 #' @method SetIdent Seurat
 #'
 SetIdent.Seurat <- function(object, cells = NULL, value, ...) {
-  message(
-    'With Seurat 3.X, setting identity classes can be done as follows:\n',
-    'Idents(object = ',
-    deparse(expr = substitute(expr = object)),
-    if (!is.null(x = cells)) {
-      paste0(', cells = ', deparse(expr = substitute(expr = cells)))
-    },
-    ') <- ',
-    deparse(expr = substitute(expr = value))
-  )
+  #message(
+  #  'With Seurat 3.X, setting identity classes can be done as follows:\n',
+  #  'Idents(object = ',
+  #  deparse(expr = substitute(expr = object)),
+  #  if (!is.null(x = cells)) {
+  #    paste0(', cells = ', deparse(expr = substitute(expr = cells)))
+  #  },
+  #  ') <- ',
+  #  deparse(expr = substitute(expr = value))
+  #)
   Idents(object = object, cells = cells) <- value
   return(object)
 }
@@ -2637,21 +2701,21 @@ SubsetData.Seurat <- function(
       )
     }
   }
-  message(
-    'With Seurat 3.X, subsetting Seurat objects can now be done with:\n',
-    'subset(x = ',
-    deparse(expr = substitute(expr = object)),
-    if (length(x = expression) > 0) {
-      paste0(', subset = ', paste(expression, collapse = ' & '))
-    },
-    if (length(x = c(cells, ident.use) > 0)) {
-      paste0(', select = c("', paste0(c(cells, ident.use), collapse = '", '), '")')
-    },
-    if (!is.infinite(x = max.cells.per.ident)) {
-      paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
-    },
-    ')'
-  )
+  #message(
+  #  'With Seurat 3.X, subsetting Seurat objects can now be done with:\n',
+  #  'subset(x = ',
+  #  deparse(expr = substitute(expr = object)),
+  #  if (length(x = expression) > 0) {
+  #    paste0(', subset = ', paste(expression, collapse = ' & '))
+  #  },
+  #  if (length(x = c(cells, ident.use) > 0)) {
+  #    paste0(', select = c("', paste0(c(cells, ident.use), collapse = '", '), '")')
+  #  },
+  #  if (!is.infinite(x = max.cells.per.ident)) {
+  #    paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
+  #  },
+  #  ')'
+  #)
   assay <- assay %||% DefaultAssay(object = object)
   cells <- OldWhichCells(
     object = object,
