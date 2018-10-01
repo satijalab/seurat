@@ -17,6 +17,7 @@ NULL
 #' @param cells A list of cells to plot. If numeric, just plots the top cells.
 #' @param reduction Which dimmensional reduction to use
 #' @param balanced Plot an equal number of genes with both + and - scores.
+#' @param projected Use the full projected dimensional reduction
 #' @param ncol Number of columns to plot
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
@@ -39,6 +40,7 @@ DimHeatmap <- function(
   disp.min = -2.5,
   disp.max = NULL,
   balanced = FALSE,
+  projected = FALSE,
   ncol = NULL,
   combine = TRUE,
   fast = TRUE,
@@ -55,7 +57,7 @@ DimHeatmap <- function(
     no = 6
   )
   if (!DefaultAssay(object = object[[reduction]]) %in% assays) {
-    warning("assay")
+    warning("The original assay that the reduction was computed on is different than the assay specified")
   }
   if (is.numeric(x = cells)) {
     cells <- lapply(
@@ -84,7 +86,8 @@ DimHeatmap <- function(
     FUN = TopFeatures,
     object = object[[reduction]],
     nfeatures = nfeatures,
-    balanced = balanced
+    balanced = balanced,
+    projected = projected
   )
   features.all <- unique(x = unlist(x = features))
   if (length(x = assays) > 1) {

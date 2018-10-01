@@ -223,8 +223,7 @@ ProjectDim <- function(
   redeuc <- object[[reduction]]
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
-    object = object,
-    assay.us = assay,
+    object = object[[assay]],
     slot = "scale.data"
   )
   if (do.center) {

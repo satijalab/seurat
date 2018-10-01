@@ -6,8 +6,8 @@
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   reduction = "pca", disp.min = -2.5, disp.max = NULL,
-  balanced = FALSE, ncol = NULL, combine = TRUE, fast = TRUE,
-  slot = "scale.data", assays = NULL, ...)
+  balanced = FALSE, projected = FALSE, ncol = NULL, combine = TRUE,
+  fast = TRUE, slot = "scale.data", assays = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -26,6 +26,8 @@ DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
 if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{balanced}{Plot an equal number of genes with both + and - scores.}
+
+\item{projected}{Use the full projected dimensional reduction}
 
 \item{ncol}{Number of columns to plot}
 
