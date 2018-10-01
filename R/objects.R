@@ -1135,7 +1135,13 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
 #' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
 #' }
 #'
-RunWorkflow <- function(object, workflow.name = "cluster", end = "FindClusters", start = NULL, ...) {
+RunWorkflow <- function(
+  object,
+  workflow.name = "cluster",
+  end = "FindClusters",
+  start = NULL,
+  ...
+) {
   #browser()
   start <- start %||% end
   if ((workflow.name == "cluster") && (!(workflow.name%in%names(object@workflows)))) {
@@ -1143,43 +1149,51 @@ RunWorkflow <- function(object, workflow.name = "cluster", end = "FindClusters",
   }
   
   CheckWorkflow(object = object, workflow.name = workflow.name)
-  depends <- slot(object@workflows[[workflow.name]],name = "depends")
-  if (!(start %in% rownames(depends))) {
+  depends <- slot(object@workflows[[workflow.name]], name = "depends")
+  if (!start %in% rownames(x = depends)) {
     stop(paste0(start, " is not a command in the workflow"))
   }
-  if (!(end %in% rownames(depends))) {
+  if (!end %in% rownames(x = depends)) {
     stop(paste0(end, " is not a command in the workflow"))
   }
-  if (length(list(...)) > 0) {
+  if (length(x = list(...)) > 0) {
     object <- SetWorkflowParams(object = object,workflow.name = workflow.name, ...)
   }
   current.command <-  end
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  prereqs <- names(which(depends[current.command,]>0))
+  depends <- slot(object = object[[workflow.name]], name = "depends")
+  prereqs <- names(x = which(x = depends[current.command, ] > 0))
   if (current.command != start) {
-    for(i in prereqs) {
-      object <- RunWorkflow(object = object, workflow.name = workflow.name,end = i,start = start)
+    for (i in prereqs) {
+      object <- RunWorkflow(
+        object = object,
+        workflow.name = workflow.name,
+        end = i,
+        start = start
+      )
     }
   }
-  workflow.args <- slot(object[[workflow.name]],name = "params")$global
-  my.args <- formals(paste0(current.command,".Seurat"))
+  workflow.args <- slot(object[[workflow.name]], name = "params")$global
+  my.args <- formals(fun = paste0(current.command,".Seurat"))
   args_ignore <- c("", "object", "workflow.name")
-  args_use <- setdiff(intersect(x = names(my.args), y = names(workflow.args)),args_ignore)
-  for(i in args_use) {
+  args_use <- setdiff(
+    x = intersect(x = names(x = my.args), y = names(x = workflow.args)),
+    y = args_ignore
+  )
+  for (i in args_use) {
     my.args[[i]] <- workflow.args[[i]]
-  }  
+  }
   args <- my.args[args_use]
   #browser()
   command <- paste0("object <-  ", current.command,"(object = object")
-  if (length(args) > 0) {
-    for(i in 1:length(args)) {
-      command <- paste0(command, ", ", names(args)[i], " = ", args[i])
+  if (length(x = args) > 0) {
+    for (i in 1:length(x = args)) {
+      command <- paste0(command, ", ", names(x = args)[i], " = ", args[i])
     }
   }
   command <- paste0(command, ")")
   message("")
-  message(paste0("\t","Running command:"))
-  message(paste0("\t",command))
+  message(paste0("\t", "Running command:"))
+  message(paste0("\t", command))
   message("")
   eval(expr = parse(text = command))
   return(object)

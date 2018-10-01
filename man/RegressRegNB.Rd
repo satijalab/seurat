@@ -16,11 +16,11 @@ RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 
-\item{variable.features.zscore}{Z-score threshold for calling features highly 
-variable; z-scores are based on variances of regression model pearson 
+\item{variable.features.zscore}{Z-score threshold for calling features highly
+variable; z-scores are based on variances of regression model pearson
 residuals of all features}
 
-\item{variable.features.n}{Use this many features as variable features after 
+\item{variable.features.n}{Use this many features as variable features after
 ranking by variance}
 
 \item{do.scale}{Whether to scale residuals to have unit variance}
@@ -36,8 +36,8 @@ ranking by variance}
 \description{
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
-Use this function as an alternative to the NormalizeData, 
-FindVariableFeatures, ScaleData workflow. Results are saved in the assay's 
-data and scale.data slot, and sctransform::vst intermediate results are saved 
+Use this function as an alternative to the NormalizeData,
+FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
+data and scale.data slot, and sctransform::vst intermediate results are saved
 in misc slot of seurat object.
 }
