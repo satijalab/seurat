@@ -1138,6 +1138,10 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
 RunWorkflow <- function(object, workflow.name = "cluster", end = "FindClusters", start = NULL, ...) {
   #browser()
   start <- start %||% end
+  if ((workflow.name == "cluster") && (!(workflow.name%in%names(object@workflows)))) {
+    object[[workflow.name]] <- Seurat::cluster.workflow
+  }
+  
   CheckWorkflow(object = object, workflow.name = workflow.name)
   depends <- slot(object@workflows[[workflow.name]],name = "depends")
   if (!(start %in% rownames(depends))) {
