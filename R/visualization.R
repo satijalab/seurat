@@ -1889,7 +1889,7 @@ HoverLocator <- function(
   )
 }
 
-#' Label clusters on a ggplto2-based scatter plot
+#' Label clusters on a ggplot2-based scatter plot
 #'
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
@@ -1906,9 +1906,9 @@ HoverLocator <- function(
 #'
 #' @examples
 #' plot <- DimPlot(object = pbmc_small)
-#' LabelClusters(plot = plot, id = 'ident')
+#' LabelClusters(plot = plot, id = 'ident', label.size=4)
 #'
-LabelClusters <- function(plot, id) {
+LabelClusters <- function(plot, id, label.size=4) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -1927,7 +1927,8 @@ LabelClusters <- function(plot, id) {
   labels[, colnames(x = data)[3]] <- groups
   plot <- plot + geom_text_repel(
     data = labels,
-    mapping = aes_string(x = xynames$x, y = xynames$y, label = id)
+    mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
+    size = label.size
   )
   return(plot)
 }
@@ -3485,7 +3486,7 @@ SingleDimPlot <- function(
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    plot <- LabelClusters(plot = plot, id = col.by)
+    plot <- LabelClusters(plot = plot, id = col.by, label.size = label.size)
     # labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
     # plot <- plot +
     #   geom_point(
