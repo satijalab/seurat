@@ -9,30 +9,45 @@ HTODemux(object, assay = "HTO", positive_quantile = 0.99,
   nsamples = 100, verbose = TRUE)
 }
 \arguments{
-\item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.}
+\item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has 
+been added and normalized.}
 
-\item{assay}{Name of the Hashtag assay (HTO by default)}
+\item{assay}{Name of the Hashtag assay}
 
-\item{positive_quantile}{The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99}
+\item{positive_quantile}{The quantile of inferred 'negative' distribution for 
+each hashtag - over which the cell is considered 'positive'.}
 
-\item{init_centers}{Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)}
+\item{init_centers}{Initial number of clusters for hashtags. Default is the # 
+of hashtag oligo names + 1 (to account for negatives)}
 
-\item{cluster_nstarts}{nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default}
+\item{cluster_nstarts}{nstarts value for k-means clustering (for k_function = 
+"kmeans").}
 
-\item{k_function}{Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
+\item{k_function}{Clustering function for initial hashtag grouping. 
+\itemize{
+  \item{"clara" - fast k-medoids clustering on large applications}
+  \item{"kmeans" - k means clustering}
+}}
 
-\item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"}
+\item{nsamples}{Number of samples to be drawn from the dataset used for 
+clustering (for k_function = "clara")}
 
 \item{verbose}{Prints the output}
 }
 \value{
-The Seurat object with the following demultiplexed information stored in the meta data:
-\item{hash_maxID}{Name of hashtag with the highest signal}
-\item{hash_secondID}{Name of hashtag with the second highest signal}
-\item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
-\item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
-\item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
-\item{hash_ID}{Classification result where doublet IDs are collapsed}
+The Seurat object with the following demultiplexed information stored 
+in the meta data:
+\itemize{
+\item{hash_maxID: Name of hashtag with the highest signal}
+\item{hash_secondID: Name of hashtag with the second highest signal}
+\item{hash_margin: The difference between signals for hash_maxID and
+ hash_secondID}
+\item{hto_classification: Classification result, with doublets/multiplets
+ named by the top two highest hashtags}
+\item{hto_classification_global: Global classification result (singlet, 
+doublet or negative)}
+\item{hash_ID: Classification result where doublet IDs are collapsed}
+}
 }
 \description{
 Assign sample-of-origin for each cell, annotate doublets.
