@@ -101,6 +101,7 @@ DimHeatmap <- function(
     features.keyed <- unlist(x = features.keyed)
   } else {
     features.keyed <- features.all
+    DefaultAssay(object = object) <- assays
   }
   data.all <- FetchData(
     object = object,
