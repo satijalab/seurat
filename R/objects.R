@@ -3056,7 +3056,7 @@ WhichCells.Seurat <- function(
   if (is.numeric(x = i)) {
     i <- rownames(x = x)[i]
   }
-  if (is.numeric(x = j) | is.logical(x = j)) {
+  if (is.numeric(x = j)) {
     j <- colnames(x = x)[j]
   }
   return(subset.Seurat(x = x, select = c(i, j), ...))
