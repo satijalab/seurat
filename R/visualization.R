@@ -468,7 +468,7 @@ VlnPlot <- function(
   slot = 'data',
   ...
 ) {
-  return(ExIPlot(
+  plot <- ExIPlot(
     object = object,
     type = 'violin',
     features = features,
@@ -486,7 +486,8 @@ VlnPlot <- function(
     log = log,
     slot = slot,
     ...
-  ))
+  )
+  return(plot + NoLegend())
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2032,7 +2033,7 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{FontSize}}{Sets axis and title font sizes}
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
-#'   \item{\code{BarePlot}}{Remove all extraneous features}
+#'   \item{\code{RestoredTheme}}{Restore a theme after removal}
 #'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
 #'   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 #' }
@@ -2264,13 +2265,24 @@ SeuratAxes <- function(...) {
   return(axes.theme)
 }
 
+#' @inheritParams SeuratTheme
+#' @param position A position to restore the legend to
+#'
+#' @importFrom ggplot2 theme
 #' @export
 #'
 #' @rdname SeuratTheme
-#' @aliases BarePlot
+#' @aliases RestoreLegend
 #'
-BarePlot <- function() {
-  return(NoLegend() + NoAxes() + NoGrid())
+RestoreLegend <- function(..., position = 'right') {
+  restored.theme <- theme(
+    # Restore legend position
+    legend.position = 'right',
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
+  return(restored.theme)
 }
 
 #' @inheritParams SeuratTheme

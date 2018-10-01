@@ -8,7 +8,7 @@
 \alias{NoLegend}
 \alias{NoGrid}
 \alias{SeuratAxes}
-\alias{BarePlot}
+\alias{RestoreLegend}
 \alias{RotatedAxis}
 \alias{BoldTitle}
 \alias{WhiteBackground}
@@ -29,7 +29,7 @@ NoGrid(...)
 
 SeuratAxes(...)
 
-BarePlot()
+RestoreLegend(..., position = "right")
 
 RotatedAxis(...)
 
@@ -49,6 +49,8 @@ WhiteBackground(...)
 \item{keep.text}{Keep axis text}
 
 \item{keep.ticks}{Keep axis ticks}
+
+\item{position}{A position to restore the legend to}
 }
 \value{
 A ggplot2 theme object
@@ -63,7 +65,7 @@ Various themes to be applied to ggplot2-based plots
   \item{\code{FontSize}}{Sets axis and title font sizes}
   \item{\code{NoGrid}}{Removes grid lines}
   \item{\code{SeuratAxes}}{Set Seurat-style axes}
-  \item{\code{BarePlot}}{Remove all extraneous features}
+  \item{\code{RestoredTheme}}{Restore a theme after removal}
   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 }
