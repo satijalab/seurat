@@ -3041,10 +3041,22 @@ WhichCells.Seurat <- function(
   } else if (missing(x = j)) {
     j <- colnames(x = x)
   }
+  if (is.logical(x = i)) {
+    if (length(i) != nrow(x = x)) {
+      stop("Incorrect number of logical values provided to subset features")
+    }
+    i <- rownames(x = x)[i]
+  }
+  if (is.logical(x = j)) {
+    if (length(j) != ncol(x = x)) {
+      stop("Incorrect number of logical values provided to subset cells")
+    }
+    j <- colnames(x = x)[j]
+  }
   if (is.numeric(x = i)) {
     i <- rownames(x = x)[i]
   }
-  if (is.numeric(x = j)) {
+  if (is.numeric(x = j) | is.logical(x = j)) {
     j <- colnames(x = x)[j]
   }
   return(subset.Seurat(x = x, select = c(i, j), ...))
