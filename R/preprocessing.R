@@ -295,15 +295,14 @@ Read10X <- function(data.dir = NULL){
 #' Read gene expression matrix from 10X CellRanger hdf5 file
 #'
 #' @param filename Path to h5 file
-#' @param ensg.names Label row names with ENSG names rather than unique gene names
+#' @param ensg.names Label row names with ENSG names rather than unique gene 
+#' names
 #'
-#' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
-#' returns a list of sparse matrices (one per genome).
-#'
-# @importFrom hdf5r H5File
+#' @return Returns a sparse matrix with rows and columns labeled. If multiple 
+#' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
-#'
+#' 
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
@@ -346,16 +345,19 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
-#' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
-#' results are saved in misc slot of seurat object.
+#' Use this function as an alternative to the NormalizeData, 
+#' FindVariableFeatures, ScaleData workflow. Results are saved in the assay's 
+#' data and scale.data slot, and sctransform::vst intermediate results are saved 
+#' in misc slot of seurat object.
 #'
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.zscore Z-score threshold for calling features highly variable;
-#' z-scores are based on variances of regression model pearson residuals of all features
-#' @param variable.features.n Use this many features as variable features after ranking by variance
+#' @param variable.features.zscore Z-score threshold for calling features highly 
+#' variable; z-scores are based on variances of regression model pearson 
+#' residuals of all features
+#' @param variable.features.n Use this many features as variable features after 
+#' ranking by variance
 #' @param do.scale Whether to scale residuals to have unit variance
 #' @param do.center Whether to center residuals to have mean zero
 #' @param scale.max Max value after scaling and/or centering
@@ -1347,12 +1349,14 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 #
 # Remove unwanted effects from scale.data
 #
-# @parm data.expr An expression matrix to regress the effects of latent.data out of
-# should be the complete expression matrix in genes x cells
-# @param latent.data A matrix or data.frame of latent variables, should be cells x latent variables,
-# the colnames should be the variables to regress
-# @param features.regress An integer vector representing the indices of the genes to run regression on
-# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
+# @parm data.expr An expression matrix to regress the effects of latent.data out 
+# of should be the complete expression matrix in genes x cells
+# @param latent.data A matrix or data.frame of latent variables, should be cells 
+# x latent variables, the colnames should be the variables to regress
+# @param features.regress An integer vector representing the indices of the 
+# genes to run regression on
+# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass 
+# NULL to simply return data.expr
 # @param use.umi Regress on UMI count data
 # @param verbose Display a progress bar
 #
