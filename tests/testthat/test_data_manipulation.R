@@ -150,3 +150,7 @@ test_that("Fast implementation of LogVMR returns expected values", {
   expect_equal(FastLogVMR(mat, display_progress = F)[10], 10.11755, tolerance = 1e-6)
 })
 
+test_that("Cpp implementation of row variance is correct", {
+  expect_equal(apply(X = mat, MARGIN = 1, FUN = var), RowVar(as.matrix(mat)))
+  expect_equal(apply(X = merged.mat, MARGIN = 1, FUN = var), RowVar(as.matrix(merged.mat)))
+})

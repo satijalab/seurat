@@ -26,21 +26,19 @@ Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_
 Eigen::MatrixXd FastMatMult(Eigen::MatrixXd m1, Eigen::MatrixXd m2);
 Eigen::MatrixXd FastRowScale(Eigen::MatrixXd mat, bool scale, bool center, double scale_max,
                              bool display_progress);
+NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale, bool center,
                                    double scale_max, bool display_progress);
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
 Eigen::MatrixXd FastCovMats(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2, bool center);
-NumericMatrix Standardize(const Eigen::Map<Eigen::MatrixXd> mat, bool display_progress);
 Eigen::MatrixXd FastRBind(Eigen::MatrixXd mat1, Eigen::MatrixXd mat2);
 Eigen::VectorXd FastExpMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
-Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
                             NumericVector mu,
                             bool display_progress);
-Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat);
 NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat, 
                               NumericVector mu, 
                               NumericVector sd,
@@ -48,9 +46,6 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
                               bool display_progress);
 NumericVector RowSumOfSquares(const NumericMatrix x);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
-int IntersectLength(std::vector<int> a, std::vector<int> b);
-int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length);
-std::vector<int> ToVector(Eigen::VectorXd v1);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION
