@@ -280,54 +280,6 @@ seurat <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Add Metadata
-#'
-#' Adds additional data for single cells to the Seurat object. Can be any piece
-#' of information associated with a cell (examples include read depth,
-#' alignment rate, experimental batch, or subpopulation identity). The
-#' advantage of adding it to the Seurat object is so that it can be
-#' analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
-#'
-#' @param object Seurat object
-#' @param metadata Data frame where the row names are cell names (note : these
-#' must correspond exactly to the items in object@@cell.names), and the columns
-#' are additional metadata items.
-#' @param col.name Name for metadata if passing in single vector of information
-#'
-#' @return Seurat object where the additional metadata has been added as
-#' columns in object@@meta.data
-#'
-#' @export
-#'
-#' @examples
-#' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
-#' names(cluster_letters) <- colnames(x = pbmc_small)
-#' pbmc_small <- AddMetaData(
-#'   object = pbmc_small,
-#'   metadata = cluster_letters,
-#'   col.name = 'letter.idents'
-#' )
-#' head(x = pbmc_small[[]])
-#'
-AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (typeof(x = metadata) != "list") {
-    metadata <- as.data.frame(x = metadata)
-    if (is.null(x = col.name)) {
-      stop("Please provide a name for provided metadata")
-    }
-    colnames(x = metadata) <- col.name
-  }
-  cols.add <- colnames(x = metadata)
-  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(x = rownames(x = object[[]]), rownames(x = metadata))
-  meta.add <- metadata[meta.order, ]
-  if (all(is.null(x = meta.add))) {
-    stop("Metadata provided doesn't match the cells in this object")
-  }
-  slot(object = object, name = "meta.data")[, cols.add] <- meta.add
-  return(object)
-}
-
 #' Checks if a workflow is defined for a Seurat object
 #'
 #' Checks if a workflow is defined for a Seurat object
@@ -3790,6 +3742,29 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     gc(verbose = FALSE)
     return(x)
   }
+)
+
+.AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (class(x = metadata) == "data.frame") {
+    for (ii in 1:ncol(x = metadata)) {
+      object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+    }
+  } else {
+    object[[col.name]] <- metadata
+  }
+  return(object)
+}
+
+setMethod(
+  f = "AddMetaData",
+  signature = c('object' = "Assay"),
+  definition = .AddMetaData
+)
+
+setMethod(
+  f = "AddMetaData",
+  signature = c('object' = "Seurat"),
+  definition = .AddMetaData
 )
 
 setMethod(

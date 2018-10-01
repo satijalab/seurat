@@ -2,9 +2,9 @@
 % Please edit documentation in R/visualization.R
 \name{LabelClusters}
 \alias{LabelClusters}
-\title{Label clusters on a ggplto2-based scatter plot}
+\title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id)
+LabelClusters(plot, id, label.size = 4)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
@@ -17,11 +17,11 @@ LabelClusters(plot, id)
 A ggplot2-based scatter plot with cluster labels
 }
 \description{
-Label clusters on a ggplto2-based scatter plot
+Label clusters on a ggplot2-based scatter plot
 }
 \examples{
 plot <- DimPlot(object = pbmc_small)
-LabelClusters(plot = plot, id = 'ident')
+LabelClusters(plot = plot, id = 'ident', label.size=4)
 
 }
 \seealso{
