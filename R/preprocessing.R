@@ -1280,9 +1280,10 @@ ScaleData.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Normalize raw data
+# Normalize a given data matrix
 #
-# Normalize count data per cell and transform to centered log ratio
+# Normalize a given matrix with a custom function. Essentially just a wrapper 
+# around apply. Used primarily in the context of CLR normalization.
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function

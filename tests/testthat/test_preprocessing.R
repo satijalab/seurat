@@ -79,6 +79,14 @@ test_that("LogNormalize normalizes properly", {
   )
 })
 
+clr.counts <- NormalizeData(object = pbmc.test, normalization.method = "CLR", verbose = FALSE)
+test_that("CLR normalization returns expected values", {
+  expect_equal(dim(clr.counts), c(dim(pbmc.test)))
+  expect_equal(clr.counts[2, 1], 0.5517828, tolerance = 1e-6)
+  expect_equal(clr.counts[228, 76], 0.5971381, tolerance = 1e-6)
+  expect_equal(clr.counts[230, 80], 0)
+})
+
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
@@ -178,7 +186,7 @@ test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
   ))
 })
 
-# Tests for FindVariableFeautres
+# Tests for FindVariableFeatures
 # --------------------------------------------------------------------------------
 context("FindVariableFeatures")
 
@@ -211,36 +219,26 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(object[["RNA"]][["variance.standardized", drop = TRUE]][VariableFeatures(object = object)])))
 })
 
-# # Tests for FilterCells
-# # --------------------------------------------------------------------------------
-# context("FilterCells")
-#
-# object.filtered <- FilterCells(
-#   object = object,
-#   subset.names = c("nFeature_RNA", "nCount_RNA"),
-#   low.thresholds = c(20, 100)
-# )
-#
-# test_that("FilterCells low thresholds work properly", {
-#   expect_equal(ncol(x = object.filtered), 62)
-#   expect_true(!any(object.filtered["nFeature_RNA"] < 20))
-#   expect_true(!any(object.filtered["nCount_RNA"] < 100))
-# })
-#
-# object.filtered <- FilterCells(
-#   object = object,
-#   subset.names = c("nFeature_RNA", "nCount_RNA"),
-#   high.thresholds = c(50, 300)
-# )
-#
-# test_that("FilterCells high thresholds work properly", {
-#   expect_equal(ncol(x = object.filtered), 35)
-#   expect_true(!any(object.filtered["nFeature_RNA"] > 50))
-#   expect_true(!any(object.filtered["nCount_RNA"] > 300))
-# })
-#
-# test_that("FilterCells handles input correctly", {
-#   expect_error(FilterCells(object, subset.names = c("nGene", "nCount_RNA"), high.thresholds = 30))
-#   expect_error(FilterCells(object, subset.names = c("nGene", "nCount_RNA"), low.thresholds = 20))
-#   expect_error(FilterCells(object, subset.names = c("nGene"), high.thresholds = c(30, 300)))
-# })
+# Tests for internal functions
+# ------------------------------------------------------------------------------
+norm.fxn <- function(x) {x / mean(x)}
+test_that("CustomNormalize works as expected", {
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "cells"), 
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, across = "cells"),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, across = "cells"),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "features"), 
+    t(apply(X = pbmc.test, MARGIN = 1, FUN = norm.fxn))
+  )
+  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "invalid"))
+})
+
