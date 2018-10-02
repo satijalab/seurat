@@ -285,34 +285,6 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
   return(rowmeans);
 }
 
-/* Calculate the variance in non-logspace (return answer in non-logspace) */
-//[[Rcpp::export]]
-Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
-  int ncols = mat.cols();
-  Eigen::VectorXd rowdisp(mat.rows());
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double rm = 0;
-    double v = 0;
-    int nnZero = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      rm += (it.value());
-    }
-    rm = rm / ncols;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      v += pow((it.value()) - rm, 2);
-      nnZero += 1;
-    }
-    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
-    rowdisp[k] = v;
-  }
-  return(rowdisp);
-}
 
 /* use this if you know the row means */
 //[[Rcpp::export]]
@@ -337,30 +309,6 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
     allVars[k] = colSum / (mat.rows() - 1);
   }
   return(allVars);
-}
-
-//[[Rcpp::export]]
-Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
-  mat = mat.transpose();
-  Eigen::VectorXd allSds(mat.cols());
-  for (int k=0; k<mat.outerSize(); ++k){
-    double colMean = 0;
-    double colSdev = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
-    {
-      colMean += it.value();
-    }
-    colMean = colMean / mat.rows();
-    int nZero = mat.rows();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
-      nZero -= 1;
-      colSdev += pow(it.value() - colMean, 2);
-    }
-    colSdev += pow(colMean, 2) * nZero;
-    colSdev = sqrt(colSdev / (mat.rows() - 1));
-    allSds(k) = colSdev;
-  }
-  return(allSds);
 }
 
 /* standardize matrix rows using given mean and standard deviation,
@@ -394,35 +342,6 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
   return(allVars);
 }
 
-/* Calculate the variance in non-logspace (return answer in non-logspace) */
-//[[Rcpp::export]]
-Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat,  bool display_progress){
-  int ncols = mat.cols();
-  Eigen::VectorXd rowdisp(mat.rows());
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double rm = 0;
-    double v = 0;
-    int nnZero = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      rm += expm1(it.value());
-    }
-    rm = rm / ncols;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      v += pow(expm1(it.value()) - rm, 2);
-      nnZero += 1;
-    }
-    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
-    rowdisp[k] = v;
-  }
-  return(rowdisp);
-}
-
 /* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 log-space) */
 //[[Rcpp::export]]
@@ -454,23 +373,6 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
   return(rowdisp);
 }
 
-/* Calculates the row sums of squared values without using additional memory */
-//[[Rcpp::export]]
-NumericVector RowSumOfSquares(const NumericMatrix x){
-  int nrow = x.nrow(), ncol = x.ncol();
-  NumericVector out(nrow);
-
-  for (int i = 0; i < nrow; i++) {
-    double total = 0;
-    for (int j = 0; j < ncol; j++) {
-      total += pow(x(i, j), 2);
-    }
-    out[i] = total;
-  }
-  return out;
-}
-
-
 /* Calculates the variance of rows of a matrix */
 //[[Rcpp::export]]
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
@@ -482,20 +384,3 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   }
   return out;
 }
-
-int IntersectLength(std::vector<int> a, std::vector<int> b){
-  std::unordered_set<int> s(a.begin(), a.end());
-  int intersect = count_if(b.begin(), b.end(), [&](int k) {return s.find(k) != s.end();});
-  return(intersect);
-}
-
-// IMPORTANT: assumes that a and b are vectors with non-duplicated elements
-int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length) {
-  return(a.size() + b.size() - intersect_length);
-}
-
-std::vector<int> ToVector(Eigen::VectorXd v1){
-  std::vector<int> v2(v1.data(), v1.data() + v1.size());
-  return(v2);
-}
-

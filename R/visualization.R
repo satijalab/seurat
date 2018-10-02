@@ -17,6 +17,7 @@ NULL
 #' @param cells A list of cells to plot. If numeric, just plots the top cells.
 #' @param reduction Which dimmensional reduction to use
 #' @param balanced Plot an equal number of genes with both + and - scores.
+#' @param projected Use the full projected dimensional reduction
 #' @param ncol Number of columns to plot
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
@@ -37,8 +38,9 @@ DimHeatmap <- function(
   cells = NULL,
   reduction = 'pca',
   disp.min = -2.5,
-  disp.max = 2.5,
+  disp.max = NULL,
   balanced = FALSE,
+  projected = FALSE,
   ncol = NULL,
   combine = TRUE,
   fast = TRUE,
@@ -49,8 +51,13 @@ DimHeatmap <- function(
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
   assays <- assays %||% DefaultAssay(object = object)
+  disp.max <- disp.max %||% ifelse(
+    test = slot == 'scale.data',
+    yes = 2.5,
+    no = 6
+  )
   if (!DefaultAssay(object = object[[reduction]]) %in% assays) {
-    warning("assay")
+    warning("The original assay that the reduction was computed on is different than the assay specified")
   }
   if (is.numeric(x = cells)) {
     cells <- lapply(
@@ -79,7 +86,8 @@ DimHeatmap <- function(
     FUN = TopFeatures,
     object = object[[reduction]],
     nfeatures = nfeatures,
-    balanced = balanced
+    balanced = balanced,
+    projected = projected
   )
   features.all <- unique(x = unlist(x = features))
   if (length(x = assays) > 1) {
@@ -96,6 +104,7 @@ DimHeatmap <- function(
     features.keyed <- unlist(x = features.keyed)
   } else {
     features.keyed <- features.all
+    DefaultAssay(object = object) <- assays
   }
   data.all <- FetchData(
     object = object,
@@ -163,7 +172,8 @@ DimHeatmap <- function(
 #' @param features A vector of features to plot, defaults to \code{VariableFeatures(object = object)}
 #' @param cells A vector of cells to plot
 #' @param disp.min Minimum display value (all values below are clipped)
-#' @param disp.max Maximum display value (all values above are clipped)
+#' @param disp.max Maximum display value (all values above are clipped); defaults to 2.5
+#' if \code{slot} is 'scale.data', 6 otherwise
 #' @param group.by A vector of variables to group cells by; pass 'ident' to group by cell identity classes
 #' @param group.bar Add a color bar showing group status for cells
 #' @param slot Data slot to use, choose from 'raw.data', 'data', or 'scale.data'
@@ -193,7 +203,7 @@ DoHeatmap <- function(
   group.by = 'ident',
   group.bar = TRUE,
   disp.min = -2.5,
-  disp.max = 2.5,
+  disp.max = NULL,
   slot = 'scale.data',
   assay = NULL,
   label = TRUE,
@@ -211,10 +221,10 @@ DoHeatmap <- function(
   DefaultAssay(object = object) <- assay
   features <- features %||% VariableFeatures(object = object)
   features <- rev(x = unique(x = features))
-  disp.max <- ifelse(
-    test = slot != 'scale.data',
-    yes = max(disp.max, 10),
-    no = disp.max
+  disp.max <- disp.max %||% ifelse(
+    test = slot == 'scale.data',
+    yes = 2.5,
+    no = 6
   )
   data <- FetchData(
     object = object,
@@ -222,7 +232,7 @@ DoHeatmap <- function(
     cells = cells,
     slot = slot
   )
-  object <- StashIdent(object = object, save.name = 'ident')
+  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
   # group.use <- switch(
@@ -458,7 +468,7 @@ VlnPlot <- function(
   slot = 'data',
   ...
 ) {
-  return(ExIPlot(
+  plot <- ExIPlot(
     object = object,
     type = 'violin',
     features = features,
@@ -476,7 +486,8 @@ VlnPlot <- function(
     log = log,
     slot = slot,
     ...
-  ))
+  )
+  return(plot + NoLegend())
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -572,9 +583,14 @@ DimPlot <- function(
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  object <- StashIdent(object = object, save.name = 'ident')
+  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
+  for (group in group.by) {
+    if (!is.factor(x = data[, group])) {
+      data[, group] <- factor(x = data[, group])
+    }
+  }
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
@@ -628,7 +644,7 @@ DimPlot <- function(
 #' @importFrom grDevices rgb
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
-#' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis
+#' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis guides
 #' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
 #' @export
 #'
@@ -836,6 +852,7 @@ FeaturePlot <- function(
         plot <- plot + labs(title = feature)
       }
       if (!blend) {
+        plot <- plot + guides(color = NULL)
         if (length(x = cols) == 1) {
           plot <- plot + scale_color_brewer(palette = cols)
         } else if (length(x = cols) > 1) {
@@ -868,7 +885,7 @@ FeaturePlot <- function(
             labs(
               x = features[1],
               y = features[2],
-              title = if (i == 1) {
+              title = if (i == 1 && length(x = levels(x = data$split)) > 1) {
                 paste('Color threshold:', blend.threshold)
               } else {
                 NULL
@@ -1167,6 +1184,79 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
     plots <- CombinePlots(plots = plots)
   }
   return(plots)
+}
+
+#' Plot the Barcode Distribution and Calculated Inflection Points
+#'
+#' This function plots the calculated inflection points derived from the barcode-rank
+#' distribution.
+#'
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
+#'
+#' @param object Seurat object
+#'
+#' @return Returns a `ggplot2` object showing the by-group inflection points and provided
+#'   (or default) rank threshold values in grey.
+#'
+#' @importFrom methods slot
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot geom_line geom_vline aes_string
+#'
+#' @export
+#'
+#' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
+#'
+#' @examples
+#' pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
+#' BarcodeInflectionsPlot(pbmc_small, group.column = 'groups')
+#'
+BarcodeInflectionsPlot <- function(object) {
+  cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
+  if (is.null(x = cbi.data)) {
+    stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
+  }
+  ## Extract necessary data frames
+  inflection_points <- cbi.data$inflection_points
+  barcode_distribution <- cbi.data$barcode_distribution
+  threshold_values <- cbi.data$threshold_values
+  # Set a cap to max rank to avoid plot being overextended
+  if (threshold_values$rank[[2]] > max(barcode_distribution$rank, na.rm = TRUE)) {
+    threshold_values$rank[[2]] <- max(barcode_distribution$rank, na.rm = TRUE)
+  }
+  ## Infer the grouping/barcode variables
+  group_var <- colnames(x = barcode_distribution)[1]
+  barcode_var <- colnames(x = barcode_distribution)[2]
+  barcode_distribution[, barcode_var] <- log10(x = barcode_distribution[, barcode_var] + 1)
+  ## Make the plot
+  plot <- ggplot(
+    data = barcode_distribution,
+    mapping = aes_string(
+      x = 'rank',
+      y = barcode_var,
+      group = group_var,
+      colour = group_var
+    )
+  ) +
+    geom_line() +
+    geom_vline(
+      data = threshold_values,
+      aes_string(xintercept = 'rank'),
+      linetype = "dashed",
+      colour = 'grey60',
+      size = 0.5
+    ) +
+    geom_vline(
+      data = inflection_points,
+      mapping = aes_string(
+        xintercept = 'rank',
+        group = group_var,
+        colour = group_var
+      ),
+      linetype = "dashed"
+    ) +
+    theme_cowplot()
+  return(plot)
 }
 
 #' Dot plot visualization
@@ -1872,6 +1962,50 @@ HoverLocator <- function(
   )
 }
 
+#' Label clusters on a ggplot2-based scatter plot
+#'
+#' @param plot A ggplot2-based scatter plot
+#' @param id Name of variable used for coloring scatter plot
+#' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}
+#'
+#' @return A ggplot2-based scatter plot with cluster labels
+#'
+#' @importFrom stats median
+#' @importFrom ggplot2 aes_string
+#' @importFrom ggrepel geom_text_repel
+#' @export
+#'
+#' @seealso \code{\link[ggrepel]{geom_text_repel}}
+#'
+#' @examples
+#' plot <- DimPlot(object = pbmc_small)
+#' LabelClusters(plot = plot, id = 'ident', label.size=4)
+#'
+LabelClusters <- function(plot, id, label.size=4) {
+  xynames <- GetXYAesthetics(plot = plot)
+  if (!id %in% colnames(x = plot$data)) {
+    stop("Cannot find variable ", id, " in plotting data")
+  }
+  data <- plot$data[, c(unlist(x = xynames), id)]
+  groups <- as.character(x = na.omit(object = unique(x = data[, id])))
+  labels <- lapply(
+    X = groups,
+    FUN = function(group) {
+      data.use <- data[data[, id] == group, unlist(x = xynames)]
+      return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
+    }
+  )
+  names(x = labels) <- groups
+  labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
+  labels[, colnames(x = data)[3]] <- groups
+  plot <- plot + geom_text_repel(
+    data = labels,
+    mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
+    size = label.size
+  )
+  return(plot)
+}
+
 #' Add text labels to a ggplot2 plot
 #'
 #' @param plot A ggplot2 plot with a GeomPoint layer
@@ -1890,15 +2024,16 @@ HoverLocator <- function(
 #' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
+#' @aliases Labeler
 #' @seealso \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
 #' ff <- TopFeatures(object = pbmc_small[['pca']])
 #' cc <- TopCells(object = pbmc_small[['pca']])
 #' plot <- FeatureScatter(object = pbmc_small, feature1 = ff[1], feature2 = ff[2])
-#' Labeler(plot = plot, points = cc)
+#' LabelPoints(plot = plot, points = cc)
 #'
-Labeler <- function(
+LabelPoints <- function(
   plot,
   points,
   labels = NULL,
@@ -1907,17 +2042,7 @@ Labeler <- function(
   ynudge = 0.05,
   ...
 ) {
-  geoms <- sapply(
-    X = plot$layers,
-    FUN = function(layer) {
-      return(class(layer$geom)[1])
-    }
-  )
-  geoms <- which(x = geoms == 'GeomPoint')
-  if (length(x = geoms) == 0) {
-    stop("Labelling only work on ggplot-based plots with a GeomPoint layer")
-  }
-  geoms <- min(geoms)
+  xynames <- GetXYAesthetics(plot = plot)
   points <- points %||% rownames(x = plot$data)
   if (is.numeric(x = points)) {
     points <- rownames(x = plot$data)
@@ -1930,8 +2055,6 @@ Labeler <- function(
   labels <- as.character(x = labels)
   plot$data$labels <- ''
   plot$data[points, 'labels'] <- labels
-  x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
-  y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   if (repel) {
     if (!all(c(xnudge, ynudge) == 0)) {
@@ -1946,7 +2069,7 @@ Labeler <- function(
     }
   }
   plot <- plot + geom.use(
-    mapping = aes_string(x = x, y = y, label = 'labels'),
+    mapping = aes_string(x = xynames$x, y = xynames$y, label = 'labels'),
     nudge_x = xnudge,
     nudge_y = ynudge,
     ...
@@ -1981,9 +2104,10 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{DarkTheme}}{A dark theme, axes and text turn to white, the background becomes black}
 #'   \item{\code{NoAxes}}{Removes axis lines, text, and ticks}
 #'   \item{\code{NoLegend}}{Removes the legend}
+#'   \item{\code{FontSize}}{Sets axis and title font sizes}
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
-#'   \item{\code{BarePlot}}{Remove all extraneous features}
+#'   \item{\code{RestoredTheme}}{Restore a theme after removal}
 #'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
 #'   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 #' }
@@ -2059,6 +2183,39 @@ DarkTheme <- function(...) {
     ...
   )
   return(dark.theme)
+}
+
+#' @inheritParams SeuratTheme
+#' @param x.text,y.text X and Y axis text sizes
+#' @param x.title,y.title X and Y axis title sizes
+#' @param main Plot title size
+#'
+#' @importFrom ggplot2 theme element_text
+#' @export
+#'
+#' @rdname SeuratTheme
+#' @aliases FontSize
+#'
+FontSize <- function(
+  x.text = NULL,
+  y.text = NULL,
+  x.title = NULL,
+  y.title = NULL,
+  main = NULL,
+  ...
+) {
+  font.size <- theme(
+    # Set font sizes
+    axis.text.x = element_text(size = x.text),
+    axis.text.y = element_text(size = y.text),
+    axis.title.x = element_text(size = x.title),
+    axis.title.y = element_text(size = y.title),
+    plot.title = element_text(size = main),
+    # Validate the theme
+    validate = TRUE,
+    # Extra parameters
+    ...
+  )
 }
 
 #' @inheritParams SeuratTheme
@@ -2182,13 +2339,24 @@ SeuratAxes <- function(...) {
   return(axes.theme)
 }
 
+#' @inheritParams SeuratTheme
+#' @param position A position to restore the legend to
+#'
+#' @importFrom ggplot2 theme
 #' @export
 #'
 #' @rdname SeuratTheme
-#' @aliases BarePlot
+#' @aliases RestoreLegend
 #'
-BarePlot <- function() {
-  return(NoLegend() + NoAxes() + NoGrid())
+RestoreLegend <- function(..., position = 'right') {
+  restored.theme <- theme(
+    # Restore legend position
+    legend.position = 'right',
+    # Validate the theme
+    validate = TRUE,
+    ...
+  )
+  return(restored.theme)
 }
 
 #' @inheritParams SeuratTheme
@@ -2708,6 +2876,36 @@ GGpointToBase <- function(plot, do.plot = TRUE, ...) {
     PlotBuild(data = plot.data, ...)
   }
   return(plot.data)
+}
+
+# Get X and Y aesthetics from a plot for a certain geom
+#
+# @param plot A ggplot2 object
+# @param geom Geom class to filter to
+# @param plot.first Use plot-wide X/Y aesthetics before geom-specific aesthetics
+#
+# @return A named list with values 'x' for the name of the x aesthetic and 'y' for the y aesthetic
+#
+GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == geom)
+  if (length(x = geoms) == 0) {
+    stop("Cannot find a geom of class ", geom)
+  }
+  geoms <- min(geoms)
+  if (plot.first) {
+    x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+    y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+  } else {
+    x <- as.character(x = plot$layers[[geoms]]$mapping$x %||% plot$mapping$x)[2]
+    y <- as.character(x = plot$layers[[geoms]]$mapping$y %||% plot$mapping$y)[2]
+  }
+  return(list('x' = x, 'y' = y))
 }
 
 # A split violin plot geom
@@ -3277,9 +3475,9 @@ SingleCorPlot <- function(
 # @param na.value Color value for NA points when using custom scale.
 # @param ... Ignored for now
 #
+#' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
 #' scale_color_brewer scale_color_manual element_rect guide_legend
-#' @importFrom cowplot theme_cowplot
 #'
 SingleDimPlot <- function(
   data,
@@ -3361,26 +3559,27 @@ SingleDimPlot <- function(
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
-    plot <- plot +
-      geom_point(
-        data = labels,
-        mapping = aes_string(
-          x = colnames(x = labels)[1],
-          y = colnames(x = labels)[2]
-        ),
-        size = 0,
-        alpha = 0
-      ) +
-      geom_text(
-        data = labels,
-        mapping = aes_string(
-          x = colnames(x = labels)[1],
-          y = colnames(x = labels)[2],
-          label = colnames(x = labels)[3]
-        ),
-        size = label.size
-      )
+    plot <- LabelClusters(plot = plot, id = col.by, label.size = label.size)
+    # labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
+    # plot <- plot +
+    #   geom_point(
+    #     data = labels,
+    #     mapping = aes_string(
+    #       x = colnames(x = labels)[1],
+    #       y = colnames(x = labels)[2]
+    #     ),
+    #     size = 0,
+    #     alpha = 0
+    #   ) +
+    #   geom_text(
+    #     data = labels,
+    #     mapping = aes_string(
+    #       x = colnames(x = labels)[1],
+    #       y = colnames(x = labels)[2],
+    #       label = colnames(x = labels)[3]
+    #     ),
+    #     size = label.size
+    #   )
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {

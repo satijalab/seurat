@@ -6,26 +6,173 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Calculate the Barcode Distribution Inflection
+#'
+#' This function calculates an adaptive inflection point ("knee") of the barcode distribution
+#' for each sample group. This is useful for determining a threshold for removing
+#' low-quality samples.
+#'
+#' The function operates by calculating the slope of the barcode number vs. rank
+#' distribution, and then finding the point at which the distribution changes most
+#' steeply (the "knee"). Of note, this calculation often must be restricted as to the
+#' range at which it performs, so `threshold` parameters are provided to restrict the
+#' range of the calculation based on the rank of the barcodes. [BarcodeInflectionsPlot()]
+#' is provided as a convenience function to visualize and test different thresholds and
+#' thus provide more sensical end results.
+#'
+#' See [BarcodeInflectionsPlot()] to visualize the calculated inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
+#'
+#' @param object Seurat object
+#' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
+#' @param group.column Column to group by ("orig.ident" by default)
+#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
+#'
+#' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
+#'
+#' * `barcode_distribution` - contains the full barcode distribution across the entire dataset
+#' * `inflection_points` - the calculated inflection points within the thresholds
+#' * `threshold_values` - the provided (or default) threshold values to search within for inflections
+#' * `cells_pass` - the cells that pass the inflection point calculation
+#'
+#' @importFrom methods slot
+#' @importFrom stats ave aggregate
+#'
+#' @export
+#'
+#' @author Robert Amezquita
+#' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
+#'
+#' @examples
+#' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
+#'
+#'
+CalculateBarcodeInflections <- function(
+  object,
+  barcode.column = "nCount_RNA",
+  group.column = "orig.ident",
+  threshold.low = NULL,
+  threshold.high = NULL
+) {
+  ## Check that barcode.column exists in meta.data
+  if (!(barcode.column %in% colnames(x = object[[]]))) {
+    stop("`barcode.column` specified not present in Seurat object provided")
+  }
+  # Calculation of barcode distribution
+  ## Append rank by grouping x umi column
+  # barcode_dist <- as.data.frame(object@meta.data)[, c(group.column, barcode.column)]
+  barcode_dist <- object[[c(group.column, barcode.column)]]
+  barcode_dist <- barcode_dist[do.call(what = order, args = barcode_dist), ] # order by columns left to right
+  barcode_dist$rank <- ave(
+    x = barcode_dist[, barcode.column], barcode_dist[, group.column],
+    FUN = function(x) {
+      return(rev(x = order(x)))
+    }
+  )
+  barcode_dist <- barcode_dist[order(barcode_dist[, group.column], barcode_dist[, 'rank']), ]
+  ## calculate rawdiff and append per group
+  top <- aggregate(
+    x = barcode_dist[, barcode.column],
+    by = list(barcode_dist[, group.column]),
+    FUN = function(x) {
+      return(c(0, diff(x = log10(x = x + 1))))
+    })$x
+  bot <- aggregate(
+    x = barcode_dist[, 'rank'],
+    by = list(barcode_dist[, group.column]),
+    FUN = function(x) {
+      return(c(0, diff(x = x)))
+    }
+  )$x
+  barcode_dist$rawdiff <- unlist(x = mapply(
+    FUN = function(x, y) {
+      return(ifelse(test = is.na(x = x / y), yes = 0, no = x / y))
+    },
+    x = top,
+    y = bot
+  ))
+  # Calculation of inflection points
+  ## Set thresholds for rank of barcodes to ignore
+  threshold.low <- threshold.low %||% 1
+  threshold.high <- threshold.high %||% max(barcode_dist$rank)
+  ## Subset the barcode distribution by thresholds
+  barcode_dist_sub <- barcode_dist[barcode_dist$rank > threshold.low & barcode_dist$rank < threshold.high, ]
+  ## Calculate inflection points
+  ## note: if thresholds are s.t. it produces the same length across both groups,
+  ## aggregate will create a data.frame with x.* columns, where * is the length
+  ## using the same combine approach will yield non-symmetrical results!
+  whichmin_list <- aggregate(
+    x = barcode_dist_sub[, 'rawdiff'],
+    by = list(barcode_dist_sub[, group.column]),
+    FUN = function(x) {
+      return(x == min(x))
+    }
+  )$x
+  ## workaround for aggregate behavior noted above
+  if (class(x = whichmin_list) == 'list') { # uneven lengths
+    is_inflection <- unlist(x = whichmin_list)
+  } else if (class(x = whichmin_list) == 'matrix') { # even lengths
+    is_inflection <- as.vector(x = t(x = whichmin_list))
+  }
+  tmp <- cbind(barcode_dist_sub, is_inflection)
+  # inflections <- tmp[tmp$is_inflection == TRUE, c(group.column, barcode.column, "rank")]
+  inflections <- tmp[which(x = tmp$is_inflection), c(group.column, barcode.column, 'rank')]
+  # Use inflection point for what cells to keep
+  ## use the inflection points to cut the subsetted dist to what to keep
+  ## keep only the barcodes above the inflection points
+  keep <- unlist(x = lapply(
+    X = whichmin_list, FUN = function(x) {
+      keep <- !x
+      if (sum(keep) == length(x = keep)) {
+        return(keep) # prevents bug in case of keeping all cells
+      }
+      # toss <- which(keep == FALSE):length(x = keep) # the end cells below knee
+      toss <- which(x = !keep):length(x = keep)
+      keep[toss] <- FALSE
+      return(keep)
+    }
+  ))
+  barcode_dist_sub_keep <- barcode_dist_sub[keep, ]
+  cells_keep <- rownames(x = barcode_dist_sub_keep)
+  # Bind thresholds to keep track of where they are placed
+  thresholds <- data.frame(
+    threshold = c('threshold.low', 'threshold.high'),
+    rank = c(threshold.low, threshold.high)
+  )
+  # Combine relevant info together
+  ## Combine Barcode dist, inflection point, and cells to keep into list
+  info <- list(
+    barcode_distribution = barcode_dist,
+    inflection_points = inflections,
+    threshold_values = thresholds,
+    cells_pass = cells_keep
+  )
+  # save results into object
+  slot(object = object, name = 'tools')$CalculateBarcodeInflections <- info
+  return(object)
+}
+
 #' Demultiplex samples based on data from cell 'hashing'
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.
 #' @param assay Name of the Hashtag assay (HTO by default)
-#' @param positive_quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
-#' @param init_centers Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
-#' @param k_function Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
-#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
-#' @param cluster_nstarts nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default
+#' @param positive.quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
+#' @param init Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
+#' @param kfunc Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
+#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"
+#' @param nstarts nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default
 #' @param verbose Prints the output
 #'
 #' @return The Seurat object with the following demultiplexed information stored in the meta data:
-#' \item{hash_maxID}{Name of hashtag with the highest signal}
-#' \item{hash_secondID}{Name of hashtag with the second highest signal}
-#' \item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
-#' \item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
-#' \item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
-#' \item{hash_ID}{Classification result where doublet IDs are collapsed}
+#' \item{hash.maxID}{Name of hashtag with the highest signal}
+#' \item{hash.secondID}{Name of hashtag with the second highest signal}
+#' \item{hash.margin}{The difference between signals for hash.maxID and hash.secondID}
+#' \item{classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+#' \item{classification.global}{Global classification result (singlet, doublet or negative)}
+#' \item{hash.ID}{Classification result where doublet IDs are collapsed}
 #'
 #' @importFrom cluster clara
 #' @importFrom Matrix colSums
@@ -41,115 +188,132 @@ NULL
 HTODemux <- function(
   object,
   assay = "HTO",
-  positive_quantile = 0.99,
-  init_centers = NULL,
-  cluster_nstarts = 100,
-  k_function = "clara",
+  positive.quantile = 0.99,
+  init = NULL,
+  nstarts = 100,
+  kfunc = "clara",
   nsamples = 100,
   verbose = TRUE
 ) {
   #initial clustering
   assay <- assay %||% DefaultAssay(object = object)
-  hash_data <- GetAssayData(object = object, assay = assay)
-  hash_raw_data <- GetAssayData(
+  data <- GetAssayData(object = object, assay = assay)
+  counts <- GetAssayData(
     object = object,
     assay = assay,
     slot = 'counts'
   )[, colnames(x = object)]
-  hash_raw_data <- as.matrix(x = hash_raw_data)
-  ncenters <- init_centers %||% nrow(x = hash_data) + 1
-  if (k_function == "kmeans") {
-    hto_init_clusters <- kmeans(
-      x = t(x = GetAssayData(object = object, assay = assay)),
-      centers = ncenters,
-      nstart = cluster_nstarts
-    )
-    #identify positive and negative signals for all HTO
-    Idents(object = object, cells = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
-  } else {
-    #use fast k-medoid clustering
-    hto_init_clusters <- clara(
-      x = t(x = GetAssayData(object = object, assay = assay)),
-      k = ncenters,
-      samples = nsamples
-    )
-    #identify positive and negative signals for all HTO
-    Idents(object = object, cells = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
-  }
+  counts <- as.matrix(x = counts)
+  ncenters <- init %||% nrow(x = data) + 1
+  switch(
+    EXPR = kfunc,
+    'kmeans' = {
+      init.clusters <- kmeans(
+        x = t(x = GetAssayData(object = object, assay = assay)),
+        centers = ncenters,
+        nstart = nstarts
+      )
+      #identify positive and negative signals for all HTO
+      Idents(object = object, cells = names(x = init.clusters$cluster)) <- init.clusters$cluster
+    },
+    'clara' = {
+      #use fast k-medoid clustering
+      init.clusters <- clara(
+        x = t(x = GetAssayData(object = object, assay = assay)),
+        k = ncenters,
+        samples = nsamples
+      )
+      #identify positive and negative signals for all HTO
+      Idents(object = object, cells = names(x = init.clusters$clustering)) <- init.clusters$clustering
+    },
+    stop("Unknown k-means function ", kfunc, ", please choose from 'kmeans' or 'clara'")
+  )
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  average_hto <- AverageExpression(
+  average.expression <- AverageExpression(
     object = object,
     assay = assay,
     verbose = FALSE
   )[[assay]]
   #checking for any cluster with all zero counts for any barcode
-  if (sum(average_hto == 0) > 0){
+  if (sum(average.expression == 0) > 0) {
     stop("Cells with zero counts exist as a cluster.")
   }
   #create a matrix to store classification result
-  hto_discrete <- GetAssayData(object = object, assay = assay)
-  hto_discrete[hto_discrete > 0] <- 0
+  discrete <- GetAssayData(object = object, assay = assay)
+  discrete[discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
-  for (hto_iter in rownames(x = hash_data)) {
-    hto_values <- hash_raw_data[hto_iter, colnames(object)]
+  for (iter in rownames(x = data)) {
+    values <- counts[iter, colnames(object)]
     #commented out if we take all but the top cluster as background
-    #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
-    hto_values_use <- hto_values[WhichCells(
+    #values_negative=values[setdiff(object@cell.names,WhichCells(object,which.max(average.expression[iter,])))]
+    values.use <- values[WhichCells(
       object = object,
-      idents = levels(x = Idents(object = object))[[which.min(x = average_hto[hto_iter, ])]]
+      idents = levels(x = Idents(object = object))[[which.min(x = average.expression[iter, ])]]
     )]
-    hto_fit <- suppressWarnings(fitdist(hto_values_use, "nbinom"))
-    hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
-    hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
+    fit <- suppressWarnings(expr = fitdist(data = values.use, distr = "nbinom"))
+    cutoff <- as.numeric(x = quantile(x = fit, probs = positive.quantile)$quantiles[1])
+    discrete[iter, names(x = which(x = values > cutoff))] <- 1
     if (verbose) {
-      message(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
+      message(paste0("Cutoff for ", iter, " : ", cutoff, " reads"))
     }
   }
   # now assign cells to HTO based on discretized values
-  num_hto_positive <- colSums(x = hto_discrete)
-  hto_classification_global <- num_hto_positive
-  hto_classification_global[num_hto_positive == 0] <- "Negative"
-  hto_classification_global[num_hto_positive == 1] <- "Singlet"
-  hto_classification_global[num_hto_positive > 1] <- "Doublet"
-  donor_id = rownames(x = hash_data)
-  hash_max <- apply(X = hash_data, MARGIN = 2, FUN = max)
-  hash_maxID <- apply(X = hash_data, MARGIN = 2, FUN = which.max)
-  hash_second <- apply(X = hash_data, MARGIN = 2, FUN = MaxN, N = 2)
-  hash_maxID <- as.character(x = donor_id[sapply(
-    X = 1:ncol(x = hash_data),
+  npositive <- colSums(x = discrete)
+  classification.global <- npositive
+  classification.global[npositive == 0] <- "Negative"
+  classification.global[npositive == 1] <- "Singlet"
+  classification.global[npositive > 1] <- "Doublet"
+  donor.id = rownames(x = data)
+  hash.max <- apply(X = data, MARGIN = 2, FUN = max)
+  hash.maxID <- apply(X = data, MARGIN = 2, FUN = which.max)
+  hash.second <- apply(X = data, MARGIN = 2, FUN = MaxN, N = 2)
+  hash.maxID <- as.character(x = donor.id[sapply(
+    X = 1:ncol(x = data),
     FUN = function(x) {
-      return(which(x = hash_data[, x] == hash_max[x])[1])
+      return(which(x = data[, x] == hash.max[x])[1])
     }
   )])
-  hash_secondID <- as.character(x = donor_id[sapply(
-    X = 1:ncol(x = hash_data),
+  hash.secondID <- as.character(x = donor.id[sapply(
+    X = 1:ncol(x = data),
     FUN = function(x) {
-      return(which(x = hash_data[, x] == hash_second[x])[1])
+      return(which(x = data[, x] == hash.second[x])[1])
     }
   )])
-  hash_margin <- hash_max - hash_second
+  hash.margin <- hash.max - hash.second
   doublet_id <- sapply(
-    X = 1:length(x = hash_maxID),
+    X = 1:length(x = hash.maxID),
     FUN = function(x) {
-      return(paste(sort(c(hash_maxID[x], hash_secondID[x])), collapse = "_"))
+      return(paste(sort(x = c(hash.maxID[x], hash.secondID[x])), collapse = "_"))
     }
   )
   # doublet_names <- names(x = table(doublet_id))[-1] # Not used
-  hto_classification <- hto_classification_global
-  hto_classification[hto_classification_global == "Negative"] <- "Negative"
-  hto_classification[hto_classification_global == "Singlet"] <- hash_maxID[which(x = hto_classification_global == "Singlet")]
-  hto_classification[hto_classification_global == "Doublet"] <- doublet_id[which(x = hto_classification_global == "Doublet")]
-  classification_metadata <- data.frame(
-    hash_maxID,
-    hash_secondID, hash_margin,
-    hto_classification,
-    hto_classification_global
+  classification <- classification.global
+  classification[classification.global == "Negative"] <- "Negative"
+  classification[classification.global == "Singlet"] <- hash.maxID[which(x = classification.global == "Singlet")]
+  classification[classification.global == "Doublet"] <- doublet_id[which(x = classification.global == "Doublet")]
+  classification.metadata <- data.frame(
+    hash.maxID,
+    hash.secondID,
+    hash.margin,
+    classification,
+    classification.global
   )
-  object <- AddMetaData(object = object, metadata = classification_metadata)
-  Idents(object) <- "hto_classification"
-  Idents(object, cells = rownames(object@meta.data[object@meta.data$hto_classification_global == "Doublet", ])) <- "Doublet"
-  object@meta.data$hash_ID <- Idents(object)
+  colnames(x = classification.metadata) <- paste(
+    assay,
+    c('maxID', 'secondID', 'margin', 'classification', 'classification.global'),
+    sep = '_'
+  )
+  object <- AddMetaData(object = object, metadata = classification.metadata)
+  Idents(object) <- "classification"
+  # Idents(object, cells = rownames(object@meta.data[object@meta.data$classification.global == "Doublet", ])) <- "Doublet"
+  doublets <- WhichCells(
+    object = object,
+    expression = classification.global == 'Doublet'
+  )
+  Idents(object = object, cells = doublets) <- 'Doublet'
+  # object@meta.data$hash.ID <- Idents(object)
+  object$hash.ID <- Idents(object = object)
   return(object)
 }
 
@@ -281,23 +445,22 @@ Read10X <- function(data.dir = NULL){
 #' Read gene expression matrix from 10X CellRanger hdf5 file
 #'
 #' @param filename Path to h5 file
-#' @param ensg.names Label row names with ENSG names rather than unique gene names
+#' @param ensg.names Label row names with ENSG names rather than unique gene
+#' names
 #'
-#' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
-#' returns a list of sparse matrices (one per genome).
-#'
-# @importFrom hdf5r H5File
+#' @return Returns a sparse matrix with rows and columns labeled. If multiple
+#' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
-  if (!requireNamespace('hdf5r')) {
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
     stop("File not found")
   }
-  infile <- H5File$new(filename)
+  infile <- hdf5r::H5File$new(filename)
   genomes <- names(infile)
   output <- list()
   for (genome in genomes) {
@@ -332,16 +495,19 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
-#' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
-#' results are saved in misc slot of seurat object.
+#' Use this function as an alternative to the NormalizeData,
+#' FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
+#' data and scale.data slot, and sctransform::vst intermediate results are saved
+#' in misc slot of seurat object.
 #'
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.zscore Z-score threshold for calling features highly variable;
-#' z-scores are based on variances of regression model pearson residuals of all features
-#' @param variable.features.n Use this many features as variable features after ranking by variance
+#' @param variable.features.zscore Z-score threshold for calling features highly
+#' variable; z-scores are based on variances of regression model pearson
+#' residuals of all features
+#' @param variable.features.n Use this many features as variable features after
+#' ranking by variance
 #' @param do.scale Whether to scale residuals to have unit variance
 #' @param do.center Whether to center residuals to have mean zero
 #' @param scale.max Max value after scaling and/or centering
@@ -503,6 +669,38 @@ SampleUMI <- function(
   )
   dimnames(new_data) <- dimnames(data)
   return(new_data)
+}
+
+#' Subset a Seurat Object based on the Barcode Distribution Inflection Points
+#'
+#' This convenience function subsets a Seurat object based on calculated inflection points.
+#'
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
+#'
+#' @param object Seurat object
+#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
+#'   recalculate the inflection points, else will use those already in `object`
+#'
+#' @return Returns a subsetted Seurat object.
+#'
+#' @importFrom methods slot
+#'
+#' @export
+#'
+#' @author Robert Amezquita
+#' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
+#'
+#' @examples
+#' pbmc_small <- CalculateBarcodeInflections(object = pbmc_small, group.column = 'groups', threshold.low = 20, threshold.high = 30)
+#' SubsetByBarcodeInflections(object = pbmc_small)
+#'
+SubsetByBarcodeInflections <- function(object) {
+  cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
+  if (is.null(x = cbi.data)) {
+    stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
+  }
+  return(object[, cbi.data$cells_pass])
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1264,9 +1462,10 @@ ScaleData.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Normalize raw data
+# Normalize a given data matrix
 #
-# Normalize count data per cell and transform to centered log ratio
+# Normalize a given matrix with a custom function. Essentially just a wrapper
+# around apply. Used primarily in the context of CLR normalization.
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
@@ -1333,12 +1532,14 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 #
 # Remove unwanted effects from scale.data
 #
-# @parm data.expr An expression matrix to regress the effects of latent.data out of
-# should be the complete expression matrix in genes x cells
-# @param latent.data A matrix or data.frame of latent variables, should be cells x latent variables,
-# the colnames should be the variables to regress
-# @param features.regress An integer vector representing the indices of the genes to run regression on
-# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
+# @parm data.expr An expression matrix to regress the effects of latent.data out
+# of should be the complete expression matrix in genes x cells
+# @param latent.data A matrix or data.frame of latent variables, should be cells
+# x latent variables, the colnames should be the variables to regress
+# @param features.regress An integer vector representing the indices of the
+# genes to run regression on
+# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass
+# NULL to simply return data.expr
 # @param use.umi Regress on UMI count data
 # @param verbose Display a progress bar
 #
@@ -1448,329 +1649,4 @@ RegressOutMatrix <- function(
   }
   dimnames(x = data.resid) <- dimnames(x = data.expr)
   return(data.resid)
-}
-
-# Regress out technical effects and cell cycle using regularized Negative Binomial regression
-#
-# Remove unwanted effects from umi data and set scale.data to Pearson residuals
-# Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
-#
-# @param object Seurat object
-# @param latent.vars effects to regress out
-# @param genes.regress gene to run regression for (default is all genes)
-# @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
-#
-# @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
-#
-#' @import Matrix
-#' @import parallel
-#' @importFrom stats glm residuals
-#' @importFrom MASS theta.ml negative.binomial
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#
-RegressOutNB <- function(
-  object,
-  latent.vars,
-  genes.regress = NULL,
-  pr.clip.range = c(-30, 30),
-  min.theta = 0.01
-) {
-  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
-  latent.data <- FetchData(object = object, vars = latent.vars)
-  message(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
-  theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
-  message('Second run NB regression with fixed theta')
-  bin.size <- 128
-  bin.ind <- ceiling(1:length(genes.regress)/bin.size)
-  max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
-  pr <- c()
-  for (i in 1:max.bin) {
-    genes.bin.regress <- genes.regress[bin.ind == i]
-    bin.pr.lst <- parallel::mclapply(
-      X = genes.bin.regress,
-      FUN = function(j) {
-        fit <- 0
-        try(
-          expr = fit <- glm(
-            cm[j, ] ~ .,
-            data = latent.data,
-            family = MASS::negative.binomial(theta = theta.fit[j])
-          ),
-          silent=TRUE
-        )
-        if (class(fit)[1] == 'numeric') {
-          message(
-            sprintf(
-              'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
-              theta.fit[j],
-              j
-            )
-          )
-          res <- scale(log10(cm[j, ] + 1))[, 1]
-        } else {
-          res <- residuals(fit, type = 'pearson')
-        }
-        return(res)
-      }
-    )
-    pr <- rbind(pr, do.call(rbind, bin.pr.lst))
-    setTxtProgressBar(pb, i)
-  }
-  close(pb)
-  dimnames(x = pr) <- dimnames(x = cm)
-  pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
-  pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- pr
-  return(object)
-}
-
-
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Proposed feature: subset by barcode distribution inflection points
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-#' Calculate the Barcode Distribution Inflection
-#'
-#' This function calculates an adaptive inflection point ("knee") of the barcode distribution
-#' for each sample group. This is useful for determining a threshold for removing
-#' low-quality samples.
-#'
-#' The function operates by calculating the slope of the barcode number vs. rank
-#' distribution, and then finding the point at which the distribution changes most
-#' steeply (the "knee"). Of note, this calculation often must be restricted as to the
-#' range at which it performs, so `threshold` parameters are provided to restrict the
-#' range of the calculation based on the rank of the barcodes. [PlotBarcodeInflections()]
-#' is provided as a convenience function to visualize and test different thresholds and
-#' thus provide more sensical end results.
-#' 
-#' See [PlotBarcodeInflections()] to visualize the calculated inflection points and
-#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
-#' 
-#' @param object Seurat object
-#' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
-#' @param group.column Column to group by ("orig.ident" by default)
-#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
-#' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
-#'
-#' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
-#' 
-#' * `barcode_distribution` - contains the full barcode distribution across the entire dataset
-#' * `inflection_points` - the calculated inflection points within the thresholds
-#' * `threshold_values` - the provided (or default) threshold values to search within for inflections
-#' * `cells_pass` - the cells that pass the inflection point calculation
-#'
-#' @rdname CalculateBarcodeInflections
-#'
-#' @export
-#' 
-#' @examples
-#' \dontrun{
-#' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
-#' }
-
-CalculateBarcodeInflections <- function(object,
-                                       barcode.column = "nCount_RNA",
-                                       group.column = "orig.ident",
-                                       threshold.low = NULL,
-                                       threshold.high = NULL) {
-    ## Check that barcode.column exists in meta.data
-    if (!(barcode.column %in% colnames(object@meta.data))) {
-        stop("`barcode.column` specified not present in Seurat object provided")
-    }
-
-    ## Calculation of barcode distribution --------------------------------------
-    ## Append rank by grouping x umi column
-    barcode_dist <- as.data.frame(object@meta.data)[, c(group.column, barcode.column)]
-    barcode_dist <- barcode_dist[do.call(order, barcode_dist), ] # order by columns left to right
-    barcode_dist$rank <- ave(barcode_dist[, barcode.column], barcode_dist[, group.column],
-                            FUN = function(x) rev(order(x)))
-    barcode_dist <- barcode_dist[order(barcode_dist[, group.column], barcode_dist[, "rank"]), ]
-
-    ## calculate rawdiff and append per group
-    top <- aggregate(barcode_dist[, barcode.column], by = list(barcode_dist[, group.column]),
-                    FUN = function(x) c(0, diff(log10(x + 1))))$x
-    bot <- aggregate(barcode_dist[, "rank"], by = list(barcode_dist[, group.column]),
-                     FUN = function(x) c(0, diff(x)))$x
-
-    barcode_dist$rawdiff <- unlist(mapply(function(x, y) {
-        ifelse(is.na(x / y), 0, x / y)
-    }, x = top, y = bot))
-
-
-    ## Calculation of inflection points -----------------------------------------
-    ## Set thresholds for rank of barcodes to ignore
-    if (is.null(threshold.low)) {
-        threshold.low <- 1
-    }
-    if (is.null(threshold.high)) {
-        threshold.high <- max(barcode_dist$rank)
-    }
-
-    ## Subset the barcode distribution by thresholds
-    barcode_dist_sub <- barcode_dist[
-        barcode_dist$rank > threshold.low &
-        barcode_dist$rank < threshold.high, ]
-
-    ## Calculate inflection points
-    ## note: if thresholds are s.t. it produces the same length across both groups,
-    ## aggregate will create a data.frame with x.* columns, where * is the length
-    ## using the same combine approach will yield non-symmetrical results!
-    whichmin_list <- aggregate(barcode_dist_sub[, "rawdiff"],
-              by = list(barcode_dist_sub[, group.column]),
-              FUN = function(x) x == min(x))$x
-
-    ## workaround for aggregate behavior noted above
-    if (class(whichmin_list) == "list") { # uneven lengths
-        is_inflection <- unlist(whichmin_list)
-    } else if (class(whichmin_list) == 'matrix') { # even lengths
-        is_inflection <- as.vector(t(whichmin_list))
-    }
-    tmp <- cbind(barcode_dist_sub, is_inflection)
-
-    inflections <- tmp[tmp$is_inflection == TRUE, c(group.column, barcode.column, "rank")]
-
-    ## Use inflection point for what cells to keep ------------------------------
-    ## use the inflection points to cut the subsetted dist to what to keep
-    ## keep only the barcodes above the inflection points
-    keep <- unlist(lapply(whichmin_list, function(x) {
-        keep <- !x
-        if (sum(keep) == length(keep)) {
-            return(keep) # prevents bug in case of keeping all cells
-        }
-        toss <- which(keep == FALSE):length(keep) # the end cells below knee
-        keep[toss] <- FALSE
-        return(keep)
-    }))
-    barcode_dist_sub_keep <- barcode_dist_sub[keep, ]
-
-    cells_keep <- rownames(barcode_dist_sub_keep)
-
-    ## Bind thresholds to keep track of where they are placed -------------------
-    thresholds <- data.frame(threshold = c('threshold.low', 'threshold.high'),
-                            rank = c(threshold.low, threshold.high))
-    
-    ## Combine relevant info together -------------------------------------------
-    ## Combine Barcode dist, inflection point, and cells to keep into list
-    info <- list(barcode_distribution = barcode_dist,
-                inflection_points = inflections,
-                threshold_values = thresholds,
-                cells_pass = cells_keep)
-
-    
-    ## save results into object -------------------------------------------------
-    slot(object, "tools") <- list(CalculateBarcodeInflections = info)
-
-    return(object)
-}
-
-
-#' Plot the Barcode Distribution and Calculated Inflection Points
-#'
-#' This function plots the calculated inflection points derived from the barcode-rank
-#' distribution.
-#' 
-#' See [CalculateBarcodeInflections()] to calculate inflection points and
-#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
-#' 
-#' @param object Seurat object
-#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-#'   recalculate the inflection points, else will use those already in `object`
-#'
-#' @return Returns a `ggplot2` object showing the by-group inflection points and provided
-#'   (or default) rank threshold values in grey.
-#'
-#' @rdname PlotBarcodeInflections
-#'
-#' @importFrom ggplot2 ggplot geom_line geom_vline aes
-#' @importFrom rlang `!!` sym
-#' 
-#' @export
-#' 
-#' @examples
-#' \dontrun{
-#' PlotBarcodeInflections(pbmc_small, group.column = 'groups')
-#' }
-
-PlotBarcodeInflections <- function(object, ...) {
-    dots <- list(...)
-    if (length(dots) > 0) {
-        object <- CalculateBarcodeInflections(object, ...)
-    }
-    if (is.null(object@tools$CalculateBarcodeInflections)) {
-        stop(paste("Barcode inflections not calculated. Set parameters for",
-                   "`CalculateBarcodeInflections()` or run beforehand."))
-
-    }
-
-    ## Extract necessary data frames
-    inflection_points <- object@tools$CalculateBarcodeInflections$inflection_points
-    barcode_distribution <- object@tools$CalculateBarcodeInflections$barcode_distribution
-    threshold_values <- object@tools$CalculateBarcodeInflections$threshold_values
-
-    # Set a cap to max rank to avoid plot being overextended
-    if (threshold_values$rank[[2]] > max(barcode_distribution$rank, na.rm = TRUE)) {
-        threshold_values$rank[[2]] <- max(barcode_distribution$rank, na.rm = TRUE)
-    }
-    
-    ## Infer the grouping/barcode variables
-    group_var <- colnames(barcode_distribution)[1]
-    barcode_var <- colnames(barcode_distribution)[2]
-
-    ## Make the plot
-    g <- ggplot(barcode_distribution,
-           aes(x = !!rlang::sym("rank"), y = log10(!!rlang::sym(barcode_var) + 1),
-               group = !!rlang::sym(group_var), colour = !!rlang::sym(group_var))) +
-        geom_line() +        
-        geom_vline(data = threshold_values,
-                   aes(xintercept = !!rlang::sym("rank")),
-                   linetype = "dashed", colour = 'grey60', size = 0.5) +
-        geom_vline(data = inflection_points,
-                   aes(xintercept = !!rlang::sym("rank"),
-                       group = !!rlang::sym(group_var), colour = !!rlang::sym(group_var)),
-                   linetype = "dashed") 
-
-    return(g)
-}
-
-#' Subset a Seurat Object based on the Barcode Distribution Inflection Points
-#'
-#' This convenience function subsets a Seurat object based on calculated inflection points.
-#' 
-#' See [CalculateBarcodeInflections()] to calculate inflection points and
-#' [PlotBarcodeInflections()] to visualize and test inflection point calculations.
-#' 
-#' @param object Seurat object
-#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
-#'   recalculate the inflection points, else will use those already in `object`
-#'
-#' @return Returns a subsetted Seurat object.
-#'
-#' @rdname SubsetByBarcodeInflections
-#'
-#' @export
-#' 
-#' @examples
-#' \dontrun{
-#' SubsetByBarcodeInflections(pbmc_small, group.column = 'groups',
-#'                            threshold.low = 20, threshold.high = 30)
-#' }
-
-SubsetByBarcodeInflections <- function(object, ...) {
-    dots <- list(...)
-    if (length(dots) > 0) {
-        object <- CalculateBarcodeInflections(object, ...)
-    }
-    if (is.null(object@tools$CalculateBarcodeInflections)) {
-        stop(paste("Barcode inflections not calculated. Set parameters for",
-                   "`CalculateBarcodeInflections()` or run beforehand."))
-
-    }
-
-    subset(object, select = object@tools$CalculateBarcodeInflections$cells_pass)
 }

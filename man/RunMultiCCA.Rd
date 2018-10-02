@@ -19,7 +19,7 @@ RunMultiCCA(object.list, ...)
 \arguments{
 \item{object.list}{List of Seurat objects}
 
-\item{...}{Arguments passed to other methods, \code{MergeSeurat} in case with two objects
+\item{...}{Arguments passed to other methods, \code{merge} in case with two objects
 passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)}
 
 \item{niter}{Number of iterations to perform. Set by default to 25.}
@@ -69,5 +69,5 @@ PrintDim(pbmc_cca,reduction.type = 'cca')
 
 }
 \seealso{
-\code{\link{MergeSeurat}} \code{\link{ScaleData}}
+\code{\link{merge.Seurat}} \code{\link{ScaleData}}
 }

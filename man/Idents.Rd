@@ -13,6 +13,7 @@
 \alias{SetIdent.Seurat}
 \alias{StashIdent.Seurat}
 \alias{levels.Seurat}
+\alias{levels<-.Seurat}
 \title{Get, set, and manipulate an object's identity classes}
 \usage{
 Idents(object, ...)
@@ -36,6 +37,8 @@ StashIdent(object, save.name, ...)
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
 
 \method{levels}{Seurat}(x)
+
+\method{levels}{Seurat}(x) <- value
 }
 \arguments{
 \item{...}{Arguments passed to other methods; for \code{RenameIdents}: named

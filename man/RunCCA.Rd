@@ -68,5 +68,5 @@ Print(object = pbmc_cca[["cca"]])
 
 }
 \seealso{
-\code{\link{MergeSeurat}}
+\code{\link{merge.Seurat}}
 }

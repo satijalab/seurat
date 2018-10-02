@@ -1,3 +1,41 @@
+#' Add in metadata associated with either cells or features.
+#'
+#' Adds additional data to the object. Can be any piece of information
+#' associated with a cell (examples include read depth, alignment rate,
+#' experimental batch, or subpopulation identity) or feature (ENSG name,
+#' variance). To add cell level information, add to the Seurat object. If adding
+#' feature-level metadata, add to the Assay object (e.g. object[["RNA"]]))
+#'
+#' @param x,object An object
+#' @param i,col.name Name to store metadata or object as
+#' @param value,metadata Metadata or object to add
+#'
+#' @return An object with metadata or and object added
+#'
+#' @rdname AddMetaData
+#' @export AddMetaData
+#'
+#' @aliases SeuratAccess
+#'
+#' @examples
+#' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
+#' names(cluster_letters) <- colnames(x = pbmc_small)
+#' pbmc_small <- AddMetaData(
+#'   object = pbmc_small,
+#'   metadata = cluster_letters,
+#'   col.name = 'letter.idents'
+#' )
+#' head(x = pbmc_small[[]])
+#'
+#'
+setGeneric(
+  name = "AddMetaData",
+  def = function(object, metadata, col.name = NULL) {
+    standardGeneric("AddMetaData")
+    },
+  signature = c("object", "metadata", "col.name")
+)
+
 #' @rdname Convert
 #' @export as.SingleCellExperiment
 #' @aliases as.SingleCellExperiment
@@ -12,6 +50,20 @@ as.SingleCellExperiment <- function(from) {
 #'
 as.seurat <- function(from) {
   UseMethod(generic = 'as.seurat', object = from)
+}
+
+#' Convert between data frames and sparse matrices
+#'
+#' @param x An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return \code{as.sparse}: A sparse representation of the input data
+#'
+#' @rdname as.sparse
+#' @export as.sparse
+#'
+as.sparse <- function(x, ...) {
+  UseMethod(generic = 'as.sparse', object = x)
 }
 
 #' SNN Graph Construction
@@ -557,7 +609,7 @@ RunALRA <- function(object, ...) {
 #' @rdname RunCCA
 #' @export RunCCA
 #'
-#' @seealso \code{\link{MergeSeurat}}
+#' @seealso \code{\link{merge.Seurat}}
 #'
 #' @examples
 #' pbmc_small
@@ -582,7 +634,7 @@ RunCCA <- function(object1, object2, ...) {
 #' Runs a canonical correlation analysis
 #'
 #' @param object.list List of Seurat objects
-#' @param ... Arguments passed to other methods, \code{MergeSeurat} in case with two objects
+#' @param ... Arguments passed to other methods, \code{merge} in case with two objects
 #' passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)
 #'
 #' @return Returns a combined Seurat object with the CCA stored as a DimReduc
@@ -590,7 +642,7 @@ RunCCA <- function(object1, object2, ...) {
 #' @rdname RunMultiCCA
 #' @export RunMultiCCA
 #'
-#' @seealso \code{\link{MergeSeurat}} \code{\link{ScaleData}}
+#' @seealso \code{\link{merge.Seurat}} \code{\link{ScaleData}}
 #'
 #' @examples
 #' \dontrun{

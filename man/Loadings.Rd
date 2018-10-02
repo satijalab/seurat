@@ -4,6 +4,7 @@
 \alias{Loadings}
 \alias{Loadings<-}
 \alias{Loadings.DimReduc}
+\alias{Loadings.Seurat}
 \alias{Loadings<-.DimReduc}
 \title{Get feature loadings}
 \usage{
@@ -12,6 +13,8 @@ Loadings(object, ...)
 Loadings(object, ...) <- value
 
 \method{Loadings}{DimReduc}(object, projected = NULL, ...)
+
+\method{Loadings}{Seurat}(object, reduction, projected = NULL, ...)
 
 \method{Loadings}{DimReduc}(object, projected = TRUE, ...) <- value
 }
@@ -23,6 +26,8 @@ Loadings(object, ...) <- value
 \item{value}{Feature loadings to add}
 
 \item{projected}{Pull the projected feature loadings?}
+
+\item{reduction}{Name of reduction to pull feature loadings for}
 }
 \description{
 Get feature loadings

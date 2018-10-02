@@ -130,112 +130,6 @@ JackStraw <- function(
   return(object)
 }
 
-#' Canonical Correlation Analysis between modalities
-#'
-#' Runs a canonical correlation analysis between two assays (for example, RNA and ADT from CITE-seq)
-#'
-#' @param object Seurat object. Assumes that scale.data exist for both assays.
-#' @param assay.1 The first assay for CCA.
-#' @param assay.2 The second assay for CCA.
-#' @param features.1 Features to use for the first assay, default is all the features (use object@var.genes if this is RNA).
-#' @param features.2 Features to use for the second assay, default is all the features.
-#' @param num.cc Minimal number of CCs to return.
-#' @param normalize.variance Whether to scale the embeddings. Default is TRUE.
-#'
-#' @return Returns Seurat object with two CCA results stored (for example, object@dr$RNACCA and object@dr$ADTCCA).
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' object <- MultiModal_CCA(object,assay.1 = "RNA",assay.2 = "ADT")
-#' }
-#'
-MultiModal_CCA <- function(
-  object,
-  assay.1 = "RNA",
-  assay.2 = "ADT",
-  features.1 = NULL,
-  features.2 = NULL,
-  num.cc = 20,
-  normalize.variance = TRUE
-) {
-  #first pull out data, define features
-  data.1 <- GetAssayData(
-    object = object,
-    assay.type = assay.1,
-    slot = "scale.data"
-  )
-  data.2 <- GetAssayData(
-    object = object,
-    assay.type = assay.2,
-    slot = "scale.data"
-  )
-  if (is.null(x = features.1)) {
-    if ((assay.1 == "RNA") && length(x = object@var.genes) > 0) {
-      features.1 <- object@var.genes
-    } else {
-      features.1 <- rownames(x = data.1)
-    }
-  }
-  features.2 <- SetIfNull(x = features.2, default = rownames(x = data.2))
-  data.1 <- t(x = data.1[features.1, ])
-  data.2 <- t(x = data.2[features.2, ])
-  #data.1.var=apply(data.1,2,var)
-  #data.2.var=apply(data.2,2,var)
-  data.1 <- data.1[,apply(data.1,2,var)>0]
-  data.2 <- data.2[,apply(data.2,2,var)>0]
-
-  num.cc <- max(20, min(ncol(data.1), ncol(data.2)))
-  cca.data <- list(data.1, data.2)
-  names(x = cca.data) <- c(assay.1, assay.2)
-  # now run CCA
-  out <- CCA(
-    x = cca.data[[1]],
-    z = cca.data[[2]],
-    typex = "standard",
-    typez = "standard",
-    K = num.cc,
-    penaltyz = 1,
-    penaltyx = 1
-  )
-  cca.output <- list(out$u, out$v)
-  embeddings.cca <- list()
-  for (i in 1:length(x = cca.data)) {
-    assay <- names(x = cca.data)[i]
-    rownames(x = cca.output[[i]]) <- colnames(x = cca.data[[i]])
-    embeddings.cca[[i]] <- cca.data[[i]] %*% cca.output[[i]]
-    colnames(x = embeddings.cca[[i]]) <- paste0(
-      assay,
-      "CC",
-      1:ncol(x = embeddings.cca[[i]])
-    )
-    colnames(x = cca.output[[i]]) <- colnames(x = embeddings.cca[[i]])
-    if (normalize.variance) {
-      embeddings.cca[[i]] <- scale(x = embeddings.cca[[i]])
-    }
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = paste0(assay, "CCA"),
-      slot = "cell.embeddings",
-      new.data = embeddings.cca[[i]]
-    )
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = paste0(assay, "CCA"),
-      slot = "key",
-      new.data = paste0(assay, "CC")
-    )
-    object <- SetDimReduction(
-      object = object,
-      reduction.type = paste0(assay, "CCA"),
-      slot = "gene.loadings",
-      new.data =  cca.output[[i]]
-    )
-  }
-  return(object)
-}
-
 #' Significant genes from a PCA
 #'
 #' Returns a set of genes, based on the JackStraw analysis, that have
@@ -329,8 +223,7 @@ ProjectDim <- function(
   redeuc <- object[[reduction]]
   assay <- assay %||% DefaultAssay(object = redeuc)
   data.use <- GetAssayData(
-    object = object,
-    assay.us = assay,
+    object = object[[assay]],
     slot = "scale.data"
   )
   if (do.center) {
@@ -1126,7 +1019,7 @@ RunUMAP.default <- function(
   )
   umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
-  rownames(x = umap_output) <- colnames(object)
+  rownames(x = umap_output) <- rownames(object)
   umap.reduction <- CreateDimReducObject(
     embeddings = umap_output,
     key = reduction.key,
@@ -1163,11 +1056,11 @@ RunUMAP.Seurat <- function(
   seed.use = 42,
   ...
 ) {
-  data.use <- if (is.null(x = features)) {
-    Embeddings(object[[reduction]])[, dims]
-    assay <- DefaultAssay(object = object[['reduction']])
+  if (is.null(x = features)) {
+    data.use <- Embeddings(object[[reduction]])[, dims]
+    assay <- DefaultAssay(object = object[[reduction]])
   } else {
-    t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,

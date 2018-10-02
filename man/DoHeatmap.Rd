@@ -5,7 +5,7 @@
 \title{Feature expression heatmap}
 \usage{
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
-  group.bar = TRUE, disp.min = -2.5, disp.max = 2.5,
+  group.bar = TRUE, disp.min = -2.5, disp.max = NULL,
   slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
   hjust = 0, angle = 45, combine = TRUE, ...)
 }
@@ -22,7 +22,8 @@ DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
 
 \item{disp.min}{Minimum display value (all values below are clipped)}
 
-\item{disp.max}{Maximum display value (all values above are clipped)}
+\item{disp.max}{Maximum display value (all values above are clipped); defaults to 2.5
+if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
