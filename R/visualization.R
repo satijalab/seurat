@@ -1186,6 +1186,80 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
   return(plots)
 }
 
+#' Plot the Barcode Distribution and Calculated Inflection Points
+#'
+#' This function plots the calculated inflection points derived from the barcode-rank
+#' distribution.
+#'
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
+#'
+#' @param object Seurat object
+#'
+#' @return Returns a `ggplot2` object showing the by-group inflection points and provided
+#'   (or default) rank threshold values in grey.
+#'
+#' @importFrom methods slot
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot geom_line geom_vline aes_string
+#'
+#' @export
+#'
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
+#' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
+#'
+#' @examples
+#' pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
+#' BarcodeInflectionsPlot(pbmc_small)
+#'
+BarcodeInflectionsPlot <- function(object) {
+  cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
+  if (is.null(x = cbi.data)) {
+    stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
+  }
+  ## Extract necessary data frames
+  inflection_points <- cbi.data$inflection_points
+  barcode_distribution <- cbi.data$barcode_distribution
+  threshold_values <- cbi.data$threshold_values
+  # Set a cap to max rank to avoid plot being overextended
+  if (threshold_values$rank[[2]] > max(barcode_distribution$rank, na.rm = TRUE)) {
+    threshold_values$rank[[2]] <- max(barcode_distribution$rank, na.rm = TRUE)
+  }
+  ## Infer the grouping/barcode variables
+  group_var <- colnames(x = barcode_distribution)[1]
+  barcode_var <- colnames(x = barcode_distribution)[2]
+  barcode_distribution[, barcode_var] <- log10(x = barcode_distribution[, barcode_var] + 1)
+  ## Make the plot
+  plot <- ggplot(
+    data = barcode_distribution,
+    mapping = aes_string(
+      x = 'rank',
+      y = barcode_var,
+      group = group_var,
+      colour = group_var
+    )
+  ) +
+    geom_line() +
+    geom_vline(
+      data = threshold_values,
+      aes_string(xintercept = 'rank'),
+      linetype = "dashed",
+      colour = 'grey60',
+      size = 0.5
+    ) +
+    geom_vline(
+      data = inflection_points,
+      mapping = aes_string(
+        xintercept = 'rank',
+        group = group_var,
+        colour = group_var
+      ),
+      linetype = "dashed"
+    ) +
+    theme_cowplot()
+  return(plot)
+}
+
 #' Dot plot visualization
 #'
 #' Intuitive way of visualizing how feature expression changes across different
