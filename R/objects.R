@@ -461,18 +461,18 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
 #' @param projected A matrix with the projected feature loadings
 #' @param assay Assay used to calculate this dimensional reduction
 #' @param stdev Standard deviation (if applicable) for the dimensional reduction
-#' @param key A character string to facilitate looking up features from a 
-#' specific DimReduc 
+#' @param key A character string to facilitate looking up features from a
+#' specific DimReduc
 #' @param jackstraw Results from the JackStraw function
 #' @param misc list for the user to store any additional information associated
 #' with the dimensional reduction
 #'
 #' @export
-#' 
-#' @examples 
+#'
+#' @examples
 #' data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
 #' pcs <- prcomp(x = data)
-#' pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x, 
+#' pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x,
 #'             stdev = pcs$sdev, key = "PC", assay = "RNA")
 #'
 CreateDimReducObject <- function(
@@ -3714,6 +3714,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     slot.use <- switch(
       EXPR = as.character(x = class(x = value)),
       'Assay' = {
+        if (ncol(x = value) != ncol(x = x)) {
+          stop(
+            "Cannot add a different number of cells than already present",
+            call. = FALSE
+          )
+        }
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
@@ -3738,7 +3744,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'SeuratCommand' = 'commands',
       'SeuratWorkflow' = 'workflows',
       'NULL' = slot.use,
-      # stop("Unknown object type: ", class(x = value))
       'meta.data'
     )
     if (slot.use == 'meta.data') {

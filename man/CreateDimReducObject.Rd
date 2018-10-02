@@ -20,7 +20,7 @@ CreateDimReducObject(embeddings = new(Class = "matrix"),
 
 \item{stdev}{Standard deviation (if applicable) for the dimensional reduction}
 
-\item{key}{A character string to facilitate looking up features from a 
+\item{key}{A character string to facilitate looking up features from a
 specific DimReduc}
 
 \item{jackstraw}{Results from the JackStraw function}
@@ -34,7 +34,7 @@ Create a DimReduc object
 \examples{
 data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
 pcs <- prcomp(x = data)
-pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x, 
+pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x,
             stdev = pcs$sdev, key = "PC", assay = "RNA")
 
 }
