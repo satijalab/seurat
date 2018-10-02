@@ -4,34 +4,36 @@
 # --------------------------------------------------------------------------------
 context("Metadata")
 
+cluster_letters <- LETTERS[Idents(object = pbmc_small)]
+names(cluster_letters) <- colnames(x = pbmc_small)
+cluster_letters_shuffled <- sample(x = cluster_letters)
+
 test_that("AddMetaData adds in cell-level vector properly ", {
-  cluster_letters <- LETTERS[Idents(object = pbmc_small)]
-  names(cluster_letters) <- colnames(x = pbmc_small)
   pbmc_small <- AddMetaData(object = pbmc_small, metadata = cluster_letters, col.name = 'letter.idents')
   expect_equal(pbmc_small$letter.idents, cluster_letters)
-  cluster_letters_shuffled <- sample(x = cluster_letters)
   pbmc_small <- AddMetaData(object = pbmc_small, metadata = cluster_letters_shuffled, col.name = 'letter.idents.shuffled')
   expect_equal(pbmc_small$letter.idents, pbmc_small$letter.idents.shuffled)
 })
 
+cluster_letters_df <- data.frame(A = cluster_letters, B = cluster_letters_shuffled)
 test_that("AddMetaData adds in data frame properly for cell-level metadata", {
-  cluster_letters_df <- data.frame(A = cluster_letters, B = cluster_letters_shuffled)
   pbmc_small <- AddMetaData(object = pbmc_small, metadata = cluster_letters_df)
   expect_equal(pbmc_small[[c("A", "B")]], cluster_letters_df)
 })
 
+feature_letters <- sample(x = LETTERS, size = nrow(x = pbmc_small[["RNA"]]), replace = TRUE)
+names(feature_letters) <- rownames(x = pbmc_small[["RNA"]])
+feature_letters_shuffled <- sample(x = feature_letters)
+
 test_that("AddMetaData adds feature level metadata", {
-  feature_letters <- sample(x = LETTERS, size = nrow(x = pbmc_small[["RNA"]]), replace = TRUE)
-  names(feature_letters) <- rownames(x = pbmc_small[["RNA"]])
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters, col.name = 'feature_letters')
   expect_equal(pbmc_small[["RNA"]][["feature_letters", drop = TRUE]], feature_letters)
-  feature_letters_shuffled <- sample(x = feature_letters)
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters_shuffled, col.name = 'feature_letters_shuffled')
   expect_equal(pbmc_small[["RNA"]][["feature_letters", drop = TRUE]], pbmc_small[["RNA"]][["feature_letters_shuffled", drop = TRUE]])
 })
 
+feature_letters_df <- data.frame(A = feature_letters, B = feature_letters_shuffled)
 test_that("AddMetaData adds in data frame properly for Assays", {
-  feature_letters_df <- data.frame(A = feature_letters, B = feature_letters_shuffled)
   pbmc_small[["RNA"]] <- AddMetaData(object = pbmc_small[["RNA"]], metadata = feature_letters_df)
   expect_equal(pbmc_small[["RNA"]][[c("A", "B")]], feature_letters_df)
 })
