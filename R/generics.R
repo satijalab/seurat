@@ -1,3 +1,30 @@
+#' Add in metadata associated with either cells or features.
+#' 
+#' Adds additional data to the object. Can be any piece of information 
+#' associated with a cell (examples include read depth, alignment rate, 
+#' experimental batch, or subpopulation identity) or feature (ENSG name, 
+#' variance). To add cell level information, add to the Seurat object. If adding
+#' feature-level metadata, add to the Assay object (e.g. object[["RNA"]]))
+#' 
+#' @examples
+#' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
+#' names(cluster_letters) <- colnames(x = pbmc_small)
+#' pbmc_small <- AddMetaData(
+#'   object = pbmc_small,
+#'   metadata = cluster_letters,
+#'   col.name = 'letter.idents'
+#' )
+#' head(x = pbmc_small[[]])
+#'
+#'
+setGeneric(
+  name = "AddMetaData", 
+  def = function(object, metadata, col.name = NULL) {
+    standardGeneric("AddMetaData")
+    }, 
+  signature = c("object", "metadata", "col.name")
+)
+
 #' @rdname Convert
 #' @export as.SingleCellExperiment
 #' @aliases as.SingleCellExperiment

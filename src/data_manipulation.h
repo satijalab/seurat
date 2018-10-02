@@ -44,7 +44,6 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
                               NumericVector sd,
                               double vmax,
                               bool display_progress);
-NumericVector RowSumOfSquares(const NumericMatrix x);
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 //----------------------------------------------------
 

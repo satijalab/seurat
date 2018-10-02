@@ -280,54 +280,6 @@ seurat <- setClass(
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Add Metadata
-#'
-#' Adds additional data for single cells to the Seurat object. Can be any piece
-#' of information associated with a cell (examples include read depth,
-#' alignment rate, experimental batch, or subpopulation identity). The
-#' advantage of adding it to the Seurat object is so that it can be
-#' analyzed/visualized using FetchData, VlnPlot, GenePlot, SubsetData, etc.
-#'
-#' @param object Seurat object
-#' @param metadata Data frame where the row names are cell names (note : these
-#' must correspond exactly to the items in object@@cell.names), and the columns
-#' are additional metadata items.
-#' @param col.name Name for metadata if passing in single vector of information
-#'
-#' @return Seurat object where the additional metadata has been added as
-#' columns in object@@meta.data
-#'
-#' @export
-#'
-#' @examples
-#' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
-#' names(cluster_letters) <- colnames(x = pbmc_small)
-#' pbmc_small <- AddMetaData(
-#'   object = pbmc_small,
-#'   metadata = cluster_letters,
-#'   col.name = 'letter.idents'
-#' )
-#' head(x = pbmc_small[[]])
-#'
-AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (typeof(x = metadata) != "list") {
-    metadata <- as.data.frame(x = metadata)
-    if (is.null(x = col.name)) {
-      stop("Please provide a name for provided metadata")
-    }
-    colnames(x = metadata) <- col.name
-  }
-  cols.add <- colnames(x = metadata)
-  #meta.add <- metadata[rownames(x = object@meta.data), cols.add]
-  meta.order <- match(x = rownames(x = object[[]]), rownames(x = metadata))
-  meta.add <- metadata[meta.order, ]
-  if (all(is.null(x = meta.add))) {
-    stop("Metadata provided doesn't match the cells in this object")
-  }
-  slot(object = object, name = "meta.data")[, cols.add] <- meta.add
-  return(object)
-}
-
 #' Checks if a workflow is defined for a Seurat object
 #'
 #' Checks if a workflow is defined for a Seurat object
@@ -412,16 +364,19 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 
 #' Create an Assay object
 #'
-#' Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the
-#' input matrix is features x cells.
+#' Create an Assay object from a feature (e.g. gene) expression matrix. The 
+#' expected format of the input matrix is features x cells.
 #'
-#' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
+#' Non-unique cell or feature names are not allowed. Please make unique before 
+#' calling this function.
 #'
 #' @param counts Unnormalized data such as raw counts or TPMs
-#' @param data Prenormalized data; if provided, donot pass \code{counts}
-#' @param min.cells Include features detected in at least this many cells. Will subset the counts
-#' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
-#' @param min.features Include cells where at least this many features are detected.
+#' @param data Prenormalized data; if provided, do not pass \code{counts}
+#' @param min.cells Include features detected in at least this many cells. Will 
+#' subset the counts matrix as well. To reintroduce excluded features, create a 
+#' new object with a lower cutoff.
+#' @param min.features Include cells where at least this many features are 
+#' detected.
 #'
 #' @importFrom methods as
 #' @importFrom Matrix colSums
@@ -441,13 +396,20 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
-  } else if (!missing(x = counts)) {
+  } 
+  else if (!missing(x = counts)) {
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       stop("Non-unique features (rownames) present in the input matrix")
     }
     if (anyDuplicated(colnames(x = counts))) {
       stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    if (is.null(x = colnames(x = counts))) {
+      stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (is.null(x = rownames(x = counts))) {
+      stop("No feature names (rownames) names present in the input matrix")
     }
     if (!inherits(x = counts, what = 'dgCMatrix')) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
@@ -462,12 +424,21 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
     }
     data <- counts
   } else if (!missing(x = data)) {
-    # check that dimnames of input counts are unique
+    # check that dimnames of input data are unique
     if (anyDuplicated(rownames(x = data))) {
       stop("Non-unique features (rownames) present in the input matrix")
     }
     if (anyDuplicated(colnames(x = data))) {
       stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    if (is.null(x = colnames(x = data))) {
+      stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (is.null(x = rownames(x = data))) {
+      stop("No feature names (rownames) names present in the input matrix")
+    }
+    if (min.cells != 0 | min.features != 0) {
+      warning("No filtering performed if passing to data rather than counts")
     }
     counts <- new(Class = 'matrix')
   }
@@ -3772,6 +3743,13 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
         }
       }
+      if (any(colnames(x = meta.data) %in% FilterObjects(object = x))) {
+        bad.cols <- colnames(x = meta.data)[which(colnames(x = meta.data) %in% FilterObjects(object = x))]
+        stop(paste0(
+          "Cannot add a metadata column with the same name as an Assay or DimReduc - ", 
+          paste(bad.cols, collapse = ", ")
+        ))
+      }
       slot(object = x, name = 'meta.data') <- meta.data
     } else {
       if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
@@ -3804,6 +3782,29 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     gc(verbose = FALSE)
     return(x)
   }
+)
+
+.AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (class(x = metadata) == "data.frame") {
+    for (ii in 1:ncol(x = metadata)) {
+      object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+    }
+  } else {
+    object[[col.name]] <- metadata
+  }
+  return(object)
+}
+
+setMethod(
+  f = "AddMetaData",
+  signature = c('object' = "Assay"),
+  definition = .AddMetaData
+)
+
+setMethod(
+  f = "AddMetaData",
+  signature = c('object' = "Seurat"),
+  definition = .AddMetaData
 )
 
 setMethod(
