@@ -61,10 +61,6 @@ FastLogVMR <- function(mat, display_progress) {
     .Call('_Seurat_FastLogVMR', PACKAGE = 'Seurat', mat, display_progress)
 }
 
-RowSumOfSquares <- function(x) {
-    .Call('_Seurat_RowSumOfSquares', PACKAGE = 'Seurat', x)
-}
-
 RowVar <- function(x) {
     .Call('_Seurat_RowVar', PACKAGE = 'Seurat', x)
 }

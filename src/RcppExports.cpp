@@ -205,17 +205,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// RowSumOfSquares
-NumericVector RowSumOfSquares(const NumericMatrix x);
-RcppExport SEXP _Seurat_RowSumOfSquares(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const NumericMatrix >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(RowSumOfSquares(x));
-    return rcpp_result_gen;
-END_RCPP
-}
 // RowVar
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 RcppExport SEXP _Seurat_RowVar(SEXP xSEXP) {
@@ -301,7 +290,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_SparseRowVar2", (DL_FUNC) &_Seurat_SparseRowVar2, 3},
     {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 5},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
-    {"_Seurat_RowSumOfSquares", (DL_FUNC) &_Seurat_RowSumOfSquares, 1},
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
