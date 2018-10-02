@@ -47,7 +47,6 @@ NULL
 #' @examples
 #' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 #'
-#'
 CalculateBarcodeInflections <- function(
   object,
   barcode.column = "nCount_RNA",
@@ -122,7 +121,8 @@ CalculateBarcodeInflections <- function(
   ## use the inflection points to cut the subsetted dist to what to keep
   ## keep only the barcodes above the inflection points
   keep <- unlist(x = lapply(
-    X = whichmin_list, FUN = function(x) {
+    X = whichmin_list,
+    FUN = function(x) {
       keep <- !x
       if (sum(keep) == length(x = keep)) {
         return(keep) # prevents bug in case of keeping all cells
