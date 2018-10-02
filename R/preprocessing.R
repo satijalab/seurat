@@ -180,6 +180,8 @@ CalculateBarcodeInflections <- function(
 #' @importFrom stats pnbinom kmeans
 #' @export
 #'
+#' @seealso \code{\link{HTOHeatmap}}
+#'
 #' @examples
 #' \dontrun{
 #' object <- HTODemux(object)

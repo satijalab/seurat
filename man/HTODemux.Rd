@@ -43,3 +43,6 @@ object <- HTODemux(object)
 }
 
 }
+\seealso{
+\code{\link{HTOHeatmap}}
+}

@@ -304,17 +304,18 @@ DoHeatmap <- function(
 #' Draws a heatmap of hashtag oligo signals across singlets/doublets/negative cells. Allows for the visualization of HTO demultiplexing results.
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized, and demultiplexing has been run with HTODemux().
-#' @param hto.classification The naming for object@meta.data slot with classification result from HTODemux().
-#' @param global.classification The slot for object@meta.data slot specifying a cell as singlet/doublet/negative.
+#' @param classification The naming for metadata column with classification result from HTODemux().
+#' @param global.classification The slot for metadata column specifying a cell as singlet/doublet/negative.
 #' @param assay Hashtag assay name.
 #' @param ncells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
 #' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
-#' @param ... Additional arguments for DoHeatmap().
 #'
 #' @return A ggplot object
 #'
 #' @importFrom ggplot2 guides
 #' @export
+#'
+#' @seealso \code{\link{HTODemux}}
 #'
 #' @examples
 #' \dontrun{
@@ -324,20 +325,19 @@ DoHeatmap <- function(
 #'
 HTOHeatmap <- function(
   object,
-  hto.classification = "hto_classification",
-  global.classification = "hto_classification_global",
-  assay = "HTO",
+  assay = 'HTO',
+  classification = paste0(assay, '_classification'),
+  global.classification = paste0(assay, 'classification.global'),
   ncells = 5000,
-  singlet.names = NULL,
-  ...
+  singlet.names = NULL
 ) {
   DefaultAssay(object = object) <- assay
-  Idents(object = object) <- object[[hto.classification, drop = TRUE]]
+  Idents(object = object) <- object[[classification, drop = TRUE]]
   object <- subset(
     x = object,
     select = sample(x = colnames(x = object), size = ncells)
   )
-  classification <- object[[hto.classification]]
+  classification <- object[[classification]]
   singlets <- which(x = object[[global.classification]] == 'Singlet')
   singlet.ids <- sort(x = unique(x = as.character(x = classification[singlets, ])))
   doublets <- which(object[[global.classification]] == 'Doublet')
@@ -352,7 +352,7 @@ HTOHeatmap <- function(
   )
   object <- ScaleData(object = object, assay = assay, verbose = FALSE)
   if (!is.null(x = singlet.names)) {
-    levels(x = object@ident) <- c(singlet.names, "Multiplet", "Negative")
+    levels(x = object) <- c(singlet.names, 'Multiplet', 'Negative')
   }
   data <- FetchData(object = object, vars = singlet.ids)
   plot <- SingleRasterMap(
