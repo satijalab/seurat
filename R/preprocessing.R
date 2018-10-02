@@ -533,7 +533,7 @@ RegressRegNB <- function(
   verbose = TRUE,
   ...
 ) {
-  if (PackageCheck('sctransform')) {
+  if (!PackageCheck('sctransform', error = FALSE)) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
   assay <- assay %||% DefaultAssay(object = object)
