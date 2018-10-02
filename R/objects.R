@@ -456,15 +456,16 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
 
 #' Create a DimReduc object
 #'
-#' @param embeddings ...
-#' @param loadings ...
-#' @param projected ...
-#' @param assay ...
-#' @param stdev ...
-#' @param key ...
-#' @param jackstraw ...
-#' @param misc ...
-#' @param ... Ignored for now
+#' @param embeddings A matrix with the cell embeddings
+#' @param loadings A matrix with the feature loadings
+#' @param projected A matrix with the projected feature loadings
+#' @param assay Assay used to calculate this dimensional reduction
+#' @param stdev Standard deviation (if applicable) for the dimensional reduction
+#' @param key A character string to facilitate looking up features from a 
+#' specific DimReduc 
+#' @param jackstraw Results from the JackStraw function
+#' @param misc list for the user to store any additional information associated
+#' with the dimensional reduction
 #'
 #' @export
 #'
@@ -476,14 +477,17 @@ CreateDimReducObject <- function(
   stdev = numeric(),
   key = NULL,
   jackstraw = NULL,
-  misc = list(),
-  ...
+  misc = list()
 ) {
-  # if (is.null(assay.used)) {
-  #   stop("Please specify the assay that was used to construct the reduction")
-  # }
-  if (is.null(key)) {
+  if (is.null(x = assay)) {
+    stop("Please specify the assay that was used to construct the reduction")
+  }
+  if (is.null(x = key)) {
     stop("Please specify a key for the DimReduc object")
+  }
+  # ensure colnames of the embeddings are the key followed by a numeric
+  if (!all(grepl(pattern = paste0('^', key, "[[:digit:]]+$"), x = colnames(x = embeddings)))) {
+    stop("colnames of embeddings matrix must be the key followed by a number")
   }
   jackstraw <- jackstraw %||% new(Class = 'JackStrawData')
   dim.reduc <- new(

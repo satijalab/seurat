@@ -92,3 +92,33 @@ test_that("CreateAssayObject catches improper input", {
   expect_error(CreateAssayObject(counts = pbmc.raw2))
   expect_error(CreateAssayObject(data = pbmc.raw2))
 })
+
+# Tests for creating an DimReduc object
+# ------------------------------------------------------------------------------
+context("CreateDimReducObject")
+
+pca <- pbmc_small[["pca"]]
+
+test_that("CreateDimReducObject works", {
+  pca.dr <- CreateDimReducObject(
+    embeddings = Embeddings(object = pca),
+    loadings = Loadings(object = pca),
+    projected = Loadings(object = pca, projected = TRUE),
+    key = "PC",
+    assay = "RNA"
+  )
+  expect_equal(Embeddings(object = pca.dr), Embeddings(object = pca))
+  expect_equal(Loadings(object = pca.dr), Loadings(object = pca))
+  expect_equal(Loadings(object = pca.dr, projected = TRUE), Loadings(object = pca, projected = TRUE))
+  expect_equal(Key(object = pca.dr), "PC")
+  expect_equal(pca.dr@assay.used, "RNA")
+})
+
+test_that("CreateDimReducObject catches improper input", {
+  bad.embeddings <- Embeddings(object = pca)
+  colnames(x = bad.embeddings) <- paste0("PCA", 1:ncol(x = bad.embeddings))
+  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
+  colnames(x = bad.embeddings) <- paste0("PC", 1:ncol(x = bad.embeddings), "X")
+  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
+  expect_error(CreateDimReducObject(embeddings = bad.embeddings))
+})

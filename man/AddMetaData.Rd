@@ -4,15 +4,15 @@
 \name{AddMetaData}
 \alias{AddMetaData}
 \alias{SeuratAccess}
-\alias{[[<-,Assay,ANY,ANY-method}
-\alias{[[<-,Seurat,ANY,ANY-method}
+\alias{[[<-,Assay-method}
+\alias{[[<-,Seurat-method}
 \title{Add in metadata associated with either cells or features.}
 \usage{
 AddMetaData(object, metadata, col.name = NULL)
 
-\S4method{[[}{Assay,ANY,ANY}(x, i, j, ...) <- value
+\S4method{[[}{Assay}(x, i, j, ...) <- value
 
-\S4method{[[}{Seurat,ANY,ANY}(x, i, j, ...) <- value
+\S4method{[[}{Seurat}(x, i, j, ...) <- value
 }
 \arguments{
 \item{x, object}{An object}
