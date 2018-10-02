@@ -31,3 +31,10 @@ with the dimensional reduction}
 \description{
 Create a DimReduc object
 }
+\examples{
+data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
+pcs <- prcomp(x = data)
+pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x, 
+            stdev = pcs$sdev, key = "PC", assay = "RNA")
+
+}

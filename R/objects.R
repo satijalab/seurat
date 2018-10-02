@@ -468,6 +468,12 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
 #' with the dimensional reduction
 #'
 #' @export
+#' 
+#' @examples 
+#' data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
+#' pcs <- prcomp(x = data)
+#' pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x, 
+#'             stdev = pcs$sdev, key = "PC", assay = "RNA")
 #'
 CreateDimReducObject <- function(
   embeddings = new(Class = 'matrix'),
