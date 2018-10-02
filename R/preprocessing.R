@@ -1526,3 +1526,251 @@ RegressOutNB <- function(
   object@scale.data <- pr
   return(object)
 }
+
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Proposed feature: subset by barcode distribution inflection points
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+#' Calculate the Barcode Distribution Inflection
+#'
+#' This function calculates an adaptive inflection point ("knee") of the barcode distribution
+#' for each sample group. This is useful for determining a threshold for removing
+#' low-quality samples.
+#'
+#' The function operates by calculating the slope of the barcode number vs. rank
+#' distribution, and then finding the point at which the distribution changes most
+#' steeply (the "knee"). Of note, this calculation often must be restricted as to the
+#' range at which it performs, so `threshold` parameters are provided to restrict the
+#' range of the calculation based on the rank of the barcodes. [PlotBarcodeInflections()]
+#' is provided as a convenience function to visualize and test different thresholds and
+#' thus provide more sensical end results.
+#' 
+#' See [PlotBarcodeInflections()] to visualize the calculated inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
+#' 
+#' @param object Seurat object
+#' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
+#' @param group.column Column to group by ("orig.ident" by default)
+#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
+#'
+#' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
+#' 
+#' * `barcode_distribution` - contains the full barcode distribution across the entire dataset
+#' * `inflection_points` - the calculated inflection points within the thresholds
+#' * `threshold_values` - the provided (or default) threshold values to search within for inflections
+#' * `cells_pass` - the cells that pass the inflection point calculation
+#'
+#' @rdname CalculateBarcodeInflections
+#'
+#' @export
+#' 
+#' @examples
+#' \dontrun{
+#' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
+#' }
+
+CalculateBarcodeInflections <- function(object,
+                                       barcode.column = "nCount_RNA",
+                                       group.column = "orig.ident",
+                                       threshold.low = NULL,
+                                       threshold.high = NULL) {
+    ## Check that barcode.column exists in meta.data
+    if (!(barcode.column %in% colnames(object@meta.data))) {
+        stop("`barcode.column` specified not present in Seurat object provided")
+    }
+
+    ## Calculation of barcode distribution --------------------------------------
+    ## Append rank by grouping x umi column
+    barcode_dist <- as.data.frame(object@meta.data)[, c(group.column, barcode.column)]
+    barcode_dist <- barcode_dist[do.call(order, barcode_dist), ] # order by columns left to right
+    barcode_dist$rank <- ave(barcode_dist[, barcode.column], barcode_dist[, group.column],
+                            FUN = function(x) rev(order(x)))
+    barcode_dist <- barcode_dist[order(barcode_dist[, group.column], barcode_dist[, "rank"]), ]
+
+    ## calculate rawdiff and append per group
+    top <- aggregate(barcode_dist[, barcode.column], by = list(barcode_dist[, group.column]),
+                    FUN = function(x) c(0, diff(log10(x + 1))))$x
+    bot <- aggregate(barcode_dist[, "rank"], by = list(barcode_dist[, group.column]),
+                     FUN = function(x) c(0, diff(x)))$x
+
+    barcode_dist$rawdiff <- unlist(mapply(function(x, y) {
+        ifelse(is.na(x / y), 0, x / y)
+    }, x = top, y = bot))
+
+
+    ## Calculation of inflection points -----------------------------------------
+    ## Set thresholds for rank of barcodes to ignore
+    if (is.null(threshold.low)) {
+        threshold.low <- 1
+    }
+    if (is.null(threshold.high)) {
+        threshold.high <- max(barcode_dist$rank)
+    }
+
+    ## Subset the barcode distribution by thresholds
+    barcode_dist_sub <- barcode_dist[
+        barcode_dist$rank > threshold.low &
+        barcode_dist$rank < threshold.high, ]
+
+    ## Calculate inflection points
+    ## note: if thresholds are s.t. it produces the same length across both groups,
+    ## aggregate will create a data.frame with x.* columns, where * is the length
+    ## using the same combine approach will yield non-symmetrical results!
+    whichmin_list <- aggregate(barcode_dist_sub[, "rawdiff"],
+              by = list(barcode_dist_sub[, group.column]),
+              FUN = function(x) x == min(x))$x
+
+    ## workaround for aggregate behavior noted above
+    if (class(whichmin_list) == "list") { # uneven lengths
+        is_inflection <- unlist(whichmin_list)
+    } else if (class(whichmin_list) == 'matrix') { # even lengths
+        is_inflection <- as.vector(t(whichmin_list))
+    }
+    tmp <- cbind(barcode_dist_sub, is_inflection)
+
+    inflections <- tmp[tmp$is_inflection == TRUE, c(group.column, barcode.column, "rank")]
+
+    ## Use inflection point for what cells to keep ------------------------------
+    ## use the inflection points to cut the subsetted dist to what to keep
+    ## keep only the barcodes above the inflection points
+    keep <- unlist(lapply(whichmin_list, function(x) {
+        keep <- !x
+        if (sum(keep) == length(keep)) {
+            return(keep) # prevents bug in case of keeping all cells
+        }
+        toss <- which(keep == FALSE):length(keep) # the end cells below knee
+        keep[toss] <- FALSE
+        return(keep)
+    }))
+    barcode_dist_sub_keep <- barcode_dist_sub[keep, ]
+
+    cells_keep <- rownames(barcode_dist_sub_keep)
+
+    ## Bind thresholds to keep track of where they are placed -------------------
+    thresholds <- data.frame(threshold = c('threshold.low', 'threshold.high'),
+                            rank = c(threshold.low, threshold.high))
+    
+    ## Combine relevant info together -------------------------------------------
+    ## Combine Barcode dist, inflection point, and cells to keep into list
+    info <- list(barcode_distribution = barcode_dist,
+                inflection_points = inflections,
+                threshold_values = thresholds,
+                cells_pass = cells_keep)
+
+    
+    ## save results into object -------------------------------------------------
+    slot(object, "tools") <- list(CalculateBarcodeInflections = info)
+
+    return(object)
+}
+
+
+#' Plot the Barcode Distribution and Calculated Inflection Points
+#'
+#' This function plots the calculated inflection points derived from the barcode-rank
+#' distribution.
+#' 
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
+#' 
+#' @param object Seurat object
+#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
+#'   recalculate the inflection points, else will use those already in `object`
+#'
+#' @return Returns a `ggplot2` object showing the by-group inflection points and provided
+#'   (or default) rank threshold values in grey.
+#'
+#' @rdname PlotBarcodeInflections
+#'
+#' @importFrom ggplot2 ggplot geom_line geom_vline aes
+#' @importFrom rlang `!!` sym
+#' 
+#' @export
+#' 
+#' @examples
+#' \dontrun{
+#' PlotBarcodeInflections(pbmc_small, group.column = 'groups')
+#' }
+
+PlotBarcodeInflections <- function(object, ...) {
+    dots <- list(...)
+    if (length(dots) > 0) {
+        object <- CalculateBarcodeInflections(object, ...)
+    }
+    if (is.null(object@tools$CalculateBarcodeInflections)) {
+        stop(paste("Barcode inflections not calculated. Set parameters for",
+                   "`CalculateBarcodeInflections()` or run beforehand."))
+
+    }
+
+    ## Extract necessary data frames
+    inflection_points <- object@tools$CalculateBarcodeInflections$inflection_points
+    barcode_distribution <- object@tools$CalculateBarcodeInflections$barcode_distribution
+    threshold_values <- object@tools$CalculateBarcodeInflections$threshold_values
+
+    # Set a cap to max rank to avoid plot being overextended
+    if (threshold_values$rank[[2]] > max(barcode_distribution$rank, na.rm = TRUE)) {
+        threshold_values$rank[[2]] <- max(barcode_distribution$rank, na.rm = TRUE)
+    }
+    
+    ## Infer the grouping/barcode variables
+    group_var <- colnames(barcode_distribution)[1]
+    barcode_var <- colnames(barcode_distribution)[2]
+
+    ## Make the plot
+    g <- ggplot(barcode_distribution,
+           aes(x = !!rlang::sym("rank"), y = log10(!!rlang::sym(barcode_var) + 1),
+               group = !!rlang::sym(group_var), colour = !!rlang::sym(group_var))) +
+        geom_line() +        
+        geom_vline(data = threshold_values,
+                   aes(xintercept = !!rlang::sym("rank")),
+                   linetype = "dashed", colour = 'grey60', size = 0.5) +
+        geom_vline(data = inflection_points,
+                   aes(xintercept = !!rlang::sym("rank"),
+                       group = !!rlang::sym(group_var), colour = !!rlang::sym(group_var)),
+                   linetype = "dashed") 
+
+    return(g)
+}
+
+#' Subset a Seurat Object based on the Barcode Distribution Inflection Points
+#'
+#' This convenience function subsets a Seurat object based on calculated inflection points.
+#' 
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [PlotBarcodeInflections()] to visualize and test inflection point calculations.
+#' 
+#' @param object Seurat object
+#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
+#'   recalculate the inflection points, else will use those already in `object`
+#'
+#' @return Returns a subsetted Seurat object.
+#'
+#' @rdname SubsetByBarcodeInflections
+#'
+#' @export
+#' 
+#' @examples
+#' \dontrun{
+#' SubsetByBarcodeInflections(pbmc_small, group.column = 'groups',
+#'                            threshold.low = 20, threshold.high = 30)
+#' }
+
+SubsetByBarcodeInflections <- function(object, ...) {
+    dots <- list(...)
+    if (length(dots) > 0) {
+        object <- CalculateBarcodeInflections(object, ...)
+    }
+    if (is.null(object@tools$CalculateBarcodeInflections)) {
+        stop(paste("Barcode inflections not calculated. Set parameters for",
+                   "`CalculateBarcodeInflections()` or run beforehand."))
+
+    }
+
+    subset(object, select = object@tools$CalculateBarcodeInflections$cells_pass)
+}
