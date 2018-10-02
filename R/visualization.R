@@ -379,7 +379,7 @@ HTOHeatmap <- function(
 #' @param cols Colors to use for plotting
 #' @param idents Which classes to include in the plot (default is all)
 #' @param sort Sort identity classes (on the x-axis) by the average
-#' expression of the attribute being potted
+#' expression of the attribute being potted, can also pass 'increasing' or 'decreasing' to change sort direction
 #' @param assay Name of assay to use, defaults to the active assay
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.max Maximum y axis value
@@ -3637,14 +3637,17 @@ SingleExIPlot <- function(
   }
   feature <- colnames(x = data)
   data$ident <- idents
-  if (sort) {
+  if ((is.character(x = sort) && nchar(x = sort) > 0) || sort) {
     data$ident <- factor(
       x = data$ident,
-      levels = names(x = rev(x = sort(x = tapply(
-        X = data[, feature],
-        INDEX = data$ident,
-        FUN = mean
-      ))))
+      levels = names(x = rev(x = sort(
+        x = tapply(
+          X = data[, feature],
+          INDEX = data$ident,
+          FUN = mean
+        ),
+        decreasing = grepl(pattern = paste0('^', tolower(x = sort)), x = 'decreasing')
+      )))
     )
   }
   if (log) {
