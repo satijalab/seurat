@@ -47,11 +47,10 @@ See [BarcodeInflectionsPlot()] to visualize the calculated inflection points and
 \examples{
 CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
 
-
 }
 \seealso{
 \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
 }
 \author{
-Robert Amezquita
+Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }

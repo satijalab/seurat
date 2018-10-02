@@ -23,12 +23,12 @@ See [CalculateBarcodeInflections()] to calculate inflection points and
 }
 \examples{
 pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
-BarcodeInflectionsPlot(pbmc_small, group.column = 'groups')
+BarcodeInflectionsPlot(pbmc_small)
 
 }
 \seealso{
 \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 }
 \author{
-Robert Amezquita
+Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }

@@ -41,7 +41,7 @@ NULL
 #'
 #' @export
 #'
-#' @author Robert Amezquita
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
@@ -688,7 +688,7 @@ SampleUMI <- function(
 #'
 #' @export
 #'
-#' @author Robert Amezquita
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
 #'
 #' @examples

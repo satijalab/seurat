@@ -31,5 +31,5 @@ SubsetByBarcodeInflections(object = pbmc_small)
 \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
 }
 \author{
-Robert Amezquita
+Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 }

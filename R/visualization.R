@@ -1205,12 +1205,12 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #'
 #' @export
 #'
-#' @author Robert Amezquita
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
 #' pbmc_small <- CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
-#' BarcodeInflectionsPlot(pbmc_small, group.column = 'groups')
+#' BarcodeInflectionsPlot(pbmc_small)
 #'
 BarcodeInflectionsPlot <- function(object) {
   cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
