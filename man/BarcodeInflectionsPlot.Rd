@@ -29,3 +29,6 @@ BarcodeInflectionsPlot(pbmc_small, group.column = 'groups')
 \seealso{
 \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 }
+\author{
+Robert Amezquita
+}

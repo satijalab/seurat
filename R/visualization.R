@@ -1205,6 +1205,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #'
 #' @export
 #'
+#' @author Robert Amezquita
 #' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{SubsetByBarcodeInflections}}
 #'
 #' @examples
