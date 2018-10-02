@@ -15,10 +15,12 @@ CreateSeuratObject(counts, project = "SeuratProject", assay = "RNA",
 
 \item{assay}{Name of the assay corresponding to the initial input data.}
 
-\item{min.cells}{Include features detected in at least this many cells. Will subset the counts
-matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.}
+\item{min.cells}{Include features detected in at least this many cells. Will
+subset the counts matrix as well. To reintroduce excluded features, create a
+new object with a lower cutoff.}
 
-\item{min.features}{Include cells where at least this many features are detected.}
+\item{min.features}{Include cells where at least this many features are
+detected.}
 
 \item{names.field}{For the initial identity class for each cell, choose this field from the
 cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set

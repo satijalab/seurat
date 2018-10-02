@@ -364,18 +364,18 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 
 #' Create an Assay object
 #'
-#' Create an Assay object from a feature (e.g. gene) expression matrix. The 
+#' Create an Assay object from a feature (e.g. gene) expression matrix. The
 #' expected format of the input matrix is features x cells.
 #'
-#' Non-unique cell or feature names are not allowed. Please make unique before 
+#' Non-unique cell or feature names are not allowed. Please make unique before
 #' calling this function.
 #'
 #' @param counts Unnormalized data such as raw counts or TPMs
 #' @param data Prenormalized data; if provided, do not pass \code{counts}
-#' @param min.cells Include features detected in at least this many cells. Will 
-#' subset the counts matrix as well. To reintroduce excluded features, create a 
+#' @param min.cells Include features detected in at least this many cells. Will
+#' subset the counts matrix as well. To reintroduce excluded features, create a
 #' new object with a lower cutoff.
-#' @param min.features Include cells where at least this many features are 
+#' @param min.features Include cells where at least this many features are
 #' detected.
 #'
 #' @importFrom methods as
@@ -396,7 +396,7 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
-  } 
+  }
   else if (!missing(x = counts)) {
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
@@ -1118,7 +1118,7 @@ RunWorkflow <- function(
   if ((workflow.name == "cluster") && (!(workflow.name%in%names(object@workflows)))) {
     object[[workflow.name]] <- Seurat::cluster.workflow
   }
-  
+
   CheckWorkflow(object = object, workflow.name = workflow.name)
   depends <- slot(object@workflows[[workflow.name]], name = "depends")
   if (!start %in% rownames(x = depends)) {
@@ -3637,7 +3637,26 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @rdname SeuratAccess
+# Internal AddMetaData defintion
+#
+# @param object An object
+# @param metadata A vector, list, or data.frame with metadata to add
+# @param col.name A name for meta data if not a named list or data.frame
+#
+# @return object with metadata added
+#
+.AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (class(x = metadata) == "data.frame") {
+    for (ii in 1:ncol(x = metadata)) {
+      object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+    }
+  } else {
+    object[[col.name]] <- metadata
+  }
+  return(object)
+}
+
+#' @rdname AddMetaData
 #'
 setMethod(
   f = '[[<-',
@@ -3664,18 +3683,7 @@ setMethod(
   }
 )
 
-#' Set metadata and add objects
-#'
-#' @param x An object
-#' @param i Name of metadata or object to add
-#' @param j Not used
-#' @param ... Arguments passed to other methods
-#' @param value Metadata or object to add
-#'
-#' @return An object with metadata or and object added
-#'
-#' @rdname SeuratAccess
-#' @docType methods
+#' @rdname AddMetaData
 #'
 setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',
@@ -3746,7 +3754,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (any(colnames(x = meta.data) %in% FilterObjects(object = x))) {
         bad.cols <- colnames(x = meta.data)[which(colnames(x = meta.data) %in% FilterObjects(object = x))]
         stop(paste0(
-          "Cannot add a metadata column with the same name as an Assay or DimReduc - ", 
+          "Cannot add a metadata column with the same name as an Assay or DimReduc - ",
           paste(bad.cols, collapse = ", ")
         ))
       }
@@ -3770,8 +3778,19 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           call. = FALSE
         )
       }
-      if (class(x = value) %in% c('Assay', 'DimReduc') && length(x = Key(object = value)) == 0) {
-        Key(object = value) <- paste0(tolower(x = i), '_')
+      if (class(x = value) %in% c('Assay', 'DimReduc')) {
+        if (length(x = Key(object = value)) == 0) {
+          Key(object = value) <- paste0(tolower(x = i), '_')
+        }
+        object.keys <- sapply(
+          X = FilterObjects(object = x),
+          FUN = function(i) {
+            return(Key(object = x[[i]]))
+          }
+        )
+        if (Key(object = value) %in% object.keys && is.null(x = FindObject(object = x, name = i))) {
+          stop("Cannot add objects with duplicate keys", call. = FALSE)
+        }
       }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(
@@ -3783,17 +3802,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     return(x)
   }
 )
-
-.AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (class(x = metadata) == "data.frame") {
-    for (ii in 1:ncol(x = metadata)) {
-      object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
-    }
-  } else {
-    object[[col.name]] <- metadata
-  }
-  return(object)
-}
 
 setMethod(
   f = "AddMetaData",

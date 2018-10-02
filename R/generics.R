@@ -1,11 +1,22 @@
 #' Add in metadata associated with either cells or features.
-#' 
-#' Adds additional data to the object. Can be any piece of information 
-#' associated with a cell (examples include read depth, alignment rate, 
-#' experimental batch, or subpopulation identity) or feature (ENSG name, 
+#'
+#' Adds additional data to the object. Can be any piece of information
+#' associated with a cell (examples include read depth, alignment rate,
+#' experimental batch, or subpopulation identity) or feature (ENSG name,
 #' variance). To add cell level information, add to the Seurat object. If adding
 #' feature-level metadata, add to the Assay object (e.g. object[["RNA"]]))
-#' 
+#'
+#' @param x,object An object
+#' @param i,col.name Name to store metadata or object as
+#' @param value,metadata Metadata or object to add
+#'
+#' @return An object with metadata or and object added
+#'
+#' @rdname AddMetaData
+#' @export AddMetaData
+#'
+#' @aliases SeuratAccess
+#'
 #' @examples
 #' cluster_letters <- LETTERS[Idents(object = pbmc_small)]
 #' names(cluster_letters) <- colnames(x = pbmc_small)
@@ -18,10 +29,10 @@
 #'
 #'
 setGeneric(
-  name = "AddMetaData", 
+  name = "AddMetaData",
   def = function(object, metadata, col.name = NULL) {
     standardGeneric("AddMetaData")
-    }, 
+    },
   signature = c("object", "metadata", "col.name")
 )
 
