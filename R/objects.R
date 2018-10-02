@@ -3710,6 +3710,13 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
         }
       }
+      if (any(colnames(x = meta.data) %in% FilterObjects(object = x))) {
+        bad.cols <- colnames(x = meta.data)[which(colnames(x = meta.data) %in% FilterObjects(object = x))]
+        stop(paste0(
+          "Cannot add a metadata column with the same name as an Assay or DimReduc - ", 
+          paste(bad.cols, collapse = ", ")
+        ))
+      }
       slot(object = x, name = 'meta.data') <- meta.data
     } else {
       if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
