@@ -364,16 +364,19 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 
 #' Create an Assay object
 #'
-#' Create an Assay object from a feature (e.g. gene) expression matrix. The expected format of the
-#' input matrix is features x cells.
+#' Create an Assay object from a feature (e.g. gene) expression matrix. The 
+#' expected format of the input matrix is features x cells.
 #'
-#' Non-unique cell or feature names are not allowed. Please make unique before calling this function.
+#' Non-unique cell or feature names are not allowed. Please make unique before 
+#' calling this function.
 #'
 #' @param counts Unnormalized data such as raw counts or TPMs
-#' @param data Prenormalized data; if provided, donot pass \code{counts}
-#' @param min.cells Include features detected in at least this many cells. Will subset the counts
-#' matrix as well. To reintroduce excluded features, create a new object with a lower cutoff.
-#' @param min.features Include cells where at least this many features are detected.
+#' @param data Prenormalized data; if provided, do not pass \code{counts}
+#' @param min.cells Include features detected in at least this many cells. Will 
+#' subset the counts matrix as well. To reintroduce excluded features, create a 
+#' new object with a lower cutoff.
+#' @param min.features Include cells where at least this many features are 
+#' detected.
 #'
 #' @importFrom methods as
 #' @importFrom Matrix colSums
@@ -393,13 +396,20 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
-  } else if (!missing(x = counts)) {
+  } 
+  else if (!missing(x = counts)) {
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       stop("Non-unique features (rownames) present in the input matrix")
     }
     if (anyDuplicated(colnames(x = counts))) {
       stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    if (is.null(x = colnames(x = counts))) {
+      stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (is.null(x = rownames(x = counts))) {
+      stop("No feature names (rownames) names present in the input matrix")
     }
     if (!inherits(x = counts, what = 'dgCMatrix')) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
@@ -414,12 +424,21 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
     }
     data <- counts
   } else if (!missing(x = data)) {
-    # check that dimnames of input counts are unique
+    # check that dimnames of input data are unique
     if (anyDuplicated(rownames(x = data))) {
       stop("Non-unique features (rownames) present in the input matrix")
     }
     if (anyDuplicated(colnames(x = data))) {
       stop("Non-unique cell names (colnames) present in the input matrix")
+    }
+    if (is.null(x = colnames(x = data))) {
+      stop("No cell names (colnames) names present in the input matrix")
+    }
+    if (is.null(x = rownames(x = data))) {
+      stop("No feature names (rownames) names present in the input matrix")
+    }
+    if (min.cells != 0 | min.features != 0) {
+      warning("No filtering performed if passing to data rather than counts")
     }
     counts <- new(Class = 'matrix')
   }
