@@ -1967,8 +1967,7 @@ HoverLocator <- function(
 #'
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
-#' @param size Font size for cluster labels
-#' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}
+#' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
@@ -1983,7 +1982,7 @@ HoverLocator <- function(
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, size = 4, ...) {
+LabelClusters <- function(plot, id, ...) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -2003,7 +2002,6 @@ LabelClusters <- function(plot, id, size = 4, ...) {
   plot <- plot + geom_text_repel(
     data = labels,
     mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
-    size = size,
     ...
   )
   return(plot)
@@ -3579,27 +3577,7 @@ SingleDimPlot <- function(
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    plot <- LabelClusters(plot = plot, id = col.by, label.size = label.size)
-    # labels <- MakeLabels(data = plot$data[, c(dims, col.by)])
-    # plot <- plot +
-    #   geom_point(
-    #     data = labels,
-    #     mapping = aes_string(
-    #       x = colnames(x = labels)[1],
-    #       y = colnames(x = labels)[2]
-    #     ),
-    #     size = 0,
-    #     alpha = 0
-    #   ) +
-    #   geom_text(
-    #     data = labels,
-    #     mapping = aes_string(
-    #       x = colnames(x = labels)[1],
-    #       y = colnames(x = labels)[2],
-    #       label = colnames(x = labels)[3]
-    #     ),
-    #     size = label.size
-    #   )
+    plot <- LabelClusters(plot = plot, id = col.by, size = label.size)
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {
