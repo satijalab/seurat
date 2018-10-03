@@ -5,6 +5,7 @@
 \alias{Key<-}
 \alias{Key.Assay}
 \alias{Key.DimReduc}
+\alias{Key.Seurat}
 \alias{Key<-.Assay}
 \title{Get a key}
 \usage{
@@ -15,6 +16,8 @@ Key(object, ...) <- value
 \method{Key}{Assay}(object, ...)
 
 \method{Key}{DimReduc}(object, ...)
+
+\method{Key}{Seurat}(object, ...)
 
 \method{Key}{Assay}(object, ...) <- value
 }
