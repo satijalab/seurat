@@ -1909,12 +1909,13 @@ Idents.Seurat <- function(object, ...) {
 }
 
 #' @param cells Set cell identities for specific cells
+#' @param drop Drop unused levels
 #'
 #' @rdname Idents
 #' @export
 #' @method Idents<- Seurat
 #'
-"Idents<-.Seurat" <- function(object, cells = NULL, ..., value) {
+"Idents<-.Seurat" <- function(object, cells = NULL, drop = FALSE,..., value) {
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
@@ -1951,6 +1952,9 @@ Idents.Seurat <- function(object, ...) {
   }
   idents <- factor(x = idents, levels = levels)
   slot(object = object, name = 'active.ident') <- idents
+  if (drop) {
+    object <- droplevels(x = object)
+  }
   return(object)
 }
 
@@ -2031,6 +2035,20 @@ Key.Assay <- function(object, ...) {
 #'
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
+}
+
+#' @rdname Key
+#' @export
+#' @method Key Seurat
+#'
+Key.Seurat <- function(object, ...) {
+  keyed.objects <- FilterObjects(object = object)
+  return(sapply(
+    X = keyed.objects,
+    FUN = function(x) {
+    return(Key(object = object[[x]]))
+    }
+  ))
 }
 
 #' @rdname Key
@@ -3196,6 +3214,14 @@ dimnames.Seurat <- function(x) {
   return(dimnames(x = GetAssay(object = x)))
 }
 
+#' @export
+#' @method droplevels Seurat
+#'
+droplevels.Seurat <- function(x, ...) {
+  slot(object = x, name = 'active.ident') <- droplevels(x = Idents(object = x), ...)
+  return(x)
+}
+
 #' @importFrom ggplot2 ggplot aes
 #' @export
 #'
@@ -3640,7 +3666,7 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
   }
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
   slot(object = x, name = 'graphs') <- list()
-  Idents(object = x) <- Idents(object = x)[cells]
+  Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   return(x)
 }
 

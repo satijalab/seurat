@@ -28,7 +28,8 @@ StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, ...)
 
-\method{Idents}{Seurat}(object, cells = NULL, ...) <- value
+\method{Idents}{Seurat}(object, cells = NULL, drop = FALSE,
+  ...) <- value
 
 \method{RenameIdents}{Seurat}(object, ...)
 
@@ -49,6 +50,8 @@ arguments as \code{old.ident = new.ident}}
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
+
+\item{drop}{Drop unused levels}
 
 \item{x, object}{An object}
 }
