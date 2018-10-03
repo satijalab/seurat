@@ -24,7 +24,6 @@ Imports:
     cluster,
     cowplot,
     doSNOW,
-    dtw,
     fitdistrplus,
     ggplot2 (>= 3.0.0),
     ggrepel,

@@ -1104,8 +1104,9 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
 #'
 #' @param object Seurat object
 #' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param command.name Name of the command to run
-#' @param time.stamp Timestamp to assign
+#' @param end Name of ending function within workflow
+#' @param start Name of starting function within workflow
+#' @param ... Other arguments
 #'
 #' @return Seurat object with updated workflow
 #'
@@ -1126,7 +1127,7 @@ RunWorkflow <- function(
   #browser()
   start <- start %||% end
   if ((workflow.name == "cluster") && (!(workflow.name%in%names(object@workflows)))) {
-    object[[workflow.name]] <- Seurat::cluster.workflow
+    object[[workflow.name]] <- cluster.workflow
   }
 
   CheckWorkflow(object = object, workflow.name = workflow.name)
@@ -3818,12 +3819,16 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   }
 )
 
+#' @rdname AddMetaData
+#'
 setMethod(
   f = "AddMetaData",
   signature = c('object' = "Assay"),
   definition = .AddMetaData
 )
 
+#' @rdname AddMetaData
+#'
 setMethod(
   f = "AddMetaData",
   signature = c('object' = "Seurat"),

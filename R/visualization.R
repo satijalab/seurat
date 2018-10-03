@@ -1967,6 +1967,7 @@ HoverLocator <- function(
 #'
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
+#' @param size Font size for cluster labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
@@ -1980,9 +1981,9 @@ HoverLocator <- function(
 #'
 #' @examples
 #' plot <- DimPlot(object = pbmc_small)
-#' LabelClusters(plot = plot, id = 'ident', label.size=4)
+#' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, label.size=4) {
+LabelClusters <- function(plot, id, size = 4, ...) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -2002,7 +2003,8 @@ LabelClusters <- function(plot, id, label.size=4) {
   plot <- plot + geom_text_repel(
     data = labels,
     mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
-    size = label.size
+    size = size,
+    ...
   )
   return(plot)
 }
@@ -3362,6 +3364,7 @@ SetQuantile <- function(cutoff, data) {
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
+#' @importFrom MASS kde2d
 #' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
@@ -3419,13 +3422,29 @@ SingleCorPlot <- function(
       color = legend.title
     )
   if (smooth) {
+    # density <- kde2d(x = data[, names.plot[1]], y = data[, names.plot[2]], h = Bandwidth(data = data[, names.plot]), n = 200)
+    # density <- data.frame(
+    #   expand.grid(
+    #     x = density$x,
+    #     y = density$y
+    #   ),
+    #   density = as.vector(x = density$z)
+    # )
     plot <- plot + stat_density2d(
       mapping = aes(fill = ..density.. ^ 0.25),
-      geom = 'tile',
-      contour = FALSE,
-      n = 200,
-      h = Bandwidth(data = data[, names.plot])
-    ) +
+        geom = 'tile',
+        contour = FALSE,
+        n = 200,
+        h = Bandwidth(data = data[, names.plot])
+      ) +
+      # geom_tile(
+      #   mapping = aes_string(
+      #     x = 'x',
+      #     y = 'y',
+      #     fill = 'density'
+      #   ),
+      #   data = density
+      # ) +
       scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
   }

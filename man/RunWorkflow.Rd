@@ -12,9 +12,11 @@ RunWorkflow(object, workflow.name = "cluster", end = "FindClusters",
 
 \item{workflow.name}{Workflow name, should already be initialized using InitializeWorkflow}
 
-\item{command.name}{Name of the command to run}
+\item{end}{Name of ending function within workflow}
 
-\item{time.stamp}{Timestamp to assign}
+\item{start}{Name of starting function within workflow}
+
+\item{...}{Other arguments}
 }
 \value{
 Seurat object with updated workflow

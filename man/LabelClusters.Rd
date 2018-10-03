@@ -4,12 +4,14 @@
 \alias{LabelClusters}
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id, label.size = 4)
+LabelClusters(plot, id, size = 4, ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
 
 \item{id}{Name of variable used for coloring scatter plot}
+
+\item{size}{Font size for cluster labels}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}}
 }
@@ -21,7 +23,7 @@ Label clusters on a ggplot2-based scatter plot
 }
 \examples{
 plot <- DimPlot(object = pbmc_small)
-LabelClusters(plot = plot, id = 'ident', label.size=4)
+LabelClusters(plot = plot, id = 'ident')
 
 }
 \seealso{

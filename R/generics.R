@@ -9,6 +9,8 @@
 #' @param x,object An object
 #' @param i,col.name Name to store metadata or object as
 #' @param value,metadata Metadata or object to add
+#' @param j Ignored
+#' @param ... Arguments passed to other methods
 #'
 #' @return An object with metadata or and object added
 #'

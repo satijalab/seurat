@@ -680,7 +680,7 @@ as.data.frame.Matrix <- function(
 #
 # @return ...
 #
-#' @importFrom utils argsAnywhere
+#' @importFrom utils argsAnywhere getAnywhere
 #
 # @examples
 #
