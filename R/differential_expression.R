@@ -557,17 +557,18 @@ FindMarkers.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  data.slot <- "data"
-  if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
-    data.slot <- "raw.data"
-  }
+  data.slot <- ifelse(
+    test = test.use %in% c("negbinom", "poisson", "DESeq2"),
+    yes = 'counts',
+    no = 'data'
+  )
   data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
-  if (is.null(ident.1)) {
+  if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
   }
   if (length(x = as.vector(x = ident.1)) > 1 &&
-      any(as.character(x = ident.1) %in% colnames(data.use))) {
-    bad.cells <- colnames(data.use)[which(!as.character(x = ident.1) %in% colnames(data.use))]
+      any(as.character(x = ident.1) %in% colnames(x = data.use))) {
+    bad.cells <- colnames(x = data.use)[which(x = !as.character(x = ident.1) %in% colnames(x = data.use))]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
@@ -576,19 +577,19 @@ FindMarkers.Seurat <- function(
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2)) > 1 &&
-      any(as.character(x = ident.2) %in% colnames(data.use))) {
-    bad.cells <- colnames(data.use)[which(!as.character(x = ident.2) %in% colnames(data.use))]
+      any(as.character(x = ident.2) %in% colnames(x = data.use))) {
+    bad.cells <- colnames(x = data.use)[which(!as.character(x = ident.2) %in% colnames(x = data.use))]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
     if (is.null(x = ident.2)) {
-      ident.2 <- setdiff(colnames(data.use), ident.1)
+      ident.2 <- setdiff(x = colnames(x = data.use), y = ident.1)
     } else {
       ident.2 <- WhichCells(object = object, idents = ident.2)
     }
   }
-  if (!is.null(latent.vars)) {
+  if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
       object = object,
       vars = latent.vars,
@@ -1095,6 +1096,7 @@ MASTDETest <- function(
     latent.vars <- scale(x = latent.vars)
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
+  latent.vars <- latent.vars %||% group.info
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
