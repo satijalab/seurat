@@ -2337,8 +2337,12 @@ Print.DimReduc <- function(
     projected <- FALSE
     loadings <- Loadings(object, projected = projected)
   }
+  if (min(dims) > ncol(x = loadings)) {
+    stop("Cannot print dimensions greater than computed")
+  }
   if (max(dims) > ncol(x = loadings)) {
-    stop(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
+    warning(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
+    dims <- min(dims):ncol(x = loadings)
   }
   for (dim in dims) {
     features <- TopFeatures(
