@@ -762,6 +762,9 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       slot = slot
     )[default.vars, cells, drop = FALSE])))
   )
+  if ('ident' %in% vars && !'ident' %in% colnames(x = object[[]])) {
+    data.fetched[['ident']] <- Idents(object = object)
+  }
   fetched <- names(x = data.fetched)
   vars.missing <- setdiff(x = vars, y = fetched)
   m2 <- if (length(x = vars.missing) > 10) {
