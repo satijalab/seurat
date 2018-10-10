@@ -519,7 +519,7 @@ VlnPlot <- function(
 #' @param cells Vector of cells to plot (default is all cells)
 #' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
-#' @param reduction Which dimensionality reduction to use
+#' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by A vector of variables to group (color) cells by (for example, orig.ident);
 #' pass 'ident' to group by identity class
 #' @param shape.by If NULL, all points are circles (default). You can specify any
@@ -541,6 +541,7 @@ VlnPlot <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param legend Include a legend. TRUE by default. 
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -562,7 +563,7 @@ DimPlot <- function(
   cells = NULL,
   cols = NULL,
   pt.size = NULL,
-  reduction = 'pca',
+  reduction = NULL,
   group.by = NULL,
   shape.by = NULL,
   order = NULL,
@@ -573,11 +574,17 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   combine = TRUE,
+  legend = TRUE,
   ...
 ) {
   ReadPlotParams(object)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
+  }
+  if (is.null(reduction)) {
+    default_order <- c('umap', 'tsne', 'pca')
+    reducs <- which(default_order %in% names(object@reductions))
+    reduction <- default_order[reducs[1]]
   }
   cells <- cells %||% colnames(x = object)
   data <- Embeddings(object = object[[reduction]])[cells, dims]
@@ -614,6 +621,9 @@ DimPlot <- function(
       ))
     }
   )
+  if (legend == FALSE) {
+    plots <- lapply(plots, function(x) x + NoLegend())
+  }
   if (combine) {
     plots <- CombinePlots(plots = plots)
   }
@@ -667,7 +677,7 @@ FeaturePlot <- function(
   pt.size = NULL,
   min.cutoff = NA,
   max.cutoff = NA,
-  reduction = 'tsne',
+  reduction = NULL,
   split.by = NULL,
   shape.by = NULL,
   blend = FALSE,
@@ -690,6 +700,11 @@ FeaturePlot <- function(
       margin = margin(r = 7)
     )
   )
+  if (is.null(reduction)) {
+    default_order <- c('umap', 'tsne', 'pca')
+    reducs <- which(default_order %in% names(object@reductions))
+    reduction <- default_order[reducs[1]]
+  }
   if (length(x = dims) != 2 || !is.numeric(x = dims)) {
     stop("'dims' must be a two-length integer vector")
   }
@@ -1999,7 +2014,7 @@ LabelClusters <- function(plot, id, ...) {
   names(x = labels) <- groups
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
   labels[, colnames(x = data)[3]] <- groups
-  plot <- plot + geom_text_repel(
+  plot <- plot + geom_text(
     data = labels,
     mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
     ...
