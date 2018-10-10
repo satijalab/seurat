@@ -541,7 +541,7 @@ VlnPlot <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
-#' @param legend Include a legend. TRUE by default. 
+#' @param legend Include a legend. TRUE by default.
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
@@ -1982,13 +1982,14 @@ HoverLocator <- function(
 #'
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
+#' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
 #' @return A ggplot2-based scatter plot with cluster labels
 #'
 #' @importFrom stats median
-#' @importFrom ggplot2 aes_string
 #' @importFrom ggrepel geom_text_repel
+#' @importFrom ggplot2 aes_string geom_text
 #' @export
 #'
 #' @seealso \code{\link[ggrepel]{geom_text_repel}}
@@ -1997,7 +1998,7 @@ HoverLocator <- function(
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, ...) {
+LabelClusters <- function(plot, id, repel = TRUE, ...) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -2014,7 +2015,8 @@ LabelClusters <- function(plot, id, ...) {
   names(x = labels) <- groups
   labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
   labels[, colnames(x = data)[3]] <- groups
-  plot <- plot + geom_text(
+  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+  plot <- plot + geom.use(
     data = labels,
     mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
     ...
@@ -3592,7 +3594,12 @@ SingleDimPlot <- function(
     guides(color = guide_legend(override.aes = list(size = 3))) +
     labs(color = NULL)
   if (label && !is.null(x = col.by)) {
-    plot <- LabelClusters(plot = plot, id = col.by, size = label.size)
+    plot <- LabelClusters(
+      plot = plot,
+      id = col.by,
+      repel = FALSE,
+      size = label.size
+    )
   }
   if (!is.null(x = cols)) {
     plot <- plot + if (length(x = cols) == 1) {

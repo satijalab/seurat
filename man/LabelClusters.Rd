@@ -4,12 +4,14 @@
 \alias{LabelClusters}
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id, ...)
+LabelClusters(plot, id, repel = TRUE, ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
 
 \item{id}{Name of variable used for coloring scatter plot}
+
+\item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
 
 \item{...}{Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}}
 }
