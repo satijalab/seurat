@@ -767,6 +767,44 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   }
   fetched <- names(x = data.fetched)
   vars.missing <- setdiff(x = vars, y = fetched)
+  if (length(x = vars.missing) > 0) {
+    vars.alt <- vector(mode = 'list', length = length(x = vars.missing))
+    names(x = vars.alt) <- vars.missing
+    for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
+      vars.assay <- Filter(
+        f = function(x) {
+          return(x %in% rownames(x = object[[assay]]))
+        },
+        x = vars.missing
+      )
+      for (var in vars.assay) {
+        vars.alt[[var]] <- append(x = vars.alt[[var]], values = assay)
+      }
+    }
+    vars.missing <- names(x = Filter(
+      f = function(x) {
+        return(length(x = x) != 1)
+      },
+      vars.alt
+    ))
+    vars.alt <- Filter(
+      f = function(x) {
+        return(length(x = x) == 1)
+      },
+      x = vars.alt
+    )
+    for (var in names(x = vars.alt)) {
+      assay <- vars.alt[[var]]
+      warning(
+        'Could not find ',
+        var,
+        'in the default search locations, found in ',
+        assay,
+        'assay instead'
+      )
+      data.fetched[[paste0(Key(object = object[[assay]]), var)]] <- object[[assay]][var, cells, drop = FALSE]
+    }
+  }
   m2 <- if (length(x = vars.missing) > 10) {
     paste0(' (10 out of ', length(x = vars.missing), ' shown)')
   } else {
