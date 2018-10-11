@@ -57,7 +57,8 @@ of this}
 the tSNE. Default is PCA}
 
 \item{features}{If set, run the tSNE on this subset of features
-(instead of running on a set of reduced dimensions). Not set (NULL) by default}
+(instead of running on a set of reduced dimensions). Not set (NULL) by default;
+\code{dims} must be NULL to run on features}
 
 \item{distance.matrix}{If set, runs tSNE on the given distance matrix
 instead of data matrix (experimental)}

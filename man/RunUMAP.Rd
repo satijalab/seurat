@@ -54,7 +54,8 @@ NULL will not set a seed}
 UMAP input. Default is PCA}
 
 \item{features}{If set, run UMAP on this subset of features (instead of running on a
-set of reduced dimensions). Not set (NULL) by default}
+set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
+on features}
 
 \item{reduction.name}{dimensional reduction name, specifies the position in
 the object$dr list. umap by default}
