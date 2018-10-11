@@ -3408,12 +3408,12 @@ merge.Assay <- function(
       assays[[i]] <- RenameCells(object = assays[[i]], new.names = add.cell.ids[i])
     }
   }
-  # Merge the counts
-  merged.counts <- GetAssayData(object = assays[[1]], slot = "counts")
+  # Merge the counts (if present)
+  merged.counts <- ValidateDataForMerge(assay = assays[[1]], slot = "counts")
   for (i in 2:length(x = assays)) {
     merged.counts <- RowMergeSparseMatrices(
       mat1 = merged.counts,
-      mat2 = GetAssayData(object = assays[[i]], slot = "counts")
+      mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
     )
   }
   combined.assay <- CreateAssayObject(
@@ -3422,11 +3422,11 @@ merge.Assay <- function(
     min.features = -1
   )
   if (merge.data) {
-    merged.data <- GetAssayData(object = assays[[1]], slot = "data")
+    merged.data <- ValidateDataForMerge(assay = assays[[1]], slot = "data")
     for (i in 2:length(x = assays)) {
       merged.data <- RowMergeSparseMatrices(
         mat1 = merged.data,
-        mat2 = GetAssayData(object = assays[[i]], slot = "data")
+        mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "data")
       )
     }
     # only keep cells that made it through counts filtering params
@@ -3448,8 +3448,8 @@ merge.Assay <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs or logged commands that were
-#' present in the original objects.
+#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata 
+#' that were present in the original objects.
 #'
 #' @inheritParams CreateSeuratObject
 #' @param x Object
@@ -4527,6 +4527,40 @@ UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
     time.stamp = seurat.timestamp
   )
   return(object)
+}
+
+# Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty 
+# matrix with the proper dimensions from one of the remaining data slots.
+#
+# @param assay   Assay to pull data from
+# @param slot    Slot to pull from
+#
+# @return        Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an 
+#                appropriately sized empty sparse matrix
+#
+ValidateDataForMerge <- function(
+  assay,
+  slot
+) {
+  mat <- GetAssayData(object = assay, slot = slot)
+  if (any(dim(x = mat) == c(0, 0))) {
+    slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
+    for(ss in slots.to.check) {
+      data.dims <- dim(x = GetAssayData(object = assay, slot = ss))
+      data.slot <- ss
+      if (!any(data.dims == c(0, 0))) break
+    }
+    if (any(data.dims == c(0, 0))) {
+      stop("The counts, data, and scale.data slots are all empty for the provided assay.")
+    }
+    mat <- Matrix(
+      data = 0,
+      nrow = data.dims[1],
+      ncol = data.dims[2],
+      dimnames = dimnames(x = GetAssayData(object = assay, slot = data.slot))
+    )
+  }
+  return(mat)
 }
 
 # Validates the workflow file that was provided.
