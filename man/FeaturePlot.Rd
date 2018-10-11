@@ -7,7 +7,7 @@
 \usage{
 FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   cols = c("lightgrey", "blue"), pt.size = NULL, min.cutoff = NA,
-  max.cutoff = NA, reduction = "tsne", split.by = NULL,
+  max.cutoff = NA, reduction = NULL, split.by = NULL,
   shape.by = NULL, blend = FALSE, blend.threshold = 0.5,
   order = NULL, label = FALSE, label.size = 4, ncol = NULL,
   combine = TRUE, coord.fixed = FALSE, ...)
@@ -31,7 +31,7 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
 
-\item{reduction}{Which dimensionality reduction to use}
+\item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
 \item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 

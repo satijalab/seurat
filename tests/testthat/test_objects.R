@@ -122,3 +122,35 @@ test_that("CreateDimReducObject catches improper input", {
   expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
   expect_error(CreateDimReducObject(embeddings = bad.embeddings))
 })
+
+# Tests for creating a Seurat object
+# ------------------------------------------------------------------------------
+context("CreateSeuratObject")
+
+colnames(x = pbmc.raw) <- paste0(colnames(x = pbmc.raw), "-", pbmc_small$groups)
+metadata.test <- pbmc_small[[]][, 5:7]
+rownames(x = metadata.test) <- colnames(x = pbmc.raw)
+
+test_that("CreateSeuratObject works", {
+  seurat.object <- CreateSeuratObject(
+    counts = pbmc.raw,
+    project = "TESTING",
+    assay = "RNA.TEST",
+    names.field = 2,
+    names.delim = "-",
+    meta.data = metadata.test
+  )
+  expect_equal(seurat.object[[]][, 4:6], metadata.test)
+  expect_equal(seurat.object@project.name, "TESTING")
+  expect_equal(names(x = seurat.object), "RNA.TEST")
+  expect_equal(as.vector(x = unname(obj = Idents(object = seurat.object))), unname(pbmc_small$groups))
+})
+
+test_that("CreateSeuratObject handles bad names.field/names.delim", {
+  expect_warning(seurat.object <- CreateSeuratObject(
+    counts = pbmc.raw[1:5,1:5],
+    names.field = 3,
+    names.delim = ":",
+    meta.data = metadata.test
+  ))
+})

@@ -528,10 +528,10 @@ CreateDimReducObject <- function(
 #' cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the input matrix, set
 #' names.field to 3 to set the initial identities to CELLTYPE.
 #' @param names.delim For the initial identity class for each cell, choose this delimiter from the
-#' cell's column name. E.g. If you cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
-#' separate the cell name into it's component parts for picking the relevant field.
-#' @param meta.data Additional metadata to add to the Seurat object. Should be a data frame where
-#' the rows are cell names, and the columns are additional metadata fields.
+#' cell's column name. E.g. If your cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
+#' separate the cell name into its component parts for picking the relevant field.
+#' @param meta.data Additional cell-level metadata to add to the Seurat object. Should be a data 
+#' frame where the rows are cell names and the columns are additional metadata fields.
 #'
 #' @importFrom utils packageVersion
 #' @importFrom Matrix colSums
@@ -571,6 +571,9 @@ CreateSeuratObject <- function(
     field = names.field,
     delim = names.delim
   )))
+  if (any(is.na(x = idents))) {
+    warning("Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name")
+  }
   # if there are more than 100 idents, set all idents to ... name
   ident.levels <- length(x = unique(x = idents))
   if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {

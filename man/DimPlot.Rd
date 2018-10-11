@@ -5,10 +5,11 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = "pca", group.by = NULL,
+  pt.size = NULL, reduction = NULL, group.by = NULL,
   shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
   cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", combine = TRUE, ...)
+  sizes.highlight = 1, na.value = "grey50", combine = TRUE,
+  legend = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,7 +22,7 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{reduction}{Which dimensionality reduction to use}
+\item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
 \item{group.by}{A vector of variables to group (color) cells by (for example, orig.ident);
 pass 'ident' to group by identity class}
@@ -53,6 +54,8 @@ groups in cells.highlight}
 \item{na.value}{Color value for NA points when using custom scale}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{legend}{Include a legend. TRUE by default.}
 
 \item{...}{Ignored for now}
 }

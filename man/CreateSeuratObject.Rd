@@ -27,11 +27,11 @@ cell's name. E.g. If your cells are named as BARCODE_CLUSTER_CELLTYPE in the inp
 names.field to 3 to set the initial identities to CELLTYPE.}
 
 \item{names.delim}{For the initial identity class for each cell, choose this delimiter from the
-cell's column name. E.g. If you cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
-separate the cell name into it's component parts for picking the relevant field.}
+cell's column name. E.g. If your cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
+separate the cell name into its component parts for picking the relevant field.}
 
-\item{meta.data}{Additional metadata to add to the Seurat object. Should be a data frame where
-the rows are cell names, and the columns are additional metadata fields.}
+\item{meta.data}{Additional cell-level metadata to add to the Seurat object. Should be a data 
+frame where the rows are cell names and the columns are additional metadata fields.}
 }
 \description{
 Create a Seurat object from a feature (e.g. gene) expression matrix. The expected format of the
