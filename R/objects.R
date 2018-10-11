@@ -798,12 +798,23 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       warning(
         'Could not find ',
         var,
-        'in the default search locations, found in ',
+        ' in the default search locations, found in ',
         assay,
-        'assay instead'
+        ' assay instead',
+        immediate. = TRUE,
+        call. = FALSE
       )
-      data.fetched[[paste0(Key(object = object[[assay]]), var)]] <- object[[assay]][var, cells, drop = FALSE]
+      keyed.var <- paste0(Key(object = object[[assay]]), var)
+      data.fetched[[keyed.var]] <- as.vector(
+        x = object[[assay]][var, cells]
+      )
+      vars <- sub(
+        pattern = paste0('^', var, '$'),
+        replacement = keyed.var,
+        x = vars
+      )
     }
+    fetched <- names(x = data.fetched)
   }
   m2 <- if (length(x = vars.missing) > 10) {
     paste0(' (10 out of ', length(x = vars.missing), ' shown)')
