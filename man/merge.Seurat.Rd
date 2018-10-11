@@ -7,11 +7,10 @@
 \title{Merge Seurat Objects}
 \usage{
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,
-  min.cells = 0, min.features = 0, merge.data = TRUE, ...)
+  merge.data = TRUE, ...)
 
 \method{merge}{Seurat}(x = NULL, y = NULL, add.cell.ids = NULL,
-  merge.data = TRUE, project = "SeuratProject", min.cells = 0,
-  min.features = 0, ...)
+  merge.data = TRUE, project = "SeuratProject", ...)
 }
 \arguments{
 \item{x}{Object}
@@ -20,13 +19,6 @@
 
 \item{add.cell.ids}{A character vector of length(x = c(x, y)). Appends the
 corresponding values to the start of each objects' cell names.}
-
-\item{min.cells}{Include features detected in at least this many cells. Will
-subset the counts matrix as well. To reintroduce excluded features, create a
-new object with a lower cutoff.}
-
-\item{min.features}{Include cells where at least this many features are
-detected.}
 
 \item{merge.data}{Merge the data slots instead of just merging the counts
 (which requires renormalization). This is recommended if the same normalization

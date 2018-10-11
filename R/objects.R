@@ -391,7 +391,12 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' pbmc_rna <- CreateAssayObject(counts = pbmc_raw)
 #' pbmc_rna
 #'
-CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
+CreateAssayObject <- function(
+  counts, 
+  data, 
+  min.cells = 0, 
+  min.features = 0
+  ) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
@@ -415,8 +420,10 @@ CreateAssayObject <- function(counts, data, min.cells = 0, min.features = 0) {
       counts <- as(object = as.matrix(x = counts), Class = 'dgCMatrix')
     }
     # Filter based on min.features
-    nfeatures <- Matrix::colSums(x = counts > 0)
-    counts <- counts[, which(x = nfeatures > min.features)]
+    if (min.features > 0) {
+      nfeatures <- Matrix::colSums(x = counts > 0)
+      counts <- counts[, which(x = nfeatures > min.features)]
+    }
     # filter genes on the number of cells expressing
     if (min.cells > 0) {
       num.cells <- rowSums(x = counts > 0)
@@ -3392,8 +3399,6 @@ merge.Assay <- function(
   x = NULL,
   y = NULL,
   add.cell.ids = NULL,
-  min.cells = 0,
-  min.features = 0,
   merge.data = TRUE,
   ...
 ) {
@@ -3413,8 +3418,8 @@ merge.Assay <- function(
   }
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
-    min.cells = min.cells,
-    min.features = min.features
+    min.cells = -1,
+    min.features = -1
   )
   if (merge.data) {
     merged.data <- GetAssayData(object = assays[[1]], slot = "data")
@@ -3470,8 +3475,6 @@ merge.Seurat <- function(
   add.cell.ids = NULL,
   merge.data = TRUE,
   project = "SeuratProject",
-  min.cells = 0,
-  min.features = 0,
   ...
 ) {
   objects <- c(x, y)
@@ -3498,19 +3501,14 @@ merge.Seurat <- function(
     combined.assays[[assay]] <- merge(
       x = assay1,
       y = assay2,
-      merge.data = merge.data,
-      min.cells = min.cells,
-      min.features = min.features
+      merge.data = merge.data
     )
   }
   # Merge the meta.data
-  # get rid of nCount_ and nFeature_*
   combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
   new.idents <- c()
   for (object in objects) {
     old.meta.data <- object[[]]
-    old.meta.data[, which(grepl(pattern = "nCount_", x = colnames(old.meta.data)))] <- NULL
-    old.meta.data[, which(grepl(pattern = "nFeature_", x = colnames(old.meta.data)))] <- NULL
     if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
       cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
       combined.meta.data[, cols.to.add] <- NA
@@ -3539,17 +3537,6 @@ merge.Seurat <- function(
     project.name = project,
     version = packageVersion(pkg = 'Seurat')
   )
-  for (assay in assays.to.merge) {
-    merged.object[[paste('nFeature', assay, sep = '_')]] <-
-      Matrix::colSums(x = GetAssayData(
-        object = merged.object,
-        assay = assay, slot = "counts") > 0)
-    merged.object[[paste('nCount', assay, sep = '_')]] <-
-      Matrix::colSums(x = GetAssayData(
-        object = merged.object,
-        assay = assay,
-        slot = 'counts'))
-  }
   return(merged.object)
 }
 
