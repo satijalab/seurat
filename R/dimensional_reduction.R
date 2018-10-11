@@ -887,7 +887,8 @@ RunTSNE.DimReduc <- function(
 #' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
 #' the tSNE. Default is PCA
 #' @param features If set, run the tSNE on this subset of features
-#' (instead of running on a set of reduced dimensions). Not set (NULL) by default
+#' (instead of running on a set of reduced dimensions). Not set (NULL) by default;
+#' \code{dims} must be NULL to run on features
 #' @param distance.matrix If set, runs tSNE on the given distance matrix
 #' instead of data matrix (experimental)
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
@@ -931,6 +932,18 @@ RunTSNE.Seurat <- function(
       is_distance = TRUE,
       ...
     )
+  } else if (!is.null(x = dims)) {
+    RunTSNE(
+      object = object[[reduction]],
+      dims = dims,
+      seed.use = seed.use,
+      tsne.method = tsne.method,
+      add.iter = add.iter,
+      dim.embed = dim.embed,
+      reduction.key = reduction.key,
+      pca = FALSE,
+      ...
+    )
   } else if (!is.null(x = features)) {
     RunTSNE(
       object = as.matrix(x = GetAssayData(object = object)[features, ]),
@@ -944,17 +957,7 @@ RunTSNE.Seurat <- function(
       ...
     )
   } else {
-    RunTSNE(
-      object = object[[reduction]],
-      dims = dims,
-      seed.use = seed.use,
-      tsne.method = tsne.method,
-      add.iter = add.iter,
-      dim.embed = dim.embed,
-      reduction.key = reduction.key,
-      pca = FALSE,
-      ...
-    )
+    stop("Unknown way of running tSNE")
   }
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
@@ -1033,7 +1036,8 @@ RunUMAP.default <- function(
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
 #' @param features If set, run UMAP on this subset of features (instead of running on a
-#' set of reduced dimensions). Not set (NULL) by default
+#' set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
+#' on features
 #' @param reduction.name dimensional reduction name, specifies the position in
 #' the object$dr list. umap by default
 #'
@@ -1056,7 +1060,7 @@ RunUMAP.Seurat <- function(
   seed.use = 42,
   ...
 ) {
-  if (is.null(x = features)) {
+  if (!is.null(x = dims) || is.null(x = features)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
   } else {
