@@ -63,8 +63,9 @@ groups in cells.highlight}
 A ggplot object
 }
 \description{
-Graphs the output of a dimensional reduction technique (PCA by default).
-Cells are colored by their identity class.
+Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a 
+cell and it's positioned based on the cell embeddings determined by the reduction technique. By 
+default, cells are colored by their identity class (can be changed with the group.by parameter).
 }
 \note{
 For the old \code{do.hover} and \code{do.identify} functionality, please see
