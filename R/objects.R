@@ -392,9 +392,9 @@ CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
 #' pbmc_rna
 #'
 CreateAssayObject <- function(
-  counts, 
-  data, 
-  min.cells = 0, 
+  counts,
+  data,
+  min.cells = 0,
   min.features = 0
   ) {
   if (missing(x = counts) && missing(x = data)) {
@@ -2871,6 +2871,51 @@ SubsetData.Seurat <- function(
   }
   slot(object = object, name = "active.ident") <- Idents(object = object)[cells]
   slot(object = object, name = "meta.data") <- slot(object = object, name = "meta.data")[cells, ]
+  return(object)
+}
+
+#' @param slot Name of tool to pull
+#'
+#' @rdname Tool
+#' @export
+#' @method Tool Seurat
+#'
+Tool.Seurat <- function(object, slot = NULL, ...) {
+  if (is.null(x = slot)) {
+    return(names(x = slot(object = object, name = 'tools')))
+  }
+  return(slot(object = object, name = 'tools')[[slot]])
+}
+
+#' @rdname Tool
+#' @export
+#' @method Tool<- Seurat
+#'
+"Tool<-.Seurat" <- function(object, ..., value) {
+  calls <- as.character(x = sys.calls())
+  calls <- lapply(
+    X = strsplit(x = calls, split = '(', fixed = TRUE),
+    FUN = '[',
+    1
+  )
+  tool.call <- min(grep(pattern = 'Tool<-', x = calls))
+  if (tool.call <= 1) {
+    stop("'Tool<-' cannot be called at the top level", call. = FALSE)
+  }
+  tool.call <- calls[[tool.call - 1]]
+  class.call <- unlist(x = strsplit(
+    x = as.character(x = sys.call())[1],
+    split = '.',
+    fixed = TRUE
+  ))
+  class.call <- class.call[length(x = class.call)]
+  tool.call <- sub(
+    pattern = paste0('\\.', class.call, '$'),
+    replacement = '',
+    x = tool.call,
+    perl = TRUE
+  )
+  slot(object = object, name = 'tools')[[tool.call]] <- value
   return(object)
 }
 

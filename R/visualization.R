@@ -511,9 +511,9 @@ VlnPlot <- function(
 
 #' Dimensional reduction plot
 #'
-#' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a 
-#' cell and it's positioned based on the cell embeddings determined by the reduction technique. By 
-#' default, cells are colored by their identity class (can be changed with the group.by parameter). 
+#' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
+#' cell and it's positioned based on the cell embeddings determined by the reduction technique. By
+#' default, cells are colored by their identity class (can be changed with the group.by parameter).
 #'
 #' @param object Seurat object
 #' @param dims Dimensions to plot, must be a two-length numeric vector specifying x- and y-dimensions
@@ -1158,13 +1158,14 @@ VariableFeaturePlot <- function(
 #' @export
 #'
 ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
-  if ( is.null(object@tools[["alra"]])) {
-    stop('RunALRA() should be run prior to using this function.')
+  alra.data <- Tool(object = object, slot = 'RunALRA')
+  if (is.null(x = alra.data)) {
+    stop('RunALRA should be run prior to using this function.')
   }
-  d <- object@tools[["alra"]][["d"]]
-  diffs <- object@tools[["alra"]][["diffs"]]
-  pvals <- object@tools[["alra"]][["pvals"]]
-  k <- object@tools[["alra"]][["k"]]
+  d <- alra.data[["d"]]
+  diffs <- alra.data[["diffs"]]
+  pvals <- alra.data[["pvals"]]
+  k <- alra.data[["k"]]
   if (start == 0) {
     start <- floor(x = k / 2)
   }
@@ -1229,7 +1230,7 @@ ALRAChooseKPlot <- function(object, start = 0, combine = TRUE) {
 #' BarcodeInflectionsPlot(pbmc_small)
 #'
 BarcodeInflectionsPlot <- function(object) {
-  cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
+  cbi.data <- Tool(object = object, slot = 'CalculateBarcodeInflections')
   if (is.null(x = cbi.data)) {
     stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
   }

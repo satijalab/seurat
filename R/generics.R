@@ -868,6 +868,41 @@ SubsetData <- function(object, ...) {
   UseMethod(generic = 'SubsetData', object = object)
 }
 
+#' Get and set additional tool data
+#'
+#' Use \code{Tool} to get tool data. If no additional arguments are provided,
+#' will return a vector with the names of tools in the object.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return If no additional arguments, returns the names of the tools in the
+#' object; otherwise returns the data placed by the tool requested
+#'
+#'@note For developers: set tool data using \code{Tool<-}. \code{Tool<-} will
+#'automatically set the name of the tool to the function that called \code{Tool<-},
+#'so each function gets one entry in the tools list and cannot overwrite another
+#'function's entry. The automatic naming will also remove any method identifiers
+#'(eg. RunPCA.Seurat will become RunPCA); please plan accordingly.
+#'
+#' @rdname Tool
+#' @export Tool
+#' @aliases Tools
+#'
+Tool <- function(object, ...) {
+  UseMethod(generic = 'Tool', object = object)
+}
+
+#' @inheritParams Tool
+#' @param value Information to be added to tool list
+#'
+#' @rdname Tool
+#' @export Tool<-
+#'
+"Tool<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Tool<-', object = object)
+}
+
 #' Get and set variable feature information
 #'
 #' @param object An object

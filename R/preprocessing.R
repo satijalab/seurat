@@ -149,7 +149,7 @@ CalculateBarcodeInflections <- function(
     cells_pass = cells_keep
   )
   # save results into object
-  slot(object = object, name = 'tools')$CalculateBarcodeInflections <- info
+  Tool(object = object) <- info
   return(object)
 }
 
@@ -686,8 +686,6 @@ SampleUMI <- function(
 #'
 #' @return Returns a subsetted Seurat object.
 #'
-#' @importFrom methods slot
-#'
 #' @export
 #'
 #' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
@@ -698,7 +696,7 @@ SampleUMI <- function(
 #' SubsetByBarcodeInflections(object = pbmc_small)
 #'
 SubsetByBarcodeInflections <- function(object) {
-  cbi.data <- slot(object = object, name = 'tools')$CalculateBarcodeInflections
+  cbi.data <- Tool(object = object, slot = CalculateBarcodeInflections)
   if (is.null(x = cbi.data)) {
     stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
   }
@@ -1169,13 +1167,11 @@ RunALRA.Seurat <- function(
   }
   genes.use <- genes.use %||% rownames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  # Add slot alra in object@tools
-  if (is.null(x = object@tools[["alra"]])) {
-    object@tools[["alra"]] <- list()
-  }
+  alra.previous <- Tool(object = object, slot = 'RunALRA')
+  alra.info <- list()
   # Check if k is already stored
-  if (is.null(x = k) & !is.null(x = object@tools[["alra"]][["k"]])) {
-    k <- object@tools[["alra"]][["k"]]
+  if (is.null(x = k) & !is.null(alra.previous[["k"]])) {
+    k <- alra.previous[["k"]]
     message("Using previously computed value of k")
   }
   data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
@@ -1211,10 +1207,11 @@ RunALRA.Seurat <- function(
       sd = sd(x = diffs[noise.svals - 1])
     )
     k <- max(which(x = pvals < p.val.th))
-    object@tools[["alra"]][["d"]] <- rsvd.out$d
-    object@tools[["alra"]][["k"]] <- k
-    object@tools[["alra"]][["diffs"]] <- diffs
-    object@tools[["alra"]][["pvals"]] <- pvals
+    alra.info[["d"]] <- rsvd.out$d
+    alra.info[["k"]] <- k
+    alra.info[["diffs"]] <- diffs
+    alra.info[["pvals"]] <- pvals
+    Tool(object = object) <- alra.info
   }
   if (k.only) {
     message("Chose rank k = ", k, ", WITHOUT performing ALRA")
