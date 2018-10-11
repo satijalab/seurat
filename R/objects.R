@@ -2,7 +2,7 @@
 #' @importFrom Rcpp evalCpp
 #' @importFrom Matrix colSums rowSums colMeans rowMeans
 #' @importFrom methods setClass setOldClass setClassUnion slot
-#' slot<- setMethod new signature
+#' slot<- setMethod new signature slotNames
 #' @importClassesFrom Matrix dgCMatrix
 #' @useDynLib Seurat
 #'
@@ -1918,7 +1918,7 @@ Idents.Seurat <- function(object, ...) {
 #' @export
 #' @method Idents<- Seurat
 #'
-"Idents<-.Seurat" <- function(object, cells = NULL, drop = FALSE,..., value) {
+"Idents<-.Seurat" <- function(object, cells = NULL, drop = FALSE, ..., value) {
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
     cells <- colnames(x = object)[cells]
@@ -2059,6 +2059,33 @@ Key.Seurat <- function(object, ...) {
 #' @method Key<- Assay
 #'
 "Key<-.Assay" <- function(object, ..., value) {
+  slot(object = object, name = 'key') <- value
+  return(object)
+}
+
+#' @rdname Key
+#' @export
+#' @method Key<- DimReduc
+#'
+"Key<-.DimReduc" <- function(object, ..., value) {
+  old.key <- Key(object = object)
+  slots <- Filter(
+    f = function(x) {
+      return(class(x = slot(object = object, name = x)) == 'matrix')
+    },
+    x = slotNames(x = object)
+  )
+  for (s in slots) {
+    mat <- slot(object = object, name = s)
+    if (!IsMatrixEmpty(x = mat)) {
+      colnames(x = mat) <- sub(
+        pattern = paste0('^', old.key),
+        replacement = value,
+        x = colnames(x = mat)
+      )
+    }
+    slot(object = object, name = s) <- mat
+  }
   slot(object = object, name = 'key') <- value
   return(object)
 }
@@ -3475,18 +3502,17 @@ merge.Seurat <- function(
 }
 
 #' @export
+#' @method names DimReduc
+#'
+names.DimReduc <- function(x) {
+  return(colnames(x = Embeddings(object = x)))
+}
+
+#' @export
 #' @method names Seurat
 #'
 names.Seurat <- function(x) {
-  return(unlist(
-    x = lapply(
-      X = c('assays', 'reductions', 'graphs'),
-      FUN = function(n) {
-        return(names(x = slot(object = x, name = n)))
-      }
-    ),
-    use.names = FALSE
-  ))
+  return(FilterObjects(object = x, classes.keep = c('Assay', 'DimReduc', 'Graph')))
 }
 
 #' @export
@@ -3733,9 +3759,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
   f = '[[<-',
   signature = c('x' = 'Seurat'),
   definition = function(x, i, ..., value) {
+    # Require names, no index setting
     if (!is.character(x = i)) {
       stop("'i' must be a character", call. = FALSE)
     }
+    # Allow removing of other object
     if (is.null(x = value)) {
       slot.use <- FindObject(object = x, name = i)
       if (is.null(x = slot.use)) {
@@ -3745,15 +3773,18 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         stop("Cannot delete the default assay", call. = FALSE)
       }
     }
+    # Figure out where to store data
     slot.use <- switch(
       EXPR = as.character(x = class(x = value)),
       'Assay' = {
+        # Ensure we have the same number of cells
         if (ncol(x = value) != ncol(x = x)) {
           stop(
             "Cannot add a different number of cells than already present",
             call. = FALSE
           )
         }
+        # Ensure cell order stays the same
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           for (slot in c('counts', 'data', 'scale.data')) {
             assay.data <- GetAssayData(object = value, slot = slot)
@@ -3767,9 +3798,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       },
       'Graph' = 'graphs',
       'DimReduc' = {
+        # All DimReducs must be associated with an Assay
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
         }
+        # TODO: Ensure Assay that DimReduc is associated with is present in the Seurat object
+        # Ensure DimReduc object is in order
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
         }
@@ -3780,7 +3814,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'NULL' = slot.use,
       'meta.data'
     )
-    if (slot.use == 'meta.data') {
+    if (slot.use == 'meta.data') { # Add data to object metadata
       meta.data <- x[[]]
       cell.names <- rownames(x = meta.data)
       if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
@@ -3808,10 +3842,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         ))
       }
       slot(object = x, name = 'meta.data') <- meta.data
-    } else {
+    } else { # Add other object to Seurat object
+      # Ensure cells match in value and order
       if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
       }
+      # Ensure we're not duplicating object names
       if (!is.null(x = FindObject(object = x, name = i)) && !(class(x = value) %in% c(class(x = x[[i]]), 'NULL'))) {
         stop(
           "This object already contains ",
@@ -3827,10 +3863,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           call. = FALSE
         )
       }
+      # Check keyed objects
       if (class(x = value) %in% c('Assay', 'DimReduc')) {
         if (length(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
         }
+        # Check for duplicate keys
         object.keys <- sapply(
           X = FilterObjects(object = x),
           FUN = function(i) {
@@ -3838,7 +3876,25 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           }
         )
         if (Key(object = value) %in% object.keys && is.null(x = FindObject(object = x, name = i))) {
-          stop("Cannot add objects with duplicate keys", call. = FALSE)
+          # Attempt to create a duplicate key based off the name of the object being added
+          new.keys <- c(paste0(tolower(x = i), c('', '_')), paste0('_', RandomName(length = 2L)))
+          # Select new key to use
+          key.use <- min(which(x = !new.keys %in% object.keys))
+          new.key <- if (is.infinite(x = key.use)) {
+            RandomName(length = 17L)
+          } else {
+            new.keys[key.use]
+          }
+          warning(
+            "Cannot add objects with duplicate keys (offending key: ",
+            Key(object = value),
+            "), setting key to '",
+            new.key,
+            "'",
+            call. = FALSE
+          )
+          # Set new key
+          Key(object = value) <- new.key
         }
       }
       slot(object = x, name = slot.use)[[i]] <- value
