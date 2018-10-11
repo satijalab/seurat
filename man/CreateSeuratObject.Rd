@@ -30,7 +30,7 @@ names.field to 3 to set the initial identities to CELLTYPE.}
 cell's column name. E.g. If your cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
 separate the cell name into its component parts for picking the relevant field.}
 
-\item{meta.data}{Additional cell-level metadata to add to the Seurat object. Should be a data 
+\item{meta.data}{Additional cell-level metadata to add to the Seurat object. Should be a data
 frame where the rows are cell names and the columns are additional metadata fields.}
 }
 \description{

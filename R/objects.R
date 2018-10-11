@@ -537,7 +537,7 @@ CreateDimReducObject <- function(
 #' @param names.delim For the initial identity class for each cell, choose this delimiter from the
 #' cell's column name. E.g. If your cells are named as BARCODE-CLUSTER-CELLTYPE, set this to "-" to
 #' separate the cell name into its component parts for picking the relevant field.
-#' @param meta.data Additional cell-level metadata to add to the Seurat object. Should be a data 
+#' @param meta.data Additional cell-level metadata to add to the Seurat object. Should be a data
 #' frame where the rows are cell names and the columns are additional metadata fields.
 #'
 #' @importFrom utils packageVersion
@@ -4239,6 +4239,8 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
     },
     x = slotNames(x = object)
   ))
+  slots <- grep(pattern = 'tools', x = slots, value = TRUE, invert = TRUE)
+  slots <- grep(pattern = 'misc', x = slots, value = TRUE, invert = TRUE)
   slots.objects <- unlist(
     x = lapply(
       X = slots,
