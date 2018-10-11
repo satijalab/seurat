@@ -2106,24 +2106,24 @@ Key.Seurat <- function(object, ...) {
 #' @method Key<- DimReduc
 #'
 "Key<-.DimReduc" <- function(object, ..., value) {
-  old.key <- Key(object = object)
-  slots <- Filter(
-    f = function(x) {
-      return(class(x = slot(object = object, name = x)) == 'matrix')
-    },
-    x = slotNames(x = object)
-  )
-  for (s in slots) {
-    mat <- slot(object = object, name = s)
-    if (!IsMatrixEmpty(x = mat)) {
-      colnames(x = mat) <- sub(
-        pattern = paste0('^', old.key),
-        replacement = value,
-        x = colnames(x = mat)
-      )
-    }
-    slot(object = object, name = s) <- mat
-  }
+  # old.key <- Key(object = object)
+  # slots <- Filter(
+  #   f = function(x) {
+  #     return(class(x = slot(object = object, name = x)) == 'matrix')
+  #   },
+  #   x = slotNames(x = object)
+  # )
+  # for (s in slots) {
+  #   mat <- slot(object = object, name = s)
+  #   if (!IsMatrixEmpty(x = mat)) {
+  #     colnames(x = mat) <- sub(
+  #       pattern = paste0('^', old.key),
+  #       replacement = value,
+  #       x = colnames(x = mat)
+  #     )
+  #   }
+  #   slot(object = object, name = s) <- mat
+  # }
   slot(object = object, name = 'key') <- value
   return(object)
 }
@@ -4232,8 +4232,23 @@ CellsByIdentities <- function(object, cells = NULL) {
 # @return A vector with the names of objects within the Seurat object that are of class \code{classes.keep}
 #
 FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
+  slots <- na.omit(object = Filter(
+    f = function(x) {
+      return(class(x = slot(object = object, name = x)) == 'list')
+    },
+    x = slotNames(x = object)
+  ))
+  slots.objects <- unlist(
+    x = lapply(
+      X = slots,
+      FUN = function(x) {
+        return(names(x = slot(object = object, name = x)))
+      }
+    ),
+    use.names = FALSE
+  )
   object.classes <- sapply(
-    X = names(x = object),
+    X = slots.objects,
     FUN = function(i) {
       return(class(x = object[[i]]))
     }
