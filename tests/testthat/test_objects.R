@@ -154,3 +154,39 @@ test_that("CreateSeuratObject handles bad names.field/names.delim", {
     meta.data = metadata.test
   ))
 })
+
+# Tests for creating a Seurat object
+# ------------------------------------------------------------------------------
+context("Merging")
+
+pbmc.assay <- pbmc_small[["RNA"]]
+x <- merge(x = pbmc.assay, y = pbmc.assay)
+
+test_that("Merging Assays works properly", {
+  expect_equal(dim(GetAssayData(object = x, slot = "counts")), c(230, 160)) 
+  expect_equal(dim(GetAssayData(object = x, slot = "data")), c(230, 160)) 
+  expect_equal(GetAssayData(object = x, slot = "scale.data"), new(Class = "matrix")) 
+  expect_equal(Key(object = x), character())
+  expect_equal(VariableFeatures(object = x), vector())
+  expect_equal(x[[]], data.frame(row.names = rownames(x = pbmc.assay)))
+})
+
+pbmc.assay2 <- pbmc.assay
+pbmc.assay2@counts <- new("dgCMatrix")
+test_that("Merging Assays handles case when counts not present", {
+  y <- merge(x = pbmc.assay2, y = pbmc.assay)
+  expect_equal(unname(colSums(x = GetAssayData(object = y, slot = "counts"))[1:80]), rep.int(x = 0, times = 80))
+  z <- merge(x = pbmc.assay2, pbmc.assay2)
+  expect_equal(nnzero(x = GetAssayData(object = z, slot = "counts")), 0)
+})
+
+pbmc.assay2 <- pbmc.assay
+pbmc.assay2@data <- new("dgCMatrix")
+test_that("Merging Assays handles case when data not present", {
+  y <- merge(x = pbmc.assay2, y = pbmc.assay, merge.data = TRUE)
+  expect_equal(unname(colSums(x = GetAssayData(object = y, slot = "data"))[1:80]), rep.int(x = 0, times = 80)) 
+  z <- merge(x = pbmc.assay2, y = pbmc.assay2, merge.data = TRUE)
+  expect_equal(nnzero(x = GetAssayData(object = z, slot = "data")), 0)
+})
+
+
