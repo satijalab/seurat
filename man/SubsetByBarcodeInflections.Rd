@@ -23,7 +23,12 @@ See [CalculateBarcodeInflections()] to calculate inflection points and
 [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
 }
 \examples{
-pbmc_small <- CalculateBarcodeInflections(object = pbmc_small, group.column = 'groups', threshold.low = 20, threshold.high = 30)
+pbmc_small <- CalculateBarcodeInflections(
+  object = pbmc_small,
+  group.column = 'groups',
+  threshold.low = 20,
+  threshold.high = 30
+)
 SubsetByBarcodeInflections(object = pbmc_small)
 
 }

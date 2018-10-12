@@ -85,7 +85,6 @@ Suggests:
     loomR,
     phateR,
     S4Vectors,
-    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,
