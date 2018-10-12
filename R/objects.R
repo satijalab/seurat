@@ -396,7 +396,7 @@ CreateAssayObject <- function(
   data,
   min.cells = 0,
   min.features = 0
-  ) {
+) {
   if (missing(x = counts) && missing(x = data)) {
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
@@ -598,10 +598,10 @@ CreateSeuratObject <- function(
   )
   object[['orig.ident']] <- idents
   # Calculate nCount and nFeature
-  filtered.counts <- GetAssayData(object = object, assay = assay, slot = 'counts')
-  object[[paste('nCount', assay, sep = '_')]] <- Matrix::colSums(filtered.counts)
-  object[[paste('nFeature', assay, sep = '_')]] <- Matrix::colSums(filtered.counts > 0)
-  if (!is.null(meta.data)) {
+  n.calc <- CalcN(object = assay.data)
+  names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+  object[[names(x = n.calc)]] <- n.calc
+  if (!is.null(x = meta.data)) {
     object <- AddMetaData(object = object, metadata = meta.data)
   }
   return(object)
@@ -3493,7 +3493,7 @@ merge.Assay <- function(
 #' counts and potentially the data slots (depending on the merge.data parameter).
 #' It will also merge the cell-level meta data that was stored with each object
 #' and preserve the cell identities that were active in the objects pre-merge.
-#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata 
+#' The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
 #' that were present in the original objects.
 #'
 #' @inheritParams CreateSeuratObject
@@ -3757,6 +3757,7 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
   } else {
     NULL
   }
+  # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
     slot(object = x, name = 'assays')[[assay]] <- tryCatch(
@@ -3773,6 +3774,7 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
   if (length(x = FilterObjects(object = x, classes.keep = 'Assay')) == 0 || is.null(x = x[[DefaultAssay(object = x)]])) {
     stop("Cannot delete the default assay", call. = FALSE)
   }
+  # Filter DimReduc objects
   for (dimreduc in FilterObjects(object = x, classes.keep = 'DimReduc')) {
     x[[dimreduc]] <- tryCatch(
       expr = subset.DimReduc(x = x[[dimreduc]], cells = cells, features = features),
@@ -3781,7 +3783,34 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
       }
     )
   }
+  # Remove metadata for cells not present
   slot(object = x, name = 'meta.data') <- slot(object = x, name = 'meta.data')[cells, , drop = FALSE]
+  # Recalcualte nCount and nFeature
+  for (assay in FilterObjects(object = x, classes.keep = 'Assay')) {
+    n.calc <- CalcN(object = x[[assay]])
+    names(x = n.calc) <- paste(names(x = n.calc), assay, sep = '_')
+    x[[names(x = n.calc)]] <- n.calc
+  }
+  # Filter metadata to keep nCount and nFeature for assays present
+  ncolumns <- grep(
+    pattern = '^nCount_|^nFeature_',
+    x = colnames(x = x[[]]),
+    value = TRUE
+  )
+  ncols.keep <- as.vector(x = outer(
+    X = c('nCount_', 'nFeature_'),
+    Y = FilterObjects(object = x, classes.keep = 'Assay'),
+    FUN = paste0
+  ))
+  ncols.keep <- paste(ncols.keep, collapse = '|')
+  ncols.remove <- grep(
+    pattern = ncols.keep,
+    x = ncolumns,
+    value = TRUE,
+    invert = TRUE
+  )
+  metadata.keep <- colnames(x = x[[]])[!colnames(x = x[[]]) %in% ncols.remove]
+  slot(object = x, name = 'meta.data') <- x[[metadata.keep]]
   slot(object = x, name = 'graphs') <- list()
   Idents(object = x, drop = TRUE) <- Idents(object = x)[cells]
   return(x)
@@ -3981,6 +4010,12 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
           Key(object = value) <- new.key
         }
       }
+      # For Assays, run CalcN
+      if (inherits(x = value, what = 'Assay')) {
+        n.calc <- CalcN(object = value)
+        names(x = n.calc) <- paste(names(x = n.calc), i, sep = '_')
+        x[[names(x = n.calc)]] <- n.calc
+      }
       slot(object = x, name = slot.use)[[i]] <- value
       slot(object = x, name = slot.use) <- Filter(
         f = Negate(f = is.null),
@@ -4011,9 +4046,9 @@ setMethod(
 setMethod(
   f = 'colMeans',
   signature = c('x' = 'Assay'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::colMeans(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4024,9 +4059,9 @@ setMethod(
 setMethod(
   f = 'colMeans',
   signature = c('x' = 'Seurat'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(colMeans(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4037,9 +4072,9 @@ setMethod(
 setMethod(
   f = 'colSums',
   signature = c('x' = 'Assay'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::colSums(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4050,9 +4085,9 @@ setMethod(
 setMethod(
   f = 'colSums',
   signature = c('x' = 'Seurat'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::colSums(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4063,9 +4098,9 @@ setMethod(
 setMethod(
   f = 'rowMeans',
   signature = c('x' = 'Assay'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::rowMeans(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4076,9 +4111,9 @@ setMethod(
 setMethod(
   f = 'rowMeans',
   signature = c('x' = 'Seurat'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::rowMeans(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4089,9 +4124,9 @@ setMethod(
 setMethod(
   f = 'rowSums',
   signature = c('x' = 'Assay'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::rowSums(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4102,9 +4137,9 @@ setMethod(
 setMethod(
   f = 'rowSums',
   signature = c('x' = 'Seurat'),
-  definition = function(x, na.rm = FALSE, dims = 1, ...) {
+  definition = function(x, na.rm = FALSE, dims = 1, ..., slot = 'data') {
     return(Matrix::rowSums(
-      x = GetAssayData(object = x),
+      x = GetAssayData(object = x, slot = slot),
       na.rm = na.rm,
       dims = dims,
       ...
@@ -4243,6 +4278,21 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Calculate nCount and nFeature
+#
+# @param object An Assay object
+#
+# @return A named list with nCount and nFeature
+#
+#' @importFrom Matrix colSums
+#
+CalcN <- function(object) {
+  return(list(
+    nCount = colSums(x = object, slot = 'counts'),
+    nFeature = colSums(x = GetAssayData(object = object, slot = 'counts') > 0)
+  ))
+}
 
 # Get cell names grouped by identity class
 #
@@ -4438,11 +4488,7 @@ ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
 # @return The top \code{num}
 # @seealso \{code{\link{TopCells}}} \{code{\link{TopFeatures}}}
 #
-Top <- function(
-  data,
-  num,
-  balanced
-) {
+Top <- function(data, num, balanced) {
   top <- if (balanced) {
     num <- round(x = num / 2)
     data <- data[order(data), , drop = FALSE]
@@ -4576,19 +4622,16 @@ UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
   return(object)
 }
 
-# Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty 
+# Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty
 # matrix with the proper dimensions from one of the remaining data slots.
 #
 # @param assay   Assay to pull data from
 # @param slot    Slot to pull from
 #
-# @return        Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an 
+# @return        Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
 #                appropriately sized empty sparse matrix
 #
-ValidateDataForMerge <- function(
-  assay,
-  slot
-) {
+ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)
   if (any(dim(x = mat) == c(0, 0))) {
     slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
