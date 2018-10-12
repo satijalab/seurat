@@ -39,6 +39,6 @@ When merging Seurat objects, the merge procedure will merge the Assay level
 counts and potentially the data slots (depending on the merge.data parameter).
 It will also merge the cell-level meta data that was stored with each object
 and preserve the cell identities that were active in the objects pre-merge.
-The merge will not preserve reductions, graphs or logged commands that were
-present in the original objects.
+The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
+that were present in the original objects.
 }
