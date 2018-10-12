@@ -696,7 +696,7 @@ SampleUMI <- function(
 #' SubsetByBarcodeInflections(object = pbmc_small)
 #'
 SubsetByBarcodeInflections <- function(object) {
-  cbi.data <- Tool(object = object, slot = CalculateBarcodeInflections)
+  cbi.data <- Tool(object = object, slot = 'CalculateBarcodeInflections')
   if (is.null(x = cbi.data)) {
     stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
   }
