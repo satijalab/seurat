@@ -8,8 +8,7 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   pt.size = NULL, reduction = NULL, group.by = NULL,
   shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
   cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", combine = TRUE,
-  legend = TRUE, ...)
+  sizes.highlight = 1, na.value = "grey50", combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -55,9 +54,14 @@ groups in cells.highlight}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
-\item{legend}{Include a legend. TRUE by default.}
-
-\item{...}{Ignored for now}
+\item{...}{Arguments passed on to \code{CombinePlots}
+\describe{
+  \item{plots}{A list of gg objects}
+  \item{ncol}{Number of columns}
+  \item{legend}{Combine legends into a single legend
+choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
+to leave legends as they are}
+}}
 }
 \value{
 A ggplot object
