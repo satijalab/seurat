@@ -309,10 +309,7 @@ HTODemux <- function(
   object <- AddMetaData(object = object, metadata = classification.metadata)
   Idents(object) <- "classification"
   # Idents(object, cells = rownames(object@meta.data[object@meta.data$classification.global == "Doublet", ])) <- "Doublet"
-  doublets <- WhichCells(
-    object = object,
-    expression = classification.global == 'Doublet'
-  )
+  doublets <- rownames(x = object[[]])[which(object[[paste0(assay, "_classification.global")]] == "Doublet")]
   Idents(object = object, cells = doublets) <- 'Doublet'
   # object@meta.data$hash.ID <- Idents(object)
   object$hash.ID <- Idents(object = object)
