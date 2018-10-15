@@ -56,8 +56,6 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
-
-\item{...}{Ignored for now}
 }
 \value{
 A ggplot object

@@ -542,9 +542,8 @@ VlnPlot <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
-#' @param legend Include a legend. TRUE by default.
-#' @param ... Ignored for now
 #'
+#' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
 #' @export
@@ -575,7 +574,6 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   combine = TRUE,
-  legend = TRUE,
   ...
 ) {
   ReadPlotParams(object)
@@ -623,11 +621,8 @@ DimPlot <- function(
       ))
     }
   )
-  if (legend == FALSE) {
-    plots <- lapply(plots, function(x) x + NoLegend())
-  }
   if (combine) {
-    plots <- CombinePlots(plots = plots)
+    plots <- CombinePlots(plots = plots, ...)
   }
   return(plots)
 }
