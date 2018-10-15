@@ -3274,6 +3274,9 @@ WhichCells.Seurat <- function(
   key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:ncol(x = x)
+  }
+  if (missing(x = j)) {
+    j <- names(x = x)
   } else if (is.numeric(x = j)) {
     j <- names(x = x)[j]
   }
