@@ -3120,7 +3120,8 @@ WhichCells.Seurat <- function(
       return(x)
     }
   )
-  return(unlist(x = cells, use.names = FALSE))
+  cells <- na.omit(object = unlist(x = cells, use.names = FALSE))
+  return(as.character(x = cells))
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
