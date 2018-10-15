@@ -1985,7 +1985,8 @@ Idents.Seurat <- function(object, ...) {
   cells <- intersect(x = cells, y = colnames(x = object))
   cells <- match(x = cells, table = colnames(x = object))
   if (length(x = cells) == 0) {
-    stop("Cannot find cells provided")
+    warning("Cannot find cells provided")
+    return(object)
   }
   idents.new <- if (length(x = value) == 1 && value %in% colnames(x = object[[]])) {
     unlist(x = object[[value]], use.names = FALSE)[cells]
