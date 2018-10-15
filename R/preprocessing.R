@@ -226,7 +226,7 @@ HTODemux <- function(
         samples = nsamples
       )
       #identify positive and negative signals for all HTO
-      Idents(object = object, cells = names(x = init.clusters$clustering)) <- init.clusters$clustering
+      Idents(object = object, cells = names(x = init.clusters$clustering), drop = TRUE) <- init.clusters$clustering
     },
     stop("Unknown k-means function ", kfunc, ", please choose from 'kmeans' or 'clara'")
   )
@@ -307,13 +307,14 @@ HTODemux <- function(
     sep = '_'
   )
   object <- AddMetaData(object = object, metadata = classification.metadata)
-  Idents(object) <- "classification"
+  Idents(object) <- paste0(assay, '_classification')
   # Idents(object, cells = rownames(object@meta.data[object@meta.data$classification.global == "Doublet", ])) <- "Doublet"
-  doublets <- WhichCells(
-    object = object,
-    expression = classification.global == 'Doublet'
-  )
-  Idents(object = object, cells = doublets) <- 'Doublet'
+  doublets <- which(x = object[[paste0(assay, '_classification.global')]] == 'doublet')
+  #doublets <- WhichCells(
+  #  object = object,
+  #  expression = classification.global == 'Doublet'
+  #)
+  suppressWarnings(expr = Idents(object = object, cells = doublets) <- 'Doublet')
   # object@meta.data$hash.ID <- Idents(object)
   object$hash.ID <- Idents(object = object)
   return(object)
