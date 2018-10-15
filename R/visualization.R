@@ -1,3 +1,4 @@
+#' @importFrom utils globalVariables
 #' @importFrom ggplot2 ggproto GeomViolin
 #'
 NULL
@@ -645,6 +646,7 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
+#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -3372,6 +3374,7 @@ SetQuantile <- function(cutoff, data) {
   return(as.numeric(x = cutoff))
 }
 
+globalVariables(names = '..density..', package = 'Seurat')
 # A single correlation plot
 #
 # @param data.plot A data frame with two columns to be plotted

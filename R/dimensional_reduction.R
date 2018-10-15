@@ -29,7 +29,6 @@ NULL
 #' subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
 #' represents p-values for all genes.
 #'
-#' @import doSNOW
 #' @importFrom methods new
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #'
