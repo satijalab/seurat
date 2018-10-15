@@ -742,7 +742,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
           )
           if (length(x = vars.use) > 0) {
             tryCatch(
-              expr = object[[x]][[cells, vars.use, drop = FALSE]], 
+              expr = object[[x]][[cells, vars.use, drop = FALSE]],
               error = function(e) NULL
             )
           } else {
@@ -3162,6 +3162,7 @@ WhichCells.Seurat <- function(
 }
 
 #' @export
+#' @method [ Assay
 #'
 "[.Assay" <- function(x, i, j, ...) {
   if (missing(x = i)) {
@@ -3174,25 +3175,16 @@ WhichCells.Seurat <- function(
 }
 
 #' @export
+#' @method [ DimReduc
 #'
-"[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
+"[.DimReduc" <- function(x, i, j, ...) {
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
   }
   if (missing(x = j)) {
-    j <- paste0(key, 1:length(x = x))
+    j <- 1:length(x = x)
   }
-  loadings <- Loadings(object = x)
-  bad.j <- j[!j %in% colnames(x = loadings)]
-  j <- j[!j %in% bad.j]
-  if (length(x = j) == 0) {
-    stop("None of the requested loadings are present.")
-  }
-  if (length(x = bad.j) > 0) {
-    warning(paste0("The following loadings are not present: ", paste(bad.j, collapse = ", ")))
-  }
-  return(Loadings(object = x)[i, j, drop = drop, ...])
+  return(Loadings(object = x)[i, j, ...])
 }
 
 #' @inheritParams subset.Seurat
@@ -3201,6 +3193,7 @@ WhichCells.Seurat <- function(
 #'
 #' @rdname subset.Seurat
 #' @export
+#' @method [ Seurat
 #'
 #' @examples
 #' pbmc_small[VariableFeatures(object = pbmc_small), ]
@@ -3237,6 +3230,7 @@ WhichCells.Seurat <- function(
 }
 
 #' @export
+#' @method [ SeuratCommand
 #'
 "[.SeuratCommand" <- function(x, i, ...) {
   slot.use <- c("name", "timestamp", "call_string", "params")
@@ -3247,6 +3241,7 @@ WhichCells.Seurat <- function(
 }
 
 #' @export
+#' @method [[ Assay
 #'
 "[[.Assay" <- function(x, i, ..., drop = FALSE) {
   if (missing(x = i)) {
@@ -3261,28 +3256,20 @@ WhichCells.Seurat <- function(
 }
 
 #' @export
+#' @method [[ DimReduc
 #'
-"[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
-  key <- Key(object = x)
+"[[.DimReduc" <- function(x, i, j, ...) {
   if (missing(x = i)) {
     i <- 1:ncol(x = x)
   }
   if (missing(x = j)) {
-    j <- paste0(key, 1:length(x = x))
+    j <- 1:length(x = x)
   }
-  embeddings <- Embeddings(object = x)
-  bad.j <- j[!j %in% colnames(x = embeddings)]
-  j <- j[!j %in% bad.j]
-  if (length(x = j) == 0) {
-    stop("None of the requested embeddings are present.")
-  }
-  if (length(x = bad.j) > 0) {
-    warning(paste0("The following embeddings are not present: ", paste(bad.j, collapse = ", ")))
-  }
-  return(embeddings[i, j, drop = drop, ...])
+  return(Embeddings(object = x)[i, j, ...])
 }
 
 #' @export
+#' @method [[ Seurat
 #'
 "[[.Seurat" <- function(x, i, ..., drop = FALSE) {
   if (missing(x = i)) {
