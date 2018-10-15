@@ -3177,14 +3177,26 @@ WhichCells.Seurat <- function(
 #' @export
 #' @method [ DimReduc
 #'
-"[.DimReduc" <- function(x, i, j, ...) {
+"[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
+  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
   }
   if (missing(x = j)) {
-    j <- 1:length(x = x)
+    j <- names(x = x)
+  } else if (is.numeric(x = j)) {
+    j <- names(x = x)[j]
   }
-  return(Loadings(object = x)[i, j, ...])
+  loadings <- Loadings(object = x)
+  bad.j <- j[!j %in% colnames(x = loadings)]
+  j <- j[!j %in% bad.j]
+  if (length(x = j) == 0) {
+    stop("None of the requested loadings are present.")
+  }
+  if (length(x = bad.j) > 0) {
+    warning(paste0("The following loadings are not present: ", paste(bad.j, collapse = ", ")))
+  }
+  return(Loadings(object = x)[i, j, drop = drop, ...])
 }
 
 #' @inheritParams subset.Seurat
@@ -3258,14 +3270,23 @@ WhichCells.Seurat <- function(
 #' @export
 #' @method [[ DimReduc
 #'
-"[[.DimReduc" <- function(x, i, j, ...) {
+"[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
+  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:ncol(x = x)
+  } else if (is.numeric(x = j)) {
+    j <- names(x = x)[j]
   }
-  if (missing(x = j)) {
-    j <- 1:length(x = x)
+  embeddings <- Embeddings(object = x)
+  bad.j <- j[!j %in% colnames(x = embeddings)]
+  j <- j[!j %in% bad.j]
+  if (length(x = j) == 0) {
+    stop("None of the requested embeddings are present.")
   }
-  return(Embeddings(object = x)[i, j, ...])
+  if (length(x = bad.j) > 0) {
+    warning(paste0("The following embeddings are not present: ", paste(bad.j, collapse = ", ")))
+  }
+  return(embeddings[i, j, drop = drop, ...])
 }
 
 #' @export
