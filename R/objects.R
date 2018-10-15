@@ -2985,6 +2985,8 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 #' evalue anything that can be pulled by \code{FetchData}
 #' @param invert Invert the selection of cells
 #'
+#' @importFrom stats na.omit
+#'
 #' @rdname WhichCells
 #' @export
 #' @method WhichCells Assay
@@ -3024,7 +3026,8 @@ WhichCells.Assay <- function(
   if (invert) {
     cells <- colnames(x = object)[!colnames(x = object) %in% cells]
   }
-  return(cells)
+  cells <- na.omit(object = unlist(x = cells, use.names = FALSE))
+  return(as.character(x = cells))
 }
 
 #' @param idents A vector of identity classes to keep
@@ -3032,6 +3035,8 @@ WhichCells.Assay <- function(
 #' downsampling will happen after all other operations, including inverting the
 #' cell selection
 #' @param seed Random seed for downsampling
+#'
+#' @importFrom stats na.omit
 #'
 #' @rdname WhichCells
 #' @export
@@ -3649,12 +3654,26 @@ names.Seurat <- function(x) {
   return(FilterObjects(object = x, classes.keep = c('Assay', 'DimReduc', 'Graph')))
 }
 
+#' @importFrom stats na.omit
+#'
 #' @export
 #' @method subset Assay
 #'
 subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
   cells <- cells %||% colnames(x = x)
+  if (all(is.na(x = cells))) {
+    cells <- colnames(x = x)
+  } else if (any(is.na(x = cells))) {
+    warning("NAs passed in cells vector, removing NAs")
+    cells <- na.omit(object = cells)
+  }
   features <- features %||% rownames(x = x)
+  if (all(is.na(x = features))) {
+    features <- rownames(x = x)
+  } else if (any(is.na(x = features))) {
+    warning("NAs passed in the features vector, removing NAs")
+    features <- na.omit(object = features)
+  }
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
     return(x)
   }
@@ -3693,6 +3712,12 @@ subset.Assay <- function(x, cells = NULL, features = NULL, ...) {
 #'
 subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
   cells <- colnames(x = x) %iff% cells %||% colnames(x = x)
+  if (all(is.na(x = cells))) {
+    cells <- colnames(x = x)
+  } else if (any(is.na(x = cells))) {
+    warning("NAs passed in cells vector, removing NAs")
+    cells <- na.omit(object = cells)
+  }
   features <- rownames(x = x) %iff% features %||% rownames(x = x)
   if (all(sapply(X = list(features, cells), FUN = length) == dim(x = x))) {
     return(x)
