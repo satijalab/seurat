@@ -449,6 +449,19 @@ CreateAssayObject <- function(
     }
     counts <- new(Class = 'matrix')
   }
+  if (any(grepl(pattern = '_', x = rownames(x = counts))) || any(grepl(pattern = '_', x = rownames(x = data)))) {
+    warning("Feature names cannot have underscores ('_'), replacing with dashes ('-')")
+    rownames(x = counts) <- gsub(
+      pattern = '_',
+      replacement = '-',
+      x = rownames(x = counts)
+    )
+    rownames(x = data) <- gsub(
+      pattern = '_',
+      replacement = '-',
+      x = rownames(x = data)
+    )
+  }
   # Initialize meta.features
   init.meta.features <- data.frame(row.names = rownames(x = data))
   assay <- new(
