@@ -327,7 +327,7 @@ HTOHeatmap <- function(
   object,
   assay = 'HTO',
   classification = paste0(assay, '_classification'),
-  global.classification = paste0(assay, 'classification.global'),
+  global.classification = paste0(assay, '_classification.global'),
   ncells = 5000,
   singlet.names = NULL
 ) {
@@ -582,10 +582,11 @@ DimPlot <- function(
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
-  if (is.null(reduction)) {
-    default_order <- c('umap', 'tsne', 'pca')
-    reducs <- which(default_order %in% names(object@reductions))
-    reduction <- default_order[reducs[1]]
+  reduction <- reduction %||% {
+    default.reductions <- c('umap', 'tsne', 'pca')
+    object.reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
+    reduc.use <- min(which(x = default.reductions %in% object.reductions))
+    default.reductions[reduc.use]
   }
   cells <- cells %||% colnames(x = object)
   data <- Embeddings(object = object[[reduction]])[cells, dims]
@@ -895,13 +896,17 @@ FeaturePlot <- function(
         values = list(
           blend.legend +
             scale_y_continuous(
-              sec.axis = dup_axis(name = levels(x = data$split)[i]),
+              sec.axis = dup_axis(name = ifelse(
+                test = length(x = levels(x = data$split)) > 1,
+                yes = levels(x = data$split)[i],
+                no = ''
+              )),
               expand = c(0, 0)
             ) +
             labs(
               x = features[1],
               y = features[2],
-              title = if (i == 1 && length(x = levels(x = data$split)) > 1) {
+              title = if (i == 1) {
                 paste('Color threshold:', blend.threshold)
               } else {
                 NULL
@@ -2073,23 +2078,26 @@ LabelPoints <- function(
   }
   labels <- labels %||% points
   labels <- as.character(x = labels)
-  plot$data$labels <- ''
-  plot$data[points, 'labels'] <- labels
+  label.data <- plot$data[points, ]
+  label.data$labels <- labels
+  # plot$data$labels <- ''
+  # plot$data[points, 'labels'] <- labels
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   if (repel) {
     if (!all(c(xnudge, ynudge) == 0)) {
       message("When using repel, set xnudge and ynudge to 0 for optimal results")
     }
-    if (nrow(x = plot$data) > 1500) {
-      warning(
-        "repel is slow with a large number of points",
-        call. = FALSE,
-        immediate. = TRUE
-      )
-    }
+    # if (nrow(x = plot$data) > 1500) {
+    #   warning(
+    #     "repel is slow with a large number of points",
+    #     call. = FALSE,
+    #     immediate. = TRUE
+    #   )
+    # }
   }
   plot <- plot + geom.use(
     mapping = aes_string(x = xynames$x, y = xynames$y, label = 'labels'),
+    data = label.data,
     nudge_x = xnudge,
     nudge_y = ynudge,
     ...
