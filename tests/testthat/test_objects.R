@@ -189,4 +189,45 @@ test_that("Merging Assays handles case when data not present", {
   expect_equal(nnzero(x = GetAssayData(object = z, slot = "data")), 0)
 })
 
+# Tests for FetchData
+# ------------------------------------------------------------------------------
+context("FetchData")
+
+# Features to test: 
+# able to pull cell embeddings, data, metadata
+# subset of cells
+
+test_that("Fetching a subset of cells works", {
+  x <- FetchData(object = pbmc_small, cells = colnames(x = pbmc_small)[1:10], vars = rownames(x = pbmc_small)[1])
+  expect_equal(rownames(x = x), colnames(x = pbmc_small)[1:10])
+  random.cells <- sample(x = colnames(x = pbmc_small), size = 10)
+  x <- FetchData(object = pbmc_small, cells = random.cells, vars = rownames(x = pbmc_small)[1])
+  expect_equal(rownames(x = x), random.cells)
+  x <- FetchData(object = pbmc_small, cells = 1:10, vars = rownames(x = pbmc_small)[1])
+  expect_equal(rownames(x = x), colnames(x = pbmc_small)[1:10])
+})
+
+suppressWarnings(pbmc_small[["RNA2"]] <- pbmc_small[["RNA"]])
+Key(pbmc_small[["RNA2"]]) <- "rna2_"
+
+test_that("Fetching keyed variables works", {
+  x <- FetchData(object = pbmc_small, vars = c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("rna2_", rownames(x = pbmc_small)[1:5])))
+  expect_equal(colnames(x = x), c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("rna2_", rownames(x = pbmc_small)[1:5])))
+  x <- FetchData(object = pbmc_small, vars = c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC", 1:5)))
+  expect_equal(colnames(x = x), c(paste0("rna_", rownames(x = pbmc_small)[1:5]), paste0("PC", 1:5)))
+})
+
+test_that("Fetching embeddings/loadings not present returns warning or errors", {
+  expect_warning(FetchData(object = pbmc_small, vars = c("PC1", "PC100")))
+  expect_error(FetchData(object = pbmc_small, vars = "PC100"))
+})
+
+bad.gene <- GetAssayData(object = pbmc_small[["RNA"]], slot = "data")
+rownames(x = bad.gene)[1] <- paste0("rna_", rownames(x = bad.gene)[1])
+pbmc_small[["RNA"]]@data <- bad.gene
+
+# errors - when key conflicts with feature name
+# 
+
+
 

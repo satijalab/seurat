@@ -741,19 +741,26 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
             value = TRUE
           )
           if (length(x = vars.use) > 0) {
-            object[[x]][[cells, vars.use, drop = FALSE]]
+            tryCatch(
+              expr = object[[x]][[cells, vars.use, drop = FALSE]], 
+              error = function(e) NULL
+            )
           } else {
             NULL
           }
         },
         'Assay' = {
           vars.use <- gsub(pattern = paste0('^', key.use), replacement = '', x = vars.use)
-          data.vars <- t(x = as.matrix(x = GetAssayData(
+          data.assay <- GetAssayData(
             object = object,
             slot = slot,
             assay = x
-          )[vars.use, cells, drop = FALSE]))
-          colnames(x = data.vars) <- paste0(key.use, vars.use)
+          )
+          vars.use <- vars.use[vars.use %in% rownames(x = data.assay)]
+          data.vars <- t(x = as.matrix(data.assay[vars.use, cells, drop = FALSE]))
+          if (ncol(data.vars) > 0) {
+            colnames(x = data.vars) <- paste0(key.use, vars.use)
+          }
           data.vars
         }
       )
@@ -3167,14 +3174,24 @@ WhichCells.Seurat <- function(
 
 #' @export
 #'
-"[.DimReduc" <- function(x, i, j, ...) {
+"[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
+  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:nrow(x = x)
   }
   if (missing(x = j)) {
-    j <- 1:length(x = x)
+    j <- paste0(key, 1:length(x = x))
   }
-  return(Loadings(object = x)[i, j, ...])
+  loadings <- Loadings(object = x)
+  bad.j <- j[!j %in% colnames(x = loadings)]
+  j <- j[!j %in% bad.j]
+  if (length(x = j) == 0) {
+    stop("None of the requested loadings are present.")
+  }
+  if (length(x = bad.j) > 0) {
+    warning(paste0("The following loadings are not present: ", paste(bad.j, collapse = ", ")))
+  }
+  return(Loadings(object = x)[i, j, drop = drop, ...])
 }
 
 #' @inheritParams subset.Seurat
@@ -3244,14 +3261,24 @@ WhichCells.Seurat <- function(
 
 #' @export
 #'
-"[[.DimReduc" <- function(x, i, j, ...) {
+"[[.DimReduc" <- function(x, i, j, drop = FALSE, ...) {
+  key <- Key(object = x)
   if (missing(x = i)) {
     i <- 1:ncol(x = x)
   }
   if (missing(x = j)) {
-    j <- 1:length(x = x)
+    j <- paste0(key, 1:length(x = x))
   }
-  return(Embeddings(object = x)[i, j, ...])
+  embeddings <- Embeddings(object = x)
+  bad.j <- j[!j %in% colnames(x = embeddings)]
+  j <- j[!j %in% bad.j]
+  if (length(x = j) == 0) {
+    stop("None of the requested embeddings are present.")
+  }
+  if (length(x = bad.j) > 0) {
+    warning(paste0("The following embeddings are not present: ", paste(bad.j, collapse = ", ")))
+  }
+  return(embeddings[i, j, drop = drop, ...])
 }
 
 #' @export
