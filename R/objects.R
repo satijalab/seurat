@@ -3850,7 +3850,7 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
     x = slot(object = x, name = 'assays')
   )
   if (length(x = FilterObjects(object = x, classes.keep = 'Assay')) == 0 || is.null(x = x[[DefaultAssay(object = x)]])) {
-    stop("Cannot delete the default assay", call. = FALSE)
+    stop("Under current subsetting parameters, the default assay will be removed. Please adjust subsetting parameters or change default assay.", call. = FALSE)
   }
   # Filter DimReduc objects
   for (dimreduc in FilterObjects(object = x, classes.keep = 'DimReduc')) {
@@ -4058,6 +4058,28 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       if (class(x = value) %in% c('Assay', 'DimReduc')) {
         if (length(x = Key(object = value)) == 0) {
           Key(object = value) <- paste0(tolower(x = i), '_')
+        } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = Key(object = value))) {
+          non.alnum <- gsub(
+            pattern = '[[:alnum:]]',
+            replacement = '',
+            x = Key(object = value)
+          )
+          non.alnum <- unlist(x = strsplit(x = non.alnum, split = ''))
+          non.alnum <- paste(non.alnum, collapse = '|')
+          new.key <- gsub(
+            pattern = non.alnum,
+            replacement = '',
+            x = Key(object = value)
+          )
+          new.key <- paste0(new.key, '_')
+          warning(
+            "All object keys must be alphanumeric characters, followed by an underscore ('_'), setting key to '",
+            new.key,
+            "'",
+            call. = FALSE,
+            immediate. = TRUE
+          )
+          Key(object = value) <- new.key
         }
         # Check for duplicate keys
         object.keys <- sapply(
@@ -4068,7 +4090,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         )
         if (Key(object = value) %in% object.keys && is.null(x = FindObject(object = x, name = i))) {
           # Attempt to create a duplicate key based off the name of the object being added
-          new.keys <- c(paste0(tolower(x = i), c('', '_')), paste0('_', RandomName(length = 2L)))
+          new.keys <- c(paste0(tolower(x = i), c('_', paste0(RandomName(length = 2L), '_'))))
           # Select new key to use
           key.use <- min(which(x = !new.keys %in% object.keys))
           new.key <- if (is.infinite(x = key.use)) {
