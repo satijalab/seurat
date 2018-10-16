@@ -6,7 +6,7 @@
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   reduction = "pca", disp.min = -2.5, disp.max = NULL,
-  balanced = FALSE, projected = FALSE, ncol = NULL, combine = TRUE,
+  balanced = TRUE, projected = FALSE, ncol = NULL, combine = TRUE,
   fast = TRUE, slot = "scale.data", assays = NULL, ...)
 }
 \arguments{

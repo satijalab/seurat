@@ -40,7 +40,7 @@ DimHeatmap <- function(
   reduction = 'pca',
   disp.min = -2.5,
   disp.max = NULL,
-  balanced = FALSE,
+  balanced = TRUE,
   projected = FALSE,
   ncol = NULL,
   combine = TRUE,
@@ -60,6 +60,7 @@ DimHeatmap <- function(
   if (!DefaultAssay(object = object[[reduction]]) %in% assays) {
     warning("The original assay that the reduction was computed on is different than the assay specified")
   }
+  cells <- cells %||% ncol(x = object)
   if (is.numeric(x = cells)) {
     cells <- lapply(
       X = dims,
@@ -78,7 +79,6 @@ DimHeatmap <- function(
       }
     )
   }
-  cells <- cells %||% colnames(x = object)
   if (!is.list(x = cells)) {
     cells <- lapply(X = 1:length(x = dims), FUN = function(x) {return(cells)})
   }
