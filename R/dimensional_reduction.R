@@ -651,7 +651,7 @@ RunPCA.default <- function(
   verbose = TRUE,
   ndims.print = 1:5,
   nfeatures.print = 30,
-  reduction.key = "PC",
+  reduction.key = "PC_",
   seed.use = 42,
   ...
 ) {
@@ -713,7 +713,7 @@ RunPCA.Assay <- function(
   verbose = TRUE,
   ndims.print = 1:5,
   nfeatures.print = 30,
-  reduction.key = "PC",
+  reduction.key = "PC_",
   seed.use = 42,
   ...
 ) {
@@ -757,7 +757,7 @@ RunPCA.Seurat <- function(
   ndims.print = 1:5,
   nfeatures.print = 30,
   reduction.name = "pca",
-  reduction.key = "PC",
+  reduction.key = "PC_",
   seed.use = 42,
   workflow.name = NULL,
   ...
@@ -1001,7 +1001,7 @@ RunUMAP.default <- function(
   max.dim = 2L,
   metric = 'correlation',
   min.dist = 0.3,
-  reduction.key = 'umap',
+  reduction.key = 'UMAP_',
   seed.use = 42,
   ...
 ) {
@@ -1054,7 +1054,7 @@ RunUMAP.Seurat <- function(
   max.dim = 2L,
   min.dist = 0.3,
   reduction.name = "umap",
-  reduction.key = "UMAP",
+  reduction.key = "UMAP_",
   metric = "correlation",
   seed.use = 42,
   ...

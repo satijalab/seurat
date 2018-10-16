@@ -11,18 +11,18 @@ RunPCA(object, ...)
 
 \method{RunPCA}{default}(object, assay = NULL, npcs = 20,
   rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC",
+  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
   seed.use = 42, ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
   npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
-  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC",
+  ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
   seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
   npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.name = "pca",
-  reduction.key = "PC", seed.use = 42, workflow.name = NULL, ...)
+  reduction.key = "PC_", seed.use = 42, workflow.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}

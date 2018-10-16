@@ -10,11 +10,11 @@ RunUMAP(object, ...)
 
 \method{RunUMAP}{default}(object, assay = NULL, nneighbors = 30L,
   max.dim = 2L, metric = "correlation", min.dist = 0.3,
-  reduction.key = "umap", seed.use = 42, ...)
+  reduction.key = "UMAP_", seed.use = 42, ...)
 
 \method{RunUMAP}{Seurat}(object, dims = 1:5, reduction = "pca",
   features = NULL, assay = "RNA", nneighbors = 30L, max.dim = 2L,
-  min.dist = 0.3, reduction.name = "umap", reduction.key = "UMAP",
+  min.dist = 0.3, reduction.name = "umap", reduction.key = "UMAP_",
   metric = "correlation", seed.use = 42, ...)
 }
 \arguments{
