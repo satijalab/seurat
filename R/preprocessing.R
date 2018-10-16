@@ -1608,7 +1608,7 @@ RegressOutMatrix <- function(
     ncol = ncol(x = data.expr)
   )
   if (verbose) {
-    pb <- txtProgressBar(char = '=', style = 3)
+    pb <- txtProgressBar(char = '=', style = 3, file = stderr())
   }
   for (i in 1:length(x = features.regress)) {
     x <- features.regress[i]
