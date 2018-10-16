@@ -6,7 +6,7 @@
 \usage{
 RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
   variable.features.zscore = 1, variable.features.n = NULL,
-  do.scale = FALSE, do.center = FALSE,
+  return.dev.residuals = FALSE, do.scale = FALSE, do.center = FALSE,
   scale.max = .Machine$double.xmax, verbose = TRUE, ...)
 }
 \arguments{
@@ -23,11 +23,13 @@ residuals of all features}
 \item{variable.features.n}{Use this many features as variable features after
 ranking by variance}
 
-\item{do.scale}{Whether to scale residuals to have unit variance}
+\item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
-\item{do.center}{Whether to center residuals to have mean zero}
+\item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 
-\item{scale.max}{Max value after scaling and/or centering}
+\item{do.center}{Whether to center residuals to have mean zero; default is FALSE}
+
+\item{scale.max}{Max value after scaling and/or centering; default is .Machine$double.xmax}
 
 \item{verbose}{Whether to print messages and progress bars}
 
