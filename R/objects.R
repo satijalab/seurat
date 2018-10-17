@@ -1153,12 +1153,12 @@ SplitObject <- function(object, split.by = "ident", ...) {
   obj.list <- list()
   for (i in groupings) {
     if (split.by == "ident") {
-      obj.list[[i]] <- subset(x = object, select = i)
+      obj.list[[i]] <- subset(x = object, idents = i)
     }
     else {
       cells <- which(x = object[[split.by, drop = TRUE]] == i)
       cells <- colnames(x = object)[cells]
-      obj.list[[i]] <- subset(x = object, select = cells)
+      obj.list[[i]] <- subset(x = object, cells = cells)
     }
   }
   return(obj.list)
@@ -3266,8 +3266,6 @@ WhichCells.Seurat <- function(
 }
 
 #' @inheritParams subset.Seurat
-#' @param i A vector of features to keep
-#' @param j A vector of cells to keep
 #'
 #' @rdname subset.Seurat
 #' @export
@@ -3304,7 +3302,7 @@ WhichCells.Seurat <- function(
   if (is.numeric(x = j)) {
     j <- colnames(x = x)[j]
   }
-  return(subset.Seurat(x = x, select = c(i, j), ...))
+  return(subset.Seurat(x = x, features = i, cells = j, ...))
 }
 
 #' @export
@@ -3817,10 +3815,12 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 
 #' Subset a Seurat object
 #'
+#' @inheritParams WhichCells
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
-#' @param select A vector of cells, identity classes, or features to keep
-#' @param ... Arguments passed to \code{WhichCells}
+#' @param i,features A vector of features to keep
+#' @param j,cells A vector of cells to keep
+#' @param ... Arguments passed to \code{\link{WhichCells}}
 #'
 #' @return A subsetted Seurat object
 #'
@@ -3833,22 +3833,22 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @examples
 #' subset(x = pbmc_small, subset = MS4A1 > 4)
-#' subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
+#' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
-subset.Seurat <- function(x, subset, select = NULL, ...) {
+subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
     subset <- deparse(expr = substitute(expr = subset))
   }
-  cells <- select %iff% if (any(select %in% colnames(x = x))) {
-    select[select %in% colnames(x = x)]
-  } else {
-    NULL
-  }
-  idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
-    select[select %in% levels(x = Idents(object = x))]
-  } else {
-    NULL
-  }
+  # cells <- select %iff% if (any(select %in% colnames(x = x))) {
+  #   select[select %in% colnames(x = x)]
+  # } else {
+  #   NULL
+  # }
+  # idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
+  #   select[select %in% levels(x = Idents(object = x))]
+  # } else {
+  #   NULL
+  # }
   cells <- WhichCells(
     object = x,
     cells = cells,
@@ -3860,28 +3860,28 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
     stop("No cells found", call. = FALSE)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
-  assay.keys <- sapply(
-    X = assays,
-    FUN = function(i) {
-      return(Key(object = x[[i]]))
-    }
-  )
-  assay.features <- unlist(
-    x = lapply(
-      X = assays,
-      FUN = function(i) {
-        return(rownames(x = x[[i]]))
-      }
-    ),
-    use.names = FALSE
-  )
-  assay.features <- unique(x = assay.features)
-  key.patterns <- paste0('^', assay.keys, collapse = '|')
-  features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
-    select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
-  } else {
-    NULL
-  }
+  # assay.keys <- sapply(
+  #   X = assays,
+  #   FUN = function(i) {
+  #     return(Key(object = x[[i]]))
+  #   }
+  # )
+  # assay.features <- unlist(
+  #   x = lapply(
+  #     X = assays,
+  #     FUN = function(i) {
+  #       return(rownames(x = x[[i]]))
+  #     }
+  #   ),
+  #   use.names = FALSE
+  # )
+  # assay.features <- unique(x = assay.features)
+  # key.patterns <- paste0('^', assay.keys, collapse = '|')
+  # features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
+  #   select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
+  # } else {
+  #   NULL
+  # }
   # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])

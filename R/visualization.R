@@ -336,7 +336,7 @@ HTOHeatmap <- function(
   Idents(object = object) <- object[[classification, drop = TRUE]]
   object <- subset(
     x = object,
-    select = sample(x = colnames(x = object), size = ncells)
+    cells = sample(x = colnames(x = object), size = ncells)
   )
   classification <- object[[classification]]
   singlets <- which(x = object[[global.classification]] == 'Singlet')
@@ -2644,7 +2644,7 @@ EvaluateCCs <- function(
   num.groups <- length(x = levels.split)
   objects <- list()
   for (i in 1:num.groups) {
-    objects[[i]] <- subset(x = object, select = levels.split[i])
+    objects[[i]] <- subset(x = object, idents = levels.split[i])
   }
   # object@ident <- ident.orig
   Idents(object = object) <- ident.orig
