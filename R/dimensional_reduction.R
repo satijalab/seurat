@@ -623,7 +623,7 @@ RunMultiCCA.Seurat <- function(
 }
 
 #' @param assay Name of Assay PCA is being run on
-#' @param npcs Total Number of PCs to compute and store (20 by default)
+#' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting
 #' to true will compute it on gene x cell matrix.
 #' @param weight.by.var Weight the cell embeddings by the variance of each PC
@@ -645,7 +645,7 @@ RunMultiCCA.Seurat <- function(
 RunPCA.default <- function(
   object,
   assay = NULL,
-  npcs = 20,
+  npcs = 50,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
@@ -707,7 +707,7 @@ RunPCA.Assay <- function(
   object,
   assay = NULL,
   features = NULL,
-  npcs = 20,
+  npcs = 50,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,
@@ -750,7 +750,7 @@ RunPCA.Seurat <- function(
   object,
   assay = NULL,
   features = NULL,
-  npcs = 20,
+  npcs = 50,
   rev.pca = FALSE,
   weight.by.var = TRUE,
   verbose = TRUE,

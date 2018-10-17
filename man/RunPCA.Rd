@@ -9,18 +9,18 @@
 \usage{
 RunPCA(object, ...)
 
-\method{RunPCA}{default}(object, assay = NULL, npcs = 20,
+\method{RunPCA}{default}(object, assay = NULL, npcs = 50,
   rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
   seed.use = 42, ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
-  npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
+  npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
   seed.use = 42, ...)
 
 \method{RunPCA}{Seurat}(object, assay = NULL, features = NULL,
-  npcs = 20, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
+  npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.name = "pca",
   reduction.key = "PC_", seed.use = 42, workflow.name = NULL, ...)
 }
@@ -31,7 +31,7 @@ RunPCA(object, ...)
 
 \item{assay}{Name of Assay PCA is being run on}
 
-\item{npcs}{Total Number of PCs to compute and store (20 by default)}
+\item{npcs}{Total Number of PCs to compute and store (50 by default)}
 
 \item{rev.pca}{By default computes the PCA on the cell x gene matrix. Setting
 to true will compute it on gene x cell matrix.}
