@@ -98,19 +98,19 @@ test_that("CreateAssayObject catches improper input", {
 context("CreateDimReducObject")
 
 pca <- pbmc_small[["pca"]]
+Key(object = pca) <- 'PC_'
 
 test_that("CreateDimReducObject works", {
   pca.dr <- CreateDimReducObject(
     embeddings = Embeddings(object = pca),
     loadings = Loadings(object = pca),
     projected = Loadings(object = pca, projected = TRUE),
-    key = "PC",
     assay = "RNA"
   )
   expect_equal(Embeddings(object = pca.dr), Embeddings(object = pca))
   expect_equal(Loadings(object = pca.dr), Loadings(object = pca))
   expect_equal(Loadings(object = pca.dr, projected = TRUE), Loadings(object = pca, projected = TRUE))
-  expect_equal(Key(object = pca.dr), "PC")
+  expect_equal(Key(object = pca.dr), "PC_")
   expect_equal(pca.dr@assay.used, "RNA")
 })
 
@@ -163,9 +163,9 @@ pbmc.assay <- pbmc_small[["RNA"]]
 x <- merge(x = pbmc.assay, y = pbmc.assay)
 
 test_that("Merging Assays works properly", {
-  expect_equal(dim(GetAssayData(object = x, slot = "counts")), c(230, 160)) 
-  expect_equal(dim(GetAssayData(object = x, slot = "data")), c(230, 160)) 
-  expect_equal(GetAssayData(object = x, slot = "scale.data"), new(Class = "matrix")) 
+  expect_equal(dim(GetAssayData(object = x, slot = "counts")), c(230, 160))
+  expect_equal(dim(GetAssayData(object = x, slot = "data")), c(230, 160))
+  expect_equal(GetAssayData(object = x, slot = "scale.data"), new(Class = "matrix"))
   expect_equal(Key(object = x), character())
   expect_equal(VariableFeatures(object = x), vector())
   expect_equal(x[[]], data.frame(row.names = rownames(x = pbmc.assay)))
@@ -184,7 +184,7 @@ pbmc.assay2 <- pbmc.assay
 pbmc.assay2@data <- new("dgCMatrix")
 test_that("Merging Assays handles case when data not present", {
   y <- merge(x = pbmc.assay2, y = pbmc.assay, merge.data = TRUE)
-  expect_equal(unname(colSums(x = GetAssayData(object = y, slot = "data"))[1:80]), rep.int(x = 0, times = 80)) 
+  expect_equal(unname(colSums(x = GetAssayData(object = y, slot = "data"))[1:80]), rep.int(x = 0, times = 80))
   z <- merge(x = pbmc.assay2, y = pbmc.assay2, merge.data = TRUE)
   expect_equal(nnzero(x = GetAssayData(object = z, slot = "data")), 0)
 })
@@ -193,7 +193,7 @@ test_that("Merging Assays handles case when data not present", {
 # ------------------------------------------------------------------------------
 context("FetchData")
 
-# Features to test: 
+# Features to test:
 # able to pull cell embeddings, data, metadata
 # subset of cells
 
@@ -227,7 +227,7 @@ rownames(x = bad.gene)[1] <- paste0("rna_", rownames(x = bad.gene)[1])
 pbmc_small[["RNA"]]@data <- bad.gene
 
 # errors - when key conflicts with feature name
-# 
+#
 
 
 

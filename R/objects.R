@@ -508,12 +508,59 @@ CreateDimReducObject <- function(
   if (is.null(x = assay)) {
     stop("Please specify the assay that was used to construct the reduction")
   }
-  if (is.null(x = key)) {
+  # Try to infer key from column names
+  if (is.null(x = key) && is.null(x = colnames(x = embeddings))) {
     stop("Please specify a key for the DimReduc object")
+  } else if (is.null(x = key)) {
+    key <- regmatches(
+      x = colnames(x = embeddings),
+      m = regexec(pattern = '^[[:alnum:]]+_', text = colnames(x = embeddings))
+    )
+    key <- unique(x = unlist(x = key, use.names = FALSE))
+  }
+  if (length(x = key) != 1) {
+    stop("Please specify a key for the DimReduc object")
+  } else if (!grepl(pattern = '^[[:alnum:]]+_$', x = key)) {
+    # New SetKey function
+    key <- regmatches(
+      x = key,
+      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    )
+    key <- paste0(paste(key, collapse = ''), '_')
+    warning(
+      "All keys should be one or more alphanumeric characters followed by an underscore '_', setting key to ",
+      key,
+      call. = FALSE,
+      immediate. = TRUE
+    )
   }
   # ensure colnames of the embeddings are the key followed by a numeric
-  if (!all(grepl(pattern = paste0('^', key, "[[:digit:]]+$"), x = colnames(x = embeddings)))) {
-    stop("colnames of embeddings matrix must be the key followed by a number")
+  if (is.null(x = colnames(x = embeddings))) {
+    warning(
+      "No columnames present in cell embeddings, setting to '",
+      key,
+      "1:",
+      ncol(x = embeddings),
+      "'",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
+  } else if (!all(grepl(pattern = paste0('^', key, "[[:digit:]]+$"), x = colnames(x = embeddings)))) {
+    digits <- unlist(x = regmatches(
+      x = colnames(x = embeddings),
+      m = regexec(pattern = '[[:digit:]]+$', text = colnames(x = embeddings))
+    ))
+    if (length(x = digits) != ncol(x = embeddings)) {
+      stop("Please ensure all column names in the embeddings matrix are the key plus a digit representing a dimension number")
+    }
+    colnames(x = embeddings) <- paste0(key, digits)
+  }
+  if (!IsMatrixEmpty(x = loadings)) {
+    colnames(x = loadings) <- colnames(x = embeddings)
+  }
+  if (!IsMatrixEmpty(x = projected)) {
+    colnames(x = projected) <- colnames(x = embeddings)
   }
   jackstraw <- jackstraw %||% new(Class = 'JackStrawData')
   dim.reduc <- new(
