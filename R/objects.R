@@ -3907,13 +3907,24 @@ subset.Seurat <- function(x, subset, select = NULL, ...) {
 # @return object with metadata added
 #
 .AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (class(x = metadata) == "data.frame") {
-    for (ii in 1:ncol(x = metadata)) {
-      object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
-    }
-  } else {
-    object[[col.name]] <- metadata
+  if (is.null(x = col.name) && is.atomic(x = metadata)) {
+    stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
   }
+  if (inherits(x = metadata, what = c('matrix', 'Matrix'))) {
+    metadata <- as.data.frame(x = metadata)
+  }
+  col.name <- col.name %||% names(x = metadata) %||% colnames(x = metadata)
+  if (is.null(x = col.name)) {
+    stop("No metadata name provided and could not infer it from metadata object")
+  }
+  object[[col.name]] <- metadata
+  # if (class(x = metadata) == "data.frame") {
+  #   for (ii in 1:ncol(x = metadata)) {
+  #     object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+  #   }
+  # } else {
+  #   object[[col.name]] <- metadata
+  # }
   return(object)
 }
 
