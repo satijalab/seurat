@@ -502,15 +502,14 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.zscore Z-score threshold for calling features highly
-#' variable; z-scores are based on variances of regression model pearson
-#' residuals of all features
+#' @param variable.features.rv.th Features with residual variance greater or equal 
+#' this value will be selected as variable features; default is 1.3
 #' @param variable.features.n Use this many features as variable features after
-#' ranking by variance
+#' ranking by residual variance
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
+#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is FALSE
-#' @param scale.max Max value after scaling and/or centering; default is .Machine$double.xmax
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
@@ -523,12 +522,12 @@ RegressRegNB <- function(
   object,
   assay = NULL,
   do.correct.umi = FALSE,
-  variable.features.zscore = 1,
+  variable.features.rv.th = 1.3,
   variable.features.n = NULL,
   return.dev.residuals = FALSE,
+  clip.range = c(-10, 10),
   do.scale = FALSE,
-  do.center = FALSE,
-  scale.max = .Machine$double.xmax,
+  do.center = TRUE,
   verbose = TRUE,
   ...
 ) {
@@ -576,8 +575,7 @@ RegressRegNB <- function(
   if (!is.null(x = variable.features.n)) {
     top.features <- names(x = feature.variance)[1:variable.features.n]
   } else {
-    feature.variance <- scale(x = feature.variance)[, 1]
-    top.features <- names(x = feature.variance)[feature.variance > variable.features.zscore]
+    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
   VariableFeatures(object = assay.obj) <- top.features
   if (verbose) {
@@ -590,16 +588,19 @@ RegressRegNB <- function(
     }
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
+  # clip the residuals
+  scale.data[scale.data < clip.range[1]] <- clip.range[1]
+  scale.data[scale.data > clip.range[2]] <- clip.range[2]
   # re-scale the residuals
   if (do.scale || do.center) {
     if (verbose) {
       message('Re-scale residuals')
     }
     scale.data <- FastRowScale(
-      mat = vst.out$y,
+      mat = scale.data,
       scale = do.scale,
       center = do.center,
-      scale_max = scale.max,
+      scale_max = Inf,
       display_progress = FALSE
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
