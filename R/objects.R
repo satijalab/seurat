@@ -1345,6 +1345,8 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.
 #' Update old Seurat object to accomodate new features
 #'
 #' Updates Seurat objects to new structure for storing data/calculations.
+#' For Seurat v3 objects, will validate object structure ensuring all keys and feature
+#' names are formed properly.
 #'
 #' @param object Seurat object
 #'
@@ -1362,10 +1364,8 @@ TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.
 #'
 UpdateSeuratObject <- function(object) {
   if (.hasSlot(object, "version")) {
-    if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
-      message("Object representation is consistent with the most current Seurat version")
-      return(object)
-    } else if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
+    if (package_version(x = object@version) >= package_version(x = "2.0.0")) {
+      # Run update
       seurat.version <- packageVersion(pkg = "Seurat")
       new.assay <- UpdateAssay(old.assay = object, assay = "RNA")
       assay.list <- list(new.assay)
@@ -1374,7 +1374,7 @@ UpdateSeuratObject <- function(object) {
         assay.list[[i]] <- UpdateAssay(old.assay = object@assay[[i]], assay = i)
       }
       new.dr <- UpdateDimReduction(old.dr = object@dr, assay = "RNA")
-      new.object <- new(
+      object <- new(
         Class = "Seurat",
         version = seurat.version,
         assays = assay.list,
@@ -1387,7 +1387,44 @@ UpdateSeuratObject <- function(object) {
         meta.data = object@meta.data,
         tools = list()
       )
-      return(new.object)
+      return(object)
+    }
+    if (package_version(x = object@version) >= package_version(x = "3.0.0")) {
+      # Run validation
+      message("Validating object structure")
+      # Validate object keys
+      message("Ensuring keys are in the proper strucutre")
+      for (ko in FilterObjects(object = object)) {
+        Key(object = object[[ko]]) <- UpdateKey(key = Key(object = object[[ko]]))
+      }
+      # Check feature names
+      message("Ensuring feature names don't have underscores")
+      for (assay.name in FilterObjects(object = object, classes.keep = 'Assay')) {
+        assay <- object[[assay.name]]
+        for (slot in c('counts', 'data', 'scale.data')) {
+          if (!IsMatrixEmpty(x = slot(object = assay, name = slot))) {
+            rownames(x = slot(object = assay, name = slot)) <- gsub(
+              pattern = '_',
+              replacement = '-',
+              x = rownames(x = slot(object = assay, name = slot))
+            )
+          }
+        }
+      }
+      for (reduc.name in FilterObjects(object = object, classes.keep = 'DimReduc')) {
+        reduc <- object[[reduc.name]]
+        for (slot in c('feature.loadings', 'feature.loadings.projected')) {
+          if (!IsMatrixEmpty(x = slot(object = reduc, name = slot))) {
+            rownames(x = slot(object = reduc, name = slot)) <- gsub(
+              pattern = '_',
+              replacement = '-',
+              x = rownames(x = slot(object = reduc, name = slot))
+            )
+          }
+        }
+      }
+      message("Object representation is consistent with the most current Seurat version")
+      return(object)
     }
   }
   stop(
@@ -4667,7 +4704,7 @@ Top <- function(data, num, balanced) {
 # @param assay Name to store for assay in new object
 #
 UpdateAssay <- function(old.assay, assay){
-  cells <- colnames(old.assay@data)
+  cells <- colnames(x = old.assay@data)
   counts <- old.assay@raw.data
   data <- old.assay@data
   if (!inherits(x = counts, what = 'dgCMatrix')) {
@@ -4680,7 +4717,7 @@ UpdateAssay <- function(old.assay, assay){
     Class = 'Assay',
     counts = counts[, cells],
     data = data,
-    scale.data = old.assay@scale.data %||% matrix(),
+    scale.data = old.assay@scale.data %||% new(Class = 'matrix'),
     meta.features = data.frame(row.names = rownames(x = counts)),
     var.features = old.assay@var.genes,
     key = paste0(assay, "_")
@@ -4694,22 +4731,22 @@ UpdateAssay <- function(old.assay, assay){
 #
 UpdateDimReduction <- function(old.dr, assay){
   new.dr <- list()
-  for(i in names(old.dr)){
-    cell.embeddings <- old.dr[[i]]@cell.embeddings %||% matrix()
-    feature.loadings <- old.dr[[i]]@gene.loadings %||% matrix()
+  for (i in names(x = old.dr)) {
+    cell.embeddings <- old.dr[[i]]@cell.embeddings %||% new(Class = 'matrix')
+    feature.loadings <- old.dr[[i]]@gene.loadings %||% new(Class = 'matrix')
     stdev <- old.dr[[i]]@sdev %||% numeric()
     misc <- old.dr[[i]]@misc %||% list()
-    new.jackstraw <- UpdateJackstraw(old.dr[[i]]@jackstraw)
-
+    new.jackstraw <- UpdateJackstraw(old.jackstraw = old.dr[[i]]@jackstraw)
+    new.key <- suppressWarnings(expr = UpdateKey(key = old.dr[[i]]@key))
     new.dr[[i]] <- new(
       Class = 'DimReduc',
-      cell.embeddings = as(cell.embeddings, 'matrix'),
-      feature.loadings = as(feature.loadings, 'matrix'),
+      cell.embeddings = as(object = cell.embeddings, Class = 'matrix'),
+      feature.loadings = as(object = feature.loadings, Class = 'matrix'),
       assay.used = assay,
-      stdev = as(stdev, 'numeric'),
-      key = as(old.dr[[i]]@key, 'character'),
+      stdev = as(object = stdev, Class = 'numeric'),
+      key = as(object = new.key, Class = 'character'),
       jackstraw = new.jackstraw,
-      misc = as(misc, 'list')
+      misc = as(object = misc, Class = 'list')
     )
   }
   return(new.dr)
@@ -4720,29 +4757,60 @@ UpdateDimReduction <- function(old.dr, assay){
 # @param old.jackstraw
 #
 UpdateJackstraw <- function(old.jackstraw) {
-  if (is.null(old.jackstraw)) {
+  if (is.null(x = old.jackstraw)) {
     new.jackstraw <- new(
       Class = 'JackStrawData',
-      empirical.p.values = matrix(),
-      fake.reduction.scores = matrix(),
-      empirical.p.values.full = matrix(),
-      overall.p.values = matrix()
+      empirical.p.values = new(Class = 'matrix'),
+      fake.reduction.scores = new(Class = 'matrix'),
+      empirical.p.values.full = new(Class = 'matrix'),
+      overall.p.values = new(Class = 'matrix')
     )
   } else {
-    if(.hasSlot(old.jackstraw, 'overall.p.values')) {
-      overall.p <- old.jackstraw@overall.p.values %||% matrix()
+    if (.hasSlot(object = old.jackstraw, name = 'overall.p.values')) {
+      overall.p <- old.jackstraw@overall.p.values %||% new(Class = 'matrix')
     } else {
-      overall.p <- matrix()
+      overall.p <- new(Class = 'matrix')
     }
     new.jackstraw <- new(
       Class = 'JackStrawData',
-      empirical.p.values = old.jackstraw@emperical.p.value %||% matrix(),
-      fake.reduction.scores = old.jackstraw@fake.pc.scores %||% matrix(),
-      empirical.p.values.full = old.jackstraw@emperical.p.value.full %||% matrix(),
+      empirical.p.values = old.jackstraw@emperical.p.value %||% new(Class = 'matrix'),
+      fake.reduction.scores = old.jackstraw@fake.pc.scores %||% new(Class = 'matrix'),
+      empirical.p.values.full = old.jackstraw@emperical.p.value.full %||% new(Class = 'matrix'),
       overall.p.values = overall.p
     )
   }
   return(new.jackstraw)
+}
+
+# Update a Key
+#
+# @param key A character to become a Seurat Key
+#
+# @return An updated Key that's valid for Seurat
+#
+UpdateKey <- function(key) {
+  if (grepl(pattern = '^[[:alnum:]]+_', x = key)) {
+    return(key)
+  } else {
+    new.key <- regmatches(
+      x = key,
+      m = regexec(pattern = '[[:alnum:]]+', text = key)
+    )
+    new.key <- unlist(x = new.key, use.names = FALSE)
+    new.key <- paste0(paste(new.key, collapse = ''), '_')
+    if (new.key == '_') {
+      new.key <- paste0(RandomName(length = 3), '_')
+    }
+    warning(
+      "Keys should be one or more alphanumeric characters followed by an underscore, setting key from ",
+      key,
+      " to ",
+      new.key,
+       call. = FALSE,
+      immediate. = TRUE
+    )
+    return(new.key)
+  }
 }
 
 # UpdateWorkflow
