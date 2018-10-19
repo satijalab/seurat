@@ -28,7 +28,7 @@ ranking by residual variance}
 
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 
-\item{do.center}{Whether to center residuals to have mean zero; default is FALSE}
+\item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
 
 \item{verbose}{Whether to print messages and progress bars}
 

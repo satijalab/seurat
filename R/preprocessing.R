@@ -509,7 +509,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
-#' @param do.center Whether to center residuals to have mean zero; default is FALSE
+#' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
