@@ -413,7 +413,7 @@ CreateAssayObject <- function(
     if (is.null(x = colnames(x = counts))) {
       stop("No cell names (colnames) names present in the input matrix")
     }
-    if (is.null(x = rownames(x = counts))) {
+    if (nrow(x = counts) > 0 && is.null(x = rownames(x = counts))) {
       stop("No feature names (rownames) names present in the input matrix")
     }
     if (!inherits(x = counts, what = 'dgCMatrix')) {
@@ -441,7 +441,7 @@ CreateAssayObject <- function(
     if (is.null(x = colnames(x = data))) {
       stop("No cell names (colnames) names present in the input matrix")
     }
-    if (is.null(x = rownames(x = data))) {
+    if (nrow(x = data) > 0 && is.null(x = rownames(x = data))) {
       stop("No feature names (rownames) names present in the input matrix")
     }
     if (min.cells != 0 | min.features != 0) {
@@ -3663,31 +3663,50 @@ merge.Seurat <- function(
   ...
 ) {
   objects <- c(x, y)
-  if (!is.null(add.cell.ids)) {
+  if (!is.null(x = add.cell.ids)) {
     if (length(x = add.cell.ids) != length(x = objects)) {
       stop("Please provide a cell identifier for each object provided to merge")
     }
-    for(i in 1:length(objects)) {
+    for (i in 1:length(x = objects)) {
       objects[[i]] <- RenameCells(object = objects[[i]], add.cell.id = add.cell.ids[i])
     }
   }
-  assays.to.merge <- c()
-  for (i in 1:length(objects)) {
-    assays.to.merge <- c(assays.to.merge, FilterObjects(object = objects[[i]], classes.keep = "Assay"))
-  }
-  assays.to.merge <- names(which(x = table(... = assays.to.merge) == length(x = objects)))
-  combined.assays <- list()
-  for (assay in assays.to.merge) {
-    assay1 <- objects[[1]][[assay]]
-    assay2 <- list()
-    for(i in 2:length(objects)) {
-      assay2[[i-1]] <- objects[[i]][[assay]]
-    }
-    combined.assays[[assay]] <- merge(
-      x = assay1,
-      y = assay2,
+  assays <- lapply(
+    X = objects,
+    FUN = FilterObjects,
+    classes.keep = 'Assay'
+  )
+  fake.feature <- RandomName(length = 17)
+  assays <- unique(x = unlist(x = assays, use.names = FALSE))
+  combined.assays <- vector(mode = 'list', length = length(x = assays))
+  names(x = combined.assays) <- assays
+  for (assay in assays) {
+    assays.merge <- lapply(
+      X = objects,
+      FUN = function(object) {
+        return(tryCatch(
+          expr = object[[assay]],
+          error = function(e) {
+            return(CreateAssayObject(counts = Matrix(
+              data = 0,
+              ncol = ncol(x = object),
+              dimnames = list(fake.feature, colnames(x = object)),
+              sparse = TRUE
+            )))
+          }
+        ))
+      }
+    )
+    merged.assay <- merge(
+      x = assays.merge[[1]],
+      y = assays.merge[2:length(x = assays.merge)],
       merge.data = merge.data
     )
+    merged.assay <- subset(
+      x = merged.assay,
+      features = rownames(x = merged.assay)[rownames(x = merged.assay) != fake.feature]
+    )
+    combined.assays[[assay]] <- merged.assay
   }
   # Merge the meta.data
   combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
@@ -3706,12 +3725,12 @@ merge.Seurat <- function(
   }
   names(new.idents) <- rownames(combined.meta.data)
   new.idents <- factor(new.idents)
-  if (DefaultAssay(object = x) %in% assays.to.merge){
+  if (DefaultAssay(object = x) %in% assays) {
     new.default.assay <- DefaultAssay(object = x)
-  } else if (DefaultAssay(object = y) %in% assays.to.merge) {
+  } else if (DefaultAssay(object = y) %in% assays) {
     new.default.assay <- DefaultAssay(object = y)
   } else {
-    new.default.assay <- assays.to.merge[1]
+    new.default.assay <- assays[1]
   }
   merged.object <- new(
     Class = 'Seurat',
@@ -4861,10 +4880,12 @@ ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)
   if (any(dim(x = mat) == c(0, 0))) {
     slots.to.check <- setdiff(x = c("counts", "data", "scale.data"), y = slot)
-    for(ss in slots.to.check) {
+    for (ss in slots.to.check) {
       data.dims <- dim(x = GetAssayData(object = assay, slot = ss))
       data.slot <- ss
-      if (!any(data.dims == c(0, 0))) break
+      if (!any(data.dims == c(0, 0))) {
+        break
+      }
     }
     if (any(data.dims == c(0, 0))) {
       stop("The counts, data, and scale.data slots are all empty for the provided assay.")
