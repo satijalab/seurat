@@ -26,8 +26,7 @@ as.sparse(x, ...)
     \code{\link{make.names}}) is optional.  Note that all of \R's
     \pkg{base} package \code{as.data.frame()} methods use
     \code{optional} only for column names treatment, basically with the
-    meaning of \code{\link{data.frame}(*, check.names = !optional)}.
-    See also the \code{make.names} argument of the \code{matrix} method.}
+    meaning of \code{\link{data.frame}(*, check.names = !optional)}.}
 
 \item{stringsAsFactors}{logical: should the character vector be converted
     to a factor?}

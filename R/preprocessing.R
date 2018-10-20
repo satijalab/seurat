@@ -957,6 +957,7 @@ FindVariableFeatures.Seurat <- function(
 #' }
 #' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param verbose display progress bar for normalization procedure
 #'
 #' @rdname NormalizeData
@@ -967,6 +968,7 @@ NormalizeData.default <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  across = "features",
   ...
 ) {
   if (is.null(x = normalization.method)) {
@@ -984,7 +986,7 @@ NormalizeData.default <- function(
       custom_function = function(x) {
         return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
       },
-      across = 'features'
+      across = across
     ),
     stop("Unkown normalization method: ", normalization.method)
   )
@@ -1000,6 +1002,7 @@ NormalizeData.Assay <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1009,7 +1012,8 @@ NormalizeData.Assay <- function(
       object = GetAssayData(object = object, slot = 'counts'),
       normalization.method = normalization.method,
       scale.factor = scale.factor,
-      verbose = verbose
+      verbose = verbose,
+      across = across
     )
   )
   return(object)
@@ -1034,6 +1038,7 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  across = "features",
   workflow.name = NULL,
   ...
 ) {
@@ -1046,7 +1051,8 @@ NormalizeData.Seurat <- function(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
-    verbose = verbose
+    verbose = verbose,
+    across = across
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
