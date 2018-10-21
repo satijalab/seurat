@@ -3595,17 +3595,22 @@ merge.Assay <- function(
   }
   # Merge the counts (if present)
   merged.counts <- ValidateDataForMerge(assay = assays[[1]], slot = "counts")
+  keys <- Key(object = assays[[1]])
   for (i in 2:length(x = assays)) {
     merged.counts <- RowMergeSparseMatrices(
       mat1 = merged.counts,
       mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
     )
+    keys[i] <- Key(object = assays[[i]])
   }
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
     min.cells = -1,
     min.features = -1
   )
+  if (length(x = unique(x = keys)) == 1) {
+    Key(object = combined.assay) <- keys[1]
+  }
   if (merge.data) {
     merged.data <- ValidateDataForMerge(assay = assays[[1]], slot = "data")
     for (i in 2:length(x = assays)) {
@@ -3706,25 +3711,28 @@ merge.Seurat <- function(
       x = merged.assay,
       features = rownames(x = merged.assay)[rownames(x = merged.assay) != fake.feature]
     )
+    if (length(x = Key(object = merged.assay)) == 0) {
+      Key(object = merged.assay) <- paste0(assay, '_')
+    }
     combined.assays[[assay]] <- merged.assay
   }
   # Merge the meta.data
-  combined.meta.data <- data.frame(row.names = colnames(combined.assays[[1]]))
+  combined.meta.data <- data.frame(row.names = colnames(x = combined.assays[[1]]))
   new.idents <- c()
   for (object in objects) {
     old.meta.data <- object[[]]
-    if (any(!colnames(x = old.meta.data) %in% colnames(combined.meta.data))) {
-      cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(combined.meta.data)]
+    if (any(!colnames(x = old.meta.data) %in% colnames(x = combined.meta.data))) {
+      cols.to.add <- colnames(x = old.meta.data)[!colnames(x = old.meta.data) %in% colnames(x = combined.meta.data)]
       combined.meta.data[, cols.to.add] <- NA
     }
     # unfactorize any factor columns
     i <- sapply(X = old.meta.data, FUN = is.factor)
-    old.meta.data[i] <- lapply(old.meta.data[i], as.vector)
-    combined.meta.data[rownames(old.meta.data), colnames(old.meta.data)] <- old.meta.data
+    old.meta.data[i] <- lapply(X = old.meta.data[i], FUN = as.vector)
+    combined.meta.data[rownames(x = old.meta.data), colnames(x = old.meta.data)] <- old.meta.data
     new.idents <- c(new.idents, as.vector(Idents(object = object)))
   }
-  names(new.idents) <- rownames(combined.meta.data)
-  new.idents <- factor(new.idents)
+  names(x = new.idents) <- rownames(x = combined.meta.data)
+  new.idents <- factor(x = new.idents)
   if (DefaultAssay(object = x) %in% assays) {
     new.default.assay <- DefaultAssay(object = x)
   } else if (DefaultAssay(object = y) %in% assays) {

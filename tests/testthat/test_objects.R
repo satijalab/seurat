@@ -166,7 +166,7 @@ test_that("Merging Assays works properly", {
   expect_equal(dim(GetAssayData(object = x, slot = "counts")), c(230, 160))
   expect_equal(dim(GetAssayData(object = x, slot = "data")), c(230, 160))
   expect_equal(GetAssayData(object = x, slot = "scale.data"), new(Class = "matrix"))
-  expect_equal(Key(object = x), character())
+  expect_equal(Key(object = x), "rna_")
   expect_equal(VariableFeatures(object = x), vector())
   expect_equal(x[[]], data.frame(row.names = rownames(x = pbmc.assay)))
 })
