@@ -3601,7 +3601,9 @@ merge.Assay <- function(
       mat1 = merged.counts,
       mat2 = ValidateDataForMerge(assay = assays[[i]], slot = "counts")
     )
-    keys[i] <- Key(object = assays[[i]])
+    if (length(Key(object = assays[[i]]) > 0)){
+      keys[i] <- Key(object = assays[[i]])
+    }
   }
   combined.assay <- CreateAssayObject(
     counts = merged.counts,
