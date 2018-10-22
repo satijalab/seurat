@@ -1541,7 +1541,7 @@ PrepDR <- function(
   features = NULL
 ) {
   if (length(x = VariableFeatures(object = object)) == 0 && is.null(x = features)) {
-    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of genes names in genes.use and retry.")
+    stop("Variable features haven't been set. Run FindVariableFeatures() or provide a vector of feature names.")
   }
   data.use <- GetAssayData(object = object, slot = "scale.data")
   if (nrow(x = data.use ) == 0) {
