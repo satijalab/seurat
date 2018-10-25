@@ -1076,6 +1076,7 @@ RunUMAP.Seurat <- function(
     seed.use = seed.use,
     ...
   )
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
