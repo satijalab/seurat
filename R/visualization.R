@@ -577,7 +577,6 @@ DimPlot <- function(
   combine = TRUE,
   ...
 ) {
-  ReadPlotParams(object)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -2844,27 +2843,6 @@ ExIPlot <- function(
   return(plots)
 }
 
-# Documentation needed
-#Sets the parameter value for a plotting function as default for an object
-# @param object ...
-# @param function.name ...
-# @param param.name ...
-# @param param.value ...
-#
-# Quick example :   pbmc <- FixPlotParam(pbmc,"FeaturePlot","pt.size","0.1")
-#
-FixPlotParam <- function(object, function.name, param.name, param.value) {
-  if ("PlotParams" %in% names(object@misc)) {
-    object@misc[["PlotParams"]][paste(function.name, param.name, sep = ":")] <- param.value
-  }
-  else {
-    plotParamsList <- list()
-    plotParamsList[paste(function.name, param.name, sep = ":")] <- param.value
-    object@misc[["PlotParams"]] <- plotParamsList
-  }
-  return(object)
-}
-
 # Convert a ggplot2 scatterplot to base R graphics
 #
 # @param plot A ggplot2 scatterplot
@@ -3218,52 +3196,6 @@ QuantileSegments <- function(data, draw.quantiles) {
     y = rep(x = ys, each = 2),
     group = rep(x = ys, each = 2)
   ))
-}
-
-# Documentation needed
-#
-# @param object ...
-# @param workflow.name ...
-# @param depth ...
-#
-ReadPlotParams <- function(object, workflow.name, depth = 1) {
-  if (!("PlotParams" %in% names(object@misc))) {
-    return()
-  }
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-depth]]))
-  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  param.list <- names(formals(fun = sys.function(sys.parent(depth))))
-  paramsList <- slot(object = object, name = "misc")[["PlotParams"]]
-  p.env <- parent.frame(depth)
-  for(i in names(paramsList)) {
-    split_arr <- unlist(strsplit(x = i,split = ":"))
-    function.name <- split_arr[1]
-    param.name <- split_arr[2]
-    param.value <- paramsList[[i]]
-    if ((function.name == command.name) && (param.name %in% param.list)) {
-      assign(
-        x = param.name,
-        value = param.value,
-        envir = p.env
-      )
-    }
-  }
-  # overwrite any arguments passed in on the command line
-  argnames <- sys.call(which = depth)
-  argList <- as.list(argnames[-1])
-  args_ignore <- c("", "object", "workflow.name")
-  args_use <- setdiff(x = names(argList), y = args_ignore)
-  for(i in args_use) {
-    if(as.character(unlist(argList[i])[[1]]) == "F") {
-      arg.val <- FALSE
-    } else if(as.character(unlist(argList[i])[[1]]) == "T") {
-      arg.val <- TRUE
-    } else {
-      arg.val <- unlist(argList[i])[[1]]
-    }
-    assign(x = i, value = arg.val, envir = p.env)
-  }
 }
 
 # Set highlight information

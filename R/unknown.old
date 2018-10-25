@@ -5789,3 +5789,25 @@ ReadPlotParams <- function(object, workflow.name, depth = 1) {
     assign(x = i, value = arg.val, envir = p.env)
   }
 }
+
+
+# Documentation needed
+#Sets the parameter value for a plotting function as default for an object
+# @param object ...
+# @param function.name ...
+# @param param.name ...
+# @param param.value ...
+#
+# Quick example :   pbmc <- FixPlotParam(pbmc,"FeaturePlot","pt.size","0.1")
+#
+FixPlotParam <- function(object, function.name, param.name, param.value) {
+  if ("PlotParams" %in% names(object@misc)) {
+    object@misc[["PlotParams"]][paste(function.name, param.name, sep = ":")] <- param.value
+  }
+  else {
+    plotParamsList <- list()
+    plotParamsList[paste(function.name, param.name, sep = ":")] <- param.value
+    object@misc[["PlotParams"]] <- plotParamsList
+  }
+  return(object)
+}
