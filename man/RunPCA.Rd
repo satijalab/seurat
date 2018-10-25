@@ -5,14 +5,14 @@
 \alias{RunPCA.default}
 \alias{RunPCA.Assay}
 \alias{RunPCA.Seurat}
-\title{Run Principal Component Analysis on gene expression using IRLBA}
+\title{Run Principal Component Analysis}
 \usage{
 RunPCA(object, ...)
 
 \method{RunPCA}{default}(object, assay = NULL, npcs = 50,
   rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
   ndims.print = 1:5, nfeatures.print = 30, reduction.key = "PC_",
-  seed.use = 42, ...)
+  seed.use = 42, approx = TRUE, ...)
 
 \method{RunPCA}{Assay}(object, assay = NULL, features = NULL,
   npcs = 50, rev.pca = FALSE, weight.by.var = TRUE, verbose = TRUE,
@@ -51,6 +51,8 @@ the number for the dimension names. PC by default}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
+
+\item{approx}{Use truncated singular value decomposition to approximate PCA}
 
 \item{features}{Features to compute PCA on}
 
