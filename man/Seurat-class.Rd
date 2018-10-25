@@ -36,8 +36,6 @@ and the original identity class (orig.ident); more information is added using \c
 
 \item{\code{commands}}{...}
 
-\item{\code{workflows}}{...}
-
 \item{\code{tools}}{...}
 }}
 

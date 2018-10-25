@@ -137,39 +137,6 @@ SeuratCommand <- setClass(
   )
 )
 
-#' The SeuratWorkflow class
-#'
-#' The SeuratWorkflow class aims to create a Makefile-like approach for Seurat
-#' analysis. A full set of parameters can be defined with a single command, and
-#' the workflow encodes the pipeline command structure (for example,
-#' NormalizeData -> FindVariableFeatures -> ScaleData -> RunPCA -> FindClusters).
-#' This leads to very simple workflows being encoded in just a couple commands,
-#' without losing the flexibility to run each step for clarity if desired.
-#'
-#' @slot name Workflow name
-#' @slot depends Dependency graph encoding the relationship between commands
-#' (for example, RunPCA depends on ScaleData)
-#' @slot update Vector specifying for each command, if it needs to be
-#' updated/rerun
-#' @slot params List of parameters used across the workflow
-#' @slot mostRecent Vector specifying for each command, the most recent
-#' timestamp. If the current timestamp matches this, should not need to be rerun.
-#'
-#' @name SeuratWorkflow-class
-#' @rdname SeuratWorkflow-class
-#' @exportClass SeuratWorkflow
-#'
-SeuratWorkflow <- setClass(
-  Class = 'SeuratWorkflow',
-  slots = c(
-    name = 'character',
-    depends = 'ANY',
-    update = 'ANY',
-    params = 'ANY',
-    mostRecent = 'ANY'
-  )
-)
-
 #' The Seurat Class
 #'
 #' The Seurat object is ...
@@ -187,7 +154,6 @@ SeuratWorkflow <- setClass(
 #' @slot misc A list of miscellaneous information
 #' @slot version Version of Seurat this object was built under
 #' @slot commands ...
-#' @slot workflows ...
 #' @slot tools ...
 #'
 #' @name Seurat-class
@@ -209,7 +175,6 @@ Seurat <- setClass(
     misc = 'list',
     version = 'package_version',
     commands = 'list',
-    workflows = 'list',
     tools = 'list'
   )
 )
@@ -279,88 +244,6 @@ seurat <- setClass(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' Checks if a workflow is defined for a Seurat object
-#'
-#' Checks if a workflow is defined for a Seurat object
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow#'
-#' @return TRUE if workflow is defined. STOP otherwise
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' CheckWorkflow(pbmc_small, "cluster")
-#' }
-#'
-CheckWorkflow <- function(object, workflow.name) {
-  # Check if workflow is there
-  workflow.present <- FALSE
-  if (workflow.name %in% names(x = object@workflows)) {
-    if (class(x = object[[workflow.name]])[[1]] == "SeuratWorkflow") {
-      workflow.present <- TRUE
-    }
-  }
-  if (!workflow.present) {
-    stop("Workflow not present, initialize first.")
-  }
-  return(TRUE)
-}
-
-#' Check if workflow command needs update
-#'
-#' Compares the stored timestamp with the most recently recorded timestamp to see if a dependency has been updated
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param command.name Name of the command to check
-#'
-#' @return Returns TRUE if the dependency has changed (or has not been run), and an update is needed. FALSE otherwise
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' CheckWorkflowUpdate(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#' }
-#'
-CheckWorkflowUpdate <- function(object, workflow.name, command.name) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-
-  # According to the workflow, the most recent update
-  mostRecent <- slot(object[[workflow.name]],"mostRecent")
-  workflow.timestamp <- mostRecent[command.name]
-  seurat.timestamp <- as.POSIXct("1900-01-01");
-
-  #means Seurat command has never been run in the workflow
-  if (workflow.timestamp==seurat.timestamp) {
-    return(TRUE)
-  }
-  # According to SeuratCommand, the most recent update
-  # go to workflow to look up assay and DR
-  params <- slot(object = object[[workflow.name]], name = "params")
-  assay <- params$global$assay
-  assay <- assay %iff% params[[command.name]]$assay
-  assay <- assay %||% DefaultAssay(object)
-  reduction <- params$global$reduction
-  reduction <- reduction %iff% params[[command.name]]$reduction
-  reduction <- reduction %||% formals(fun = paste0(command.name, ".Seurat"))$reduction
-  command.name <- paste0(command.name, ".", assay, ".", reduction)
-  command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
-  command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-  if (!(command.name %in% names(object@commands))) {
-    return(TRUE)
-  }
-  if (length(x = command.name)==1) {
-    seurat.timestamp <- slot(object = object@commands[[command.name]], name = "time.stamp")
-  }
-  if (seurat.timestamp == workflow.timestamp) {
-    return(FALSE)
-  }
-  return(TRUE)
-}
 
 #' Create an Assay object
 #'
@@ -667,91 +550,6 @@ CreateSeuratObject <- function(
   return(object)
 }
 
-#' Create a workflow object
-#'
-#' @param file Path to workflow file
-#'
-#' @return A SeuratWorkflow object
-#'
-#' @export
-#'
-CreateWorkflowObject <- function(file) {
-  if (!file.exists(... = file)) {
-    stop("Provided workflow file does not exist.")
-  }
-  config <- read.ini(filepath = file)
-  ValidateWorkflowFile(config = config)
-  workflow.name <- gsub(
-    pattern = ".workflow.ini",
-    replacement = "",
-    x = basename(path = file)
-  )
-  depend.fxns <- unlist(x = strsplit(
-    x = unname(obj = unlist(x = config$dependencies)),
-    split = ","
-  ))
-  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
-  depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
-  rownames(x = depends) <- colnames(x = depends) <- fxns
-  for (cmd in 1:length(x = config$dependencies)) {
-    cmd.name <- names(x = config$dependencies[cmd])
-    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
-    for (cv in cmd.vals) {
-      depends[cmd.name, cv] <- 1
-    }
-  }
-  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
-  names(x = mostRecent) <- fxns
-  for (mr in names(x = mostRecent)) {
-    assay <- config$global$assay
-    assay <- assay %iff% config[mr]$assay
-    reduction <- config$global$reduction
-    reduction <- config[mr]$reduction
-    reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
-    command.name <- paste0(mr, ".", assay, ".", reduction)
-    command.name <- sub(
-      pattern = "[\\.]+$",
-      replacement = "",
-      x = command.name,
-      perl = TRUE
-    )
-    command.name <- sub(
-      pattern = "\\.\\.",
-      replacement = "\\.",
-      x = command.name,
-      perl = TRUE
-    )
-  }
-  params <- list()
-  if (!is.null(x = config$global)) {
-    params[["global"]] <- config$global
-    for (p in 1:length(x = params$global)) {
-      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
-    }
-  }
-  # set fxn specific params
-  fxn.param.names <- setdiff(
-    x = names(x = config),
-    y = c("dependencies", "global")
-  )
-  if (length(x = fxn.param.names) > 0) {
-    for (i in 1:length(x = fxn.param.names)) {
-      params[fxn.param.names[i]] <- config[fxn.param.names[i]]
-      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
-        params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
-      }
-    }
-  }
-  seurat.workflow <- new(
-    Class = 'SeuratWorkflow',
-    name = workflow.name,
-    depends = depends,
-    params = params,
-    mostRecent = mostRecent
-  )
-  return(seurat.workflow)
-}
-
 #' Access cellular data
 #'
 #' Retreives data (feature expression, PCA scores, metrics, etc.) for a set
@@ -929,196 +727,6 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   return(data.fetched)
 }
 
-#' Initialize a Seurat workflow
-#'
-#' Reads dependencies from a file and initializes a Seurat workflow
-#'
-#' @param object Seurat object
-#' @param file Ini configuration file. See cluster.workflow.ini for an example.
-#'
-#' @return Object with modified workflows
-#'
-#' @importFrom ini read.ini
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small <- InitializeWorkflow(object = pbmc_small, file = 'workflows/cluster.workflow.txt')
-#' }
-#'
-InitializeWorkflow <- function(object, file) {
-  if (!file.exists(... = file)) {
-    stop("Provided workflow file does not exist.")
-  }
-  config <- read.ini(filepath = file)
-  ValidateWorkflowFile(config = config)
-  workflow.name <- gsub(
-    pattern = ".workflow.ini",
-    replacement = "",
-    x = basename(path = file)
-  )
-  depend.fxns <- unlist(x = strsplit(
-    x = unname(obj = unlist(x = config$dependencies)),
-    split = ","
-  ))
-  fxns <- union(x = depend.fxns, y = names(x = config$dependencies))
-  depends <- matrix(nrow = length(x = fxns), ncol = length(x = fxns))
-  rownames(x = depends) <- colnames(x = depends) <- fxns
-  for (cmd in 1:length(x = config$dependencies)) {
-    cmd.name <- names(x = config$dependencies[cmd])
-    cmd.vals <- unlist(x = strsplit(x = config$dependencies[[cmd]], split = ","))
-    for (cv in cmd.vals) {
-      depends[cmd.name, cv] <- 1
-    }
-  }
-  mostRecent <- rep(x = as.POSIXct(x = "1900-01-01"), length(x = fxns))
-  names(x = mostRecent) <- fxns
-  for (mr in names(x = mostRecent)) {
-    assay <- config$global$assay
-    assay <- assay %iff% config[mr]$assay
-    assay <- assay %||% DefaultAssay(object = object)
-    reduction <- config$global$reduction
-    reduction <- config[mr]$reduction
-    reduction <- reduction %||% formals(fun = paste0(mr, ".Seurat"))$reduction
-    command.name <- paste0(mr, ".", assay, ".", reduction)
-    command.name <- sub(
-      pattern = "[\\.]+$",
-      replacement = "",
-      x = command.name,
-      perl = TRUE
-    )
-    command.name <- sub(
-      pattern = "\\.\\.",
-      replacement = "\\.",
-      x = command.name,
-      perl = TRUE
-    )
-    if (command.name %in% names(x = object)) {
-      seurat.timestamp <- slot(object = object[[command.name]], name = "time.stamp")
-      mostRecent[mr] <- seurat.timestamp
-    }
-  }
-  params <- list()
-  if (!is.null(x = config$global)) {
-    params[["global"]] <- config$global
-    for (p in 1:length(x = params$global)) {
-      params$global[names(x = params$global[p])] <- ToNumeric(x = params$global[[p]])
-    }
-  }
-  # set fxn specific params
-  fxn.param.names <- setdiff(
-    x = names(x = config),
-    y = c("dependencies", "global")
-  )
-  if (length(x = fxn.param.names) > 0) {
-    for (i in 1:length(x = fxn.param.names)) {
-      params[fxn.param.names[i]] <- config[fxn.param.names[i]]
-      for (p in 1:length(x = params[[fxn.param.names[i]]])) {
-        params[[fxn.param.names[i]]][[p]] <- ToNumeric(x = params[[fxn.param.names[i]]][[p]])
-      }
-    }
-  }
-  seurat.workflow <- new(
-    Class = 'SeuratWorkflow',
-    name = workflow.name,
-    depends = depends,
-    params = params,
-    mostRecent = mostRecent
-  )
-  object[[workflow.name]] <- seurat.workflow
-  return(object)
-}
-
-#' Output individual function calls to recreate workflow
-#'
-#' Output all commands to reproduce your analysis without shortcuts. Should enhance reproducibility, but can be confused by custom modifcations, usage of SubsetData, etc.
-#' We hope this will be very useful, but use with care and verify that it does indeed reproduce your work.
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param command.name Name of the command at the end of the workflow
-#' @param depth depth of the recursive call. Only depth 1 outputs the parameters
-#'
-#' @return Seurat object with updated workflow
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' RecreateWorkflows(object = pbmc_small,workflow.name = "cluster", command.name = "FindClusters")
-#' }
-#'
-RecreateWorkflows <- function(object, workflow.name, command.name, depth = 1) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  prereq.commands <- colnames(depends)[which(depends[command.name,]==1)]
-  if (depth == 1) {
-    message(paste0("\tNeed to output SetParams"))
-  }
-  for(i in prereq.commands) {
-    RecreateWorkflows(object = object,workflow.name = workflow.name,command.name = i,depth = depth + 1)
-  }
-  #TODO deal with Assay better
-  command.name <- intersect(c(command.name, paste0(command.name,".",DefaultAssay(object))), names(object))
-  if (length(x = command.name)==1) {
-    call.string <- slot(object[[command.name]],"call.string")
-    #browser()
-    message(paste0("\t",call.string))
-  }
-}
-
-#' Set Seurat workflow parameters
-#'
-#' Sets parameters for a workflow
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using
-#' InitializeWorkflow
-#' @param fxn.param.names Name of the function and parameter to set (formatted as
-#' FXNNAME_PARAM). Can take a vector to set multiple functions
-#' @param fxn.param.values Value of the parameter to set. Should be of equal length
-#' to fxn.param.names
-#' @param \dots Global parameters to set, will be fed into workflow Seurat functions.
-#' Parameters ending with a "." will populate all similar variable names (i.e.
-#'  setting dims. will set both dims.compute, and dims.cluster)
-#'
-#' @return Object with modified workflows
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small <- SetWorkflowParams(object = pbmc_small, seed.use = 31, dims. = 20)
-#' }
-#'
-SetWorkflowParams <- function(
-  object,
-  workflow.name = NULL,
-  ...,
-  fxn.param.names = NULL,
-  fxn.param.values = NULL
-) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  if (length(x = fxn.param.names) != length(x = fxn.param.values)) {
-    stop("length of fxn.parameter.names needs to equal length of fxn.parameter.values")
-  }
-  params <- slot(object = object[[workflow.name]], name = "params")
-  # set global params
-  global.params <- list(...)
-  for (gp in 1:length(global.params)) {
-    params[["global"]][names(global.params[gp])] <- global.params[gp]
-  }
-  # set fxn specific params
-  if (!is.null(fxn.param.names)) {
-    for (i in 1:length(x = fxn.param.names)) {
-      fxn <- unlist(strsplit(x = fxn.param.names[i], split = "_"))
-      params[[fxn[1]]][fxn[2]] <- fxn.param.values[i]
-    }
-  }
-  slot(object = object[[workflow.name]], name = "params") <- params
-  return(object)
-}
-
 #' Splits object into a list of subsetted objects.
 #'
 #' Splits object based on a single attribute into a list of subsetted objects,
@@ -1227,121 +835,6 @@ TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
   ))
 }
 
-#' Run a command from a workflow
-#'
-#' Run workflow
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param end Name of ending function within workflow
-#' @param start Name of starting function within workflow
-#' @param ... Other arguments
-#'
-#' @return Seurat object with updated workflow
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#' }
-#'
-RunWorkflow <- function(
-  object,
-  workflow.name = "cluster",
-  end = "FindClusters",
-  start = NULL,
-  ...
-) {
-  #browser()
-  start <- start %||% end
-  if ((workflow.name == "cluster") && (!(workflow.name%in%names(object@workflows)))) {
-    object[[workflow.name]] <- cluster.workflow
-  }
-
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  depends <- slot(object@workflows[[workflow.name]], name = "depends")
-  if (!start %in% rownames(x = depends)) {
-    stop(paste0(start, " is not a command in the workflow"))
-  }
-  if (!end %in% rownames(x = depends)) {
-    stop(paste0(end, " is not a command in the workflow"))
-  }
-  if (length(x = list(...)) > 0) {
-    object <- SetWorkflowParams(object = object,workflow.name = workflow.name, ...)
-  }
-  current.command <-  end
-  depends <- slot(object = object[[workflow.name]], name = "depends")
-  prereqs <- names(x = which(x = depends[current.command, ] > 0))
-  if (current.command != start) {
-    for (i in prereqs) {
-      object <- RunWorkflow(
-        object = object,
-        workflow.name = workflow.name,
-        end = i,
-        start = start
-      )
-    }
-  }
-  workflow.args <- slot(object[[workflow.name]], name = "params")$global
-  my.args <- formals(fun = paste0(current.command,".Seurat"))
-  args_ignore <- c("", "object", "workflow.name")
-  args_use <- setdiff(
-    x = intersect(x = names(x = my.args), y = names(x = workflow.args)),
-    y = args_ignore
-  )
-  for (i in args_use) {
-    my.args[[i]] <- workflow.args[[i]]
-  }
-  args <- my.args[args_use]
-  #browser()
-  command <- paste0("object <-  ", current.command,"(object = object")
-  if (length(x = args) > 0) {
-    for (i in 1:length(x = args)) {
-      command <- paste0(command, ", ", names(x = args)[i], " = ", args[i])
-    }
-  }
-  command <- paste0(command, ")")
-  message("")
-  message(paste0("\t", "Running command:"))
-  message(paste0("\t", command))
-  message("")
-  eval(expr = parse(text = command))
-  return(object)
-}
-
-#' Updates workflow timestamps
-#'
-#' Like the touch command in linux. Updates a workflow command's timestamp, and its dependencies
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param command.name Name of the command to touch
-#' @param time.stamp Timestamp to assign
-#'
-#' @return Seurat object with updated workflow
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' TouchWorkflow(object = pbmc_small,workflow.name = "cluster", command.name = "ScaleData")
-#' }
-#'
-TouchWorkflow <- function(object, workflow.name, command.name, time.stamp = Sys.time()) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  #Now update all dependencies, recursively
-  depends <- slot(object = object[[workflow.name]],name = "depends")
-  depend.commands <- colnames(depends)[which(depends[,command.name]==1)]
-  mostRecent <- slot(object[[workflow.name]],"mostRecent")
-  mostRecent[command.name] <- time.stamp
-  slot(object[[workflow.name]],"mostRecent") <- mostRecent
-  for(i in depend.commands) {
-    object <- TouchWorkflow(object,workflow.name = workflow.name,command.name = i,time.stamp = time.stamp)
-  }
-  return(object)
-}
-
 #' Update old Seurat object to accomodate new features
 #'
 #' Updates Seurat objects to new structure for storing data/calculations.
@@ -1432,42 +925,6 @@ UpdateSeuratObject <- function(object) {
     'Please use devtools::install_version to install Seurat v2.3.4 and update your object to a 2.X object',
     call. = FALSE
   )
-}
-
-#' Output status of each command in the workflow
-#'
-#' For each command in the workflow, indicate whether it is up-to-date.
-#'
-#' @param object Seurat object
-#' @param workflow.name Workflow name, should already be initialized using InitializeWorkflow
-#' @param command.name Name of the command at the end of the workflow
-#'
-#' @return Seurat object with updated workflow
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' WorkflowStatus(object = pbmc_small, workflow.name = "cluster")
-#' }
-#'
-WorkflowStatus <- function(object, workflow.name, command.name) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  message(paste("Status  for", workflow.name, "workflow"))
-  depends <- slot(object = object[[workflow.name]], name = "depends")
-  all.cmds <- rownames(x = depends)
-  for (i in all.cmds) {
-    is.updated <- !CheckWorkflowUpdate(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = i
-    )
-    if (is.updated) {
-      message(paste0("\t", i, " up to date"))
-    } else {
-      message(paste0("\t\t", i, " is out of date"))
-    }
-  }
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -3420,7 +2877,7 @@ WhichCells.Seurat <- function(
     }
   } else {
     slot.use <- unlist(x = lapply(
-      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands', 'workflows'),
+      X = c('assays', 'reductions', 'graphs', 'neighbors', 'commands'),
       FUN = function(s) {
         if (any(i %in% names(x = slot(object = x, name = s)))) {
           return(s)
@@ -4125,7 +3582,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         'reductions'
       },
       'SeuratCommand' = 'commands',
-      'SeuratWorkflow' = 'workflows',
       'NULL' = slot.use,
       'meta.data'
     )
@@ -4587,7 +4043,7 @@ FilterObjects <- function(object, classes.keep = c('Assay', 'DimReduc')) {
 # @return The collection (slot) of the object
 #
 FindObject <- function(object, name) {
-  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands', 'workflows')
+  collections <- c('assays', 'graphs', 'neighbors', 'reductions', 'commands')
   object.names <- lapply(
     X = collections,
     FUN = function(x) {
@@ -4604,35 +4060,6 @@ FindObject <- function(object, name) {
   return(NULL)
 }
 
-# Prepare a Seurat function for a workflow run
-#
-# Checks dependencies (and runs them if necessary), and then reads in parameter values
-#
-PrepareWorkflow <- function(object, workflow.name) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-1]]))
-  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  depends <- slot(object = object[[workflow.name]], name = "depends")
-  prereq.commands <- colnames(depends)[which(depends[command.name, ] == 1)]
-  for(i in prereq.commands) {
-    check.prereqs <- CheckWorkflowUpdate(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = i)
-    if (check.prereqs) {
-      # run the dependency
-      workflow.name.quotes <- paste0('\"', workflow.name, '\"')
-      new.cmd <- paste0("object <- ", i, "(object, workflow = ", workflow.name.quotes, ")")
-      message(paste0("Updating ", i))
-      message(new.cmd)
-      eval(expr = parse(text = new.cmd))
-    }
-  }
-  ReadWorkflowParams( object = object, workflow.name = workflow.name, depth = 2)
-  return(object)
-}
-
 # Check to see if projected loadings have been set
 #
 # @param object a DimReduc object
@@ -4645,62 +4072,6 @@ Projected <- function(object) {
     return(!all(is.na(x = slot(object = object, name = 'feature.loadings.projected'))))
   }
   return(!all(projected.dims == 0))
-}
-
-# Read Seurat workflow parameters
-#
-# Reads parameters for a workflow and assigns them to the parent function call.
-#
-# @param depth is the depth of the call in the function stack. If called
-# directly from, for example, ScaleData, then depth=1. If called indirectly
-# from PrepareWorkflow, then depth=2
-#
-ReadWorkflowParams <- function(object, workflow.name, depth = 2) {
-  CheckWorkflow(object = object, workflow.name = workflow.name)
-  param.list <- names(formals(fun = sys.function(sys.parent(depth))))
-  workflow.params <- slot(object = object[[workflow.name]], name = "params")
-
-  # global variables
-  to.set <- intersect(x = param.list, y = names(workflow.params$global))
-  p.env <- parent.frame(depth)
-  for(i in to.set) {
-    if (workflow.params$global[[i]] == "FALSE") {
-      workflow.params$global[[i]] = FALSE
-    }
-    if (workflow.params$global[[i]] == "TRUE") {
-      workflow.params$global[[i]] = TRUE
-    }
-    assign(x = names(workflow.params$global[i]),
-           value = workflow.params$global[[i]],
-           envir = p.env)
-  }
-
-  # parameter-specific variables
-  command.name <- as.character(deparse(sys.calls()[[sys.nframe()-depth]]))
-  command.name <- gsub(pattern = ".Seurat",replacement = "",x = command.name)
-  command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-  to.set <- intersect(x = param.list, y = names(workflow.params[[command.name]]))
-  for(i in to.set) {
-    assign(x = names(workflow.params[[command.name]][i]),
-           value = workflow.params[[command.name]][[i]],
-           envir = p.env)
-  }
-
-  # overwrite any arguments passed in on the command line
-  argnames <- sys.call(which = depth)
-  argList <- as.list(argnames[-1])
-  args_ignore <- c("", "object", "workflow.name")
-  args_use <- setdiff(x = names(argList), y = args_ignore)
-  for(i in args_use) {
-    if(as.character(unlist(argList[i])[[1]]) == "F") {
-      arg.val <- FALSE
-    } else if(as.character(unlist(argList[i])[[1]]) == "T") {
-      arg.val <- TRUE
-    } else {
-      arg.val <- unlist(argList[i])[[1]]
-    }
-    assign(x = i, value = arg.val, envir = p.env)
-  }
 }
 
 # Get the top
@@ -4842,41 +4213,6 @@ UpdateKey <- function(key) {
   }
 }
 
-# UpdateWorkflow
-#
-# Updates a workflow object after a command is run, and makes sure timestamps are properly set.
-#
-UpdateWorkflow <- function(object, workflow.name, command.name = NULL) {
-  CheckWorkflow(object = object,workflow.name = workflow.name)
-  if (is.null(x = command.name)) {
-    command.name <- as.character(x = deparse(expr = sys.calls()[[sys.nframe() - 1]]))
-    command.name <- gsub(pattern = ".Seurat", replacement = "", x = command.name)
-    command.name <- ExtractField(string = command.name, field = 1, delim = "\\(")
-    command.name.seurat <- intersect(
-      x = c(command.name, paste0(command.name, ".", DefaultAssay(object = object))),
-      names(x = object@commands)
-    )
-  } else {
-    command.name.seurat <- command.name
-    command.name <- ExtractField(string = command.name, field = 1, delim = "\\.")
-  }
-  #TODO - Deal with Assay better
-  seurat.timestamp <- Sys.time()
-  if (length(x = command.name) == 1) {
-    seurat.timestamp <- slot(
-      object = object[[command.name.seurat]],
-      name = "time.stamp"
-    )
-  }
-  object <- TouchWorkflow(
-    object = object,
-    workflow.name = workflow.name,
-    command.name = command.name,
-    time.stamp = seurat.timestamp
-  )
-  return(object)
-}
-
 # Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty
 # matrix with the proper dimensions from one of the remaining data slots.
 #
@@ -4908,17 +4244,4 @@ ValidateDataForMerge <- function(assay, slot) {
     )
   }
   return(mat)
-}
-
-# Validates the workflow file that was provided.
-#
-# @param config results of reading in the ini file
-#
-# @return No return
-#
-ValidateWorkflowFile <- function(config) {
-  sections <- names(x = config)
-  if (!'dependencies' %in% sections) {
-    stop("Workflow file is missing the dependencies section")
-  }
 }

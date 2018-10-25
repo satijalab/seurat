@@ -115,7 +115,6 @@ BuildSNN.Assay <- function(
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
-#' @param workflow.name Name of workflow
 #'
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
@@ -136,15 +135,8 @@ BuildSNN.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(x = workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  if (length(x = dims) == 1 && !is.null(x = workflow.name)) {
-    dims <- 1:dims
-  }
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction]])
@@ -199,13 +191,6 @@ BuildSNN.Seurat <- function(
     }
   }
   object <- LogSeuratCommand(object = object)
-  if (!is.null(x = workflow.name)) {
-    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-    object <- UpdateWorkflow(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = command.name)
-  }
   return(object)
 }
 
@@ -265,7 +250,6 @@ FindClusters.default <- function(
 }
 
 #' @param graph.name Name of graph to use for the clustering algorithm
-#' @param workflow.name Name of workflow
 #'
 #' @rdname FindClusters
 #' @export
@@ -283,12 +267,8 @@ FindClusters.Seurat <- function(
   temp.file.location = NULL,
   edge.file.name = NULL,
   verbose = TRUE,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
   if (!graph.name %in% names(x = object)) {
     stop("Provided graph.name not present in Seurat object")
@@ -312,9 +292,6 @@ FindClusters.Seurat <- function(
   object <- AddMetaData(object = object, metadata = clustering.results)
   Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
   object <- LogSeuratCommand(object)
-  if (!is.null(x = workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 

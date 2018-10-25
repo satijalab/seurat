@@ -740,7 +740,6 @@ RunPCA.Assay <- function(
 }
 
 #' @param reduction.name dimensional reduction name,  pca by default
-#' @param workflow.name Name of workflow
 #'
 #' @rdname RunPCA
 #' @export
@@ -759,12 +758,8 @@ RunPCA.Seurat <- function(
   reduction.name = "pca",
   reduction.key = "PC_",
   seed.use = 42,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   reduction.data <- RunPCA(
@@ -783,9 +778,6 @@ RunPCA.Seurat <- function(
   )
   object[[reduction.name]] <- reduction.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
@@ -891,7 +883,6 @@ RunTSNE.DimReduc <- function(
 #' @param distance.matrix If set, runs tSNE on the given distance matrix
 #' instead of data matrix (experimental)
 #' @param reduction.name dimensional reduction name, specifies the position in the object$dr list. tsne by default
-#' @param workflow.name Name of workflow
 #'
 #' @rdname RunTSNE
 #' @export
@@ -910,15 +901,8 @@ RunTSNE.Seurat <- function(
   distance.matrix = NULL,
   reduction.name = "tsne",
   reduction.key = "tSNE_",
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  if (length(dims) == 1 && !is.null(workflow.name)) {
-    dims <- 1:dims
-  }
   tsne.reduction <- if (!is.null(x = distance.matrix)) {
     RunTSNE(
       object = as.matrix(x = distance.matrix),
@@ -960,13 +944,6 @@ RunTSNE.Seurat <- function(
   }
   object[[reduction.name]] <- tsne.reduction
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-    object <- UpdateWorkflow(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = command.name)
-  }
   return(object)
 }
 

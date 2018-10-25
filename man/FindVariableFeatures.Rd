@@ -27,7 +27,7 @@ FindVariableFeatures(object, ...)
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
   num.bin = 20, binning.method = "equal_width", nfeatures = 2000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE, workflow.name = NULL, ...)
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -88,8 +88,6 @@ feature means}
 feature dispersions}
 
 \item{assay}{Assay to use}
-
-\item{workflow.name}{Name of workflow}
 }
 \description{
 Identifies features that are outliers on a 'mean variability plot'.

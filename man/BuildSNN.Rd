@@ -20,7 +20,7 @@ BuildSNN(object, ...)
 \method{BuildSNN}{Seurat}(object, assay = NULL, features = NULL,
   reduction = "pca", dims = 1:10, k.param = 30, prune.SNN = 1/15,
   nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL, workflow.name = NULL, ...)
+  do.plot = FALSE, graph.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -57,8 +57,6 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{graph.name}{Optional naming parameter for stored SNN graph. Default is
 assay.name_snn.}
-
-\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns the object with object@snn filled

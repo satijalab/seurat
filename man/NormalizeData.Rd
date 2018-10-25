@@ -19,7 +19,7 @@ NormalizeData(object, ...)
 
 \method{NormalizeData}{Seurat}(object, assay = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, across = "features", workflow.name = NULL, ...)
+  verbose = TRUE, across = "features", ...)
 }
 \arguments{
 \item{object}{An object}
@@ -42,8 +42,6 @@ More methods to be added.}
 \item{across}{If performing CLR normalization, normalize across either "features" or "cells".}
 
 \item{assay}{Name of assay to use}
-
-\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns object after normalization

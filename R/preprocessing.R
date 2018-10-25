@@ -898,7 +898,6 @@ FindVariableFeatures.Assay <- function(
 
 #' @inheritParams FindVariableFeatures.Assay
 #' @param assay Assay to use
-#' @param workflow.name Name of workflow
 #'
 #' @rdname FindVariableFeatures
 #' @export
@@ -918,12 +917,8 @@ FindVariableFeatures.Seurat <- function(
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- FindVariableFeatures(
@@ -942,9 +937,6 @@ FindVariableFeatures.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
@@ -1020,7 +1012,6 @@ NormalizeData.Assay <- function(
 }
 
 #' @param assay Name of assay to use
-#' @param workflow.name Name of workflow
 #'
 #' @rdname NormalizeData
 #' @export
@@ -1039,13 +1030,9 @@ NormalizeData.Seurat <- function(
   scale.factor = 1e4,
   verbose = TRUE,
   across = "features",
-  workflow.name = NULL,
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- NormalizeData(
     object = assay.data,
@@ -1056,9 +1043,6 @@ NormalizeData.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
@@ -1408,7 +1392,6 @@ ScaleData.Assay <- function(
 }
 
 #' @param assay Name of Assay to scale
-#' @param workflow.name Name of workflow
 #'
 #' @rdname ScaleData
 #' @export
@@ -1427,12 +1410,8 @@ ScaleData.Seurat <- function(
   block.size = 1000,
   min.cells.to.block = 3000,
   verbose = TRUE,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   if (any(vars.to.regress %in% colnames(x = object[[]]))) {
@@ -1457,9 +1436,6 @@ ScaleData.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 

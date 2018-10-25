@@ -17,7 +17,7 @@ FindClusters(object, ...)
   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
   n.start = 10, n.iter = 10, random.seed = 0,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  workflow.name = NULL, ...)
+  ...)
 }
 \arguments{
 \item{object}{An object}
@@ -47,8 +47,6 @@ Specify the ABSOLUTE path.}
 \item{verbose}{Print output}
 
 \item{graph.name}{Name of graph to use for the clustering algorithm}
-
-\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,
