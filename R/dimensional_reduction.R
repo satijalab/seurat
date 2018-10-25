@@ -639,6 +639,7 @@ RunMultiCCA.Seurat <- function(
 #' @param approx Use truncated singular value decomposition to approximate PCA
 #'
 #' @importFrom irlba irlba
+#' @importFrom stats prcomp
 #'
 #' @rdname RunPCA
 #' @export
