@@ -320,7 +320,8 @@ ReadAlevin <- function( base.path = NULL ){
     if (! file.exists(matrix.loc )){
       stop("Expression matrix file missing")
     }
-    matrix <- t(as.matrix(read.csv( matrix.loc, header=FALSE))[,-(ncol(matrix)-1)])
+    matrix <- as.matrix(read.csv( matrix.loc, header=FALSE))
+    matrix <- t(matrix[,1:ncol(matrix)-1])
 
     cell.names <- readLines( barcode.loc )
     gene.names <- readLines( gene.loc )
