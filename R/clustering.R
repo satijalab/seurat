@@ -26,11 +26,11 @@ NULL
 #' @importFrom RANN nn2
 #' @importFrom methods as
 #'
-#' @rdname BuildSNN
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN default
+#' @method FindNeighbors default
 #'
-BuildSNN.default <- function(
+FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
   k.param = 10,
@@ -81,11 +81,11 @@ BuildSNN.default <- function(
   return(snn.matrix)
 }
 
-#' @rdname BuildSNN
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN Assay
+#' @method FindNeighbors Assay
 #'
-BuildSNN.Assay <- function(
+FindNeighbors.Assay <- function(
   object,
   features = NULL,
   k.param = 10,
@@ -97,7 +97,7 @@ BuildSNN.Assay <- function(
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
-  snn.matrix <- BuildSNN(
+  snn.matrix <- FindNeighbors(
     object = data.use,
     k.param = k.param,
     prune.SNN = prune.SNN,
@@ -118,11 +118,11 @@ BuildSNN.Assay <- function(
 #'
 #' @importFrom igraph graph.adjacency plot.igraph E
 #'
-#' @rdname BuildSNN
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN Seurat
+#' @method FindNeighbors Seurat
 #'
-BuildSNN.Seurat <- function(
+FindNeighbors.Seurat <- function(
   object,
   assay = NULL,
   features = NULL,
@@ -144,7 +144,7 @@ BuildSNN.Seurat <- function(
       stop("More dimensions specified in dims than have been computed")
     }
     data.use <- data.use[, dims]
-    snn.matrix <- BuildSNN(
+    snn.matrix <- FindNeighbors(
       object = data.use,
       k.param = k.param,
       prune.SNN = prune.SNN,
@@ -155,7 +155,7 @@ BuildSNN.Seurat <- function(
   } else {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- GetAssay(object = object, assay = assay)
-    snn.matrix <- BuildSNN(
+    snn.matrix <- FindNeighbors(
       object = data.use,
       features = features,
       k.param = k.param,

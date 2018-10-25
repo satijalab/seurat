@@ -68,35 +68,6 @@ as.sparse <- function(x, ...) {
   UseMethod(generic = 'as.sparse', object = x)
 }
 
-#' SNN Graph Construction
-#'
-#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
-#' first determine the k-nearest neighbors of each cell. We use this knn graph
-#' to construct the SNN graph by calculating the neighborhood overlap
-#' (Jaccard index) between every cell and its k.param nearest neighbors.
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @return Returns the object with object@@snn filled
-#'
-#' @examples
-#' pbmc_small
-#' # Compute an SNN on the gene expression level
-#' pbmc_small <- BuildSNN(pbmc_small, features = VariableFeatures(object = pbmc_small))
-#'
-#' # More commonly, we build the SNN on a dimensionally reduced form of the data
-#' # such as the first 10 principle components.
-#'
-#' pbmc_small <- BuildSNN(pbmc_small, reduction = "pca", dims = 1:10)
-#'
-#' @rdname BuildSNN
-#' @export BuildSNN
-#'
-BuildSNN <- function(object, ...) {
-  UseMethod(generic = 'BuildSNN', object = object)
-}
-
 #' Get cells present in an object
 #'
 #' @param object An object
@@ -253,6 +224,35 @@ FindClusters <- function(object, ...) {
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
+}
+
+#' SNN Graph Construction
+#'
+#' Constructs a Shared Nearest Neighbor (SNN) Graph for a given dataset. We
+#' first determine the k-nearest neighbors of each cell. We use this knn graph
+#' to construct the SNN graph by calculating the neighborhood overlap
+#' (Jaccard index) between every cell and its k.param nearest neighbors.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return Returns the object with object@@snn filled
+#'
+#' @examples
+#' pbmc_small
+#' # Compute an SNN on the gene expression level
+#' pbmc_small <- FindNeighbors(pbmc_small, features = VariableFeatures(object = pbmc_small))
+#'
+#' # More commonly, we build the SNN on a dimensionally reduced form of the data
+#' # such as the first 10 principle components.
+#'
+#' pbmc_small <- FindNeighbors(pbmc_small, reduction = "pca", dims = 1:10)
+#'
+#' @rdname FindNeighbors
+#' @export FindNeighbors
+#'
+FindNeighbors <- function(object, ...) {
+  UseMethod(generic = 'FindNeighbors', object = object)
 }
 
 #' Find variable features
