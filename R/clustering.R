@@ -124,10 +124,10 @@ FindNeighbors.Assay <- function(
 #'
 FindNeighbors.Seurat <- function(
   object,
-  assay = NULL,
-  features = NULL,
   reduction = "pca",
   dims = 1:10,
+  assay = NULL,
+  features = NULL,
   k.param = 30,
   prune.SNN = 1/15,
   nn.eps = 0,

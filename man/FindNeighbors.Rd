@@ -17,8 +17,8 @@ FindNeighbors(object, ...)
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
-\method{FindNeighbors}{Seurat}(object, assay = NULL, features = NULL,
-  reduction = "pca", dims = 1:10, k.param = 30, prune.SNN = 1/15,
+\method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
+  assay = NULL, features = NULL, k.param = 30, prune.SNN = 1/15,
   nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
   do.plot = FALSE, graph.name = NULL, ...)
 }
@@ -47,11 +47,11 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{features}{Features to use as input for building the SNN}
 
-\item{assay}{Assay to use in construction of SNN}
-
 \item{reduction}{Reduction to use as input for building the SNN}
 
 \item{dims}{Dimensions of reduction to use as input}
+
+\item{assay}{Assay to use in construction of SNN}
 
 \item{do.plot}{Plot SNN graph on tSNE coordinates}
 
