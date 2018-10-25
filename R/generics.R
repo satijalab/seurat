@@ -670,7 +670,7 @@ RunMultiCCA <- function(object.list, ...) {
   UseMethod(generic = 'RunMultiCCA', object = object.list[[1]])
 }
 
-#' Run Principal Component Analysis on gene expression using IRLBA
+#' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
 #' parameters, see \code{PrintPCAParams}.
