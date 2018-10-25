@@ -636,6 +636,7 @@ RunMultiCCA.Seurat <- function(
 #' the number for the dimension names. PC by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
+#' @param approx Use truncated singular value decomposition to approximate PCA
 #'
 #' @importFrom irlba irlba
 #'
@@ -653,6 +654,7 @@ RunPCA.default <- function(
   nfeatures.print = 30,
   reduction.key = "PC_",
   seed.use = 42,
+  approx = TRUE,
   ...
 ) {
   if (!is.null(x = seed.use)) {
@@ -670,14 +672,26 @@ RunPCA.default <- function(
     cell.embeddings <- pca.results$v
   }
   else {
-    npcs <- min(npcs, nrow(x = object) - 1)
-    pca.results <- irlba(A = t(x = object), nv = npcs, ...)
-    feature.loadings <- pca.results$v
-    sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
-    if (weight.by.var) {
-      cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+    if (approx) {
+      npcs <- min(npcs, nrow(x = object) - 1)
+      pca.results <- irlba(A = t(x = object), nv = npcs, ...)
+      feature.loadings <- pca.results$v
+      sdev <- pca.results$d/sqrt(max(1, ncol(object) - 1))
+      if (weight.by.var) {
+        cell.embeddings <- pca.results$u %*% diag(pca.results$d)
+      } else {
+        cell.embeddings <- pca.results$u
+      }
     } else {
-      cell.embeddings <- pca.results$u
+      npcs <- min(npcs, nrow(x = object))
+      pca.results <- prcomp(x = t(object), rank. = npcs, ...)
+      feature.loadings <- pca.results$rotation
+      sdev <- pca.results$sdev
+      if (weight.by.var) {
+        cell.embeddings <- pca.results$x %*% diag(pca.results$sdev[1:npcs]^2)
+      } else {
+        cell.embeddings <- pca.results$x
+      }
     }
   }
   rownames(x = feature.loadings) <- rownames(x = object)
