@@ -532,6 +532,7 @@ VlnPlot <- function(
 #' either a full list of valid idents or a subset to be plotted last (on top)
 #' @param label Whether to label the clusters
 #' @param label.size Sets size of labels
+#' @param repel Repel labels
 #' @param cells.highlight A list of character or numeric vectors of cells to
 #' highlight. If only one group of cells desired, can simply
 #' pass a vector instead of a list. If set, colors selected cells to the color(s)
@@ -570,6 +571,7 @@ DimPlot <- function(
   order = NULL,
   label = FALSE,
   label.size = 4,
+  repel = FALSE,
   cells.highlight = NULL,
   cols.highlight = 'red',
   sizes.highlight = 1,
@@ -613,6 +615,7 @@ DimPlot <- function(
         shape.by = shape.by,
         plot.order = order,
         label = label,
+        repel = repel,
         label.size = label.size,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
@@ -3437,6 +3440,7 @@ SingleCorPlot <- function(
 # @param shape.by If NULL, all points are circles (default). You can specify any cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
 # @param order Specify the order of plotting for the idents. This can be useful for crowded plots if points of interest are being buried. Provide either a full list of valid idents or a subset to be plotted last (on top).
 # @param label Whether to label the clusters
+# @param repel Repel labels
 # @param label.size Sets size of labels
 # @param cells.highlight A list of character or numeric vectors of cells to
 # highlight. If only one group of cells desired, can simply
@@ -3463,6 +3467,7 @@ SingleDimPlot <- function(
   shape.by = NULL,
   order = NULL,
   label = FALSE,
+  repel = FALSE,
   label.size = 4,
   cells.highlight = NULL,
   cols.highlight = 'red',
@@ -3537,7 +3542,7 @@ SingleDimPlot <- function(
     plot <- LabelClusters(
       plot = plot,
       id = col.by,
-      repel = FALSE,
+      repel = repel,
       size = label.size
     )
   }
