@@ -7,7 +7,7 @@
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   pt.size = NULL, reduction = NULL, group.by = NULL,
   shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
-  cells.highlight = NULL, cols.highlight = "red",
+  repel = FALSE, cells.highlight = NULL, cols.highlight = "red",
   sizes.highlight = 1, na.value = "grey50", combine = TRUE, ...)
 }
 \arguments{
@@ -37,6 +37,8 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 \item{label}{Whether to label the clusters}
 
 \item{label.size}{Sets size of labels}
+
+\item{repel}{Repel labels}
 
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
