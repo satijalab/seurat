@@ -6,5 +6,8 @@
 \alias{Graph}
 \title{The Graph Class}
 \description{
-The Graph class simply inherits from dgCMatrix
+The Graph class simply inherits from dgCMatrix. We do this to enable future expandability of graphs.
+}
+\seealso{
+\code{\link[Matrix]{dgCMatrix-class}}
 }

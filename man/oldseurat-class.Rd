@@ -33,7 +33,7 @@ are listed below.
 \item{\code{meta.data}}{Contains meta-information about each cell, starting with number of genes detected (nGene)
 and the original identity class (orig.ident); more information is added using \code{AddMetaData}}
 
-\item{\code{project.name}}{Name of hte project (for record keeping)}
+\item{\code{project.name}}{Name of the project (for record keeping)}
 
 \item{\code{dr}}{List of stored dimmensional reductions; named by technique}
 
