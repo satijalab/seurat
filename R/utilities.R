@@ -792,39 +792,6 @@ IsMatrixEmpty <- function(x) {
   return(all(matrix.dims == 0) || matrix.na)
 }
 
-# Documentation
-#Internal, not documented for now
-#
-#' @importFrom lars lars predict.lars
-#
-LassoFxn <- function(
-  lasso.input,
-  genes.obs,
-  s.use = 20,
-  gene.name = NULL,
-  do.print = FALSE,
-  gram = TRUE
-) {
-  lasso.model <- lars(
-    x = lasso.input,
-    y = as.numeric(x = genes.obs),
-    type = "lasso",
-    max.steps = s.use * 2,
-    use.Gram = gram
-  )
-  #lasso.fits=predict.lars(lasso.model,lasso.input,type="fit",s=min(s.use,max(lasso.model$df)))$fit
-  lasso.fits <- predict.lars(
-    object = lasso.model,
-    newx = lasso.input,
-    type = "fit",
-    s = s.use
-  )$fit
-  if (do.print) {
-    print(gene.name)
-  }
-  return(lasso.fits)
-}
-
 # Check the length of components of a list
 #
 # @param values A list whose components should be checked
