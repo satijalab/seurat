@@ -1653,44 +1653,63 @@ VizDimReduction <- function(
 # Exported utility functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# NEED TO TREAT PNG PACKAGE PROPERLY
-#' Augments ggplot2 scatterplot with a PNG image.
+#' Augments ggplot2-based plot with a PNG image.
 #'
-#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
+#' Creates "vector-friendly" plots. Does this by saving a copy of the plot as a PNG file,
+#' then adding the PNG image with \code{\link[ggplot2]{annotation_raster}} to a blank plot
+#' of the same dimensions as \code{plot}. Please note: original legends and axes will be lost
+#' during augmentation.
 #'
-#' @param plot ggplot2 scatterplot. Typically will have only labeled axes and no points
-#' @param img location of a PNG file that contains the points to overlay onto the scatterplot.
+#' @param plot A ggplot object
+#' @param width,height Width and height of PNG version of plot
+#' @param dpi Plot resolution
 #'
-#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
+#' @return A ggplot object
 #'
 #' @importFrom png readPNG
-#' @importFrom ggplot2 annotation_raster ggplot_build
+#' @importFrom ggplot2 ggplot_build ggsave ggplot aes_string geom_blank annotation_raster
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' data("pbmc_small")
-#' p <- PCAPlot(pbmc_small, do.return = TRUE)
-#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
-#' pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
-#' pmod
+#' plot <- DimPlot(object = pbmc_small)
+#' AugmentPlot(plot = plot)
 #' }
 #'
-AugmentPlot <- function(plot, img) {
+AugmentPlot <- function(plot, width = 10, height = 10, dpi = 100) {
+  pbuild.params <- ggplot_build(plot = plot)$layout$panel_params[[1]]
   range.values <- c(
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$x.range,
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$y.range
+    pbuild.params$x.range,
+    pbuild.params$y.range
   )
-  img <- readPNG(source = img)
-  p1mod <- plot + annotation_raster(
-    img,
+  xyparams <- GetXYAesthetics(
+    plot = plot,
+    geom = class(x = plot$layers[[1]]$geom)[1]
+  )
+  tmpfile <- tempfile(fileext = '.png')
+  ggsave(
+    filename = tmpfile,
+    plot = plot + NoLegend() + NoAxes(),
+    width = width,
+    height = height,
+    dpi = dpi
+  )
+  img <- readPNG(source = tmpfile)
+  file.remove(tmpfile)
+  blank <- ggplot(
+    data = plot$data,
+    mapping = aes_string(x = xyparams$x, y = xyparams$y)
+  ) + geom_blank()
+  blank <- blank + plot$theme
+  blank <- blank + annotation_raster(
+    raster = img,
     xmin = range.values[1],
     xmax = range.values[2],
     ymin = range.values[3],
     ymax = range.values[4]
   )
-  return(p1mod)
+  return(blank)
 }
 
 #' @inheritParams CustomPalette
