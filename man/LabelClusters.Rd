@@ -4,12 +4,17 @@
 \alias{LabelClusters}
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id, repel = TRUE, ...)
+LabelClusters(plot, id, clusters = NULL, labels = NULL, repel = TRUE,
+  ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
 
 \item{id}{Name of variable used for coloring scatter plot}
+
+\item{clusters}{Vector of cluster ids to label}
+
+\item{labels}{Custom labels for the clusters}
 
 \item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
 

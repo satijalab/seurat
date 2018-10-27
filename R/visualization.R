@@ -2007,6 +2007,8 @@ HoverLocator <- function(
 #'
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
+#' @param clusters Vector of cluster ids to label
+#' @param labels Custom labels for the clusters 
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
@@ -2023,26 +2025,34 @@ HoverLocator <- function(
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, repel = TRUE, ...) {
+LabelClusters <- function(plot, id, clusters = NULL, labels = NULL, repel = TRUE, ...) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
   data <- plot$data[, c(unlist(x = xynames), id)]
-  groups <- as.character(x = na.omit(object = unique(x = data[, id])))
-  labels <- lapply(
+  possible.clusters <- as.character(x = na.omit(object = unique(x = data[, id])))
+  groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
+  if (any(!groups %in% possible.clusters)) {
+    stop("The following clusters were not found: ", paste(groups[!groups %in% possible.clusters], collapse = ","))
+  }
+  labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
       data.use <- data[data[, id] == group, unlist(x = xynames)]
       return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
     }
   )
-  names(x = labels) <- groups
-  labels <- as.data.frame(x = t(x = as.data.frame(x = labels)))
-  labels[, colnames(x = data)[3]] <- groups
+  groups <- labels %||% groups
+  if (length(x = labels.loc) != length(x = groups)) {
+    stop("Length of labels (", length(x = groups),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
+  }
+  names(x = labels.loc) <- groups
+  labels.loc <- as.data.frame(x = t(x = as.data.frame(x = labels.loc)))
+  labels.loc[, colnames(x = data)[3]] <- groups
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   plot <- plot + geom.use(
-    data = labels,
+    data = labels.loc,
     mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
     ...
   )
