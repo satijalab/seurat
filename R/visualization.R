@@ -1351,6 +1351,7 @@ DotPlot <- function(
   } else {
     object[[group.by, drop = TRUE]]
   }
+  id.levels <- levels(x = data.features$id)
   data.features$id <- as.vector(x = data.features$id)
   if (!is.null(x = split.by)) {
     splits <- object[[split.by, drop = TRUE]]
@@ -1387,6 +1388,9 @@ DotPlot <- function(
     }
   )
   data.plot <- do.call(what = 'rbind', args = data.plot)
+  if (!is.null(x = id.levels)) {
+    data.plot$id <- factor(x = data.plot$id, levels = id.levels)
+  }
   avg.exp.scaled <- sapply(
     X = unique(x = data.plot$features.plot),
     FUN = function(x) {
