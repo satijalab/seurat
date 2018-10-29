@@ -445,32 +445,32 @@ FindMarkers.default <- function(
   de.results <- switch(
     EXPR = test.use,
     'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose,
       ...
     ),
     'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -479,7 +479,7 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -488,20 +488,20 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
       verbose = verbose
     ),
     "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
@@ -979,7 +979,7 @@ LRDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(group.info)]
+  data.use <- data.use[, rownames(group.info), drop = FALSE]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   p_val <- mysapply(
@@ -1292,7 +1292,7 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(group.info)]
+  data.use <- data.use[, rownames(group.info), drop = FALSE]
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   p_val <- mysapply(
     X = 1:nrow(x = data.use),
