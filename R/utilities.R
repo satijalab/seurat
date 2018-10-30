@@ -568,6 +568,55 @@ LogVMR <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
 
+#' Aggregate expression of multiple features into a single feature
+#'
+#' Calculates relative contribution of each feature to each cell
+#' for given set of features.
+#'
+#' @param object A Seurat object
+#' @param features List of features to aggregate
+#' @param meta.name Name of column in metadata to store metafeature
+#' @param cells List of cells to use (default all cells)
+#' @param assay Which assay to use
+#' @param slot Which slot to take data from (default data)
+#'
+#' @return Returns a \code{Seurat} object with metafeature stored in objct metadata
+#'
+#' @importFrom Matrix rowSums colMeans
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- MetaFeature(
+#'   object = pbmc_small,
+#'   features = c("LTB", "EAF2"),
+#'   meta.name = 'var.aggregate'
+#' )
+#' head(pbmc_small[[]])
+#'
+MetaFeature <- function(
+  object,
+  features,
+  meta.name = 'metafeature',
+  cells = NULL,
+  assay = NULL,
+  slot = 'data'
+) {
+  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- newmat[features, cells]
+  if (slot == 'scale.data') {
+    newdata <- Matrix::colMeans(newmat)
+  } else {
+    rowtotals <- Matrix::rowSums(newmat)
+    newmat <- newmat / rowtotals
+    newdata <- Matrix::colMeans(newmat)
+  }
+  object[[meta.name]] <- newdata
+  return(object)
+}
+
 #' Apply a ceiling and floor to all values in a matrix
 #'
 #' @param data Matrix or data frame
@@ -671,6 +720,31 @@ as.data.frame.Matrix <- function(
   } else {
     return(lhs)
   }
+}
+
+# L2 normalize the columns (or rows) of a given matrix
+# @param mat Matrix to cosine normalize
+# @param MARGIN Perform normalization over rows (1) or columns (2)
+#
+#
+# @return returns l2-normalized matrix
+#
+#
+L2Norm <- function(mat, MARGIN = 1){
+  normalized <- sweep(
+    x = mat,
+    MARGIN = MARGIN,
+    STATS = apply(
+      X = mat,
+      MARGIN = MARGIN,
+      FUN = function(x){
+        sqrt(x = sum(x ^ 2))
+      }
+    ),
+    FUN = "/"
+  )
+  normalized[!is.finite(x = normalized)] <- 0
+  return(normalized)
 }
 
 # Check the use of ...
@@ -917,8 +991,7 @@ Melt <- function(x) {
   return(data.frame(
     rows = rep.int(x = rownames(x = x), times = ncol(x = x)),
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
-    vals = unlist(x = x, use.names = FALSE),
-    stringsAsFactors = FALSE
+    vals = unlist(x = x, use.names = FALSE)
   ))
 }
 

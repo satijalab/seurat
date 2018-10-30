@@ -24,6 +24,8 @@ Imports:
     cluster,
     cowplot,
     fitdistrplus,
+    future,
+    future.apply,
     ggplot2 (>= 3.0.0),
     ggrepel,
     ggridges,
@@ -49,7 +51,6 @@ Imports:
     Rtsne,
     scales,
     SDMTools,
-    tidyr,
     tsne,
     stats,
     utils

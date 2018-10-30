@@ -311,7 +311,7 @@ DoHeatmap <- function(
 #' @param ncells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
 #' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
 #'
-#' @return A ggplot object
+#' @return Returns a ggplot2 plot object.
 #'
 #' @importFrom ggplot2 guides
 #' @export
@@ -640,9 +640,10 @@ DimPlot <- function(
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
-#' @param min.cutoff Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
-#' @param max.cutoff Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)
-#' @param split.by A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}
+#' @param min.cutoff,max.cutoff Vector of minimum and maximum cutoff values for each feature,
+#'  may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')
+#' @param split.by A factor in object metadata to split the feature plot by, pass 'ident'
+#'  to split by cell identity'; similar to the old \code{FeatureHeatmap}
 #' @param blend Scale and blend expression values to visualize coexpression of two features
 #' @param blend.threshold The color cutoff from weak signal to strong signal; ranges from 0 to 1.
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
@@ -1568,6 +1569,153 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+#' Polygon DimPlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
+#' in metadata
+#'
+#' @inheritParams PolyFeaturePlot
+#' @param group.by A grouping variable present in the metadata. Default is to use the groupings present
+#' in the current cell identities (\code{Idents(object = object)})
+#'
+#' @return Returns a ggplot object
+#'
+#' @export
+#'
+PolyDimPlot <- function(
+  object,
+  group.by = NULL,
+  cells = NULL,
+  poly.data = 'spatial',
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells
+  )
+  group.data$cell <- rownames(x = group.data)
+  data <- merge(x = polygons, y = group.data, by = 'cell')
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = group.by)
+  return(plot)
+}
+
+#' Polygon FeaturePlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
+#'
+#' @inheritParams FeaturePlot
+#' @param poly.data Name of the polygon dataframe in the misc slot
+#' @param ncol Number of columns to split the plot into
+#' @param common.scale ...
+#'
+#' @return Returns a ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
+#'
+#' @export
+#'
+PolyFeaturePlot <- function(
+  object,
+  features,
+  cells = NULL,
+  poly.data = 'spatial',
+  ncol = ceiling(x = length(x = features) / 2),
+  min.cutoff = 0,
+  max.cutoff = NA,
+  common.scale = TRUE,
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  assay.data <- FetchData(
+    object = object,
+    vars = features,
+    cells = cells
+  )
+  features <- colnames(x = assay.data)
+  cells <- rownames(x = assay.data)
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = min(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = min.cutoff,
+    feature = features
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = max(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = max.cutoff,
+    feature = features
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  }
+  assay.data <- mapply(
+    FUN = function(feature, min, max) {
+      return(ScaleColumn(vec = assay.data[, feature], cutoffs = c(min, max)))
+    },
+    feature = features,
+    min = min.cutoff,
+    max = max.cutoff
+  )
+  if (common.scale) {
+    assay.data <- apply(
+      X = assay.data,
+      MARGIN = 2,
+      FUN = function(x) {
+        return(x - min(x))
+      }
+    )
+    assay.data <- t(
+      x = t(x = assay.data) / apply(X = assay.data, MARGIN = 2, FUN = max)
+    )
+  }
+  assay.data <- as.data.frame(x = assay.data)
+  assay.data <- data.frame(
+    cell = as.vector(x = replicate(n = length(x = features), expr = cells)),
+    feature = as.vector(x = t(x = replicate(n = length(x = cells), expr = features))),
+    expression = unlist(x = assay.data, use.names = FALSE)
+  )
+  data <- merge(x = polygons, y = assay.data, by = 'cell')
+  data$feature <- factor(x = data$feature, levels = features)
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = 'expression', font_size = 8) +
+    scale_fill_viridis_c() +
+    facet_wrap(facets = 'feature', ncol = ncol)
+  return(plot)
+}
+
 #' Visualize Dimensional Reduction genes
 #'
 #' Visualize top genes associated with reduction components
@@ -2167,6 +2315,7 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{FontSize}}{Sets axis and title font sizes}
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
+#'   \item{\code{SpatialTheme}}{A theme designed for spatial visualizations (eg \code{\link{PolyFeaturePlot}}, \code{\link{PolyDimPlot}})}
 #'   \item{\code{RestoredTheme}}{Restore a theme after removal}
 #'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
 #'   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
@@ -2225,6 +2374,7 @@ DarkTheme <- function(...) {
     legend.background = black.background,
     legend.box.background = black.background.no.border,
     legend.key = black.background.no.border,
+    strip.background = element_rect(fill = 'grey50', colour = NA),
     #   Set text colors
     plot.title = white.text,
     plot.subtitle = white.text,
@@ -2232,6 +2382,7 @@ DarkTheme <- function(...) {
     axis.text = white.text,
     legend.title = white.text,
     legend.text = white.text,
+    strip.text = white.text,
     #   Set line colors
     axis.line.x = white.line,
     axis.line.y = white.line,
@@ -2397,6 +2548,17 @@ SeuratAxes <- function(...) {
     ...
   )
   return(axes.theme)
+}
+
+#' @inheritParams SeuratTheme
+#'
+#' @export
+#'
+#' @rdname SeuratTheme
+#' @aliases SpatialTheme
+#'
+SpatialTheme <- function(...) {
+  return(DarkTheme() + NoAxes() + NoGrid() + NoLegend(...))
 }
 
 #' @inheritParams SeuratTheme
@@ -2636,135 +2798,6 @@ Col2Hex <- function(...) {
     alpha = alpha
   )
   return(colors)
-}
-
-globalVariables(
-  names = 'cc',
-  package = 'Seurat',
-  add = TRUE
-)
-# Evaluate CCs
-#
-# Looks at the biweight midcorrelation of the Xth gene across the specified CCs
-# for each group in the grouping.var.
-#
-# @param object A Seurat object
-# @param grouping.var Grouping variable specified in alignment procedure
-# @param dims.eval dimensions to evalutate the bicor for
-# @param gene.num Xth gene to look at bicor for
-# @param num.possible.genes Number of possible genes to search when choosing
-# genes for the metagene. Set to 2000 by default. Lowering will decrease runtime
-# but may result in metagenes constructed on fewer than num.genes genes.
-# @param display.progress Show progress bar
-#
-#' @importFrom tidyr gather
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#
-EvaluateCCs <- function(
-  object,
-  grouping.var,
-  dims.eval,
-  gene.num,
-  num.possible.genes,
-  display.progress
-) {
-  reduction.type <-  "cca"
-  ident.orig <- Idents(object = object)
-  # object <- SetAllIdent(object = object, id = grouping.var)
-  Idents(object = object) <- grouping.var
-  levels.split <- names(x = sort(
-    x = table(Idents(object = object)),
-    decreasing = TRUE
-  ))
-  num.groups <- length(x = levels.split)
-  objects <- list()
-  for (i in 1:num.groups) {
-    objects[[i]] <- subset(x = object, idents = levels.split[i])
-  }
-  # object@ident <- ident.orig
-  Idents(object = object) <- ident.orig
-  cc.loadings <- list()
-  scaled.data <- list()
-  cc.embeds <- list()
-  for (i in 1:num.groups) {
-    cat(paste0("Rescaling group ", i, "\n"), file = stderr())
-    objects[[i]] <- ScaleData(
-      object = objects[[i]],
-      block.size = 5000,
-      display.progress = display.progress
-    )
-    objects[[i]] <- ProjectDim(
-      object = objects[[i]],
-      reduction = reduction.type,
-      verbose = FALSE
-    )
-    cc.loadings[[i]] <- Loadings(
-      object = objects[[i]][[reduction.type]],
-      projected = TRUE
-    )
-    cc.embeds[[i]] <- Embeddings(object = objects[[i]][[reduction.type]])
-    scaled.data[[i]] <- GetAssayData(object = objects[[i]], slot = 'scale.data')
-  }
-  bc.gene <- matrix(ncol = num.groups, nrow = length(dims.eval))
-  if (display.progress) {
-    cat(paste0("Evaluating dims: ", paste(dims.eval, collapse = " "),  "\n"), file = stderr())
-    pb <- txtProgressBar(
-      min = 0,
-      max = length(x = dims.eval) * (num.groups - 1),
-      style = 3
-    )
-    pb.idx <- 0
-  }
-  for (cc.use in dims.eval) {
-    bc.gene.g1 <- c()
-    for (g in 2:num.groups) {
-      if (display.progress) {
-        pb.idx <- pb.idx + 1
-        setTxtProgressBar(pb = pb, value = pb.idx)
-      }
-      genes.rank <- data.frame(
-        rank(x = abs(x = cc.loadings[[1]][, cc.use])),
-        rank(x = abs(x = cc.loadings[[g]][, cc.use])),
-        cc.loadings[[1]][, cc.use],
-        cc.loadings[[g]][, cc.use]
-      )
-      genes.rank$min <- apply(X = genes.rank[,1:2], MARGIN = 1, FUN = min)
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.top <- rownames(x = genes.rank)[1:min(num.possible.genes, nrow(x = genes.rank))]
-      bicors <- list()
-      for (i in c(1, g)) {
-        cc.vals <- cc.embeds[[i]][, cc.use]
-        bicors[[i]] <- sapply(
-          X = genes.top,
-          FUN = function(x) {
-            return(BiweightMidcor(x = cc.vals, y = scaled.data[[i]][x, ]))
-          }
-        )
-      }
-      genes.rank <- data.frame(
-        rank(x = abs(x = bicors[[1]])),
-        rank(x = abs(x = bicors[[g]])),
-        bicors[[1]],
-        bicors[[g]]
-      )
-      genes.rank$min <- apply(X = abs(x = genes.rank[, 1:2]), MARGIN = 1, FUN = min)
-      # genes must be correlated in same direction in both datasets
-      genes.rank <- genes.rank[sign(x = genes.rank[,3]) == sign(x = genes.rank[,4]), ]
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      genes.rank <- genes.rank[order(genes.rank$min, decreasing = TRUE), ]
-      bc.gene[cc.use, g] <- mean(x = abs(x = genes.rank[1:gene.num, 4]))
-      bc.gene.g1 <- c(bc.gene.g1, mean(x = abs(x = genes.rank[1:gene.num, 3])))
-    }
-    bc.gene[cc.use, 1] <- abs(x = mean(x = bc.gene.g1))
-  }
-  if (display.progress) {
-    close(con = pb)
-  }
-  colnames(x = bc.gene) <- levels.split
-  bc.gene <- as.data.frame(x = bc.gene)
-  bc.gene$cc <- 1:nrow(x = bc.gene)
-  bc.gene <- gather(data = bc.gene, key = "Group",  value = "bicor", -cc)
-  return(bc.gene)
 }
 
 # Plot feature expression by identity
@@ -3232,6 +3265,27 @@ QuantileSegments <- function(data, draw.quantiles) {
     y = rep(x = ys, each = 2),
     group = rep(x = ys, each = 2)
   ))
+}
+
+# Scale vector to min and max cutoff values
+#
+# @param vec a vector
+# @param cutoffs A two-length vector of cutoffs to be passed to \code{\link{SetQuantile}}
+#
+# @return Returns a vector
+#
+ScaleColumn <- function(vec, cutoffs) {
+  if (!length(x = cutoffs) == 2) {
+    stop("Two cutoffs (a low and high) are needed")
+  }
+  cutoffs <- sapply(
+    X = cutoffs,
+    FUN = SetQuantile,
+    data = vec
+  )
+  vec[vec < min(cutoffs)] <- min(cutoffs)
+  vec[vec > max(cutoffs)] <- max(cutoffs)
+  return(vec)
 }
 
 # Set highlight information
@@ -3782,6 +3836,27 @@ SingleImageMap <- function(data, order = NULL, title = NULL) {
     cex.axis = 0.75
   )
   title(main = title)
+}
+
+# A single polygon plot
+#
+# @param data Data to plot
+# @param group.by Grouping variable
+# @param ... Extra parameters passed to \code{\link[cowplot]{theme_cowplot}}
+#
+# @return A ggplot-based plot
+#
+#' @importFrom cowplot theme_cowplot
+#' @importFrom ggplot2 ggplot aes_string geom_polygon
+#
+# @seealso \code{\link[cowplot]{theme_cowplot}}
+#
+SinglePolyPlot <- function(data, group.by, ...) {
+  plot <- ggplot(data = data, mapping = aes_string(x = 'x', y = 'y')) +
+    geom_polygon(mapping = aes_string(fill = group.by, group = 'cell')) +
+    coord_fixed() +
+    theme_cowplot(...)
+  return(plot)
 }
 
 # A single heatmap from ggplot2 using geom_raster

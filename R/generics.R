@@ -158,6 +158,7 @@ Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
 }
 
+
 #' Cluster Determination
 #'
 #' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
@@ -604,7 +605,7 @@ RunALRA <- function(object, ...) {
 #' \code{PrintCCAParams}.
 #' @param object1 First Seurat object
 #' @param object2 Second Seurat object.
-#' @param ... Arguments passed to other methods
+# @param ... Arguments passed to other methods
 #'
 #' @return Returns a combined Seurat object with the CCA results stored.
 #'
@@ -629,45 +630,6 @@ RunALRA <- function(object, ...) {
 #'
 RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
-}
-
-#' Perform Canonical Correlation Analysis with more than two groups
-#'
-#' Runs a canonical correlation analysis
-#'
-#' @param object.list List of Seurat objects
-#' @param ... Arguments passed to other methods, \code{merge} in case with two objects
-#' passed, or \code{ScaleData} in case with single object and rescale.groups set to TRUE)
-#'
-#' @return Returns a combined Seurat object with the CCA stored as a DimReduc
-#'
-#' @rdname RunMultiCCA
-#' @export RunMultiCCA
-#'
-#' @seealso \code{\link{merge.Seurat}} \code{\link{ScaleData}}
-#'
-#' @examples
-#' \dontrun{
-#' pbmc_small
-#' # As multi-set CCA requires more than two datasets, we will split our test object into
-#' # three just for this example
-#' pbmc1 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[1:30])
-#' pbmc2 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[31:60])
-#' pbmc3 <- SubsetData(pbmc_small,cells = pbmc_small@cell.names[61:80])
-#' pbmc1@meta.data$group <- "group1"
-#' pbmc2@meta.data$group <- "group2"
-#' pbmc3@meta.data$group <- "group3"
-#' pbmc.list <- list(pbmc1, pbmc2, pbmc3)
-#' pbmc_cca <- RunMultiCCA(object.list = pbmc.list, genes.use = pbmc_small@var.genes, num.ccs = 3)
-#' # Print results
-#' PrintDim(pbmc_cca,reduction.type = 'cca')
-#' }
-#'
-RunMultiCCA <- function(object.list, ...) {
-  if (length(x = object.list) < 3) {
-    stop("Must give at least 3 objects for MultiCCA")
-  }
-  UseMethod(generic = 'RunMultiCCA', object = object.list[[1]])
 }
 
 #' Run Principal Component Analysis
@@ -773,8 +735,8 @@ ScaleData <- function(object, ...) {
 #' Significant PCs should show a p-value distribution that is
 #' strongly skewed to the left compared to the null distribution.
 #' The p-value for each PC is based on a proportion test comparing the number
-#' of genes with a p-value below a particular threshold (score.thresh), compared with the
-#' proportion of genes expected under a uniform distribution of p-values.
+#' of features with a p-value below a particular threshold (score.thresh), compared with the
+#' proportion of features expected under a uniform distribution of p-values.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods

@@ -116,6 +116,23 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// FastSparseRowScaleWithKnownStats
+Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sigma, bool scale, bool center, double scale_max, bool display_progress);
+RcppExport SEXP _Seurat_FastSparseRowScaleWithKnownStats(SEXP matSEXP, SEXP muSEXP, SEXP sigmaSEXP, SEXP scaleSEXP, SEXP centerSEXP, SEXP scale_maxSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sigma(sigmaSEXP);
+    Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
+    Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< double >::type scale_max(scale_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FastSparseRowScaleWithKnownStats(mat, mu, sigma, scale, center, scale_max, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
 // FastCov
 Eigen::MatrixXd FastCov(Eigen::MatrixXd mat, bool center);
 RcppExport SEXP _Seurat_FastCov(SEXP matSEXP, SEXP centerSEXP) {
@@ -216,6 +233,76 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// SparseRowVar
+Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
+RcppExport SEXP _Seurat_SparseRowVar(SEXP matSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(SparseRowVar(mat, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ReplaceColsC
+Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, NumericVector col_idx, Eigen::SparseMatrix<double> replacement);
+RcppExport SEXP _Seurat_ReplaceColsC(SEXP matSEXP, SEXP col_idxSEXP, SEXP replacementSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type col_idx(col_idxSEXP);
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type replacement(replacementSEXP);
+    rcpp_result_gen = Rcpp::wrap(ReplaceColsC(mat, col_idx, replacement));
+    return rcpp_result_gen;
+END_RCPP
+}
+// FindWeightsC
+Eigen::SparseMatrix<double> FindWeightsC(Eigen::SparseMatrix<double> integration_matrix, NumericVector cells2, Eigen::MatrixXd distances, std::vector<std::string> anchor_cells2, std::vector<std::string> integration_matrix_rownames, Eigen::MatrixXd cell_index, Eigen::VectorXd anchor_score, double min_dist, double sd, bool display_progress);
+RcppExport SEXP _Seurat_FindWeightsC(SEXP integration_matrixSEXP, SEXP cells2SEXP, SEXP distancesSEXP, SEXP anchor_cells2SEXP, SEXP integration_matrix_rownamesSEXP, SEXP cell_indexSEXP, SEXP anchor_scoreSEXP, SEXP min_distSEXP, SEXP sdSEXP, SEXP display_progressSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type integration_matrix(integration_matrixSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type cells2(cells2SEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type distances(distancesSEXP);
+    Rcpp::traits::input_parameter< std::vector<std::string> >::type anchor_cells2(anchor_cells2SEXP);
+    Rcpp::traits::input_parameter< std::vector<std::string> >::type integration_matrix_rownames(integration_matrix_rownamesSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type cell_index(cell_indexSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type anchor_score(anchor_scoreSEXP);
+    Rcpp::traits::input_parameter< double >::type min_dist(min_distSEXP);
+    Rcpp::traits::input_parameter< double >::type sd(sdSEXP);
+    Rcpp::traits::input_parameter< bool >::type display_progress(display_progressSEXP);
+    rcpp_result_gen = Rcpp::wrap(FindWeightsC(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress));
+    return rcpp_result_gen;
+END_RCPP
+}
+// IntegrateDataC
+Eigen::SparseMatrix<double> IntegrateDataC(Eigen::SparseMatrix<double> integration_matrix, Eigen::SparseMatrix<double> weights, Eigen::SparseMatrix<double> expression_cells2);
+RcppExport SEXP _Seurat_IntegrateDataC(SEXP integration_matrixSEXP, SEXP weightsSEXP, SEXP expression_cells2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type integration_matrix(integration_matrixSEXP);
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type weights(weightsSEXP);
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type expression_cells2(expression_cells2SEXP);
+    rcpp_result_gen = Rcpp::wrap(IntegrateDataC(integration_matrix, weights, expression_cells2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// SNNAnchor
+Eigen::SparseMatrix<double> SNNAnchor(Eigen::SparseMatrix<double> k_matrix, Eigen::SparseMatrix<double> anchor_only);
+RcppExport SEXP _Seurat_SNNAnchor(SEXP k_matrixSEXP, SEXP anchor_onlySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type k_matrix(k_matrixSEXP);
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type anchor_only(anchor_onlySEXP);
+    rcpp_result_gen = Rcpp::wrap(SNNAnchor(k_matrix, anchor_only));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunModularityClusteringCpp
 IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
 RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
@@ -283,6 +370,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastRowScale", (DL_FUNC) &_Seurat_FastRowScale, 5},
     {"_Seurat_Standardize", (DL_FUNC) &_Seurat_Standardize, 2},
     {"_Seurat_FastSparseRowScale", (DL_FUNC) &_Seurat_FastSparseRowScale, 5},
+    {"_Seurat_FastSparseRowScaleWithKnownStats", (DL_FUNC) &_Seurat_FastSparseRowScaleWithKnownStats, 7},
     {"_Seurat_FastCov", (DL_FUNC) &_Seurat_FastCov, 2},
     {"_Seurat_FastCovMats", (DL_FUNC) &_Seurat_FastCovMats, 3},
     {"_Seurat_FastRBind", (DL_FUNC) &_Seurat_FastRBind, 2},
@@ -291,6 +379,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_SparseRowVarStd", (DL_FUNC) &_Seurat_SparseRowVarStd, 5},
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
+    {"_Seurat_SparseRowVar", (DL_FUNC) &_Seurat_SparseRowVar, 2},
+    {"_Seurat_ReplaceColsC", (DL_FUNC) &_Seurat_ReplaceColsC, 3},
+    {"_Seurat_FindWeightsC", (DL_FUNC) &_Seurat_FindWeightsC, 10},
+    {"_Seurat_IntegrateDataC", (DL_FUNC) &_Seurat_IntegrateDataC, 3},
+    {"_Seurat_SNNAnchor", (DL_FUNC) &_Seurat_SNNAnchor, 2},
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},

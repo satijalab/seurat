@@ -40,8 +40,8 @@ Returns a Seurat object
 Significant PCs should show a p-value distribution that is
 strongly skewed to the left compared to the null distribution.
 The p-value for each PC is based on a proportion test comparing the number
-of genes with a p-value below a particular threshold (score.thresh), compared with the
-proportion of genes expected under a uniform distribution of p-values.
+of features with a p-value below a particular threshold (score.thresh), compared with the
+proportion of features expected under a uniform distribution of p-values.
 }
 \seealso{
 \code{\link{JackStrawPlot}}

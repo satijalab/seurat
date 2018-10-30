@@ -15,6 +15,38 @@ NULL
 setOldClass(Classes = 'package_version')
 setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 
+#' The AnchorSet Class
+#' 
+#' The AnchorSet class is an intermediate data storage class that stores the anchors and other 
+#' related information needed for performing downstream analyses - namely data integration 
+#' (\code{\link{IntegrateData}}) and data transfer (\code{\link{TransferData}}). 
+#'
+#' @slot object.list List of objects used to create anchors
+#' @slot reference.cells List of cell names in the reference dataset - needed when performing data
+#' transfer.
+#' @slot query.cells List of cell names in the query dataset - needed when performing data transfer
+#' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the 
+#' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of 
+#' the anchor. 
+#' @slot offsets The offsets used to enable cell look up in downstream functions
+#' @slot anchor.features The features used when performing anchor finding.
+#'
+#' @name AnchorSet-class
+#' @rdname AnchorSet-class
+#' @exportClass AnchorSet
+#'
+AnchorSet <- setClass(
+  Class = "AnchorSet",
+  slots = list(
+    object.list = "list",
+    reference.cells = "vector",
+    query.cells = "vector",
+    anchors = "ANY",
+    offsets = "ANY",
+    anchor.features = "ANY"
+  )
+)
+
 #' The Assay Class
 #'
 #' The Assay object is the basic unit of Seurat; each Assay stores raw, normalized, and scaled data
@@ -106,7 +138,7 @@ DimReduc <- setClass(
 #' The Graph class simply inherits from dgCMatrix. We do this to enable future expandability of graphs.
 #'
 #' @name Graph-class
-#' @name Graph-class
+#' @rdname Graph-class
 #' @exportClass Graph
 #'
 #' @seealso \code{\link[Matrix]{dgCMatrix-class}}
@@ -114,6 +146,36 @@ DimReduc <- setClass(
 Graph <- setClass(
   Class = 'Graph',
   contains = "dgCMatrix"
+)
+
+#' The IntegrationData Class
+#' 
+#' The IntegrationData object is an intermediate storage container used internally throughout the 
+#' integration procedure to hold bits of data that are useful downstream. 
+#'
+#' @slot neighbors List of neighborhood information for cells (outputs of \code{RANN::nn2})
+#' @slot weights Anchor weight matrix
+#' @slot integration.matrix Integration matrix
+#' @slot anchors Anchor matrix
+#' @slot offsets The offsets used to enable cell look up in downstream functions
+#' @slot objects.ncell Number of cells in each object in the object.list 
+#' @slot sample.tree Sample tree used for ordering multi-dataset integration
+#'
+#' @name IntegrationData-class
+#' @rdname IntegrationData-class
+#' @exportClass IntegrationData
+#'
+IntegrationData <- setClass(
+  Class = "IntegrationData",
+  slots = list(
+    neighbors = "ANY",
+    weights = "ANY",
+    integration.matrix = "ANY",
+    anchors = "ANY",
+    offsets = "ANY",
+    objects.ncell = "ANY",
+    sample.tree = "ANY"
+  )
 )
 
 #' The SeuratCommand Class
@@ -550,6 +612,75 @@ CreateSeuratObject <- function(
   return(object)
 }
 
+#' Slim down a Seurat object
+#'
+#' Keep only certain aspects of the Seurat object. Can be useful in functions that utilize merge as
+#' it reduces the amount of data in the merge.
+#'
+#' @param object Seurat object
+#' @param counts Preserve the count matrices for the assays specified
+#' @param data Preserve the data slot for the assays specified
+#' @param scale.data Preserve the scale.data slot for the assays specified
+#' @param features Only keep a subset of features, defaults to all features
+#' @param assays Only keep a subset of assays specified here
+#'
+#' @export
+#'
+DietSeurat <- function(
+  object,
+  counts = TRUE,
+  data = TRUE,
+  scale.data = FALSE,
+  features = NULL,
+  assays = NULL
+) {
+  assays <- assays %||% FilterObjects(object = object, classes.keep = "Assay")
+  assays <- assays[assays %in% FilterObjects(object = object, classes.keep = 'Assay')]
+  if (length(x = assays) == 0) {
+    stop("No assays provided were found in the Seurat object")
+  }
+  if (!DefaultAssay(object = object) %in% assays) {
+    stop("The default assay is slated to be removed, please change the default assay")
+  }
+  if (!counts && !data) {
+    stop("Either one or both of 'counts' and 'data' must be kept")
+  }
+  for (assay in FilterObjects(object = object, classes.keep = 'Assay')) {
+    if (!(assay %in% assays)) {
+      object[[assay]] <- NULL
+    } else {
+      features.assay <- features %||% rownames(x = object[[assay]])
+      features.assay <- intersect(x = features.assay, y = rownames(x = object[[assay]]))
+      if (length(x = features.assay) == 0) {
+        if (assay == DefaultAssay(object = object)) {
+          stop("The default assay is slated to be removed, please change the default assay")
+        } else {
+          warning("No features found in assay '", assay, "', removing...")
+          object[[assay]] <- NULL
+        }
+      } else {
+        if (counts) {
+          slot(object = object[[assay]], name = 'counts') <- slot(object = object[[assay]], name = 'counts')[features.assay, ]
+        } else {
+          slot(object = object[[assay]], name = 'counts') <- new(Class = 'matrix')
+        }
+        if (data) {
+          slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
+        } else {
+          slot(object = object[[assay]], name = 'data') <- new(class = 'matrix')
+        }
+        features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
+        if (scale.data && length(x = features.scaled) > 0) {
+          slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
+        } else {
+          slot(object = object[[assay]], name = 'scale.data') <- new(class = 'matrix')
+        }
+      }
+    }
+  }
+  return(object)
+}
+
 #' Access cellular data
 #'
 #' Retreives data (feature expression, PCA scores, metrics, etc.) for a set
@@ -725,6 +856,52 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   }
   colnames(x = data.fetched) <- vars[vars %in% fetched]
   return(data.fetched)
+}
+
+#' Get integation data
+#'
+#' @param object Seurat object
+#' @param integration.name Name of integration object
+#' @param slot Which slot in integration object to get
+#'
+#' @return Returns data from the requested slot within the integrated object
+#'
+#' @export
+#'
+GetIntegrationData <- function(object, integration.name, slot) {
+  tools <- slot(object = object, name = 'tools')
+  if (!(integration.name %in% names(tools))) {
+    stop('Requested integration key does not exist')
+  }
+  int.data <- tools[[integration.name]]
+  return(slot(object = int.data, name = slot))
+}
+
+#' Set integation data
+#'
+#' @param object Seurat object
+#' @param integration.name Name of integration object
+#' @param slot Which slot in integration object to set
+#' @param new.data New data to insert
+#'
+#' @return Returns a \code{\link{Seurat}} object
+#'
+#' @export
+#'
+SetIntegrationData <- function(object, integration.name, slot, new.data) {
+  tools <- slot(object = object, name = 'tools')
+  if (!(integration.name %in% names(tools))) {
+    new.integrated <- new(Class = 'IntegrationData')
+    slot(object = new.integrated, name = slot) <- new.data
+    tools[[integration.name]] <- new.integrated
+    slot(object = object, name = 'tools') <- tools
+    return(object)
+  }
+  int.data <- tools[[integration.name]]
+  slot(object = int.data, name = slot) <- new.data
+  tools[[integration.name]] <- int.data
+  slot(object = object, name = 'tools') <- tools
+  return(object)
 }
 
 #' Splits object into a list of subsetted objects.
@@ -3846,6 +4023,16 @@ setMethod(
 
 setMethod(
   f = 'show',
+  signature = 'AnchorSet',
+  definition = function(object) {
+    cat('An AnchorSet object containing', nrow(x = slot(object = object, name = "anchors")),
+        "anchors between", length(x = slot(object = object, name = "object.list")), "Seurat objects \n",
+        "This can be used as input to IntegrateData, TransferLabels, or TransferFeatures.")
+  }
+)
+
+setMethod(
+  f = 'show',
   signature = 'DimReduc',
   definition = function(object) {
     cat(
@@ -4127,6 +4314,7 @@ UpdateAssay <- function(old.assay, assay){
 # Update dimension reduction
 #
 # @param old.dr Seurat2 dimension reduction slot
+# @param assay.used Name of assay used to compute dimension reduction
 #
 UpdateDimReduction <- function(old.dr, assay){
   new.dr <- list()

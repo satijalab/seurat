@@ -33,6 +33,10 @@ FastSparseRowScale <- function(mat, scale = TRUE, center = TRUE, scale_max = 10,
     .Call('_Seurat_FastSparseRowScale', PACKAGE = 'Seurat', mat, scale, center, scale_max, display_progress)
 }
 
+FastSparseRowScaleWithKnownStats <- function(mat, mu, sigma, scale = TRUE, center = TRUE, scale_max = 10, display_progress = TRUE) {
+    .Call('_Seurat_FastSparseRowScaleWithKnownStats', PACKAGE = 'Seurat', mat, mu, sigma, scale, center, scale_max, display_progress)
+}
+
 FastCov <- function(mat, center = TRUE) {
     .Call('_Seurat_FastCov', PACKAGE = 'Seurat', mat, center)
 }
@@ -63,6 +67,26 @@ FastLogVMR <- function(mat, display_progress) {
 
 RowVar <- function(x) {
     .Call('_Seurat_RowVar', PACKAGE = 'Seurat', x)
+}
+
+SparseRowVar <- function(mat, display_progress) {
+    .Call('_Seurat_SparseRowVar', PACKAGE = 'Seurat', mat, display_progress)
+}
+
+ReplaceColsC <- function(mat, col_idx, replacement) {
+    .Call('_Seurat_ReplaceColsC', PACKAGE = 'Seurat', mat, col_idx, replacement)
+}
+
+FindWeightsC <- function(integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress) {
+    .Call('_Seurat_FindWeightsC', PACKAGE = 'Seurat', integration_matrix, cells2, distances, anchor_cells2, integration_matrix_rownames, cell_index, anchor_score, min_dist, sd, display_progress)
+}
+
+IntegrateDataC <- function(integration_matrix, weights, expression_cells2) {
+    .Call('_Seurat_IntegrateDataC', PACKAGE = 'Seurat', integration_matrix, weights, expression_cells2)
+}
+
+SNNAnchor <- function(k_matrix, anchor_only) {
+    .Call('_Seurat_SNNAnchor', PACKAGE = 'Seurat', k_matrix, anchor_only)
 }
 
 RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename) {

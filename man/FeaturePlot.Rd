@@ -27,13 +27,13 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{min.cutoff}{Vector of minimum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
-
-\item{max.cutoff}{Vector of maximum cutoff values for each feature, may specify quantile in the form of 'q##' where '##' is the quantile (eg, 1, 10)}
+\item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
+may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}}
+\item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident'
+to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both

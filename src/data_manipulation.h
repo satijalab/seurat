@@ -36,6 +36,7 @@ Eigen::VectorXd FastExpMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastRowMean(Eigen::MatrixXd mat, bool display_progress);
 Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat, bool display_progress);
 Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat, bool display_progress);
+Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress);
 NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat, 
                             NumericVector mu,
                             bool display_progress);

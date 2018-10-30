@@ -150,6 +150,33 @@ test_that("Fast implementation of LogVMR returns expected values", {
   expect_equal(FastLogVMR(mat, display_progress = F)[10], 10.11755, tolerance = 1e-6)
 })
 
+# Tests for data structure manipulations
+# --------------------------------------------------------------------------------
+context("Data structure manipulations")
+
+mat <- rsparsematrix(nrow = 10, ncol = 100, density = 0.1)
+mat2 <- rsparsematrix(nrow = 10, ncol = 10, density = 0.1)
+cols.to.replace1 <- 1:10
+cols.to.replace2 <- 10:1
+cols.to.replace3 <- 91:100
+cols.to.replace4 <- c(10, 15, 33, 2, 6, 99, 55, 30, 25, 42)
+
+ReplaceCols <- function(mat, cols, replace){
+  mat[, cols] <- replace
+  return(mat)
+}
+
+test_that("Replacing columns works", {
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace1 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace1, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace2 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace2, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace3 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace3, replace = mat2))
+  expect_equal(ReplaceColsC(mat = mat, col_idx = cols.to.replace4 - 1, replacement = mat2),
+               ReplaceCols(mat = mat, cols = cols.to.replace4, replace = mat2))
+})
+
 test_that("Cpp implementation of row variance is correct", {
   expect_equal(apply(X = mat, MARGIN = 1, FUN = var), RowVar(as.matrix(mat)))
   expect_equal(apply(X = merged.mat, MARGIN = 1, FUN = var), RowVar(as.matrix(merged.mat)))

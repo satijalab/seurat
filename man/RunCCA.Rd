@@ -21,7 +21,9 @@ RunCCA(object1, object2, ...)
 
 \item{object2}{Second Seurat object.}
 
-\item{...}{Arguments passed to other methods}
+\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
+passed, passed onto ScaleData in case with single object and rescale.groups
+set to TRUE)}
 
 \item{standardize}{Standardize matrices - scales columns to have unit variance
 and mean 0}

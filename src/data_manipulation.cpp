@@ -234,6 +234,33 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
   return scaled_mat.transpose();
 }
 
+// [[Rcpp::export]]
+Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sigma, bool scale = true, bool center = true,
+                                   double scale_max = 10, bool display_progress = true){
+    mat = mat.transpose();
+    Progress p(mat.outerSize(), display_progress);
+    Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
+    for (int k=0; k<mat.outerSize(); ++k){
+        p.increment();
+        double colMean = 0;
+        double colSdev = 0;
+        if (scale == true){
+            colSdev = sigma[k];
+        }
+        if(center == true){
+            colMean = mu[k];
+        }
+        Eigen::VectorXd col = Eigen::VectorXd(mat.col(k));
+        scaled_mat.col(k) = (col.array() - colMean) / colSdev;
+        for(int s=0; s<scaled_mat.col(k).size(); ++s){
+            if(scaled_mat(s,k) > scale_max){
+                scaled_mat(s,k) = scale_max;
+            }
+        }
+    }
+    return scaled_mat.transpose();
+}
+
 /* Note: May not handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
@@ -384,3 +411,61 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
   }
   return out;
 }
+
+/* Calculate the variance in non-logspace (return answer in non-logspace) */
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
+  int ncols = mat.cols();
+  Eigen::VectorXd rowdisp(mat.rows());
+  mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double rm = 0;
+    double v = 0;
+    int nnZero = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      rm += (it.value());
+    }
+    rm = rm / ncols;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      v += pow((it.value()) - rm, 2);
+      nnZero += 1;
+    }
+    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
+    rowdisp[k] = v;
+  }
+  return(rowdisp);
+}
+
+int IntersectLength(std::vector<int> a, std::vector<int> b){
+  std::unordered_set<int> s(a.begin(), a.end());
+  int intersect = count_if(b.begin(), b.end(), [&](int k) {return s.find(k) != s.end();});
+  return(intersect);
+}
+
+// IMPORTANT: assumes that a and b are vectors with non-duplicated elements
+int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length) {
+  return(a.size() + b.size() - intersect_length);
+}
+
+std::vector<int> ToVector(Eigen::VectorXd v1){
+  std::vector<int> v2(v1.data(), v1.data() + v1.size());
+  return(v2);
+}
+
+//cols_idx should be 0-indexed
+//[[Rcpp::export]]
+Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, NumericVector col_idx, Eigen::SparseMatrix<double> replacement){
+  int rep_idx = 0;
+  for(auto const &ci : col_idx){
+    mat.col(ci) = replacement.col(rep_idx);
+    rep_idx += 1;
+  }
+  return(mat);
+}
+
+
