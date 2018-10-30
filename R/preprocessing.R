@@ -354,6 +354,111 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   return(norm.data)
 }
 
+#' Load in data from Alevin pipeline
+#'
+#' Enables easy loading of csv format matrix provided by Alevin
+# ran with `--dumpCsvCounts` flags.
+#'
+#' @param data.dir Directory containing the alevin/quant_mat*
+#' files provided by Alevin.
+#'
+#' @return Returns a matrix with rows and columns labeled
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/output/directory'
+#' list.files(data_dir) # Should show alevin/quants_mat* files
+#' expression_matrix <- ReadAlevin(base.path = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
+#'
+ReadAlevinCsv <- function( base.path = NULL ){
+    if (! dir.exists(base.path )){
+      stop("Directory provided does not exist")
+    }
+     barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
+    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
+    matrix.loc <- paste0( base.path, "alevin/quants_mat.csv" )
+    if (!file.exists( barcode.loc )){
+      stop("Barcode file missing")
+    }
+    if (! file.exists(gene.loc) ){
+      stop("Gene name file missing")
+    }
+    if (! file.exists(matrix.loc )){
+      stop("Expression matrix file missing")
+    }
+    matrix <- as.matrix(read.csv( matrix.loc, header=FALSE))
+    matrix <- t(matrix[,1:ncol(matrix)-1])
+     cell.names <- readLines( barcode.loc )
+    gene.names <- readLines( gene.loc )
+     colnames(matrix) <- cell.names
+    rownames(matrix) <- gene.names
+    matrix[is.na(matrix)] <- 0
+    return(matrix)
+}
+
+#' Load in data from Alevin pipeline
+#'
+#' Enables easy loading of binary format matrix provided by Alevin
+#'
+#' @param data.dir Directory containing the alevin/quant_mat*
+#' files provided by Alevin.
+#'
+#' @return Returns a matrix with rows and columns labeled
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/output/directory'
+#' list.files(data_dir) # Should show alevin/quants_mat* files
+#' expression_matrix <- ReadAlevin(base.path = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
+#'
+ReadAlevin <- function( base.path = NULL ){
+    if (! dir.exists(base.path )){
+      stop("Directory provided does not exist")
+    }
+    barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
+    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
+    matrix.loc <- paste0( base.path, "alevin/quants_mat.gz" )
+
+    if (!file.exists( barcode.loc )){
+      stop("Barcode file missing")
+    }
+    if (! file.exists(gene.loc) ){
+      stop("Gene name file missing")
+    }
+    if (! file.exists(matrix.loc )){
+      stop("Expression matrix file missing")
+    }
+
+    cell.names <- readLines( barcode.loc )
+    gene.names <- readLines( gene.loc )
+    num.cells <- length(cell.names)
+    num.genes <- length(gene.names)
+
+    out.matrix <- matrix(NA, nrow=num.genes, ncol=num.cells)
+    con <- gzcon(file(matrix.loc, "rb"))
+
+    total.molecules <- 0.0
+    for (n in seq_len(num.cells)) {
+        out.matrix[,n] <- readBin(con, double(), endian = "little", n=num.genes)
+        total.molecules <- total.molecules + sum(out.matrix[,n])
+    }
+
+    # out.matrix <- t(out.matrix)
+    colnames(out.matrix) <- cell.names
+    rownames(out.matrix) <- gene.names
+
+    print(paste("Found total ", total.molecules, " molecules."))
+    return(out.matrix)
+}
+
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
