@@ -1362,6 +1362,8 @@ DotPlot <- function(
     cols <- cols[1:length(x = unique(x = splits))]
     names(x = cols) <- unique(x = splits)
     data.features$id <- paste(data.features$id, splits, sep = '_')
+    unique.splits <- unique(x = splits)
+    id.levels <- paste0(rep(x = id.levels, each = length(x = unique.splits)), "_", rep(x = unique(x = splits), times = length(x = id.levels)))
   }
   data.plot <- lapply(
     X = unique(x = data.features$id),
@@ -1414,7 +1416,7 @@ DotPlot <- function(
   data.plot$pct.exp <- data.plot$pct.exp * 100
   if (!is.null(x = split.by)) {
     splits.use <- vapply(
-      X = strsplit(x = data.plot$id, split = '_'),
+      X = strsplit(x = as.character(x = data.plot$id), split = '_'),
       FUN = '[[',
       FUN.VALUE = character(length = 1L),
       2
@@ -1618,6 +1620,7 @@ PolyDimPlot <- function(
 #' @param poly.data Name of the polygon dataframe in the misc slot
 #' @param ncol Number of columns to split the plot into
 #' @param common.scale ...
+#' @param flip.coords Flip x and y coordinates
 #'
 #' @return Returns a ggplot object
 #'

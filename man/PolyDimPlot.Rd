@@ -16,6 +16,8 @@ in the current cell identities (\code{Idents(object = object)})}
 \item{cells}{Vector of cells to plot (default is all cells)}
 
 \item{poly.data}{Name of the polygon dataframe in the misc slot}
+
+\item{flip.coords}{Flip x and y coordinates}
 }
 \value{
 Returns a ggplot object

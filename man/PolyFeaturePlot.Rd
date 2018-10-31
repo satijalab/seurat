@@ -26,6 +26,8 @@ may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
 \item{common.scale}{...}
+
+\item{flip.coords}{Flip x and y coordinates}
 }
 \value{
 Returns a ggplot object
