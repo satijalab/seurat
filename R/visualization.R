@@ -2163,7 +2163,7 @@ HoverLocator <- function(
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
 #' @param clusters Vector of cluster ids to label
-#' @param labels Custom labels for the clusters 
+#' @param labels Custom labels for the clusters
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
@@ -2319,7 +2319,7 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
 #'   \item{\code{SpatialTheme}}{A theme designed for spatial visualizations (eg \code{\link{PolyFeaturePlot}}, \code{\link{PolyDimPlot}})}
-#'   \item{\code{RestoredTheme}}{Restore a theme after removal}
+#'   \item{\code{RestoreLegend}}{Restore a legend after removal}
 #'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
 #'   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 #' }
