@@ -375,12 +375,12 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' }
 #'
 ReadAlevinCsv <- function( base.path = NULL ){
-    if (! dir.exists(base.path )){
+    if (! dir.exists( base.path )){
       stop("Directory provided does not exist")
     }
-     barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
-    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
-    matrix.loc <- paste0( base.path, "alevin/quants_mat.csv" )
+    barcode.loc <- file.path( base.path, "alevin/quants_mat_rows.txt" )
+    gene.loc <- file.path( base.path, "alevin/quants_mat_cols.txt" )
+    matrix.loc <- file.path( base.path, "alevin/quants_mat.csv" )
     if (!file.exists( barcode.loc )){
       stop("Barcode file missing")
     }
@@ -423,9 +423,9 @@ ReadAlevin <- function( base.path = NULL ){
     if (! dir.exists(base.path )){
       stop("Directory provided does not exist")
     }
-    barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
-    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
-    matrix.loc <- paste0( base.path, "alevin/quants_mat.gz" )
+    barcode.loc <- file.path( base.path, "alevin/quants_mat_rows.txt" )
+    gene.loc <- file.path( base.path, "alevin/quants_mat_cols.txt" )
+    matrix.loc <- file.path( base.path, "alevin/quants_mat.gz" )
 
     if (!file.exists( barcode.loc )){
       stop("Barcode file missing")
