@@ -88,7 +88,7 @@ MakeSparse <- function(object) {
   return(object)
 }
 
-#' Update old Seurat object to accomodate new features
+#' Update old Seurat object to accommodate new features
 #'
 #' Updates Seurat objects to new structure for storing data/calculations.
 #'

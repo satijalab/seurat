@@ -27,7 +27,7 @@ globalVariables(names = 'avg_logFC', package = 'Seurat', add = TRUE)
 ##'   distribution. Use only for UMI-based datasets
 ##'  \item{"negbinom"} :  Likelihood ratio test assuming an underlying negative
 ##'  binomial distribution. Use only for UMI-based datasets
-##'  \item{"MAST} : GLM-framework that treates cellular detection rate as a
+##'  \item{"MAST} : GLM-framework that treats cellular detection rate as a
 ##'  covariate (Finak et al, Genome Biology, 2015)
 ##'  \item{"DESeq2} : DE based on a model using the negative binomial
 ##'  distribution (Love et al, Genome Biology, 2014)

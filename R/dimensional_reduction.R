@@ -375,7 +375,7 @@ RunTSNE <- function(
 #' @examples
 #' pbmc_small
 #' pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
-#' # Vizualize top projected genes in heatmap
+#' # Visualize top projected genes in heatmap
 #' DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
 #'
 ProjectDim <- function(
@@ -448,7 +448,7 @@ ProjectDim <- function(
 #' @param pcs.store Number of PCs to store (default is 30)
 #' @param genes.print Number of genes with highest/lowest loadings to print for
 #' each PC
-#' @param replace.pc Replace the existing PCA (overwite
+#' @param replace.pc Replace the existing PCA (overwrite
 #' object@@dr$pca@gene.loadings), not done by default.
 #' @param do.center Center the dataset prior to projection (should be set to TRUE)
 #'
@@ -460,7 +460,7 @@ ProjectDim <- function(
 #' @examples
 #' pbmc_small
 #' pbmc_small <- ProjectPCA(pbmc_small)
-#' # Vizualize top projected genes in heatmap
+#' # Visualize top projected genes in heatmap
 #' PCHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE)
 #'
 ProjectPCA <- function(

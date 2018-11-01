@@ -333,9 +333,9 @@ SubsetByPredicate = function(
 #' @param object Seurat object
 #' @param cells.use A vector of cell names to use as a subset. If NULL
 #' (default), then this list will be computed based on the next three
-#' arguments. Otherwise, will return an object consissting only of these cells
+#' arguments. Otherwise, will return an object consisting only of these cells
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' column name in object@@meta.data, etc. Any argument that can be retrieved
 #' using FetchData
 #' @param ident.use Create a cell subset based on the provided identity classes
 #' @param ident.remove Subtract out cells from these identity classes (used for
@@ -425,7 +425,7 @@ SubsetData <- function(
     }
     gc(verbose = FALSE)
   }
-  # handle multimodal casess
+  # handle multimodal cases
   if (!.hasSlot(object = object, name = "assay")) {
     object@assay <- list()
   }
@@ -491,7 +491,7 @@ SubsetData <- function(
 #' (default is mean)
 #' @param reorder.numeric Rename all identity classes to be increasing numbers
 #' starting from 1 (default is FALSE)
-#' @param \dots additional arguemnts (i.e. use.imputed=TRUE)
+#' @param \dots additional arguments (i.e. use.imputed=TRUE)
 #'
 #' @return A seurat object where the identity have been re-oredered based on the
 #' average.
@@ -553,7 +553,7 @@ ReorderIdent <- function(
 
 #' Access cellular data
 #'
-#' Retreives data (gene expression, PCA scores, etc, metrics, etc.) for a set
+#' Retrieves data (gene expression, PCA scores, etc, metrics, etc.) for a set
 #' of cells in a Seurat object
 #'
 #' @param object Seurat object
@@ -720,10 +720,10 @@ FastWhichCells <- function(object, group.by, subset.value, invert = FALSE) {
 #'
 #' @param object Seurat object
 #' @param ident Identity classes to subset. Default is all identities.
-#' @param ident.remove Indentity classes to remove. Default is NULL.
+#' @param ident.remove Identity classes to remove. Default is NULL.
 #' @param cells.use Subset of cell names
 #' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' column name in object@@meta.data, etc. Any argument that can be retrieved
 #' using FetchData
 #' @param accept.low Low cutoff for the parameter (default is -Inf)
 #' @param accept.high High cutoff for the parameter (default is Inf)
@@ -893,7 +893,7 @@ RenameIdent <- function(object, old.ident.name = NULL, new.ident.name = NULL) {
 #'
 #' @param object Seurat object
 #' @param save.name Store current object@@ident under this column name in
-#' object@@meta.data. Can be easily retrived with SetAllIdent
+#' object@@meta.data. Can be easily retrieved with SetAllIdent
 #'
 #' @return A Seurat object where object@@ident has been appropriately modified
 #'

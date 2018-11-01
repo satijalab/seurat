@@ -242,7 +242,7 @@ PrintTSNEParams <- function(object, raw = FALSE){
     if(reduction == "None"){
       cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"genes.use\")"))
     } else if (reduction == "custom") {
-      cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
+      cat("Full matrix can be accessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
     } else {
       cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80),
                  collapse = "\n"))
@@ -654,7 +654,7 @@ PrintSNNParams <- function(object, raw = FALSE){
     if(reduction == "None"){
       cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"BuildSNN\", parameter = \"genes.use\")"))
     } else if (reduction == "custom") {
-        cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
+        cat("Full matrix can be accessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
     } else {
       cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80),
                  collapse = "\n"))
@@ -776,7 +776,7 @@ PrintFindClustersParams <- function(object, resolution, raw = FALSE){
       if(reduction == "None"){
         cat(paste0(n.dim, " genes used: Full gene list can be accessed using \n GetCalcParam(object = object, calculation = \"BuildSNN\", parameter = \"genes.use\")"))
       } else if (reduction == "custom") {
-        cat("Full matrix can be acccessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
+        cat("Full matrix can be accessed using \n GetCalcParam(object = object, calculation = \"RunTSNE\", parameter = \"distance.matrix\")")
       } else {
         cat(paste0(strwrap(paste(n.dim, "\n", collapse = " "), width = 80),
                    collapse = "\n"))

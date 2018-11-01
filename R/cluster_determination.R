@@ -22,7 +22,7 @@ NULL
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
-#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' graph. Essentially sets the stringency of pruning (0 --- no pruning, 1 ---
 #' prune everything).
 #' @param print.output Whether or not to print output to the console
 #' @param distance.matrix Build SNN from distance matrix (experimental)
@@ -729,7 +729,7 @@ DBClustDimension <- function(
 #'
 #' @param object A Seurat object
 #' @param dims.use Dimensions to use for clustering
-#' @param reduction.use Dimmensional Reduction to use for k-means clustering
+#' @param reduction.use Dimensional Reduction to use for k-means clustering
 #' @param k.use Number of clusters
 #' @param set.ident Set identity of Seurat object
 #' @param seed.use Random seed to use

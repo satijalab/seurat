@@ -2,7 +2,7 @@
 #'
 #' Randomly permutes a subset of data, and calculates projected PCA scores for
 #' these 'random' genes. Then compares the PCA scores for the 'random' genes
-#' with the observed PCA scores to determine statistical signifance. End result
+#' with the observed PCA scores to determine statistical significance. End result
 #' is a p-value for each gene's association with each principal component.
 #'
 #' @param object Seurat object

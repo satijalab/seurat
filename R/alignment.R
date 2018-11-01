@@ -19,7 +19,7 @@ globalVariables(
 #' map each cell in the smaller dataset to a cell in the larger dataset using
 #' dynamic time warping (DTW) and apply the same map to the projection vectors (
 #' CC vectors) to place both datasets on a common aligned scale. We apply this
-#' procedue to each pair (group) of vectors individually for all specified in
+#' procedure to each pair (group) of vectors individually for all specified in
 #' dims.align. For a full description of the method, see Butler et al 2017.
 #'
 #' @param object Seurat object
@@ -275,7 +275,7 @@ AlignSubspace <- function(
 #' @param dims.use Dimensions to use in building the NN graph
 #' @param grouping.var Grouping variable used in the alignment.
 #' @param nn Number of neighbors to calculate in the NN graph construction
-#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' @param nn.eps Error bound when performing nearest neighbor search using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #'
 #' @importFrom RANN nn2

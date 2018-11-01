@@ -23,7 +23,7 @@ globalVariables(names = c('cell', 'gene'), package = 'Seurat', add = TRUE)
 #' @param col.high Color for highest expression value
 #' @param slim.col.label display only the identity class name once for each group
 #' @param remove.key Removes the color key from the plot.
-#' @param rotate.key Rotate color scale horizantally
+#' @param rotate.key Rotate color scale horizontally
 #' @param title Title for plot
 #' @param cex.col Controls size of column labels (cells)
 #' @param cex.row Controls size of row labels (genes)
@@ -253,7 +253,7 @@ DoHeatmap <- function(
 #'
 #' @param object Seurat object
 #' @param features.plot Features to plot (gene expression, metrics, PC scores,
-#' anything that can be retreived by FetchData)
+#' anything that can be retrieved by FetchData)
 #' @param ident.include Which classes to include in the plot (default is all)
 #' @param nCol Number of columns if multiple plots are displayed
 #' @param do.sort Sort identity classes (on the x-axis) by the average
@@ -414,7 +414,7 @@ VlnPlot <- function(
 #'
 #' @param object Seurat object
 #' @param features.plot Features to plot (gene expression, metrics, PC scores,
-#' anything that can be retreived by FetchData)
+#' anything that can be retrieved by FetchData)
 #' @param ident.include Which classes to include in the plot (default is all)
 #' @param nCol Number of columns if multiple plots are displayed
 #' @param do.sort Sort identity classes (on the x-axis) by the average
@@ -1652,7 +1652,7 @@ globalVariables(names = c('x', 'y'), package = 'Seurat', add = TRUE)
 #' @param object Seurat object
 #' @inheritParams FetchData
 #' @param gene1 First feature to plot. Typically gene expression but can also
-#' be metrics, PC scores, etc. - anything that can be retreived with FetchData
+#' be metrics, PC scores, etc. - anything that can be retrieved with FetchData
 #' @param gene2 Second feature to plot.
 #' @param cell.ids Cells to include on the scatter plot.
 #' @param col.use Colors to use for identity class plotting.

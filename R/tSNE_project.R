@@ -14,7 +14,7 @@ project_map <- function(
   #sum_X_old=rowSums((x_old^2))
   D_org <- sum_z + (-2 * as.matrix(x = x_old) %*% t(x = z) + sum_X_old)
   P <- d2p_cell(D = D_org, u = perplexity)
-  nn_points <- which(x = P> P_tol) # Use only a small subset of points to comupute embedding. This keeps all the points that are proximal to the new point
+  nn_points <- which(x = P> P_tol) # Use only a small subset of points to compute embedding. This keeps all the points that are proximal to the new point
   X_nn_set <- x_old[nn_points, ]  #Original points
   y_nn_set <- x_old_tsne[nn_points, ]  #Computed embeddings
   P_nn_set <- P[nn_points, ] #Probabilities

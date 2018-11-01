@@ -9,7 +9,7 @@
 #' @param min.genes Include cells where at least this many genes are detected.
 #' @param is.expr Expression threshold for 'detected' gene. For most datasets, particularly UMI
 #' datasets, will be set to 0 (default). If not, when initializing, this should be set to a level
-#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expresesd) All
+#' based on pre-normalized counts (i.e. require at least 5 counts to be treated as expressed) All
 #' values less than this will be set to 0 (though maintained in object@raw.data).
 #' @param normalization.method Method for cell normalization. Default is no normalization.
 #' In this case, run NormalizeData later in the workflow. As a shortcut, you can specify a
@@ -457,7 +457,7 @@ ScaleDataR <- function(
 #' (poisson, negative binomial) for the regression. Options are 'linear'
 #' (default), 'poisson', and 'negbinom'
 #' @param use.umi Regress on UMI count data. Default is FALSE for linear
-#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' modelling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
 #' @param do.scale Whether to scale the data.
 #' @param do.center Whether to center the data.
 #' @param scale.max Max value to return for scaled data. The default is 10.

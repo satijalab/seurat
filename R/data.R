@@ -8,7 +8,7 @@
 #'   \item{data}{Normalized expression data}
 #'   \item{scale.data}{Scaled expression data}
 #'   \item{var.genes}{Variable genes}
-#'   \item{dr}{Dimmensional reductions: currently PCA and tSNE}
+#'   \item{dr}{Dimensional reductions: currently PCA and tSNE}
 #'   \item{hvg.info}{Information about highly variable genes}
 #'   \item{cluster.tree}{Cluster tree}
 #'   \item{calc.params}{Parameters for calculations done thus far}
