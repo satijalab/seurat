@@ -48,7 +48,7 @@ PrepDR <- function(
   assay.type="RNA"
 ) {
   if (length(object@var.genes) == 0 && is.null(x = genes.use)) {
-    stop("Variable genes haven't been set. Run FindVariableGenes() or provide a vector
+    stop("Variable genes haven't been set. Run MeanVarPlot() or provide a vector
           of genes names in genes.use and retry.")
   }
   if (use.imputed) {

@@ -544,7 +544,7 @@ RunCCA <- function(
     if (missing(x = genes.use)) {
       genes.use <- union(x = object@var.genes, y = object2@var.genes)
       if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run FindVariableGenes and retry")
+        stop("No variable genes present. Run MeanVarPlot and retry")
       }
     }
     if (scale.data) {
@@ -810,7 +810,7 @@ RunMultiCCA <- function(
       }
       genes.use <- unique(genes.use)
       if (length(x = genes.use) == 0) {
-        stop("No variable genes present. Run FindVariableGenes and retry")
+        stop("No variable genes present. Run MeanVarPlot and retry")
       }
     }
     for(obj in object.list) {
