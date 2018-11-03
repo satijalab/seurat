@@ -47,7 +47,7 @@ test_that("Read10X handles missing files properly", {
 
 test.data <- Read10X("../testdata/")
 test_that("Read10X creates sparse matrix", {
-  expect_is(test.data, "dgTMatrix")
+  expect_is(test.data, "dgCMatrix")
 })
 
 
