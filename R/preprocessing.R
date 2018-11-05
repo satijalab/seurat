@@ -436,6 +436,7 @@ Read10X <- function(data.dir = NULL){
     full.data <- append(x = full.data, values = data)
   }
   full.data <- do.call(cbind, full.data)
+  full.data <- as(object = full.data, Class = "dgCMatrix")
   return(full.data)
 }
 
