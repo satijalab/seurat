@@ -495,21 +495,6 @@ VlnPlot <- function(
 # Dimensional reduction plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# @param do.hover Enable hovering over points to view information
-# @param data.hover Data to add to the hover, pass a character vector of
-# features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
-# information.
-# @param do.identify Opens a locator session to identify clusters of cells.
-# @param vector.friendly FALSE by default. If TRUE, points are flattened into
-# a PNG, while axes/labels retain full vector resolution. Useful for producing
-# AI-friendly plots with large numbers of cells.
-# @param png.file Used only if vector.friendly is TRUE. Location for temporary
-# PNG file.
-# @param png.arguments Used only if vector.friendly is TRUE. Vector of three
-# elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
-# Default is c(10,10,100)
-# @param ... Extra parameters to FeatureLocator for do.identify = TRUE
-
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
