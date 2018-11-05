@@ -18,11 +18,11 @@ test_that("object initialization actually creates seurat object", {
 })
 
 test_that("meta.data slot generated correctly", {
-  expect_equal(dim(object[]), c(80, 4))
-  expect_equal(colnames(object[]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
-  expect_equal(rownames(object[]), colnames(object))
-  expect_equal(object["nFeature_RNA"][1:5, ], c(47, 52, 50, 56, 53))
-  expect_equal(object["nCount_RNA"][75:80, ], c(228, 527, 202, 157, 150, 233))
+  expect_equal(dim(object[[]]), c(80, 4))
+  expect_equal(colnames(object[[]]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
+  expect_equal(rownames(object[[]]), colnames(object))
+  expect_equal(object[["nFeature_RNA"]][1:5, ], c(47, 52, 50, 56, 53))
+  expect_equal(object[["nCount_RNA"]][75:80, ], c(228, 527, 202, 157, 150, 233))
 })
 
 object.filtered <- CreateSeuratObject(
@@ -47,16 +47,15 @@ test_that("Read10X handles missing files properly", {
 
 test.data <- Read10X("../testdata/")
 test_that("Read10X creates sparse matrix", {
-  expect_is(test.data, "dgTMatrix")
+  expect_is(test.data, "dgCMatrix")
 })
 
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
 context("NormalizeData")
-
 test_that("NormalizeData error handling", {
-  expect_error(NormalizeData(object = object, assay.use = "FAKE"))
+  expect_error(NormalizeData(object = object, assay = "FAKE"))
   expect_equal(GetAssayData(object = object, slot = "counts"),
                GetAssayData(object = NormalizeData(
                   object = object,
@@ -78,6 +77,14 @@ test_that("LogNormalize normalizes properly", {
     LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
     LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE)
   )
+})
+
+clr.counts <- NormalizeData(object = pbmc.test, normalization.method = "CLR", verbose = FALSE)
+test_that("CLR normalization returns expected values", {
+  expect_equal(dim(clr.counts), c(dim(pbmc.test)))
+  expect_equal(clr.counts[2, 1], 0.5517828, tolerance = 1e-6)
+  expect_equal(clr.counts[228, 76], 0.5971381, tolerance = 1e-6)
+  expect_equal(clr.counts[230, 80], 0)
 })
 
 # Tests for ScaleData
@@ -179,7 +186,7 @@ test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
   ))
 })
 
-# Tests for FindVariableFeautres
+# Tests for FindVariableFeatures
 # --------------------------------------------------------------------------------
 context("FindVariableFeatures")
 
@@ -212,37 +219,26 @@ test_that("vst selection option returns expected values", {
   expect_true(!is.unsorted(rev(object[["RNA"]][["variance.standardized", drop = TRUE]][VariableFeatures(object = object)])))
 })
 
-# Tests for FilterCells
-# --------------------------------------------------------------------------------
-context("FilterCells")
-
-object.filtered <- FilterCells(
-  object = object,
-  subset.names = c("nFeature_RNA", "nCount_RNA"),
-  low.thresholds = c(20, 100)
-)
-
-test_that("FilterCells low thresholds work properly", {
-  expect_equal(ncol(x = object.filtered), 62)
-  expect_true(!any(object.filtered["nFeature_RNA"] < 20))
-  expect_true(!any(object.filtered["nCount_RNA"] < 100))
-})
-
-object.filtered <- FilterCells(
-  object = object,
-  subset.names = c("nFeature_RNA", "nCount_RNA"),
-  high.thresholds = c(50, 300)
-)
-
-test_that("FilterCells high thresholds work properly", {
-  expect_equal(ncol(x = object.filtered), 35)
-  expect_true(!any(object.filtered["nFeature_RNA"] > 50))
-  expect_true(!any(object.filtered["nCount_RNA"] > 300))
-})
-
-test_that("FilterCells handles input correctly", {
-  expect_error(FilterCells(object, subset.names = c("nGene", "nCount_RNA"), high.thresholds = 30))
-  expect_error(FilterCells(object, subset.names = c("nGene", "nCount_RNA"), low.thresholds = 20))
-  expect_error(FilterCells(object, subset.names = c("nGene"), high.thresholds = c(30, 300)))
+# Tests for internal functions
+# ------------------------------------------------------------------------------
+norm.fxn <- function(x) {x / mean(x)}
+test_that("CustomNormalize works as expected", {
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "cells"), 
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, across = "cells"),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, across = "cells"),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "features"), 
+    t(apply(X = pbmc.test, MARGIN = 1, FUN = norm.fxn))
+  )
+  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "invalid"))
 })
 

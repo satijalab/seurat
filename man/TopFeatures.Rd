@@ -10,13 +10,13 @@ TopFeatures(object, dim = 1, nfeatures = 20, projected = FALSE,
 \arguments{
 \item{object}{DimReduc object}
 
+\item{dim}{Dimension to use}
+
 \item{nfeatures}{Number of features to return}
 
 \item{projected}{Use the full PCA (projected PCA). Default i s FALSE}
 
 \item{balanced}{Return an equal number of features with both + and - scores.}
-
-\item{dim.use}{Dimension to use}
 }
 \value{
 Returns a vector of features

@@ -3,30 +3,36 @@
 \name{FindVariableFeatures}
 \alias{FindVariableFeatures}
 \alias{FindVariableGenes}
+\alias{FindVariableFeatures.default}
 \alias{FindVariableFeatures.Assay}
 \alias{FindVariableFeatures.Seurat}
 \title{Find variable features}
 \usage{
-FindVariableFeatures(object, selection.method, loess.span, clip.max,
-  mean.function, dispersion.function, num.bin, binning.method, verbose,
-  ...)
+FindVariableFeatures(object, ...)
+
+\method{FindVariableFeatures}{default}(object, selection.method = "vst",
+  loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
+  dispersion.function = FastLogVMR, num.bin = 20,
+  binning.method = "equal_width", verbose = TRUE, ...)
 
 \method{FindVariableFeatures}{Assay}(object, selection.method = "vst",
   loess.span = 0.3, clip.max = "auto", mean.function = FastExpMean,
   dispersion.function = FastLogVMR, num.bin = 20,
-  binning.method = "equal_width", nfeatures = 1000,
+  binning.method = "equal_width", nfeatures = 2000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE)
+  verbose = TRUE, ...)
 
 \method{FindVariableFeatures}{Seurat}(object, assay = NULL,
   selection.method = "vst", loess.span = 0.3, clip.max = "auto",
   mean.function = FastExpMean, dispersion.function = FastLogVMR,
-  num.bin = 20, binning.method = "equal_width", nfeatures = 1000,
+  num.bin = 20, binning.method = "equal_width", nfeatures = 2000,
   mean.cutoff = c(0.1, 8), dispersion.cutoff = c(1, Inf),
-  verbose = TRUE, workflow.name = NULL)
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{selection.method}{How to choose top variable features. Choose one of :
 \itemize{
@@ -82,8 +88,6 @@ feature means}
 feature dispersions}
 
 \item{assay}{Assay to use}
-
-\item{workflow.name}{Name of workflow}
 }
 \description{
 Identifies features that are outliers on a 'mean variability plot'.
@@ -98,10 +102,3 @@ expression level, and for Y-axis it is the log(Variance/mean). All mean/variance
 calculations are not performed in log-space, but the results are reported in
 log-space - see relevant functions for exact details.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Find variable features in an Assay object
-
-\item \code{Seurat}: Find variable features in a Seurat object
-}}
-

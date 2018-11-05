@@ -6,48 +6,33 @@
 \alias{WhichCells.Seurat}
 \title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, cells, subset.name, low.threshold, high.threshold,
-  accept.value, ...)
+WhichCells(object, ...)
 
-\method{WhichCells}{Assay}(object, cells, subset.name = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  ...)
+\method{WhichCells}{Assay}(object, cells = NULL, expression,
+  invert = FALSE, ...)
 
-\method{WhichCells}{Seurat}(object, cells = NULL, subset.name = NULL,
-  low.threshold = -Inf, high.threshold = Inf, accept.value = NULL,
-  ident.keep = NULL, ident.remove = NULL, max.cells.per.ident = Inf,
-  random.seed = 1, assay = NULL, ...)
+\method{WhichCells}{Seurat}(object, cells = NULL, idents = NULL,
+  expression, invert = FALSE, downsample = Inf, seed = 1, ...)
 }
 \arguments{
-\item{object}{Seurat object}
-
-\item{cells}{Subset of cell names}
-
-\item{subset.name}{Parameter to subset on. Eg, the name of a gene, PC1, a
-column name in object@meta.data, etc. Any argument that can be retreived
-using FetchData}
-
-\item{low.threshold}{Low cutoff for the parameter (default is -Inf)}
-
-\item{high.threshold}{High cutoff for the parameter (default is Inf)}
-
-\item{accept.value}{Returns all cells with the subset name equal to this value}
+\item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{ident.keep}{Create a cell subset based on the provided identity classes}
+\item{cells}{Subset of cell names}
 
-\item{ident.remove}{Subtract out cells from these identity classes (used for
-filtration)}
+\item{expression}{A predicate expression for feature/variable expression, can
+evalue anything that can be pulled by \code{FetchData}}
 
-\item{max.cells.per.ident}{Can be used to downsample the data to a certain
-max per cell ident. Default is INF.}
+\item{invert}{Invert the selection of cells}
 
-\item{random.seed}{Random seed for downsampling}
+\item{idents}{A vector of identity classes to keep}
 
-\item{assay}{Which assay to filter on}
+\item{downsample}{Maximum number of cells per identity class, default is \code{Inf};
+downsampling will happen after all other operations, including inverting the
+cell selection}
 
-\item{...}{Extra parameters passed to \code{FetchData}}
+\item{seed}{Random seed for downsampling}
 }
 \value{
 A vector of cell names
@@ -56,15 +41,11 @@ A vector of cell names
 Returns a list of cells that match a particular set of criteria such as
 identity class, high/low values for particular PCs, ect..
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get cells from an Assay object
-
-\item \code{Seurat}: Get cells from a Seurat object
-}}
-
 \examples{
-WhichCells(object = pbmc_small, ident.keep = 2)
+WhichCells(object = pbmc_small, idents = 2)
+WhichCells(object = pbmc_small, expression = MS4A1 > 3)
+levels(x = pbmc_small)
+WhichCells(object = pbmc_small, idents = c(1, 2), invert = TRUE)
 
 }
 \seealso{

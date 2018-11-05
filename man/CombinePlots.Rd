@@ -24,7 +24,7 @@ A combined plot
 Combine ggplot2-based plots into a single plot
 }
 \examples{
-pbmc_small['group'] <- sample(
+pbmc_small[['group']] <- sample(
   x = c('g1', 'g2'),
   size = ncol(x = pbmc_small),
   replace = TRUE
@@ -38,7 +38,7 @@ plots <- FeaturePlot(
 CombinePlots(
   plots = plots,
   legend = 'none',
-  nrow = length(x = unique(x = pbmc_small['group', drop = TRUE]))
+  nrow = length(x = unique(x = pbmc_small[['group', drop = TRUE]]))
 )
 
 }

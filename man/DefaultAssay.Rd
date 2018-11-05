@@ -33,12 +33,3 @@ An object with the new default assay
 \description{
 Get the default assay
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{DimReduc}: Get the name of the assay.used to calculate this DimReduc
-
-\item \code{Seurat}: Get the default assay of a Seurat object
-
-\item \code{Seurat}: Set the default assay of a Seurat object
-}}
-

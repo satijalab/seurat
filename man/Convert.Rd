@@ -17,9 +17,9 @@ as.seurat(from)
 
 Convert(from, ...)
 
-\method{as.SingleCellExperiment}{seurat}(from)
+\method{as.SingleCellExperiment}{seurat}(from, ...)
 
-\method{as.seurat}{SingleCellExperiment}(from)
+\method{as.seurat}{SingleCellExperiment}(from, ...)
 
 \method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)
@@ -34,7 +34,7 @@ Convert(from, ...)
 \arguments{
 \item{from}{Object to convert from}
 
-\item{...}{Arguments passed to and from other methods}
+\item{...}{Arguments passed to other methods}
 
 \item{to}{Class of object to convert to}
 
@@ -68,12 +68,3 @@ Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
 SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
 and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{anndata.base.AnnData}: from Anndata file to a Seurat object
-
-\item \code{SingleCellExperiment}: Convert from SingleCellExperiment to a Seurat object
-
-\item \code{seurat}: Convert a Seurat object
-}}
-

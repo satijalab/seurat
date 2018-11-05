@@ -2,20 +2,25 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{RunALRA}
 \alias{RunALRA}
+\alias{RunALRA.default}
 \alias{RunALRA.Seurat}
 \title{Run Adaptively-thresholded Low Rank Approximation (ALRA)}
 \usage{
-RunALRA(object, k, q, ...)
+RunALRA(object, ...)
+
+\method{RunALRA}{default}(object, k = NULL, q = 10, ...)
 
 \method{RunALRA}{Seurat}(object, k = NULL, q = 10, assay = NULL,
   slot = "data", setDefaultAssay = TRUE, genes.use = NULL,
   K = NULL, p.val.th = 1e-10, noise.start = NULL, q.k = 2,
-  k.only = FALSE)
+  k.only = FALSE, ...)
 }
 \arguments{
-\item{object}{a Seurat object}
+\item{object}{An object}
 
-\item{k}{The rank of the rank-k approximation. Set to 0 for automated choice of k.}
+\item{...}{Arguments passed to other methods}
+
+\item{k}{The rank of the rank-k approximation. Set to NULL for automated choice of k.}
 
 \item{q}{The number of additional power iterations in randomized SVD when
 computing rank k approximation. By default, q=10.}
@@ -29,13 +34,14 @@ computing rank k approximation. By default, q=10.}
 \item{genes.use}{genes to impute}
 
 \item{K}{Number of singular values to compute when choosing k. Must be less
-than the smallest dimension of the matrix.}
+than the smallest dimension of the matrix. Default 100 or smallest dimension.}
 
-\item{p.val.th}{The threshold for ''significance'' when choosing k}
+\item{p.val.th}{The threshold for ''significance'' when choosing k. Default 1e-10.}
 
-\item{noise.start}{Index for which all smaller singular values are considered noise}
+\item{noise.start}{Index for which all smaller singular values are considered noise.
+Default K - 20.}
 
-\item{q.k}{Number of additional power iterations when choosing k}
+\item{q.k}{Number of additional power iterations when choosing k. Default 2.}
 
 \item{k.only}{If TRUE, only computes optimal k WITHOUT performing ALRA}
 }
@@ -46,11 +52,6 @@ error distribution learned from the negative values. Described in
 Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
 of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Run ALRA on a Seurat object
-}}
-
 \examples{
 pbmc_small
 # Example 1: Simple usage, with automatic choice of k.
@@ -65,4 +66,15 @@ do.call(gridExtra::grid.arrange, c(ggouts, nrow=1))
 # Run ALRA with the chosen k
 pbmc_small_alra <- RunALRA(pbmc_small_alra)
 }
+
+}
+\references{
+Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+}
+\seealso{
+\code{\link{ALRAChooseKPlot}}
+}
+\author{
+Jun Zhao, George Linderman
 }

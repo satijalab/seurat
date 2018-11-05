@@ -119,7 +119,7 @@ FindAllMarkers <- function(
 
 #' Finds markers that are conserved between the two groups
 #'
-#' @param object Seurat object
+#' @inheritParams FindMarkers
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
@@ -134,18 +134,15 @@ FindAllMarkers <- function(
 #' (such as Fishers combined p-value or others from the MetaDE package),
 #' percentage of cells expressing the marker, average differences)
 #'
-#' @import metap
+#' @importFrom metap minimump
+#'
 #' @export
 #'
 #' @examples
 #' \dontrun{
 #' pbmc_small
 #' # Create a simulated grouping variable
-#' pbmc_small@meta.data$groups <- sample(
-#'   x = c("g1", "g2"),
-#'   size = length(x = pbmc_small@cell.names),
-#'   replace = TRUE
-#' )
+#' pbmc_small[['groups']] <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 #' FindConservedMarkers(pbmc_small, ident.1 = 0, ident.2 = 1, grouping.var = "groups")
 #' }
 #'
@@ -158,14 +155,14 @@ FindConservedMarkers <- function(
   meta.method = minimump,
   ...
 ) {
-  if(class(meta.method) != "function") {
+  if (class(x = meta.method) != "function") {
     stop("meta.method should be a function from the metap package. Please see https://cran.r-project.org/web/packages/metap/metap.pdf for a detail description of the available functions.")
   }
   object.var <- FetchData(object = object, vars = grouping.var)
   object <- SetIdent(
     object = object,
-    cells = object@cell.names,
-    ident.use = paste(object@ident, object.var[, 1], sep = "_")
+    cells = colnames(x = object),
+    ident.use = paste(Idents(object = object), object.var[, 1], sep = "_")
   )
   levels.split <- names(x = sort(x = table(object.var[, 1])))
   num.groups <- length(levels.split)
@@ -180,18 +177,18 @@ FindConservedMarkers <- function(
   for (i in 1:num.groups) {
     level.use <- levels.split[i]
     ident.use.1 <- paste(ident.1, level.use, sep = "_")
-    if(!ident.use.1 %in% object@ident) {
-      stop(paste0("Identity: ", ident.1, " not present in group ", level.use))
+    if (!ident.use.1 %in% Idents(object = object)) {
+      stop("Identity: ", ident.1, " not present in group ", level.use)
     }
-    cells.1 <- WhichCells(object = object, ident = ident.use.1)
+    cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
-      ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
+      ident.use.2 <- names(x = which(x = table(Idents(object = object)[cells.2]) > 0))
       if (length(x = ident.use.2) == 0) {
         stop(paste("Only one identity class present:", ident.1))
       }
     }
-    if (! is.null(x = ident.2)) {
+    if (!is.null(x = ident.2)) {
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
     cat(
@@ -203,8 +200,8 @@ FindConservedMarkers <- function(
       ),
       file = stderr()
     )
-    if(!ident.use.2 %in% object@ident) {
-      stop(paste0("Identity: ", ident.2, " not present in group ", level.use))
+    if (!ident.use.2 %in% Idents(object = object)) {
+      stop("Identity: ", ident.2, " not present in group ", level.use)
     }
     marker.test[[i]] <- FindMarkers(
       object = object,
@@ -214,14 +211,22 @@ FindConservedMarkers <- function(
       ...
     )
   }
-  genes.conserved <- Reduce(intersect, lapply(marker.test, FUN = function(x) rownames(x)))
+  genes.conserved <- Reduce(
+    f = intersect,
+    x = lapply(
+      X = marker.test,
+      FUN = function(x) {
+        return(rownames(x = x))
+      }
+    )
+  )
   markers.conserved <- list()
   for (i in 1:num.groups) {
     markers.conserved[[i]] <- marker.test[[i]][genes.conserved, ]
     colnames(x = markers.conserved[[i]]) <- paste(
       levels.split[i],
       colnames(x = markers.conserved[[i]]),
-      sep="_"
+      sep = "_"
     )
   }
   markers.combined <- Reduce(cbind, markers.conserved)
@@ -231,10 +236,19 @@ FindConservedMarkers <- function(
     MARGIN = 1,
     FUN = max
   )
-  combined.pval <- data.frame(cp = apply(X = markers.combined[, pval.codes], MARGIN = 1, FUN = function(x) meta.method(x)$p))
-  colnames(combined.pval) <- paste0(as.character(formals()$meta.method), "_p_val")
+  combined.pval <- data.frame(cp = apply(
+    X = markers.combined[, pval.codes],
+    MARGIN = 1,
+    FUN = function(x) {
+      return(meta.method(x)$p)
+    }
+  ))
+  colnames(x = combined.pval) <- paste0(
+    as.character(x = formals()$meta.method),
+    "_p_val"
+  )
   markers.combined <- cbind(markers.combined, combined.pval)
-  markers.combined <- markers.combined[order(markers.combined[,paste0(as.character(formals()$meta.method), "_p_val")]), ]
+  markers.combined <- markers.combined[order(markers.combined[, paste0(as.character(x = formals()$meta.method), "_p_val")]), ]
   return(markers.combined)
 }
 
@@ -244,8 +258,72 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
+#' @param features Genes to test. Default is to use all genes
+#' @param logfc.threshold Limit testing to genes which show, on average, at least
+#' X-fold difference (log-scale) between the two groups of cells. Default is 0.25
+#' Increasing logfc.threshold speeds up the function, but can miss weaker signals.
+#' @param test.use Denotes which test to use. Available options are:
+#' \itemize{
+#'  \item{"wilcox"} : Identifies differentially expressed genes between two
+#'  groups of cells using a Wilcoxon Rank Sum test (default)
+#'  \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
+#'  (McDavid et al., Bioinformatics, 2013)
+#'  \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
+#'  For each gene, evaluates (using AUC) a classifier built on that gene alone,
+#'  to classify between two groups of cells. An AUC value of 1 means that
+#'  expression values for this gene alone can perfectly classify the two
+#'  groupings (i.e. Each of the cells in cells.1 exhibit a higher level than
+#'  each of the cells in cells.2). An AUC value of 0 also means there is perfect
+#'  classification, but in the other direction. A value of 0.5 implies that
+#'  the gene has no predictive power to classify the two groups. Returns a
+#'  'predictive power' (abs(AUC-0.5)) ranked matrix of putative differentially
+#'  expressed genes.
+#'  \item{"t"} : Identify differentially expressed genes between two groups of
+#'  cells using the Student's t-test.
+#'  \item{"negbinom"} : Identifies differentially expressed genes between two
+#'   groups of cells using a negative binomial generalized linear model.
+#'   Use only for UMI-based datasets
+#'  \item{"poisson"} : Identifies differentially expressed genes between two
+#'   groups of cells using a poisson generalized linear model.
+#'   Use only for UMI-based datasets
+#'  \item{"LR"} : Uses a logistic regression framework to determine differentially
+#'  expressed genes. Constructs a logistic regression model predicting group
+#'  membership based on each feature individually and compares this to a null
+#'  model with a likelihood ratio test.
+#'  \item{"MAST} : Identifies differentially expressed genes between two groups
+#'  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
+#'  package to run the DE testing.
+#'  \item{"DESeq2} : Identifies differentially expressed genes between two groups
+#'  of cells based on a model using DESeq2 which uses a negative binomial
+#'  distribution (Love et al, Genome Biology, 2014).This test does not support
+#'  pre-filtering of genes based on average difference (or percent detection rate)
+#'  between cell groups. However, genes may be pre-filtered based on their
+#'  minimum detection rate (min.pct) across both cell groups. To use this method,
+#'  please install DESeq2, using the instructions at
+#'  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
+#' }
+#' @param min.pct  only test genes that are detected in a minimum fraction of
+#' min.pct cells in either of the two populations. Meant to speed up the function
+#' by not testing genes that are very infrequently expressed. Default is 0.1
+#' @param min.diff.pct  only test genes that show a minimum difference in the
+#' fraction of detection between the two groups. Set to -Inf by default
+#' @param only.pos Only return positive markers (FALSE by default)
+#' @param verbose Print a progress bar once expression testing begins
+#' @param max.cells.per.ident Down sample each identity class to a max number.
+#' Default is no downsampling. Not activated by default (set to Inf)
+#' @param random.seed Random seed for downsampling
+#' @param latent.vars Variables to test, used only when \code{test.use} is one of
+#' 'negbinom', 'poisson', or 'MAST'
+#' @param min.cells.feature Minimum number of cells expressing the feature in at least one
+#' of the two groups, currently only used for poisson and negative binomial tests
+#' @param min.cells.group Minimum number of cells in one of the groups
+#' @param pseudocount.use Pseudocount to add to averaged expression values when
+#' calculating logFC. 1 by default.
 #'
-#' @describeIn FindMarkers Run differential expression test on matrix
+#' @importFrom Matrix rowSums
+#' @importFrom stats p.adjust
+#'
+#' @rdname FindMarkers
 #' @export
 #' @method FindMarkers default
 #'
@@ -268,7 +346,7 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  features <- features %||% rownames(object)
+  features <- features %||% rownames(x = object)
   methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
     features <- rownames(object)
@@ -277,47 +355,37 @@ FindMarkers.default <- function(
   }
   # error checking
   if (length(x = cells.1) == 0) {
-    message(paste("Cell group 1 is empty - no cells with identity class", cells.1))
+    stop("Cell group 1 is empty - no cells with identity class ", cells.1)
+  } else if (length(x = cells.2) == 0) {
+    stop("Cell group 2 is empty - no cells with identity class ", cells.2)
     return(NULL)
-  }
-  if (length(x = cells.2) == 0) {
-    message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
-    return(NULL)
-  }
-  if (length(x = cells.1) < min.cells.group) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells"))
-  }
-  if (length(x = cells.2) < min.cells.group) {
-    stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells"))
-  }
-  if (any(!cells.1 %in% colnames(x = object))) {
+  } else if (length(x = cells.1) < min.cells.group) {
+    stop("Cell group 1 has fewer than ", min.cells.group, " cells")
+  } else if (length(x = cells.2) < min.cells.group) {
+    stop("Cell group 2 has fewer than ", min.cells.group, " cells")
+  } else if (any(!cells.1 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
-    stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
-  }
-  if (any(!cells.2 %in% colnames(x = object))) {
+    stop(
+      "The following cell names provided to cells.1 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
+  } else if (any(!cells.2 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
-    stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
+    stop(
+      "The following cell names provided to cells.2 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
   }
   # feature selection (based on percentages)
   thresh.min <- 0
   pct.1 <- round(
-    x = apply(
-      X = object[features, cells.1, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
+    x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+      length(x = cells.1),
     digits = 3
   )
   pct.2 <- round(
-    x = apply(
-      X = object[features, cells.2, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
+    x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
+      length(x = cells.2),
     digits = 3
   )
   data.alpha <- cbind(pct.1, pct.2)
@@ -351,19 +419,23 @@ FindMarkers.default <- function(
     }
   )
   total.diff <- (data.1 - data.2)
-  if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
+  features.diff <- if (only.pos) {
+    names(x = which(x = total.diff > logfc.threshold))
+  } else {
+    names(x = which(x = abs(x = total.diff) > logfc.threshold))
+  }
   features <- intersect(x = features, y = features.diff)
   if (length(x = features) == 0) {
     stop("No features pass logfc.threshold threshold")
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
-    if (length(ident.1) > max.cells.per.ident) {
+    # Should be cells.1 and cells.2?
+    if (length(x = cells.1) > max.cells.per.ident) {
       cells.1 <- sample(x = cells.1, size = max.cells.per.ident)
     }
-    if (length(ident.2) > max.cells.per.ident) {
-      cells.2 = sample(x = cells.2, size = max.cells.per.ident)
+    if (length(x = cells.2) > max.cells.per.ident) {
+      cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
     }
   }
   # perform DE
@@ -373,32 +445,32 @@ FindMarkers.default <- function(
   de.results <- switch(
     EXPR = test.use,
     'wilcox' = WilcoxDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose,
       ...
     ),
     'bimod' = DiffExpTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'roc' = MarkerTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     't' = DiffTTest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     'negbinom' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -407,7 +479,7 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'poisson' = GLMDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       min.cells = min.cells.feature,
@@ -416,20 +488,20 @@ FindMarkers.default <- function(
       verbose = verbose
     ),
     'MAST' = MASTDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
       verbose = verbose
     ),
     "DESeq2" = DESeq2DETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       verbose = verbose
     ),
     "LR" = LRDETest(
-      data.use = object[features, c(cells.1, cells.2)],
+      data.use = object[features, c(cells.1, cells.2), drop = FALSE],
       cells.1 = cells.1,
       cells.2 = cells.2,
       latent.vars = latent.vars,
@@ -485,38 +557,39 @@ FindMarkers.Seurat <- function(
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  data.slot <- "data"
-  if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
-    data.slot <- "raw.data"
-  }
+  data.slot <- ifelse(
+    test = test.use %in% c("negbinom", "poisson", "DESeq2"),
+    yes = 'counts',
+    no = 'data'
+  )
   data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
-  if (is.null(ident.1)) {
+  if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
   }
   if (length(x = as.vector(x = ident.1)) > 1 &&
-      any(as.character(x = ident.1) %in% colnames(data.use))) {
-    bad.cells <- colnames(data.use)[which(!as.character(x = ident.1) %in% colnames(data.use))]
+      any(as.character(x = ident.1) %in% colnames(x = data.use))) {
+    bad.cells <- colnames(x = data.use)[which(x = !as.character(x = ident.1) %in% colnames(x = data.use))]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
-    ident.1 <- WhichCells(object = object, ident.keep = ident.1)
+    ident.1 <- WhichCells(object = object, idents = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2)) > 1 &&
-      any(as.character(x = ident.2) %in% colnames(data.use))) {
-    bad.cells <- colnames(data.use)[which(!as.character(x = ident.2) %in% colnames(data.use))]
+      any(as.character(x = ident.2) %in% colnames(x = data.use))) {
+    bad.cells <- colnames(x = data.use)[which(!as.character(x = ident.2) %in% colnames(x = data.use))]
     if (length(x = bad.cells) > 0) {
       stop(paste0("The following cell names provided to ident.2 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
     if (is.null(x = ident.2)) {
-      ident.2 <- setdiff(colnames(data.use), ident.1)
+      ident.2 <- setdiff(x = colnames(x = data.use), y = ident.1)
     } else {
-      ident.2 <- WhichCells(object = object, ident.keep = ident.2)
+      ident.2 <- WhichCells(object = object, idents = ident.2)
     }
   }
-  if (!is.null(latent.vars)) {
+  if (!is.null(x = latent.vars)) {
     latent.vars <- FetchData(
       object = object,
       vars = latent.vars,
@@ -550,6 +623,7 @@ FindMarkers.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # internal function to calculate AUC values
+#' @importFrom pbapply pblapply
 #
 AUCMarkerTest <- function(data1, data2, mygenes, print.bar = TRUE) {
   myAUC <- unlist(x = lapply(
@@ -562,11 +636,7 @@ AUCMarkerTest <- function(data1, data2, mygenes, print.bar = TRUE) {
     }
   ))
   myAUC[is.na(x = myAUC)] <- 0
-  if (print.bar) {
-    iterate.fxn <- pblapply
-  } else {
-    iterate.fxn <- lapply
-  }
+  iterate.fxn <- ifelse(test = print.bar, yes = pblapply, no = lapply)
   avg_diff <- unlist(x = iterate.fxn(
     X = mygenes,
     FUN = function(x) {
@@ -638,8 +708,8 @@ bimodLikData <- function(x, xmin = 0) {
 # @examples
 # \dontrun{
 #   pbmc_small
-#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
 # }
 #
 DESeq2DETest <- function(
@@ -720,8 +790,8 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 # @export
 # @examples
 # pbmc_small
-# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 DiffExpTest <- function(
   data.use,
@@ -765,8 +835,8 @@ DiffExpTest <- function(
 #
 # @examples
 # pbmc_small
-# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 DiffTTest <- function(
   data.use,
   cells.1,
@@ -807,7 +877,7 @@ DiffTTest <- function(
 # genes.
 #
 #' @importFrom MASS glm.nb
-#' @importFrom pbapply pbapply
+#' @importFrom pbapply pbsapply
 #' @importFrom stats var as.formula
 #' @importFrom future.apply future_sapply
 #
@@ -816,8 +886,8 @@ DiffTTest <- function(
 # @examples
 # pbmc_small
 # # Note, not recommended for particularly small datasets - expect warnings
-# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 GLMDETest <- function(
   data.use,
@@ -925,7 +995,7 @@ LRDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(group.info)]
+  data.use <- data.use[, rownames(group.info), drop = FALSE]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   my.sapply <- ifelse(
     test = verbose && PlanThreads() == 1,
@@ -980,8 +1050,8 @@ LRDETest <- function(
 #
 # @examples
 # pbmc_small
-# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 MarkerTest <- function(
   data.use,
@@ -1032,8 +1102,8 @@ MarkerTest <- function(
 # @examples
 # \dontrun{
 #   pbmc_small
-#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
 # }
 #
 MASTDETest <- function(
@@ -1052,6 +1122,7 @@ MASTDETest <- function(
     latent.vars <- scale(x = latent.vars)
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
+  latent.vars <- latent.vars %||% group.info
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
@@ -1234,8 +1305,8 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #
 # @examples
 # pbmc_small
-# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 WilcoxDETest <- function(
   data.use,

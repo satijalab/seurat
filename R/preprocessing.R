@@ -6,75 +6,150 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Filter out cells from a Seurat object
+#' Calculate the Barcode Distribution Inflection
 #'
-#' Creates a Seurat object containing only a subset of the cells in the
-#' original object. Takes a vector of variables on which to subset along with
-#' corresponding low and high threshold values for each variable, returning an
-#' object contain only cells that pass the specified filters. You can also
-#' restrict the filtering to only a subset of cells using cells (i.e. only
-#' keep cells that BOTH pass the filters and are in the cells list).
+#' This function calculates an adaptive inflection point ("knee") of the barcode distribution
+#' for each sample group. This is useful for determining a threshold for removing
+#' low-quality samples.
+#'
+#' The function operates by calculating the slope of the barcode number vs. rank
+#' distribution, and then finding the point at which the distribution changes most
+#' steeply (the "knee"). Of note, this calculation often must be restricted as to the
+#' range at which it performs, so `threshold` parameters are provided to restrict the
+#' range of the calculation based on the rank of the barcodes. [BarcodeInflectionsPlot()]
+#' is provided as a convenience function to visualize and test different thresholds and
+#' thus provide more sensical end results.
+#'
+#' See [BarcodeInflectionsPlot()] to visualize the calculated inflection points and
+#' [SubsetByBarcodeInflections()] to subsequently subset the Seurat object.
 #'
 #' @param object Seurat object
-#' @param subset.names Parameters to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.thresholds Low cutoffs for the parameters (default is -Inf)
-#' @param high.thresholds High cutoffs for the parameters (default is Inf)
-#' @param cells A vector of cell names to use as a subset
+#' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
+#' @param group.column Column to group by ("orig.ident" by default)
+#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
 #'
-#' @return Returns a Seurat object containing only the relevant subset of cells
+#' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
+#'
+#' * `barcode_distribution` - contains the full barcode distribution across the entire dataset
+#' * `inflection_points` - the calculated inflection points within the thresholds
+#' * `threshold_values` - the provided (or default) threshold values to search within for inflections
+#' * `cells_pass` - the cells that pass the inflection point calculation
+#'
+#' @importFrom methods slot
+#' @importFrom stats ave aggregate
 #'
 #' @export
 #'
-#' @examples
-#' head(x = FetchData(object = pbmc_small, vars = 'LTB'))
-#' pbmc_filtered <- FilterCells(
-#'   object = pbmc_small,
-#'   subset.names = 'LTB',
-#'   high.thresholds = 6
-#' )
-#' head(x = FetchData(object = pbmc_filtered, vars = 'LTB'))
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
+#' @seealso \code{\link{BarcodeInflectionsPlot}} \code{\link{SubsetByBarcodeInflections}}
 #'
-FilterCells <- function(
+#' @examples
+#' CalculateBarcodeInflections(pbmc_small, group.column = 'groups')
+#'
+CalculateBarcodeInflections <- function(
   object,
-  subset.names,
-  low.thresholds,
-  high.thresholds,
-  cells = NULL
+  barcode.column = "nCount_RNA",
+  group.column = "orig.ident",
+  threshold.low = NULL,
+  threshold.high = NULL
 ) {
-  if (missing(x = low.thresholds)) {
-    low.thresholds <- replicate(n = length(x = subset.names), expr = -Inf)
+  ## Check that barcode.column exists in meta.data
+  if (!(barcode.column %in% colnames(x = object[[]]))) {
+    stop("`barcode.column` specified not present in Seurat object provided")
   }
-  if (missing(x = high.thresholds)) {
-    high.thresholds <- replicate(n = length(x = subset.names), expr = Inf)
-  }
-  length.check <- sapply(
-    X = list(subset.names, low.thresholds, high.thresholds),
-    FUN = length
+  # Calculation of barcode distribution
+  ## Append rank by grouping x umi column
+  # barcode_dist <- as.data.frame(object@meta.data)[, c(group.column, barcode.column)]
+  barcode_dist <- object[[c(group.column, barcode.column)]]
+  barcode_dist <- barcode_dist[do.call(what = order, args = barcode_dist), ] # order by columns left to right
+  barcode_dist$rank <- ave(
+    x = barcode_dist[, barcode.column], barcode_dist[, group.column],
+    FUN = function(x) {
+      return(rev(x = order(x)))
+    }
   )
-  if (length(x = unique(x = length.check)) != 1) {
-    stop("'subset.names', 'low.thresholds', and 'high.thresholds' must all have the same length")
+  barcode_dist <- barcode_dist[order(barcode_dist[, group.column], barcode_dist[, 'rank']), ]
+  ## calculate rawdiff and append per group
+  top <- aggregate(
+    x = barcode_dist[, barcode.column],
+    by = list(barcode_dist[, group.column]),
+    FUN = function(x) {
+      return(c(0, diff(x = log10(x = x + 1))))
+    })$x
+  bot <- aggregate(
+    x = barcode_dist[, 'rank'],
+    by = list(barcode_dist[, group.column]),
+    FUN = function(x) {
+      return(c(0, diff(x = x)))
+    }
+  )$x
+  barcode_dist$rawdiff <- unlist(x = mapply(
+    FUN = function(x, y) {
+      return(ifelse(test = is.na(x = x / y), yes = 0, no = x / y))
+    },
+    x = top,
+    y = bot
+  ))
+  # Calculation of inflection points
+  ## Set thresholds for rank of barcodes to ignore
+  threshold.low <- threshold.low %||% 1
+  threshold.high <- threshold.high %||% max(barcode_dist$rank)
+  ## Subset the barcode distribution by thresholds
+  barcode_dist_sub <- barcode_dist[barcode_dist$rank > threshold.low & barcode_dist$rank < threshold.high, ]
+  ## Calculate inflection points
+  ## note: if thresholds are s.t. it produces the same length across both groups,
+  ## aggregate will create a data.frame with x.* columns, where * is the length
+  ## using the same combine approach will yield non-symmetrical results!
+  whichmin_list <- aggregate(
+    x = barcode_dist_sub[, 'rawdiff'],
+    by = list(barcode_dist_sub[, group.column]),
+    FUN = function(x) {
+      return(x == min(x))
+    }
+  )$x
+  ## workaround for aggregate behavior noted above
+  if (class(x = whichmin_list) == 'list') { # uneven lengths
+    is_inflection <- unlist(x = whichmin_list)
+  } else if (class(x = whichmin_list) == 'matrix') { # even lengths
+    is_inflection <- as.vector(x = t(x = whichmin_list))
   }
-  data.subsets <- data.frame(subset.names, low.thresholds, high.thresholds)
-  cells <- cells %||% colnames(x = object)
-  for (i in seq(nrow(data.subsets))) {
-    cells <- tryCatch(
-      expr = WhichCells(
-        object = object,
-        cells = cells,
-        subset.name = data.subsets[i, 1],
-        low.threshold = data.subsets[i, 2],
-        high.threshold = data.subsets[i, 3]
-      ),
-      error = function(e) {
-        warning(e)
-        cells
+  tmp <- cbind(barcode_dist_sub, is_inflection)
+  # inflections <- tmp[tmp$is_inflection == TRUE, c(group.column, barcode.column, "rank")]
+  inflections <- tmp[which(x = tmp$is_inflection), c(group.column, barcode.column, 'rank')]
+  # Use inflection point for what cells to keep
+  ## use the inflection points to cut the subsetted dist to what to keep
+  ## keep only the barcodes above the inflection points
+  keep <- unlist(x = lapply(
+    X = whichmin_list,
+    FUN = function(x) {
+      keep <- !x
+      if (sum(keep) == length(x = keep)) {
+        return(keep) # prevents bug in case of keeping all cells
       }
-    )
-  }
-  object <- SubsetData(object = object, cells = cells)
-  object <- LogSeuratCommand(object = object)
+      # toss <- which(keep == FALSE):length(x = keep) # the end cells below knee
+      toss <- which(x = !keep):length(x = keep)
+      keep[toss] <- FALSE
+      return(keep)
+    }
+  ))
+  barcode_dist_sub_keep <- barcode_dist_sub[keep, ]
+  cells_keep <- rownames(x = barcode_dist_sub_keep)
+  # Bind thresholds to keep track of where they are placed
+  thresholds <- data.frame(
+    threshold = c('threshold.low', 'threshold.high'),
+    rank = c(threshold.low, threshold.high)
+  )
+  # Combine relevant info together
+  ## Combine Barcode dist, inflection point, and cells to keep into list
+  info <- list(
+    barcode_distribution = barcode_dist,
+    inflection_points = inflections,
+    threshold_values = thresholds,
+    cells_pass = cells_keep
+  )
+  # save results into object
+  Tool(object = object) <- info
   return(object)
 }
 
@@ -84,26 +159,28 @@ FilterCells <- function(
 #'
 #' @param object Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.
 #' @param assay Name of the Hashtag assay (HTO by default)
-#' @param positive_quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
-#' @param init_centers Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
-#' @param k_function Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
-#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"
-#' @param cluster_nstarts nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default
+#' @param positive.quantile The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99
+#' @param init Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)
+#' @param kfunc Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering
+#' @param nsamples Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"
+#' @param nstarts nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default
 #' @param verbose Prints the output
 #'
 #' @return The Seurat object with the following demultiplexed information stored in the meta data:
-#' \item{hash_maxID}{Name of hashtag with the highest signal}
-#' \item{hash_secondID}{Name of hashtag with the second highest signal}
-#' \item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
-#' \item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
-#' \item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
-#' \item{hash_ID}{Classification result where doublet IDs are collapsed}
+#' \item{hash.maxID}{Name of hashtag with the highest signal}
+#' \item{hash.secondID}{Name of hashtag with the second highest signal}
+#' \item{hash.margin}{The difference between signals for hash.maxID and hash.secondID}
+#' \item{classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+#' \item{classification.global}{Global classification result (singlet, doublet or negative)}
+#' \item{hash.ID}{Classification result where doublet IDs are collapsed}
 #'
 #' @importFrom cluster clara
 #' @importFrom Matrix colSums
 #' @importFrom fitdistrplus fitdist
 #' @importFrom stats pnbinom kmeans
 #' @export
+#'
+#' @seealso \code{\link{HTOHeatmap}}
 #'
 #' @examples
 #' \dontrun{
@@ -113,108 +190,129 @@ FilterCells <- function(
 HTODemux <- function(
   object,
   assay = "HTO",
-  positive_quantile = 0.99,
-  init_centers = NULL,
-  cluster_nstarts = 100,
-  k_function = "clara",
+  positive.quantile = 0.99,
+  init = NULL,
+  nstarts = 100,
+  kfunc = "clara",
   nsamples = 100,
   verbose = TRUE
 ) {
   #initial clustering
   assay <- assay %||% DefaultAssay(object = object)
-  hash_data <- GetAssayData(object = object, assay = assay)
-  hash_raw_data <- GetAssayData(
+  data <- GetAssayData(object = object, assay = assay)
+  counts <- GetAssayData(
     object = object,
     assay = assay,
     slot = 'counts'
   )[, colnames(x = object)]
-  hash_raw_data <- as.matrix(x = hash_raw_data)
-  ncenters <- init_centers %||% nrow(x = hash_data) + 1
-  if (k_function == "kmeans") {
-    hto_init_clusters <- kmeans(
-      x = t(x = GetAssayData(object = object, assay = assay)),
-      centers = ncenters,
-      nstart = cluster_nstarts
-    )
-    #identify positive and negative signals for all HTO
-    Idents(object = object, cells = names(x = hto_init_clusters$cluster)) <- hto_init_clusters$cluster
-  } else {
-    #use fast k-medoid clustering
-    hto_init_clusters <- clara(
-      x = t(x = GetAssayData(object = object, assay = assay)),
-      k = ncenters,
-      samples = nsamples
-    )
-    #identify positive and negative signals for all HTO
-    Idents(object = object, cells = names(x = hto_init_clusters$clustering)) <- hto_init_clusters$clustering
-  }
+  counts <- as.matrix(x = counts)
+  ncenters <- init %||% nrow(x = data) + 1
+  switch(
+    EXPR = kfunc,
+    'kmeans' = {
+      init.clusters <- kmeans(
+        x = t(x = GetAssayData(object = object, assay = assay)),
+        centers = ncenters,
+        nstart = nstarts
+      )
+      #identify positive and negative signals for all HTO
+      Idents(object = object, cells = names(x = init.clusters$cluster)) <- init.clusters$cluster
+    },
+    'clara' = {
+      #use fast k-medoid clustering
+      init.clusters <- clara(
+        x = t(x = GetAssayData(object = object, assay = assay)),
+        k = ncenters,
+        samples = nsamples
+      )
+      #identify positive and negative signals for all HTO
+      Idents(object = object, cells = names(x = init.clusters$clustering), drop = TRUE) <- init.clusters$clustering
+    },
+    stop("Unknown k-means function ", kfunc, ", please choose from 'kmeans' or 'clara'")
+  )
   #average hto signals per cluster
   #work around so we don't average all the RNA levels which takes time
-  average_hto <- AverageExpression(
+  average.expression <- AverageExpression(
     object = object,
     assay = assay,
     verbose = FALSE
   )[[assay]]
+  #checking for any cluster with all zero counts for any barcode
+  if (sum(average.expression == 0) > 0) {
+    stop("Cells with zero counts exist as a cluster.")
+  }
   #create a matrix to store classification result
-  hto_discrete <- GetAssayData(object = object, assay = assay)
-  hto_discrete[hto_discrete > 0] <- 0
+  discrete <- GetAssayData(object = object, assay = assay)
+  discrete[discrete > 0] <- 0
   # for each HTO, we will use the minimum cluster for fitting
-  for (hto_iter in rownames(x = hash_data)) {
-    hto_values <- hash_raw_data[hto_iter, colnames(object)]
+  for (iter in rownames(x = data)) {
+    values <- counts[iter, colnames(object)]
     #commented out if we take all but the top cluster as background
-    #hto_values_negative=hto_values[setdiff(object@cell.names,WhichCells(object,which.max(average_hto[hto_iter,])))]
-    hto_values_use <- hto_values[WhichCells(object = object, ident.keep = levels(Idents(object))[[which.min(x = average_hto[hto_iter, ])]])]
-    hto_fit <- suppressWarnings(fitdist(hto_values_use, "nbinom"))
-    hto_cutoff <- as.numeric(x = quantile(x = hto_fit, probs = positive_quantile)$quantiles[1])
-    hto_discrete[hto_iter, names(x = which(x = hto_values > hto_cutoff))] <- 1
+    #values_negative=values[setdiff(object@cell.names,WhichCells(object,which.max(average.expression[iter,])))]
+    values.use <- values[WhichCells(
+      object = object,
+      idents = levels(x = Idents(object = object))[[which.min(x = average.expression[iter, ])]]
+    )]
+    fit <- suppressWarnings(expr = fitdist(data = values.use, distr = "nbinom"))
+    cutoff <- as.numeric(x = quantile(x = fit, probs = positive.quantile)$quantiles[1])
+    discrete[iter, names(x = which(x = values > cutoff))] <- 1
     if (verbose) {
-      message(paste0("Cutoff for ", hto_iter, " : ", hto_cutoff, " reads"))
+      message(paste0("Cutoff for ", iter, " : ", cutoff, " reads"))
     }
   }
   # now assign cells to HTO based on discretized values
-  num_hto_positive <- colSums(x = hto_discrete)
-  hto_classification_global <- num_hto_positive
-  hto_classification_global[num_hto_positive == 0] <- "Negative"
-  hto_classification_global[num_hto_positive == 1] <- "Singlet"
-  hto_classification_global[num_hto_positive > 1] <- "Doublet"
-  donor_id = rownames(x = hash_data)
-  hash_max <- apply(X = hash_data, MARGIN = 2, FUN = max)
-  hash_maxID <- apply(X = hash_data, MARGIN = 2, FUN = which.max)
-  hash_second <- apply(X = hash_data, MARGIN = 2, FUN = MaxN, N = 2)
-  hash_maxID <- as.character(x = donor_id[sapply(
-    X = 1:ncol(x = hash_data),
+  npositive <- colSums(x = discrete)
+  classification.global <- npositive
+  classification.global[npositive == 0] <- "Negative"
+  classification.global[npositive == 1] <- "Singlet"
+  classification.global[npositive > 1] <- "Doublet"
+  donor.id = rownames(x = data)
+  hash.max <- apply(X = data, MARGIN = 2, FUN = max)
+  hash.maxID <- apply(X = data, MARGIN = 2, FUN = which.max)
+  hash.second <- apply(X = data, MARGIN = 2, FUN = MaxN, N = 2)
+  hash.maxID <- as.character(x = donor.id[sapply(
+    X = 1:ncol(x = data),
     FUN = function(x) {
-      return(which(x = hash_data[, x] == hash_max[x])[1])
+      return(which(x = data[, x] == hash.max[x])[1])
     }
   )])
-  hash_secondID <- as.character(x = donor_id[sapply(
-    X = 1:ncol(x = hash_data),
+  hash.secondID <- as.character(x = donor.id[sapply(
+    X = 1:ncol(x = data),
     FUN = function(x) {
-      return(which(x = hash_data[, x] == hash_second[x])[1])
+      return(which(x = data[, x] == hash.second[x])[1])
     }
   )])
-  hash_margin <- hash_max - hash_second
+  hash.margin <- hash.max - hash.second
   doublet_id <- sapply(
-    X = 1:length(x = hash_maxID),
+    X = 1:length(x = hash.maxID),
     FUN = function(x) {
-      return(paste(sort(c(hash_maxID[x], hash_secondID[x])), collapse = "_"))
+      return(paste(sort(x = c(hash.maxID[x], hash.secondID[x])), collapse = "_"))
     }
   )
   # doublet_names <- names(x = table(doublet_id))[-1] # Not used
-  hto_classification <- hto_classification_global
-  hto_classification[hto_classification_global == "Negative"] <- "Negative"
-  hto_classification[hto_classification_global == "Singlet"] <- hash_maxID[which(x = hto_classification_global == "Singlet")]
-  hto_classification[hto_classification_global == "Doublet"] <- doublet_id[which(x = hto_classification_global == "Doublet")]
-  classification_metadata <- data.frame(
-    hash_maxID,
-    hash_secondID, hash_margin,
-    hto_classification,
-    hto_classification_global
+  classification <- classification.global
+  classification[classification.global == "Negative"] <- "Negative"
+  classification[classification.global == "Singlet"] <- hash.maxID[which(x = classification.global == "Singlet")]
+  classification[classification.global == "Doublet"] <- doublet_id[which(x = classification.global == "Doublet")]
+  classification.metadata <- data.frame(
+    hash.maxID,
+    hash.secondID,
+    hash.margin,
+    classification,
+    classification.global
   )
-  object <- AddMetaData(object = object, metadata = classification_metadata)
-  Idents(object) <- "hto_classification"
-  Idents(object, cells = rownames(object@meta.data[object@meta.data$hto_classification_global == "Doublet", ])) <- "Doublet"
-  object@meta.data$hash_ID <- Idents(object)
+  colnames(x = classification.metadata) <- paste(
+    assay,
+    c('maxID', 'secondID', 'margin', 'classification', 'classification.global'),
+    sep = '_'
+  )
+  object <- AddMetaData(object = object, metadata = classification.metadata)
+  Idents(object) <- paste0(assay, '_classification')
+  # Idents(object, cells = rownames(object@meta.data[object@meta.data$classification.global == "Doublet", ])) <- "Doublet"
+  doublets <- rownames(x = object[[]])[which(object[[paste0(assay, "_classification.global")]] == "Doublet")]
+  Idents(object = object, cells = doublets) <- 'Doublet'
+  # object@meta.data$hash.ID <- Idents(object)
+  object$hash.ID <- Idents(object = object)
   return(object)
 }
 
@@ -339,6 +437,7 @@ Read10X <- function(data.dir = NULL){
     full.data <- append(x = full.data, values = data)
   }
   full.data <- do.call(cbind, full.data)
+  full.data <- as(object = full.data, Class = "dgCMatrix")
   return(full.data)
 }
 
@@ -347,23 +446,22 @@ Read10X <- function(data.dir = NULL){
 #' Read gene expression matrix from 10X CellRanger hdf5 file
 #'
 #' @param filename Path to h5 file
-#' @param ensg.names Label row names with ENSG names rather than unique gene names
+#' @param ensg.names Label row names with ENSG names rather than unique gene
+#' names
 #'
-#' @return Returns a sparse matrix with rows and columns labeled. If multiple genomes are present,
-#' returns a list of sparse matrices (one per genome).
-#'
-# @importFrom hdf5r H5File
+#' @return Returns a sparse matrix with rows and columns labeled. If multiple
+#' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
 Read10X_h5 <- function(filename, ensg.names = FALSE) {
-  if (!require(hdf5r)) {
+  if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
   if (!file.exists(filename)) {
     stop("File not found")
   }
-  infile <- H5File$new(filename)
+  infile <- hdf5r::H5File$new(filename)
   genomes <- names(infile)
   output <- list()
   for (genome in genomes) {
@@ -398,62 +496,62 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #'
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
-#' Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-#' Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
-#' results are saved in misc slot of seurat object.
+#' Use this function as an alternative to the NormalizeData,
+#' FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
+#' data and scale.data slot, and sctransform::vst intermediate results are saved
+#' in misc slot of seurat object.
 #'
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.zscore Z-score threshold for calling features highly variable;
-#' z-scores are based on variances of regression model pearson residuals of all features
-#' @param variable.features.n Use this many features as variable features after ranking by variance
-#' @param do.scale Whether to scale residuals to have unit variance
-#' @param do.center Whether to center residuals to have mean zero
-#' @param scale.max Max value after scaling and/or centering
+#' @param variable.features.rv.th Features with residual variance greater or equal
+#' this value will be selected as variable features; default is 1.3
+#' @param variable.features.n Use this many features as variable features after
+#' ranking by residual variance
+#' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
+#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
+#' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
+#' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
+#' @importFrom stats setNames
+#' @importFrom utils installed.packages
+#'
 #' @export
+#'
 RegressRegNB <- function(
   object,
   assay = NULL,
   do.correct.umi = FALSE,
-  variable.features.zscore = 1,
+  variable.features.rv.th = 1.3,
   variable.features.n = NULL,
+  return.dev.residuals = FALSE,
+  clip.range = c(-10, 10),
   do.scale = FALSE,
-  do.center = FALSE,
-  scale.max = .Machine$double.xmax,
+  do.center = TRUE,
   verbose = TRUE,
   ...
 ) {
-  if (!requireNamespace('sctransform')) {
+  if (!PackageCheck('sctransform', error = FALSE)) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
-
-  vst.out <- sctransform::vst(umi, show_progress = verbose, return_cell_attr = TRUE, ...)
-  # cell_attr = NULL,
-  # latent_var = c('log_umi_per_gene'),
-  # batch_var = NULL,
-  # n_genes = 2000,
-  # n_cells = NULL,
-  # method = 'poisson',
-  # res_clip_range = c(-50, 50),
-  # bin_size = 256,
-  # min_cells = 5,
-  # return_cell_attr = FALSE,
-  # return_gene_attr = FALSE)
-
+  vst.out <- sctransform::vst(
+    umi,
+    show_progress = verbose,
+    return_cell_attr = TRUE,
+    ...
+  )
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
       message('Calculate corrected UMI matrix and place in data slot')
     }
     umi.corrected <- sctransform::denoise(x = vst.out)
-    umi.corrected <- as(umi.corrected, 'dgCMatrix')
+    umi.corrected <- as(object = umi.corrected, Class = 'dgCMatrix')
     # skip SetAssayData.Assay because of restrictive dimension checks there
     slot(object = assay.obj, name = 'data') <- umi.corrected
     # assay.obj <- SetAssayData(
@@ -462,52 +560,59 @@ RegressRegNB <- function(
     #   new.data = umi.corrected
     # )
   }
-
   # set variable features
   if (verbose) {
     message('Determine variable features')
   }
-  if ('residual_variance' %in% names(vst.out$gene_attr)) {
-    feature.variance <- setNames(vst.out$gene_attr$residual_variance, rownames(vst.out$gene_attr))
+  if ('residual_variance' %in% names(x = vst.out$gene_attr)) {
+    feature.variance <- setNames(
+      object = vst.out$gene_attr$residual_variance,
+      nm = rownames(x = vst.out$gene_attr)
+    )
   } else {
     feature.variance <- RowVar(vst.out$y)
-    names(feature.variance) <- rownames(vst.out$y)
+    names(x = feature.variance) <- rownames(x = vst.out$y)
   }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
-  if (!is.null(variable.features.n)) {
-    top.features <- names(feature.variance)[1:variable.features.n]
+  if (!is.null(x = variable.features.n)) {
+    top.features <- names(x = feature.variance)[1:variable.features.n]
   } else {
-    feature.variance <- scale(feature.variance)[, 1]
-    top.features <- names(feature.variance)[feature.variance > variable.features.zscore]
+    top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
   VariableFeatures(object = assay.obj) <- top.features
   if (verbose) {
-    message('Set ', length(top.features), ' variable features')
+    message('Set ', length(x = top.features), ' variable features')
   }
-
   scale.data <- vst.out$y
+  if (return.dev.residuals) {
+    if (verbose) {
+      message('Calculate deviance residuals')
+    }
+    scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
+  }
+  # clip the residuals
+  scale.data[scale.data < clip.range[1]] <- clip.range[1]
+  scale.data[scale.data > clip.range[2]] <- clip.range[2]
   # re-scale the residuals
   if (do.scale || do.center) {
     if (verbose) {
       message('Re-scale residuals')
     }
     scale.data <- FastRowScale(
-      mat = vst.out$y,
+      mat = scale.data,
       scale = do.scale,
       center = do.center,
-      scale_max = scale.max,
+      scale_max = Inf,
       display_progress = FALSE
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-
   assay.obj <- SetAssayData(
     object = assay.obj,
     slot = 'scale.data',
     new.data = scale.data
   )
   object[[assay]] <- assay.obj
-
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
@@ -565,10 +670,83 @@ SampleUMI <- function(
   return(new_data)
 }
 
+#' Subset a Seurat Object based on the Barcode Distribution Inflection Points
+#'
+#' This convenience function subsets a Seurat object based on calculated inflection points.
+#'
+#' See [CalculateBarcodeInflections()] to calculate inflection points and
+#' [BarcodeInflectionsPlot()] to visualize and test inflection point calculations.
+#'
+#' @param object Seurat object
+#' @param ... arguments to be passed to [CalculateBarcodeInflections()]; if provided, will
+#'   recalculate the inflection points, else will use those already in `object`
+#'
+#' @return Returns a subsetted Seurat object.
+#'
+#' @export
+#'
+#' @author Robert A. Amezquita, \email{robert.amezquita@fredhutch.org}
+#' @seealso \code{\link{CalculateBarcodeInflections}} \code{\link{BarcodeInflectionsPlot}}
+#'
+#' @examples
+#' pbmc_small <- CalculateBarcodeInflections(
+#'   object = pbmc_small,
+#'   group.column = 'groups',
+#'   threshold.low = 20,
+#'   threshold.high = 30
+#' )
+#' SubsetByBarcodeInflections(object = pbmc_small)
+#'
+SubsetByBarcodeInflections <- function(object) {
+  cbi.data <- Tool(object = object, slot = 'CalculateBarcodeInflections')
+  if (is.null(x = cbi.data)) {
+    stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
+  }
+  return(object[, cbi.data$cells_pass])
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param selection.method How to choose top variable features. Choose one of :
+#' \itemize{
+#'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
+#'   log(mean) using local polynomial regression (loess). Then standardizes the
+#'   feature values using the observed mean and expected variance (given by the
+#'   fitted line). Feature variance is the calculated on the standardized values
+#'   after clipping to a maximum (default is 50).}
+#'   \item{mean.var.plot:}{ First, uses a function to calculate average
+#'   expression (mean.function) and dispersion (dispersion.function) for each
+#'   feature. Next, divides features into num.bin (deafult 20) bins based on
+#'   their average expression, and calculates z-scores for dispersion within
+#'   each bin. The purpose of this is to identify variable features while
+#'   controlling for the strong relationship between variability and average
+#'   expression.}
+#'   \item{dispersion:}{ selects the genes with the highest dispersion values}
+#' }
+#' @param loess.span (vst method) Loess span parameter used when fitting the
+#' variance-mean relationship
+#' @param clip.max (vst method) After standardization values larger than
+#' clip.max will be set to clip.max; default is 'auto' which sets this value to
+#' the square root of the number of cells
+#' @param mean.function Function to compute x-axis value (average expression).
+#'  Default is to take the mean of the detected (i.e. non-zero) values
+#' @param dispersion.function Function to compute y-axis value (dispersion).
+#' Default is to take the standard deviation of all values
+#' @param num.bin Total number of bins to use in the scaled analysis (default
+#' is 20)
+#' @param binning.method Specifies how the bins should be computed. Available
+#' methods are:
+#' \itemize{
+#'   \item{equal_width:}{ each bin is of equal width along the x-axis [default]}
+#'   \item{equal_frequency:}{ each bin contains an equal number of features (can
+#'   increase statistical power to detect overdispersed features at high
+#'   expression values, at the cost of reduced resolution along the x-axis)}
+#' }
+#' @param verbose show progress bar for calculations
+#'
+#' @rdname FindVariableFeatures
 #' @export
 #'
 FindVariableFeatures.default <- function(
@@ -580,7 +758,8 @@ FindVariableFeatures.default <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (!inherits(x = object, 'Matrix')) {
     object <- as(object = as.matrix(x = object), Class = 'Matrix')
@@ -660,7 +839,7 @@ FindVariableFeatures.default <- function(
 #' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature dispersions
 #'
-#' @describeIn FindVariableFeatures Find variable features in an Assay object
+#' @rdname FindVariableFeatures
 #' @export
 #' @method FindVariableFeatures Assay
 #'
@@ -673,10 +852,11 @@ FindVariableFeatures.Assay <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  nfeatures = 1000,
+  nfeatures = 2000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
@@ -697,6 +877,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
+  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
@@ -719,9 +900,8 @@ FindVariableFeatures.Assay <- function(
 
 #' @inheritParams FindVariableFeatures.Assay
 #' @param assay Assay to use
-#' @param workflow.name Name of workflow
 #'
-#' @describeIn FindVariableFeatures Find variable features in a Seurat object
+#' @rdname FindVariableFeatures
 #' @export
 #' @method FindVariableFeatures Seurat
 #'
@@ -735,15 +915,12 @@ FindVariableFeatures.Seurat <- function(
   dispersion.function = FastLogVMR,
   num.bin = 20,
   binning.method = "equal_width",
-  nfeatures = 1000,
+  nfeatures = 2000,
   mean.cutoff = c(0.1, 8),
   dispersion.cutoff = c(1, Inf),
   verbose = TRUE,
-  workflow.name = NULL
+  ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- FindVariableFeatures(
@@ -762,82 +939,152 @@ FindVariableFeatures.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
-#' @importFrom pbapply pbapply pblapply
-#' @importFrom future.apply future_apply future_lapply
+#' @param normalization.method Method for normalization.
+#'  \itemize{
+#'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. This is then
+#'   natural-log transformed using log1p.}
+#'   \item{CLR: }{Applies a centered log ratio transformation}
+#' }
+#' More methods to be added.
+#' @param scale.factor Sets the scale factor for cell-level normalization
+#' @param across If performing CLR normalization, normalize across either "features" or "cells".
+#' @param verbose display progress bar for normalization procedure
+#'
+#' @rdname NormalizeData
 #' @export
 #'
 NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  block.size = NULL,
   verbose = TRUE,
+  across = "features",
   ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  my.apply <- ifelse(
-    test = verbose && PlanThreads() == 1,
-    yes = pbapply,
-    no = future_apply
-  )
-  my.lapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
-  norm.function <- switch(
+  normalized.data <- switch(
     EXPR = normalization.method,
-    'LogNormalize' = LogNormalize,
-    'CLR' = CustomNormalize,
+    'LogNormalize' = LogNormalize(
+      data = object,
+      scale.factor = scale.factor,
+      verbose = verbose
+    ),
+    'CLR' = CustomNormalize(
+      data = object,
+      custom_function = function(x) {
+        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+      },
+      across = across
+    ),
     stop("Unkown normalization method: ", normalization.method)
   )
-  chunk.points <- ChunkPoints(
-    dsize = ncol(x = object),
-    csize = block.size %||% ceiling(x = ncol(x = object) / 2)
-  )
-  normalized.data <- my.lapply(
-    X = 1:ncol(x = chunk.points),
-    FUN = function(i) {
-      block <- chunk.points[, i]
-      return(norm.function(
-        data = object[, block[1]:block[2], drop = FALSE],
-        scale.factor = scale.factor,
-        verbose = FALSE,
-        custom_function = function(x) {
-          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-        },
-        across = 'features'
-      ))
-    }
-  )
-  #normalized.data <- my.apply(
-  #  X = chunk.points,
-  #  MARGIN = 2,
-  #  FUN = function(block) {
-  #    return(norm.function(
-  #      data = object[, block[1]:block[2], drop = FALSE],
-  #      scale.factor = scale.factor,
-  #      verbose = FALSE,
-  #      custom_function = function(x) {
-  #        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-  #      },
-  #      across = 'features'
-  #    ))
-  #  }
-  #)
-  normalized.data <- do.call(what = 'cbind', args = normalized.data)
   return(normalized.data)
 }
 
-#' @describeIn NormalizeData Normalize data in an Assay object
+# #' @importFrom pbapply pbapply pblapply
+# #' @importFrom future.apply future_apply future_lapply
+# #'
+# #' @param normalization.method Method for normalization.
+# #'  \itemize{
+# #'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
+# #'   counts for that cell and multiplied by the scale.factor. This is then
+# #'   natural-log transformed using log1p.}
+# #'   \item{CLR: }{Applies a centered log ratio transformation}
+# #' }
+# #' More methods to be added.
+# #' @param scale.factor Sets the scale factor for cell-level normalization
+# #' @param across If performing CLR normalization, normalize across either "features" or "cells".
+# #' @param verbose display progress bar for normalization procedure
+# #'
+# #' @rdname NormalizeData
+# #' @export
+# #'
+# NormalizeData.default <- function(
+#   object,
+#   normalization.method = "LogNormalize",
+#   scale.factor = 1e4,
+#   block.size = NULL,
+#   verbose = TRUE,
+#   verbose = TRUE,
+#   across = "features",
+#   ...
+# ) {
+#   if (is.null(x = normalization.method)) {
+#     return(object)
+#   }
+#   my.apply <- ifelse(
+#     test = verbose && PlanThreads() == 1,
+#     yes = pbapply,
+#     no = future_apply
+#   )
+#   my.lapply <- ifelse(
+#     test = verbose && PlanThreads() == 1,
+#     yes = pblapply,
+#     no = future_lapply
+#   )
+#   norm.function <- switch(
+#     EXPR = normalization.method,
+#     'LogNormalize' = LogNormalize,
+#     'CLR' = CustomNormalize,
+#     'LogNormalize' = LogNormalize(
+#       data = object,
+#       scale.factor = scale.factor,
+#       verbose = verbose
+#     ),
+#     'CLR' = CustomNormalize(
+#       data = object,
+#       custom_function = function(x) {
+#         return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+#       },
+#       across = across
+#     ),
+#     stop("Unkown normalization method: ", normalization.method)
+#   )
+#   chunk.points <- ChunkPoints(
+#     dsize = ncol(x = object),
+#     csize = block.size %||% ceiling(x = ncol(x = object) / 2)
+#   )
+#   normalized.data <- my.lapply(
+#     X = 1:ncol(x = chunk.points),
+#     FUN = function(i) {
+#       block <- chunk.points[, i]
+#       return(norm.function(
+#         data = object[, block[1]:block[2], drop = FALSE],
+#         scale.factor = scale.factor,
+#         verbose = FALSE,
+#         custom_function = function(x) {
+#           return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+#         },
+#         across = 'features'
+#       ))
+#     }
+#   )
+#   #normalized.data <- my.apply(
+#   #  X = chunk.points,
+#   #  MARGIN = 2,
+#   #  FUN = function(block) {
+#   #    return(norm.function(
+#   #      data = object[, block[1]:block[2], drop = FALSE],
+#   #      scale.factor = scale.factor,
+#   #      verbose = FALSE,
+#   #      custom_function = function(x) {
+#   #        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+#   #      },
+#   #      across = 'features'
+#   #    ))
+#   #  }
+#   #)
+#   normalized.data <- do.call(what = 'cbind', args = normalized.data)
+#   return(normalized.data)
+# }
+
+#' @rdname NormalizeData
 #' @export
 #' @method NormalizeData Assay
 #'
@@ -846,6 +1093,7 @@ NormalizeData.Assay <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
+  across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -856,6 +1104,7 @@ NormalizeData.Assay <- function(
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose,
+      across = across,
       ...
     )
   )
@@ -864,7 +1113,7 @@ NormalizeData.Assay <- function(
 
 #' @param assay Name of assay to use
 #'
-#' @describeIn NormalizeData Normalize data in a Seurat object
+#' @rdname NormalizeData
 #' @export
 #' @method NormalizeData Seurat
 #'
@@ -880,32 +1129,32 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name = NULL,
+  across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay.data <- GetAssay(object = object, assay = assay)
   assay.data <- NormalizeData(
     object = assay.data,
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
+    across = across,
     ...
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
+#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
+#' @param q  The number of additional power iterations in randomized SVD when
+#' computing rank k approximation. By default, q=10.
+#'
+#' @rdname RunALRA
 #' @export
 #'
-RunALRA.default <- function(object, k = NULL, q = 10) {
+RunALRA.default <- function(object, k = NULL, q = 10, ...) {
   A.norm <- t(x = as.matrix(x = object))
   message("Identifying non-zero values")
   originally.nonzero <- A.norm > 0
@@ -974,17 +1223,18 @@ RunALRA.default <- function(object, k = NULL, q = 10) {
 #' @param setDefaultAssay If TRUE, will set imputed results as default Assay
 #' @param genes.use genes to impute
 #' @param K Number of singular values to compute when choosing k. Must be less
-#' than the smallest dimension of the matrix.
-#' @param p.val.th  The threshold for ''significance'' when choosing k
-#' @param noise.start  Index for which all smaller singular values are considered noise
-#' @param q.k  Number of additional power iterations when choosing k
+#' than the smallest dimension of the matrix. Default 100 or smallest dimension.
+#' @param p.val.th  The threshold for ''significance'' when choosing k. Default 1e-10.
+#' @param noise.start  Index for which all smaller singular values are considered noise.
+#' Default K - 20.
+#' @param q.k  Number of additional power iterations when choosing k. Default 2.
 #' @param k.only If TRUE, only computes optimal k WITHOUT performing ALRA
 #'
 #' @importFrom rsvd rsvd
 #' @importFrom Matrix Matrix
 #' @importFrom stats pnorm sd
 #'
-#' @describeIn RunALRA Run ALRA on a Seurat object
+#' @rdname RunALRA
 #' @export
 #' @method RunALRA Seurat
 #'
@@ -1000,20 +1250,19 @@ RunALRA.Seurat <- function(
   p.val.th = 1e-10,
   noise.start = NULL,
   q.k = 2,
-  k.only = FALSE
+  k.only = FALSE,
+  ...
 ) {
   if (!is.null(x = k) && k.only) {
     warning("Stop: k is already given, set k.only = FALSE or k = NULL")
   }
   genes.use <- genes.use %||% rownames(x = object)
   assay <- assay %||% DefaultAssay(object = object)
-  # Add slot alra in object@tools
-  if (is.null(x = object@tools[["alra"]])) {
-    object@tools[["alra"]] <- list()
-  }
+  alra.previous <- Tool(object = object, slot = 'RunALRA')
+  alra.info <- list()
   # Check if k is already stored
-  if (is.null(x = k) & !is.null(x = object@tools[["alra"]][["k"]])) {
-    k <- object@tools[["alra"]][["k"]]
+  if (is.null(x = k) & !is.null(alra.previous[["k"]])) {
+    k <- alra.previous[["k"]]
     message("Using previously computed value of k")
   }
   data.used <- GetAssayData(object = object, assay = assay, slot = slot)[genes.use,]
@@ -1049,10 +1298,11 @@ RunALRA.Seurat <- function(
       sd = sd(x = diffs[noise.svals - 1])
     )
     k <- max(which(x = pvals < p.val.th))
-    object@tools[["alra"]][["d"]] <- rsvd.out$d
-    object@tools[["alra"]][["k"]] <- k
-    object@tools[["alra"]][["diffs"]] <- diffs
-    object@tools[["alra"]][["pvals"]] <- pvals
+    alra.info[["d"]] <- rsvd.out$d
+    alra.info[["k"]] <- k
+    alra.info[["diffs"]] <- diffs
+    alra.info[["pvals"]] <- pvals
+    Tool(object = object) <- alra.info
   }
   if (k.only) {
     message("Chose rank k = ", k, ", WITHOUT performing ALRA")
@@ -1076,6 +1326,30 @@ RunALRA.Seurat <- function(
 
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
+#'
+#' @param features Vector of features names to scale/center. Default is all features
+#' @param vars.to.regress Variables to regress out (previously latent.vars in
+#' RegressOut). For example, nUMI, or percent.mito.
+#' @param latent.data Extra data to regress out, should be cells x latent data
+#' @param model.use Use a linear model or generalized linear model
+#' (poisson, negative binomial) for the regression. Options are 'linear'
+#' (default), 'poisson', and 'negbinom'
+#' @param use.umi Regress on UMI count data. Default is FALSE for linear
+#' modeling, but automatically set to TRUE if model.use is 'negbinom' or 'poisson'
+#' @param do.scale Whether to scale the data.
+#' @param do.center Whether to center the data.
+#' @param scale.max Max value to return for scaled data. The default is 10.
+#' Setting this can help reduce the effects of feautres that are only expressed in
+#' a very small number of cells. If regressing out latent variables and using a
+#' non-linear model, the default is 50.
+#' @param block.size Default size for number of feautres to scale at in a single
+#' computation. Increasing block.size may speed up calculations but at an
+#' additional memory cost.
+#' @param min.cells.to.block If object contains fewer than this number of cells,
+#' don't block for scaling calculations.
+#' @param verbose Displays a progress bar for scaling procedure
+#'
+#' @rdname ScaleData
 #' @export
 #'
 ScaleData.default <- function(
@@ -1174,9 +1448,7 @@ ScaleData.default <- function(
   return(scaled.data)
 }
 
-#' @param latent.data Extra data to regress out, should be cells x latent data
-#'
-#' @describeIn ScaleData Scale an Assay object
+#' @rdname ScaleData
 #' @export
 #' @method ScaleData Assay
 #'
@@ -1228,9 +1500,8 @@ ScaleData.Assay <- function(
 }
 
 #' @param assay Name of Assay to scale
-#' @param workflow.name Name of workflow
 #'
-#' @describeIn ScaleData Scale a Seurat object
+#' @rdname ScaleData
 #' @export
 #' @method ScaleData Seurat
 #'
@@ -1247,16 +1518,12 @@ ScaleData.Seurat <- function(
   block.size = 1000,
   min.cells.to.block = 3000,
   verbose = TRUE,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
   assay <- assay %||% DefaultAssay(object = object)
   assay.data <- GetAssay(object = object, assay = assay)
-  if (any(vars.to.regress %in% colnames(x = object[]))) {
-    latent.data <- object[vars.to.regress[vars.to.regress %in% colnames(x = object[])]]
+  if (any(vars.to.regress %in% colnames(x = object[[]]))) {
+    latent.data <- object[[vars.to.regress[vars.to.regress %in% colnames(x = object[[]])]]]
   } else {
     latent.data <- NULL
   }
@@ -1277,9 +1544,6 @@ ScaleData.Seurat <- function(
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
-  if (!is.null(workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 
@@ -1287,9 +1551,10 @@ ScaleData.Seurat <- function(
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Normalize raw data
+# Normalize a given data matrix
 #
-# Normalize count data per cell and transform to centered log ratio
+# Normalize a given matrix with a custom function. Essentially just a wrapper
+# around apply. Used primarily in the context of CLR normalization.
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
@@ -1357,16 +1622,18 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 #
 # Remove unwanted effects from a matrix
 #
-# @parm data.expr An expression matrix to regress the effects of latent.data out of
-# should be the complete expression matrix in genes x cells
-# @param latent.data A matrix or data.frame of latent variables, should be cells x latent variables,
-# the colnames should be the variables to regress
-# @param features.regress An integer vector representing the indices of the genes to run regression on
-# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass NULL to simply return data.expr
+# @parm data.expr An expression matrix to regress the effects of latent.data out
+# of should be the complete expression matrix in genes x cells
+# @param latent.data A matrix or data.frame of latent variables, should be cells
+# x latent variables, the colnames should be the variables to regress
+# @param features.regress An integer vector representing the indices of the
+# genes to run regression on
+# @param model.use Model to use, one of 'linear', 'poisson', or 'negbinom'; pass
+# NULL to simply return data.expr
 # @param use.umi Regress on UMI count data
 # @param verbose Display a progress bar
 #
-#' @importFrom stats as.formula
+#' @importFrom stats as.formula lm
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #
 RegressOutMatrix <- function(
@@ -1433,7 +1700,7 @@ RegressOutMatrix <- function(
     ncol = ncol(x = data.expr)
   )
   if (verbose) {
-    pb <- txtProgressBar(char = '=', style = 3)
+    pb <- txtProgressBar(char = '=', style = 3, file = stderr())
   }
   for (i in 1:length(x = features.regress)) {
     x <- features.regress[i]
@@ -1472,81 +1739,4 @@ RegressOutMatrix <- function(
   }
   dimnames(x = data.resid) <- dimnames(x = data.expr)
   return(data.resid)
-}
-
-# Regress out technical effects and cell cycle using regularized Negative Binomial regression
-#
-# Remove unwanted effects from umi data and set scale.data to Pearson residuals
-# Uses mclapply; you can set the number of cores it will use to n with command options(mc.cores = n)
-#
-# @param object Seurat object
-# @param latent.vars effects to regress out
-# @param genes.regress gene to run regression for (default is all genes)
-# @param pr.clip.range numeric of length two specifying the min and max values the results will be clipped to
-#
-# @return Returns Seurat object with the scale.data (object@scale.data) genes returning the residuals fromthe regression model
-#
-#' @import Matrix
-#' @import parallel
-#' @importFrom stats glm residuals
-#' @importFrom MASS theta.ml negative.binomial
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#
-RegressOutNB <- function(
-  object,
-  latent.vars,
-  genes.regress = NULL,
-  pr.clip.range = c(-30, 30),
-  min.theta = 0.01
-) {
-  genes.regress <- SetIfNull(x = genes.regress, default = rownames(x = object@data))
-  genes.regress <- intersect(x = genes.regress, y = rownames(x = object@data))
-  cm <- object@raw.data[genes.regress, colnames(x = object@data), drop = FALSE]
-  latent.data <- FetchData(object = object, vars = latent.vars)
-  message(sprintf('Regressing out %s for %d genes\n', paste(latent.vars), length(x = genes.regress)))
-  theta.fit <- RegularizedTheta(cm = cm, latent.data = latent.data, min.theta = 0.01, bin.size = 128)
-  message('Second run NB regression with fixed theta')
-  bin.size <- 128
-  bin.ind <- ceiling(1:length(genes.regress)/bin.size)
-  max.bin <- max(bin.ind)
-  pb <- txtProgressBar(min = 0, max = max.bin, style = 3, file = stderr())
-  pr <- c()
-  for (i in 1:max.bin) {
-    genes.bin.regress <- genes.regress[bin.ind == i]
-    bin.pr.lst <- parallel::mclapply(
-      X = genes.bin.regress,
-      FUN = function(j) {
-        fit <- 0
-        try(
-          expr = fit <- glm(
-            cm[j, ] ~ .,
-            data = latent.data,
-            family = MASS::negative.binomial(theta = theta.fit[j])
-          ),
-          silent=TRUE
-        )
-        if (class(fit)[1] == 'numeric') {
-          message(
-            sprintf(
-              'glm and family=negative.binomial(theta=%f) failed for gene %s; falling back to scale(log10(y+1))',
-              theta.fit[j],
-              j
-            )
-          )
-          res <- scale(log10(cm[j, ] + 1))[, 1]
-        } else {
-          res <- residuals(fit, type = 'pearson')
-        }
-        return(res)
-      }
-    )
-    pr <- rbind(pr, do.call(rbind, bin.pr.lst))
-    setTxtProgressBar(pb, i)
-  }
-  close(pb)
-  dimnames(x = pr) <- dimnames(x = cm)
-  pr[pr < pr.clip.range[1]] <- pr.clip.range[1]
-  pr[pr > pr.clip.range[2]] <- pr.clip.range[2]
-  object@scale.data <- pr
-  return(object)
 }

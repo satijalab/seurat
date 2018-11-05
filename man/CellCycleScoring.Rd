@@ -4,20 +4,20 @@
 \alias{CellCycleScoring}
 \title{Score cell cycle phases}
 \usage{
-CellCycleScoring(object, g2m.genes, s.genes, set.ident = FALSE)
+CellCycleScoring(object, s.features, g2m.features, set.ident = FALSE)
 }
 \arguments{
 \item{object}{A Seurat object}
 
-\item{g2m.genes}{A vector of genes associated with G2M phase}
+\item{s.features}{A vector of features associated with S phase}
 
-\item{s.genes}{A vector of genes associated with S phases}
+\item{g2m.features}{A vector of features associated with G2M phase}
 
 \item{set.ident}{If true, sets identity to phase assignments
 Stashes old identities in 'old.ident'}
 }
 \value{
-A Seurat object with the following columns added to object@meta.data: S.Score, G2M.Score, and Phase
+A Seurat object with the following columns added to object meta data: S.Score, G2M.Score, and Phase
 }
 \description{
 Score cell cycle phases

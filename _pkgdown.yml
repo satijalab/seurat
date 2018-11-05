@@ -1,0 +1,126 @@
+reference:
+- title: Visualization Functions
+  desc: Use these functions to generate plots from a Seurat object
+  contents:
+  - ends_with("Plot")
+  - ends_with("Heatmap")
+  - ends_with("Scatter")
+  - VizDimReduction
+- title: Objects
+  desc: The core Seurat objects
+  contents:
+  - '`Assay-class`'
+  - '`DimReduc-class`'
+  - '`Seurat-class`'
+- title: Dimensional Reduction
+  desc: ~
+  contents:
+  - '`RunCCA`'
+  - '`RunMultiCCA`'
+  - '`RunPCA`'
+  - '`RunTSNE`'
+  - '`RunUMAP`'
+- title: Preprocessing
+  desc: ~
+  contents:
+  - '`NormalizeData`'
+  - '`FindVariableFeatures`'
+  - '`ScaleData`'
+- title: Clustering
+  desc: ~
+  contents:
+  - '`BuildSNN`'
+  - '`FindClusters`'
+- title: Differential Expression
+  desc: ~
+  contents:
+  - ends_with("Markers")
+- title: JackStraw
+  desc: ~
+  contents:
+  - '`JS`'
+  - '`JackStraw`'
+  - '`JackStrawData-class`'
+  - '`ScoreJackStraw`'
+- title: Plotting Accessory Functions
+  desc: ~
+  contents:
+  - '`CombinePlots`'
+  - starts_with("Label")
+  - ends_with("Locator")
+  - '`SeuratTheme`'
+- title: Included Datasets
+  desc: ~
+  contents:
+  - '`pbmc_small`'
+  - '`cc.genes`'
+- title: All functions
+  desc: ~
+  contents:
+  - '`AddMetaData`'
+  - '`AddModuleScore`'
+  - '`AverageExpression`'
+  - '`CalculateBarcodeInflections`'
+  - '`CaseMatch`'
+  - '`CellCycleScoring`'
+  - '`Cells`'
+  - '`CheckWorkflow`'
+  - '`CheckWorkflowUpdate`'
+  - '`CollapseSpeciesExpressionMatrix`'
+  - '`Command`'
+  - '`as.SingleCellExperiment`'
+  - '`CreateAssayObject`'
+  - '`CreateDimReducObject`'
+  - '`CreateSeuratObject`'
+  - '`CreateWorkflowObject`'
+  - '`CustomDistance`'
+  - '`BlackAndWhite`'
+  - '`DefaultAssay`'
+  - '`Embeddings`'
+  - '`ExpMean`'
+  - '`ExpSD`'
+  - '`ExpVar`'
+  - '`FetchData`'
+  - '`GetAssay`'
+  - '`GetAssayData`'
+  - '`Graph-class`'
+  - '`HTODemux`'
+  - '`HVFInfo`'
+  - '`Idents`'
+  - '`InitializeWorkflow`'
+  - '`Key`'
+  - '`Loadings`'
+  - '`LogNormalize`'
+  - '`LogVMR`'
+  - '`MinMax`'
+  - '`Misc`'
+  - '`OldWhichCells`'
+  - '`PCASigGenes`'
+  - '`Print`'
+  - '`ProjectDim`'
+  - '`Read10X`'
+  - '`Read10X_h5`'
+  - '`RecreateWorkflows`'
+  - '`RegressRegNB`'
+  - '`RenameCells`'
+  - '`RunALRA`'
+  - '`SampleUMI`'
+  - '`SetAssayData`'
+  - '`SetWorkflowParams`'
+  - '`SeuratCommand-class`'
+  - '`SeuratWorkflow-class`'
+  - '`SplitObject`'
+  - '`Stdev`'
+  - '`SubsetByBarcodeInflections`'
+  - '`SubsetData`'
+  - '`Tool`'
+  - '`TopCells`'
+  - '`TopFeatures`'
+  - '`TouchWorkflow`'
+  - '`UpdateSeuratObject`'
+  - '`WhichCells`'
+  - '`WorkflowStatus`'
+  - '`as.sparse`'
+  - '`merge.Assay`'
+  - '`seurat-class`'
+  - '`[.Seurat`'

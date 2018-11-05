@@ -4,35 +4,35 @@
 \alias{HTODemux}
 \title{Demultiplex samples based on data from cell 'hashing'}
 \usage{
-HTODemux(object, assay = "HTO", positive_quantile = 0.99,
-  init_centers = NULL, cluster_nstarts = 100, k_function = "clara",
-  nsamples = 100, verbose = TRUE)
+HTODemux(object, assay = "HTO", positive.quantile = 0.99,
+  init = NULL, nstarts = 100, kfunc = "clara", nsamples = 100,
+  verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object. Assumes that the hash tag oligo (HTO) data has been added and normalized.}
 
 \item{assay}{Name of the Hashtag assay (HTO by default)}
 
-\item{positive_quantile}{The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99}
+\item{positive.quantile}{The quantile of inferred 'negative' distribution for each hashtag - over which the cell is considered 'positive'. Default is 0.99}
 
-\item{init_centers}{Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)}
+\item{init}{Initial number of clusters for hashtags. Default is the # of hashtag oligo names + 1 (to account for negatives)}
 
-\item{cluster_nstarts}{nstarts value for k-means clustering (for k_function = "kmeans"). 100 by default}
+\item{nstarts}{nstarts value for k-means clustering (for kfunc = "kmeans"). 100 by default}
 
-\item{k_function}{Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
+\item{kfunc}{Clustering function for initial hashtag grouping. Default is "clara" for fast k-medoids clustering on large applications, also support "kmeans" for kmeans clustering}
 
-\item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for k_function = "clara"}
+\item{nsamples}{Number of samples to be drawn from the dataset used for clustering, for kfunc = "clara"}
 
 \item{verbose}{Prints the output}
 }
 \value{
 The Seurat object with the following demultiplexed information stored in the meta data:
-\item{hash_maxID}{Name of hashtag with the highest signal}
-\item{hash_secondID}{Name of hashtag with the second highest signal}
-\item{hash_margin}{The difference between signals for hash_maxID and hash_secondID}
-\item{hto_classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
-\item{hto_classification_global}{Global classification result (singlet, doublet or negative)}
-\item{hash_ID}{Classification result where doublet IDs are collapsed}
+\item{hash.maxID}{Name of hashtag with the highest signal}
+\item{hash.secondID}{Name of hashtag with the second highest signal}
+\item{hash.margin}{The difference between signals for hash.maxID and hash.secondID}
+\item{classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+\item{classification.global}{Global classification result (singlet, doublet or negative)}
+\item{hash.ID}{Classification result where doublet IDs are collapsed}
 }
 \description{
 Assign sample-of-origin for each cell, annotate doublets.
@@ -42,4 +42,7 @@ Assign sample-of-origin for each cell, annotate doublets.
 object <- HTODemux(object)
 }
 
+}
+\seealso{
+\code{\link{HTOHeatmap}}
 }

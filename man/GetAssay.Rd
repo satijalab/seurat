@@ -5,16 +5,16 @@
 \alias{GetAssay.Seurat}
 \title{Get an assay from an object}
 \usage{
-GetAssay(object, assay, ...)
+GetAssay(object, ...)
 
-\method{GetAssay}{Seurat}(object, assay = NULL)
+\method{GetAssay}{Seurat}(object, assay = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
 
-\item{assay}{Assay to get}
-
 \item{...}{Arguments passed to other methods}
+
+\item{assay}{Assay to get}
 }
 \value{
 Returns an Assay object
@@ -22,8 +22,3 @@ Returns an Assay object
 \description{
 Get an assay from an object
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Get an assay from a Seurat object
-}}
-

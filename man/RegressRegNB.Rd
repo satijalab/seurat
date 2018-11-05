@@ -5,9 +5,9 @@
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
 RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
-  variable.features.zscore = 1, variable.features.n = NULL,
-  do.scale = FALSE, do.center = FALSE,
-  scale.max = .Machine$double.xmax, verbose = TRUE, ...)
+  variable.features.rv.th = 1.3, variable.features.n = NULL,
+  return.dev.residuals = FALSE, clip.range = c(-10, 10),
+  do.scale = FALSE, do.center = TRUE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -16,16 +16,19 @@ RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 
-\item{variable.features.zscore}{Z-score threshold for calling features highly variable;
-z-scores are based on variances of regression model pearson residuals of all features}
+\item{variable.features.rv.th}{Features with residual variance greater or equal
+this value will be selected as variable features; default is 1.3}
 
-\item{variable.features.n}{Use this many features as variable features after ranking by variance}
+\item{variable.features.n}{Use this many features as variable features after
+ranking by residual variance}
 
-\item{do.scale}{Whether to scale residuals to have unit variance}
+\item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
-\item{do.center}{Whether to center residuals to have mean zero}
+\item{clip.range}{Range to clip the residuals to; default is \code{c(-10, 10)}}
 
-\item{scale.max}{Max value after scaling and/or centering}
+\item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
+
+\item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
 
 \item{verbose}{Whether to print messages and progress bars}
 
@@ -34,7 +37,8 @@ z-scores are based on variances of regression model pearson residuals of all fea
 \description{
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
-Use this function as an alternative to the NormalizeData, FindVariableFeatures, ScaleData workflow.
-Results are saved in the assay's data and scale.data slot, and sctransform::vst ntermediate
-results are saved in misc slot of seurat object.
+Use this function as an alternative to the NormalizeData,
+FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
+data and scale.data slot, and sctransform::vst intermediate results are saved
+in misc slot of seurat object.
 }

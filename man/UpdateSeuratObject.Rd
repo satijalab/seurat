@@ -14,6 +14,8 @@ Returns a Seurat object compatible with latest changes
 }
 \description{
 Updates Seurat objects to new structure for storing data/calculations.
+For Seurat v3 objects, will validate object structure ensuring all keys and feature
+names are formed properly.
 }
 \examples{
 \dontrun{
