@@ -495,21 +495,6 @@ VlnPlot <- function(
 # Dimensional reduction plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# @param do.hover Enable hovering over points to view information
-# @param data.hover Data to add to the hover, pass a character vector of
-# features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
-# information.
-# @param do.identify Opens a locator session to identify clusters of cells.
-# @param vector.friendly FALSE by default. If TRUE, points are flattened into
-# a PNG, while axes/labels retain full vector resolution. Useful for producing
-# AI-friendly plots with large numbers of cells.
-# @param png.file Used only if vector.friendly is TRUE. Location for temporary
-# PNG file.
-# @param png.arguments Used only if vector.friendly is TRUE. Vector of three
-# elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
-# Default is c(10,10,100)
-# @param ... Extra parameters to FeatureLocator for do.identify = TRUE
-
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -522,8 +507,9 @@ VlnPlot <- function(
 #' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
-#' @param group.by A vector of variables to group (color) cells by (for example, orig.ident);
-#' pass 'ident' to group by identity class
+#' @param group.by Name of one or more metadata columns to group (color) cells by
+#' (for example, orig.ident); pass 'ident' to group by identity class
+#' @param split.by Name of a metadata column to split plot by
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -548,6 +534,8 @@ VlnPlot <- function(
 #' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
+#' @importFrom ggplot2 facet_wrap
+#'
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
@@ -567,6 +555,7 @@ DimPlot <- function(
   pt.size = NULL,
   reduction = NULL,
   group.by = NULL,
+  split.by = NULL,
   shape.by = NULL,
   order = NULL,
   label = FALSE,
@@ -603,11 +592,20 @@ DimPlot <- function(
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
+  if (!is.null(x = split.by)) {
+    if (length(x = group.by) > 1) {
+      nrow <- ncol <- 1
+    } else {
+      nrow <- NULL
+      ncol <- list(...)$ncol
+    }
+    data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
       return(SingleDimPlot(
-        data = data[, c(dims, x)],
+        data = data[, c(dims, x, split.by)],
         dims = dims,
         col.by = x,
         cols = cols,
@@ -624,8 +622,16 @@ DimPlot <- function(
       ))
     }
   )
+  if (!is.null(x = split.by)) {
+    plots <- lapply(
+      X = plots,
+      FUN = function(x) {
+        x + facet_wrap(facets = split.by, nrow = nrow)
+      }
+    )
+  }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ...)
+    plots <- CombinePlots(plots = plots, ncol = ncol, ...)
   }
   return(plots)
 }
@@ -2163,7 +2169,7 @@ HoverLocator <- function(
 #' @param plot A ggplot2-based scatter plot
 #' @param id Name of variable used for coloring scatter plot
 #' @param clusters Vector of cluster ids to label
-#' @param labels Custom labels for the clusters 
+#' @param labels Custom labels for the clusters
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
@@ -2727,8 +2733,8 @@ BlendMap <- function(color.matrix) {
   xbreaks <- seq.int(from = 0, to = nrow(x = color.matrix), by = 2)
   ybreaks <- seq.int(from = 0, to = ncol(x = color.matrix), by = 2)
   color.heat <- Melt(x = color.heat)
-  color.heat$rows <- as.numeric(x = color.heat$rows)
-  color.heat$cols <- as.numeric(x = color.heat$cols)
+  color.heat$rows <- as.numeric(x = as.character(x = color.heat$rows))
+  color.heat$cols <- as.numeric(x = as.character(x = color.heat$cols))
   color.heat$vals <- factor(x = color.heat$vals)
   plot <- ggplot(
     data = color.heat,

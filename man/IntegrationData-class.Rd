@@ -6,7 +6,7 @@
 \alias{IntegrationData}
 \title{The IntegrationData Class}
 \description{
-The IntegrationData object is an intermediate storage container used internally throughout the 
+The IntegrationData object is an intermediate storage container used internally throughout the
 integration procedure to hold bits of data that are useful downstream.
 }
 \section{Slots}{

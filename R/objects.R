@@ -16,18 +16,18 @@ setOldClass(Classes = 'package_version')
 setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 
 #' The AnchorSet Class
-#' 
-#' The AnchorSet class is an intermediate data storage class that stores the anchors and other 
-#' related information needed for performing downstream analyses - namely data integration 
-#' (\code{\link{IntegrateData}}) and data transfer (\code{\link{TransferData}}). 
+#'
+#' The AnchorSet class is an intermediate data storage class that stores the anchors and other
+#' related information needed for performing downstream analyses - namely data integration
+#' (\code{\link{IntegrateData}}) and data transfer (\code{\link{TransferData}}).
 #'
 #' @slot object.list List of objects used to create anchors
 #' @slot reference.cells List of cell names in the reference dataset - needed when performing data
 #' transfer.
 #' @slot query.cells List of cell names in the query dataset - needed when performing data transfer
-#' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the 
-#' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of 
-#' the anchor. 
+#' @slot anchors The anchor matrix. This contains the cell indices of both anchor pair cells, the
+#' anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
+#' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
 #' @slot anchor.features The features used when performing anchor finding.
 #'
@@ -149,16 +149,16 @@ Graph <- setClass(
 )
 
 #' The IntegrationData Class
-#' 
-#' The IntegrationData object is an intermediate storage container used internally throughout the 
-#' integration procedure to hold bits of data that are useful downstream. 
+#'
+#' The IntegrationData object is an intermediate storage container used internally throughout the
+#' integration procedure to hold bits of data that are useful downstream.
 #'
 #' @slot neighbors List of neighborhood information for cells (outputs of \code{RANN::nn2})
 #' @slot weights Anchor weight matrix
 #' @slot integration.matrix Integration matrix
 #' @slot anchors Anchor matrix
 #' @slot offsets The offsets used to enable cell look up in downstream functions
-#' @slot objects.ncell Number of cells in each object in the object.list 
+#' @slot objects.ncell Number of cells in each object in the object.list
 #' @slot sample.tree Sample tree used for ordering multi-dataset integration
 #'
 #' @name IntegrationData-class
@@ -1350,99 +1350,100 @@ Convert.seurat <- function(
   object.to <- switch(
     EXPR = to,
     'loom' = {
-      if (!'loomR' %in% rownames(x = installed.packages())) {
-        stop("Please install loomR from GitHub before converting to a loom object")
-      }
-      # cell.order <- from@cell.names
-      cell.order <- colnames(x = from)
-      gene.order <- rownames(x = from)
-      loomfile <- loomR::create(
-        filename = filename,
-        data = GetAssayData(object = from, slot = 'counts')[, cell.order],
-        cell.attrs = from[[]][cell.order, ],
-        layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
-        chunk.dims = chunk.dims,
-        chunk.size = chunk.size,
-        overwrite = overwrite,
-        display.progress = display.progress
-      )
-      if (nrow(x = HVFInfo(object = from)) > 0) {
-        hvg.info <- HVFInfo(object = from)
-        colnames(x = hvg.info) <- gsub(
-          pattern = '.',
-          replacement = '_',
-          x = colnames(x = hvg.info),
-          fixed = TRUE
-        )
-        loomfile$add.row.attribute(hvg.info[gene.order, ])
-      }
-      if (length(x = VariableFeatures(object = from)) > 0) {
-        loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
-      }
-      if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
-        loomfile$add.layer(list(
-          'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
-        ))
-      }
-      for (dim.reduc in FilterObjects(object = from, classes.keep = 'DimReduc')) {
-        cell.embeddings <- Embeddings(object = from[[dim.reduc]])
-        ce.dims <- unique(x = dim(x = cell.embeddings))
-        if (length(x = ce.dims) != 1 || ce.dims != 0) {
-          if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
-            cell.embeddings.padded <- matrix(
-              nrow = ncol(x = from),
-              ncol = ncol(x = cell.embeddings)
-            )
-            if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
-              pad.order <- 1:nrow(x = cell.embeddings)
-            } else {
-              pad.order <- match(
-                x = rownames(x = cell.embeddings),
-                table = colnames(x = from)
-              )
-            }
-            cell.embeddings.padded[pad.order, ] <- cell.embeddings
-          } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
-            stop("Cannot have more cells in the dimmensional reduction than in the dataset")
-          } else {
-            cell.embeddings.padded <- cell.embeddings
-          }
-          cell.embeddings.padded <- list(cell.embeddings.padded)
-          names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
-          loomfile$add.col.attribute(cell.embeddings.padded)
-        }
-        gene.loadings <- Loadings(object = from[[dim.reduc]])
-        gl.dims <- unique(x = dim(x = gene.loadings))
-        if (length(x = gl.dims) == 1 && gl.dims == 0) {
-          gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
-        }
-        gl.dims <- unique(x = dim(x = gene.loadings))
-        if (length(x = gl.dims) != 1 || gl.dims != 0) {
-          if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
-            gene.loadings.padded <- matrix(
-              nrow = nrow(x = from),
-              ncol = ncol(x = gene.loadings)
-            )
-            if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
-              pad.order <- seq_len(nrow(x = gene.loadings))
-            } else {
-              pad.order <- match(
-                x = rownames(x = gene.loadings),
-                table = rownames(x = from)
-              )
-            }
-            gene.loadings.padded[pad.order, ] <- gene.loadings
-          } else if (nrow(x = gene.loadings) > nrow(x = from)) {
-            stop("Cannot have more genes in the dimmensional reduction than in the dataset")
-          } else {
-            gene.loadings.padded <- gene.loadings
-          }
-          gene.loadings.padded <- list(gene.loadings.padded)
-          names(x = gene.loadings.padded) <- paste0(dim.reduc, '_gene_loadings')
-          loomfile$add.row.attribute(gene.loadings.padded)
-        }
-      }
-      loomfile
+      stop("Converting to and from loom files is currently unavailable; we are working on restoring this functionality")
+      # if (!'loomR' %in% rownames(x = installed.packages())) {
+      #   stop("Please install loomR from GitHub before converting to a loom object")
+      # }
+      # # cell.order <- from@cell.names
+      # cell.order <- colnames(x = from)
+      # gene.order <- rownames(x = from)
+      # loomfile <- loomR::create(
+      #   filename = filename,
+      #   data = GetAssayData(object = from, slot = 'counts')[, cell.order],
+      #   cell.attrs = from[[]][cell.order, ],
+      #   layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
+      #   chunk.dims = chunk.dims,
+      #   chunk.size = chunk.size,
+      #   overwrite = overwrite,
+      #   display.progress = display.progress
+      # )
+      # if (nrow(x = HVFInfo(object = from)) > 0) {
+      #   hvg.info <- HVFInfo(object = from)
+      #   colnames(x = hvg.info) <- gsub(
+      #     pattern = '.',
+      #     replacement = '_',
+      #     x = colnames(x = hvg.info),
+      #     fixed = TRUE
+      #   )
+      #   loomfile$add.row.attribute(hvg.info[gene.order, ])
+      # }
+      # if (length(x = VariableFeatures(object = from)) > 0) {
+      #   loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
+      # }
+      # if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
+      #   loomfile$add.layer(list(
+      #     'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
+      #   ))
+      # }
+      # for (dim.reduc in FilterObjects(object = from, classes.keep = 'DimReduc')) {
+      #   cell.embeddings <- Embeddings(object = from[[dim.reduc]])
+      #   ce.dims <- unique(x = dim(x = cell.embeddings))
+      #   if (length(x = ce.dims) != 1 || ce.dims != 0) {
+      #     if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
+      #       cell.embeddings.padded <- matrix(
+      #         nrow = ncol(x = from),
+      #         ncol = ncol(x = cell.embeddings)
+      #       )
+      #       if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
+      #         pad.order <- 1:nrow(x = cell.embeddings)
+      #       } else {
+      #         pad.order <- match(
+      #           x = rownames(x = cell.embeddings),
+      #           table = colnames(x = from)
+      #         )
+      #       }
+      #       cell.embeddings.padded[pad.order, ] <- cell.embeddings
+      #     } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
+      #       stop("Cannot have more cells in the dimmensional reduction than in the dataset")
+      #     } else {
+      #       cell.embeddings.padded <- cell.embeddings
+      #     }
+      #     cell.embeddings.padded <- list(cell.embeddings.padded)
+      #     names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
+      #     loomfile$add.col.attribute(cell.embeddings.padded)
+      #   }
+      #   gene.loadings <- Loadings(object = from[[dim.reduc]])
+      #   gl.dims <- unique(x = dim(x = gene.loadings))
+      #   if (length(x = gl.dims) == 1 && gl.dims == 0) {
+      #     gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
+      #   }
+      #   gl.dims <- unique(x = dim(x = gene.loadings))
+      #   if (length(x = gl.dims) != 1 || gl.dims != 0) {
+      #     if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
+      #       gene.loadings.padded <- matrix(
+      #         nrow = nrow(x = from),
+      #         ncol = ncol(x = gene.loadings)
+      #       )
+      #       if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
+      #         pad.order <- seq_len(nrow(x = gene.loadings))
+      #       } else {
+      #         pad.order <- match(
+      #           x = rownames(x = gene.loadings),
+      #           table = rownames(x = from)
+      #         )
+      #       }
+      #       gene.loadings.padded[pad.order, ] <- gene.loadings
+      #     } else if (nrow(x = gene.loadings) > nrow(x = from)) {
+      #       stop("Cannot have more genes in the dimmensional reduction than in the dataset")
+      #     } else {
+      #       gene.loadings.padded <- gene.loadings
+      #     }
+      #     gene.loadings.padded <- list(gene.loadings.padded)
+      #     names(x = gene.loadings.padded) <- paste0(dim.reduc, '_gene_loadings')
+      #     loomfile$add.row.attribute(gene.loadings.padded)
+      #   }
+      # }
+      # loomfile
     },
     'sce' = {
       .NotYetImplemented()

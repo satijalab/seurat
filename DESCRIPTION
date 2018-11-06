@@ -16,7 +16,6 @@ Authors@R: c(
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Remotes: ChristophH/sctransform
-Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
     methods,
@@ -80,7 +79,6 @@ Suggests:
     caret,
     hdf5r,
     ranger,
-    loomR,
     phateR,
     S4Vectors,
     SummarizedExperiment,
