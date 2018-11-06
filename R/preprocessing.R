@@ -943,6 +943,8 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future.apply future_apply future_lapply
+#'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
 #'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
@@ -950,9 +952,9 @@ FindVariableFeatures.Seurat <- function(
 #'   natural-log transformed using log1p.}
 #'   \item{CLR: }{Applies a centered log ratio transformation}
 #' }
-#' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
 #' @param across If performing CLR normalization, normalize across either "features" or "cells".
+#' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
 #' @param verbose display progress bar for normalization procedure
 #'
 #' @rdname NormalizeData
@@ -962,128 +964,66 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE,
   across = "features",
+  block.size = NULL,
+  verbose = TRUE,
   ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- switch(
-    EXPR = normalization.method,
-    'LogNormalize' = LogNormalize(
-      data = object,
-      scale.factor = scale.factor,
-      verbose = verbose
-    ),
-    'CLR' = CustomNormalize(
-      data = object,
-      custom_function = function(x) {
-        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-      },
-      across = across
-    ),
-    stop("Unkown normalization method: ", normalization.method)
-  )
+  normalized.data <- if (PlanThreads() > 1) {
+    my.lapply <- ifelse(
+      test = verbose && PlanThreads() == 1,
+      yes = pblapply,
+      no = future_lapply
+    )
+    norm.function <- switch(
+      EXPR = normalization.method,
+      'LogNormalize' = LogNormalize,
+      'CLR' = CustomNormalize,
+      stop("Unkown normalization method: ", normalization.method)
+    )
+    chunk.points <- ChunkPoints(
+      dsize = ncol(x = object),
+      csize = block.size %||% ceiling(x = ncol(x = object) / PlanThreads())
+    )
+    normalized.data <- my.lapply(
+      X = 1:ncol(x = chunk.points),
+      FUN = function(i) {
+        block <- chunk.points[, i]
+        return(norm.function(
+          data = object[, block[1]:block[2], drop = FALSE],
+          scale.factor = scale.factor,
+          verbose = FALSE,
+          custom_function = function(x) {
+            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+          },
+          across = across
+        ))
+      }
+    )
+    do.call(what = 'cbind', args = normalized.data)
+  } else {
+    switch(
+      EXPR = normalization.method,
+      'LogNormalize' = LogNormalize(
+        data = object,
+        scale.factor = scale.factor,
+        verbose = verbose
+      ),
+      'CLR' = CustomNormalize(
+        data = object,
+        custom_function = function(x) {
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+        },
+        across = across
+      ),
+      stop("Unkown normalization method: ", normalization.method)
+    )
+  }
   return(normalized.data)
 }
-
-# #' @importFrom pbapply pbapply pblapply
-# #' @importFrom future.apply future_apply future_lapply
-# #'
-# #' @param normalization.method Method for normalization.
-# #'  \itemize{
-# #'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
-# #'   counts for that cell and multiplied by the scale.factor. This is then
-# #'   natural-log transformed using log1p.}
-# #'   \item{CLR: }{Applies a centered log ratio transformation}
-# #' }
-# #' More methods to be added.
-# #' @param scale.factor Sets the scale factor for cell-level normalization
-# #' @param across If performing CLR normalization, normalize across either "features" or "cells".
-# #' @param verbose display progress bar for normalization procedure
-# #'
-# #' @rdname NormalizeData
-# #' @export
-# #'
-# NormalizeData.default <- function(
-#   object,
-#   normalization.method = "LogNormalize",
-#   scale.factor = 1e4,
-#   block.size = NULL,
-#   verbose = TRUE,
-#   verbose = TRUE,
-#   across = "features",
-#   ...
-# ) {
-#   if (is.null(x = normalization.method)) {
-#     return(object)
-#   }
-#   my.apply <- ifelse(
-#     test = verbose && PlanThreads() == 1,
-#     yes = pbapply,
-#     no = future_apply
-#   )
-#   my.lapply <- ifelse(
-#     test = verbose && PlanThreads() == 1,
-#     yes = pblapply,
-#     no = future_lapply
-#   )
-#   norm.function <- switch(
-#     EXPR = normalization.method,
-#     'LogNormalize' = LogNormalize,
-#     'CLR' = CustomNormalize,
-#     'LogNormalize' = LogNormalize(
-#       data = object,
-#       scale.factor = scale.factor,
-#       verbose = verbose
-#     ),
-#     'CLR' = CustomNormalize(
-#       data = object,
-#       custom_function = function(x) {
-#         return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-#       },
-#       across = across
-#     ),
-#     stop("Unkown normalization method: ", normalization.method)
-#   )
-#   chunk.points <- ChunkPoints(
-#     dsize = ncol(x = object),
-#     csize = block.size %||% ceiling(x = ncol(x = object) / 2)
-#   )
-#   normalized.data <- my.lapply(
-#     X = 1:ncol(x = chunk.points),
-#     FUN = function(i) {
-#       block <- chunk.points[, i]
-#       return(norm.function(
-#         data = object[, block[1]:block[2], drop = FALSE],
-#         scale.factor = scale.factor,
-#         verbose = FALSE,
-#         custom_function = function(x) {
-#           return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-#         },
-#         across = 'features'
-#       ))
-#     }
-#   )
-#   #normalized.data <- my.apply(
-#   #  X = chunk.points,
-#   #  MARGIN = 2,
-#   #  FUN = function(block) {
-#   #    return(norm.function(
-#   #      data = object[, block[1]:block[2], drop = FALSE],
-#   #      scale.factor = scale.factor,
-#   #      verbose = FALSE,
-#   #      custom_function = function(x) {
-#   #        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-#   #      },
-#   #      across = 'features'
-#   #    ))
-#   #  }
-#   #)
-#   normalized.data <- do.call(what = 'cbind', args = normalized.data)
-#   return(normalized.data)
-# }
 
 #' @rdname NormalizeData
 #' @export
