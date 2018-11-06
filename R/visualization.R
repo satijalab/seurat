@@ -1022,6 +1022,8 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param group.by Name of one or more metadata columns to group (color) cells by
+#' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
@@ -1045,6 +1047,7 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  group.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -1054,6 +1057,10 @@ FeatureScatter <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
+  group.by <- group.by %||% Idents(object = object)[cells]
+  if (length(x = group.by) == 1) {
+    group.by <- object[[]][, group.by]
+  }
   plot <- SingleCorPlot(
     data = FetchData(
       object = object,
@@ -1061,7 +1068,7 @@ FeatureScatter <- function(
       cells = cells,
       slot = slot
     ),
-    col.by = Idents(object = object)[cells],
+    col.by = group.by,
     cols = cols,
     pt.size = pt.size,
     smooth = smooth,
