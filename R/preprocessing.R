@@ -178,6 +178,7 @@ CalculateBarcodeInflections <- function(
 #' @importFrom Matrix colSums
 #' @importFrom fitdistrplus fitdist
 #' @importFrom stats pnbinom kmeans
+#'
 #' @export
 #'
 #' @seealso \code{\link{HTOHeatmap}}
@@ -503,7 +504,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.rv.th Features with residual variance greater or equal 
+#' @param variable.features.rv.th Features with residual variance greater or equal
 #' this value will be selected as variable features; default is 1.3
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance

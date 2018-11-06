@@ -1060,11 +1060,10 @@ Parenting <- function(parent.find = 'Seurat', ...) {
 
 # Calculate the percentage of a vector above some threshold
 #
-# @param x          Vector of values
-# @param threshold  Threshold to use when calculating percentage
+# @param x Vector of values
+# @param threshold Threshold to use when calculating percentage
 #
-# @return           Returns the percentage of `x` values above the given
-#                   threshold
+# @return Returns the percentage of `x` values above the given threshold
 #
 PercentAbove <- function(x, threshold){
   return(length(x = x[x > threshold]) / length(x = x))
