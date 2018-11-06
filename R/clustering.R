@@ -77,6 +77,8 @@ FindClusters.default <- function(
   return(clustering.results)
 }
 
+#' @importFrom methods is
+#'
 #' @param graph.name Name of graph to use for the clustering algorithm
 #'
 #' @rdname FindClusters
