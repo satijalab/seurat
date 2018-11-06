@@ -3765,7 +3765,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       meta.data <- x[[]]
       cell.names <- rownames(x = meta.data)
       if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
-        value <- value[cell.names, , drop = FALSE]
+        meta.order <- match(rownames(x = meta.data), rownames(x = value))
+        value <- value[meta.order, , drop = FALSE]
       }
       if (length(x = i) > 1) {
         value <- rep_len(x = value, length.out = length(x = i))
