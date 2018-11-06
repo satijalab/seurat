@@ -6,7 +6,13 @@
 \alias{Seurat}
 \title{The Seurat Class}
 \description{
-The Seurat object is ...
+The Seurat object is a representation of single-cell expression data for R; each Seurat
+object revolves around a set of cells and consists of one or more \code{\link{Assay-class}}
+objects, or individual representations of expression data (eg. RNA-seq, ATAC-seq, etc).
+These assays can be reduced from their high-dimensional state to a lower-dimension state
+and stored as \code{\link{DimReduc-class}} objects. Seurat objects also store additional
+meta data, both at the cell and feature level (contained within individual assays). The
+object was designed to be as self-contained as possible, and easily extendible to new methods.
 }
 \section{Slots}{
 

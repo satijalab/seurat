@@ -541,6 +541,7 @@ VlnPlot <- function(
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{FeatureLocator}, respectively.
 #'
+#' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
 #' \code{\link{FeatureLocator}}
 #'
@@ -664,6 +665,7 @@ DimPlot <- function(
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis guides
 #' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
+#'
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
@@ -1022,6 +1024,8 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param group.by Name of one or more metadata columns to group (color) cells by
+#' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
@@ -1045,6 +1049,7 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  group.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -1054,6 +1059,10 @@ FeatureScatter <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
+  group.by <- group.by %||% Idents(object = object)[cells]
+  if (length(x = group.by) == 1) {
+    group.by <- object[[]][, group.by]
+  }
   plot <- SingleCorPlot(
     data = FetchData(
       object = object,
@@ -1061,7 +1070,7 @@ FeatureScatter <- function(
       cells = cells,
       slot = slot
     ),
-    col.by = Idents(object = object)[cells],
+    col.by = group.by,
     cols = cols,
     pt.size = pt.size,
     smooth = smooth,
@@ -1137,6 +1146,158 @@ VariableFeaturePlot <- function(
   if (log) {
     plot <- plot + scale_x_log10()
   }
+  return(plot)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Polygon Plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Polygon DimPlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
+#' in metadata
+#'
+#' @inheritParams PolyFeaturePlot
+#' @param group.by A grouping variable present in the metadata. Default is to use the groupings present
+#' in the current cell identities (\code{Idents(object = object)})
+#'
+#' @return Returns a ggplot object
+#'
+#' @export
+#'
+PolyDimPlot <- function(
+  object,
+  group.by = NULL,
+  cells = NULL,
+  poly.data = 'spatial',
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells
+  )
+  group.data$cell <- rownames(x = group.data)
+  data <- merge(x = polygons, y = group.data, by = 'cell')
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = group.by)
+  return(plot)
+}
+
+#' Polygon FeaturePlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
+#'
+#' @inheritParams FeaturePlot
+#' @param poly.data Name of the polygon dataframe in the misc slot
+#' @param ncol Number of columns to split the plot into
+#' @param common.scale ...
+#' @param flip.coords Flip x and y coordinates
+#'
+#' @return Returns a ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
+#'
+#' @export
+#'
+PolyFeaturePlot <- function(
+  object,
+  features,
+  cells = NULL,
+  poly.data = 'spatial',
+  ncol = ceiling(x = length(x = features) / 2),
+  min.cutoff = 0,
+  max.cutoff = NA,
+  common.scale = TRUE,
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  assay.data <- FetchData(
+    object = object,
+    vars = features,
+    cells = cells
+  )
+  features <- colnames(x = assay.data)
+  cells <- rownames(x = assay.data)
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = min(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = min.cutoff,
+    feature = features
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = max(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = max.cutoff,
+    feature = features
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  }
+  assay.data <- mapply(
+    FUN = function(feature, min, max) {
+      return(ScaleColumn(vec = assay.data[, feature], cutoffs = c(min, max)))
+    },
+    feature = features,
+    min = min.cutoff,
+    max = max.cutoff
+  )
+  if (common.scale) {
+    assay.data <- apply(
+      X = assay.data,
+      MARGIN = 2,
+      FUN = function(x) {
+        return(x - min(x))
+      }
+    )
+    assay.data <- t(
+      x = t(x = assay.data) / apply(X = assay.data, MARGIN = 2, FUN = max)
+    )
+  }
+  assay.data <- as.data.frame(x = assay.data)
+  assay.data <- data.frame(
+    cell = as.vector(x = replicate(n = length(x = features), expr = cells)),
+    feature = as.vector(x = t(x = replicate(n = length(x = cells), expr = features))),
+    expression = unlist(x = assay.data, use.names = FALSE)
+  )
+  data <- merge(x = polygons, y = assay.data, by = 'cell')
+  data$feature <- factor(x = data$feature, levels = features)
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = 'expression', font_size = 8) +
+    scale_fill_viridis_c() +
+    facet_wrap(facets = 'feature', ncol = ncol)
   return(plot)
 }
 
@@ -1553,7 +1714,7 @@ JackStrawPlot <- function(
   if (nrow(x = score.df) < max(dims)) {
     stop("Jackstraw procedure not scored for all the provided dims. Please run ScoreJackStraw.")
   }
-  score.df <- score.df[dims, ]
+  score.df <- score.df[dims, , drop = FALSE]
   if (nrow(x = score.df) == 0) {
     stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
   }
@@ -1575,154 +1736,6 @@ JackStrawPlot <- function(
     guides(color = guide_legend(title = "PC: p-value")) +
     theme_cowplot()
   return(gp)
-}
-
-#' Polygon DimPlot
-#'
-#' Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
-#' in metadata
-#'
-#' @inheritParams PolyFeaturePlot
-#' @param group.by A grouping variable present in the metadata. Default is to use the groupings present
-#' in the current cell identities (\code{Idents(object = object)})
-#'
-#' @return Returns a ggplot object
-#'
-#' @export
-#'
-PolyDimPlot <- function(
-  object,
-  group.by = NULL,
-  cells = NULL,
-  poly.data = 'spatial',
-  flip.coords = FALSE
-) {
-  polygons <- Misc(object = object, slot = poly.data)
-  if (is.null(x = polygons)) {
-    stop("Could not find polygon data in misc slot")
-  }
-  group.by <- group.by %||% 'ident'
-  group.data <- FetchData(
-    object = object,
-    vars = group.by,
-    cells = cells
-  )
-  group.data$cell <- rownames(x = group.data)
-  data <- merge(x = polygons, y = group.data, by = 'cell')
-  if (flip.coords) {
-    coord.x <- data$x
-    data$x <- data$y
-    data$y <- coord.x
-  }
-  plot <- SinglePolyPlot(data = data, group.by = group.by)
-  return(plot)
-}
-
-#' Polygon FeaturePlot
-#'
-#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
-#'
-#' @inheritParams FeaturePlot
-#' @param poly.data Name of the polygon dataframe in the misc slot
-#' @param ncol Number of columns to split the plot into
-#' @param common.scale ...
-#' @param flip.coords Flip x and y coordinates
-#'
-#' @return Returns a ggplot object
-#'
-#' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
-#'
-#' @export
-#'
-PolyFeaturePlot <- function(
-  object,
-  features,
-  cells = NULL,
-  poly.data = 'spatial',
-  ncol = ceiling(x = length(x = features) / 2),
-  min.cutoff = 0,
-  max.cutoff = NA,
-  common.scale = TRUE,
-  flip.coords = FALSE
-) {
-  polygons <- Misc(object = object, slot = poly.data)
-  if (is.null(x = polygons)) {
-    stop("Could not find polygon data in misc slot")
-  }
-  assay.data <- FetchData(
-    object = object,
-    vars = features,
-    cells = cells
-  )
-  features <- colnames(x = assay.data)
-  cells <- rownames(x = assay.data)
-  min.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      return(ifelse(
-        test = is.na(x = cutoff),
-        yes = min(assay.data[, feature]),
-        no = cutoff
-      ))
-    },
-    cutoff = min.cutoff,
-    feature = features
-  )
-  max.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      return(ifelse(
-        test = is.na(x = cutoff),
-        yes = max(assay.data[, feature]),
-        no = cutoff
-      ))
-    },
-    cutoff = max.cutoff,
-    feature = features
-  )
-  check.lengths <- unique(x = vapply(
-    X = list(features, min.cutoff, max.cutoff),
-    FUN = length,
-    FUN.VALUE = numeric(length = 1)
-  ))
-  if (length(x = check.lengths) != 1) {
-    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
-  }
-  assay.data <- mapply(
-    FUN = function(feature, min, max) {
-      return(ScaleColumn(vec = assay.data[, feature], cutoffs = c(min, max)))
-    },
-    feature = features,
-    min = min.cutoff,
-    max = max.cutoff
-  )
-  if (common.scale) {
-    assay.data <- apply(
-      X = assay.data,
-      MARGIN = 2,
-      FUN = function(x) {
-        return(x - min(x))
-      }
-    )
-    assay.data <- t(
-      x = t(x = assay.data) / apply(X = assay.data, MARGIN = 2, FUN = max)
-    )
-  }
-  assay.data <- as.data.frame(x = assay.data)
-  assay.data <- data.frame(
-    cell = as.vector(x = replicate(n = length(x = features), expr = cells)),
-    feature = as.vector(x = t(x = replicate(n = length(x = cells), expr = features))),
-    expression = unlist(x = assay.data, use.names = FALSE)
-  )
-  data <- merge(x = polygons, y = assay.data, by = 'cell')
-  data$feature <- factor(x = data$feature, levels = features)
-  if (flip.coords) {
-    coord.x <- data$x
-    data$x <- data$y
-    data$y <- coord.x
-  }
-  plot <- SinglePolyPlot(data = data, group.by = 'expression', font_size = 8) +
-    scale_fill_viridis_c() +
-    facet_wrap(facets = 'feature', ncol = ncol)
-  return(plot)
 }
 
 #' Visualize Dimensional Reduction genes

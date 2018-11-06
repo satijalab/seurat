@@ -128,6 +128,56 @@ JackStraw <- function(
   return(object)
 }
 
+#' L2-normalization
+#'
+#' Perform l2 normalization on given dimensional reduction
+#'
+#' @param object Seurat object
+#' @param reduction Dimensional reduction to normalize
+#' @param new.dr name of new dimensional reduction to store
+#' (default is olddr.l2)
+#' @param new.key name of key for new dimensional reduction
+#'
+#' @return Returns a \code{\link{Seurat}} object
+#'
+#' @export
+#'
+L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
+  l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
+  if(is.null(new.dr)){
+    new.dr <- paste0(reduction, ".l2")
+  }
+  if(is.null(new.key)){
+    new.key <- paste0("L2", Key(object[[reduction]]))
+  }
+  colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
+  l2.dr <- CreateDimReducObject(
+    embeddings = l2.norm,
+    loadings = Loadings(object = object[[reduction]]),
+    projected = Loadings(object = object[[reduction]]),
+    assay = DefaultAssay(object = object),
+    stdev = slot(object = object[[reduction]], name = 'stdev'),
+    key = new.key,
+    jackstraw = slot(object = object[[reduction]], name = 'jackstraw'),
+    misc = slot(object = object[[reduction]], name = 'misc')
+  )
+  object[[new.dr]] <- l2.dr
+  return(object)
+}
+
+#' L2-Normalize CCA
+#'
+#' Perform l2 normalization on CCs
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to L2Dim.
+#'
+#' @export
+#'
+L2CCA <- function(object, ...){
+  return(L2Dim(object = object, reduction = "cca", ...))
+}
+
 #' Significant genes from a PCA
 #'
 #' Returns a set of genes, based on the JackStraw analysis, that have
@@ -252,56 +302,6 @@ ProjectDim <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' L2-normalization
-#'
-#' Perform l2 normalization on given dimensional reduction
-#'
-#' @param object Seurat object
-#' @param reduction Dimensional reduction to normalize
-#' @param new.dr name of new dimensional reduction to store
-#' (default is olddr.l2)
-#' @param new.key name of key for new dimensional reduction
-#'
-#' @return Returns a \code{\link{Seurat}} object
-#'
-#' @export
-#'
-L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
-  l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
-  if(is.null(new.dr)){
-    new.dr <- paste0(reduction, ".l2")
-  }
-  if(is.null(new.key)){
-    new.key <- paste0("L2", Key(object[[reduction]]))
-  }
-  colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
-  l2.dr <- CreateDimReducObject(
-    embeddings = l2.norm,
-    loadings = Loadings(object = object[[reduction]]),
-    projected = Loadings(object = object[[reduction]]),
-    assay = DefaultAssay(object = object),
-    stdev = slot(object = object[[reduction]], name = 'stdev'),
-    key = new.key,
-    jackstraw = slot(object = object[[reduction]], name = 'jackstraw'),
-    misc = slot(object = object[[reduction]], name = 'misc')
-  )
-  object[[new.dr]] <- l2.dr
-  return(object)
-}
-
-#' L2-Normalize CCA
-#'
-#' Perform l2 normalization on CCs
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to L2Dim.
-#'
-#' @export
-#'
-L2CCA <- function(object, ...){
-  return(L2Dim(object = object, reduction = "cca", ...))
-}
-
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
@@ -330,7 +330,7 @@ RunCCA.default <- function(
     object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
   if (as.numeric(x = max(dim(x = object1))) * as.numeric(x = max(dim(x = object2))) > .Machine$integer.max) {
-    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to 
+    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to
     # storage of certain attributes as ints, force usage of R version
     use.cpp <- FALSE
   }
@@ -406,7 +406,7 @@ RunCCA.Seurat <- function(
     if (length(x = features) == 0) {
       stop("Zero features in the union of the VariableFeature sets ")
     }
-  }    
+  }
   nfeatures <- length(x = features)
   if (!(rescale)) {
     data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
@@ -1034,13 +1034,13 @@ ScoreJackStraw.Seurat <- function(
 
 # Check that features are present and have non-zero variance
 #
-# @param data.use      Feature matrix (features are rows)
-# @param features      Features to check
-# @param object.name   Name of object for message printing
-# @param verbose       Print warnings
+# @param data.use Feature matrix (features are rows)
+# @param features Features to check
+# @param object.name Name of object for message printing
+# @param verbose Print warnings
 #
-# @return             Returns a vector of features that is the subset of features
-#                     that have non-zero variance
+# @return Returns a vector of features that is the subset of features
+# that have non-zero variance
 #
 CheckFeatures <- function(
   data.use,
