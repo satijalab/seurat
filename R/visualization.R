@@ -2733,8 +2733,8 @@ BlendMap <- function(color.matrix) {
   xbreaks <- seq.int(from = 0, to = nrow(x = color.matrix), by = 2)
   ybreaks <- seq.int(from = 0, to = ncol(x = color.matrix), by = 2)
   color.heat <- Melt(x = color.heat)
-  color.heat$rows <- as.numeric(x = color.heat$rows)
-  color.heat$cols <- as.numeric(x = color.heat$cols)
+  color.heat$rows <- as.numeric(as.character( x = color.heat$rows))
+  color.heat$cols <- as.numeric(as.character(x = color.heat$cols))
   color.heat$vals <- factor(x = color.heat$vals)
   plot <- ggplot(
     data = color.heat,
