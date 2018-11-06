@@ -104,16 +104,18 @@ JackStrawData <- setClass(
 
 #' The Dimmensional Reduction Class
 #'
-#' The DimReduc object is ...
+#' The DimReduc object stores a dimensionality reduction taken out in Seurat; each DimReduc
+#' consists of a cell embeddings matrix, a feature loadings matrix, and a projected feature
+#' loadings matrix.
 #'
-#' @slot cell.embeddings ...
-#' @slot feature.loadings ...
-#' @slot feature.loadings.projected ...
-#' @slot assay.used ...
-#' @slot stdev ...
-#' @slot key ...
-#' @slot jackstraw ...
-#' @slot misc ...
+#' @slot cell.embeddings Cell embeddings matrix (required)
+#' @slot feature.loadings Feature loadings matrix (optional)
+#' @slot feature.loadings.projected Projected feature loadings matrix (optional)
+#' @slot assay.used Name of assay used to generate DimReduc object
+#' @slot stdev A vector of standard deviations
+#' @slot key Key for the DimReduc, must be alphanumerics followed by an underscore
+#' @slot jackstraw A \code{\link{JackStrawData-class}} object associated with this DimReduc
+#' @slot misc Utility slot for storing additional data associated with the DimReduc
 #'
 #' @name DimReduc-class
 #' @rdname DimReduc-class
@@ -203,7 +205,13 @@ SeuratCommand <- setClass(
 
 #' The Seurat Class
 #'
-#' The Seurat object is ...
+#' The Seurat object is a representation of single-cell expression data for R; each Seurat
+#' object revolves around a set of cells and consists of one or more \code{\link{Assay-class}}
+#' objects, or individual representations of expression data (eg. RNA-seq, ATAC-seq, etc).
+#' These assays can be reduced from their high-dimensional state to a lower-dimension state
+#' and stored as \code{\link{DimReduc-class}} objects. Seurat objects also store additional
+#' meta data, both at the cell and feature level (contained within individual assays). The
+#' object was designed to be as self-contained as possible, and easily extendible to new methods.
 #'
 #' @slot assays A list of assays for this project
 #' @slot meta.data Contains meta-information about each cell, starting with number of genes detected (nGene)
@@ -956,8 +964,9 @@ SplitObject <- function(object, split.by = "ident", ...) {
 #' @param object DimReduc object
 #' @param dim Dimension to use
 #' @param nfeatures Number of features to return
-#' @param projected Use the full PCA (projected PCA). Default i s FALSE
+#' @param projected Use the projected feature loadings
 #' @param balanced Return an equal number of features with both + and - scores.
+#' @param ... Extra parameters passed to \code{\link{Loadings}}
 #'
 #' @return Returns a vector of features
 #'
@@ -974,9 +983,10 @@ TopFeatures <- function(
   dim = 1,
   nfeatures = 20,
   projected = FALSE,
-  balanced = FALSE
+  balanced = FALSE,
+  ...
 ) {
-  loadings <- Loadings(object = object, projected = projected)[, dim, drop = FALSE]
+  loadings <- Loadings(object = object, projected = projected, ...)[, dim, drop = FALSE]
   return(Top(
     data = loadings,
     num = nfeatures,
@@ -992,6 +1002,7 @@ TopFeatures <- function(
 #' @param dim Dimension to use
 #' @param ncells Number of cells to return
 #' @param balanced Return an equal number of cells with both + and - scores.
+#' @param ... Extra parameters passed to \code{\link{Embeddings}}
 #'
 #' @return Returns a vector of cells
 #'
@@ -1003,8 +1014,8 @@ TopFeatures <- function(
 #' # Can specify which dimension and how many cells to return
 #' TopCells(object = pbmc_small[["pca"]], dim = 2, ncells = 5)
 #'
-TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE) {
-  embeddings <- Embeddings(object = object)[, dim, drop = FALSE]
+TopCells <- function(object, dim = 1, ncells = 20, balanced = FALSE, ...) {
+  embeddings <- Embeddings(object = object, ...)[, dim, drop = FALSE]
   return(Top(
     data = embeddings,
     num = ncells,
@@ -1109,18 +1120,18 @@ UpdateSeuratObject <- function(object) {
 
 #' @rdname Convert
 #' @export
-#' @method as.SingleCellExperiment seurat
-#'
-as.SingleCellExperiment.seurat <- function(from, ...) {
-  return(Convert(from = from, to = 'sce'))
-}
-
-#' @rdname Convert
-#' @export
 #' @method as.seurat SingleCellExperiment
 #'
 as.seurat.SingleCellExperiment <- function(from, ...) {
   return(Convert(from = from, to = 'seurat'))
+}
+
+#' @rdname Convert
+#' @export
+#' @method as.SingleCellExperiment seurat
+#'
+as.SingleCellExperiment.seurat <- function(from, ...) {
+  return(Convert(from = from, to = 'sce'))
 }
 
 #' @rdname Cells
@@ -1245,76 +1256,6 @@ Convert.anndata.base.AnnData <- function(
       seurat.object
     },
     stop(paste0("Cannot convert AnnData objects to class '", to, "'"))
-  )
-  return(object.to)
-}
-
-#' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
-#' @param data.slot name of the SingleCellExperiment assay to slot into @@data
-#'
-#' @rdname Convert
-#' @export
-#' @method Convert SingleCellExperiment
-#'
-Convert.SingleCellExperiment <- function(
-  from,
-  to,
-  raw.data.slot = "counts",
-  data.slot = "logcounts",
-  ...
-) {
-  object.to <- switch(
-    EXPR = to,
-    'seurat' = {
-      counts <- tryCatch(
-        expr = SummarizedExperiment::assay(from, raw.data.slot),
-        error = function(e) {
-          stop(paste0("No data in provided assay - ", raw.data.slot))
-        }
-      )
-      data <- tryCatch(
-        expr = SummarizedExperiment::assay(from, data.slot),
-        error = function(e) {
-          stop(paste0("No data in provided assay - ", data.slot))
-        }
-      )
-      meta.data <- as.data.frame(SummarizedExperiment::colData(from))
-      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-      # seurat.object@data <- data
-      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
-      if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
-        for (dr in SingleCellExperiment::reducedDimNames(from)) {
-          seurat.object[[dr]] <- CreateDimReducObject(
-            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
-            key = gsub(
-              pattern = "[[:digit:]]",
-              replacement = "",
-              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-              )[1]),
-            assay = DefaultAssay(object = seurat.object)
-          )
-          # seurat.object <- SetDimReduction(
-          #   object = seurat.object,
-          #   reduction.type = dr,
-          #   slot = "cell.embeddings",
-          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
-          # )
-          # key <- gsub(
-          #   pattern = "[[:digit:]]",
-          #   replacement = "",
-          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-          #   )[1])
-          # seurat.object <- SetDimReduction(
-          #   object = seurat.object,
-          #   reduction.type = dr,
-          #   slot = "key",
-          #   new.data = key
-          # )
-        }
-      }
-      seurat.object
-    },
-    stop(paste0("Cannot convert SingleCellExperiment objects to class '", to, "'"))
   )
   return(object.to)
 }
@@ -1571,6 +1512,76 @@ Convert.seurat <- function(
       anndata.object
     },
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
+  )
+  return(object.to)
+}
+
+#' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
+#' @param data.slot name of the SingleCellExperiment assay to slot into @@data
+#'
+#' @rdname Convert
+#' @export
+#' @method Convert SingleCellExperiment
+#'
+Convert.SingleCellExperiment <- function(
+  from,
+  to,
+  raw.data.slot = "counts",
+  data.slot = "logcounts",
+  ...
+) {
+  object.to <- switch(
+    EXPR = to,
+    'seurat' = {
+      counts <- tryCatch(
+        expr = SummarizedExperiment::assay(from, raw.data.slot),
+        error = function(e) {
+          stop(paste0("No data in provided assay - ", raw.data.slot))
+        }
+      )
+      data <- tryCatch(
+        expr = SummarizedExperiment::assay(from, data.slot),
+        error = function(e) {
+          stop(paste0("No data in provided assay - ", data.slot))
+        }
+      )
+      meta.data <- as.data.frame(SummarizedExperiment::colData(from))
+      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+      # seurat.object@data <- data
+      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
+      if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
+        for (dr in SingleCellExperiment::reducedDimNames(from)) {
+          seurat.object[[dr]] <- CreateDimReducObject(
+            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
+            key = gsub(
+              pattern = "[[:digit:]]",
+              replacement = "",
+              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+              )[1]),
+            assay = DefaultAssay(object = seurat.object)
+          )
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "cell.embeddings",
+          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
+          # )
+          # key <- gsub(
+          #   pattern = "[[:digit:]]",
+          #   replacement = "",
+          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+          #   )[1])
+          # seurat.object <- SetDimReduction(
+          #   object = seurat.object,
+          #   reduction.type = dr,
+          #   slot = "key",
+          #   new.data = key
+          # )
+        }
+      }
+      seurat.object
+    },
+    stop(paste0("Cannot convert SingleCellExperiment objects to class '", to, "'"))
   )
   return(object.to)
 }
@@ -3134,51 +3145,6 @@ droplevels.Seurat <- function(x, ...) {
   return(x)
 }
 
-#' @importFrom ggplot2 ggplot aes
-#' @export
-#'
-ggplot.DimReduc <- function(
-  data = NULL,
-  type = 'embeddings',
-  colors = NULL,
-  projected = NULL,
-  rows.use = NULL,
-  pt.size = NULL,
-  pt.shape = NULL,
-  mapping = aes(), ...,
-  environment = parent.frame()
-) {
-  data.plot <- if (type == 'embeddings') {
-    Embeddings(object = data)
-  } else if (type == 'loadings') {
-    Loadings(object = data, projected = projected)
-  } else {
-    stop("'type' must be either 'embeddings' or 'loadings'")
-  }
-  data.plot <- as.data.frame(x = data.plot)
-  if (!is.null(x = colors)) {
-    if (!is.null(x = names(x = colors))) {
-      colors <- colors[colnames(x = data)]
-    }
-    data.plot$color <- colors
-  }
-  if (!is.null(x = pt.size)) {
-    data.plot$size <- pt.size
-  }
-  if (!is.null(x = pt.shape)) {
-    data.plot$shape <- pt.shape
-  }
-  if (!is.null(x = rows.use)) {
-    data.plot <- data.plot[rows.use, , drop = FALSE]
-  }
-  return(ggplot(
-    data = data.plot,
-    mapping = mapping,
-    ...,
-    environment = environment
-  ))
-}
-
 #' @export
 #' @method length DimReduc
 #'
@@ -4405,11 +4371,11 @@ UpdateKey <- function(key) {
 # Pulls the proper data matrix for merging assay data. If the slot is empty, will return an empty
 # matrix with the proper dimensions from one of the remaining data slots.
 #
-# @param assay   Assay to pull data from
-# @param slot    Slot to pull from
+# @param assay Assay to pull data from
+# @param slot Slot to pull from
 #
-# @return        Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
-#                appropriately sized empty sparse matrix
+# @return Returns the data matrix if present (i.e.) not 0x0. Otherwise, returns an
+# appropriately sized empty sparse matrix
 #
 ValidateDataForMerge <- function(assay, slot) {
   mat <- GetAssayData(object = assay, slot = slot)
