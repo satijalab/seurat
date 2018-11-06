@@ -16,7 +16,7 @@ RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 
-\item{variable.features.rv.th}{Features with residual variance greater or equal 
+\item{variable.features.rv.th}{Features with residual variance greater or equal
 this value will be selected as variable features; default is 1.3}
 
 \item{variable.features.n}{Use this many features as variable features after

@@ -4,7 +4,7 @@
 \alias{TopCells}
 \title{Find cells with highest scores for a given dimensional reduction technique}
 \usage{
-TopCells(object, dim = 1, ncells = 20, balanced = FALSE)
+TopCells(object, dim = 1, ncells = 20, balanced = FALSE, ...)
 }
 \arguments{
 \item{object}{DimReduc object}
@@ -14,6 +14,8 @@ TopCells(object, dim = 1, ncells = 20, balanced = FALSE)
 \item{ncells}{Number of cells to return}
 
 \item{balanced}{Return an equal number of cells with both + and - scores.}
+
+\item{...}{Extra parameters passed to \code{\link{Embeddings}}}
 }
 \value{
 Returns a vector of cells

@@ -2,6 +2,9 @@
 % Please edit documentation in R/visualization.R
 \name{DimPlot}
 \alias{DimPlot}
+\alias{TSNEPlot}
+\alias{PCAPlot}
+\alias{ICAPlot}
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
