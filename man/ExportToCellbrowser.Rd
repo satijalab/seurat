@@ -28,9 +28,9 @@ column name to export name}
 
 \item{cluster.field}{name of the metadata field containing cell cluster}
 
-\item{port}{on which port to run UCSC cell browser after export}
+\item{port}{\emph{experimental} on which port to run UCSC cell browser after export}
 
-\item{cb.dir}{in which dir to create UCSC cell browser content root}
+\item{cb.dir}{\emph{experimental} in which dir to create UCSC cell browser content root}
 }
 \description{
 Export Seurat object for UCSC cell browser

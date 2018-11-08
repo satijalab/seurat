@@ -1161,8 +1161,8 @@ ToNumeric <- function(x){
 #' @param embeddings vector of embedding names to export
 #' @param markers.file path to file with marker genes
 #' @param cluster.field name of the metadata field containing cell cluster
-#' @param port on which port to run UCSC cell browser after export
-#' @param cb.dir in which dir to create UCSC cell browser content root
+#' @param port \emph{experimental} on which port to run UCSC cell browser after export
+#' @param cb.dir \emph{experimental} in which dir to create UCSC cell browser content root
 #'
 #' @export
 #'
@@ -1301,10 +1301,10 @@ coords=%s'
     library(reticulate)
     py_install("cellbrowser") # see https://rstudio.github.io/reticulate/articles/python_packages.html
     cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
-    cb.dir <- normalizePath(cb.dir)
-    cur.dir <- getwd()
-    setwd(dir)
-    cb$cellbrowser$cbBuild("cellbrowser.conf", cb.dir, as.integer(port))
-    setwd(cur.dir)
+    cb$cellbrowser$cbBuild(
+      file.path(dir, "cellbrowser.conf"),
+      cb.dir,
+      as.integer(port)
+    )
   }
 }
