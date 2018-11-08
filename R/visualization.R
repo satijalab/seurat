@@ -2199,7 +2199,14 @@ HoverLocator <- function(
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, clusters = NULL, labels = NULL, repel = TRUE, ...) {
+LabelClusters <- function(
+  plot,
+  id,
+  clusters = NULL,
+  labels = NULL,
+  repel = TRUE,
+  ...
+) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
