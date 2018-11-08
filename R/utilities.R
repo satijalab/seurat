@@ -819,6 +819,36 @@ CheckDots <- function(..., fxns = NULL) {
   }
 }
 
+# Check a list of objects for duplicate cell names
+#
+# @param object.list List of Seurat objects
+# @param verbose Print message about renaming
+# @param stop Error out if any duplicate names exist
+#
+# @return Returns list of objects with duplicate cells renamed to be unique
+#
+CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
+  cell.names <- unlist(
+    x = sapply(
+      X = 1:length(x = object.list), 
+      FUN = function(x) Cells(object = object.list[[x]])
+      )
+    )
+  if (any(duplicated(x = cell.names))) {
+    if (stop) {
+      stop("Duplicate cell names present across objects provided.")
+    }
+    if (verbose) {
+      warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
+    }
+    object.list <- sapply(
+      X = 1:length(x = object.list), 
+      FUN = function(x) RenameCells(object = object.list[[x]], new.names = paste0(Cells(object = object.list[[x]]), "_", x))
+    )
+  }
+  return(object.list)
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
