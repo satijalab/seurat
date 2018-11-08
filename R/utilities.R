@@ -1162,6 +1162,7 @@ ToNumeric <- function(x){
 #' @param markers.file path to file with marker genes
 #' @param cluster.field name of the metadata field containing cell cluster
 #' @param port on which port to run UCSC cell browser after export
+#' @param cb.dir in which dir to create UCSC cell browser content root
 #'
 #' @export
 #'
@@ -1177,7 +1178,8 @@ ExportToCellbrowser <- function(
   embeddings = c("tsne"),
   markers.file = NULL,
   cluster.field = NULL,
-  port = NULL
+  port = NULL,
+  cb.dir = NULL
 ) {
   if (is.null(dir)) {
     stop("Missing output directory")
@@ -1190,6 +1192,9 @@ ExportToCellbrowser <- function(
     if (length(levels(x = Idents(object = object))) > 1) {
       meta.fields <- c(meta.fields, ".ident")
     }
+  }
+  if (!is.null(port) && is.null(cb.dir)) {
+    stop("cb.dir parameter is needed when port is set")
   }
   if (!dir.exists(dir)) {
     dir.create(dir)
@@ -1296,6 +1301,10 @@ coords=%s'
     library(reticulate)
     py_install("cellbrowser") # see https://rstudio.github.io/reticulate/articles/python_packages.html
     cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
-    cb$cellbrowser$cbBuild("cellbrowser.conf", dir, port)
+    cb.dir <- normalizePath(cb.dir)
+    cur.dir <- getwd()
+    setwd(dir)
+    cb$cellbrowser$cbBuild("cellbrowser.conf", cb.dir, as.integer(port))
+    setwd(cur.dir)
   }
 }

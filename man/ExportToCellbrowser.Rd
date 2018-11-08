@@ -7,7 +7,7 @@
 ExportToCellbrowser(object, dir = NULL, dataset.name = NULL,
   meta.fields = NULL, meta.fields.names = NULL,
   embeddings = c("tsne"), markers.file = NULL, cluster.field = NULL,
-  port = NULL)
+  port = NULL, cb.dir = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -29,6 +29,8 @@ column name to export name}
 \item{cluster.field}{name of the metadata field containing cell cluster}
 
 \item{port}{on which port to run UCSC cell browser after export}
+
+\item{cb.dir}{in which dir to create UCSC cell browser content root}
 }
 \description{
 Export Seurat object for UCSC cell browser
