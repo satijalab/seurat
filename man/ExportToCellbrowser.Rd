@@ -30,7 +30,7 @@ column name to export name}
 
 \item{port}{\emph{experimental} on which port to run UCSC cell browser after export}
 
-\item{cb.dir}{\emph{experimental} in which dir to create UCSC cell browser content root}
+\item{cb.dir}{in which dir to create UCSC cell browser content root}
 }
 \description{
 Export Seurat object for UCSC cell browser
