@@ -1760,9 +1760,9 @@ JackStrawPlot <- function(
 #' @export
 #'
 #' @examples
-#' VizDimReduction(object = pbmc_small)
+#' VizDimLoadings(object = pbmc_small)
 #'
-VizDimReduction <- function(
+VizDimLoadings <- function(
   object,
   dims = 1:5,
   nfeatures = 30,
