@@ -1211,6 +1211,7 @@ ExportToCellbrowser <- function(
   df <- data.frame(gene=rownames(object), df)
   z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"))
   write.table(df, sep="\t", file=z, quote = FALSE, row.names = FALSE)
+  close(z)
 
   # Export cell embeddings
   embeddings.conf <- c()
@@ -1311,9 +1312,7 @@ coords=%s'
     if (!is.null(port)) {
       cb$cellbrowser$stop()
       cb$cellbrowser$serve(cb.dir, port)
-      if (require(rstudioapi)) {
-        rstudioapi::viewer(sprintf("http://localhost:%d", port))
-      }
+      utils::browseURL(sprintf("http://localhost:%d", port))
     }
   }
 }
