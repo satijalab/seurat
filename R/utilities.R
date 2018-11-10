@@ -1299,16 +1299,21 @@ coords=%s'
 
   if (!is.null(cb.dir) && require(reticulate)) {
     library(reticulate)
-    py_install("cellbrowser") # see https://rstudio.github.io/reticulate/articles/python_packages.html
+    if (!py_module_available("cellbrowser")) {
+      py_install("cellbrowser") # see https://rstudio.github.io/reticulate/articles/python_packages.html
+    }
 
     if (!is.null(port)) {
       port <- as.integer(port)
     }
     cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
-    cb$cellbrowser$cbBuild(
-      file.path(dir, "cellbrowser.conf"),
-      cb.dir,
-      port
-    )
+    cb$cellbrowser$build(dir, cb.dir)
+    if (!is.null(port)) {
+      cb$cellbrowser$stop()
+      cb$cellbrowser$serve(cb.dir, port)
+      if (require(rstudioapi)) {
+        rstudioapi::viewer(sprintf("http://localhost:%d", port))
+      }
+    }
   }
 }
