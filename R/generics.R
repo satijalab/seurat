@@ -158,6 +158,14 @@ Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
 }
 
+#' @rdname subset.Seurat
+#' @export FilterCells
+#'
+#' @aliases FilterCells
+#'
+FilterCells <- function(object, ...) {
+  UseMethod(generic = 'FilterCells', object = object)
+}
 
 #' Cluster Determination
 #'
