@@ -1760,9 +1760,9 @@ JackStrawPlot <- function(
 #' @export
 #'
 #' @examples
-#' VizDimReduction(object = pbmc_small)
+#' VizDimLoadings(object = pbmc_small)
 #'
-VizDimReduction <- function(
+VizDimLoadings <- function(
   object,
   dims = 1:5,
   nfeatures = 30,
@@ -3755,7 +3755,7 @@ SingleExIPlot <- function(
     EXPR = type,
     'violin' = {
       x <- 'ident'
-      y <- feature
+      y <- paste0("`", feature, "`")
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
@@ -3767,7 +3767,7 @@ SingleExIPlot <- function(
       axis.scale <- ylim
     },
     'ridge' = {
-      x <- feature
+      x <- paste0("`", feature, "`")
       y <- 'ident'
       xlab <- axis.label
       ylab <- 'Identity'
