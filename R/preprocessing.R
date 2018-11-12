@@ -359,7 +359,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' Enables easy loading of csv format matrix provided by Alevin
 # ran with `--dumpCsvCounts` flags.
 #'
-#' @param data.dir Directory containing the alevin/quant_mat*
+#' @param base.path Directory containing the alevin/quant_mat*
 #' files provided by Alevin.
 #'
 #' @return Returns a matrix with rows and columns labeled
@@ -370,7 +370,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' \dontrun{
 #' data_dir <- 'path/to/output/directory'
 #' list.files(data_dir) # Should show alevin/quants_mat* files
-#' expression_matrix <- ReadAlevin(base.path = data_dir)
+#' expression_matrix <- ReadAlevinCsv(base.path = data_dir)
 #' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
 #' }
 #'
@@ -404,7 +404,7 @@ ReadAlevinCsv <- function( base.path = NULL ){
 #'
 #' Enables easy loading of binary format matrix provided by Alevin
 #'
-#' @param data.dir Directory containing the alevin/quant_mat*
+#' @param base.path Directory containing the alevin/quant_mat*
 #' files provided by Alevin.
 #'
 #' @return Returns a matrix with rows and columns labeled
