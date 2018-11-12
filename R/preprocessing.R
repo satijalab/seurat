@@ -357,7 +357,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' Load in data from Alevin pipeline
 #'
 #' Enables easy loading of csv format matrix provided by Alevin
-# ran with `--dumpCsvCounts` flags.
+#' ran with `--dumpCsvCounts` flags.
 #'
 #' @param base.path Directory containing the alevin/quant_mat*
 #' files provided by Alevin.
@@ -365,6 +365,8 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' @return Returns a matrix with rows and columns labeled
 #'
 #' @export
+#'
+#' @author Avi Srivastava
 #'
 #' @examples
 #' \dontrun{
@@ -374,30 +376,30 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
 #' }
 #'
-ReadAlevinCsv <- function( base.path = NULL ){
-    if (! dir.exists(base.path )){
-      stop("Directory provided does not exist")
-    }
-     barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
-    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
-    matrix.loc <- paste0( base.path, "alevin/quants_mat.csv" )
-    if (!file.exists( barcode.loc )){
-      stop("Barcode file missing")
-    }
-    if (! file.exists(gene.loc) ){
-      stop("Gene name file missing")
-    }
-    if (! file.exists(matrix.loc )){
-      stop("Expression matrix file missing")
-    }
-    matrix <- as.matrix(read.csv( matrix.loc, header=FALSE))
-    matrix <- t(matrix[,1:ncol(matrix)-1])
-     cell.names <- readLines( barcode.loc )
-    gene.names <- readLines( gene.loc )
-     colnames(matrix) <- cell.names
-    rownames(matrix) <- gene.names
-    matrix[is.na(matrix)] <- 0
-    return(matrix)
+ReadAlevinCsv <- function(base.path) {
+  if (!dir.exists(base.path)) {
+    stop("Directory provided does not exist")
+  }
+  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
+  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
+  matrix.loc <- file.path( base.path, "alevin", "quants_mat.csv" )
+  if (!file.exists(barcode.loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)) {
+    stop("Expression matrix file missing")
+  }
+  matrix <- as.matrix(x = read.csv(file = matrix.loc, header = FALSE))
+  matrix <- t(x = matrix[, 1:ncol(x = matrix) - 1])
+  cell.names <- readLines(con = barcode.loc)
+  gene.names <- readLines(con = gene.loc)
+  colnames(x = matrix) <- cell.names
+  rownames(x = matrix) <- gene.names
+  matrix[is.na(x = matrix)] <- 0
+  return(matrix)
 }
 
 #' Load in data from Alevin pipeline
@@ -411,6 +413,8 @@ ReadAlevinCsv <- function( base.path = NULL ){
 #'
 #' @export
 #'
+#' @author Avi Srivastava
+#'
 #' @examples
 #' \dontrun{
 #' data_dir <- 'path/to/output/directory'
@@ -419,44 +423,42 @@ ReadAlevinCsv <- function( base.path = NULL ){
 #' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
 #' }
 #'
-ReadAlevin <- function( base.path = NULL ){
-    if (! dir.exists(base.path )){
-      stop("Directory provided does not exist")
-    }
-    barcode.loc <- paste0( base.path, "alevin/quants_mat_rows.txt" )
-    gene.loc <- paste0( base.path, "alevin/quants_mat_cols.txt" )
-    matrix.loc <- paste0( base.path, "alevin/quants_mat.gz" )
-
-    if (!file.exists( barcode.loc )){
-      stop("Barcode file missing")
-    }
-    if (! file.exists(gene.loc) ){
-      stop("Gene name file missing")
-    }
-    if (! file.exists(matrix.loc )){
-      stop("Expression matrix file missing")
-    }
-
-    cell.names <- readLines( barcode.loc )
-    gene.names <- readLines( gene.loc )
-    num.cells <- length(cell.names)
-    num.genes <- length(gene.names)
-
-    out.matrix <- matrix(NA, nrow=num.genes, ncol=num.cells)
-    con <- gzcon(file(matrix.loc, "rb"))
-
-    total.molecules <- 0.0
-    for (n in seq_len(num.cells)) {
-        out.matrix[,n] <- readBin(con, double(), endian = "little", n=num.genes)
-        total.molecules <- total.molecules + sum(out.matrix[,n])
-    }
-
-    # out.matrix <- t(out.matrix)
-    colnames(out.matrix) <- cell.names
-    rownames(out.matrix) <- gene.names
-
-    print(paste("Found total ", total.molecules, " molecules."))
-    return(out.matrix)
+ReadAlevin <- function(base.path) {
+  if (!dir.exists(base.path)) {
+    stop("Directory provided does not exist")
+  }
+  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
+  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
+  matrix.loc <- file.path(base.path, "alevin", "quants_mat.gz")
+  if (!file.exists(barcode.loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)) {
+    stop("Expression matrix file missing")
+  }
+  cell.names <- readLines(con = barcode.loc)
+  gene.names <- readLines(con = gene.loc)
+  num.cells <- length(x = cell.names)
+  num.genes <- length(x = gene.names)
+  out.matrix <- matrix(data = NA, nrow = num.genes, ncol = num.cells)
+  con <- gzcon(con = file(description = matrix.loc, open = "rb"))
+  total.molecules <- 0.0
+  for (n in seq_len(length.out = num.cells)) {
+    out.matrix[, n] <- readBin(
+      con = con,
+      what = double(),
+      endian = "little",
+      n = num.genes
+    )
+    total.molecules <- total.molecules + sum(out.matrix[, n])
+  }
+  colnames(x = out.matrix) <- cell.names
+  rownames(x = out.matrix) <- gene.names
+  message("Found total ", total.molecules, " molecules")
+  return(out.matrix)
 }
 
 #' Load in data from 10X
@@ -607,7 +609,7 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.rv.th Features with residual variance greater or equal 
+#' @param variable.features.rv.th Features with residual variance greater or equal
 #' this value will be selected as variable features; default is 1.3
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance
