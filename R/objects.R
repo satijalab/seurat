@@ -2752,9 +2752,13 @@ WhichCells.Assay <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
-  if (!missing(x = expression)) {
+  if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     key.pattern <- paste0('^', Key(object = object))
-    expr <- substitute(expr = expression)
+    expr <- if (is.call(x = substitute(expr = expression))) {
+      substitute(expr = expression)
+    } else {
+      parse(text = expression)
+    }
     expr.char <- as.character(x = expr)
     expr.char <- unlist(x = lapply(X = expr.char, FUN = strsplit, split = ' '))
     expr.char <- gsub(
@@ -2830,7 +2834,7 @@ WhichCells.Seurat <- function(
     ))
     cells <- intersect(x = cells, y = cells.idents)
   }
-  if (!missing(x = expression) && is.null(x = substitute(expr = expression))) {
+  if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
     objects.use <- FilterObjects(object = object)
     object.keys <- sapply(
       X = objects.use,
@@ -3531,6 +3535,8 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
   # }
   if (missing(x = subset)) {
     subset <- NULL
+  } else if (is.call(x = substitute(expr = subset))) {
+    subset <- deparse(expr = substitute(expr = subset))
   }
   # cells <- select %iff% if (any(select %in% colnames(x = x))) {
   #   select[select %in% colnames(x = x)]
