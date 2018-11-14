@@ -1648,7 +1648,7 @@ Embeddings.Seurat <- function(object, reduction, ...) {
 #' @export
 #' @method FilterCells Seurat
 #'
-FilterCells.Seurat <- function(object, vars, low = -Inf, high = -Inf, ...) {
+FilterCells.Seurat <- function(object, vars, low = -Inf, high = Inf, ...) {
   low <- rep_len(x = low, length.out = length(x = vars))
   high <- rep_len(x = high, length.out = length(x = vars))
   if (any(low > high)) {
