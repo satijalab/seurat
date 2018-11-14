@@ -36,20 +36,6 @@ test_that("Filtering handled properly", {
   expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 75)
 })
 
-# Tests for Read10X
-# --------------------------------------------------------------------------------
-context("Read10X")
-
-test_that("Read10X handles missing files properly", {
-  expect_error(Read10X("."))
-  expect_error(Read10X("./notadir/"))
-})
-
-test.data <- Read10X("../testdata/")
-test_that("Read10X creates sparse matrix", {
-  expect_is(test.data, "dgCMatrix")
-})
-
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
