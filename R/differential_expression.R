@@ -437,6 +437,9 @@ FindMarkers.default <- function(
     if (length(x = cells.2) > max.cells.per.ident) {
       cells.2 <- sample(x = cells.2, size = max.cells.per.ident)
     }
+    if (!is.null(x = latent.vars)) {
+      latent.vars <- latent.vars[c(cells.1, cells.2), , drop = FALSE]
+    }
   }
   # perform DE
   if (!(test.use %in% c('negbinom', 'poisson', 'MAST', "LR")) && !is.null(x = latent.vars)) {
@@ -887,11 +890,19 @@ GLMDETest <- function(
   test.use = NULL,
   verbose = TRUE
 ) {
-  group.info <- data.frame(row.names = c(cells.1, cells.2))
-  group.info[cells.1, "group"] <- "Group1"
-  group.info[cells.2, "group"] <- "Group2"
+  group.info <- data.frame(
+    group = rep(
+      x = c('Group1', 'Group2'), 
+      times = c(length(x = cells.1), length(x = cells.2))
+    )
+  )
+  rownames(group.info) <- c(cells.1, cells.2)
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  latent.vars <- cbind(group.info, latent.vars)
+  if (is.null(latent.vars)) {
+    latent.vars <- group.info
+  } else {
+    latent.vars <- cbind(group.info, latent.vars)
+  }
   latent.var.names <- colnames(latent.vars)
   mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
   p_val <- unlist(
@@ -900,14 +911,14 @@ GLMDETest <- function(
       FUN = function(x) {
         latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
         # check that gene is expressed in specified number of cells in one group
-        if (sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells ||
-            sum(latent.vars$GENE[latent.vars$group == "Group1"]) < min.cells) {
+        if (sum(latent.vars$GENE[latent.vars$group == "Group1"] > 0) < min.cells &&
+            sum(latent.vars$GENE[latent.vars$group == "Group2"] > 0) < min.cells) {
           warning(paste0(
             "Skipping gene --- ",
             x,
             ". Fewer than ",
             min.cells,
-            " in at least one of the two clusters."
+            " cells in both clusters."
           ))
           return(2)
         }
