@@ -389,8 +389,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' seurat_object[['Protein']] = CreateAssayObject(seurat_object, assay.type = "Protein", slot = "raw.data", new.data = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL,
-                    gene.column = 2){
+Read10X <- function(data.dir = NULL, gene.column = 2) {
   full.data <- list()
   for (i in seq_along(data.dir)) {
     run <- data.dir[i]
@@ -405,81 +404,84 @@ Read10X <- function(data.dir = NULL,
     features.loc <- paste0(run, "features.tsv.gz")
     matrix.loc <- paste0(run, "matrix.mtx")
     # Flag to indicate if this data is from CellRanger >= 3.0
-    pre_ver_3 = file.exists(gene.loc)
-    if(!pre_ver_3) {
-      addgz <- function(s) paste0(s, ".gz")
-      barcode.loc = addgz(barcode.loc)
-      matrix.loc = addgz(matrix.loc)
+    pre_ver_3 <- file.exists(gene.loc)
+    if (!pre_ver_3) {
+      addgz <- function(s) {
+        return(paste0(s, ".gz"))
+      }
+      barcode.loc <- addgz(s = barcode.loc)
+      matrix.loc <- addgz(s = matrix.loc)
     }
-    if (!file.exists(barcode.loc)){
+    if (!file.exists(barcode.loc)) {
       stop("Barcode file missing")
     }
-    if (!pre_ver_3 && !file.exists(features.loc)){
+    if (!pre_ver_3 && !file.exists(features.loc) ){
       stop("Gene name or features file missing")
     }
-    if (!file.exists(matrix.loc)){
+    if (!file.exists(matrix.loc)) {
       stop("Expression matrix file missing")
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
     if (all(grepl(pattern = "\\-1$", x = cell.names))) {
-      cell.names <- as.vector(
-        x = as.character(
-          x = sapply(
+      cell.names <- as.vector(x = as.character(x = sapply(
             X = cell.names,
             FUN = ExtractField, field = 1,
             delim = "-"
-          )
-        )
-      )
+      )))
     }
     if (is.null(x = names(x = data.dir))) {
-      if(i < 2){
+      if (i < 2){
         colnames(x = data) <- cell.names
-      }
-      else {
+      } else {
         colnames(x = data) <- paste0(i, "_", cell.names)
       }
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    
-    feature.names = read.delim(ifelse(pre_ver_3, gene.loc, features.loc), 
-                               header = FALSE,
-                               stringsAsFactors = FALSE)
-    rownames(x = data) <- make.unique(feature.names[, gene.column])
+    feature.names <- read.delim(
+      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), 
+      header = FALSE,
+      stringsAsFactors = FALSE
+    )
+    rownames(x = data) <- make.unique(names = feature.names[, gene.column])
     # In cell ranger 3.0, a third column specifying the type of data was added
     # and we will return each type of data as a separate matrix
-    if (ncol(feature.names) > 2){
-      if(length(full.data) ==0) {
+    if (ncol(x = feature.names) > 2){
+      if (length(x = full.data) ==0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
-      data_types = factor(feature.names$V3)
-      lvls = levels(data_types)
-      expr_name = "Gene Expression"
-      if(expr_name %in% lvls) { # Return Gene Expression first
-        lvls = c(expr_name, lvls[-which(lvls==expr_name)])
+      data_types <- factor(x = feature.names$V3)
+      lvls <- levels(x = data_types)
+      expr_name <- "Gene Expression"
+      if (expr_name %in% lvls) { # Return Gene Expression first
+        lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
       }
-      data = lapply(lvls, function(l) data[data_types==l,])
-      names(data) = lvls
+      data <- lapply(
+        X = lvls,
+        FUN = function(l) {
+          return(data[data_types == l,])
+        }
+      )
+      names(x = data) <- lvls
     } else{
-      data = list(data)
+      data <- list(data)
     }
-    full.data[[length(full.data)+1]] = data
+    full.data[[length(x = full.data) + 1]] <- data
   }
   # Combine all the data from different directories into one big matrix, note this 
   # assumes that all data directories essentially have the same features files
-  list_of_data=list()
-  for(j in 1:length(full.data[[1]])) {
-    list_of_data[[j]] = do.call(cbind, lapply(full.data, `[[`, j))
+  list_of_data <- list()
+  for (j in 1:length(x = full.data[[1]])) {
+    list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
     # Fix for Issue #913
-    list_of_data[[j]] = as(object = list_of_data[[j]], Class = "dgCMatrix")
+    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
   }
-  names(list_of_data) = names(full.data[[1]])
+  names(x = list_of_data) <- names(x = full.data[[1]])
   # If multiple features, will return a list, otherwise
   # a matrix.
-  if(length(list_of_data)==1) {
-    return(list_of_data[[1]]) 
+  if (length(x = list_of_data) == 1) {
+    return(list_of_data[[1]])
     } else {
     return(list_of_data)
   }
