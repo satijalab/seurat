@@ -158,15 +158,6 @@ Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
 }
 
-#' @rdname subset.Seurat
-#' @export FilterCells
-#'
-#' @aliases FilterCells
-#'
-FilterCells <- function(object, ...) {
-  UseMethod(generic = 'FilterCells', object = object)
-}
-
 #' Cluster Determination
 #'
 #' Identify clusters of cells by a shared nearest neighbor (SNN) modularity
