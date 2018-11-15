@@ -30,6 +30,7 @@ Imports:
     ggridges,
     graphics,
     grDevices,
+    ica,
     igraph,
     ini,
     irlba,

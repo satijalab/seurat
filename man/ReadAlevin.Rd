@@ -21,7 +21,7 @@ Enables easy loading of binary format matrix provided by Alevin
 data_dir <- 'path/to/output/directory'
 list.files(data_dir) # Should show alevin/quants_mat* files
 expression_matrix <- ReadAlevin(base.path = data_dir)
-seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+seurat_object = CreateSeuratObject(counts = expression_matrix)
 }
 
 }

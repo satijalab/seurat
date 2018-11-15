@@ -55,8 +55,6 @@ the number for the dimension names.}
 \item{seed.use}{Set a random seed.  Setting NULL will not set a seed.}
 
 \item{features}{Features to compute ICA on}
-
-\item{reduction.key}{name of reduction key}
 }
 \description{
 Run fastica algorithm from the ica package for ICA dimensionality reduction.

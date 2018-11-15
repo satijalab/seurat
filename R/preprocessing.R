@@ -365,6 +365,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #'
 #' @return Returns a matrix with rows and columns labeled
 #'
+#' @importFrom utils read.csv read.delim
 #' @export
 #'
 #' @author Avi Srivastava
@@ -374,7 +375,7 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 #' data_dir <- 'path/to/output/directory'
 #' list.files(data_dir) # Should show alevin/quants_mat* files
 #' expression_matrix <- ReadAlevinCsv(base.path = data_dir)
-#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' seurat_object = CreateSeuratObject(counts = expression_matrix)
 #' }
 #'
 ReadAlevinCsv <- function(base.path) {
@@ -421,7 +422,7 @@ ReadAlevinCsv <- function(base.path) {
 #' data_dir <- 'path/to/output/directory'
 #' list.files(data_dir) # Should show alevin/quants_mat* files
 #' expression_matrix <- ReadAlevin(base.path = data_dir)
-#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' seurat_object = CreateSeuratObject(counts = expression_matrix)
 #' }
 #'
 ReadAlevin <- function(base.path) {
@@ -493,7 +494,7 @@ ReadAlevin <- function(base.path) {
 #' list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
 #' data <- Read10X(data.dir = data_dir)
 #' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
-#' seurat_object[['Protein']] = CreateAssayObject(seurat_object, assay.type = "Protein", slot = "raw.data", new.data = data$`Antibody Capture`)
+#' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
 Read10X <- function(data.dir = NULL, gene.column = 2) {

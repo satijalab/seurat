@@ -35,7 +35,7 @@ data_dir <- 'path/to/data/directory'
 list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
 data <- Read10X(data.dir = data_dir)
 seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
-seurat_object[['Protein']] = CreateAssayObject(seurat_object, assay.type = "Protein", slot = "raw.data", new.data = data$`Antibody Capture`)
+seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 }
 
 }

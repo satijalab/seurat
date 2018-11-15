@@ -594,8 +594,7 @@ RunICA.Assay <- function(
 
 
 #' @param reduction.name dimensional reduction name
-#' @param reduction.key name of reduction key
-
+#' 
 #' @rdname RunICA
 #' @method RunICA Seurat
 #' @export
