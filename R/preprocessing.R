@@ -355,30 +355,148 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   return(norm.data)
 }
 
+#' Load in data from Alevin pipeline
+#'
+#' Enables easy loading of csv format matrix provided by Alevin
+#' ran with `--dumpCsvCounts` flags.
+#'
+#' @param base.path Directory containing the alevin/quant_mat*
+#' files provided by Alevin.
+#'
+#' @return Returns a matrix with rows and columns labeled
+#'
+#' @export
+#'
+#' @author Avi Srivastava
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/output/directory'
+#' list.files(data_dir) # Should show alevin/quants_mat* files
+#' expression_matrix <- ReadAlevinCsv(base.path = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
+#'
+ReadAlevinCsv <- function(base.path) {
+  if (!dir.exists(base.path)) {
+    stop("Directory provided does not exist")
+  }
+  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
+  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
+  matrix.loc <- file.path( base.path, "alevin", "quants_mat.csv" )
+  if (!file.exists(barcode.loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)) {
+    stop("Expression matrix file missing")
+  }
+  matrix <- as.matrix(x = read.csv(file = matrix.loc, header = FALSE))
+  matrix <- t(x = matrix[, 1:ncol(x = matrix) - 1])
+  cell.names <- readLines(con = barcode.loc)
+  gene.names <- readLines(con = gene.loc)
+  colnames(x = matrix) <- cell.names
+  rownames(x = matrix) <- gene.names
+  matrix[is.na(x = matrix)] <- 0
+  return(matrix)
+}
+
+#' Load in data from Alevin pipeline
+#'
+#' Enables easy loading of binary format matrix provided by Alevin
+#'
+#' @param base.path Directory containing the alevin/quant_mat*
+#' files provided by Alevin.
+#'
+#' @return Returns a matrix with rows and columns labeled
+#'
+#' @export
+#'
+#' @author Avi Srivastava
+#'
+#' @examples
+#' \dontrun{
+#' data_dir <- 'path/to/output/directory'
+#' list.files(data_dir) # Should show alevin/quants_mat* files
+#' expression_matrix <- ReadAlevin(base.path = data_dir)
+#' seurat_object = CreateSeuratObject(raw.data = expression_matrix)
+#' }
+#'
+ReadAlevin <- function(base.path) {
+  if (!dir.exists(base.path)) {
+    stop("Directory provided does not exist")
+  }
+  barcode.loc <- file.path(base.path, "alevin", "quants_mat_rows.txt")
+  gene.loc <- file.path(base.path, "alevin", "quants_mat_cols.txt")
+  matrix.loc <- file.path(base.path, "alevin", "quants_mat.gz")
+  if (!file.exists(barcode.loc)) {
+    stop("Barcode file missing")
+  }
+  if (!file.exists(gene.loc)) {
+    stop("Gene name file missing")
+  }
+  if (!file.exists(matrix.loc)) {
+    stop("Expression matrix file missing")
+  }
+  cell.names <- readLines(con = barcode.loc)
+  gene.names <- readLines(con = gene.loc)
+  num.cells <- length(x = cell.names)
+  num.genes <- length(x = gene.names)
+  out.matrix <- matrix(data = NA, nrow = num.genes, ncol = num.cells)
+  con <- gzcon(con = file(description = matrix.loc, open = "rb"))
+  total.molecules <- 0.0
+  for (n in seq_len(length.out = num.cells)) {
+    out.matrix[, n] <- readBin(
+      con = con,
+      what = double(),
+      endian = "little",
+      n = num.genes
+    )
+    total.molecules <- total.molecules + sum(out.matrix[, n])
+  }
+  colnames(x = out.matrix) <- cell.names
+  rownames(x = out.matrix) <- gene.names
+  message("Found total ", total.molecules, " molecules")
+  return(out.matrix)
+}
+
 #' Load in data from 10X
 #'
 #' Enables easy loading of sparse data matrices provided by 10X genomics.
 #'
-#' @param data.dir Directory containing the matrix.mtx, genes.tsv, and barcodes.tsv
+#' @param data.dir Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv
 #' files provided by 10X. A vector or named vector can be given in order to load
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
+#' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
 #'
-#' @return Returns a sparse matrix with rows and columns labeled
-#'
+#' @return If features.csv indicates the data has multiple data types, a list
+#'   containing a sparse matrix of the data from each type will be returned.
+#'   Otherwise a sparse matrix containing the expression data will be returned.
+#'   
 #' @importFrom Matrix readMM
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
+#' # For output from CellRanger < 3.0
 #' data_dir <- 'path/to/data/directory'
 #' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
 #' expression_matrix <- Read10X(data.dir = data_dir)
 #' seurat_object = CreateSeuratObject(counts = expression_matrix)
+#' 
+#' # For output from CellRanger >= 3.0 with multiple data types
+#' data_dir <- 'path/to/data/directory'
+#' list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
+#' data <- Read10X(data.dir = data_dir)
+#' seurat_object = CreateSeuratObject(counts = data$`Gene Expression`)
+#' seurat_object[['Protein']] = CreateAssayObject(seurat_object, assay.type = "Protein", slot = "raw.data", new.data = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL){
+Read10X <- function(data.dir = NULL, gene.column = 2) {
   full.data <- list()
   for (i in seq_along(data.dir)) {
     run <- data.dir[i]
@@ -390,55 +508,90 @@ Read10X <- function(data.dir = NULL){
     }
     barcode.loc <- paste0(run, "barcodes.tsv")
     gene.loc <- paste0(run, "genes.tsv")
+    features.loc <- paste0(run, "features.tsv.gz")
     matrix.loc <- paste0(run, "matrix.mtx")
-    if (!file.exists(barcode.loc)){
+    # Flag to indicate if this data is from CellRanger >= 3.0
+    pre_ver_3 <- file.exists(gene.loc)
+    if (!pre_ver_3) {
+      addgz <- function(s) {
+        return(paste0(s, ".gz"))
+      }
+      barcode.loc <- addgz(s = barcode.loc)
+      matrix.loc <- addgz(s = matrix.loc)
+    }
+    if (!file.exists(barcode.loc)) {
       stop("Barcode file missing")
     }
-    if (! file.exists(gene.loc)){
-      stop("Gene name file missing")
+    if (!pre_ver_3 && !file.exists(features.loc) ){
+      stop("Gene name or features file missing")
     }
-    if (! file.exists(matrix.loc)){
+    if (!file.exists(matrix.loc)) {
       stop("Expression matrix file missing")
     }
     data <- readMM(file = matrix.loc)
     cell.names <- readLines(barcode.loc)
-    gene.names <- readLines(gene.loc)
     if (all(grepl(pattern = "\\-1$", x = cell.names))) {
-      cell.names <- as.vector(
-        x = as.character(
-          x = sapply(
+      cell.names <- as.vector(x = as.character(x = sapply(
             X = cell.names,
             FUN = ExtractField, field = 1,
             delim = "-"
-          )
-        )
-      )
+      )))
     }
-    rownames(x = data) <- make.unique(
-      names = as.character(
-        x = sapply(
-          X = gene.names,
-          FUN = ExtractField,
-          field = 2,
-          delim = "\\t"
-        )
-      )
-    )
     if (is.null(x = names(x = data.dir))) {
-      if(i < 2){
+      if (i < 2){
         colnames(x = data) <- cell.names
-      }
-      else {
+      } else {
         colnames(x = data) <- paste0(i, "_", cell.names)
       }
     } else {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
-    full.data <- append(x = full.data, values = data)
+    feature.names <- read.delim(
+      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), 
+      header = FALSE,
+      stringsAsFactors = FALSE
+    )
+    rownames(x = data) <- make.unique(names = feature.names[, gene.column])
+    # In cell ranger 3.0, a third column specifying the type of data was added
+    # and we will return each type of data as a separate matrix
+    if (ncol(x = feature.names) > 2){
+      if (length(x = full.data) ==0) {
+        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
+      }
+      data_types <- factor(x = feature.names$V3)
+      lvls <- levels(x = data_types)
+      expr_name <- "Gene Expression"
+      if (expr_name %in% lvls) { # Return Gene Expression first
+        lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
+      }
+      data <- lapply(
+        X = lvls,
+        FUN = function(l) {
+          return(data[data_types == l,])
+        }
+      )
+      names(x = data) <- lvls
+    } else{
+      data <- list(data)
+    }
+    full.data[[length(x = full.data) + 1]] <- data
   }
-  full.data <- do.call(cbind, full.data)
-  full.data <- as(object = full.data, Class = "dgCMatrix")
-  return(full.data)
+  # Combine all the data from different directories into one big matrix, note this 
+  # assumes that all data directories essentially have the same features files
+  list_of_data <- list()
+  for (j in 1:length(x = full.data[[1]])) {
+    list_of_data[[j]] <- do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
+    # Fix for Issue #913
+    list_of_data[[j]] <- as(object = list_of_data[[j]], Class = "dgCMatrix")
+  }
+  names(x = list_of_data) <- names(x = full.data[[1]])
+  # If multiple features, will return a list, otherwise
+  # a matrix.
+  if (length(x = list_of_data) == 1) {
+    return(list_of_data[[1]])
+    } else {
+    return(list_of_data)
+  }
 }
 
 #' Read 10X hdf5 file
@@ -462,6 +615,9 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
     stop("File not found")
   }
   infile <- hdf5r::H5File$new(filename)
+  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+    stop("Only older (pre-3.0) 10X hdf5 files are supported.")
+  }
   genomes <- names(infile)
   output <- list()
   for (genome in genomes) {
