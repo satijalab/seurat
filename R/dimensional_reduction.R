@@ -485,6 +485,158 @@ RunCCA.Seurat <- function(
   return(combined.object)
 }
 
+#' @param assay Name of Assay ICA is being run on
+#' @param nics Number of ICs to compute
+#' @param rev.ica By default, computes the dimensional reduction on the cell x
+#' feature matrix. Setting to true will compute it on the transpose (feature x cell
+#' matrix).
+#' @param ica.function ICA function from ica package to run (options: icafast,
+#' icaimax, icajade)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the ICs
+#' @param ndims.print ICs to print genes for
+#' @param nfeatures.print Number of genes to print for each IC
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names.
+#' @param seed.use Set a random seed.  Setting NULL will not set a seed.
+#' @param \dots Additional arguments to be passed to fastica
+#' 
+#' @importFrom ica icafast icaimax icajade
+#' 
+#' @rdname RunICA
+#' @export
+#' @method RunICA default
+#' 
+RunICA.default <- function(
+  object,
+  assay = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  nics <- min(nics, ncol(x = object))
+  ica.fxn <- eval(expr = parse(text = ica.function))
+  if (rev.ica) {
+    ica.results <- ica.fxn(object, nc = nics,...)
+    cell.embeddings <- ica.results$M
+  } else {
+    ica.results <- ica.fxn(t(x = object), nc = nics,...)
+    cell.embeddings <- ica.results$S
+  }
+  feature.loadings <- (as.matrix(x = object ) %*% as.matrix(x = cell.embeddings))
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(x = feature.loadings))
+  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    key = reduction.key
+  )
+  if (verbose) {
+    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+  }
+  return(reduction.data)
+}
+
+
+#' @param features Features to compute ICA on
+#'
+#' @rdname RunICA
+#' @export
+#' @method RunICA Assay
+#'
+RunICA.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunICA(
+    object = data.use,
+    assay = assay,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+    
+  )
+  return(reduction.data)
+}
+
+
+#' @param reduction.name dimensional reduction name
+#' @param reduction.key name of reduction key
+
+#' @rdname RunICA
+#' @method RunICA Seurat
+#' @export
+#'
+RunICA.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "IC_",
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunICA(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
+
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
 #' @param rev.pca By default computes the PCA on the cell x gene matrix. Setting

@@ -631,6 +631,21 @@ RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
 
+#' Run Independent Component Analysis on gene expression
+#'
+#' Run fastica algorithm from the ica package for ICA dimensionality reduction.
+#' For details about stored ICA calculation parameters, see
+#' \code{PrintICAParams}.
+#'
+#' @param object Seurat object
+#'
+#' @rdname RunICA
+#' @export RunICA
+#'
+RunICA <- function(object, ...) {
+  UseMethod(generic = "RunICA", object = object)
+}
+
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
