@@ -2,7 +2,6 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{FilterCells}
 \alias{FilterCells}
-\alias{FilterCells.Seurat}
 \alias{[.Seurat}
 \alias{subset.Seurat}
 \alias{subset}
@@ -10,22 +9,17 @@
 \usage{
 FilterCells(object, ...)
 
-\method{FilterCells}{Seurat}(object, vars, low = -Inf, high = -Inf,
-  ...)
-
 \method{[}{Seurat}(x, i, j, ...)
 
 \method{subset}{Seurat}(x, subset, cells = NULL, features = NULL,
   idents = NULL, ...)
 }
 \arguments{
+\item{object}{An object}
+
 \item{...}{Arguments passed to \code{\link{WhichCells}}}
 
-\item{vars}{Name of variable names to filter on}
-
-\item{low, high}{A vector of low and high threshold values; will automatically expand to the length of \code{vars}}
-
-\item{x, object}{Seurat object to be subsetted}
+\item{x}{Seurat object to be subsetted}
 
 \item{i, features}{A vector of features to keep}
 

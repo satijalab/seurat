@@ -1640,30 +1640,6 @@ Embeddings.Seurat <- function(object, reduction, ...) {
   return(Embeddings(object = object[[reduction]], ...))
 }
 
-#' @inheritParams subset.Seurat
-#' @param vars Name of variable names to filter on
-#' @param low,high A vector of low and high threshold values; will automatically expand to the length of \code{vars}
-#'
-#' @rdname subset.Seurat
-#' @export
-#' @method FilterCells Seurat
-#'
-FilterCells.Seurat <- function(object, vars, low = -Inf, high = Inf, ...) {
-  low <- rep_len(x = low, length.out = length(x = vars))
-  high <- rep_len(x = high, length.out = length(x = vars))
-  if (any(low > high)) {
-    stop("Low threshold values cannot be creater than high threshold values")
-  }
-  expression <- sapply(
-    X = 1:length(x = vars),
-    FUN = function(i) {
-      return(paste(vars[i], '>', low[i], '&', vars[i], '<', high[i]))
-    }
-  )
-  expression <- paste(expression, collapse = ' & ')
-  return(subset(x = object, subset = expression, ...))
-}
-
 #' @param assay Assay to get
 #'
 #' @rdname GetAssay
@@ -2834,7 +2810,7 @@ WhichCells.Seurat <- function(
     ))
     cells <- intersect(x = cells, y = cells.idents)
   }
-  if (!missing(x = expression) && !is.null(x = substitute(expr = expression))) {
+  if (!missing(x = expression)) {
     objects.use <- FilterObjects(object = object)
     object.keys <- sapply(
       X = objects.use,
@@ -3510,7 +3486,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #' Subset a Seurat object
 #'
 #' @inheritParams WhichCells
-#' @param x,object Seurat object to be subsetted
+#' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
 #' @param i,features A vector of features to keep
 #' @param j,cells A vector of cells to keep
@@ -3530,12 +3506,7 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
-  # if (!missing(x = subset)) {
-  #   subset <- deparse(expr = substitute(expr = subset))
-  # }
-  if (missing(x = subset)) {
-    subset <- NULL
-  } else if (is.call(x = substitute(expr = subset))) {
+  if (!missing(x = subset)) {
     subset <- deparse(expr = substitute(expr = subset))
   }
   # cells <- select %iff% if (any(select %in% colnames(x = x))) {
