@@ -1209,7 +1209,7 @@ ExportToCellbrowser <- function(
   # Export expression matrix
   df <- as.data.frame(as.matrix(GetAssayData(object = object)))
   df <- data.frame(gene=rownames(object), df)
-  z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"))
+  z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"), "w")
   write.table(df, sep="\t", file=z, quote = FALSE, row.names = FALSE)
   close(z)
 
@@ -1271,7 +1271,7 @@ shortLabel="%1$s"
 exprMatrix="exprMatrix.tsv.gz"
 #tags = ["10x", "smartseq2"]
 meta="meta.tsv"
-# possible values: "gencode-human", "gencode-mouse", "symbol"
+# possible values: "gencode-human", "gencode-mouse", "symbol" or "auto"
 geneIdType="auto"
 clusterField="%s"
 labelField="%2$s"
@@ -1297,6 +1297,7 @@ coords=%s'
     coords.string
   )
   cat(config, file=file.path(dir, "cellbrowser.conf"))
+  message("Prepared cellbrowser directory ", dir)
 
   if (!is.null(cb.dir) && require(reticulate)) {
     library(reticulate)
@@ -1315,4 +1316,17 @@ coords=%s'
       utils::browseURL(sprintf("http://localhost:%d", port))
     }
   }
+}
+
+#' Stop Cellbrowser web server
+#'
+#' @export
+#'
+#' @examples
+#' StopCellbrowser()
+#'
+StopCellbrowser <- function() {
+    library(reticulate)
+    cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
+    cb$cellbrowser$stop()
 }
