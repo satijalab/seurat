@@ -7,7 +7,7 @@
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   reduction = "pca", disp.min = -2.5, disp.max = NULL,
   balanced = TRUE, projected = FALSE, ncol = NULL, combine = TRUE,
-  fast = TRUE, slot = "scale.data", assays = NULL, ...)
+  fast = TRUE, slot = "scale.data", assays = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,8 +38,6 @@ if \code{slot} is 'scale.data', 6 otherwise}
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 
 \item{assays}{A vector of assays to pull data from}
-
-\item{...}{Ignored for now}
 }
 \value{
 A ggplot object
