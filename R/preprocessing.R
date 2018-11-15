@@ -699,17 +699,16 @@ RegressRegNB <- function(
     umi,
     show_progress = verbose,
     return_cell_attr = TRUE,
+    return_corrected_umi = do.correct.umi,
     ...
   )
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
-      message('Calculate corrected UMI matrix and place in data slot')
+      message('Placing corrected UMI matrix in data slot')
     }
-    umi.corrected <- sctransform::denoise(x = vst.out)
-    umi.corrected <- as(object = umi.corrected, Class = 'dgCMatrix')
     # skip SetAssayData.Assay because of restrictive dimension checks there
-    slot(object = assay.obj, name = 'data') <- umi.corrected
+    slot(object = assay.obj, name = 'data') <- vst.out$umi_corrected
     # assay.obj <- SetAssayData(
     #   object = assay.obj,
     #   slot = 'data',
