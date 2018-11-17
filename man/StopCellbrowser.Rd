@@ -10,6 +10,8 @@ StopCellbrowser()
 Stop Cellbrowser web server
 }
 \examples{
+\dontrun{
 StopCellbrowser()
+}
 
 }
