@@ -1166,13 +1166,18 @@ ToNumeric <- function(x){
 #'
 #' @export
 #'
+#' @importFrom reticulate py_module_available
+#' @importFrom reticulate import
+#'
 #' @examples
+#' \dontrun{
 #' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
+#' }
 #'
 ExportToCellbrowser <- function(
   object,
-  dir = NULL,
-  dataset.name = NULL,
+  dir,
+  dataset.name,
   meta.fields = NULL,
   meta.fields.names = NULL,
   embeddings = c("tsne"),
@@ -1181,12 +1186,6 @@ ExportToCellbrowser <- function(
   port = NULL,
   cb.dir = NULL
 ) {
-  if (is.null(dir)) {
-    stop("Missing output directory")
-  }
-  if (is.null(dataset.name)) {
-    stop("Missing dataset name parameter")
-  }
   if (is.null(meta.fields)) {
     meta.fields <- c("nCount_RNA", "nFeature_RNA")
     if (length(levels(x = Idents(object = object))) > 1) {
@@ -1200,7 +1199,7 @@ ExportToCellbrowser <- function(
     dir.create(dir)
   }
   if (!dir.exists(dir)) {
-    stop(sprintf("Output director %s cannot be created or is a file", dir))
+    stop("Output directory ", dir, " cannot be created or is a file")
   }
 
   order <- Cells(object = object)
@@ -1218,10 +1217,10 @@ ExportToCellbrowser <- function(
   for (embedding in embeddings) {
     df <- Embeddings(object = object, reduction = embedding)
     if (ncol(df) > 2) {
-      warning(sprintf(
-        'Embedding %s has more than 2 coordinates, taking only the first 2',
-        embedding
-      ))
+      warning(
+        'Embedding ', embedding,
+        ' has more than 2 coordinates, taking only the first 2',
+      )
       df <- df[, 1:2]
     }
     colnames(df) <- c("x", "y")
@@ -1299,20 +1298,23 @@ coords=%s'
   cat(config, file=file.path(dir, "cellbrowser.conf"))
   message("Prepared cellbrowser directory ", dir)
 
-  if (!is.null(cb.dir) && require(reticulate)) {
-    library(reticulate)
+  if (!is.null(cb.dir)) {
     if (!py_module_available("cellbrowser")) {
-      py_install("cellbrowser") # see https://rstudio.github.io/reticulate/articles/python_packages.html
+      stop(
+        "Python package `cellbrowser` is required to prepare and run ",
+        "Cellbrowser. Please, install it with `pip install cellbrowser`."
+      )
     }
 
     if (!is.null(port)) {
       port <- as.integer(port)
     }
-    cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
+    cb <- import("cellbrowser")
     cb$cellbrowser$build(dir, cb.dir)
     if (!is.null(port)) {
       cb$cellbrowser$stop()
       cb$cellbrowser$serve(cb.dir, port)
+      Sys.sleep(0.4)
       utils::browseURL(sprintf("http://localhost:%d", port))
     }
   }
@@ -1322,11 +1324,17 @@ coords=%s'
 #'
 #' @export
 #'
+#' @importFrom reticulate py_module_available
+#' @importFrom reticulate import
+#'
 #' @examples
+#' \dontrun{
 #' StopCellbrowser()
+#' }
 #'
 StopCellbrowser <- function() {
-    library(reticulate)
-    cb <- import("cellbrowser") # see https://github.com/rstudio/reticulate/issues/73
+  if (py_module_available("cellbrowser")) {
+    cb <- import("cellbrowser")
     cb$cellbrowser$stop()
+  }
 }

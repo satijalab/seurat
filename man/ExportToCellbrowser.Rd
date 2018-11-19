@@ -4,10 +4,10 @@
 \alias{ExportToCellbrowser}
 \title{Export Seurat object for UCSC cell browser}
 \usage{
-ExportToCellbrowser(object, dir = NULL, dataset.name = NULL,
-  meta.fields = NULL, meta.fields.names = NULL,
-  embeddings = c("tsne"), markers.file = NULL, cluster.field = NULL,
-  port = NULL, cb.dir = NULL)
+ExportToCellbrowser(object, dir, dataset.name, meta.fields = NULL,
+  meta.fields.names = NULL, embeddings = c("tsne"),
+  markers.file = NULL, cluster.field = NULL, port = NULL,
+  cb.dir = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -36,6 +36,8 @@ column name to export name}
 Export Seurat object for UCSC cell browser
 }
 \examples{
+\dontrun{
 ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
+}
 
 }
