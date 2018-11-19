@@ -1184,7 +1184,8 @@ ExportToCellbrowser <- function(
   markers.file = NULL,
   cluster.field = NULL,
   port = NULL,
-  cb.dir = NULL
+  cb.dir = NULL,
+  do.install = FALSE
 ) {
   if (is.null(meta.fields)) {
     meta.fields <- c("nCount_RNA", "nFeature_RNA")
@@ -1300,10 +1301,19 @@ coords=%s'
 
   if (!is.null(cb.dir)) {
     if (!py_module_available("cellbrowser")) {
-      stop(
-        "Python package `cellbrowser` is required to prepare and run ",
-        "Cellbrowser. Please, install it with `pip install cellbrowser`."
-      )
+      if (do.install)
+          py_install("cellbrowser") 
+      else
+          stop(
+            "The Python package `cellbrowser` is required to prepare and run ",
+            "Cellbrowser. Please specify `do.install=TRUE` or  install it ",
+            "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
+            "or `pip install cellbrowser --user` (as a non-root user). ",
+            "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
+            "or do `require(reticulate) and use one of these functions: use_python(), use_virtualenv(), use_condaenv(). ",
+            "See https://rstudio.github.io/reticulate/articles/versions.html . ",
+            "At the moment, R's reticulate is using this Python: ",import('sys')$executable,". "
+           )
     }
 
     if (!is.null(port)) {
@@ -1336,5 +1346,7 @@ StopCellbrowser <- function() {
   if (py_module_available("cellbrowser")) {
     cb <- import("cellbrowser")
     cb$cellbrowser$stop()
+  } else {
+    stop("The `cellbrowser` package is not available in the Python used by R's reticulate")
   }
 }
