@@ -6,8 +6,8 @@
 \alias{AnchorSet}
 \title{The AnchorSet Class}
 \description{
-The AnchorSet class is an intermediate data storage class that stores the anchors and other 
-related information needed for performing downstream analyses - namely data integration 
+The AnchorSet class is an intermediate data storage class that stores the anchors and other
+related information needed for performing downstream analyses - namely data integration
 (\code{\link{IntegrateData}}) and data transfer (\code{\link{TransferData}}).
 }
 \section{Slots}{
@@ -20,8 +20,8 @@ transfer.}
 
 \item{\code{query.cells}}{List of cell names in the query dataset - needed when performing data transfer}
 
-\item{\code{anchors}}{The anchor matrix. This contains the cell indices of both anchor pair cells, the 
-anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of 
+\item{\code{anchors}}{The anchor matrix. This contains the cell indices of both anchor pair cells, the
+anchor score, and the index of the original dataset in the object.list for cell1 and cell2 of
 the anchor.}
 
 \item{\code{offsets}}{The offsets used to enable cell look up in downstream functions}

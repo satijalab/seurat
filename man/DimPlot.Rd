@@ -2,13 +2,17 @@
 % Please edit documentation in R/visualization.R
 \name{DimPlot}
 \alias{DimPlot}
+\alias{TSNEPlot}
+\alias{PCAPlot}
+\alias{ICAPlot}
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   pt.size = NULL, reduction = NULL, group.by = NULL,
-  shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
-  repel = FALSE, cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", combine = TRUE, ...)
+  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
+  label.size = 4, repel = FALSE, cells.highlight = NULL,
+  cols.highlight = "red", sizes.highlight = 1, na.value = "grey50",
+  combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,8 +27,10 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
 
 \item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{group.by}{A vector of variables to group (color) cells by (for example, orig.ident);
-pass 'ident' to group by identity class}
+\item{group.by}{Name of one or more metadata columns to group (color) cells by
+(for example, orig.ident); pass 'ident' to group by identity class}
+
+\item{split.by}{Name of a metadata column to split plot by}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both

@@ -10,6 +10,107 @@ NULL
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
+#' @param n.start Number of random starts.
+#' @param n.iter Maximal number of iterations per random start.
+#' @param random.seed Seed of the random number generator.
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
+#' @param verbose Print output
+#'
+#' @importFrom methods is
+#'
+#' @rdname FindClusters
+#' @export
+#'
+FindClusters.default <- function(
+  object,
+  modularity.fxn = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+) {
+  if (is.null(x = object)) {
+    stop("Please provide an SNN graph")
+  }
+  clustering.results <- data.frame(row.names = colnames(x = object))
+  for (r in resolution) {
+    ids <- RunModularityClustering(
+      SNN = object,
+      modularity = modularity.fxn,
+      resolution = r,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = verbose,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name)
+    names(x = ids) <- colnames(x = object)
+    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+    clustering.results[, paste0("res.", r)] <- factor(x = ids)
+  }
+  return(clustering.results)
+}
+
+#' @param graph.name Name of graph to use for the clustering algorithm
+#'
+#' @rdname FindClusters
+#' @export
+#' @method FindClusters Seurat
+#'
+FindClusters.Seurat <- function(
+  object,
+  graph.name = NULL,
+  modularity.fxn = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+) {
+  graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
+  if (!graph.name %in% names(x = object)) {
+    stop("Provided graph.name not present in Seurat object")
+  }
+  if (!is(object = object[[graph.name]], class2 = "Graph")) {
+    stop("Provided graph.name does not correspond to a graph object.")
+  }
+  clustering.results <- FindClusters(
+    object = object[[graph.name]],
+    modularity.fxn = modularity.fxn,
+    resolution = resolution,
+    algorithm = algorithm,
+    n.start = n.start,
+    n.iter = n.iter,
+    random.seed = random.seed,
+    temp.file.location = temp.file.location,
+    edge.file.name = edge.file.name,
+    verbose = verbose
+  )
+  colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
+  object <- AddMetaData(object = object, metadata = clustering.results)
+  Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  object <- LogSeuratCommand(object)
+  return(object)
+}
+
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
 #' @param k.param Defines k for the k-nearest neighbor algorithm
@@ -191,107 +292,6 @@ FindNeighbors.Seurat <- function(
     }
   }
   object <- LogSeuratCommand(object = object)
-  return(object)
-}
-
-#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
-#' @param resolution Value of the resolution parameter, use a value above
-#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
-#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
-#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm).
-#' @param n.start Number of random starts.
-#' @param n.iter Maximal number of iterations per random start.
-#' @param random.seed Seed of the random number generator.
-#' @param temp.file.location Directory where intermediate files will be written.
-#' Specify the ABSOLUTE path.
-#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
-#' @param verbose Print output
-#'
-#' @importFrom methods is
-#'
-#' @rdname FindClusters
-#' @export
-#'
-FindClusters.default <- function(
-  object,
-  modularity.fxn = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
-) {
-  if (is.null(x = object)) {
-    stop("Please provide an SNN graph")
-  }
-  clustering.results <- data.frame(row.names = colnames(x = object))
-  for (r in resolution) {
-    ids <- RunModularityClustering(
-      SNN = object,
-      modularity = modularity.fxn,
-      resolution = r,
-      algorithm = algorithm,
-      n.start = n.start,
-      n.iter = n.iter,
-      random.seed = random.seed,
-      print.output = verbose,
-      temp.file.location = temp.file.location,
-      edge.file.name = edge.file.name)
-    names(x = ids) <- colnames(x = object)
-    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-    clustering.results[, paste0("res.", r)] <- factor(x = ids)
-  }
-  return(clustering.results)
-}
-
-#' @param graph.name Name of graph to use for the clustering algorithm
-#'
-#' @rdname FindClusters
-#' @export
-#' @method FindClusters Seurat
-#'
-FindClusters.Seurat <- function(
-  object,
-  graph.name = NULL,
-  modularity.fxn = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
-) {
-  graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
-  if (!graph.name %in% names(x = object)) {
-    stop("Provided graph.name not present in Seurat object")
-  }
-  if (!is(object = object[[graph.name]], class2 = "Graph")) {
-    stop("Provided graph.name does not correspond to a graph object.")
-  }
-  clustering.results <- FindClusters(
-    object = object[[graph.name]],
-    modularity.fxn = modularity.fxn,
-    resolution = resolution,
-    algorithm = algorithm,
-    n.start = n.start,
-    n.iter = n.iter,
-    random.seed = random.seed,
-    temp.file.location = temp.file.location,
-    edge.file.name = edge.file.name,
-    verbose = verbose
-  )
-  colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
-  object <- AddMetaData(object = object, metadata = clustering.results)
-  Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
-  object <- LogSeuratCommand(object)
   return(object)
 }
 

@@ -16,7 +16,6 @@ Authors@R: c(
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
 Remotes: ChristophH/sctransform
-Additional_repositories: https://mojaveazure.github.io/loomR
 Depends:
     R (>= 3.4.0),
     methods,
@@ -31,6 +30,7 @@ Imports:
     ggridges,
     graphics,
     grDevices,
+    ica,
     igraph,
     ini,
     irlba,
@@ -69,7 +69,7 @@ Collate:
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests:
     gdata,
@@ -80,7 +80,6 @@ Suggests:
     caret,
     hdf5r,
     ranger,
-    loomR,
     phateR,
     S4Vectors,
     SummarizedExperiment,

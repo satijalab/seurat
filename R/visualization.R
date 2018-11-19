@@ -46,8 +46,7 @@ DimHeatmap <- function(
   combine = TRUE,
   fast = TRUE,
   slot = 'scale.data',
-  assays = NULL,
-  ...
+  assays = NULL
 ) {
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
@@ -185,7 +184,6 @@ DimHeatmap <- function(
 #' @param hjust Horizontal justification of text above color bar
 #' @param angle Angle of text above color bar
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
-#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -211,8 +209,7 @@ DoHeatmap <- function(
   size = 5.5,
   hjust = 0,
   angle = 45,
-  combine = TRUE,
-  ...
+  combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -495,21 +492,6 @@ VlnPlot <- function(
 # Dimensional reduction plots
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# @param do.hover Enable hovering over points to view information
-# @param data.hover Data to add to the hover, pass a character vector of
-# features to add. Defaults to cell name and ident. Pass 'NULL' to clear extra
-# information.
-# @param do.identify Opens a locator session to identify clusters of cells.
-# @param vector.friendly FALSE by default. If TRUE, points are flattened into
-# a PNG, while axes/labels retain full vector resolution. Useful for producing
-# AI-friendly plots with large numbers of cells.
-# @param png.file Used only if vector.friendly is TRUE. Location for temporary
-# PNG file.
-# @param png.arguments Used only if vector.friendly is TRUE. Vector of three
-# elements (PNG width, PNG height, PNG DPI) to be used for temporary PNG.
-# Default is c(10,10,100)
-# @param ... Extra parameters to FeatureLocator for do.identify = TRUE
-
 #' Dimensional reduction plot
 #'
 #' Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
@@ -522,8 +504,9 @@ VlnPlot <- function(
 #' @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot2 assigns colors
 #' @param pt.size Adjust point size for plotting
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
-#' @param group.by A vector of variables to group (color) cells by (for example, orig.ident);
-#' pass 'ident' to group by identity class
+#' @param group.by Name of one or more metadata columns to group (color) cells by
+#' (for example, orig.ident); pass 'ident' to group by identity class
+#' @param split.by Name of a metadata column to split plot by
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -548,11 +531,14 @@ VlnPlot <- function(
 #' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
+#' @importFrom ggplot2 facet_wrap
+#'
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
 #' \code{HoverLocator} and \code{FeatureLocator}, respectively.
 #'
+#' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
 #' \code{\link{FeatureLocator}}
 #'
@@ -567,6 +553,7 @@ DimPlot <- function(
   pt.size = NULL,
   reduction = NULL,
   group.by = NULL,
+  split.by = NULL,
   shape.by = NULL,
   order = NULL,
   label = FALSE,
@@ -603,17 +590,26 @@ DimPlot <- function(
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
+  if (!is.null(x = split.by)) {
+    if (length(x = group.by) > 1) {
+      nrow <- ncol <- 1
+    } else {
+      nrow <- NULL
+      ncol <- list(...)$ncol
+    }
+    data[, split.by] <- object[[split.by, drop = TRUE]]
+  }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
       return(SingleDimPlot(
-        data = data[, c(dims, x)],
+        data = data[, c(dims, x, split.by)],
         dims = dims,
         col.by = x,
         cols = cols,
         pt.size = pt.size,
         shape.by = shape.by,
-        plot.order = order,
+        order = order,
         label = label,
         repel = repel,
         label.size = label.size,
@@ -624,8 +620,16 @@ DimPlot <- function(
       ))
     }
   )
+  if (!is.null(x = split.by)) {
+    plots <- lapply(
+      X = plots,
+      FUN = function(x) {
+        x + facet_wrap(facets = split.by, nrow = nrow)
+      }
+    )
+  }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ...)
+    plots <- CombinePlots(plots = plots, ncol = ncol, ...)
   }
   return(plots)
 }
@@ -649,7 +653,6 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -658,6 +661,7 @@ DimPlot <- function(
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis guides
 #' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
+#'
 #' @export
 #'
 #' @note For the old \code{do.hover} and \code{do.identify} functionality, please see
@@ -689,8 +693,7 @@ FeaturePlot <- function(
   label.size = 4,
   ncol = NULL,
   combine = TRUE,
-  coord.fixed = FALSE,
-  ...
+  coord.fixed = FALSE
 ) {
   no.right <- theme(
     axis.line.y.right = element_blank(),
@@ -829,7 +832,7 @@ FeaturePlot <- function(
         col.by = feature,
         pt.size = pt.size,
         cols = cols.use,
-        do.label = label,
+        label = label,
         label.size = label.size
       ) +
         scale_x_continuous(limits = xlims) +
@@ -1016,6 +1019,8 @@ CellScatter <- function(
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
+#' @param group.by Name of one or more metadata columns to group (color) cells by
+#' (for example, orig.ident); pass 'ident' to group by identity class
 #' @param cols Colors to use for identity class plotting.
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
@@ -1039,6 +1044,7 @@ FeatureScatter <- function(
   feature1,
   feature2,
   cells = NULL,
+  group.by = NULL,
   cols = NULL,
   pt.size = 1,
   shape.by = NULL,
@@ -1048,6 +1054,10 @@ FeatureScatter <- function(
   ...
 ) {
   cells <- cells %||% colnames(x = object)
+  group.by <- group.by %||% Idents(object = object)[cells]
+  if (length(x = group.by) == 1) {
+    group.by <- object[[]][, group.by]
+  }
   plot <- SingleCorPlot(
     data = FetchData(
       object = object,
@@ -1055,7 +1065,7 @@ FeatureScatter <- function(
       cells = cells,
       slot = slot
     ),
-    col.by = Idents(object = object)[cells],
+    col.by = group.by,
     cols = cols,
     pt.size = pt.size,
     smooth = smooth,
@@ -1131,6 +1141,158 @@ VariableFeaturePlot <- function(
   if (log) {
     plot <- plot + scale_x_log10()
   }
+  return(plot)
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Polygon Plots
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' Polygon DimPlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
+#' in metadata
+#'
+#' @inheritParams PolyFeaturePlot
+#' @param group.by A grouping variable present in the metadata. Default is to use the groupings present
+#' in the current cell identities (\code{Idents(object = object)})
+#'
+#' @return Returns a ggplot object
+#'
+#' @export
+#'
+PolyDimPlot <- function(
+  object,
+  group.by = NULL,
+  cells = NULL,
+  poly.data = 'spatial',
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  group.by <- group.by %||% 'ident'
+  group.data <- FetchData(
+    object = object,
+    vars = group.by,
+    cells = cells
+  )
+  group.data$cell <- rownames(x = group.data)
+  data <- merge(x = polygons, y = group.data, by = 'cell')
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = group.by)
+  return(plot)
+}
+
+#' Polygon FeaturePlot
+#'
+#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
+#'
+#' @inheritParams FeaturePlot
+#' @param poly.data Name of the polygon dataframe in the misc slot
+#' @param ncol Number of columns to split the plot into
+#' @param common.scale ...
+#' @param flip.coords Flip x and y coordinates
+#'
+#' @return Returns a ggplot object
+#'
+#' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
+#'
+#' @export
+#'
+PolyFeaturePlot <- function(
+  object,
+  features,
+  cells = NULL,
+  poly.data = 'spatial',
+  ncol = ceiling(x = length(x = features) / 2),
+  min.cutoff = 0,
+  max.cutoff = NA,
+  common.scale = TRUE,
+  flip.coords = FALSE
+) {
+  polygons <- Misc(object = object, slot = poly.data)
+  if (is.null(x = polygons)) {
+    stop("Could not find polygon data in misc slot")
+  }
+  assay.data <- FetchData(
+    object = object,
+    vars = features,
+    cells = cells
+  )
+  features <- colnames(x = assay.data)
+  cells <- rownames(x = assay.data)
+  min.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = min(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = min.cutoff,
+    feature = features
+  )
+  max.cutoff <- mapply(
+    FUN = function(cutoff, feature) {
+      return(ifelse(
+        test = is.na(x = cutoff),
+        yes = max(assay.data[, feature]),
+        no = cutoff
+      ))
+    },
+    cutoff = max.cutoff,
+    feature = features
+  )
+  check.lengths <- unique(x = vapply(
+    X = list(features, min.cutoff, max.cutoff),
+    FUN = length,
+    FUN.VALUE = numeric(length = 1)
+  ))
+  if (length(x = check.lengths) != 1) {
+    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
+  }
+  assay.data <- mapply(
+    FUN = function(feature, min, max) {
+      return(ScaleColumn(vec = assay.data[, feature], cutoffs = c(min, max)))
+    },
+    feature = features,
+    min = min.cutoff,
+    max = max.cutoff
+  )
+  if (common.scale) {
+    assay.data <- apply(
+      X = assay.data,
+      MARGIN = 2,
+      FUN = function(x) {
+        return(x - min(x))
+      }
+    )
+    assay.data <- t(
+      x = t(x = assay.data) / apply(X = assay.data, MARGIN = 2, FUN = max)
+    )
+  }
+  assay.data <- as.data.frame(x = assay.data)
+  assay.data <- data.frame(
+    cell = as.vector(x = replicate(n = length(x = features), expr = cells)),
+    feature = as.vector(x = t(x = replicate(n = length(x = cells), expr = features))),
+    expression = unlist(x = assay.data, use.names = FALSE)
+  )
+  data <- merge(x = polygons, y = assay.data, by = 'cell')
+  data$feature <- factor(x = data$feature, levels = features)
+  if (flip.coords) {
+    coord.x <- data$x
+    data$x <- data$y
+    data$y <- coord.x
+  }
+  plot <- SinglePolyPlot(data = data, group.by = 'expression', font_size = 8) +
+    scale_fill_viridis_c() +
+    facet_wrap(facets = 'feature', ncol = ncol)
   return(plot)
 }
 
@@ -1547,7 +1709,7 @@ JackStrawPlot <- function(
   if (nrow(x = score.df) < max(dims)) {
     stop("Jackstraw procedure not scored for all the provided dims. Please run ScoreJackStraw.")
   }
-  score.df <- score.df[dims, ]
+  score.df <- score.df[dims, , drop = FALSE]
   if (nrow(x = score.df) == 0) {
     stop(paste0("JackStraw hasn't been scored. Please run ScoreJackStraw before plotting."))
   }
@@ -1569,154 +1731,6 @@ JackStrawPlot <- function(
     guides(color = guide_legend(title = "PC: p-value")) +
     theme_cowplot()
   return(gp)
-}
-
-#' Polygon DimPlot
-#'
-#' Plot cells as polygons, rather than single points. Color cells by identity, or a categorical variable
-#' in metadata
-#'
-#' @inheritParams PolyFeaturePlot
-#' @param group.by A grouping variable present in the metadata. Default is to use the groupings present
-#' in the current cell identities (\code{Idents(object = object)})
-#'
-#' @return Returns a ggplot object
-#'
-#' @export
-#'
-PolyDimPlot <- function(
-  object,
-  group.by = NULL,
-  cells = NULL,
-  poly.data = 'spatial',
-  flip.coords = FALSE
-) {
-  polygons <- Misc(object = object, slot = poly.data)
-  if (is.null(x = polygons)) {
-    stop("Could not find polygon data in misc slot")
-  }
-  group.by <- group.by %||% 'ident'
-  group.data <- FetchData(
-    object = object,
-    vars = group.by,
-    cells = cells
-  )
-  group.data$cell <- rownames(x = group.data)
-  data <- merge(x = polygons, y = group.data, by = 'cell')
-  if (flip.coords) {
-    coord.x <- data$x
-    data$x <- data$y
-    data$y <- coord.x
-  }
-  plot <- SinglePolyPlot(data = data, group.by = group.by)
-  return(plot)
-}
-
-#' Polygon FeaturePlot
-#'
-#' Plot cells as polygons, rather than single points. Color cells by any value accessible by \code{\link{FetchData}}.
-#'
-#' @inheritParams FeaturePlot
-#' @param poly.data Name of the polygon dataframe in the misc slot
-#' @param ncol Number of columns to split the plot into
-#' @param common.scale ...
-#' @param flip.coords Flip x and y coordinates
-#'
-#' @return Returns a ggplot object
-#'
-#' @importFrom ggplot2 scale_fill_viridis_c facet_wrap
-#'
-#' @export
-#'
-PolyFeaturePlot <- function(
-  object,
-  features,
-  cells = NULL,
-  poly.data = 'spatial',
-  ncol = ceiling(x = length(x = features) / 2),
-  min.cutoff = 0,
-  max.cutoff = NA,
-  common.scale = TRUE,
-  flip.coords = FALSE
-) {
-  polygons <- Misc(object = object, slot = poly.data)
-  if (is.null(x = polygons)) {
-    stop("Could not find polygon data in misc slot")
-  }
-  assay.data <- FetchData(
-    object = object,
-    vars = features,
-    cells = cells
-  )
-  features <- colnames(x = assay.data)
-  cells <- rownames(x = assay.data)
-  min.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      return(ifelse(
-        test = is.na(x = cutoff),
-        yes = min(assay.data[, feature]),
-        no = cutoff
-      ))
-    },
-    cutoff = min.cutoff,
-    feature = features
-  )
-  max.cutoff <- mapply(
-    FUN = function(cutoff, feature) {
-      return(ifelse(
-        test = is.na(x = cutoff),
-        yes = max(assay.data[, feature]),
-        no = cutoff
-      ))
-    },
-    cutoff = max.cutoff,
-    feature = features
-  )
-  check.lengths <- unique(x = vapply(
-    X = list(features, min.cutoff, max.cutoff),
-    FUN = length,
-    FUN.VALUE = numeric(length = 1)
-  ))
-  if (length(x = check.lengths) != 1) {
-    stop("There must be the same number of minimum and maximum cuttoffs as there are features")
-  }
-  assay.data <- mapply(
-    FUN = function(feature, min, max) {
-      return(ScaleColumn(vec = assay.data[, feature], cutoffs = c(min, max)))
-    },
-    feature = features,
-    min = min.cutoff,
-    max = max.cutoff
-  )
-  if (common.scale) {
-    assay.data <- apply(
-      X = assay.data,
-      MARGIN = 2,
-      FUN = function(x) {
-        return(x - min(x))
-      }
-    )
-    assay.data <- t(
-      x = t(x = assay.data) / apply(X = assay.data, MARGIN = 2, FUN = max)
-    )
-  }
-  assay.data <- as.data.frame(x = assay.data)
-  assay.data <- data.frame(
-    cell = as.vector(x = replicate(n = length(x = features), expr = cells)),
-    feature = as.vector(x = t(x = replicate(n = length(x = cells), expr = features))),
-    expression = unlist(x = assay.data, use.names = FALSE)
-  )
-  data <- merge(x = polygons, y = assay.data, by = 'cell')
-  data$feature <- factor(x = data$feature, levels = features)
-  if (flip.coords) {
-    coord.x <- data$x
-    data$x <- data$y
-    data$y <- coord.x
-  }
-  plot <- SinglePolyPlot(data = data, group.by = 'expression', font_size = 8) +
-    scale_fill_viridis_c() +
-    facet_wrap(facets = 'feature', ncol = ncol)
-  return(plot)
 }
 
 #' Visualize Dimensional Reduction genes
@@ -1741,9 +1755,9 @@ PolyFeaturePlot <- function(
 #' @export
 #'
 #' @examples
-#' VizDimReduction(object = pbmc_small)
+#' VizDimLoadings(object = pbmc_small)
 #'
-VizDimReduction <- function(
+VizDimLoadings <- function(
   object,
   dims = 1:5,
   nfeatures = 30,
@@ -2180,7 +2194,14 @@ HoverLocator <- function(
 #' plot <- DimPlot(object = pbmc_small)
 #' LabelClusters(plot = plot, id = 'ident')
 #'
-LabelClusters <- function(plot, id, clusters = NULL, labels = NULL, repel = TRUE, ...) {
+LabelClusters <- function(
+  plot,
+  id,
+  clusters = NULL,
+  labels = NULL,
+  repel = TRUE,
+  ...
+) {
   xynames <- GetXYAesthetics(plot = plot)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
@@ -2727,8 +2748,8 @@ BlendMap <- function(color.matrix) {
   xbreaks <- seq.int(from = 0, to = nrow(x = color.matrix), by = 2)
   ybreaks <- seq.int(from = 0, to = ncol(x = color.matrix), by = 2)
   color.heat <- Melt(x = color.heat)
-  color.heat$rows <- as.numeric(x = color.heat$rows)
-  color.heat$cols <- as.numeric(x = color.heat$cols)
+  color.heat$rows <- as.numeric(x = as.character(x = color.heat$rows))
+  color.heat$cols <- as.numeric(x = as.character(x = color.heat$cols))
   color.heat$vals <- factor(x = color.heat$vals)
   plot <- ggplot(
     data = color.heat,
@@ -2824,7 +2845,6 @@ Col2Hex <- function(...) {
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
-# @param ... Ignored
 #
 #' @importFrom scales hue_pal
 #
@@ -2845,8 +2865,7 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   combine = TRUE,
-  slot = 'data',
-  ...
+  slot = 'data'
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -2895,7 +2914,6 @@ ExIPlot <- function(
     X = features,
     FUN = function(x) {
       return(SingleExIPlot(
-        feature = x,
         type = type,
         data = data[, x, drop = FALSE],
         idents = idents,
@@ -3542,7 +3560,6 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
-# @param ... Ignored for now
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
@@ -3562,8 +3579,7 @@ SingleDimPlot <- function(
   cells.highlight = NULL,
   cols.highlight = 'red',
   sizes.highlight = 1,
-  na.value = 'grey50',
-  ...
+  na.value = 'grey50'
 ) {
   pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   if (length(x = dims) != 2) {
@@ -3649,7 +3665,6 @@ SingleDimPlot <- function(
 
 # Plot a single expression by identity on a plot
 #
-# @param feature Feature to plot
 # @param type Make either a 'ridge' or 'violin' plot
 # @param data Data to plot
 # @param idents Idents to use
@@ -3658,9 +3673,7 @@ SingleDimPlot <- function(
 # @param y.max Maximum Y value to plot
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
-# @param feature.names
 # @param log plot Y axis on log scale
-# @param ... Ignored
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -3682,8 +3695,7 @@ SingleExIPlot <- function(
   adjust = 1,
   pt.size = 0,
   cols = NULL,
-  log = FALSE,
-  ...
+  log = FALSE
 ) {
   set.seed(seed = 42)
   if (!is.data.frame(x = data) || ncol(x = data) != 1) {
@@ -3729,7 +3741,7 @@ SingleExIPlot <- function(
     EXPR = type,
     'violin' = {
       x <- 'ident'
-      y <- feature
+      y <- paste0("`", feature, "`")
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
@@ -3741,7 +3753,7 @@ SingleExIPlot <- function(
       axis.scale <- ylim
     },
     'ridge' = {
-      x <- feature
+      x <- paste0("`", feature, "`")
       y <- 'ident'
       xlab <- axis.label
       ylab <- 'Identity'
@@ -3872,7 +3884,6 @@ SinglePolyPlot <- function(data, group.by, ...) {
 # @param disp.max Maximum display value (all values above are clipped)
 # @param limits A two-length numeric vector with the limits for colors on the plot
 # @param group.by A vector to group cells by, should be one grouping identity per cell
-# @param ... Ignored
 #
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
 #' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend
@@ -3885,8 +3896,7 @@ SingleRasterMap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   limits = NULL,
-  group.by = NULL,
-  ...
+  group.by = NULL
 ) {
   data <- MinMax(data = data, min = disp.min, max = disp.max)
   data <- Melt(x = t(x = data))

@@ -129,6 +129,56 @@ JackStraw <- function(
   return(object)
 }
 
+#' L2-normalization
+#'
+#' Perform l2 normalization on given dimensional reduction
+#'
+#' @param object Seurat object
+#' @param reduction Dimensional reduction to normalize
+#' @param new.dr name of new dimensional reduction to store
+#' (default is olddr.l2)
+#' @param new.key name of key for new dimensional reduction
+#'
+#' @return Returns a \code{\link{Seurat}} object
+#'
+#' @export
+#'
+L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
+  l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
+  if(is.null(new.dr)){
+    new.dr <- paste0(reduction, ".l2")
+  }
+  if(is.null(new.key)){
+    new.key <- paste0("L2", Key(object[[reduction]]))
+  }
+  colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
+  l2.dr <- CreateDimReducObject(
+    embeddings = l2.norm,
+    loadings = Loadings(object = object[[reduction]]),
+    projected = Loadings(object = object[[reduction]]),
+    assay = DefaultAssay(object = object),
+    stdev = slot(object = object[[reduction]], name = 'stdev'),
+    key = new.key,
+    jackstraw = slot(object = object[[reduction]], name = 'jackstraw'),
+    misc = slot(object = object[[reduction]], name = 'misc')
+  )
+  object[[new.dr]] <- l2.dr
+  return(object)
+}
+
+#' L2-Normalize CCA
+#'
+#' Perform l2 normalization on CCs
+#'
+#' @param object Seurat object
+#' @param \dots Additional parameters to L2Dim.
+#'
+#' @export
+#'
+L2CCA <- function(object, ...){
+  return(L2Dim(object = object, reduction = "cca", ...))
+}
+
 #' Significant genes from a PCA
 #'
 #' Returns a set of genes, based on the JackStraw analysis, that have
@@ -253,56 +303,6 @@ ProjectDim <- function(
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' L2-normalization
-#'
-#' Perform l2 normalization on given dimensional reduction
-#'
-#' @param object Seurat object
-#' @param reduction Dimensional reduction to normalize
-#' @param new.dr name of new dimensional reduction to store
-#' (default is olddr.l2)
-#' @param new.key name of key for new dimensional reduction
-#'
-#' @return Returns a \code{\link{Seurat}} object
-#'
-#' @export
-#'
-L2Dim <- function(object, reduction, new.dr = NULL, new.key = NULL){
-  l2.norm <- L2Norm(mat = Embeddings(object[[reduction]]))
-  if(is.null(new.dr)){
-    new.dr <- paste0(reduction, ".l2")
-  }
-  if(is.null(new.key)){
-    new.key <- paste0("L2", Key(object[[reduction]]))
-  }
-  colnames(x = l2.norm) <- paste0(new.key, 1:ncol(x = l2.norm))
-  l2.dr <- CreateDimReducObject(
-    embeddings = l2.norm,
-    loadings = Loadings(object = object[[reduction]]),
-    projected = Loadings(object = object[[reduction]]),
-    assay = DefaultAssay(object = object),
-    stdev = slot(object = object[[reduction]], name = 'stdev'),
-    key = new.key,
-    jackstraw = slot(object = object[[reduction]], name = 'jackstraw'),
-    misc = slot(object = object[[reduction]], name = 'misc')
-  )
-  object[[new.dr]] <- l2.dr
-  return(object)
-}
-
-#' L2-Normalize CCA
-#'
-#' Perform l2 normalization on CCs
-#'
-#' @param object Seurat object
-#' @param \dots Additional parameters to L2Dim.
-#'
-#' @export
-#'
-L2CCA <- function(object, ...){
-  return(L2Dim(object = object, reduction = "cca", ...))
-}
-
 #' @param standardize Standardize matrices - scales columns to have unit variance
 #' and mean 0
 #' @param num.cc Number of canonical vectors to calculate
@@ -331,7 +331,7 @@ RunCCA.default <- function(
     object2 <- Standardize(mat = object2, display_progress = FALSE)
   }
   if (as.numeric(x = max(dim(x = object1))) * as.numeric(x = max(dim(x = object2))) > .Machine$integer.max) {
-    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to 
+    # if the returned matrix from FastMatMult has more than 2^31-1 entries, throws an error due to
     # storage of certain attributes as ints, force usage of R version
     use.cpp <- FALSE
   }
@@ -407,7 +407,7 @@ RunCCA.Seurat <- function(
     if (length(x = features) == 0) {
       stop("Zero features in the union of the VariableFeature sets ")
     }
-  }    
+  }
   nfeatures <- length(x = features)
   if (!(rescale)) {
     data.use1 <- GetAssayData(object = object1, assay = assay1, slot = "scale.data")
@@ -484,6 +484,157 @@ RunCCA.Seurat <- function(
   }
   return(combined.object)
 }
+
+#' @param assay Name of Assay ICA is being run on
+#' @param nics Number of ICs to compute
+#' @param rev.ica By default, computes the dimensional reduction on the cell x
+#' feature matrix. Setting to true will compute it on the transpose (feature x cell
+#' matrix).
+#' @param ica.function ICA function from ica package to run (options: icafast,
+#' icaimax, icajade)
+#' @param verbose Print the top genes associated with high/low loadings for
+#' the ICs
+#' @param ndims.print ICs to print genes for
+#' @param nfeatures.print Number of genes to print for each IC
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names.
+#' @param seed.use Set a random seed.  Setting NULL will not set a seed.
+#' @param \dots Additional arguments to be passed to fastica
+#' 
+#' @importFrom ica icafast icaimax icajade
+#' 
+#' @rdname RunICA
+#' @export
+#' @method RunICA default
+#' 
+RunICA.default <- function(
+  object,
+  assay = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  nics <- min(nics, ncol(x = object))
+  ica.fxn <- eval(expr = parse(text = ica.function))
+  if (rev.ica) {
+    ica.results <- ica.fxn(object, nc = nics,...)
+    cell.embeddings <- ica.results$M
+  } else {
+    ica.results <- ica.fxn(t(x = object), nc = nics,...)
+    cell.embeddings <- ica.results$S
+  }
+  feature.loadings <- (as.matrix(x = object ) %*% as.matrix(x = cell.embeddings))
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:ncol(x = feature.loadings))
+  colnames(x = cell.embeddings) <- paste0(reduction.key, 1:ncol(x = cell.embeddings))
+  reduction.data <- CreateDimReducObject(
+    embeddings = cell.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    key = reduction.key
+  )
+  if (verbose) {
+    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+  }
+  return(reduction.data)
+}
+
+
+#' @param features Features to compute ICA on
+#'
+#' @rdname RunICA
+#' @export
+#' @method RunICA Assay
+#'
+RunICA.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "ica_",
+  seed.use = 42,
+  ...
+) {
+  data.use <- PrepDR(
+    object = object,
+    features = features,
+    verbose = verbose
+  )
+  reduction.data <- RunICA(
+    object = data.use,
+    assay = assay,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+    
+  )
+  return(reduction.data)
+}
+
+
+#' @param reduction.name dimensional reduction name
+#' 
+#' @rdname RunICA
+#' @method RunICA Seurat
+#' @export
+#'
+RunICA.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  nics = 50,
+  rev.ica = FALSE,
+  ica.function = "icafast",
+  verbose = TRUE,
+  ndims.print = 1:5,
+  nfeatures.print = 30,
+  reduction.name = "ica",
+  reduction.key = "IC_",
+  seed.use = 42,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunICA(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    nics = nics,
+    rev.ica = rev.ica,
+    ica.function = ica.function,
+    verbose = verbose,
+    ndims.print = ndims.print,
+    nfeatures.print = nfeatures.print,
+    reduction.key = reduction.key,
+    seed.use = seed.use,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
 
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
@@ -1035,13 +1186,13 @@ ScoreJackStraw.Seurat <- function(
 
 # Check that features are present and have non-zero variance
 #
-# @param data.use      Feature matrix (features are rows)
-# @param features      Features to check
-# @param object.name   Name of object for message printing
-# @param verbose       Print warnings
+# @param data.use Feature matrix (features are rows)
+# @param features Features to check
+# @param object.name Name of object for message printing
+# @param verbose Print warnings
 #
-# @return             Returns a vector of features that is the subset of features
-#                     that have non-zero variance
+# @return Returns a vector of features that is the subset of features
+# that have non-zero variance
 #
 CheckFeatures <- function(
   data.use,

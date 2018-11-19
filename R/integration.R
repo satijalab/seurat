@@ -56,7 +56,7 @@ SelectIntegrationFeatures <- function(
   for(i in 1:length(x = object.list)) {
     var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
   }
-  tie.val <- var.features[nfeatures]
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features) > 0) {
     feature.ranks <- sapply(X = features, FUN = function(x) {
@@ -147,6 +147,7 @@ FindIntegrationAnchors <- function(
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
+  object.list <- CheckDuplicateCellNames(object.list = object.list)
   if (is.numeric(x = anchor.features)) {
     if (verbose) {
       message(paste("Computing", anchor.features, "integration features"))
@@ -291,7 +292,8 @@ FindTransferAnchors <- function(
   if (!reduction %in% c("pcaproject", "cca", "pcaqueryproject")) {
     stop("Please select either pcaproject, cca, or pcaqueryproject for the reduction parameter.")
   }
-
+  query <- RenameCells(object = query, new.names = paste0(Cells(object = query), "_", "query"))
+  reference <- RenameCells(object = reference, new.names = paste0(Cells(object = reference), "_", "reference"))
   features <- features %||% VariableFeatures(object = reference)
   reference.assay <- reference.assay %||% DefaultAssay(object = reference)
   query.assay <- query.assay %||% DefaultAssay(object = query)
@@ -745,7 +747,10 @@ TransferData <- function(
     slot = 'weights'
   )
   anchors <- as.data.frame(x = anchors)
-
+  query.cells <- unname(obj = sapply(
+    X = query.cells,
+    FUN = function(x) gsub(pattern = "_query", replacement = "", x = x)
+  ))
   # case for projection
   if (label.transfer) {
     anchors$id1 <- refdata[anchors[, "cell1"]]

@@ -6,25 +6,27 @@
 \alias{DimReduc}
 \title{The Dimmensional Reduction Class}
 \description{
-The DimReduc object is ...
+The DimReduc object stores a dimensionality reduction taken out in Seurat; each DimReduc
+consists of a cell embeddings matrix, a feature loadings matrix, and a projected feature
+loadings matrix.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{cell.embeddings}}{...}
+\item{\code{cell.embeddings}}{Cell embeddings matrix (required)}
 
-\item{\code{feature.loadings}}{...}
+\item{\code{feature.loadings}}{Feature loadings matrix (optional)}
 
-\item{\code{feature.loadings.projected}}{...}
+\item{\code{feature.loadings.projected}}{Projected feature loadings matrix (optional)}
 
-\item{\code{assay.used}}{...}
+\item{\code{assay.used}}{Name of assay used to generate DimReduc object}
 
-\item{\code{stdev}}{...}
+\item{\code{stdev}}{A vector of standard deviations}
 
-\item{\code{key}}{...}
+\item{\code{key}}{Key for the DimReduc, must be alphanumerics followed by an underscore}
 
-\item{\code{jackstraw}}{...}
+\item{\code{jackstraw}}{A \code{\link{JackStrawData-class}} object associated with this DimReduc}
 
-\item{\code{misc}}{...}
+\item{\code{misc}}{Utility slot for storing additional data associated with the DimReduc}
 }}
 
