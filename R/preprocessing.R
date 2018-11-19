@@ -870,8 +870,8 @@ SubsetByBarcodeInflections <- function(object) {
 #'   \item{vst:}{ First, fits a line to the relationship of log(variance) and
 #'   log(mean) using local polynomial regression (loess). Then standardizes the
 #'   feature values using the observed mean and expected variance (given by the
-#'   fitted line). Feature variance is the calculated on the standardized values
-#'   after clipping to a maximum (default is 50).}
+#'   fitted line). Feature variance is then calculated on the standardized values
+#'   after clipping to a maximum (see clip.max parameter).}
 #'   \item{mean.var.plot:}{ First, uses a function to calculate average
 #'   expression (mean.function) and dispersion (dispersion.function) for each
 #'   feature. Next, divides features into num.bin (deafult 20) bins based on
@@ -989,7 +989,8 @@ FindVariableFeatures.default <- function(
 }
 
 #' @param nfeatures Number of features to select as top variable features;
-#' only used when \code{selection.method = 'dispersion'}
+#' only used when \code{selection.method} is set to \code{'dispersion'} or 
+#' \code{'vst'}
 #' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature means
 #' @param dispersion.cutoff A two-length numeric vector with low- and high-cutoffs for
@@ -1104,6 +1105,8 @@ FindVariableFeatures.Seurat <- function(
 #'   counts for that cell and multiplied by the scale.factor. This is then
 #'   natural-log transformed using log1p.}
 #'   \item{CLR: }{Applies a centered log ratio transformation}
+#'   \item{CPX: }{Counts per X. Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied}
 #' }
 #' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
@@ -1137,6 +1140,13 @@ NormalizeData.default <- function(
         return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
       },
       across = across
+    ),
+    'CPX' = CustomNormalize(
+      data = object,
+      custom_function = function(x) {
+        return(x / sum(x) * scale.factor)
+      },
+      across = 'cells'
     ),
     stop("Unkown normalization method: ", normalization.method)
   )
