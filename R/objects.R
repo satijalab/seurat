@@ -1118,20 +1118,77 @@ UpdateSeuratObject <- function(object) {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param counts name of the SingleCellExperiment assay to slot into @@counts
+#' @param data name of the SingleCellExperiment assay to slot into @@data
+#'
 #' @rdname Convert
 #' @export
-#' @method as.seurat SingleCellExperiment
+#' @method as.Seurat SingleCellExperiment
 #'
-as.seurat.SingleCellExperiment <- function(from, ...) {
-  return(Convert(from = from, to = 'seurat'))
+as.Seurat.SingleCellExperiment <- function(
+  from,
+  counts = "counts",
+  data = "logcounts",
+  ...
+) {
+  counts <- tryCatch(
+    expr = SummarizedExperiment::assay(from, counts),
+    error = function(e) {
+      stop("No data in provided assay - ", counts)
+    }
+  )
+  data <- tryCatch(
+    expr = SummarizedExperiment::assay(from, data),
+    error = function(e) {
+      stop("No data in provided assay - ", data)
+    }
+  )
+  meta.data <- as.data.frame(SummarizedExperiment::colData(x = from))
+  seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+  rownames(x = data) <- rownames(x = seurat.object)
+  seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
+  if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
+    for (dr in SingleCellExperiment::reducedDimNames(from)) {
+      embeddings <- SingleCellExperiment::reducedDim(x = from, type = dr)
+      key <- gsub(
+        pattern = "[[:digit:]]",
+        replacement = "_",
+        x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+        )[1])
+      colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
+      seurat.object[[dr]] <- CreateDimReducObject(
+        embeddings = embeddings,
+        key = key,
+        assay = DefaultAssay(object = seurat.object)
+      )
+    }
+  }
+  return(seurat.object)
 }
 
+#' @param assay Assay to convert
+#'
 #' @rdname Convert
 #' @export
-#' @method as.SingleCellExperiment seurat
+#' @method as.SingleCellExperiment Seurat
 #'
-as.SingleCellExperiment.seurat <- function(from, ...) {
-  return(Convert(from = from, to = 'sce'))
+as.SingleCellExperiment.Seurat <- function(from, assay = NULL, ...) {
+  if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+  }
+  assay <- assay %||% DefaultAssay(object = from)
+  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
+    counts = GetAssayData(object = from, assay = assay, slot = "counts"),
+    logcounts = GetAssayData(object = from, assay = assay, slot = "data")
+  ))
+  metadata <- from[[]]
+  metadata$ident <- Idents(object = from)
+  SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(from[[assay]][[]])
+  for (dr in FilterObjects(object = from, classes.keep = "DimReduc")) {
+    SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Embeddings(object = from[[dr]])
+  }
+  return(sce)
 }
 
 #' @rdname Cells
@@ -1386,45 +1443,6 @@ Convert.seurat <- function(
       # }
       # loomfile
     },
-    'sce' = {
-      .NotYetImplemented()
-      if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
-        stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
-      }
-      if (inherits(x = from@raw.data, what = "data.frame")) {
-        from@raw.data <- as.matrix(from@raw.data)
-      }
-      if (inherits(x = from@data, what = "data.frame")) {
-        from@data <- as.matrix(from@data)
-      }
-      sce <- if (class(from@raw.data) %in% c("matrix", "dgTMatrix")) {
-        SingleCellExperiment::SingleCellExperiment(assays = list(counts = as(from@raw.data[rownames(from@data), from@cell.names], "dgCMatrix")))
-      } else if (inherits(x = from@raw.data, what = "dgCMatrix")) {
-        SingleCellExperiment::SingleCellExperiment(assays = list(counts = from@raw.data[rownames(from@data), from@cell.names]))
-      } else {
-        stop("Invalid class stored in seurat object's raw.data slot")
-      }
-      if (class(from@data) %in% c("matrix", "dgTMatrix")) {
-        SummarizedExperiment::assay(sce, "logcounts") <- as(from@data, "dgCMatrix")
-      } else if (inherits(x = from@data, what = "dgCMatrix")) {
-        SummarizedExperiment::assay(sce, "logcounts") <- from@data
-      } else {
-        stop("Invalid class stored in seurat object's data slot")
-      }
-      meta.data <- from@meta.data
-      meta.data$ident <- from@ident
-      SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(meta.data)
-      row.data <- from@hvg.info[rownames(from@data), ]
-      row.data <- cbind(gene = rownames(x = from@data), row.data, stringsAsFactors = FALSE)
-      SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(row.data)
-      for (dr in names(from@dr)) {
-        SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- slot(
-          object = slot(object = from, name = "dr")[[dr]],
-          name = "cell.embeddings"
-        )
-      }
-      sce
-    },
     'anndata' = {
       .NotYetImplemented()
       if (!py_module_available("anndata")) {
@@ -1512,76 +1530,6 @@ Convert.seurat <- function(
       anndata.object
     },
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
-  )
-  return(object.to)
-}
-
-#' @param raw.data.slot name of the SingleCellExperiment assay to slot into @@raw.data
-#' @param data.slot name of the SingleCellExperiment assay to slot into @@data
-#'
-#' @rdname Convert
-#' @export
-#' @method Convert SingleCellExperiment
-#'
-Convert.SingleCellExperiment <- function(
-  from,
-  to,
-  raw.data.slot = "counts",
-  data.slot = "logcounts",
-  ...
-) {
-  object.to <- switch(
-    EXPR = to,
-    'seurat' = {
-      counts <- tryCatch(
-        expr = SummarizedExperiment::assay(from, raw.data.slot),
-        error = function(e) {
-          stop(paste0("No data in provided assay - ", raw.data.slot))
-        }
-      )
-      data <- tryCatch(
-        expr = SummarizedExperiment::assay(from, data.slot),
-        error = function(e) {
-          stop(paste0("No data in provided assay - ", data.slot))
-        }
-      )
-      meta.data <- as.data.frame(SummarizedExperiment::colData(from))
-      seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-      # seurat.object@data <- data
-      seurat.object <- SetAssayData(object = seurat.object, new.data = data)
-      if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
-        for (dr in SingleCellExperiment::reducedDimNames(from)) {
-          seurat.object[[dr]] <- CreateDimReducObject(
-            embeddings = SingleCellExperiment::reducedDim(x = from, type = dr),
-            key = gsub(
-              pattern = "[[:digit:]]",
-              replacement = "",
-              x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-              )[1]),
-            assay = DefaultAssay(object = seurat.object)
-          )
-          # seurat.object <- SetDimReduction(
-          #   object = seurat.object,
-          #   reduction.type = dr,
-          #   slot = "cell.embeddings",
-          #   new.data = SingleCellExperiment::reducedDim(x = from, type = dr)
-          # )
-          # key <- gsub(
-          #   pattern = "[[:digit:]]",
-          #   replacement = "",
-          #   x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
-          #   )[1])
-          # seurat.object <- SetDimReduction(
-          #   object = seurat.object,
-          #   reduction.type = dr,
-          #   slot = "key",
-          #   new.data = key
-          # )
-        }
-      }
-      seurat.object
-    },
-    stop(paste0("Cannot convert SingleCellExperiment objects to class '", to, "'"))
   )
   return(object.to)
 }
