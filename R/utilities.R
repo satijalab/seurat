@@ -1184,8 +1184,7 @@ ExportToCellbrowser <- function(
   markers.file = NULL,
   cluster.field = NULL,
   port = NULL,
-  cb.dir = NULL,
-  do.install = FALSE
+  cb.dir = NULL
 ) {
   if (is.null(meta.fields)) {
     meta.fields <- c("nCount_RNA", "nFeature_RNA")
