@@ -1301,12 +1301,9 @@ coords=%s'
 
   if (!is.null(cb.dir)) {
     if (!py_module_available("cellbrowser")) {
-      if (do.install)
-          py_install("cellbrowser") 
-      else
           stop(
             "The Python package `cellbrowser` is required to prepare and run ",
-            "Cellbrowser. Please specify `do.install=TRUE` or  install it ",
+            "Cellbrowser. Please install it ",
             "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
             "or `pip install cellbrowser --user` (as a non-root user). ",
             "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
