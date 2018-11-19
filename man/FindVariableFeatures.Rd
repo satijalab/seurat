@@ -39,8 +39,8 @@ FindVariableFeatures(object, ...)
   \item{vst:}{ First, fits a line to the relationship of log(variance) and
   log(mean) using local polynomial regression (loess). Then standardizes the
   feature values using the observed mean and expected variance (given by the
-  fitted line). Feature variance is the calculated on the standardized values
-  after clipping to a maximum (default is 50).}
+  fitted line). Feature variance is then calculated on the standardized values
+  after clipping to a maximum (see clip.max parameter).}
   \item{mean.var.plot:}{ First, uses a function to calculate average
   expression (mean.function) and dispersion (dispersion.function) for each
   feature. Next, divides features into num.bin (deafult 20) bins based on
@@ -79,7 +79,8 @@ methods are:
 \item{verbose}{show progress bar for calculations}
 
 \item{nfeatures}{Number of features to select as top variable features;
-only used when \code{selection.method = 'dispersion'}}
+only used when \code{selection.method} is set to \code{'dispersion'} or 
+\code{'vst'}}
 
 \item{mean.cutoff}{A two-length numeric vector with low- and high-cutoffs for
 feature means}
