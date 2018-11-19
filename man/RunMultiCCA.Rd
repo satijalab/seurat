@@ -5,10 +5,11 @@
 \title{Perform Canonical Correlation Analysis with more than two groups}
 \usage{
 RunMultiCCA(object.list, genes.use, add.cell.ids = NULL, niter = 25,
-  num.ccs = 1, standardize = TRUE)
+  num.ccs = 1, standardize = TRUE, weight.by.var = FALSE,
+  group.by = NULL)
 }
 \arguments{
-\item{object.list}{List of Seurat objects}
+\item{object.list}{List of Seurat objects or a single Seurat object}
 
 \item{genes.use}{Genes to use in mCCA.}
 
@@ -21,6 +22,10 @@ give unique cell names}
 
 \item{standardize}{standardize scale.data matrices to be centered (mean zero)
 and scaled to have a standard deviation of 1.}
+
+\item{weight.by.var}{Weight cell embeddings unequally (by standard deviations as in PCA).}
+
+\item{group.by}{If object.list is a single object, this specifies how to split it up.}
 }
 \value{
 Returns a combined Seurat object with the CCA stored in the @dr$cca slot.

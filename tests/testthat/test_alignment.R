@@ -37,3 +37,10 @@ test_that("RunMultiCCA works with add.cell.ids", {
                                 add.cell.ids = c("A", "B", "C"))
   expect_s4_class(pbmc_multi_cca, "seurat")
 })
+
+test_that("RunMultiCCA works with seurat object as input", {
+  pbmc_multi_cca <- RunMultiCCA(pbmc_small, group.by = "ident")
+  expect_s4_class(pbmc_multi_cca, "seurat")
+  expect_error( RunMultiCCA( pbmc_small ) )
+  expect_error( RunMultiCCA( pbmc_small, group.by = "orig.ident" ) )
+})
