@@ -32,6 +32,8 @@ NormalizeData(object, ...)
   counts for that cell and multiplied by the scale.factor. This is then
   natural-log transformed using log1p.}
   \item{CLR: }{Applies a centered log ratio transformation}
+  \item{CPX: }{Counts per X. Feature counts for each cell are divided by the total
+  counts for that cell and multiplied by the scale.factor. No log-transformation is applied}
 }
 More methods to be added.}
 
