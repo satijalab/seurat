@@ -4,10 +4,9 @@
 \alias{ExportToCellbrowser}
 \title{Export Seurat object for UCSC cell browser}
 \usage{
-ExportToCellbrowser(object, dir, dataset.name, meta.fields = NULL,
-  meta.fields.names = NULL, embeddings = c("tsne"),
-  markers.file = NULL, cluster.field = NULL, port = NULL,
-  cb.dir = NULL)
+ExportToCellbrowser(object, dir, dataset.name, vars = NULL,
+  vars.names = NULL, reductions = "tsne", markers.file = NULL,
+  cluster.field = NULL, port = NULL, cb.dir = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -16,13 +15,12 @@ ExportToCellbrowser(object, dir, dataset.name, meta.fields = NULL,
 
 \item{dataset.name}{name of the dataset}
 
-\item{meta.fields}{vector of metadata fields to export}
+\item{vars}{vector of metadata fields to export}
 
-\item{meta.fields.names}{list that defines metadata field names
-after the export. Should map metadata
-column name to export name}
+\item{vars.names}{list that defines metadata field names after the export.
+Should map metadata column name to export name}
 
-\item{embeddings}{vector of embedding names to export}
+\item{reductions}{vector of reduction names to export}
 
 \item{markers.file}{path to file with marker genes}
 
@@ -32,6 +30,9 @@ column name to export name}
 
 \item{cb.dir}{in which dir to create UCSC cell browser content root}
 }
+\value{
+...
+}
 \description{
 Export Seurat object for UCSC cell browser
 }
@@ -40,4 +41,7 @@ Export Seurat object for UCSC cell browser
 ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
 }
 
+}
+\author{
+Maximilian Haeussler, Nikolay Markov
 }
