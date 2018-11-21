@@ -355,6 +355,44 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   return(norm.data)
 }
 
+#' Normalize raw data to fractions
+#'
+#' Normalize count data to relative counts per cell by dividing by the total 
+#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM) 
+#' use \code{scale.factor = 1e6}.
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the result. Default is 1
+#' @param verbose Print progress
+#'
+#' @return Returns a matrix with the relative counts
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- RelativeCounts(data = mat)
+#' mat_norm
+#'
+RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
+  if (class(x = data) == "data.frame") {
+    data <- as.matrix(x = data)
+  }
+  if (class(x = data) != "dgCMatrix") {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  if (verbose) {
+    cat("Performing relative-counts-normalization\n", file = stderr())
+  }
+  norm.data <- data
+  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
+  return(norm.data)
+}
+
 #' Load in data from Alevin pipeline
 #'
 #' Enables easy loading of csv format matrix provided by Alevin
@@ -1105,8 +1143,9 @@ FindVariableFeatures.Seurat <- function(
 #'   counts for that cell and multiplied by the scale.factor. This is then
 #'   natural-log transformed using log1p.}
 #'   \item{CLR: }{Applies a centered log ratio transformation}
-#'   \item{CPX: }{Counts per X. Feature counts for each cell are divided by the total
-#'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied}
+#'   \item{RC: }{Relative counts. Feature counts for each cell are divided by the total
+#'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
+#'   For counts per million (CPM) set \code{scale.factor = 1e6}}
 #' }
 #' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
@@ -1141,13 +1180,10 @@ NormalizeData.default <- function(
       },
       across = across
     ),
-    'CPX' = CustomNormalize(
-      data = object,
-      custom_function = function(x) {
-        return(x / sum(x) * scale.factor)
-      },
-      across = 'cells'
-    ),
+    'RC' = RelativeCounts(
+      data = object, 
+      scale.factor = scale.factor, 
+      verbose = verbose),
     stop("Unkown normalization method: ", normalization.method)
   )
   return(normalized.data)
