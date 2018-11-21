@@ -568,7 +568,7 @@ ExportToCellbrowser <- function(
   enum.fields <- c()
   # Export expression matrix
   df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
-  df <- data.frame(gene = rownames(x = object), df)
+  df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
   z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"), "w")
   write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
   close(con = z)
