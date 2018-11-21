@@ -4,21 +4,16 @@
 \alias{ExportToCellbrowser}
 \title{Export Seurat object for UCSC cell browser}
 \usage{
-ExportToCellbrowser(object, dir, dataset.name, vars = NULL,
-  vars.names = NULL, reductions = "tsne", markers.file = NULL,
-  cluster.field = NULL, port = NULL, cb.dir = NULL)
+ExportToCellbrowser(object, dir, dataset.name = slot(object = object,
+  name = "project.name"), reductions = "tsne", markers.file = NULL,
+  cluster.field = "Cluster", port = NULL, cb.dir = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{dir}{output directory path}
+\item{dir}{path to directory where to save exported files}
 
-\item{dataset.name}{name of the dataset}
-
-\item{vars}{vector of metadata fields to export}
-
-\item{vars.names}{list that defines metadata field names after the export.
-Should map metadata column name to export name}
+\item{dataset.name}{name of the dataset. Defaults to Seurat project name}
 
 \item{reductions}{vector of reduction names to export}
 
@@ -26,12 +21,24 @@ Should map metadata column name to export name}
 
 \item{cluster.field}{name of the metadata field containing cell cluster}
 
-\item{port}{\emph{experimental} on which port to run UCSC cell browser after export}
+\item{port}{on which port to run UCSC cellbrowser webserver after export}
 
-\item{cb.dir}{in which dir to create UCSC cell browser content root}
+\item{cb.dir}{path to directory where to create UCSC cellbrowser static
+website content root}
+
+\item{...}{specifies the metadata fields to export. To supply field with
+human readable name, pass name as \code{field="name"} parameter.}
 }
 \value{
-...
+This function exports Seurat object as a set of tsv files
+to \code{dir} directory, copying the \code{markers.file} if it is
+passed. It also creates the default \code{cellbrowser.conf} in the
+directory. This directory could be read by \code{cellbrowser} to
+create a static website viewer for the dataset. If \code{cb.dir}
+parameter is passed, the function runs \code{cellbrowser} (if it is
+installed) to create this static website in \code{cb.dir} directory.
+If \code{port} parameter is passed, it also runs the webserver for
+that directory and opens a browser.
 }
 \description{
 Export Seurat object for UCSC cell browser

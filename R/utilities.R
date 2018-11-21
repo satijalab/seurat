@@ -512,18 +512,26 @@ ExpMean <- function(x) {
 #' Export Seurat object for UCSC cell browser
 #'
 #' @param object Seurat object
-#' @param dir output directory path
-#' @param dataset.name name of the dataset
-#' @param vars vector of metadata fields to export
-#' @param vars.names list that defines metadata field names after the export.
-#' Should map metadata column name to export name
+#' @param dir path to directory where to save exported files
+#' @param dataset.name name of the dataset. Defaults to Seurat project name
 #' @param reductions vector of reduction names to export
 #' @param markers.file path to file with marker genes
 #' @param cluster.field name of the metadata field containing cell cluster
-#' @param cb.dir in which dir to create UCSC cell browser content root
-#' @param port \emph{experimental} on which port to run UCSC cell browser after export
+#' @param cb.dir path to directory where to create UCSC cellbrowser static
+#' website content root
+#' @param port on which port to run UCSC cellbrowser webserver after export
+#' @param ... specifies the metadata fields to export. To supply field with
+#' human readable name, pass name as \code{field="name"} parameter.
 #'
-#' @return ...
+#' @return This function exports Seurat object as a set of tsv files
+#' to \code{dir} directory, copying the \code{markers.file} if it is
+#' passed. It also creates the default \code{cellbrowser.conf} in the
+#' directory. This directory could be read by \code{cellbrowser} to
+#' create a static website viewer for the dataset. If \code{cb.dir}
+#' parameter is passed, the function runs \code{cellbrowser} (if it is
+#' installed) to create this static website in \code{cb.dir} directory.
+#' If \code{port} parameter is passed, it also runs the webserver for
+#' that directory and opens a browser.
 #'
 #' @author Maximilian Haeussler, Nikolay Markov
 #'
@@ -540,21 +548,33 @@ ExpMean <- function(x) {
 ExportToCellbrowser <- function(
   object,
   dir,
-  dataset.name,
-  vars = NULL,
-  vars.names = NULL,
+  dataset.name = slot(object = object, name = 'project.name'),
   reductions = "tsne",
   markers.file = NULL,
-  cluster.field = NULL,
+  cluster.field = "Cluster",
   port = NULL,
-  cb.dir = NULL
+  cb.dir = NULL,
+  ...
 ) {
+  vars <- c(...)
   if (is.null(x = vars)) {
     vars <- c("nCount_RNA", "nFeature_RNA")
     if (length(x = levels(x = Idents(object = object))) > 1) {
-      vars <- c(vars, ".ident")
+      vars <- c(vars, cluster.field)
+      names(x = vars) <- c("", "", "ident")
     }
   }
+  names(x = vars) <- names(x = vars) %||% vars
+  names(x = vars) <- sapply(
+    X = 1:length(x = vars),
+    FUN = function(i) {
+      return(ifelse(
+        test = nchar(x = names(x = vars)[i]) > 0,
+        yes = names(x = vars[i]),
+        no = vars[i]
+      ))
+    }
+  )
   if (!is.null(x = port) && is.null(x = cb.dir)) {
     stop("cb.dir parameter is needed when port is set")
   }
@@ -564,6 +584,9 @@ ExportToCellbrowser <- function(
   if (!dir.exists(paths = dir)) {
     stop("Output directory ", dir, " cannot be created or is a file")
   }
+  if (dataset.name == "SeuratProject") {
+    warning("Using default project name can result in chaotic output")
+  }
   order <- colnames(x = object)
   enum.fields <- c()
   # Export expression matrix
@@ -572,6 +595,7 @@ ExportToCellbrowser <- function(
   z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"), "w")
   write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
   close(con = z)
+  message("Exported expression matrix")
   # Export cell embeddings
   embeddings.conf <- c()
   for (reduction in reductions) {
@@ -600,23 +624,16 @@ ExportToCellbrowser <- function(
     )
     embeddings.conf <- c(embeddings.conf, conf)
   }
+  message("Exported cell embeddings coordinates")
   # Export metadata
   df <- data.frame(row.names = rownames(x = object[[]]))
-  for (field in vars) {
-    if (field == ".ident") {
-      df$Cluster <- Idents(object = object)
-      enum.fields <- c(enum.fields, "Cluster")
-      cluster.field <- "Cluster"
-    } else {
-      name <- vars.names[[field]]
-      name <- name %||% field
-      df[[name]] <- object[[field]][, 1]
-      if (!is.numeric(x = df[[name]])) {
-        enum.fields <- c(enum.fields, name)
-      }
-    }
-  }
-  df <- data.frame(Cell = rownames(x = df), df)
+  df <- FetchData(object = object, vars = names(x = vars))
+  colnames(x = df) <- vars
+  enum.fields <- Filter(
+    f = function(name) {!is.numeric(x = df[[name]])},
+    x = vars
+  )
+  df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
   write.table(
     x = df[order, ],
     sep = "\t",
@@ -624,6 +641,7 @@ ExportToCellbrowser <- function(
     quote = FALSE,
     row.names = FALSE
   )
+  message("Exported metadata")
   # Export markers
   markers.string <- ''
   if (!is.null(x = markers.file)) {
