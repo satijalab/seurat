@@ -512,13 +512,16 @@ ExpMean <- function(x) {
 #' Export Seurat object for UCSC cell browser
 #'
 #' @param object Seurat object
-#' @param dir path to directory where to save exported files
+#' @param dir path to directory where to save exported files. These are:
+#' exprMatrix.tsv, tsne.coords.tsv, meta.tsv, markers.tsv and a default cellbrowser.conf
 #' @param dataset.name name of the dataset. Defaults to Seurat project name
 #' @param reductions vector of reduction names to export
 #' @param markers.file path to file with marker genes
 #' @param cluster.field name of the metadata field containing cell cluster
 #' @param cb.dir path to directory where to create UCSC cellbrowser static
-#' website content root
+#' website content root, e.g. an index.html, .json files, etc. These files
+#' can be copied to any webserver. If this is specified, the cellbrowser
+#' package has to be accessible from R via reticulate.
 #' @param port on which port to run UCSC cellbrowser webserver after export
 #' @param ... specifies the metadata fields to export. To supply field with
 #' human readable name, pass name as \code{field="name"} parameter.
@@ -526,9 +529,9 @@ ExpMean <- function(x) {
 #' @return This function exports Seurat object as a set of tsv files
 #' to \code{dir} directory, copying the \code{markers.file} if it is
 #' passed. It also creates the default \code{cellbrowser.conf} in the
-#' directory. This directory could be read by \code{cellbrowser} to
+#' directory. This directory could be read by \code{cbBuild} to
 #' create a static website viewer for the dataset. If \code{cb.dir}
-#' parameter is passed, the function runs \code{cellbrowser} (if it is
+#' parameter is passed, the function runs \code{cbBuild} (if it is
 #' installed) to create this static website in \code{cb.dir} directory.
 #' If \code{port} parameter is passed, it also runs the webserver for
 #' that directory and opens a browser.
@@ -585,17 +588,19 @@ ExportToCellbrowser <- function(
     stop("Output directory ", dir, " cannot be created or is a file")
   }
   if (dataset.name == "SeuratProject") {
-    warning("Using default project name can result in chaotic output")
+    warning("Using default project name means that you may overwrite project with the same name in the cellbrowser html output folder")
   }
   order <- colnames(x = object)
   enum.fields <- c()
-  # Export expression matrix
+  # Export expression matrix:
+  # Relatively memory inefficient - maybe better to convert to sparse-row and write in a loop, row-by-row?
   df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
   df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
-  z <- gzfile(file.path(dir, "exprMatrix.tsv.gz"), "w")
+  gzPath <- file.path(dir, "exprMatrix.tsv.gz")
+  z <- gzfile(gzPath, "w")
+  message("Writing expression matrix to ", gzPath)
   write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
   close(con = z)
-  message("Exported expression matrix")
   # Export cell embeddings
   embeddings.conf <- c()
   for (reduction in reductions) {
@@ -611,6 +616,7 @@ ExportToCellbrowser <- function(
     colnames(x = df) <- c("x", "y")
     df <- data.frame(cellId = rownames(x = df), df)
     fname <- file.path(dir, paste0(reduction, '.coords.tsv'))
+    message("Writing embeddings to ", fname)
     write.table(
       x = df[order, ],
       sep = "\t",
@@ -624,7 +630,6 @@ ExportToCellbrowser <- function(
     )
     embeddings.conf <- c(embeddings.conf, conf)
   }
-  message("Exported cell embeddings coordinates")
   # Export metadata
   df <- data.frame(row.names = rownames(x = object[[]]))
   df <- FetchData(object = object, vars = names(x = vars))
@@ -633,15 +638,16 @@ ExportToCellbrowser <- function(
     f = function(name) {!is.numeric(x = df[[name]])},
     x = vars
   )
+  fname <- file.path(dir, "meta.tsv")
+  message("Writing meta data to ", fname)
   df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
   write.table(
     x = df[order, ],
     sep = "\t",
-    file = file.path(dir, "meta.tsv"),
+    file = fname,
     quote = FALSE,
     row.names = FALSE
   )
-  message("Exported metadata")
   # Export markers
   markers.string <- ''
   if (!is.null(x = markers.file)) {
@@ -701,9 +707,11 @@ ExportToCellbrowser <- function(
     if (!is.null(x = port)) {
       port <- as.integer(x = port)
     }
+    message("Converting cellbrowser directory to html/json files")
     cb <- import(module = "cellbrowser")
     cb$cellbrowser$build(dir, cb.dir)
     if (!is.null(port)) {
+      message("Starting http server")
       cb$cellbrowser$stop()
       cb$cellbrowser$serve(cb.dir, port)
       Sys.sleep(time = 0.4)
