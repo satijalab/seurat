@@ -523,6 +523,9 @@ ExpMean <- function(x) {
 #' can be copied to any webserver. If this is specified, the cellbrowser
 #' package has to be accessible from R via reticulate.
 #' @param port on which port to run UCSC cellbrowser webserver after export
+#' @param skip.expr.matrix whether to skip exporting expression matrix
+#' @param skip.metadata whether to skip exporting metadata
+#' @param skip.reductions whether to skip exporting reductions
 #' @param ... specifies the metadata fields to export. To supply field with
 #' human readable name, pass name as \code{field="name"} parameter.
 #'
@@ -555,8 +558,11 @@ ExportToCellbrowser <- function(
   reductions = "tsne",
   markers.file = NULL,
   cluster.field = "Cluster",
-  port = NULL,
   cb.dir = NULL,
+  port = NULL,
+  skip.expr.matrix = FALSE,
+  skip.metadata = FALSE,
+  skip.reductions = FALSE,
   ...
 ) {
   vars <- c(...)
@@ -593,37 +599,41 @@ ExportToCellbrowser <- function(
   order <- colnames(x = object)
   enum.fields <- c()
   # Export expression matrix:
-  # Relatively memory inefficient - maybe better to convert to sparse-row and write in a loop, row-by-row?
-  df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
-  df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
-  gzPath <- file.path(dir, "exprMatrix.tsv.gz")
-  z <- gzfile(gzPath, "w")
-  message("Writing expression matrix to ", gzPath)
-  write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
-  close(con = z)
+  if (!skip.expr.matrix) {
+    # Relatively memory inefficient - maybe better to convert to sparse-row and write in a loop, row-by-row?
+    df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
+    df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
+    gzPath <- file.path(dir, "exprMatrix.tsv.gz")
+    z <- gzfile(gzPath, "w")
+    message("Writing expression matrix to ", gzPath)
+    write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
+    close(con = z)
+  }
   # Export cell embeddings
   embeddings.conf <- c()
   for (reduction in reductions) {
-    df <- Embeddings(object = object, reduction = reduction)
-    if (ncol(x = df) > 2) {
-      warning(
-        'Embedding ',
-        reduction,
-        ' has more than 2 coordinates, taking only the first 2'
+    if (!skip.reductions) {
+      df <- Embeddings(object = object, reduction = reduction)
+      if (ncol(x = df) > 2) {
+        warning(
+          'Embedding ',
+          reduction,
+          ' has more than 2 coordinates, taking only the first 2'
+        )
+        df <- df[, 1:2]
+      }
+      colnames(x = df) <- c("x", "y")
+      df <- data.frame(cellId = rownames(x = df), df)
+      fname <- file.path(dir, paste0(reduction, '.coords.tsv'))
+      message("Writing embeddings to ", fname)
+      write.table(
+        x = df[order, ],
+        sep = "\t",
+        file = fname,
+        quote = FALSE,
+        row.names = FALSE
       )
-      df <- df[, 1:2]
     }
-    colnames(x = df) <- c("x", "y")
-    df <- data.frame(cellId = rownames(x = df), df)
-    fname <- file.path(dir, paste0(reduction, '.coords.tsv'))
-    message("Writing embeddings to ", fname)
-    write.table(
-      x = df[order, ],
-      sep = "\t",
-      file = fname,
-      quote = FALSE,
-      row.names = FALSE
-    )
     conf <- sprintf(
       '{"file": "%s.coords.tsv", "shortLabel": "Seurat %1$s"}',
       reduction
@@ -638,16 +648,18 @@ ExportToCellbrowser <- function(
     f = function(name) {!is.numeric(x = df[[name]])},
     x = vars
   )
-  fname <- file.path(dir, "meta.tsv")
-  message("Writing meta data to ", fname)
-  df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
-  write.table(
-    x = df[order, ],
-    sep = "\t",
-    file = fname,
-    quote = FALSE,
-    row.names = FALSE
-  )
+  if (!skip.metadata) {
+    fname <- file.path(dir, "meta.tsv")
+    message("Writing meta data to ", fname)
+    df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
+    write.table(
+      x = df[order, ],
+      sep = "\t",
+      file = fname,
+      quote = FALSE,
+      row.names = FALSE
+    )
+  }
   # Export markers
   markers.string <- ''
   if (!is.null(x = markers.file)) {
@@ -687,7 +699,15 @@ ExportToCellbrowser <- function(
     markers.string,
     coords.string
   )
-  cat(config, file = file.path(dir, "cellbrowser.conf"))
+  fname <- file.path(dir, "cellbrowser.conf")
+  if (file.exists(fname)) {
+    message(
+      "`cellbrowser.conf` already exists in target directory, refusing to ",
+      "overwrite it"
+    )
+  } else {
+    cat(config, file = fname)
+  }
   message("Prepared cellbrowser directory ", dir)
   if (!is.null(x = cb.dir)) {
     if (!py_module_available(module = "cellbrowser")) {
