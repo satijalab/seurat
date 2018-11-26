@@ -69,7 +69,7 @@ Various themes to be applied to ggplot2-based plots
   \item{\code{NoGrid}}{Removes grid lines}
   \item{\code{SeuratAxes}}{Set Seurat-style axes}
   \item{\code{SpatialTheme}}{A theme designed for spatial visualizations (eg \code{\link{PolyFeaturePlot}}, \code{\link{PolyDimPlot}})}
-  \item{\code{RestoredTheme}}{Restore a theme after removal}
+  \item{\code{RestoreLegend}}{Restore a legend after removal}
   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 }
