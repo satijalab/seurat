@@ -1649,11 +1649,18 @@ ElbowPlot <- function(
     ndims <- length(x = data.use)
   }
   stdev <- 'Standard Deviation'
-  p <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
+  plot <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
     geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
-    labs(x = Key(object = object[[reduction]]), y = stdev) +
+    labs(
+      x = gsub(
+        pattern = '_$',
+        replacement = '',
+        x = Key(object = object[[reduction]])
+      ),
+      y = stdev
+    ) +
     theme_cowplot()
-  return(p)
+  return(plot)
 }
 
 #' JackStraw Plot
