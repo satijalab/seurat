@@ -1131,6 +1131,9 @@ as.Seurat.SingleCellExperiment <- function(
   data = "logcounts",
   ...
 ) {
+  if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
+    stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
+  }
   counts <- tryCatch(
     expr = SummarizedExperiment::assay(from, counts),
     error = function(e) {
