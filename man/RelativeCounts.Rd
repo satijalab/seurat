@@ -17,8 +17,8 @@ RelativeCounts(data, scale.factor = 1, verbose = TRUE)
 Returns a matrix with the relative counts
 }
 \description{
-Normalize count data to relative counts per cell by dividing by the total 
-per cell. Optionally use a scale factor, e.g. for counts per million (CPM) 
+Normalize count data to relative counts per cell by dividing by the total
+per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
 use \code{scale.factor = 1e6}.
 }
 \examples{

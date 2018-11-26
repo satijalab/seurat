@@ -79,7 +79,7 @@ methods are:
 \item{verbose}{show progress bar for calculations}
 
 \item{nfeatures}{Number of features to select as top variable features;
-only used when \code{selection.method} is set to \code{'dispersion'} or 
+only used when \code{selection.method} is set to \code{'dispersion'} or
 \code{'vst'}}
 
 \item{mean.cutoff}{A two-length numeric vector with low- and high-cutoffs for

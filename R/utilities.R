@@ -1082,7 +1082,7 @@ CheckDots <- function(..., fxns = NULL) {
 CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
   cell.names <- unlist(
     x = sapply(
-      X = 1:length(x = object.list), 
+      X = 1:length(x = object.list),
       FUN = function(x) Cells(object = object.list[[x]])
       )
     )
@@ -1094,7 +1094,7 @@ CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
       warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
     }
     object.list <- sapply(
-      X = 1:length(x = object.list), 
+      X = 1:length(x = object.list),
       FUN = function(x) RenameCells(object = object.list[[x]], new.names = paste0(Cells(object = object.list[[x]]), "_", x))
     )
   }
@@ -1284,11 +1284,14 @@ Melt <- function(x) {
 #
 # @return Invisibly returns boolean denoting if the package is installed
 #
-#' @importFrom utils installed.packages
-#
 PackageCheck <- function(..., error = TRUE) {
   pkgs <- unlist(x = c(...), use.names = FALSE)
-  package.installed <- pkgs %in% rownames(x = installed.packages())
+  package.installed <- vapply(
+    X = pkgs,
+    FUN = requireNamespace,
+    FUN.VALUE = logical(length = 1L),
+    quietly = TRUE
+  )
   if (error && any(!package.installed)) {
     stop(
       "Cannot find ",

@@ -704,8 +704,6 @@ bimodLikData <- function(x, xmin = 0) {
 # groups. To use this method, please install DESeq2, using the instructions at
 #  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 #
-#' @importFrom utils installed.packages
-#
 # @export
 #
 # @examples
@@ -722,7 +720,7 @@ DESeq2DETest <- function(
   verbose = TRUE,
   ...
 ) {
-  if (!'DESeq2' %in% rownames(x = installed.packages())) {
+  if (!PackageCheck('DESeq2', error = FALSE)) {
     stop("Please install DESeq2 - learn more at https://bioconductor.org/packages/release/bioc/html/DESeq2.html")
   }
   group.info <- data.frame(row.names = c(cells.1, cells.2))
@@ -892,7 +890,7 @@ GLMDETest <- function(
 ) {
   group.info <- data.frame(
     group = rep(
-      x = c('Group1', 'Group2'), 
+      x = c('Group1', 'Group2'),
       times = c(length(x = cells.1), length(x = cells.2))
     )
   )
@@ -1080,7 +1078,6 @@ MarkerTest <- function(
 # genes.
 #
 #' @importFrom stats relevel
-#' @importFrom utils installed.packages
 #
 # @export
 #
@@ -1100,7 +1097,7 @@ MASTDETest <- function(
   ...
 ) {
   # Check for MAST
-  if (!'MAST' %in% rownames(x = installed.packages())) {
+  if (!PackageCheck('MAST', error = FALSE)) {
     stop("Please install MAST - learn more at https://github.com/RGLab/MAST")
   }
   if (length(x = latent.vars) > 0) {

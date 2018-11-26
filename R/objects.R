@@ -1173,7 +1173,7 @@ as.Seurat.SingleCellExperiment <- function(
 #' @method as.SingleCellExperiment Seurat
 #'
 as.SingleCellExperiment.Seurat <- function(from, assay = NULL, ...) {
-  if (!'SingleCellExperiment' %in% rownames(x = installed.packages())) {
+  if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   assay <- assay %||% DefaultAssay(object = from)
@@ -1326,7 +1326,6 @@ Convert.anndata.base.AnnData <- function(
 #' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
 #'
 #' @importFrom methods as slot
-#' @importFrom utils installed.packages
 #' @importFrom reticulate import np_array tuple dict r_to_py
 #'
 #' @rdname Convert
@@ -1349,7 +1348,7 @@ Convert.seurat <- function(
     EXPR = to,
     'loom' = {
       stop("Converting to and from loom files is currently unavailable; we are working on restoring this functionality")
-      # if (!'loomR' %in% rownames(x = installed.packages())) {
+      # if (!PackageCheck('loomR', error = FALSE)) {
       #   stop("Please install loomR from GitHub before converting to a loom object")
       # }
       # # cell.order <- from@cell.names

@@ -357,8 +357,8 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
 
 #' Normalize raw data to fractions
 #'
-#' Normalize count data to relative counts per cell by dividing by the total 
-#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM) 
+#' Normalize count data to relative counts per cell by dividing by the total
+#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
 #' use \code{scale.factor = 1e6}.
 #'
 #' @param data Matrix with the raw count data
@@ -514,7 +514,7 @@ ReadAlevin <- function(base.path) {
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
 #'   Otherwise a sparse matrix containing the expression data will be returned.
-#'   
+#'
 #' @importFrom Matrix readMM
 #'
 #' @export
@@ -526,7 +526,7 @@ ReadAlevin <- function(base.path) {
 #' list.files(data_dir) # Should show barcodes.tsv, genes.tsv, and matrix.mtx
 #' expression_matrix <- Read10X(data.dir = data_dir)
 #' seurat_object = CreateSeuratObject(counts = expression_matrix)
-#' 
+#'
 #' # For output from CellRanger >= 3.0 with multiple data types
 #' data_dir <- 'path/to/data/directory'
 #' list.files(data_dir) # Should show barcodes.tsv.gz, features.tsv.gz, and matrix.mtx.gz
@@ -586,7 +586,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
       colnames(x = data) <- paste0(names(x = data.dir)[i], "_", cell.names)
     }
     feature.names <- read.delim(
-      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc), 
+      file = ifelse(test = pre_ver_3, yes = gene.loc, no = features.loc),
       header = FALSE,
       stringsAsFactors = FALSE
     )
@@ -615,7 +615,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
     }
     full.data[[length(x = full.data) + 1]] <- data
   }
-  # Combine all the data from different directories into one big matrix, note this 
+  # Combine all the data from different directories into one big matrix, note this
   # assumes that all data directories essentially have the same features files
   list_of_data <- list()
   for (j in 1:length(x = full.data[[1]])) {
@@ -711,7 +711,6 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
 #' @importFrom stats setNames
-#' @importFrom utils installed.packages
 #'
 #' @export
 #'
@@ -1027,7 +1026,7 @@ FindVariableFeatures.default <- function(
 }
 
 #' @param nfeatures Number of features to select as top variable features;
-#' only used when \code{selection.method} is set to \code{'dispersion'} or 
+#' only used when \code{selection.method} is set to \code{'dispersion'} or
 #' \code{'vst'}
 #' @param mean.cutoff A two-length numeric vector with low- and high-cutoffs for
 #' feature means
@@ -1181,8 +1180,8 @@ NormalizeData.default <- function(
       across = across
     ),
     'RC' = RelativeCounts(
-      data = object, 
-      scale.factor = scale.factor, 
+      data = object,
+      scale.factor = scale.factor,
       verbose = verbose),
     stop("Unkown normalization method: ", normalization.method)
   )
