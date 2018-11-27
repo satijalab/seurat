@@ -6,7 +6,7 @@
 \alias{GetAssayData.Seurat}
 \title{Accessor function for multimodal data}
 \usage{
-GetAssayData(object, slot, ...)
+GetAssayData(object, ...)
 
 \method{GetAssayData}{Assay}(object, slot = "data", ...)
 
@@ -15,9 +15,9 @@ GetAssayData(object, slot, ...)
 \arguments{
 \item{object}{An object}
 
-\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data}
-
 \item{...}{Arguments passed to other methods}
+
+\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data}
 
 \item{assay}{Name of assay to pull data from}
 }
@@ -27,10 +27,3 @@ Returns assay data
 \description{
 Pull information for specified stored dimensional reduction analysis
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get assay data for an Assay object
-
-\item \code{Seurat}: Get assay data from a Seurat object
-}}
-

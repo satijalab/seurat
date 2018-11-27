@@ -234,6 +234,33 @@ Eigen::MatrixXd FastSparseRowScale(Eigen::SparseMatrix<double> mat, bool scale =
   return scaled_mat.transpose();
 }
 
+// [[Rcpp::export]]
+Eigen::MatrixXd FastSparseRowScaleWithKnownStats(Eigen::SparseMatrix<double> mat, NumericVector mu, NumericVector sigma, bool scale = true, bool center = true,
+                                   double scale_max = 10, bool display_progress = true){
+    mat = mat.transpose();
+    Progress p(mat.outerSize(), display_progress);
+    Eigen::MatrixXd scaled_mat(mat.rows(), mat.cols());
+    for (int k=0; k<mat.outerSize(); ++k){
+        p.increment();
+        double colMean = 0;
+        double colSdev = 0;
+        if (scale == true){
+            colSdev = sigma[k];
+        }
+        if(center == true){
+            colMean = mu[k];
+        }
+        Eigen::VectorXd col = Eigen::VectorXd(mat.col(k));
+        scaled_mat.col(k) = (col.array() - colMean) / colSdev;
+        for(int s=0; s<scaled_mat.col(k).size(); ++s){
+            if(scaled_mat(s,k) > scale_max){
+                scaled_mat(s,k) = scale_max;
+            }
+        }
+    }
+    return scaled_mat.transpose();
+}
+
 /* Note: May not handle NA/NaNs in the same way the R implementation does, */
 
 // [[Rcpp::export]]
@@ -285,34 +312,6 @@ Eigen::VectorXd FastExpMean(Eigen::SparseMatrix<double> mat, bool display_progre
   return(rowmeans);
 }
 
-/* Calculate the variance in non-logspace (return answer in non-logspace) */
-//[[Rcpp::export]]
-Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
-  int ncols = mat.cols();
-  Eigen::VectorXd rowdisp(mat.rows());
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double rm = 0;
-    double v = 0;
-    int nnZero = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      rm += (it.value());
-    }
-    rm = rm / ncols;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      v += pow((it.value()) - rm, 2);
-      nnZero += 1;
-    }
-    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
-    rowdisp[k] = v;
-  }
-  return(rowdisp);
-}
 
 /* use this if you know the row means */
 //[[Rcpp::export]]
@@ -337,30 +336,6 @@ NumericVector SparseRowVar2(Eigen::SparseMatrix<double> mat,
     allVars[k] = colSum / (mat.rows() - 1);
   }
   return(allVars);
-}
-
-//[[Rcpp::export]]
-Eigen::VectorXd SparseRowSd(Eigen::SparseMatrix<double> mat){
-  mat = mat.transpose();
-  Eigen::VectorXd allSds(mat.cols());
-  for (int k=0; k<mat.outerSize(); ++k){
-    double colMean = 0;
-    double colSdev = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it)
-    {
-      colMean += it.value();
-    }
-    colMean = colMean / mat.rows();
-    int nZero = mat.rows();
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it) {
-      nZero -= 1;
-      colSdev += pow(it.value() - colMean, 2);
-    }
-    colSdev += pow(colMean, 2) * nZero;
-    colSdev = sqrt(colSdev / (mat.rows() - 1));
-    allSds(k) = colSdev;
-  }
-  return(allSds);
 }
 
 /* standardize matrix rows using given mean and standard deviation,
@@ -394,35 +369,6 @@ NumericVector SparseRowVarStd(Eigen::SparseMatrix<double> mat,
   return(allVars);
 }
 
-/* Calculate the variance in non-logspace (return answer in non-logspace) */
-//[[Rcpp::export]]
-Eigen::VectorXd FastExpVar(Eigen::SparseMatrix<double> mat,  bool display_progress){
-  int ncols = mat.cols();
-  Eigen::VectorXd rowdisp(mat.rows());
-  mat = mat.transpose();
-  if(display_progress == true){
-    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
-  }
-  Progress p(mat.outerSize(), display_progress);
-  for (int k=0; k<mat.outerSize(); ++k){
-    p.increment();
-    double rm = 0;
-    double v = 0;
-    int nnZero = 0;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      rm += expm1(it.value());
-    }
-    rm = rm / ncols;
-    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
-      v += pow(expm1(it.value()) - rm, 2);
-      nnZero += 1;
-    }
-    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
-    rowdisp[k] = v;
-  }
-  return(rowdisp);
-}
-
 /* Calculate the variance to mean ratio (VMR) in non-logspace (return answer in
 log-space) */
 //[[Rcpp::export]]
@@ -454,23 +400,6 @@ Eigen::VectorXd FastLogVMR(Eigen::SparseMatrix<double> mat,  bool display_progre
   return(rowdisp);
 }
 
-/* Calculates the row sums of squared values without using additional memory */
-//[[Rcpp::export]]
-NumericVector RowSumOfSquares(const NumericMatrix x){
-  int nrow = x.nrow(), ncol = x.ncol();
-  NumericVector out(nrow);
-
-  for (int i = 0; i < nrow; i++) {
-    double total = 0;
-    for (int j = 0; j < ncol; j++) {
-      total += pow(x(i, j), 2);
-    }
-    out[i] = total;
-  }
-  return out;
-}
-
-
 /* Calculates the variance of rows of a matrix */
 //[[Rcpp::export]]
 NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
@@ -481,6 +410,35 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x){
     out[i] = (r - rowMean).square().sum() / (x.cols() - 1);
   }
   return out;
+}
+
+/* Calculate the variance in non-logspace (return answer in non-logspace) */
+//[[Rcpp::export]]
+Eigen::VectorXd SparseRowVar(Eigen::SparseMatrix<double> mat, bool display_progress){
+  int ncols = mat.cols();
+  Eigen::VectorXd rowdisp(mat.rows());
+  mat = mat.transpose();
+  if(display_progress == true){
+    Rcpp::Rcerr << "Calculating gene variances" << std::endl;
+  }
+  Progress p(mat.outerSize(), display_progress);
+  for (int k=0; k<mat.outerSize(); ++k){
+    p.increment();
+    double rm = 0;
+    double v = 0;
+    int nnZero = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      rm += (it.value());
+    }
+    rm = rm / ncols;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat,k); it; ++it){
+      v += pow((it.value()) - rm, 2);
+      nnZero += 1;
+    }
+    v = (v + (ncols - nnZero) * pow(rm, 2)) / (ncols - 1);
+    rowdisp[k] = v;
+  }
+  return(rowdisp);
 }
 
 int IntersectLength(std::vector<int> a, std::vector<int> b){
@@ -498,4 +456,16 @@ std::vector<int> ToVector(Eigen::VectorXd v1){
   std::vector<int> v2(v1.data(), v1.data() + v1.size());
   return(v2);
 }
+
+//cols_idx should be 0-indexed
+//[[Rcpp::export]]
+Eigen::SparseMatrix<double> ReplaceColsC(Eigen::SparseMatrix<double> mat, NumericVector col_idx, Eigen::SparseMatrix<double> replacement){
+  int rep_idx = 0;
+  for(auto const &ci : col_idx){
+    mat.col(ci) = replacement.col(rep_idx);
+    rep_idx += 1;
+  }
+  return(mat);
+}
+
 

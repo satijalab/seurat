@@ -2,20 +2,27 @@
 % Please edit documentation in R/generics.R, R/clustering.R
 \name{FindClusters}
 \alias{FindClusters}
+\alias{FindClusters.default}
 \alias{FindClusters.Seurat}
 \title{Cluster Determination}
 \usage{
-FindClusters(object, modularity.fxn, resolution, algorithm, n.start,
-  n.iter, random.seed, temp.file.location, edge.file.name, verbose, ...)
+FindClusters(object, ...)
+
+\method{FindClusters}{default}(object, modularity.fxn = 1,
+  resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
+  random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
+  verbose = TRUE, ...)
 
 \method{FindClusters}{Seurat}(object, graph.name = NULL,
   modularity.fxn = 1, resolution = 0.8, algorithm = 1,
   n.start = 10, n.iter = 10, random.seed = 0,
   temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  workflow.name = NULL, ...)
+  ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
@@ -39,11 +46,7 @@ Specify the ABSOLUTE path.}
 
 \item{verbose}{Print output}
 
-\item{...}{Arguments passed to other methods}
-
 \item{graph.name}{Name of graph to use for the clustering algorithm}
-
-\item{workflow.name}{Name of workflow}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,

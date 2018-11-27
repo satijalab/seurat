@@ -1,6 +1,6 @@
 Package: Seurat
 Version: 3.0.0.9000
-Date: 2018-08-17
+Date: 2018-10-31
 Title: Tools for Single Cell Genomics
 Description: A toolkit for quality control, analysis, and exploration of single cell RNA sequencing data. 'Seurat' aims to enable users to identify and interpret sources of heterogeneity from single cell transcriptomic measurements, and to integrate diverse types of single cell data. See Satija R, Farrell J, Gennert D, et al (2015) <doi:10.1038/nbt.3192>, Macosko E, Basu A, Satija R, et al (2015) <doi:10.1016/j.cell.2015.05.002>, and Butler A and Satija R (2017) <doi:10.1101/164889> for more details.
 Authors@R: c(
@@ -15,25 +15,25 @@ Authors@R: c(
   )
 URL: http://www.satijalab.org/seurat, https://github.com/satijalab/seurat
 BugReports: https://github.com/satijalab/seurat/issues
-Additional_repositories: https://mojaveazure.github.io/loomR
+Remotes: ChristophH/sctransform
 Depends:
     R (>= 3.4.0),
     methods,
 Imports:
     cluster,
     cowplot,
-    doSNOW,
-    dtw,
     fitdistrplus,
+    future,
+    future.apply,
     ggplot2 (>= 3.0.0),
     ggrepel,
     ggridges,
     graphics,
     grDevices,
+    ica,
     igraph,
     ini,
     irlba,
-    lars,
     lmtest,
     MASS,
     Matrix (>= 1.2.14),
@@ -51,7 +51,6 @@ Imports:
     Rtsne,
     scales,
     SDMTools,
-    tidyr,
     tsne,
     stats,
     utils
@@ -70,20 +69,19 @@ Collate:
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests:
     gdata,
     VGAM,
     tclust,
     testthat,
+    sctransform,
     caret,
     hdf5r,
     ranger,
-    loomR,
     phateR,
     S4Vectors,
-    made4,
     SummarizedExperiment,
     SingleCellExperiment,
     MAST,

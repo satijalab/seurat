@@ -5,9 +5,9 @@
 \alias{GenePlot}
 \title{Scatter plot of single cell data}
 \usage{
-FeatureScatter(object, feature1, feature2, cells = NULL, cols = NULL,
-  pt.size = 1, shape.by = NULL, span = NULL, smooth = FALSE,
-  slot = "data", ...)
+FeatureScatter(object, feature1, feature2, cells = NULL,
+  group.by = NULL, cols = NULL, pt.size = 1, shape.by = NULL,
+  span = NULL, smooth = FALSE, slot = "data", ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -18,6 +18,9 @@ be metrics, PC scores, etc. - anything that can be retreived with FetchData}
 \item{feature2}{Second feature to plot.}
 
 \item{cells}{Cells to include on the scatter plot.}
+
+\item{group.by}{Name of one or more metadata columns to group (color) cells by
+(for example, orig.ident); pass 'ident' to group by identity class}
 
 \item{cols}{Colors to use for identity class plotting.}
 

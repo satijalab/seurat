@@ -8,20 +8,21 @@
 \usage{
 \method{[}{Seurat}(x, i, j, ...)
 
-\method{subset}{Seurat}(x, subset, select = NULL, ...)
+\method{subset}{Seurat}(x, subset, cells = NULL, features = NULL,
+  idents = NULL, ...)
 }
 \arguments{
 \item{x}{Seurat object to be subsetted}
 
-\item{i}{A vector of features to keep}
+\item{i, features}{A vector of features to keep}
 
-\item{j}{A vector of cells to keep}
+\item{j, cells}{A vector of cells to keep}
 
-\item{...}{Arguments passed to \code{WhichCells}}
+\item{...}{Arguments passed to \code{\link{WhichCells}}}
 
 \item{subset}{Logical expression indicating features/variables to keep}
 
-\item{select}{A vector of cells, identity classes, or features to keep}
+\item{idents}{A vector of identity classes to keep}
 }
 \value{
 A subsetted Seurat object
@@ -34,9 +35,9 @@ pbmc_small[VariableFeatures(object = pbmc_small), ]
 pbmc_small[, 1:10]
 
 subset(x = pbmc_small, subset = MS4A1 > 4)
-subset(x = pbmc_small, select = VariableFeatures(object = pbmc_small))
+subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 
 }
 \seealso{
-\code{\link{base::subset}} \code{\link{WhichCells}}
+\code{\link[base]{subset}} \code{\link{WhichCells}}
 }

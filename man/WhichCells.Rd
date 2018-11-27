@@ -6,7 +6,7 @@
 \alias{WhichCells.Seurat}
 \title{Identify cells matching certain criteria}
 \usage{
-WhichCells(object, cells, expression, invert, ...)
+WhichCells(object, ...)
 
 \method{WhichCells}{Assay}(object, cells = NULL, expression,
   invert = FALSE, ...)
@@ -15,7 +15,9 @@ WhichCells(object, cells, expression, invert, ...)
   expression, invert = FALSE, downsample = Inf, seed = 1, ...)
 }
 \arguments{
-\item{object}{Seurat object}
+\item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{cells}{Subset of cell names}
 
@@ -23,8 +25,6 @@ WhichCells(object, cells, expression, invert, ...)
 evalue anything that can be pulled by \code{FetchData}}
 
 \item{invert}{Invert the selection of cells}
-
-\item{...}{Arguments passed to other methods}
 
 \item{idents}{A vector of identity classes to keep}
 
@@ -41,13 +41,6 @@ A vector of cell names
 Returns a list of cells that match a particular set of criteria such as
 identity class, high/low values for particular PCs, ect..
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get cells from an Assay object
-
-\item \code{Seurat}: Get cells from a Seurat object
-}}
-
 \examples{
 WhichCells(object = pbmc_small, idents = 2)
 WhichCells(object = pbmc_small, expression = MS4A1 > 3)

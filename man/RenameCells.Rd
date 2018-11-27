@@ -7,7 +7,7 @@
 \alias{RenameCells.Seurat}
 \title{Rename cells}
 \usage{
-RenameCells(object, new.names, ...)
+RenameCells(object, ...)
 
 \method{RenameCells}{Assay}(object, new.names = NULL, ...)
 
@@ -19,9 +19,9 @@ RenameCells(object, new.names, ...)
 \arguments{
 \item{object}{An object}
 
-\item{new.names}{vector of new cell names}
-
 \item{...}{Arguments passed to other methods}
+
+\item{new.names}{vector of new cell names}
 
 \item{add.cell.id}{prefix to add cell names}
 
@@ -39,15 +39,6 @@ be useful before combining multiple objects.
 If \code{add.cell.id} is set a prefix is added to existing cell names. If
 \code{new.names} is set these will be used to replace existing names.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Rename cells in an Assay object
-
-\item \code{DimReduc}: Rename cells in a DimReduc object
-
-\item \code{Seurat}: Rename cells in a Seurat object
-}}
-
 \examples{
 head(x = colnames(x = pbmc_small))
 pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")

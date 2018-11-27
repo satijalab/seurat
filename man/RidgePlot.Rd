@@ -19,7 +19,7 @@ anything that can be retreived by FetchData)}
 \item{idents}{Which classes to include in the plot (default is all)}
 
 \item{sort}{Sort identity classes (on the x-axis) by the average
-expression of the attribute being potted}
+expression of the attribute being potted, can also pass 'increasing' or 'decreasing' to change sort direction}
 
 \item{assay}{Name of assay to use, defaults to the active assay}
 

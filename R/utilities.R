@@ -412,11 +412,22 @@ CellCycleScoring <- function(
 #'
 #' Valuable for CITE-seq analyses, where we typically spike in rare populations of 'negative control' cells from a different species.
 #'
-#' @param data.matrix A UMI count matrix. Should contain rownames that start with the ensuing arguments prefix.1 or prefix.2
-#' @param prefix.1 The prefix denoting rownames for the species of interest. Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.
-#' @param prefix.controls The prefix denoting rownames for the species of 'negative control' cells. Default is "MOUSE_".
-#' @param features.controls.toKeep How many of the most highly expressed (average) negative control features (by default, 100 mouse genes), should be kept? All other rownames starting with prefix.2 are discarded.
-#' @return A UMI count matrix. Rownames that started with prefix.1 have this prefix discarded. For rownames starting with prefix.2, only the most highly expressed features are kept, and the prefix is kept. All other rows are retained.
+#' @param object A UMI count matrix. Should contain rownames that start with
+#' the ensuing arguments prefix.1 or prefix.2
+#' @param prefix The prefix denoting rownames for the species of interest.
+#' Default is "HUMAN_". These rownames will have this prefix removed in the returned matrix.
+#' @param controls The prefix denoting rownames for the species of 'negative
+#' control' cells. Default is "MOUSE_".
+#' @param ncontrols How many of the most highly expressed (average) negative
+#' control features (by default, 100 mouse genes), should be kept? All other
+#' rownames starting with prefix.2 are discarded.
+#'
+#' @return A UMI count matrix. Rownames that started with \code{prefix} have this
+#' prefix discarded. For rownames starting with \code{controls}, only the
+#' \code{ncontrols} most highly expressed features are kept, and the
+#' prefix is kept. All other rows are retained.
+#'
+#' @importFrom Matrix rowSums
 #'
 #' @export
 #'
@@ -426,33 +437,26 @@ CellCycleScoring <- function(
 #' }
 #'
 CollapseSpeciesExpressionMatrix <- function(
-  data.matrix,
-  prefix.1 = "HUMAN_",
-  prefix.controls = "MOUSE_",
-  features.controls.toKeep = 100
+  object,
+  prefix = "HUMAN_",
+  controls = "MOUSE_",
+  ncontrols = 100
 ) {
-  # data.matrix.1 <- SubsetRow(data = data.matrix, code = prefix.1)
-  data.matrix.1 <- data.matrix[grep(pattern = prefix.1, x = rownames(x = data.matrix)), ]
-  # data.matrix.2 <- SubsetRow(data = data.matrix, code = prefix.controls)
-  data.matrix.2 <- data.matrix[grep(pattern = prefix.controls, x = rownames(x = data.matrix)), ]
-  data.matrix.3 <- data.matrix[setdiff(
-    x = rownames(x = data.matrix),
-    y = c(rownames(x = data.matrix.1), rownames(x = data.matrix.2))
-  ),]
-  rownames(x = data.matrix.1) <- make.unique(names = sapply(
-    X = rownames(x = data.matrix.1),
-    FUN = function(x) {
-      return(gsub(pattern = prefix.1, replacement = '', x = x))
-    }
+  features <- grep(pattern = prefix, x = rownames(x = object), value = TRUE)
+  controls <- grep(pattern = controls, x = rownames(x = object), value = TRUE)
+  others <- setdiff(x = rownames(x = object), y = c(features, controls))
+  controls <- rowSums(x = object[controls, ])
+  controls <- names(x = head(
+    x = sort(x = controls, decreasing = TRUE),
+    n = ncontrols
   ))
-  control.sums <- rowSums(x = data.matrix.2)
-  control.keep <- names(x = head(
-    x = sort(x = control.sums, decreasing = TRUE),
-    n = features.controls.toKeep
-  ))
-  control.matrix.keep <- data.matrix.2[control.keep, ]
-  final.matrix <- rbind(data.matrix.1, control.matrix.keep, data.matrix.3)
-  return(final.matrix)
+  object <- object[c(features, controls, others), ]
+  rownames(x = object) <- gsub(
+    pattern = prefix,
+    replacement = '',
+    x = rownames(x = object)
+  )
+  return(object)
 }
 
 #' Run a custom distance function on an input data matrix
@@ -503,6 +507,237 @@ CustomDistance <- function(my.mat, my.function, ...) {
 #'
 ExpMean <- function(x) {
   return(log(x = mean(x = exp(x = x) - 1) + 1))
+}
+
+#' Export Seurat object for UCSC cell browser
+#'
+#' @param object Seurat object
+#' @param dir path to directory where to save exported files. These are:
+#' exprMatrix.tsv, tsne.coords.tsv, meta.tsv, markers.tsv and a default cellbrowser.conf
+#' @param dataset.name name of the dataset. Defaults to Seurat project name
+#' @param reductions vector of reduction names to export
+#' @param markers.file path to file with marker genes
+#' @param cluster.field name of the metadata field containing cell cluster
+#' @param cb.dir path to directory where to create UCSC cellbrowser static
+#' website content root, e.g. an index.html, .json files, etc. These files
+#' can be copied to any webserver. If this is specified, the cellbrowser
+#' package has to be accessible from R via reticulate.
+#' @param port on which port to run UCSC cellbrowser webserver after export
+#' @param skip.expr.matrix whether to skip exporting expression matrix
+#' @param skip.metadata whether to skip exporting metadata
+#' @param skip.reductions whether to skip exporting reductions
+#' @param ... specifies the metadata fields to export. To supply field with
+#' human readable name, pass name as \code{field="name"} parameter.
+#'
+#' @return This function exports Seurat object as a set of tsv files
+#' to \code{dir} directory, copying the \code{markers.file} if it is
+#' passed. It also creates the default \code{cellbrowser.conf} in the
+#' directory. This directory could be read by \code{cbBuild} to
+#' create a static website viewer for the dataset. If \code{cb.dir}
+#' parameter is passed, the function runs \code{cbBuild} (if it is
+#' installed) to create this static website in \code{cb.dir} directory.
+#' If \code{port} parameter is passed, it also runs the webserver for
+#' that directory and opens a browser.
+#'
+#' @author Maximilian Haeussler, Nikolay Markov
+#'
+#' @importFrom utils browseURL
+#' @importFrom reticulate py_module_available import
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' ExportToCellbrowser(object = pbmc_small, dataset.name = "PBMC", dir = "out")
+#' }
+#'
+ExportToCellbrowser <- function(
+  object,
+  dir,
+  dataset.name = slot(object = object, name = 'project.name'),
+  reductions = "tsne",
+  markers.file = NULL,
+  cluster.field = "Cluster",
+  cb.dir = NULL,
+  port = NULL,
+  skip.expr.matrix = FALSE,
+  skip.metadata = FALSE,
+  skip.reductions = FALSE,
+  ...
+) {
+  vars <- c(...)
+  if (is.null(x = vars)) {
+    vars <- c("nCount_RNA", "nFeature_RNA")
+    if (length(x = levels(x = Idents(object = object))) > 1) {
+      vars <- c(vars, cluster.field)
+      names(x = vars) <- c("", "", "ident")
+    }
+  }
+  names(x = vars) <- names(x = vars) %||% vars
+  names(x = vars) <- sapply(
+    X = 1:length(x = vars),
+    FUN = function(i) {
+      return(ifelse(
+        test = nchar(x = names(x = vars)[i]) > 0,
+        yes = names(x = vars[i]),
+        no = vars[i]
+      ))
+    }
+  )
+  if (!is.null(x = port) && is.null(x = cb.dir)) {
+    stop("cb.dir parameter is needed when port is set")
+  }
+  if (!dir.exists(paths = dir)) {
+    dir.create(path = dir)
+  }
+  if (!dir.exists(paths = dir)) {
+    stop("Output directory ", dir, " cannot be created or is a file")
+  }
+  if (dataset.name == "SeuratProject") {
+    warning("Using default project name means that you may overwrite project with the same name in the cellbrowser html output folder")
+  }
+  order <- colnames(x = object)
+  enum.fields <- c()
+  # Export expression matrix:
+  if (!skip.expr.matrix) {
+    # Relatively memory inefficient - maybe better to convert to sparse-row and write in a loop, row-by-row?
+    df <- as.data.frame(x = as.matrix(x = GetAssayData(object = object)))
+    df <- data.frame(gene = rownames(x = object), df, check.names = FALSE)
+    gzPath <- file.path(dir, "exprMatrix.tsv.gz")
+    z <- gzfile(gzPath, "w")
+    message("Writing expression matrix to ", gzPath)
+    write.table(x = df, sep = "\t", file = z, quote = FALSE, row.names = FALSE)
+    close(con = z)
+  }
+  # Export cell embeddings
+  embeddings.conf <- c()
+  for (reduction in reductions) {
+    if (!skip.reductions) {
+      df <- Embeddings(object = object, reduction = reduction)
+      if (ncol(x = df) > 2) {
+        warning(
+          'Embedding ',
+          reduction,
+          ' has more than 2 coordinates, taking only the first 2'
+        )
+        df <- df[, 1:2]
+      }
+      colnames(x = df) <- c("x", "y")
+      df <- data.frame(cellId = rownames(x = df), df)
+      fname <- file.path(dir, paste0(reduction, '.coords.tsv'))
+      message("Writing embeddings to ", fname)
+      write.table(
+        x = df[order, ],
+        sep = "\t",
+        file = fname,
+        quote = FALSE,
+        row.names = FALSE
+      )
+    }
+    conf <- sprintf(
+      '{"file": "%s.coords.tsv", "shortLabel": "Seurat %1$s"}',
+      reduction
+    )
+    embeddings.conf <- c(embeddings.conf, conf)
+  }
+  # Export metadata
+  df <- data.frame(row.names = rownames(x = object[[]]))
+  df <- FetchData(object = object, vars = names(x = vars))
+  colnames(x = df) <- vars
+  enum.fields <- Filter(
+    f = function(name) {!is.numeric(x = df[[name]])},
+    x = vars
+  )
+  if (!skip.metadata) {
+    fname <- file.path(dir, "meta.tsv")
+    message("Writing meta data to ", fname)
+    df <- data.frame(Cell = rownames(x = df), df, check.names = FALSE)
+    write.table(
+      x = df[order, ],
+      sep = "\t",
+      file = fname,
+      quote = FALSE,
+      row.names = FALSE
+    )
+  }
+  # Export markers
+  markers.string <- ''
+  if (!is.null(x = markers.file)) {
+    file.copy(from = markers.file, to = file.path(dir, "markers.tsv"))
+    markers.string <- 'markers = [{"file": "markers.tsv", "shortLabel": "Seurat Cluster Markers"}]'
+  }
+  config <- c(
+    'name="%s"',
+    'shortLabel="%1$s"',
+    'exprMatrix="exprMatrix.tsv.gz"',
+    '#tags = ["10x", "smartseq2"]',
+    'meta="meta.tsv"',
+    '# possible values: "gencode-human", "gencode-mouse", "symbol" or "auto"',
+    'geneIdType="auto"',
+    'clusterField="%s"',
+    'labelField="%2$s"',
+    'enumFields=%s',
+    '%s',
+    'coords=%s'
+  )
+  config <- paste(config, collapse = '\n')
+  enum.string <- paste0(
+    "[",
+    paste(paste0('"', enum.fields, '"'), collapse = ", "),
+    "]"
+  )
+  coords.string <- paste0(
+    "[",
+    paste(embeddings.conf, collapse = ",\n"),
+    "]"
+  )
+  config <- sprintf(
+    config,
+    dataset.name,
+    cluster.field,
+    enum.string,
+    markers.string,
+    coords.string
+  )
+  fname <- file.path(dir, "cellbrowser.conf")
+  if (file.exists(fname)) {
+    message(
+      "`cellbrowser.conf` already exists in target directory, refusing to ",
+      "overwrite it"
+    )
+  } else {
+    cat(config, file = fname)
+  }
+  message("Prepared cellbrowser directory ", dir)
+  if (!is.null(x = cb.dir)) {
+    if (!py_module_available(module = "cellbrowser")) {
+      stop(
+        "The Python package `cellbrowser` is required to prepare and run ",
+        "Cellbrowser. Please install it ",
+        "on the Unix command line with `sudo pip install cellbrowser` (if root) ",
+        "or `pip install cellbrowser --user` (as a non-root user). ",
+        "To adapt the Python that is used, you can either set the env. variable RETICULATE_PYTHON ",
+        "or do `require(reticulate) and use one of these functions: use_python(), use_virtualenv(), use_condaenv(). ",
+        "See https://rstudio.github.io/reticulate/articles/versions.html; ",
+        "at the moment, R's reticulate is using this Python: ",
+        import(module = 'sys')$executable,
+        ". "
+      )
+    }
+    if (!is.null(x = port)) {
+      port <- as.integer(x = port)
+    }
+    message("Converting cellbrowser directory to html/json files")
+    cb <- import(module = "cellbrowser")
+    cb$cellbrowser$build(dir, cb.dir)
+    if (!is.null(port)) {
+      message("Starting http server")
+      cb$cellbrowser$stop()
+      cb$cellbrowser$serve(cb.dir, port)
+      Sys.sleep(time = 0.4)
+      browseURL(url = paste0("http://localhost:", port))
+    }
+  }
 }
 
 #' Calculate the standard deviation of logged values
@@ -564,6 +799,55 @@ LogVMR <- function(x) {
   return(log(x = var(x = exp(x = x) - 1) / mean(x = exp(x = x) - 1)))
 }
 
+#' Aggregate expression of multiple features into a single feature
+#'
+#' Calculates relative contribution of each feature to each cell
+#' for given set of features.
+#'
+#' @param object A Seurat object
+#' @param features List of features to aggregate
+#' @param meta.name Name of column in metadata to store metafeature
+#' @param cells List of cells to use (default all cells)
+#' @param assay Which assay to use
+#' @param slot Which slot to take data from (default data)
+#'
+#' @return Returns a \code{Seurat} object with metafeature stored in objct metadata
+#'
+#' @importFrom Matrix rowSums colMeans
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- MetaFeature(
+#'   object = pbmc_small,
+#'   features = c("LTB", "EAF2"),
+#'   meta.name = 'var.aggregate'
+#' )
+#' head(pbmc_small[[]])
+#'
+MetaFeature <- function(
+  object,
+  features,
+  meta.name = 'metafeature',
+  cells = NULL,
+  assay = NULL,
+  slot = 'data'
+) {
+  cells <- cells %||% colnames(x = object)
+  assay <- assay %||% DefaultAssay(object = object)
+  newmat <- GetAssayData(object = object, assay = assay, slot = slot)
+  newmat <- newmat[features, cells]
+  if (slot == 'scale.data') {
+    newdata <- Matrix::colMeans(newmat)
+  } else {
+    rowtotals <- Matrix::rowSums(newmat)
+    newmat <- newmat / rowtotals
+    newdata <- Matrix::colMeans(newmat)
+  }
+  object[[meta.name]] <- newdata
+  return(object)
+}
+
 #' Apply a ceiling and floor to all values in a matrix
 #'
 #' @param data Matrix or data frame
@@ -584,9 +868,71 @@ MinMax <- function(data, min, max) {
   return(data2)
 }
 
+#' Stop Cellbrowser web server
+#'
+#' @importFrom reticulate py_module_available
+#' @importFrom reticulate import
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' StopCellbrowser()
+#' }
+#'
+StopCellbrowser <- function() {
+  if (py_module_available(module = "cellbrowser")) {
+    cb <- import(module = "cellbrowser")
+    cb$cellbrowser$stop()
+  } else {
+    stop("The `cellbrowser` package is not available in the Python used by R's reticulate")
+  }
+}
+
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @importFrom methods as
+#' @importClassesFrom Matrix dgCMatrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse data.frame
+#'
+as.sparse.data.frame <- function(x, ...) {
+  return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
+}
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#' @inheritParams base::as.data.frame
+#'
+#' @return \code{as.data.frame.Matrix}: A data frame representation of the S4 Matrix
+#'
+#' @importFrom Matrix as.matrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.data.frame Matrix
+#'
+as.data.frame.Matrix <- function(
+  x,
+  row.names = NULL,
+  optional = FALSE,
+  ...,
+  stringsAsFactors = default.stringsAsFactors()
+) {
+  return(as.data.frame(
+    x = as.matrix(x = x),
+    row.names = row.names,
+    optional = optional,
+    stringsAsFactors = stringsAsFactors,
+    ...
+  ))
+}
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
@@ -628,6 +974,133 @@ MinMax <- function(data, min, max) {
   }
 }
 
+# L2 normalize the columns (or rows) of a given matrix
+# @param mat Matrix to cosine normalize
+# @param MARGIN Perform normalization over rows (1) or columns (2)
+#
+#
+# @return returns l2-normalized matrix
+#
+#
+L2Norm <- function(mat, MARGIN = 1){
+  normalized <- sweep(
+    x = mat,
+    MARGIN = MARGIN,
+    STATS = apply(
+      X = mat,
+      MARGIN = MARGIN,
+      FUN = function(x){
+        sqrt(x = sum(x ^ 2))
+      }
+    ),
+    FUN = "/"
+  )
+  normalized[!is.finite(x = normalized)] <- 0
+  return(normalized)
+}
+
+# Check the use of ...
+#
+# @param ... Arguments passed to a function that fall under ...
+# @param fxns A list/vector of functions or function names
+#
+# @return ...
+#
+#' @importFrom utils argsAnywhere getAnywhere
+#
+# @examples
+#
+CheckDots <- function(..., fxns = NULL) {
+  args.names <- names(x = c(...))
+  if (length(x = c(...)) == 0) {
+    return(invisible(x = NULL))
+  }
+  if (is.null(x = args.names)) {
+    stop("No named arguments passed")
+  }
+  fxn.args <- lapply(
+    X = fxns,
+    FUN = function(x) {
+      if (is.character(x = x)) {
+        if (any(grepl(pattern = 'UseMethod', x = as.character(x = getAnywhere(x = x))))) {
+          x <- paste0(x, '.default')
+        }
+        x <- argsAnywhere(x = x)
+      }
+      if (is.function(x = x)) {
+        return(names(x = formals(fun = x)))
+      } else {
+        stop("CheckDots only works on characters or functions, not ", class(x = x))
+      }
+    }
+  )
+  if (any(grepl(pattern = '...', x = fxn.args, fixed = TRUE))) {
+    dotted <- grepl(pattern = '...', x = fxn.args, fixed = TRUE)
+    dfxn <- fxns[dotted]
+    if (any(sapply(X = dfxn, FUN = is.character))) {
+      message(
+        "The following functions accept the dots: ",
+        paste(Filter(f = is.character, x = dfxn), collapse = ', ')
+      )
+      dfxn <- Filter(f = Negate(f = is.character), x = dfxn)
+      if (length(x = dfxn) > 0) {
+        message(
+          "In addition, there are ",
+          length(x = dfxn),
+          " unnamed function(s) that accept the dots"
+        )
+      }
+    } else {
+      message("There are ", length(x = dfxn), ' functions provided that accept the dots')
+    }
+  } else {
+    unused <- Filter(
+      f = function(x) {
+        return(!x %in% unlist(x = fxn.args))
+      },
+      x = args.names
+    )
+    if (length(x = unused) > 0) {
+      warning(
+        "The following arguments are not used: ",
+        paste(unused, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+}
+
+# Check a list of objects for duplicate cell names
+#
+# @param object.list List of Seurat objects
+# @param verbose Print message about renaming
+# @param stop Error out if any duplicate names exist
+#
+# @return Returns list of objects with duplicate cells renamed to be unique
+#
+CheckDuplicateCellNames <- function(object.list, verbose = TRUE, stop = FALSE) {
+  cell.names <- unlist(
+    x = sapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) Cells(object = object.list[[x]])
+      )
+    )
+  if (any(duplicated(x = cell.names))) {
+    if (stop) {
+      stop("Duplicate cell names present across objects provided.")
+    }
+    if (verbose) {
+      warning("Some cell names are duplicated across objects provided. Renaming to enforce unique cell names.")
+    }
+    object.list <- sapply(
+      X = 1:length(x = object.list),
+      FUN = function(x) RenameCells(object = object.list[[x]], new.names = paste0(Cells(object = object.list[[x]]), "_", x))
+    )
+  }
+  return(object.list)
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
@@ -651,6 +1124,16 @@ ExtractField <- function(string, field = 1, delim = "_") {
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
+# Interleave vectors together
+#
+# @param ... Vectors to be interleaved
+#
+# @return A vector with the values from each vector in ... interleaved
+#
+Interleave <- function(...) {
+  return(as.vector(x = t(x = as.data.frame(x = list(...)))))
+}
+
 # Check if a matrix is empty
 #
 # Takes a matrix and asks if it's empty (either 0x0 or 1x1 with a value of NA)
@@ -663,39 +1146,6 @@ IsMatrixEmpty <- function(x) {
   matrix.dims <- dim(x = x)
   matrix.na <- all(matrix.dims == 1) && all(is.na(x = x))
   return(all(matrix.dims == 0) || matrix.na)
-}
-
-# Documentation
-#Internal, not documented for now
-#
-#' @importFrom lars lars predict.lars
-#
-LassoFxn <- function(
-  lasso.input,
-  genes.obs,
-  s.use = 20,
-  gene.name = NULL,
-  do.print = FALSE,
-  gram = TRUE
-) {
-  lasso.model <- lars(
-    x = lasso.input,
-    y = as.numeric(x = genes.obs),
-    type = "lasso",
-    max.steps = s.use * 2,
-    use.Gram = gram
-  )
-  #lasso.fits=predict.lars(lasso.model,lasso.input,type="fit",s=min(s.use,max(lasso.model$df)))$fit
-  lasso.fits <- predict.lars(
-    object = lasso.model,
-    newx = lasso.input,
-    type = "fit",
-    s = s.use
-  )$fit
-  if (do.print) {
-    print(gene.name)
-  }
-  return(lasso.fits)
 }
 
 # Check the length of components of a list
@@ -823,8 +1273,7 @@ Melt <- function(x) {
   return(data.frame(
     rows = rep.int(x = rownames(x = x), times = ncol(x = x)),
     cols = unlist(x = lapply(X = colnames(x = x), FUN = rep.int, times = nrow(x = x))),
-    vals = unlist(x = x, use.names = FALSE),
-    stringsAsFactors = FALSE
+    vals = unlist(x = x, use.names = FALSE)
   ))
 }
 
@@ -835,11 +1284,14 @@ Melt <- function(x) {
 #
 # @return Invisibly returns boolean denoting if the package is installed
 #
-#' @importFrom utils installed.packages
-#
 PackageCheck <- function(..., error = TRUE) {
   pkgs <- unlist(x = c(...), use.names = FALSE)
-  package.installed <- pkgs %in% rownames(x = installed.packages())
+  package.installed <- vapply(
+    X = pkgs,
+    FUN = requireNamespace,
+    FUN.VALUE = logical(length = 1L),
+    quietly = TRUE
+  )
   if (error && any(!package.installed)) {
     stop(
       "Cannot find ",
@@ -893,11 +1345,10 @@ Parenting <- function(parent.find = 'Seurat', ...) {
 
 # Calculate the percentage of a vector above some threshold
 #
-# @param x          Vector of values
-# @param threshold  Threshold to use when calculating percentage
+# @param x Vector of values
+# @param threshold Threshold to use when calculating percentage
 #
-# @return           Returns the percentage of `x` values above the given
-#                   threshold
+# @return Returns the percentage of `x` values above the given threshold
 #
 PercentAbove <- function(x, threshold){
   return(length(x = x[x > threshold]) / length(x = x))

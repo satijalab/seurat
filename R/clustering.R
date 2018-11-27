@@ -10,16 +10,128 @@ NULL
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
+#' @param resolution Value of the resolution parameter, use a value above
+#' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
+#' @param algorithm Algorithm for modularity optimization (1 = original Louvain
+#' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
+#' algorithm).
+#' @param n.start Number of random starts.
+#' @param n.iter Maximal number of iterations per random start.
+#' @param random.seed Seed of the random number generator.
+#' @param temp.file.location Directory where intermediate files will be written.
+#' Specify the ABSOLUTE path.
+#' @param edge.file.name Edge file to use as input for modularity optimizer jar.
+#' @param verbose Print output
+#'
+#' @importFrom methods is
+#'
+#' @rdname FindClusters
+#' @export
+#'
+FindClusters.default <- function(
+  object,
+  modularity.fxn = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+) {
+  if (is.null(x = object)) {
+    stop("Please provide an SNN graph")
+  }
+  clustering.results <- data.frame(row.names = colnames(x = object))
+  for (r in resolution) {
+    ids <- RunModularityClustering(
+      SNN = object,
+      modularity = modularity.fxn,
+      resolution = r,
+      algorithm = algorithm,
+      n.start = n.start,
+      n.iter = n.iter,
+      random.seed = random.seed,
+      print.output = verbose,
+      temp.file.location = temp.file.location,
+      edge.file.name = edge.file.name)
+    names(x = ids) <- colnames(x = object)
+    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+    clustering.results[, paste0("res.", r)] <- factor(x = ids)
+  }
+  return(clustering.results)
+}
+
+#' @param graph.name Name of graph to use for the clustering algorithm
+#'
+#' @rdname FindClusters
+#' @export
+#' @method FindClusters Seurat
+#'
+FindClusters.Seurat <- function(
+  object,
+  graph.name = NULL,
+  modularity.fxn = 1,
+  resolution = 0.8,
+  algorithm = 1,
+  n.start = 10,
+  n.iter = 10,
+  random.seed = 0,
+  temp.file.location = NULL,
+  edge.file.name = NULL,
+  verbose = TRUE,
+  ...
+) {
+  graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
+  if (!graph.name %in% names(x = object)) {
+    stop("Provided graph.name not present in Seurat object")
+  }
+  if (!is(object = object[[graph.name]], class2 = "Graph")) {
+    stop("Provided graph.name does not correspond to a graph object.")
+  }
+  clustering.results <- FindClusters(
+    object = object[[graph.name]],
+    modularity.fxn = modularity.fxn,
+    resolution = resolution,
+    algorithm = algorithm,
+    n.start = n.start,
+    n.iter = n.iter,
+    random.seed = random.seed,
+    temp.file.location = temp.file.location,
+    edge.file.name = edge.file.name,
+    verbose = verbose
+  )
+  colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
+  object <- AddMetaData(object = object, metadata = clustering.results)
+  Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  object <- LogSeuratCommand(object)
+  return(object)
+}
+
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
+#' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
+#' computing the neighborhood overlap for the SNN construction. Any edges with
+#' values less than or equal to this will be set to 0 and removed from the SNN
+#' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
+#' prune everything).
+#' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
+#' default of 0.0 implies exact nearest neighbor search
+#' @param verbose Whether or not to print output to the console
+#' @param force.recalc Force recalculation of SNN.
 #'
+#' @importFrom RANN nn2
 #' @importFrom methods as
 #'
-#' @describeIn BuildSNN Build an SNN on a given matrix
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN default
+#' @method FindNeighbors default
 #'
-BuildSNN.default <- function(
+FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
   k.param = 10,
@@ -66,15 +178,15 @@ BuildSNN.default <- function(
   )
   rownames(x = snn.matrix) <- rownames(x = object)
   colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- methods::as(object = snn.matrix, Class = "Graph")
+  snn.matrix <- as(object = snn.matrix, Class = "Graph")
   return(snn.matrix)
 }
 
-#' @rdname BuildSNN
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN Assay
+#' @method FindNeighbors Assay
 #'
-BuildSNN.Assay <- function(
+FindNeighbors.Assay <- function(
   object,
   features = NULL,
   k.param = 10,
@@ -86,7 +198,7 @@ BuildSNN.Assay <- function(
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
-  snn.matrix <- BuildSNN(
+  snn.matrix <- FindNeighbors(
     object = data.use,
     k.param = k.param,
     prune.SNN = prune.SNN,
@@ -104,18 +216,19 @@ BuildSNN.Assay <- function(
 #' @param do.plot Plot SNN graph on tSNE coordinates
 #' @param graph.name Optional naming parameter for stored SNN graph. Default is
 #' assay.name_snn.
-#' @param workflow.name Name of workflow
 #'
-#' @rdname BuildSNN
+#' @importFrom igraph graph.adjacency plot.igraph E
+#'
+#' @rdname FindNeighbors
 #' @export
-#' @method BuildSNN Seurat
+#' @method FindNeighbors Seurat
 #'
-BuildSNN.Seurat <- function(
+FindNeighbors.Seurat <- function(
   object,
-  assay = NULL,
-  features = NULL,
   reduction = "pca",
   dims = 1:10,
+  assay = NULL,
+  features = NULL,
   k.param = 30,
   prune.SNN = 1/15,
   nn.eps = 0,
@@ -123,15 +236,8 @@ BuildSNN.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
-  workflow.name = NULL,
   ...
 ) {
-  if (!is.null(x = workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  if (length(x = dims) == 1 && !is.null(x = workflow.name)) {
-    dims <- 1:dims
-  }
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- Embeddings(object = object[[reduction]])
@@ -139,7 +245,7 @@ BuildSNN.Seurat <- function(
       stop("More dimensions specified in dims than have been computed")
     }
     data.use <- data.use[, dims]
-    snn.matrix <- BuildSNN(
+    snn.matrix <- FindNeighbors(
       object = data.use,
       k.param = k.param,
       prune.SNN = prune.SNN,
@@ -150,7 +256,7 @@ BuildSNN.Seurat <- function(
   } else {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- GetAssay(object = object, assay = assay)
-    snn.matrix <- BuildSNN(
+    snn.matrix <- FindNeighbors(
       object = data.use,
       features = features,
       k.param = k.param,
@@ -160,7 +266,6 @@ BuildSNN.Seurat <- function(
       force.recalc = force.recalc
     )
   }
-
   graph.name <- graph.name %||% paste0(assay, "_snn")
   object[[graph.name]] <- snn.matrix
   if (do.plot) {
@@ -187,106 +292,6 @@ BuildSNN.Seurat <- function(
     }
   }
   object <- LogSeuratCommand(object = object)
-  if (!is.null(x = workflow.name)) {
-    command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-    object <- UpdateWorkflow(
-      object = object,
-      workflow.name = workflow.name,
-      command.name = command.name)
-  }
-  return(object)
-}
-
-#' @importFrom methods is
-#' @export
-#'
-FindClusters.default <- function(
-  object,
-  modularity.fxn = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  ...
-) {
-  if (is.null(x = object)) {
-    stop("Please provide an SNN graph")
-  }
-  clustering.results <- data.frame(row.names = colnames(x = object))
-  for (r in resolution) {
-    ids <- RunModularityClustering(
-      SNN = object,
-      modularity = modularity.fxn,
-      resolution = r,
-      algorithm = algorithm,
-      n.start = n.start,
-      n.iter = n.iter,
-      random.seed = random.seed,
-      print.output = verbose,
-      temp.file.location = temp.file.location,
-      edge.file.name = edge.file.name)
-    names(x = ids) <- colnames(x = object)
-    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-    clustering.results[, paste0("res.", r)] <- factor(x = ids)
-  }
-  return(clustering.results)
-}
-
-#' @param graph.name Name of graph to use for the clustering algorithm
-#' @param workflow.name Name of workflow
-#'
-#' @rdname FindClusters
-#' @export
-#' @method FindClusters Seurat
-#'
-FindClusters.Seurat <- function(
-  object,
-  graph.name = NULL,
-  modularity.fxn = 1,
-  resolution = 0.8,
-  algorithm = 1,
-  n.start = 10,
-  n.iter = 10,
-  random.seed = 0,
-  temp.file.location = NULL,
-  edge.file.name = NULL,
-  verbose = TRUE,
-  workflow.name = NULL,
-  ...
-) {
-  if (!is.null(workflow.name)) {
-    object <- PrepareWorkflow(object = object, workflow.name = workflow.name)
-  }
-  graph.name <- graph.name %||% paste0(DefaultAssay(object = object), "_snn")
-  if (!graph.name %in% names(x = object)) {
-    stop("Provided graph.name not present in Seurat object")
-  }
-  if (!is(object = object[[graph.name]], class2 = "Graph")) {
-    stop("Provided graph.name does not correspond to a graph object.")
-  }
-  clustering.results <- FindClusters(
-    object = object[[graph.name]],
-    modularity.fxn = modularity.fxn,
-    resolution = resolution,
-    algorithm = algorithm,
-    n.start = n.start,
-    n.iter = n.iter,
-    random.seed = random.seed,
-    temp.file.location = temp.file.location,
-    edge.file.name = edge.file.name,
-    verbose = verbose
-  )
-  colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
-  object <- AddMetaData(object = object, metadata = clustering.results)
-  Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
-  object <- LogSeuratCommand(object)
-  if (!is.null(x = workflow.name)) {
-    object <- UpdateWorkflow(object = object, workflow.name = workflow.name)
-  }
   return(object)
 }
 

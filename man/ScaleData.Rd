@@ -2,12 +2,18 @@
 % Please edit documentation in R/generics.R, R/preprocessing.R
 \name{ScaleData}
 \alias{ScaleData}
+\alias{ScaleData.default}
 \alias{ScaleData.Assay}
 \alias{ScaleData.Seurat}
 \title{Scale and center the data.}
 \usage{
-ScaleData(object, features, vars.to.regress, model.use, use.umi, do.scale,
-  do.center, scale.max, block.size, min.cells.to.block, verbose, ...)
+ScaleData(object, ...)
+
+\method{ScaleData}{default}(object, features = NULL,
+  vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
+  use.umi = FALSE, do.scale = TRUE, do.center = TRUE,
+  scale.max = 10, block.size = 1000, min.cells.to.block = 3000,
+  verbose = TRUE, ...)
 
 \method{ScaleData}{Assay}(object, features = NULL,
   vars.to.regress = NULL, latent.data = NULL, model.use = "linear",
@@ -18,16 +24,19 @@ ScaleData(object, features, vars.to.regress, model.use, use.umi, do.scale,
 \method{ScaleData}{Seurat}(object, features = NULL, assay = NULL,
   vars.to.regress = NULL, model.use = "linear", use.umi = FALSE,
   do.scale = TRUE, do.center = TRUE, scale.max = 10,
-  block.size = 1000, min.cells.to.block = 3000, verbose = TRUE,
-  workflow.name = NULL, ...)
+  block.size = 1000, min.cells.to.block = 3000, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
+
+\item{...}{Arguments passed to other methods}
 
 \item{features}{Vector of features names to scale/center. Default is all features}
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
 RegressOut). For example, nUMI, or percent.mito.}
+
+\item{latent.data}{Extra data to regress out, should be cells x latent data}
 
 \item{model.use}{Use a linear model or generalized linear model
 (poisson, negative binomial) for the regression. Options are 'linear'
@@ -54,13 +63,7 @@ don't block for scaling calculations.}
 
 \item{verbose}{Displays a progress bar for scaling procedure}
 
-\item{...}{Arguments passed to other methods}
-
-\item{latent.data}{Extra data to regress out, should be cells x latent data}
-
 \item{assay}{Name of Assay to scale}
-
-\item{workflow.name}{Name of workflow}
 }
 \description{
 Scales and centers features in the dataset. If variables are provided in vars.to.regress,
@@ -79,10 +82,3 @@ expression level for each feautre by dividing the centered feautre expression
 levels by their standard deviations if center is TRUE and by their root mean
 square otherwise.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Scale an Assay object
-
-\item \code{Seurat}: Scale a Seurat object
-}}
-

@@ -5,18 +5,20 @@
 \title{Find features with highest scores for a given dimensional reduction technique}
 \usage{
 TopFeatures(object, dim = 1, nfeatures = 20, projected = FALSE,
-  balanced = FALSE)
+  balanced = FALSE, ...)
 }
 \arguments{
 \item{object}{DimReduc object}
 
+\item{dim}{Dimension to use}
+
 \item{nfeatures}{Number of features to return}
 
-\item{projected}{Use the full PCA (projected PCA). Default i s FALSE}
+\item{projected}{Use the projected feature loadings}
 
 \item{balanced}{Return an equal number of features with both + and - scores.}
 
-\item{dim.use}{Dimension to use}
+\item{...}{Extra parameters passed to \code{\link{Loadings}}}
 }
 \value{
 Returns a vector of features

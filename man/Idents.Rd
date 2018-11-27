@@ -13,6 +13,7 @@
 \alias{SetIdent.Seurat}
 \alias{StashIdent.Seurat}
 \alias{levels.Seurat}
+\alias{levels<-.Seurat}
 \title{Get, set, and manipulate an object's identity classes}
 \usage{
 Idents(object, ...)
@@ -21,13 +22,14 @@ Idents(object, ...) <- value
 
 RenameIdents(object, ...)
 
-SetIdent(object, value, ...)
+SetIdent(object, ...)
 
 StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, ...)
 
-\method{Idents}{Seurat}(object, cells = NULL, ...) <- value
+\method{Idents}{Seurat}(object, cells = NULL, drop = FALSE,
+  ...) <- value
 
 \method{RenameIdents}{Seurat}(object, ...)
 
@@ -36,19 +38,22 @@ StashIdent(object, save.name, ...)
 \method{StashIdent}{Seurat}(object, save.name = "orig.ident", ...)
 
 \method{levels}{Seurat}(x)
+
+\method{levels}{Seurat}(x) <- value
 }
 \arguments{
-\item{object}{An object}
+\item{...}{Arguments passed to other methods; for \code{RenameIdents}: named
+arguments as \code{old.ident = new.ident}}
 
-\item{...}{Arguments passed to other methods}
-
-\item{value, idents}{The name of the identites to pull from object metadata or the identities themselves}
+\item{value}{The name of the identites to pull from object metadata or the identities themselves}
 
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
 
-\item{...}{\code{RenameIdents}: named arguments as \code{old.ident = new.ident}}
+\item{drop}{Drop unused levels}
+
+\item{x, object}{An object}
 }
 \value{
 \code{Idents}: The cell identies

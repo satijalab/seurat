@@ -38,6 +38,9 @@ proportion of genes expected under a uniform distribution of p-values.
 JackStrawPlot(object = pbmc_small)
 
 }
+\seealso{
+\code{\link{ScoreJackStraw}}
+}
 \author{
-Thanks to Omri Wurtzel for integrating with ggplot
+Omri Wurtzel
 }

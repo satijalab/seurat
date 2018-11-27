@@ -6,7 +6,7 @@
 \alias{RunCCA.Seurat}
 \title{Perform Canonical Correlation Analysis}
 \usage{
-RunCCA(object1, object2, num.cc, ...)
+RunCCA(object1, object2, ...)
 
 \method{RunCCA}{default}(object1, object2, standardize = TRUE,
   num.cc = 20, verbose = FALSE, use.cpp = TRUE, ...)
@@ -21,31 +21,33 @@ RunCCA(object1, object2, num.cc, ...)
 
 \item{object2}{Second Seurat object.}
 
-\item{num.cc}{Number of canonical vectors to calculate}
-
-\item{...}{Arguments passed to other methods}
+\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
+passed, passed onto ScaleData in case with single object and rescale.groups
+set to TRUE)}
 
 \item{standardize}{Standardize matrices - scales columns to have unit variance
 and mean 0}
 
-\item{assay1}{Assay to pull from in the first object}
+\item{num.cc}{Number of canonical vectors to calculate}
+
+\item{verbose}{...}
+
+\item{use.cpp}{...}
+
+\item{assay1, assay2}{Assays to pull from in the first and second objects, respectively}
 
 \item{features}{Set of genes to use in CCA. Default is the union of both
 the variable features sets present in both objects.}
+
+\item{renormalize}{Renormalize raw data after merging the objects. If FALSE,
+merge the data matrices also.}
 
 \item{rescale}{Rescale the datasets prior to CCA. If FALSE, uses existing data in the scale data slots.}
 
 \item{compute.gene.loadings}{Also compute the gene loadings. NOTE - this will
 scale every gene in the dataset which may impose a high memory cost.}
 
-\item{assay1}{Assay to pull from in the second object}
-
-\item{renormlize}{Renormalize raw data after merging the objects. If FALSE,
-merge the data matrices also.}
-
-\item{...}{Extra parameters (passed onto MergeSeurat in case with two objects
-passed, passed onto ScaleData in case with single object and rescale.groups
-set to TRUE)}
+\item{add.cell.id1, add.cell.id2}{Add ...}
 }
 \value{
 Returns a combined Seurat object with the CCA results stored.
@@ -55,13 +57,6 @@ Runs a canonical correlation analysis using a diagonal implementation of CCA.
 For details about stored CCA calculation parameters, see
 \code{PrintCCAParams}.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{default}: Run diagonal CCA on matrices
-
-\item \code{Seurat}: Run CCA on a Seurat object
-}}
-
 \examples{
 pbmc_small
 # As CCA requires two datasets, we will split our test object into two just for this example
@@ -75,5 +70,5 @@ Print(object = pbmc_cca[["cca"]])
 
 }
 \seealso{
-\code{\link{MergeSeurat}}
+\code{\link{merge.Seurat}}
 }

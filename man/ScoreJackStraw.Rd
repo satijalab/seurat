@@ -7,13 +7,13 @@
 \alias{ScoreJackStraw.Seurat}
 \title{Compute Jackstraw scores significance.}
 \usage{
-ScoreJackStraw(object, dims, score.thresh, ...)
+ScoreJackStraw(object, ...)
 
 \method{ScoreJackStraw}{JackStrawData}(object, dims = 1:5,
   score.thresh = 1e-05, ...)
 
 \method{ScoreJackStraw}{DimReduc}(object, dims = 1:5,
-  score.thresh = 1e-05, do.plot = FALSE, ...)
+  score.thresh = 1e-05, ...)
 
 \method{ScoreJackStraw}{Seurat}(object, reduction = "pca", dims = 1:5,
   score.thresh = 1e-05, do.plot = FALSE, ...)
@@ -21,17 +21,17 @@ ScoreJackStraw(object, dims, score.thresh, ...)
 \arguments{
 \item{object}{An object}
 
+\item{...}{Arguments passed to other methods}
+
 \item{dims}{Which dimensions to examine}
 
 \item{score.thresh}{Threshold to use for the proportion test of PC
 significance (see Details)}
 
-\item{...}{Arguments passed to other methods}
+\item{reduction}{Reduction associated with JackStraw to score}
 
 \item{do.plot}{Show plot. To return ggplot object, use \code{JackStrawPlot} after
 running ScoreJackStraw.}
-
-\item{reduction}{Reduction associated with JackStraw to score}
 }
 \value{
 Returns a Seurat object
@@ -40,21 +40,14 @@ Returns a Seurat object
 Significant PCs should show a p-value distribution that is
 strongly skewed to the left compared to the null distribution.
 The p-value for each PC is based on a proportion test comparing the number
-of genes with a p-value below a particular threshold (score.thresh), compared with the
-proportion of genes expected under a uniform distribution of p-values.
+of features with a p-value below a particular threshold (score.thresh), compared with the
+proportion of features expected under a uniform distribution of p-values.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{JackStrawData}: Score JackStraw results given a JackStrawData
-
-\item \code{DimReduc}: Score JackStraw results given a DimReduc
-
-\item \code{Seurat}: Score JackStraw results given a Seurat object
-}}
-
 \seealso{
+\code{\link{JackStrawPlot}}
+
 \code{\link{JackStrawPlot}}
 }
 \author{
-Thanks to Omri Wurtzel for integrating with ggplot
+Omri Wurtzel
 }

@@ -5,7 +5,9 @@
 \alias{Key<-}
 \alias{Key.Assay}
 \alias{Key.DimReduc}
+\alias{Key.Seurat}
 \alias{Key<-.Assay}
+\alias{Key<-.DimReduc}
 \title{Get a key}
 \usage{
 Key(object, ...)
@@ -16,7 +18,11 @@ Key(object, ...) <- value
 
 \method{Key}{DimReduc}(object, ...)
 
+\method{Key}{Seurat}(object, ...)
+
 \method{Key}{Assay}(object, ...) <- value
+
+\method{Key}{DimReduc}(object, ...) <- value
 }
 \arguments{
 \item{object}{An object}
@@ -30,12 +36,3 @@ Get a key
 
 Set a key
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Assay}: Get the key for an Assay object
-
-\item \code{DimReduc}: Get the key for a DimReduc object
-
-\item \code{Assay}: Set the key for an Assay object
-}}
-

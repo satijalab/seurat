@@ -2,13 +2,17 @@
 % Please edit documentation in R/visualization.R
 \name{DimPlot}
 \alias{DimPlot}
+\alias{TSNEPlot}
+\alias{PCAPlot}
+\alias{ICAPlot}
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
-  pt.size = NULL, reduction = "pca", group.by = NULL,
-  shape.by = NULL, order = NULL, label = FALSE, label.size = 4,
-  cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, na.value = "grey50", ...)
+  pt.size = NULL, reduction = NULL, group.by = NULL,
+  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
+  label.size = 4, repel = FALSE, cells.highlight = NULL,
+  cols.highlight = "red", sizes.highlight = 1, na.value = "grey50",
+  combine = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -21,9 +25,12 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{reduction}{Which dimensionality reduction to use}
+\item{reduction}{Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca}
 
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
+\item{group.by}{Name of one or more metadata columns to group (color) cells by
+(for example, orig.ident); pass 'ident' to group by identity class}
+
+\item{split.by}{Name of a metadata column to split plot by}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
@@ -37,6 +44,8 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{label.size}{Sets size of labels}
 
+\item{repel}{Repel labels}
+
 \item{cells.highlight}{A list of character or numeric vectors of cells to
 highlight. If only one group of cells desired, can simply
 pass a vector instead of a list. If set, colors selected cells to the color(s)
@@ -49,16 +58,26 @@ repeat to the length groups in cells.highlight}
 \item{sizes.highlight}{Size of highlighted cells; will repeat to the length
 groups in cells.highlight}
 
-\item{na.value}{Color value for NA points when using custom scale.}
+\item{na.value}{Color value for NA points when using custom scale}
 
-\item{...}{Ignored for now}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{...}{Arguments passed on to \code{CombinePlots}
+\describe{
+  \item{plots}{A list of gg objects}
+  \item{ncol}{Number of columns}
+  \item{legend}{Combine legends into a single legend
+choose from 'right' or 'bottom'; pass 'none' to remove legends, or \code{NULL}
+to leave legends as they are}
+}}
 }
 \value{
 A ggplot object
 }
 \description{
-Graphs the output of a dimensional reduction technique (PCA by default).
-Cells are colored by their identity class.
+Graphs the output of a dimensional reduction technique on a 2D scatter plot where each point is a
+cell and it's positioned based on the cell embeddings determined by the reduction technique. By
+default, cells are colored by their identity class (can be changed with the group.by parameter).
 }
 \note{
 For the old \code{do.hover} and \code{do.identify} functionality, please see
