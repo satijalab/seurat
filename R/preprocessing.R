@@ -1834,3 +1834,246 @@ RegressOutMatrix <- function(
   dimnames(x = data.resid) <- dimnames(x = data.expr)
   return(data.resid)
 }
+
+#' Demultiplex samples based on classification method from MULTI-seq (McGinnis et al., bioRxiv 2018)
+#'
+#' Identify singlets, doublets and negative cells from multiplexing experiments. Annotate singlets by tags.
+#'
+#' @param object Seurat object. Assumes that the specified assay data has been added
+#' @param assay Name of the multiplexing assay (HTO by default)
+#' @param quantile The quantile to use for classification
+#' @param autoThresh Whether to perform automated threshold finding to define the best quantile. Default is FALSE
+#' @param maxiter Maximum number of iterations if autoThresh = TRUE. Default is 3
+#' @param qrange A range of possible quantile values to try if autoThresh = TRUE
+#' @param verbose Prints the output
+#'
+#' @return A Seurat object with demultiplexing results stored at object@meta.data$MULTI_ID
+#'
+#' @import Matrix
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' object <- MULTIseqDemux(object)
+#' }
+#'
+
+MULTIseqDemux=function(object,assay = "HTO",quantile = 0.7, autoThresh = FALSE, maxiter = 5, qrange = seq(from = 0.1,to = 0.9,by = 0.05),verbose = TRUE){
+  
+  assay <- assay %||% DefaultAssay(object = object)
+  
+  multi_data_norm <- t(GetAssayData(object = object,slot = "data",assay = assay))
+  
+  if (autoThresh == TRUE){
+    iter <- 1
+    negatives <- c()
+    neg.vector <- c()
+    while (iter <= maxiter){
+      
+      # Iterate over q values to find ideal barcode thresholding results by maximizing singlet classifications
+      bar.table_sweep.list <- list()
+      n <- 0
+      for (q in qrange) {
+        n <- n + 1
+        # Generate list of singlet/doublet/negative classifications across q sweep
+        bar.table_sweep.list[[n]] <- classifyCells(data=multi_data_norm, q=q)
+        names(bar.table_sweep.list)[n] <- paste("q=",q,sep="")
+      }
+      # Determine which q values results in the highest pSinglet
+      findThresh(call.list=bar.table_sweep.list, id="round")
+      
+      res.use <- res_round[res_round$Subset=="pSinglet",]
+      q.use <- res.use[which.max(res.use$Proportion),"q"]
+      if (verbose){
+        print (paste("Iteration",iter,sep = " "))
+        print (paste0("Using quantile: ",q.use))
+      }
+      round.calls <- classifyCells(multi_data_norm, q=q.use)
+      
+      #remove negative cells
+      neg.cells <- names(round.calls)[which(round.calls == "Negative")]
+      
+      neg.vector <- c(neg.vector, rep("Negative",length(neg.cells)))
+      negatives <- c(negatives, neg.cells)
+      if (length(neg.cells) == 0) break
+      multi_data_norm <- multi_data_norm[-which(rownames(multi_data_norm) %in% neg.cells), ]
+      iter <- iter + 1
+    }
+    
+    names(neg.vector) <- negatives
+    demux_result <- c(round.calls,neg.vector)
+    demux_result <- demux_result[rownames(object@meta.data)]
+  }
+  
+  else{
+    demux_result <- classifyCells(data = multi_data_norm,q = quantile)
+  }
+  
+  object@meta.data$MULTI_ID <- factor(demux_result[rownames(object@meta.data)])
+  Idents(object) <- "MULTI_ID"
+  
+  bcs <- colnames(multi_data_norm)
+  bc.max <- bcs[apply(multi_data_norm,1,which.max)]
+  bc.second <- bcs[unlist(apply(multi_data_norm,1,function(x) which(x == MaxN(x))))]
+  doublet.names <- unlist(lapply(1:length(bc.max),function(x) paste(sort(c(bc.max[x], bc.second[x])), collapse =  "_")))
+  
+  doublet.id <- which(demux_result[rownames(object@meta.data)]=="Doublet")
+  
+  MULTI_classification <- as.character(object@meta.data$MULTI_ID)
+  MULTI_classification[doublet.id] <- doublet.names[doublet.id]
+  object@meta.data$MULTI_classification <- factor(MULTI_classification)
+  
+  return (object)
+}
+
+#' Sample classification from MULTI-seq
+#'
+#' Identify singlets, doublets and negative cells from multiplexing experiments.
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#'
+#' @param data Data frame with the raw count data (cell x tags)
+#' @param q Scale the data. Default is 1e4
+#' 
+#' @return Returns a named vector with demultiplexed identities
+#'
+#' @import KernSmooth
+#' @import Matrix
+#'
+#' @export
+#'
+#' @examples
+#' demux_result <- classifyCells(data = counts_data,q = 0.7)
+#'
+classifyCells <- function(data.n, q) {
+  # require(KernSmooth)
+  
+  ## Normalize Data: Log2 Transform, replace -Infs, mean-center
+  # print("Normalizing Data...")
+  # data.n <- as.data.frame(log2(data))
+  # for (i in 1:ncol(data)) {
+  #   ind <- which(is.finite(data.n[,i]) == FALSE)
+  #   data.n[ind,i] <- 0
+  #   data.n[,i] <- data.n[,i]-mean(data.n[,i])
+  # }
+  
+  ## Generate Thresholds: Gaussian KDE with bad barcode detection, outlier trimming
+  ## local maxima estimation with bad barcode detection, threshold definition and adjustment
+  n_BC <- ncol(data.n)
+  n_cells <- nrow(data.n)
+  bc_calls <- vector("list",n_cells)
+  n_bc_calls <- numeric(n_cells)
+  
+  for (i in 1:ncol(data.n)) {
+    model <- tryCatch( { approxfun(bkde(data.n[,i], kernel="normal")) }, 
+                       error=function(e) { print(paste("No threshold found for ", colnames(data.n)[i],"...",sep="")) } )
+    if (class(model) == "character") { next }
+    x <- seq(from=quantile(data.n[,i],0.001), to=quantile(data.n[,i],0.999), length.out=100)    
+    extrema <- localMaxima(model(x))
+    if (length(extrema) <= 1) { 
+      print(paste("No threshold found for ", colnames(data.n)[i],"...",sep=""))
+      next
+    }
+    low.extremum <- min(extrema)
+    high.extremum <- max(extrema)
+    thresh <- (x[high.extremum] + x[low.extremum])/2
+    
+    ## Account for GKDE noise by adjusting low threshold to most prominent peak 
+    low.extremae <- extrema[which(x[extrema] <= thresh)]
+    new.low.extremum <- low.extremae[which.max(model(x)[low.extremae])]
+    thresh <- quantile(c(x[high.extremum], x[new.low.extremum]), q)
+    
+    ## Find which cells are above the ith threshold
+    cell_i <- which(data.n[,i] >= thresh)
+    n <- length(cell_i)
+    if (n == 0) { next } ## Skips to next BC if no cells belong to the ith group
+    
+    bc <- colnames(data.n)[i]
+    if (n == 1) {
+      bc_calls[[cell_i]] <- c(bc_calls[[cell_i]], bc)
+      n_bc_calls[cell_i] <- n_bc_calls[cell_i] + 1
+    } else { # have to iterate, lame
+      for (cell in cell_i) {
+        bc_calls[[cell]] <- c(bc_calls[[cell]], bc)
+        n_bc_calls[cell] <- n_bc_calls[cell] + 1
+      }
+    }
+  }
+  
+  calls <- character(n_cells)
+  for (i in 1:n_cells) {
+    if (n_bc_calls[i] == 0) { calls[i] <- "Negative"; next }
+    if (n_bc_calls[i] > 1) { calls[i] <- "Doublet"; next }
+    if (n_bc_calls[i] == 1) { calls[i] <- bc_calls[[i]] }
+  }
+  names(calls) <- rownames(data.n)
+  return(calls)
+}
+
+#' Inter-maxima quantile sweep to find ideal barcode thresholds
+#'
+#' Finding ideal thresholds for positive-negative signal classification per multiplex barcode
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#'
+#' @param call.list A list of sample classification result from different quantiles using classifyCells
+#' @param id The id as the suffix for output dataframe (named as res_id)
+#' 
+#' @return A data.frame named res_id documenting the quantile used, subset, number of cells and proportion
+#'
+#' @import reshape2
+#'
+#' @export
+#'
+#' @examples
+#' findThresh(call.list=bar.table_sweep.list, id="round") #returns res_round in the environment
+#'
+findThresh <- function(call.list, id) {
+  # require(reshape2)
+  res <- as.data.frame(matrix(0L, nrow=length(call.list), ncol=4))
+  colnames(res) <- c("q","pDoublet","pNegative","pSinglet")
+  q.range <- unlist(strsplit(names(call.list), split="q="))
+  res$q <- as.numeric(q.range[grep("0", q.range)])
+  nCell <- length(call.list[[1]])
+  
+  for (i in 1:nrow(res)) {
+    temp <- table(call.list[[i]])
+    if ( "Doublet" %in% names(temp) == TRUE ) { res$pDoublet[i] <- temp[which(names(temp) == "Doublet")] }
+    if ( "Negative" %in% names(temp) == TRUE ) { res$pNegative[i] <- temp[which(names(temp) == "Negative")] }
+    res$pSinglet[i] <- sum(temp[which(names(temp) != "Doublet" & names(temp) != "Negative")])
+  }
+  
+  res <- melt(res, id.vars="q")
+  res[,4] <- res$value/nCell
+  colnames(res)[2:4] <- c("Subset","nCells","Proportion")
+  assign(x=paste("res_",id,sep=""), value=res, envir = .GlobalEnv)
+  
+  extrema <- res$q[localMaxima(res$Proportion[which(res$Subset == "pSinglet")])]
+  assign(x=paste("extrema_",id,sep=""), value=extrema, envir = .GlobalEnv)
+}
+
+#' Local maxima estimator
+#'
+#' Finding local maxima given a numeric vector
+#' Written by Chris McGinnis from Gartner Lab, UCSF
+#' From Tommy @ https://stackoverflow.com/questions/6836409/finding-local-maxima-and-minima
+#'
+#' @param x A continuous vector 
+#' 
+#' @return Returns a (named) vector showing positions of local maximas
+#'
+#' @export
+#'
+#' @examples
+#' extrema <- localMaxima(x)
+#'
+localMaxima <- function(x) {
+  # Use -Inf instead if x is numeric (non-integer)
+  y <- diff(c(-.Machine$integer.max, x)) > 0L
+  rle(y)$lengths
+  y <- cumsum(rle(y)$lengths)
+  y <- y[seq.int(1L, length(y), 2L)]
+  if (x[[1]] == x[[2]]) {
+    y <- y[-1]
+  }
+  y
+}
