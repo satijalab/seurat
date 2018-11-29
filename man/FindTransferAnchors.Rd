@@ -27,8 +27,8 @@ FindTransferAnchors(reference, query, reference.assay = NULL,
    \item{cca: Run a CCA on the reference and query }
 }}
 
-\item{project.query}{Project the PCA from the query dataset onto the reference. Use only in rare 
-cases where the query dataset has a much larger cell number, but the reference dataset has a 
+\item{project.query}{Project the PCA from the query dataset onto the reference. Use only in rare
+cases where the query dataset has a much larger cell number, but the reference dataset has a
 unique assay for transfer.}
 
 \item{features}{Features to use for dimensional reduction}
