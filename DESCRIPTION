@@ -32,6 +32,7 @@ Imports:
     ggridges,
     graphics,
     grDevices,
+    ica,
     igraph,
     ini,
     irlba,
@@ -70,7 +71,7 @@ Collate:
     'preprocessing.R'
     'utilities.R'
     'visualization.R'
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests:
     gdata,

@@ -56,7 +56,7 @@ SelectIntegrationFeatures <- function(
   for(i in 1:length(x = object.list)) {
     var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
   }
-  tie.val <- var.features[nfeatures]
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
   features <- names(x = var.features[which(x = var.features > tie.val)])
   if (length(x = features) > 0) {
     feature.ranks <- sapply(X = features, FUN = function(x) {

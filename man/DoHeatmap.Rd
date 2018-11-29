@@ -7,7 +7,7 @@
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
   group.bar = TRUE, disp.min = -2.5, disp.max = NULL,
   slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
-  hjust = 0, angle = 45, combine = TRUE, ...)
+  hjust = 0, angle = 45, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -38,8 +38,6 @@ if \code{slot} is 'scale.data', 6 otherwise}
 \item{angle}{Angle of text above color bar}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
-
-\item{...}{Ignored for now}
 }
 \value{
 A ggplot object

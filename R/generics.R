@@ -39,18 +39,18 @@ setGeneric(
 )
 
 #' @rdname Convert
-#' @export as.seurat
-#' @aliases as.seurat
+#' @export as.Seurat
+#' @aliases as.Seurat
 #'
-as.seurat <- function(from) {
-  UseMethod(generic = 'as.seurat', object = from)
+as.Seurat <- function(from, ...) {
+  UseMethod(generic = 'as.Seurat', object = from)
 }
 
 #' @rdname Convert
 #' @export as.SingleCellExperiment
 #' @aliases as.SingleCellExperiment
 #'
-as.SingleCellExperiment <- function(from) {
+as.SingleCellExperiment <- function(from, ...) {
   UseMethod(generic = 'as.SingleCellExperiment', object = from)
 }
 
@@ -157,7 +157,6 @@ DefaultAssay <- function(object, ...) {
 Embeddings <- function(object, ...) {
   UseMethod(generic = 'Embeddings', object = object)
 }
-
 
 #' Cluster Determination
 #'
@@ -630,6 +629,21 @@ RunALRA <- function(object, ...) {
 #'
 RunCCA <- function(object1, object2, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
+}
+
+#' Run Independent Component Analysis on gene expression
+#'
+#' Run fastica algorithm from the ica package for ICA dimensionality reduction.
+#' For details about stored ICA calculation parameters, see
+#' \code{PrintICAParams}.
+#'
+#' @param object Seurat object
+#'
+#' @rdname RunICA
+#' @export RunICA
+#'
+RunICA <- function(object, ...) {
+  UseMethod(generic = "RunICA", object = object)
 }
 
 #' Run Principal Component Analysis

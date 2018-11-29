@@ -46,8 +46,7 @@ DimHeatmap <- function(
   combine = TRUE,
   fast = TRUE,
   slot = 'scale.data',
-  assays = NULL,
-  ...
+  assays = NULL
 ) {
   ncol <- ncol %||% ifelse(test = length(x = dims) > 2, yes = 3, no = length(x = dims))
   plots <- vector(mode = 'list', length = length(x = dims))
@@ -185,7 +184,6 @@ DimHeatmap <- function(
 #' @param hjust Horizontal justification of text above color bar
 #' @param angle Angle of text above color bar
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
-#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -211,8 +209,7 @@ DoHeatmap <- function(
   size = 5.5,
   hjust = 0,
   angle = 45,
-  combine = TRUE,
-  ...
+  combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
   if (is.numeric(x = cells)) {
@@ -612,7 +609,7 @@ DimPlot <- function(
         cols = cols,
         pt.size = pt.size,
         shape.by = shape.by,
-        plot.order = order,
+        order = order,
         label = label,
         repel = repel,
         label.size = label.size,
@@ -656,7 +653,6 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
-#' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
@@ -697,8 +693,7 @@ FeaturePlot <- function(
   label.size = 4,
   ncol = NULL,
   combine = TRUE,
-  coord.fixed = FALSE,
-  ...
+  coord.fixed = FALSE
 ) {
   no.right <- theme(
     axis.line.y.right = element_blank(),
@@ -837,7 +832,7 @@ FeaturePlot <- function(
         col.by = feature,
         pt.size = pt.size,
         cols = cols.use,
-        do.label = label,
+        label = label,
         label.size = label.size
       ) +
         scale_x_continuous(limits = xlims) +
@@ -1654,11 +1649,18 @@ ElbowPlot <- function(
     ndims <- length(x = data.use)
   }
   stdev <- 'Standard Deviation'
-  p <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
+  plot <- ggplot(data = data.frame(dims = 1:ndims, stdev = data.use[1:ndims])) +
     geom_point(mapping = aes_string(x = 'dims', y = 'stdev')) +
-    labs(x = Key(object = object[[reduction]]), y = stdev) +
+    labs(
+      x = gsub(
+        pattern = '_$',
+        replacement = '',
+        x = Key(object = object[[reduction]])
+      ),
+      y = stdev
+    ) +
     theme_cowplot()
-  return(p)
+  return(plot)
 }
 
 #' JackStraw Plot
@@ -1760,9 +1762,9 @@ JackStrawPlot <- function(
 #' @export
 #'
 #' @examples
-#' VizDimReduction(object = pbmc_small)
+#' VizDimLoadings(object = pbmc_small)
 #'
-VizDimReduction <- function(
+VizDimLoadings <- function(
   object,
   dims = 1:5,
   nfeatures = 30,
@@ -2345,7 +2347,7 @@ PurpleAndYellow <- function(k = 50) {
 #'   \item{\code{NoGrid}}{Removes grid lines}
 #'   \item{\code{SeuratAxes}}{Set Seurat-style axes}
 #'   \item{\code{SpatialTheme}}{A theme designed for spatial visualizations (eg \code{\link{PolyFeaturePlot}}, \code{\link{PolyDimPlot}})}
-#'   \item{\code{RestoredTheme}}{Restore a theme after removal}
+#'   \item{\code{RestoreLegend}}{Restore a legend after removal}
 #'   \item{\code{RotatedAxis}}{Rotate X axis text 45 degrees}
 #'   \item{\code{BoldTitle}}{Enlarges and emphasizes the title}
 #' }
@@ -2850,7 +2852,6 @@ Col2Hex <- function(...) {
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
-# @param ... Ignored
 #
 #' @importFrom scales hue_pal
 #
@@ -2871,8 +2872,7 @@ ExIPlot <- function(
   split.by = NULL,
   log = FALSE,
   combine = TRUE,
-  slot = 'data',
-  ...
+  slot = 'data'
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   DefaultAssay(object = object) <- assay
@@ -2921,7 +2921,6 @@ ExIPlot <- function(
     X = features,
     FUN = function(x) {
       return(SingleExIPlot(
-        feature = x,
         type = type,
         data = data[, x, drop = FALSE],
         idents = idents,
@@ -3568,7 +3567,6 @@ SingleCorPlot <- function(
 # @param sizes.highlight Size of highlighted cells; will repeat to the length
 # groups in cells.highlight
 # @param na.value Color value for NA points when using custom scale.
-# @param ... Ignored for now
 #
 #' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 ggplot aes_string labs geom_text guides
@@ -3588,8 +3586,7 @@ SingleDimPlot <- function(
   cells.highlight = NULL,
   cols.highlight = 'red',
   sizes.highlight = 1,
-  na.value = 'grey50',
-  ...
+  na.value = 'grey50'
 ) {
   pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
   if (length(x = dims) != 2) {
@@ -3675,7 +3672,6 @@ SingleDimPlot <- function(
 
 # Plot a single expression by identity on a plot
 #
-# @param feature Feature to plot
 # @param type Make either a 'ridge' or 'violin' plot
 # @param data Data to plot
 # @param idents Idents to use
@@ -3684,9 +3680,7 @@ SingleDimPlot <- function(
 # @param y.max Maximum Y value to plot
 # @param adjust Adjust parameter for geom_violin
 # @param cols Colors to use for plotting
-# @param feature.names
 # @param log plot Y axis on log scale
-# @param ... Ignored
 #
 # @return A ggplot-based Expression-by-Identity plot
 #
@@ -3708,8 +3702,7 @@ SingleExIPlot <- function(
   adjust = 1,
   pt.size = 0,
   cols = NULL,
-  log = FALSE,
-  ...
+  log = FALSE
 ) {
   set.seed(seed = 42)
   if (!is.data.frame(x = data) || ncol(x = data) != 1) {
@@ -3755,7 +3748,7 @@ SingleExIPlot <- function(
     EXPR = type,
     'violin' = {
       x <- 'ident'
-      y <- feature
+      y <- paste0("`", feature, "`")
       xlab <- 'Identity'
       ylab <- axis.label
       geom <- list(
@@ -3767,7 +3760,7 @@ SingleExIPlot <- function(
       axis.scale <- ylim
     },
     'ridge' = {
-      x <- feature
+      x <- paste0("`", feature, "`")
       y <- 'ident'
       xlab <- axis.label
       ylab <- 'Identity'
@@ -3898,7 +3891,6 @@ SinglePolyPlot <- function(data, group.by, ...) {
 # @param disp.max Maximum display value (all values above are clipped)
 # @param limits A two-length numeric vector with the limits for colors on the plot
 # @param group.by A vector to group cells by, should be one grouping identity per cell
-# @param ... Ignored
 #
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
 #' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend
@@ -3911,8 +3903,7 @@ SingleRasterMap <- function(
   disp.min = -2.5,
   disp.max = 2.5,
   limits = NULL,
-  group.by = NULL,
-  ...
+  group.by = NULL
 ) {
   data <- MinMax(data = data, min = disp.min, max = disp.max)
   data <- Melt(x = t(x = data))
