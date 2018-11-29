@@ -356,44 +356,6 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE, ...) {
   return(norm.data)
 }
 
-#' Normalize raw data to fractions
-#'
-#' Normalize count data to relative counts per cell by dividing by the total
-#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
-#' use \code{scale.factor = 1e6}.
-#'
-#' @param data Matrix with the raw count data
-#' @param scale.factor Scale the result. Default is 1
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the relative counts
-#'
-#' @import Matrix
-#' @importFrom methods as
-#'
-#' @export
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat
-#' mat_norm <- RelativeCounts(data = mat)
-#' mat_norm
-#'
-RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
-    data <- as.matrix(x = data)
-  }
-  if (class(x = data) != "dgCMatrix") {
-    data <- as(object = data, Class = "dgCMatrix")
-  }
-  if (verbose) {
-    cat("Performing relative-counts-normalization\n", file = stderr())
-  }
-  norm.data <- data
-  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
-  return(norm.data)
-}
-
 #' Load in data from Alevin pipeline
 #'
 #' Enables easy loading of csv format matrix provided by Alevin
@@ -811,6 +773,44 @@ RegressRegNB <- function(
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
   return(object)
+}
+
+#' Normalize raw data to fractions
+#'
+#' Normalize count data to relative counts per cell by dividing by the total
+#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
+#' use \code{scale.factor = 1e6}.
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the result. Default is 1
+#' @param verbose Print progress
+#'
+#' @return Returns a matrix with the relative counts
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- RelativeCounts(data = mat)
+#' mat_norm
+#'
+RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
+  if (class(x = data) == "data.frame") {
+    data <- as.matrix(x = data)
+  }
+  if (class(x = data) != "dgCMatrix") {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  if (verbose) {
+    cat("Performing relative-counts-normalization\n", file = stderr())
+  }
+  norm.data <- data
+  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
+  return(norm.data)
 }
 
 #' Sample UMI
@@ -1466,7 +1466,6 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
-#' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #'
 #' @param features Vector of features names to scale/center. Default is all features
@@ -1509,14 +1508,10 @@ ScaleData.default <- function(
   verbose = TRUE,
   ...
 ) {
-  my.lapply <- ifelse(
-    test = verbose && PlanThreads() > 1,
-    yes = pblapply,
-    no = future_lapply
-  )
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
+  object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   Parenting(
     parent.find = "ScaleData.Assay",
@@ -1542,20 +1537,31 @@ ScaleData.default <- function(
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
     chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
-    # TODO: Find/make version of future_lapply with progress bar support
-    object <- my.lapply(
-      X = 1:ncol(x = chunk.points),
-      FUN = function(i) {
-        return(RegressOutMatrix(
-          data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
-          latent.data = latent.data,
-          model.use = model.use,
-          use.umi = use.umi,
-          verbose = FALSE
-        ))
-      }
-    )
-    object <- do.call(what = 'rbind', args = object)
+    if (PlanThreads() > 1) {
+      object <- future_lapply(
+        X = 1:ncol(x = chunk.points),
+        FUN = function(i) {
+          return(RegressOutMatrix(
+            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
+            latent.data = latent.data,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = FALSE
+          ))
+        }
+      )
+      object <- do.call(what = 'rbind', args = object)
+    } else {
+      object <- RegressOutMatrix(
+        data.expr = object,
+        latent.data = latent.data,
+        features.regress = features,
+        model.use = model.use,
+        use.umi = use.umi,
+        verbose = verbose
+      )
+    }
+    dimnames(x = object) <- object.names
     gc(verbose = FALSE)
   }
   if (verbose) {
@@ -1567,25 +1573,55 @@ ScaleData.default <- function(
     object <- as.matrix(x = object)
     scale.function <- FastRowScale
   }
-  blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
-  scaled.data <- my.lapply(
-    X = 1:ncol(x = blocks),
-    FUN = function(i) {
-      block <- as.vector(x = blocks[, i])
+  if (PlanThreads() > 1) {
+    blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
+    scaled.data <- future_lapply(
+      X = 1:ncol(x = blocks),
+      FUN = function(i) {
+        block <- as.vector(x = blocks[, i])
+        data.scale <- scale.function(
+          mat = object[features[block[1]:block[2]], , drop = FALSE],
+          scale = do.scale,
+          center = do.center,
+          scale_max = scale.max,
+          display_progress = FALSE
+        )
+        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+        suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
+        gc(verbose = FALSE)
+        return(data.scale)
+      }
+    )
+    suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+  } else {
+    scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
+    max.block <- ceiling(x = length(x = features) / block.size)
+    if (verbose) {
+      pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
+    }
+    for (i in 1:max.block) {
+      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+      my.inds <- my.inds[my.inds <= length(x = features)]
       data.scale <- scale.function(
-        mat = object[features[block[1]:block[2]], , drop = FALSE],
+        mat = object[features[my.inds], , drop = FALSE],
         scale = do.scale,
         center = do.center,
         scale_max = scale.max,
         display_progress = FALSE
       )
-      dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
-      suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
+      dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
+      scaled.data[features[my.inds], ] <- data.scale
+      rm(data.scale)
       gc(verbose = FALSE)
-      return(data.scale)
+      if (verbose) {
+        setTxtProgressBar(pb = pb, value = i)
+      }
     }
-  )
-  suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+    if (verbose) {
+      close(con = pb)
+    }
+  }
+  dimnames(x = scaled.data) <- object.names
   gc(verbose = FALSE)
   return(scaled.data)
 }

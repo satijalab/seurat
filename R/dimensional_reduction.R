@@ -30,8 +30,8 @@ NULL
 #' represents p-values for all genes.
 #'
 #' @importFrom methods new
+#' @importFrom pbapply pblapply pbsapply
 #' @importFrom future.apply future_lapply future_sapply
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #'
@@ -55,6 +55,13 @@ JackStraw <- function(
 ) {
   if (reduction != "pca") {
     stop("Only pca for reduction is currently supported")
+  }
+  if (verbose && PlanThreads() == 1) {
+    my.lapply <- pblapply
+    my.sapply <- pbsapply
+  } else {
+    my.lapply <- future_lapply
+    my.sapply <- future_sapply
   }
   assay <- assay %||% DefaultAssay(object = object)
   if (dims > length(x = object[[reduction]])) {
@@ -81,7 +88,7 @@ JackStraw <- function(
   data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
-  fake.vals.raw <- future_lapply(
+  fake.vals.raw <- my.lapply(
     X = 1:num.replicate,
     FUN = JackRandom,
     scaled.data = data.use,
@@ -105,7 +112,7 @@ JackStraw <- function(
   )
   fake.vals <- as.matrix(x = fake.vals)
   jackStraw.empP <- as.matrix(
-    future_sapply(
+    my.sapply(
       X = 1:dims,
       FUN = function(x) {
         return(unlist(x = lapply(
@@ -499,13 +506,13 @@ RunCCA.Seurat <- function(
 #' the number for the dimension names.
 #' @param seed.use Set a random seed.  Setting NULL will not set a seed.
 #' @param \dots Additional arguments to be passed to fastica
-#' 
+#'
 #' @importFrom ica icafast icaimax icajade
-#' 
+#'
 #' @rdname RunICA
 #' @export
 #' @method RunICA default
-#' 
+#'
 RunICA.default <- function(
   object,
   assay = NULL,
@@ -586,14 +593,14 @@ RunICA.Assay <- function(
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
-    
+
   )
   return(reduction.data)
 }
 
 
 #' @param reduction.name dimensional reduction name
-#' 
+#'
 #' @rdname RunICA
 #' @method RunICA Seurat
 #' @export

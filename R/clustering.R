@@ -46,14 +46,33 @@ FindClusters.default <- function(
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
-  my.lapply <- ifelse(
-    test = verbose && PlanThreads() == 1,
-    yes = pblapply,
-    no = future_lapply
-  )
-  clustering.results <- my.lapply(
-    X = resolution,
-    FUN = function(r) {
+  if (PlanThreads() > 1) {
+    clustering.results <- future_lapply(
+      X = resolution,
+      FUN = function(r) {
+        ids <- RunModularityClustering(
+          SNN = object,
+          modularity = modularity.fxn,
+          resolution = r,
+          algorithm = algorithm,
+          n.start = n.start,
+          n.iter = n.iter,
+          random.seed = random.seed,
+          print.output = verbose,
+          temp.file.location = temp.file.location,
+          edge.file.name = edge.file.name
+        )
+        names(x = ids) <- colnames(x = object)
+        ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+        results <- list(factor(x = ids))
+        names(x = results) <- paste0('res.', r)
+        return(results)
+      }
+    )
+    clustering.results <- as.data.frame(x = clustering.results)
+  } else {
+    clustering.results <- data.frame(row.names = colnames(x = object))
+    for (r in resolution) {
       ids <- RunModularityClustering(
         SNN = object,
         modularity = modularity.fxn,
@@ -64,16 +83,12 @@ FindClusters.default <- function(
         random.seed = random.seed,
         print.output = verbose,
         temp.file.location = temp.file.location,
-        edge.file.name = edge.file.name
-      )
+        edge.file.name = edge.file.name)
       names(x = ids) <- colnames(x = object)
       ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-      results <- list(factor(x = ids))
-      names(x = results) <- paste0('res.', r)
-      return(results)
+      clustering.results[, paste0("res.", r)] <- factor(x = ids)
     }
-  )
-  clustering.results <- as.data.frame(x = clustering.results)
+  }
   return(clustering.results)
 }
 
