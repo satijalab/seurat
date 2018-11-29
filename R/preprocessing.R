@@ -386,7 +386,7 @@ RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
     data <- as(object = data, Class = "dgCMatrix")
   }
   if (verbose) {
-    cat("Performing relative-counts-normalization\n", file = stderr())
+    message("Performing relative-counts-normalization")
   }
   norm.data <- data
   norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
