@@ -7,14 +7,14 @@
 \usage{
 Command(object, ...)
 
-\method{Command}{Seurat}(object, command, value = NULL, ...)
+\method{Command}{Seurat}(object, command = NULL, value = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods}
 
-\item{command}{Name of the command to pull}
+\item{command}{Name of the command to pull, pass \code{NULL} to get the names of all commands run}
 
 \item{value}{Name of the parameter to pull the value for}
 }

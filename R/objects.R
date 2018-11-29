@@ -1201,15 +1201,18 @@ Cells.default <- function(object, ...) {
   return(colnames(x = object))
 }
 
-#' @param command Name of the command to pull
+#' @param command Name of the command to pull, pass \code{NULL} to get the names of all commands run
 #' @param value Name of the parameter to pull the value for
 #'
 #' @rdname Command
 #' @export
 #' @method Command Seurat
 #'
-Command.Seurat <- function(object, command, value = NULL, ...) {
+Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
   commands <- slot(object = object, name = "commands")
+  if (is.null(x = command)) {
+    return(names(x = commands))
+  }
   if (is.null(x = commands[[command]])) {
     stop(command, " has not been run or is not a valid command.")
   }
