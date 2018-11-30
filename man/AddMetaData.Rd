@@ -4,21 +4,21 @@
 \name{AddMetaData}
 \alias{AddMetaData}
 \alias{SeuratAccess}
+\alias{AddMetaData.Assay}
+\alias{AddMetaData.Seurat}
 \alias{[[<-,Assay-method}
 \alias{[[<-,Seurat-method}
-\alias{AddMetaData,Assay-method}
-\alias{AddMetaData,Seurat-method}
 \title{Add in metadata associated with either cells or features.}
 \usage{
 AddMetaData(object, metadata, col.name = NULL)
 
+\method{AddMetaData}{Assay}(object, metadata, col.name = NULL)
+
+\method{AddMetaData}{Seurat}(object, metadata, col.name = NULL)
+
 \S4method{[[}{Assay}(x, i, j, ...) <- value
 
 \S4method{[[}{Seurat}(x, i, j, ...) <- value
-
-\S4method{AddMetaData}{Assay}(object, metadata, col.name = NULL)
-
-\S4method{AddMetaData}{Seurat}(object, metadata, col.name = NULL)
 }
 \arguments{
 \item{x, object}{An object}
@@ -50,6 +50,5 @@ pbmc_small <- AddMetaData(
   col.name = 'letter.idents'
 )
 head(x = pbmc_small[[]])
-
 
 }

@@ -29,14 +29,9 @@
 #' )
 #' head(x = pbmc_small[[]])
 #'
-#'
-setGeneric(
-  name = "AddMetaData",
-  def = function(object, metadata, col.name = NULL) {
-    standardGeneric("AddMetaData")
-    },
-  signature = c("object", "metadata", "col.name")
-)
+AddMetaData <- function(object, metadata, col.name = NULL) {
+  UseMethod(generic = 'AddMetaData', object = object)
+}
 
 #' @rdname Convert
 #' @export as.Seurat

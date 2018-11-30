@@ -3038,6 +3038,22 @@ WhichCells.Seurat <- function(
   return(data.return)
 }
 
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Assay
+#'
+AddMetaData.Assay <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Seurat
+#'
+AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
 #' @export
 #' @method as.logical JackStrawData
 #'
@@ -3568,36 +3584,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Internal AddMetaData defintion
-#
-# @param object An object
-# @param metadata A vector, list, or data.frame with metadata to add
-# @param col.name A name for meta data if not a named list or data.frame
-#
-# @return object with metadata added
-#
-.AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (is.null(x = col.name) && is.atomic(x = metadata)) {
-    stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
-  }
-  if (inherits(x = metadata, what = c('matrix', 'Matrix'))) {
-    metadata <- as.data.frame(x = metadata)
-  }
-  col.name <- col.name %||% names(x = metadata) %||% colnames(x = metadata)
-  if (is.null(x = col.name)) {
-    stop("No metadata name provided and could not infer it from metadata object")
-  }
-  object[[col.name]] <- metadata
-  # if (class(x = metadata) == "data.frame") {
-  #   for (ii in 1:ncol(x = metadata)) {
-  #     object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
-  #   }
-  # } else {
-  #   object[[col.name]] <- metadata
-  # }
-  return(object)
-}
-
 #' @rdname AddMetaData
 #'
 setMethod(
@@ -3806,22 +3792,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     gc(verbose = FALSE)
     return(x)
   }
-)
-
-#' @rdname AddMetaData
-#'
-setMethod(
-  f = "AddMetaData",
-  signature = c('object' = "Assay"),
-  definition = .AddMetaData
-)
-
-#' @rdname AddMetaData
-#'
-setMethod(
-  f = "AddMetaData",
-  signature = c('object' = "Seurat"),
-  definition = .AddMetaData
 )
 
 setMethod(
@@ -4069,6 +4039,36 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Internal AddMetaData defintion
+#
+# @param object An object
+# @param metadata A vector, list, or data.frame with metadata to add
+# @param col.name A name for meta data if not a named list or data.frame
+#
+# @return object with metadata added
+#
+.AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (is.null(x = col.name) && is.atomic(x = metadata)) {
+    stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
+  }
+  if (inherits(x = metadata, what = c('matrix', 'Matrix'))) {
+    metadata <- as.data.frame(x = metadata)
+  }
+  col.name <- col.name %||% names(x = metadata) %||% colnames(x = metadata)
+  if (is.null(x = col.name)) {
+    stop("No metadata name provided and could not infer it from metadata object")
+  }
+  object[[col.name]] <- metadata
+  # if (class(x = metadata) == "data.frame") {
+  #   for (ii in 1:ncol(x = metadata)) {
+  #     object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+  #   }
+  # } else {
+  #   object[[col.name]] <- metadata
+  # }
+  return(object)
+}
 
 # Find the names of collections in an object
 #
