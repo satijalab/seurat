@@ -1594,7 +1594,12 @@ ScaleData.default <- function(
     )
     suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
   } else {
-    scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
+    scaled.data <- matrix(
+      data = NA,
+      nrow = nrow(x = object),
+      ncol = ncol(x = object),
+      dimnames = object.names
+    )
     max.block <- ceiling(x = length(x = features) / block.size)
     if (verbose) {
       pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
