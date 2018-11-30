@@ -73,6 +73,15 @@ test_that("CLR normalization returns expected values", {
   expect_equal(clr.counts[230, 80], 0)
 })
 
+rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE)
+test_that("Relative count normalization returns expected values", {
+  expect_equal(rc.counts[2, 1], 142.8571, tolerance = 1e-6)
+  expect_equal(rc.counts[228, 76], 18.97533, tolerance = 1e-6)
+  expect_equal(rc.counts[230, 80], 0)
+  rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE, scale.factor = 1e6)
+  expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
+})
+
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")

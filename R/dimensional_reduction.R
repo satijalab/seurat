@@ -1248,8 +1248,8 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab code on https://github.com/ChristophH/FIt-SNE
-# commit ec25f1b36598a2d21869d10a258ac366a12f0b05
+# Based on Kluger Lab code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit 7a5212e on Oct 27, 2018
 #
 #' @importFrom utils file_test
 #
@@ -1262,21 +1262,31 @@ fftRtsne <- function(
   max_iter = 1000,
   fft_not_bh = TRUE,
   ann_not_vptree = TRUE,
-  stop_lying_iter = 250,
+  stop_early_exag_iter = 250,
   exaggeration_factor = 12.0,
   no_momentum_during_exag = FALSE,
   start_late_exag_iter = -1.0,
   late_exag_coeff = 1.0,
+  mom_switch_iter = 250,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  learning_rate = 200,
   n_trees = 50,
   search_k = -1,
   rand_seed = -1,
   nterms = 3,
   intervals_per_integer = 1,
   min_num_intervals = 50,
+  K = -1,
+  sigma = -30,
+  initialization = NULL,
   data_path = NULL,
   result_path = NULL,
+  load_affinities = NULL,
   fast_tsne_path = NULL,
   nthreads = getOption('mc.cores', default = 1),
+  perplexity_list = NULL,
+  get_costs = FALSE,
   ...
 ) {
   if (is.null(x = data_path)) {
@@ -1286,7 +1296,7 @@ fftRtsne <- function(
     result_path <- tempfile(pattern = 'fftRtsne_result_', fileext = '.dat')
   }
   if (is.null(x = fast_tsne_path)) {
-    fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE)
+    suppressWarnings(expr = fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE))
     if (length(x = fast_tsne_path) == 0) {
       stop("no fast_tsne_path specified and fast_tsne binary is not in the search path")
     }
@@ -1295,6 +1305,14 @@ fftRtsne <- function(
   if (!file_test(op = '-x', x = fast_tsne_path)) {
     stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
   }
+  # check fast_tsne version
+  ft.out <- system2(command = fast_tsne_path, stdout = TRUE)
+  if (!grepl('= t-SNE v1.', ft.out[1])) {
+    message('First line of fast_tsne output is')
+    message(ft.out[1])
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+  }
+  
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
@@ -1310,8 +1328,8 @@ fftRtsne <- function(
   if (!(max_iter > 0)) {
     stop("Incorrect number of iterations.")
   }
-  if (!is.wholenumber(x = stop_lying_iter) || stop_lying_iter < 0) {
-    stop("stop_lying_iter should be a positive integer")
+  if (!is.wholenumber(x = stop_early_exag_iter) || stop_early_exag_iter < 0) {
+    stop("stop_early_exag_iter should be a positive integer")
   }
   if (!is.numeric(x = exaggeration_factor)) {
     stop("exaggeration_factor should be numeric")
@@ -1320,63 +1338,91 @@ fftRtsne <- function(
     stop("Incorrect dimensionality.")
   }
   if (search_k == -1) {
-    search_k = n_trees * perplexity * 3
+    if (perplexity>0) {
+      search_k <- n_trees * perplexity * 3
+    } else if (perplexity==0) {
+      search_k <- n_trees * max(perplexity_list) * 3
+    } else { 
+      search_k <- n_trees * K * 3
+    }
   }
-  # if (fft_not_bh) {
-  #   nbody_algo <- 2
-  # } else {
-  #   nbody_algo <- 1
-  # }
+  
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
-  # if (ann_not_vptree) {
-  #   knn_algo <- 1
-  # }else{
-  #   knn_algo <- 2
-  # }
+  
+  if (is.null(load_affinities)) {
+    load_affinities <- 0
+  } else {
+    if (load_affinities == 'load') {
+      load_affinities <- 1
+    } else if (load_affinities == 'save') {
+      load_affinities <- 2
+    } else {
+      load_affinities <- 0;
+    }
+  }
+  
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
-  tX = c(t(x = X))
   f <- file(data_path, "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
   writeBin(object = as.integer(x = D), con = f, size = 4)
-  writeBin(object = as.numeric(x = 0.5), con = f, size = 8) #theta
+  writeBin(object = as.numeric(x = theta), con = f, size = 8) #theta
   writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
+  if (perplexity == 0) {
+    writeBin(object = as.integer(x = length(x = perplexity_list)), con = f, size = 4)
+    writeBin(object = perplexity_list, con = f) 
+  }
   writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
   writeBin(object = as.integer(x = max_iter), con = f, size = 4)
-  writeBin(object = as.integer(x = stop_lying_iter), con = f, size = 4)
-  writeBin(object = as.integer(x = -1), con = f, size = 4) #K
-  writeBin(object = as.numeric(x = -30.0), con = f, size = 8) #sigma
+  writeBin(object = as.integer(x = stop_early_exag_iter), con = f, size = 4)
+  writeBin(object = as.integer(x = mom_switch_iter), con = f, size = 4)
+  writeBin(object = as.numeric(x = momentum), con = f, size = 8)
+  writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
+  writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
+  writeBin(object = as.integer(x = K), con = f, size = 4) #K
+  writeBin(object = as.numeric(x = sigma), con = f, size = 8) #sigma
   writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
-  writeBin(object = as.integer(x = knn_algo), con = f, size = 4)
+  writeBin(object = as.integer(x = knn_algo), con = f, size = 4) 
   writeBin(object = as.numeric(x = exaggeration_factor), con = f, size = 8) #compexag
-  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4)
-  writeBin(object = as.integer(x = n_trees), con = f, size = 4)
-  writeBin(object = as.integer(x = search_k), con = f, size = 4)
-  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4)
-  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8)
-  writeBin(object = as.integer(x = nterms), con =  f, size = 4)
-  writeBin(object = as.numeric(x = intervals_per_integer), con =  f, size = 8)
-  writeBin(object = as.integer(x = min_num_intervals), con =  f, size = 4)
-  tX = c(t(x = X))
-  writeBin(object = tX, con = f)
-  writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  close(f)
+  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4) 
+  writeBin(object = as.integer(x = n_trees), con = f, size = 4) 
+  writeBin(object = as.integer(x = search_k), con = f, size = 4) 
+  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4) 
+  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8) 
+  writeBin(object = as.integer(x = nterms), con = f, size = 4) 
+  writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8) 
+  writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4) 
+  tX = c(t(X))
+  writeBin(object = tX, con = f) 
+  writeBin(object = as.integer(x = rand_seed), con = f, size = 4) 
+  writeBin(object = as.integer(x = load_affinities), con = f, size = 4) 
+  if (!is.null(x = initialization)) {
+    writeBin(object = c(t(x = initialization)), con = f)
+  }
+  close(con = f)
+  
   flag <- system2(command = fast_tsne_path, args = c(data_path, result_path, nthreads))
   if (flag != 0) {
-    stop('tsne call failed');
+    stop('tsne call failed')
   }
   f <- file(description = result_path, open = "rb")
-  initialError <- readBin(f, integer(), n = 1, size = 8)
   n <- readBin(con = f, what = integer(), n = 1, size = 4)
   d <- readBin(con = f, what = integer(), n = 1, size = 4)
   Y <- readBin(con = f, what = numeric(), n = n * d)
-  Yout <- t(x = matrix(data = Y, nrow = d))
-  close(f)
+  Y <- t(x = matrix(Y, nrow = d))
+  if (get_costs) {
+    costs <- readBin(con = f, what = numeric(), n = max_iter, size = 8)
+    Yout <- list(Y = Y, costs = costs)
+  }else {
+    Yout <- Y
+  }
+  close(con = f)
   file.remove(data_path)
   file.remove(result_path)
   return(Yout)
 }
+
 
 #internal
 #
