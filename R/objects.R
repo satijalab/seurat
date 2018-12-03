@@ -795,11 +795,25 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
         vars.alt[[var]] <- append(x = vars.alt[[var]], values = assay)
       }
     }
+    vars.many <- names(x = Filter(
+      f = function(x) {
+        return(length(x = x) > 1)
+      },
+      x = vars.alt
+    ))
+    if (vars.many) {
+      warning(
+        "Found the following features in more than one assay, excluding the default. We will not include these in the final dataframe: ",
+        paste(vars.many, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
     vars.missing <- names(x = Filter(
       f = function(x) {
         return(length(x = x) != 1)
       },
-      vars.alt
+      x = vars.alt
     ))
     vars.alt <- Filter(
       f = function(x) {
