@@ -1627,6 +1627,7 @@ ScaleData.default <- function(
     }
   }
   dimnames(x = scaled.data) <- object.names
+  scaled.data[is.na(x = scaled.data)] <- 0
   gc(verbose = FALSE)
   return(scaled.data)
 }

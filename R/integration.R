@@ -1739,6 +1739,7 @@ TopDimFeatures <- function(
   max.features = 200
 ) {
   dim.reduction <- object[[reduction]]
+  max.features <- max(length(x = dims) * 2, max.features)
   num.features <- sapply(X = 1:features.per.dim, FUN = function(y) {
     length(x = unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
         unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE))
