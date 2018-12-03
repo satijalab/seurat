@@ -32,8 +32,8 @@ object.filtered <- CreateSeuratObject(
 )
 
 test_that("Filtering handled properly", {
-  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 162)
-  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 75)
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 163)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
 

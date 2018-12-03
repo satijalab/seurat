@@ -69,7 +69,7 @@ test_that("CreateAssayObject works as expected", {
 
 rna.assay2 <- CreateAssayObject(counts = pbmc.raw, min.cells = 10, min.features = 30)
 test_that("CreateAssayObject filtering works", {
-  expect_equal(dim(x = rna.assay2), c(162, 75))
+  expect_equal(dim(x = rna.assay2), c(163, 77))
   expect_true(all(rowSums(GetAssayData(object = rna.assay2, slot = "counts")) >= 10))
   expect_true(all(colSums(GetAssayData(object = rna.assay2, slot = "counts")) >= 30))
 })

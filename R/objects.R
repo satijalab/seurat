@@ -375,7 +375,7 @@ CreateAssayObject <- function(
     # Filter based on min.features
     if (min.features > 0) {
       nfeatures <- Matrix::colSums(x = counts > 0)
-      counts <- counts[, which(x = nfeatures > min.features)]
+      counts <- counts[, which(x = nfeatures >= min.features)]
     }
     # filter genes on the number of cells expressing
     if (min.cells > 0) {
