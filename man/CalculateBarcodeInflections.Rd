@@ -17,7 +17,7 @@ CalculateBarcodeInflections(object, barcode.column = "nCount_RNA",
 
 \item{threshold.low}{Ignore barcodes of rank below this threshold in inflection calculation}
 
-\item{threshold.high}{Ignore barcodes of rank above this threshold in inflection calculation}
+\item{threshold.high}{Ignore barcodes of rank above thisf threshold in inflection calculation}
 }
 \value{
 Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:

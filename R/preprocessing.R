@@ -26,7 +26,7 @@ NULL
 #' @param object Seurat object
 #' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
 #' @param group.column Column to group by ("orig.ident" by default)
-#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param threshold.high Ignore barcodes of rank above thisf threshold in inflection calculation
 #' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
 #'
 #' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
@@ -784,7 +784,7 @@ RegressRegNB <- function(
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the result. Default is 1
 #' @param verbose Print progress
-#'
+#' @param ... Ignored
 #' @return Returns a matrix with the relative counts
 #'
 #' @import Matrix
@@ -798,7 +798,7 @@ RegressRegNB <- function(
 #' mat_norm <- RelativeCounts(data = mat)
 #' mat_norm
 #'
-RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
+RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -1179,6 +1179,7 @@ NormalizeData.default <- function(
       EXPR = normalization.method,
       'LogNormalize' = LogNormalize,
       'CLR' = CustomNormalize,
+      'RC' = RelativeCounts,
       stop("Unkown normalization method: ", normalization.method)
     )
     chunk.points <- ChunkPoints(
