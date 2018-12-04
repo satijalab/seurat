@@ -801,7 +801,7 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
       },
       x = vars.alt
     ))
-    if (vars.many) {
+    if (length(x = vars.many) > 0) {
       warning(
         "Found the following features in more than one assay, excluding the default. We will not include these in the final dataframe: ",
         paste(vars.many, collapse = ', '),
