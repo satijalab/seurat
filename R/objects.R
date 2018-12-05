@@ -332,7 +332,7 @@ seurat <- setClass(
 #' detected.
 #'
 #' @importFrom methods as
-#' @importFrom Matrix colSums
+#' @importFrom Matrix colSums rowSums
 #'
 #' @export
 #'
@@ -379,7 +379,7 @@ CreateAssayObject <- function(
     }
     # filter genes on the number of cells expressing
     if (min.cells > 0) {
-      num.cells <- rowSums(x = counts > 0)
+      num.cells <- Matrix::rowSums(x = counts > 0)
       counts <- counts[which(x = num.cells >= min.cells), ]
     }
     data <- counts
@@ -2117,65 +2117,6 @@ OldWhichCells.Seurat <- function(
   return(cells)
 }
 
-#' @param dims Number of dimensions to display
-#' @param nfeatures Number of genes to display
-#' @param projected Use projected slot
-#'
-#' @export
-#'
-#' @rdname Print
-#' @method Print DimReduc
-#'
-Print.DimReduc <- function(
-  object,
-  dims = 1:5,
-  nfeatures = 20,
-  projected = FALSE,
-  ...
-) {
-  loadings <- Loadings(object = object, projected = projected)
-  nfeatures <- min(nfeatures, nrow(x = loadings))
-  if (ncol(x = loadings) == 0) {
-    warning("Dimensions have not been projected. Setting projected = FALSE")
-    projected <- FALSE
-    loadings <- Loadings(object, projected = projected)
-  }
-  if (min(dims) > ncol(x = loadings)) {
-    stop("Cannot print dimensions greater than computed")
-  }
-  if (max(dims) > ncol(x = loadings)) {
-    warning(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
-    dims <- min(dims):ncol(x = loadings)
-  }
-  for (dim in dims) {
-    features <- TopFeatures(
-      object = object,
-      dim = dim,
-      nfeatures = nfeatures * 2,
-      projected = projected,
-      balanced = TRUE
-    )
-   message(paste0(Key(object = object), dim))
-   pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
-   message(paste0("Positive: "), paste(pos.features[[1]], collapse = ", "))
-   pos.features[[1]] <- NULL
-   if (length(x = pos.features) > 0) {
-     for (i in pos.features) {
-       message(paste0("\t  ", paste(i, collapse = ", ")))
-     }
-   }
-   neg.features <- split(x = features$negative, f = ceiling(x = seq_along(along.with = features$negative) / 10))
-   message(paste0("Negative: "), paste(neg.features[[1]], collapse = ", "))
-   neg.features[[1]] <- NULL
-   if (length(x = neg.features) > 0) {
-     for (i in neg.features) {
-       message(paste0("\t  ", paste(i, collapse = ", ")))
-     }
-   }
-   message("")
-  }
-}
-
 #' @param new.names vector of new cell names
 #'
 #' @rdname RenameCells
@@ -3353,6 +3294,67 @@ names.DimReduc <- function(x) {
 #'
 names.Seurat <- function(x) {
   return(FilterObjects(object = x, classes.keep = c('Assay', 'DimReduc', 'Graph')))
+}
+
+#' Print the results of a dimensional reduction analysis
+#'
+#' Prints a set of features that most strongly define a set of components
+#'
+#' @param x An object
+#' @param dims Number of dimensions to display
+#' @param nfeatures Number of genes to display
+#' @param projected Use projected slot
+#' @param ... Arguments passed to other methods
+#'
+#' @return Set of features defining the components
+#'
+#' @aliases print
+#' @seealso \code{\link[base]{cat}}
+#'
+#' @export
+#' @method print DimReduc
+#'
+print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...) {
+  loadings <- Loadings(object = x, projected = projected)
+  nfeatures <- min(nfeatures, nrow(x = loadings))
+  if (ncol(x = loadings) == 0) {
+    warning("Dimensions have not been projected. Setting projected = FALSE")
+    projected <- FALSE
+    loadings <- Loadings(object = x, projected = projected)
+  }
+  if (min(dims) > ncol(x = loadings)) {
+    stop("Cannot print dimensions greater than computed")
+  }
+  if (max(dims) > ncol(x = loadings)) {
+    warning(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
+    dims <- min(dims):ncol(x = loadings)
+  }
+  for (dim in dims) {
+    features <- TopFeatures(
+      object = x,
+      dim = dim,
+      nfeatures = nfeatures * 2,
+      projected = projected,
+      balanced = TRUE
+    )
+    cat(Key(object = x), dim, '\n')
+    pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
+    cat("Positive: ", paste(pos.features[[1]], collapse = ", "), '\n')
+    pos.features[[1]] <- NULL
+    if (length(x = pos.features) > 0) {
+      for (i in pos.features) {
+        cat("\t  ", paste(i, collapse = ", "), '\n')
+      }
+    }
+    neg.features <- split(x = features$negative, f = ceiling(x = seq_along(along.with = features$negative) / 10))
+    cat("Negative: ", paste(neg.features[[1]], collapse = ", "), '\n')
+    neg.features[[1]] <- NULL
+    if (length(x = neg.features) > 0) {
+      for (i in neg.features) {
+        cat("\t  ", paste(i, collapse = ", "), '\n')
+      }
+    }
+  }
 }
 
 #' @importFrom stats na.omit

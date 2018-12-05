@@ -294,8 +294,8 @@ ProjectDim <- function(
   }
   object[[reduction]] <- redeuc
   if (verbose) {
-    Print(
-      object = redeuc,
+    print(
+      x = redeuc,
       dims = dims.print,
       nfeatures = nfeatures.print,
       projected = TRUE
@@ -549,7 +549,7 @@ RunICA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }
@@ -727,7 +727,7 @@ RunPCA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }

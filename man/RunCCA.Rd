@@ -66,7 +66,7 @@ pbmc1[["group"]] <- "group1"
 pbmc2[["group"]] <- "group2"
 pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 # Print results
-Print(object = pbmc_cca[["cca"]])
+print(x = pbmc_cca[["cca"]])
 
 }
 \seealso{

@@ -497,22 +497,6 @@ OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
 }
 
-#' Print the results of a dimensional reduction analysis
-#'
-#' Prints a set of genes that most strongly define a set of components
-#'
-#' @param object An object
-#' @param ... Arguments passed to other methods
-#'
-#' @return Set of features defining the components
-#'
-#' @rdname Print
-#' @export Print
-#'
-Print <- function(object, ...) {
-  UseMethod(generic = "Print", object = object)
-}
-
 #' Rename cells
 #'
 #' Change the cell names in all the different parts of an object. Can
@@ -617,7 +601,7 @@ RunALRA <- function(object, ...) {
 #' pbmc2[["group"]] <- "group2"
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
-#' Print(object = pbmc_cca[["cca"]])
+#' print(x = pbmc_cca[["cca"]])
 #'
 #' @rdname RunCCA
 #' @export RunCCA
