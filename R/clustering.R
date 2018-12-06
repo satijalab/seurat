@@ -10,6 +10,9 @@ NULL
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @importFrom pbapply pblapply
+#' @importFrom future.apply future_lapply
+#'
 #' @param modularity.fxn Modularity function (1 = standard; 2 = alternative).
 #' @param resolution Value of the resolution parameter, use a value above
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
@@ -23,8 +26,6 @@ NULL
 #' Specify the ABSOLUTE path.
 #' @param edge.file.name Edge file to use as input for modularity optimizer jar.
 #' @param verbose Print output
-#'
-#' @importFrom methods is
 #'
 #' @rdname FindClusters
 #' @export
@@ -45,26 +46,54 @@ FindClusters.default <- function(
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
-  clustering.results <- data.frame(row.names = colnames(x = object))
-  for (r in resolution) {
-    ids <- RunModularityClustering(
-      SNN = object,
-      modularity = modularity.fxn,
-      resolution = r,
-      algorithm = algorithm,
-      n.start = n.start,
-      n.iter = n.iter,
-      random.seed = random.seed,
-      print.output = verbose,
-      temp.file.location = temp.file.location,
-      edge.file.name = edge.file.name)
-    names(x = ids) <- colnames(x = object)
-    ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
-    clustering.results[, paste0("res.", r)] <- factor(x = ids)
+  if (PlanThreads() > 1) {
+    clustering.results <- future_lapply(
+      X = resolution,
+      FUN = function(r) {
+        ids <- RunModularityClustering(
+          SNN = object,
+          modularity = modularity.fxn,
+          resolution = r,
+          algorithm = algorithm,
+          n.start = n.start,
+          n.iter = n.iter,
+          random.seed = random.seed,
+          print.output = verbose,
+          temp.file.location = temp.file.location,
+          edge.file.name = edge.file.name
+        )
+        names(x = ids) <- colnames(x = object)
+        ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+        results <- list(factor(x = ids))
+        names(x = results) <- paste0('res.', r)
+        return(results)
+      }
+    )
+    clustering.results <- as.data.frame(x = clustering.results)
+  } else {
+    clustering.results <- data.frame(row.names = colnames(x = object))
+    for (r in resolution) {
+      ids <- RunModularityClustering(
+        SNN = object,
+        modularity = modularity.fxn,
+        resolution = r,
+        algorithm = algorithm,
+        n.start = n.start,
+        n.iter = n.iter,
+        random.seed = random.seed,
+        print.output = verbose,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name)
+      names(x = ids) <- colnames(x = object)
+      ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
+      clustering.results[, paste0("res.", r)] <- factor(x = ids)
+    }
   }
   return(clustering.results)
 }
 
+#' @importFrom methods is
+#'
 #' @param graph.name Name of graph to use for the clustering algorithm
 #'
 #' @rdname FindClusters
@@ -114,6 +143,7 @@ FindClusters.Seurat <- function(
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
 #' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param compute.SNN also compute the shared nearest neighbor graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
@@ -135,6 +165,7 @@ FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
   k.param = 10,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -169,17 +200,25 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  if (verbose) {
-    message("Computing SNN")
+  # convert nn.ranked into a Graph
+  j <- as.numeric(x = t(x = nn.ranked))
+  i <- ((1:length(x = j)) - 1) %/% k.param + 1
+  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
+  neighbor.graphs <- list(nn = nn.matrix)
+  if (compute.SNN) {
+    if (verbose) {
+      message("Computing SNN")
+    }
+    snn.matrix <- ComputeSNN(
+      nn_ranked = nn.ranked,
+      prune = prune.SNN
+    )
+    rownames(x = snn.matrix) <- rownames(x = object)
+    colnames(x = snn.matrix) <- rownames(x = object)
+    snn.matrix <- as(object = snn.matrix, Class = "Graph")
+    neighbor.graphs[["snn"]] <- snn.matrix
   }
-  snn.matrix <- ComputeSNN(
-    nn_ranked = nn.ranked,
-    prune = prune.SNN
-  )
-  rownames(x = snn.matrix) <- rownames(x = object)
-  colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- as(object = snn.matrix, Class = "Graph")
-  return(snn.matrix)
+  return(neighbor.graphs)
 }
 
 #' @rdname FindNeighbors
@@ -190,6 +229,7 @@ FindNeighbors.Assay <- function(
   object,
   features = NULL,
   k.param = 10,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -198,15 +238,16 @@ FindNeighbors.Assay <- function(
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
-  snn.matrix <- FindNeighbors(
+  neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
+    compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
     verbose = verbose,
     force.recalc = force.recalc
   )
-  return(snn.matrix)
+  return(neighbor.graphs)
 }
 
 #' @param assay Assay to use in construction of SNN
@@ -230,6 +271,7 @@ FindNeighbors.Seurat <- function(
   assay = NULL,
   features = NULL,
   k.param = 30,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -245,9 +287,10 @@ FindNeighbors.Seurat <- function(
       stop("More dimensions specified in dims than have been computed")
     }
     data.use <- data.use[, dims]
-    snn.matrix <- FindNeighbors(
+    neighbor.graphs <- FindNeighbors(
       object = data.use,
       k.param = k.param,
+      compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
@@ -256,18 +299,21 @@ FindNeighbors.Seurat <- function(
   } else {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- GetAssay(object = object, assay = assay)
-    snn.matrix <- FindNeighbors(
+    neighbor.graphs <- FindNeighbors(
       object = data.use,
       features = features,
       k.param = k.param,
+      compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
       force.recalc = force.recalc
     )
   }
-  graph.name <- graph.name %||% paste0(assay, "_snn")
-  object[[graph.name]] <- snn.matrix
+  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+  for (ii in 1:length(x = graph.name)) {
+    object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
+  }
   if (do.plot) {
     if (!"tsne" %in% names(x = object@reductions)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
@@ -276,7 +322,7 @@ FindNeighbors.Seurat <- function(
         warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
       } else {
         net <- graph.adjacency(
-          adjmatrix = as.matrix(x = snn.matrix),
+          adjmatrix = as.matrix(x = neighbor.graphs[[2]]),
           mode = "undirected",
           weighted = TRUE,
           diag = FALSE

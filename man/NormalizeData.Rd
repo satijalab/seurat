@@ -11,7 +11,7 @@ NormalizeData(object, ...)
 
 \method{NormalizeData}{default}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, across = "features", ...)
+  across = "features", block.size = NULL, verbose = TRUE, ...)
 
 \method{NormalizeData}{Assay}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
@@ -35,14 +35,15 @@ NormalizeData(object, ...)
   \item{RC: }{Relative counts. Feature counts for each cell are divided by the total
   counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
   For counts per million (CPM) set \code{scale.factor = 1e6}}
-}
-More methods to be added.}
+}}
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
-\item{verbose}{display progress bar for normalization procedure}
-
 \item{across}{If performing CLR normalization, normalize across either "features" or "cells".}
+
+\item{block.size}{How many cells should be run in each chunk, will try to split evenly across threads}
+
+\item{verbose}{display progress bar for normalization procedure}
 
 \item{assay}{Name of assay to use}
 }

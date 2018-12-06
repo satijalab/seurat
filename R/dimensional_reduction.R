@@ -24,13 +24,14 @@ NULL
 #' that have been processed.
 #' @param maxit maximum number of iterations to be performed by the irlba function of RunPCA
 #'
-#' @return Returns a Seurat object where object@@dr$pca@@jackstraw@@emperical.p.value
+#' @return Returns a Seurat object where JS(object = object[['pca']], slot = 'empirical')
 #' represents p-values for each gene in the PCA analysis. If ProjectPCA is
-#' subsequently run, object@dr$pca@jackstraw@emperical.p.value.full then
+#' subsequently run, JS(object = object[['pca']], slot = 'full') then
 #' represents p-values for all genes.
 #'
 #' @importFrom methods new
-#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom pbapply pblapply pbsapply
+#' @importFrom future.apply future_lapply future_sapply
 #'
 #' @references Inspired by Chung et al, Bioinformatics (2014)
 #'
@@ -39,7 +40,7 @@ NULL
 #' @examples
 #' \dontrun{
 #' pbmc_small = suppressWarnings(JackStraw(pbmc_small))
-#' head(pbmc_small@dr$pca@jackstraw@emperical.p.value)
+#' head(JS(object = pbmc_small[['pca']], slot = 'empirical'))
 #' }
 #'
 JackStraw <- function(
@@ -55,8 +56,14 @@ JackStraw <- function(
   if (reduction != "pca") {
     stop("Only pca for reduction is currently supported")
   }
+  if (verbose && PlanThreads() == 1) {
+    my.lapply <- pblapply
+    my.sapply <- pbsapply
+  } else {
+    my.lapply <- future_lapply
+    my.sapply <- future_sapply
+  }
   assay <- assay %||% DefaultAssay(object = object)
-  # embeddings <- Embeddings(object = object[[reduction]])
   if (dims > length(x = object[[reduction]])) {
     dims <- length(x = object[[reduction]])
     warning("Number of dimensions specified is greater than those available. Setting dims to ", dims, " and continuing", immediate. = TRUE)
@@ -81,8 +88,7 @@ JackStraw <- function(
   data.use <- GetAssayData(object = object, assay = assay, slot = "scale.data")[reduc.features, ]
   rev.pca <- object[[paste0('RunPCA.', assay)]]$rev.pca
   weight.by.var <- object[[paste0('RunPCA.', assay)]]$weight.by.var
-  ## TODO: Parallelization
-  fake.vals.raw <- lapply(
+  fake.vals.raw <- my.lapply(
     X = 1:num.replicate,
     FUN = JackRandom,
     scaled.data = data.use,
@@ -106,7 +112,7 @@ JackStraw <- function(
   )
   fake.vals <- as.matrix(x = fake.vals)
   jackStraw.empP <- as.matrix(
-    sapply(
+    my.sapply(
       X = 1:dims,
       FUN = function(x) {
         return(unlist(x = lapply(
@@ -288,8 +294,8 @@ ProjectDim <- function(
   }
   object[[reduction]] <- redeuc
   if (verbose) {
-    Print(
-      object = redeuc,
+    print(
+      x = redeuc,
       dims = dims.print,
       nfeatures = nfeatures.print,
       projected = TRUE
@@ -500,13 +506,13 @@ RunCCA.Seurat <- function(
 #' the number for the dimension names.
 #' @param seed.use Set a random seed.  Setting NULL will not set a seed.
 #' @param \dots Additional arguments to be passed to fastica
-#' 
+#'
 #' @importFrom ica icafast icaimax icajade
-#' 
+#'
 #' @rdname RunICA
 #' @export
 #' @method RunICA default
-#' 
+#'
 RunICA.default <- function(
   object,
   assay = NULL,
@@ -543,7 +549,7 @@ RunICA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }
@@ -587,14 +593,14 @@ RunICA.Assay <- function(
     reduction.key = reduction.key,
     seed.use = seed.use,
     ...
-    
+
   )
   return(reduction.data)
 }
 
 
 #' @param reduction.name dimensional reduction name
-#' 
+#'
 #' @rdname RunICA
 #' @method RunICA Seurat
 #' @export
@@ -721,7 +727,7 @@ RunPCA.default <- function(
     key = reduction.key
   )
   if (verbose) {
-    Print(object = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
+    print(x = reduction.data, dims = ndims.print, nfeatures = nfeatures.print)
   }
   return(reduction.data)
 }
@@ -977,39 +983,34 @@ RunTSNE.Seurat <- function(
   return(object)
 }
 
-#' @param assay Assay to pull data for when using \code{genes.use}
-#' @param nneighbors This determines the number of neighboring points used in
-#' local approximations of manifold structure. Larger values will result in more
-#' global structure being preserved at the loss of detailed local structure. In
-#' general this parameter should often be in the range 5 to 50.
-#' @param max.dim Max dimension to keep from UMAP procedure.
-#' @param metric metric: This determines the choice of metric used to measure
-#' distance in the input space. A wide variety of metrics are already coded, and
-#' a user defined function can be passed as long as it has been JITd by numba.
-#' @param min.dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more
-#' evenly distributed, while smaller values allow the algorithm to optimise more
-#' accurately with regard to local structure. Sensible values are in the range
-#' 0.001 to 0.5.
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. UMAP by default
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed
-#'
+
 #' @importFrom reticulate py_module_available py_set_seed import
 #'
 #' @rdname RunUMAP
+#' @method RunUMAP default
 #' @export
 #'
 RunUMAP.default <- function(
   object,
   assay = NULL,
-  nneighbors = 30L,
-  max.dim = 2L,
-  metric = 'correlation',
+  n.neighbors = 30L,
+  n.components = 2L,
+  metric = "correlation",
+  n.epochs = NULL,
+  learning.rate = 1.0,
   min.dist = 0.3,
-  reduction.key = 'UMAP_',
+  spread = 1.0,
+  set.op.mix.ratio = 1.0,
+  local.connectivity = 1L,
+  repulsion.strength = 1,
+  negative.sample.rate = 5, 
+  a = NULL,
+  b = NULL,
   seed.use = 42,
+  metric.kwds = NULL,
+  angular.rp.forest = FALSE,
+  reduction.key = 'UMAP_',
+  verbose = TRUE,
   ...
 ) {
   if (!py_module_available(module = 'umap')) {
@@ -1021,10 +1022,22 @@ RunUMAP.default <- function(
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
-    n_neighbors = as.integer(x = nneighbors),
-    n_components = as.integer(x = max.dim),
+    n_neighbors = as.integer(x = n.neighbors),
+    n_components = as.integer(x = n.components),
     metric = metric,
-    min_dist = min.dist
+    n_epochs = n.epochs, 
+    learning_rate = learning.rate, 
+    min_dist = min.dist, 
+    spread = spread, 
+    set_op_mix_ratio = set.op.mix.ratio, 
+    local_connectivity = local.connectivity, 
+    repulsion_strength = repulsion.strength, 
+    negative_sample_rate = negative.sample.rate, 
+    a = a, 
+    b = b, 
+    metric_kwds = metric.kwds, 
+    angular_rp_forest = angular.rp.forest, 
+    verbose = verbose
   )
   umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
@@ -1037,51 +1050,206 @@ RunUMAP.default <- function(
   return(umap.reduction)
 }
 
+#' @importFrom reticulate py_module_available import
+#'
+#' @rdname RunUMAP
+#' @method RunUMAP Graph
+#' @export
+#'
+RunUMAP.Graph <- function(
+  object,
+  assay = NULL,
+  n.components = 2L,
+  metric = "correlation",
+  n.epochs = 0L,
+  learning.rate = 1,
+  min.dist = 0.3,
+  spread = 1,
+  repulsion.strength = 1,
+  negative.sample.rate = 5L,
+  a = NULL,
+  b = NULL,
+  seed.use = 42L,
+  metric.kwds = NULL,
+  verbose = TRUE,
+  reduction.key = 'UMAP_',
+  ...
+) {
+  if (!py_module_available(module = 'umap')) {
+    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+  }
+  if (!py_module_available(module = 'numpy')) {
+    stop("Cannot find numpy, please install through pip (e.g. pip install numpy).")
+  }  
+  if (!py_module_available(module = 'sklearn')) {
+    stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
+  }
+  if (!py_module_available(module = 'scipy')) {
+    stop("Cannot find scipy, please install through pip (e.g. pip install scipy).")
+  }
+  np <- import("numpy", delay_load = TRUE)
+  sp <- import("scipy", delay_load = TRUE)
+  sklearn <- import("sklearn", delay_load = TRUE)
+  umap <- import("umap", delay_load = TRUE)
+  diag(x = object) <- 0
+  data <- object
+  object <- sp$sparse$coo_matrix(arg1 = object)
+  ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
+  a <- a %||% ab.params[[1]]
+  b <- b %||% ab.params[[2]]
+  n.epochs <- n.epochs %||% 0L
+  random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
+  embeddings <- umap$umap_$simplicial_set_embedding(
+    data = data, 
+    graph = object,  
+    n_components = n.components, 
+    initial_alpha = learning.rate, 
+    a = a, 
+    b = b, 
+    gamma = repulsion.strength, 
+    negative_sample_rate = negative.sample.rate,
+    n_epochs = n.epochs, 
+    random_state = random.state, 
+    init = "spectral", 
+    metric = metric, 
+    metric_kwds = metric.kwds,
+    verbose = verbose
+  )
+  rownames(x = embeddings) <- colnames(x = data)
+  colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
+  # center the embeddings on zero
+  embeddings <- scale(x = embeddings, scale = FALSE)
+  umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
+  return(umap)
+}
+
 #' @param dims Which dimensions to use as input features, used only if
-#' \code{genes.use} is NULL
+#' \code{features} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
 #' @param features If set, run UMAP on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 #' on features
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. umap by default
-#'
+#' @param graph Name of graph on which to run UMAP
+#' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
+#' if running UMAP on a Graph
+#' @param n.neighbors This determines the number of neighboring points used in
+#' local approximations of manifold structure. Larger values will result in more
+#' global structure being preserved at the loss of detailed local structure. In
+#' general this parameter should often be in the range 5 to 50.
+#' @param n.components The dimension of the space to embed into.
+#' @param metric metric: This determines the choice of metric used to measure
+#' distance in the input space. A wide variety of metrics are already coded, and
+#' a user defined function can be passed as long as it has been JITd by numba.
+#' @param n.epochs he number of training epochs to be used in optimizing the low dimensional 
+#' embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will 
+#' be selected based on the size of the input dataset (200 for large datasets, 500 for small).
+#' @param learning.rate The initial learning rate for the embedding optimization.
+#' @param min.dist This controls how tightly the embedding is allowed compress points together. 
+#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the 
+#' algorithm to optimise more accurately with regard to local structure. Sensible values are in 
+#' the range 0.001 to 0.5.
+#' @param spread The effective scale of embedded points. In combination with min.dist this 
+#' determines how clustered/clumped the embedded points are.
+#' @param set.op.mix.ratio Interpolate between (fuzzy) union and intersection as the set operation
+#' used to combine local fuzzy simplicial sets to obtain a global fuzzy simplicial sets. Both fuzzy
+#' set operations use the product t-norm. The value of this parameter should be between 0.0 and 
+#' 1.0; a value of 1.0 will use a pure fuzzy union, while 0.0 will use a pure fuzzy intersection.
+#' @param local.connectivity The local connectivity required – i.e. the number of nearest neighbors 
+#' that should be assumed to be connected at a local level. The higher this value the more connected 
+#' the manifold becomes locally. In practice this should be not more than the local intrinsic 
+#' dimension of the manifold.
+#' @param repulsion.strength Weighting applied to negative samples in low dimensional embedding 
+#' optimization. Values higher than one will result in greater weight being given to negative 
+#' samples.
+#' @param negative.sample.rate The number of negative samples to select per positive sample in the 
+#' optimization process. Increasing this value will result in greater repulsive force being applied, 
+#' greater optimization cost, but slightly more accuracy.
+#' @param a More specific parameters controlling the embedding. If NULL, these values are set 
+#' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
+#' right adjoint functor. 
+#' @param b More specific parameters controlling the embedding. If NULL, these values are set 
+#' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
+#' right adjoint functor. 
+#' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for 
+#' Minkowski distance. If NULL then no arguments are passed on.
+#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the 
+#' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that 
+#' use an angular style distance such as cosine, correlation etc. In the case of those metrics 
+#' angular forests will be chosen automatically.
+#' @param reduction.name Name to store dimensional reduction under in the Seurat object
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed
+#' @param verbose Controls verbosity 
+#' 
 #' @rdname RunUMAP
 #' @export
 #' @method RunUMAP Seurat
 #'
 RunUMAP.Seurat <- function(
   object,
-  dims = 1:5,
+  dims = NULL,
   reduction = 'pca',
   features = NULL,
+  graph = NULL,
   assay = 'RNA',
-  nneighbors = 30L,
-  max.dim = 2L,
+  n.neighbors = 30L,
+  n.components = 2L,
+  metric = "correlation",
+  n.epochs = NULL,
+  learning.rate = 1,
   min.dist = 0.3,
+  spread = 1,
+  set.op.mix.ratio = 1,
+  local.connectivity = 1L,
+  repulsion.strength = 1,
+  negative.sample.rate = 5L, 
+  a = NULL,
+  b = NULL,
+  seed.use = 42L,
+  metric.kwds = NULL,
+  angular.rp.forest = FALSE,
+  verbose = TRUE,
   reduction.name = "umap",
   reduction.key = "UMAP_",
-  metric = "correlation",
-  seed.use = 42,
   ...
 ) {
-  if (!is.null(x = dims) || is.null(x = features)) {
+  if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
+      stop("Please specify only one of the following arguments: dims, features, or graph")
+  }
+  if (!is.null(x = features)) {
+    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+  } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
+  } else if (!is.null(x = graph)) {
+    data.use <- object[[graph]]
   } else {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    stop("Please specify one of dims, features, or graph")
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     assay = assay,
-    nneighbors = nneighbors,
-    max.dim = max.dim,
+    n.neighbors = n.neighbors,
+    n.components = n.components,
     metric = metric,
+    n.epochs = n.epochs,
+    learning.rate = learning.rate,
     min.dist = min.dist,
-    reduction.key = reduction.key,
+    spread = spread,
+    set.op.mix.ratio = set.op.mix.ratio,
+    local.connectivity = local.connectivity,
+    repulsion.strength = repulsion.strength,
+    negative.sample.rate = negative.sample.rate, 
+    a = a,
+    b = b,
     seed.use = seed.use,
-    ...
+    metric.kwds = metric.kwds,
+    angular.rp.forest = angular.rp.forest,
+    reduction.key = reduction.key,
+    verbose = verbose
   )
   object <- LogSeuratCommand(object = object)
   return(object)
@@ -1242,8 +1410,8 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab code on https://github.com/ChristophH/FIt-SNE
-# commit ec25f1b36598a2d21869d10a258ac366a12f0b05
+# Based on Kluger Lab code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit 7a5212e on Oct 27, 2018
 #
 #' @importFrom utils file_test
 #
@@ -1256,21 +1424,31 @@ fftRtsne <- function(
   max_iter = 1000,
   fft_not_bh = TRUE,
   ann_not_vptree = TRUE,
-  stop_lying_iter = 250,
+  stop_early_exag_iter = 250,
   exaggeration_factor = 12.0,
   no_momentum_during_exag = FALSE,
   start_late_exag_iter = -1.0,
   late_exag_coeff = 1.0,
+  mom_switch_iter = 250,
+  momentum = 0.5,
+  final_momentum = 0.8,
+  learning_rate = 200,
   n_trees = 50,
   search_k = -1,
   rand_seed = -1,
   nterms = 3,
   intervals_per_integer = 1,
   min_num_intervals = 50,
+  K = -1,
+  sigma = -30,
+  initialization = NULL,
   data_path = NULL,
   result_path = NULL,
+  load_affinities = NULL,
   fast_tsne_path = NULL,
   nthreads = getOption('mc.cores', default = 1),
+  perplexity_list = NULL,
+  get_costs = FALSE,
   ...
 ) {
   if (is.null(x = data_path)) {
@@ -1280,7 +1458,7 @@ fftRtsne <- function(
     result_path <- tempfile(pattern = 'fftRtsne_result_', fileext = '.dat')
   }
   if (is.null(x = fast_tsne_path)) {
-    fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE)
+    suppressWarnings(expr = fast_tsne_path <- system2(command = 'which', args = 'fast_tsne', stdout = TRUE))
     if (length(x = fast_tsne_path) == 0) {
       stop("no fast_tsne_path specified and fast_tsne binary is not in the search path")
     }
@@ -1289,6 +1467,14 @@ fftRtsne <- function(
   if (!file_test(op = '-x', x = fast_tsne_path)) {
     stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
   }
+  # check fast_tsne version
+  ft.out <- system2(command = fast_tsne_path, stdout = TRUE)
+  if (!grepl('= t-SNE v1.', ft.out[1])) {
+    message('First line of fast_tsne output is')
+    message(ft.out[1])
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+  }
+  
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
@@ -1304,8 +1490,8 @@ fftRtsne <- function(
   if (!(max_iter > 0)) {
     stop("Incorrect number of iterations.")
   }
-  if (!is.wholenumber(x = stop_lying_iter) || stop_lying_iter < 0) {
-    stop("stop_lying_iter should be a positive integer")
+  if (!is.wholenumber(x = stop_early_exag_iter) || stop_early_exag_iter < 0) {
+    stop("stop_early_exag_iter should be a positive integer")
   }
   if (!is.numeric(x = exaggeration_factor)) {
     stop("exaggeration_factor should be numeric")
@@ -1314,63 +1500,91 @@ fftRtsne <- function(
     stop("Incorrect dimensionality.")
   }
   if (search_k == -1) {
-    search_k = n_trees * perplexity * 3
+    if (perplexity>0) {
+      search_k <- n_trees * perplexity * 3
+    } else if (perplexity==0) {
+      search_k <- n_trees * max(perplexity_list) * 3
+    } else { 
+      search_k <- n_trees * K * 3
+    }
   }
-  # if (fft_not_bh) {
-  #   nbody_algo <- 2
-  # } else {
-  #   nbody_algo <- 1
-  # }
+  
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
-  # if (ann_not_vptree) {
-  #   knn_algo <- 1
-  # }else{
-  #   knn_algo <- 2
-  # }
+  
+  if (is.null(load_affinities)) {
+    load_affinities <- 0
+  } else {
+    if (load_affinities == 'load') {
+      load_affinities <- 1
+    } else if (load_affinities == 'save') {
+      load_affinities <- 2
+    } else {
+      load_affinities <- 0;
+    }
+  }
+  
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
-  tX = c(t(x = X))
   f <- file(data_path, "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
   writeBin(object = as.integer(x = D), con = f, size = 4)
-  writeBin(object = as.numeric(x = 0.5), con = f, size = 8) #theta
+  writeBin(object = as.numeric(x = theta), con = f, size = 8) #theta
   writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
+  if (perplexity == 0) {
+    writeBin(object = as.integer(x = length(x = perplexity_list)), con = f, size = 4)
+    writeBin(object = perplexity_list, con = f) 
+  }
   writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
   writeBin(object = as.integer(x = max_iter), con = f, size = 4)
-  writeBin(object = as.integer(x = stop_lying_iter), con = f, size = 4)
-  writeBin(object = as.integer(x = -1), con = f, size = 4) #K
-  writeBin(object = as.numeric(x = -30.0), con = f, size = 8) #sigma
+  writeBin(object = as.integer(x = stop_early_exag_iter), con = f, size = 4)
+  writeBin(object = as.integer(x = mom_switch_iter), con = f, size = 4)
+  writeBin(object = as.numeric(x = momentum), con = f, size = 8)
+  writeBin(object = as.numeric(x = final_momentum), con = f, size = 8)
+  writeBin(object = as.numeric(x = learning_rate), con = f, size = 8)
+  writeBin(object = as.integer(x = K), con = f, size = 4) #K
+  writeBin(object = as.numeric(x = sigma), con = f, size = 8) #sigma
   writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
-  writeBin(object = as.integer(x = knn_algo), con = f, size = 4)
+  writeBin(object = as.integer(x = knn_algo), con = f, size = 4) 
   writeBin(object = as.numeric(x = exaggeration_factor), con = f, size = 8) #compexag
-  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4)
-  writeBin(object = as.integer(x = n_trees), con = f, size = 4)
-  writeBin(object = as.integer(x = search_k), con = f, size = 4)
-  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4)
-  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8)
-  writeBin(object = as.integer(x = nterms), con =  f, size = 4)
-  writeBin(object = as.numeric(x = intervals_per_integer), con =  f, size = 8)
-  writeBin(object = as.integer(x = min_num_intervals), con =  f, size = 4)
-  tX = c(t(x = X))
-  writeBin(object = tX, con = f)
-  writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  close(f)
+  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4) 
+  writeBin(object = as.integer(x = n_trees), con = f, size = 4) 
+  writeBin(object = as.integer(x = search_k), con = f, size = 4) 
+  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4) 
+  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8) 
+  writeBin(object = as.integer(x = nterms), con = f, size = 4) 
+  writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8) 
+  writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4) 
+  tX = c(t(X))
+  writeBin(object = tX, con = f) 
+  writeBin(object = as.integer(x = rand_seed), con = f, size = 4) 
+  writeBin(object = as.integer(x = load_affinities), con = f, size = 4) 
+  if (!is.null(x = initialization)) {
+    writeBin(object = c(t(x = initialization)), con = f)
+  }
+  close(con = f)
+  
   flag <- system2(command = fast_tsne_path, args = c(data_path, result_path, nthreads))
   if (flag != 0) {
-    stop('tsne call failed');
+    stop('tsne call failed')
   }
   f <- file(description = result_path, open = "rb")
-  initialError <- readBin(f, integer(), n = 1, size = 8)
   n <- readBin(con = f, what = integer(), n = 1, size = 4)
   d <- readBin(con = f, what = integer(), n = 1, size = 4)
   Y <- readBin(con = f, what = numeric(), n = n * d)
-  Yout <- t(x = matrix(data = Y, nrow = d))
-  close(f)
+  Y <- t(x = matrix(Y, nrow = d))
+  if (get_costs) {
+    costs <- readBin(con = f, what = numeric(), n = max_iter, size = 8)
+    Yout <- list(Y = Y, costs = costs)
+  }else {
+    Yout <- Y
+  }
+  close(con = f)
   file.remove(data_path)
   file.remove(result_path)
   return(Yout)
 }
+
 
 #internal
 #

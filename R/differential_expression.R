@@ -786,6 +786,7 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 # genes.
 #
 #' @importFrom pbapply pbsapply
+#' @importFrom future.apply future_sapply
 #
 # @export
 # @examples
@@ -799,9 +800,13 @@ DiffExpTest <- function(
   cells.2,
   verbose = TRUE
 ) {
-  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(x = data.use),
       FUN = function(x) {
         return(DifferentialLRT(
@@ -811,7 +816,7 @@ DiffExpTest <- function(
       }
     )
   )
-  to.return <- data.frame(p_val, row.names = rownames(data.use))
+  to.return <- data.frame(p_val, row.names = rownames(x = data.use))
   return(to.return)
 }
 
@@ -825,6 +830,7 @@ DiffExpTest <- function(
 #
 #' @importFrom stats t.test
 #' @importFrom pbapply pbsapply
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
@@ -838,16 +844,20 @@ DiffTTest <- function(
   cells.2,
   verbose = TRUE
 ) {
-  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(data.use),
       FUN = function(x) {
         t.test(x = data.use[x, cells.1], y = data.use[x, cells.2])$p.value
       }
     )
   )
-  to.return <- data.frame(p_val,row.names = rownames(data.use))
+  to.return <- data.frame(p_val,row.names = rownames(x = data.use))
   return(to.return)
 }
 
@@ -870,6 +880,7 @@ DiffTTest <- function(
 #' @importFrom MASS glm.nb
 #' @importFrom pbapply pbsapply
 #' @importFrom stats var as.formula
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
@@ -896,15 +907,19 @@ GLMDETest <- function(
   )
   rownames(group.info) <- c(cells.1, cells.2)
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  if (is.null(latent.vars)) {
-    latent.vars <- group.info
+  latent.vars <- if (is.null(x = latent.vars)) {
+    group.info
   } else {
-    latent.vars <- cbind(group.info, latent.vars)
+    cbind(x = group.info, latent.vars)
   }
-  latent.var.names <- colnames(latent.vars)
-  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
+  latent.var.names <- colnames(x = latent.vars)
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
   p_val <- unlist(
-    x = mysapply(
+    x = my.sapply(
       X = 1:nrow(data.use),
       FUN = function(x) {
         latent.vars[, "GENE"] <- as.numeric(x = data.use[x, ])
@@ -929,9 +944,12 @@ GLMDETest <- function(
           ))
           return(2)
         }
-        fmla <- as.formula(paste0("GENE ", " ~ ", paste(latent.var.names, collapse = "+")))
+        fmla <- as.formula(object = paste(
+          "GENE ~",
+          paste(latent.var.names, collapse = "+")
+        ))
         p.estimate <- 2
-        if(test.use == "negbinom"){
+        if (test.use == "negbinom") {
           try(
             expr = p.estimate <- summary(
               object = glm.nb(formula = fmla, data = latent.vars)
@@ -939,16 +957,12 @@ GLMDETest <- function(
             silent = TRUE
           )
           return(p.estimate)
-        } else if (test.use == "poisson"){
-          return(
-            summary(
-              object = glm(
-                formula = fmla,
-                data = latent.vars,
-                family = "poisson"
-              )
-            )$coef[2,4]
-          )
+        } else if (test.use == "poisson") {
+          return(summary(object = glm(
+            formula = fmla,
+            data = latent.vars,
+            family = "poisson"
+          ))$coef[2,4])
         }
       }
     )
@@ -956,7 +970,7 @@ GLMDETest <- function(
   features.keep <- rownames(data.use)
   if (length(x = which(x = p_val == 2)) > 0) {
     features.keep <- features.keep[-which(x = p_val == 2)]
-    p_val <- p_val[! p_val == 2]
+    p_val <- p_val[!p_val == 2]
   }
   to.return <- data.frame(p_val, row.names = features.keep)
   return(to.return)
@@ -975,6 +989,8 @@ GLMDETest <- function(
 #
 #' @importFrom lmtest lrtest
 #' @importFrom pbapply pbsapply
+#' @importFrom stats as.formula glm
+#' @importFrom future.apply future_sapply
 #
 LRDETest <- function(
   data.use,
@@ -990,18 +1006,28 @@ LRDETest <- function(
   group.info[, "group"] <- factor(x = group.info[, "group"])
   data.use <- data.use[, rownames(group.info), drop = FALSE]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
-  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
-  p_val <- mysapply(
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
+  p_val <- my.sapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
       if (is.null(x = latent.vars)) {
         model.data <- cbind(GENE = data.use[x, ], group.info)
-        fmla <- as.formula(paste0("group  ~ GENE"))
-        fmla2 <- as.formula("group ~ 1")
+        fmla <- as.formula(object = "group ~ GENE")
+        fmla2 <- as.formula(object = "group ~ 1")
       } else {
         model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-        fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
-        fmla2 <- as.formula(paste0("group ~ ", paste(colnames(x = latent.vars), collapse = "+")))
+        fmla <- as.formula(object = paste(
+          "group ~ GENE +",
+          paste(colnames(x = latent.vars), collapse = "+")
+        ))
+        fmla2 <- as.formula(object = paste(
+          "group ~",
+          paste(colnames(x = latent.vars), collapse = "+")
+        ))
       }
       model1 <- glm(formula = fmla, data = model.data, family = "binomial")
       model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
@@ -1108,7 +1134,7 @@ MASTDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  latent.vars.names <- c("condition", colnames(latent.vars))
+  latent.vars.names <- c("condition", colnames(x = latent.vars))
   latent.vars <- cbind(latent.vars, group.info)
   latent.vars$wellKey <- rownames(x = latent.vars)
   fdat <- data.frame(rownames(x = data.use))
@@ -1281,6 +1307,7 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #
 #' @importFrom pbapply pbsapply
 #' @importFrom stats wilcox.test
+#' @importFrom future.apply future_sapply
 #
 # @export
 #
@@ -1300,13 +1327,17 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(group.info), drop = FALSE]
-  mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
-  p_val <- mysapply(
+  data.use <- data.use[, rownames(x = group.info)]
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
+  p_val <- my.sapply(
     X = 1:nrow(x = data.use),
     FUN = function(x) {
       return(wilcox.test(data.use[x, ] ~ group.info[, "group"], ...)$p.value)
     }
   )
-  return(data.frame(p_val, row.names = rownames(data.use)))
+  return(data.frame(p_val, row.names = rownames(x = data.use)))
 }

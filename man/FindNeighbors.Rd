@@ -10,17 +10,17 @@
 FindNeighbors(object, ...)
 
 \method{FindNeighbors}{default}(object, distance.matrix = FALSE,
-  k.param = 10, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
-  force.recalc = FALSE, ...)
+  k.param = 10, compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0,
+  verbose = TRUE, force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Assay}(object, features = NULL, k.param = 10,
-  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
-  assay = NULL, features = NULL, k.param = 30, prune.SNN = 1/15,
-  nn.eps = 0, verbose = TRUE, force.recalc = FALSE,
-  do.plot = FALSE, graph.name = NULL, ...)
+  assay = NULL, features = NULL, k.param = 30, compute.SNN = TRUE,
+  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  force.recalc = FALSE, do.plot = FALSE, graph.name = NULL, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -31,6 +31,8 @@ FindNeighbors(object, ...)
 distance matrix}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
+
+\item{compute.SNN}{also compute the shared nearest neighbor graph}
 
 \item{prune.SNN}{Sets the cutoff for acceptable Jaccard index when
 computing the neighborhood overlap for the SNN construction. Any edges with

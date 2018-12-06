@@ -32,8 +32,8 @@ object.filtered <- CreateSeuratObject(
 )
 
 test_that("Filtering handled properly", {
-  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 162)
-  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 75)
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 163)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
 
@@ -92,16 +92,26 @@ test_that("ScaleData returns expected values when input is a sparse matrix", {
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
-object[["RNA"]] <- SetAssayData(
+new.data <- as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+new.data[1, ] <- rep(x = 0, times = ncol(x = new.data))
+object2 <- object
+
+object2[["RNA"]] <- SetAssayData(
   object = object[["RNA"]],
   slot = "data",
-  new.data = as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+  new.data = new.data
 )
+object2 <- ScaleData(object = object2, verbose = FALSE)
+
 object <- ScaleData(object = object)
 test_that("ScaleData returns expected values when input is not sparse", {
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
+})
+
+test_that("ScaleData handles zero variance features properly", {
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 1], 0)
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 80], 0)
 })
 
 # Tests for various regression techniques
