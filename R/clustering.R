@@ -143,6 +143,7 @@ FindClusters.Seurat <- function(
 #' @param distance.matrix Boolean value of whether the provided matrix is a
 #' distance matrix
 #' @param k.param Defines k for the k-nearest neighbor algorithm
+#' @param compute.SNN also compute the shared nearest neighbor graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
 #' computing the neighborhood overlap for the SNN construction. Any edges with
 #' values less than or equal to this will be set to 0 and removed from the SNN
@@ -164,6 +165,7 @@ FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
   k.param = 10,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -198,22 +200,25 @@ FindNeighbors.default <- function(
     }
     nn.ranked <- knn.mat[, 1:k.param]
   }
-  if (verbose) {
-    message("Computing SNN")
-  }
-  snn.matrix <- ComputeSNN(
-    nn_ranked = nn.ranked,
-    prune = prune.SNN
-  )
-  rownames(x = snn.matrix) <- rownames(x = object)
-  colnames(x = snn.matrix) <- rownames(x = object)
-  snn.matrix <- as(object = snn.matrix, Class = "Graph")
-  
   # convert nn.ranked into a Graph
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
   nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
-  return(list(nn = nn.matrix, snn = snn.matrix))
+  neighbor.graphs <- list(nn = nn.matrix)
+  if (compute.SNN) {
+    if (verbose) {
+      message("Computing SNN")
+    }
+    snn.matrix <- ComputeSNN(
+      nn_ranked = nn.ranked,
+      prune = prune.SNN
+    )
+    rownames(x = snn.matrix) <- rownames(x = object)
+    colnames(x = snn.matrix) <- rownames(x = object)
+    snn.matrix <- as(object = snn.matrix, Class = "Graph")
+    neighbor.graphs[["snn"]] <- snn.matrix
+  }
+  return(neighbor.graphs)
 }
 
 #' @rdname FindNeighbors
@@ -224,6 +229,7 @@ FindNeighbors.Assay <- function(
   object,
   features = NULL,
   k.param = 10,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -235,6 +241,7 @@ FindNeighbors.Assay <- function(
   neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
+    compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
     verbose = verbose,
@@ -264,6 +271,7 @@ FindNeighbors.Seurat <- function(
   assay = NULL,
   features = NULL,
   k.param = 30,
+  compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
   verbose = TRUE,
@@ -282,6 +290,7 @@ FindNeighbors.Seurat <- function(
     neighbor.graphs <- FindNeighbors(
       object = data.use,
       k.param = k.param,
+      compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
@@ -294,6 +303,7 @@ FindNeighbors.Seurat <- function(
       object = data.use,
       features = features,
       k.param = k.param,
+      compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
