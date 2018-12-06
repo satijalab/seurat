@@ -208,7 +208,12 @@ FindNeighbors.default <- function(
   rownames(x = snn.matrix) <- rownames(x = object)
   colnames(x = snn.matrix) <- rownames(x = object)
   snn.matrix <- as(object = snn.matrix, Class = "Graph")
-  return(snn.matrix)
+  
+  # convert nn.ranked into a Graph
+  j <- as.numeric(x = t(x = nn.ranked))
+  i <- ((1:length(x = j)) - 1) %/% k.param + 1
+  nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
+  return(list(nn = nn.matrix, snn = snn.matrix))
 }
 
 #' @rdname FindNeighbors
@@ -227,7 +232,7 @@ FindNeighbors.Assay <- function(
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
-  snn.matrix <- FindNeighbors(
+  neighbor.graphs <- FindNeighbors(
     object = data.use,
     k.param = k.param,
     prune.SNN = prune.SNN,
@@ -235,7 +240,7 @@ FindNeighbors.Assay <- function(
     verbose = verbose,
     force.recalc = force.recalc
   )
-  return(snn.matrix)
+  return(neighbor.graphs)
 }
 
 #' @param assay Assay to use in construction of SNN
@@ -274,7 +279,7 @@ FindNeighbors.Seurat <- function(
       stop("More dimensions specified in dims than have been computed")
     }
     data.use <- data.use[, dims]
-    snn.matrix <- FindNeighbors(
+    neighbor.graphs <- FindNeighbors(
       object = data.use,
       k.param = k.param,
       prune.SNN = prune.SNN,
@@ -285,7 +290,7 @@ FindNeighbors.Seurat <- function(
   } else {
     assay <- assay %||% DefaultAssay(object = object)
     data.use <- GetAssay(object = object, assay = assay)
-    snn.matrix <- FindNeighbors(
+    neighbor.graphs <- FindNeighbors(
       object = data.use,
       features = features,
       k.param = k.param,
@@ -295,8 +300,10 @@ FindNeighbors.Seurat <- function(
       force.recalc = force.recalc
     )
   }
-  graph.name <- graph.name %||% paste0(assay, "_snn")
-  object[[graph.name]] <- snn.matrix
+  graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
+  for (ii in 1:length(x = graph.name)) {
+    object[[graph.name[[ii]]]] <- neighbor.graphs[[ii]]
+  }
   if (do.plot) {
     if (!"tsne" %in% names(x = object@reductions)) {
       warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
@@ -305,7 +312,7 @@ FindNeighbors.Seurat <- function(
         warning("Please compute a tSNE for SNN visualization. See RunTSNE().")
       } else {
         net <- graph.adjacency(
-          adjmatrix = as.matrix(x = snn.matrix),
+          adjmatrix = as.matrix(x = neighbor.graphs[[2]]),
           mode = "undirected",
           weighted = TRUE,
           diag = FALSE
