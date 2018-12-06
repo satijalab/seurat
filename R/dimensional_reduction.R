@@ -993,12 +993,24 @@ RunTSNE.Seurat <- function(
 RunUMAP.default <- function(
   object,
   assay = NULL,
-  nneighbors = 30L,
-  max.dim = 2L,
-  metric = 'correlation',
+  n.neighbors = 30L,
+  n.components = 2L,
+  metric = "correlation",
+  n.epochs = NULL,
+  learning.rate = 1.0,
   min.dist = 0.3,
-  reduction.key = 'UMAP_',
+  spread = 1.0,
+  set.op.mix.ratio = 1.0,
+  local.connectivity = 1L,
+  repulsion.strength = 1,
+  negative.sample.rate = 5, 
+  a = NULL,
+  b = NULL,
   seed.use = 42,
+  metric.kwds = NULL,
+  angular.rp.forest = FALSE,
+  reduction.key = 'UMAP_',
+  verbose = TRUE,
   ...
 ) {
   if (!py_module_available(module = 'umap')) {
@@ -1010,10 +1022,22 @@ RunUMAP.default <- function(
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
-    n_neighbors = as.integer(x = nneighbors),
-    n_components = as.integer(x = max.dim),
+    n_neighbors = as.integer(x = n.neighbors),
+    n_components = as.integer(x = n.components),
     metric = metric,
-    min_dist = min.dist
+    n_epochs = n.epochs, 
+    learning_rate = learning.rate, 
+    min_dist = min.dist, 
+    spread = spread, 
+    set_op_mix_ratio = set.op.mix.ratio, 
+    local_connectivity = local.connectivity, 
+    repulsion_strength = repulsion.strength, 
+    negative_sample_rate = negative.sample.rate, 
+    a = a, 
+    b = b, 
+    metric_kwds = metric.kwds, 
+    angular_rp_forest = angular.rp.forest, 
+    verbose = verbose
   )
   umap_output <- umap$fit_transform(as.matrix(x = object))
   colnames(x = umap_output) <- paste0(reduction.key, 1:ncol(x = umap_output))
@@ -1026,18 +1050,6 @@ RunUMAP.default <- function(
   return(umap.reduction)
 }
 
-#' @param spread The effective scale of embedded points. In combination with min.dist this determines 
-#' how clustered/clumped the embedded points are.
-#' @param initial.alpha Initial learning rate for the SGD
-#' @param gamma Weight to apply to negative samples
-#' @param negative.sample.rate The number of negative samples to select per positive sample in the 
-#' optimization process. Increasing this value will result in greater repulsive force being applied,
-#' greater optimization cost, but slightly more accuracy.
-#' @param n.epochs The number of training epochs to be used in optimizing the low dimensional 
-#' embedding. Larger values result in more accurate embeddings.
-#' @param metric.kwds Key word arguments to be passed to the metric function
-#' @param verbose Prints information
-#' 
 #' @importFrom reticulate py_module_available import
 #'
 #' @rdname RunUMAP
@@ -1047,15 +1059,17 @@ RunUMAP.default <- function(
 RunUMAP.Graph <- function(
   object,
   assay = NULL,
-  spread = 1,
-  min.dist = 0.3,
-  seed.use = 42L,
-  max.dim = 2L,
-  initial.alpha = 1,
-  gamma = 1,
-  negative.sample.rate = 5,
-  n.epochs = 200L,
+  n.components = 2L,
   metric = "correlation",
+  n.epochs = 0L,
+  learning.rate = 1,
+  min.dist = 0.3,
+  spread = 1,
+  repulsion.strength = 1,
+  negative.sample.rate = 5L,
+  a = NULL,
+  b = NULL,
+  seed.use = 42L,
   metric.kwds = NULL,
   verbose = TRUE,
   reduction.key = 'UMAP_',
@@ -1081,15 +1095,18 @@ RunUMAP.Graph <- function(
   data <- object
   object <- sp$sparse$coo_matrix(arg1 = object)
   ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
-  random.state <- sklearn$utils$check_random_state(seed = seed.use)
+  a <- a %||% ab.params[[1]]
+  b <- b %||% ab.params[[2]]
+  n.epochs <- n.epochs %||% 0L
+  random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
   embeddings <- umap$umap_$simplicial_set_embedding(
     data = data, 
     graph = object,  
-    n_components = max.dim, 
-    initial_alpha = initial.alpha, 
-    a = ab.params[[1]], 
-    b = ab.params[[2]], 
-    gamma = gamma, 
+    n_components = n.components, 
+    initial_alpha = learning.rate, 
+    a = a, 
+    b = b, 
+    gamma = repulsion.strength, 
     negative_sample_rate = negative.sample.rate,
     n_epochs = n.epochs, 
     random_state = random.state, 
@@ -1099,41 +1116,73 @@ RunUMAP.Graph <- function(
     verbose = verbose
   )
   rownames(x = embeddings) <- colnames(x = data)
-  colnames(x = embeddings) <- paste0("UMAP_", 1:max.dim)
+  colnames(x = embeddings) <- paste0("UMAP_", 1:n.components)
   # center the embeddings on zero
   embeddings <- scale(x = embeddings, scale = FALSE)
   umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
   return(umap)
 }
 
-
 #' @param dims Which dimensions to use as input features, used only if
-#' \code{genes.use} is NULL
+#' \code{features} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
 #' UMAP input. Default is PCA
 #' @param features If set, run UMAP on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 #' on features
+#' @param graph Name of graph on which to run UMAP
 #' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
 #' if running UMAP on a Graph
-#' @param nneighbors This determines the number of neighboring points used in
+#' @param n.neighbors This determines the number of neighboring points used in
 #' local approximations of manifold structure. Larger values will result in more
 #' global structure being preserved at the loss of detailed local structure. In
 #' general this parameter should often be in the range 5 to 50.
-#' @param max.dim Max dimension to keep from UMAP procedure.
-#' @param min.dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more
-#' evenly distributed, while smaller values allow the algorithm to optimise more
-#' accurately with regard to local structure. Sensible values are in the range
-#' 0.001 to 0.5.
-#' @param reduction.name Name to store dimensional reduction under in the Seurat object
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. UMAP by default
+#' @param n.components The dimension of the space to embed into.
 #' @param metric metric: This determines the choice of metric used to measure
 #' distance in the input space. A wide variety of metrics are already coded, and
 #' a user defined function can be passed as long as it has been JITd by numba.
+#' @param n.epochs he number of training epochs to be used in optimizing the low dimensional 
+#' embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will 
+#' be selected based on the size of the input dataset (200 for large datasets, 500 for small).
+#' @param learning.rate The initial learning rate for the embedding optimization.
+#' @param min.dist This controls how tightly the embedding is allowed compress points together. 
+#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the 
+#' algorithm to optimise more accurately with regard to local structure. Sensible values are in 
+#' the range 0.001 to 0.5.
+#' @param spread The effective scale of embedded points. In combination with min.dist this 
+#' determines how clustered/clumped the embedded points are.
+#' @param set.op.mix.ratio Interpolate between (fuzzy) union and intersection as the set operation
+#' used to combine local fuzzy simplicial sets to obtain a global fuzzy simplicial sets. Both fuzzy
+#' set operations use the product t-norm. The value of this parameter should be between 0.0 and 
+#' 1.0; a value of 1.0 will use a pure fuzzy union, while 0.0 will use a pure fuzzy intersection.
+#' @param local.connectivity The local connectivity required – i.e. the number of nearest neighbors 
+#' that should be assumed to be connected at a local level. The higher this value the more connected 
+#' the manifold becomes locally. In practice this should be not more than the local intrinsic 
+#' dimension of the manifold.
+#' @param repulsion.strength Weighting applied to negative samples in low dimensional embedding 
+#' optimization. Values higher than one will result in greater weight being given to negative 
+#' samples.
+#' @param negative.sample.rate The number of negative samples to select per positive sample in the 
+#' optimization process. Increasing this value will result in greater repulsive force being applied, 
+#' greater optimization cost, but slightly more accuracy.
+#' @param a More specific parameters controlling the embedding. If NULL, these values are set 
+#' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
+#' right adjoint functor. 
+#' @param b More specific parameters controlling the embedding. If NULL, these values are set 
+#' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
+#' right adjoint functor. 
+#' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for 
+#' Minkowski distance. If NULL then no arguments are passed on.
+#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the 
+#' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that 
+#' use an angular style distance such as cosine, correlation etc. In the case of those metrics 
+#' angular forests will be chosen automatically.
+#' @param reduction.name Name to store dimensional reduction under in the Seurat object
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
+#' @param verbose Controls verbosity 
 #' 
 #' @rdname RunUMAP
 #' @export
@@ -1141,35 +1190,66 @@ RunUMAP.Graph <- function(
 #'
 RunUMAP.Seurat <- function(
   object,
-  dims = 1:5,
+  dims = NULL,
   reduction = 'pca',
   features = NULL,
+  graph = NULL,
   assay = 'RNA',
-  nneighbors = 30L,
-  max.dim = 2L,
+  n.neighbors = 30L,
+  n.components = 2L,
+  metric = "correlation",
+  n.epochs = NULL,
+  learning.rate = 1,
   min.dist = 0.3,
+  spread = 1,
+  set.op.mix.ratio = 1,
+  local.connectivity = 1L,
+  repulsion.strength = 1,
+  negative.sample.rate = 5L, 
+  a = NULL,
+  b = NULL,
+  seed.use = 42L,
+  metric.kwds = NULL,
+  angular.rp.forest = FALSE,
+  verbose = TRUE,
   reduction.name = "umap",
   reduction.key = "UMAP_",
-  metric = "correlation",
-  seed.use = 42,
   ...
 ) {
-  if (!is.null(x = dims) || is.null(x = features)) {
+  if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
+      stop("Please specify only one of the following arguments: dims, features, or graph")
+  }
+  if (!is.null(x = features)) {
+    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+  } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
+  } else if (!is.null(x = graph)) {
+    data.use <- object[[graph]]
   } else {
-    data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
+    stop("Please specify one of dims, features, or graph")
   }
   object[[reduction.name]] <- RunUMAP(
     object = data.use,
     assay = assay,
-    nneighbors = nneighbors,
-    max.dim = max.dim,
+    n.neighbors = n.neighbors,
+    n.components = n.components,
     metric = metric,
+    n.epochs = n.epochs,
+    learning.rate = learning.rate,
     min.dist = min.dist,
-    reduction.key = reduction.key,
+    spread = spread,
+    set.op.mix.ratio = set.op.mix.ratio,
+    local.connectivity = local.connectivity,
+    repulsion.strength = repulsion.strength,
+    negative.sample.rate = negative.sample.rate, 
+    a = a,
+    b = b,
     seed.use = seed.use,
-    ...
+    metric.kwds = metric.kwds,
+    angular.rp.forest = angular.rp.forest,
+    reduction.key = reduction.key,
+    verbose = verbose
   )
   object <- LogSeuratCommand(object = object)
   return(object)
