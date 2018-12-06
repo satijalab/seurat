@@ -983,28 +983,11 @@ RunTSNE.Seurat <- function(
   return(object)
 }
 
-#' @param assay Assay to pull data for when using \code{genes.use}
-#' @param nneighbors This determines the number of neighboring points used in
-#' local approximations of manifold structure. Larger values will result in more
-#' global structure being preserved at the loss of detailed local structure. In
-#' general this parameter should often be in the range 5 to 50.
-#' @param max.dim Max dimension to keep from UMAP procedure.
-#' @param metric metric: This determines the choice of metric used to measure
-#' distance in the input space. A wide variety of metrics are already coded, and
-#' a user defined function can be passed as long as it has been JITd by numba.
-#' @param min.dist min_dist: This controls how tightly the embedding is allowed
-#' compress points together. Larger values ensure embedded points are more
-#' evenly distributed, while smaller values allow the algorithm to optimise more
-#' accurately with regard to local structure. Sensible values are in the range
-#' 0.001 to 0.5.
-#' @param reduction.key dimensional reduction key, specifies the string before
-#' the number for the dimension names. UMAP by default
-#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
-#' NULL will not set a seed
-#'
+
 #' @importFrom reticulate py_module_available py_set_seed import
 #'
 #' @rdname RunUMAP
+#' @method RunUMAP default
 #' @export
 #'
 RunUMAP.default <- function(
@@ -1043,6 +1026,87 @@ RunUMAP.default <- function(
   return(umap.reduction)
 }
 
+#' @param spread The effective scale of embedded points. In combination with min.dist this determines 
+#' how clustered/clumped the embedded points are.
+#' @param initial.alpha Initial learning rate for the SGD
+#' @param gamma Weight to apply to negative samples
+#' @param negative.sample.rate The number of negative samples to select per positive sample in the 
+#' optimization process. Increasing this value will result in greater repulsive force being applied,
+#' greater optimization cost, but slightly more accuracy.
+#' @param n.epochs The number of training epochs to be used in optimizing the low dimensional 
+#' embedding. Larger values result in more accurate embeddings.
+#' @param metric.kwds Key word arguments to be passed to the metric function
+#' @param verbose Prints information
+#' 
+#' @importFrom reticulate py_module_available import
+#'
+#' @rdname RunUMAP
+#' @method RunUMAP Graph
+#' @export
+#'
+RunUMAP.Graph <- function(
+  object,
+  assay = NULL,
+  spread = 1,
+  min.dist = 0.3,
+  seed.use = 42L,
+  max.dim = 2L,
+  initial.alpha = 1,
+  gamma = 1,
+  negative.sample.rate = 5,
+  n.epochs = 200L,
+  metric = "correlation",
+  metric.kwds = NULL,
+  verbose = TRUE,
+  reduction.key = 'UMAP_',
+  ...
+) {
+  if (!py_module_available(module = 'umap')) {
+    stop("Cannot find UMAP, please install through pip (e.g. pip install umap-learn).")
+  }
+  if (!py_module_available(module = 'numpy')) {
+    stop("Cannot find numpy, please install through pip (e.g. pip install numpy).")
+  }  
+  if (!py_module_available(module = 'sklearn')) {
+    stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
+  }
+  if (!py_module_available(module = 'scipy')) {
+    stop("Cannot find scipy, please install through pip (e.g. pip install scipy).")
+  }
+  np <- import("numpy", delay_load = TRUE)
+  sp <- import("scipy", delay_load = TRUE)
+  sklearn <- import("sklearn", delay_load = TRUE)
+  umap <- import("umap", delay_load = TRUE)
+  diag(x = object) <- 0
+  data <- object
+  object <- sp$sparse$coo_matrix(arg1 = object)
+  ab.params <- umap$umap_$find_ab_params(spread = spread, min_dist = min.dist)
+  random.state <- sklearn$utils$check_random_state(seed = seed.use)
+  embeddings <- umap$umap_$simplicial_set_embedding(
+    data = data, 
+    graph = object,  
+    n_components = max.dim, 
+    initial_alpha = initial.alpha, 
+    a = ab.params[[1]], 
+    b = ab.params[[2]], 
+    gamma = gamma, 
+    negative_sample_rate = negative.sample.rate,
+    n_epochs = n.epochs, 
+    random_state = random.state, 
+    init = "spectral", 
+    metric = metric, 
+    metric_kwds = metric.kwds,
+    verbose = verbose
+  )
+  rownames(x = embeddings) <- colnames(x = data)
+  colnames(x = embeddings) <- paste0("UMAP_", 1:max.dim)
+  # center the embeddings on zero
+  embeddings <- scale(x = embeddings, scale = FALSE)
+  umap <- CreateDimReducObject(embeddings = embeddings, key = reduction.key, assay = assay)
+  return(umap)
+}
+
+
 #' @param dims Which dimensions to use as input features, used only if
 #' \code{genes.use} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
@@ -1050,9 +1114,27 @@ RunUMAP.default <- function(
 #' @param features If set, run UMAP on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 #' on features
-#' @param reduction.name dimensional reduction name, specifies the position in
-#' the object$dr list. umap by default
-#'
+#' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
+#' if running UMAP on a Graph
+#' @param nneighbors This determines the number of neighboring points used in
+#' local approximations of manifold structure. Larger values will result in more
+#' global structure being preserved at the loss of detailed local structure. In
+#' general this parameter should often be in the range 5 to 50.
+#' @param max.dim Max dimension to keep from UMAP procedure.
+#' @param min.dist min_dist: This controls how tightly the embedding is allowed
+#' compress points together. Larger values ensure embedded points are more
+#' evenly distributed, while smaller values allow the algorithm to optimise more
+#' accurately with regard to local structure. Sensible values are in the range
+#' 0.001 to 0.5.
+#' @param reduction.name Name to store dimensional reduction under in the Seurat object
+#' @param reduction.key dimensional reduction key, specifies the string before
+#' the number for the dimension names. UMAP by default
+#' @param metric metric: This determines the choice of metric used to measure
+#' distance in the input space. A wide variety of metrics are already coded, and
+#' a user defined function can be passed as long as it has been JITd by numba.
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed
+#' 
 #' @rdname RunUMAP
 #' @export
 #' @method RunUMAP Seurat

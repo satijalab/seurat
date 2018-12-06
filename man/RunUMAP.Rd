@@ -3,6 +3,7 @@
 \name{RunUMAP}
 \alias{RunUMAP}
 \alias{RunUMAP.default}
+\alias{RunUMAP.Graph}
 \alias{RunUMAP.Seurat}
 \title{Run UMAP}
 \usage{
@@ -11,6 +12,12 @@ RunUMAP(object, ...)
 \method{RunUMAP}{default}(object, assay = NULL, nneighbors = 30L,
   max.dim = 2L, metric = "correlation", min.dist = 0.3,
   reduction.key = "UMAP_", seed.use = 42, ...)
+
+\method{RunUMAP}{Graph}(object, assay = NULL, spread = 1,
+  min.dist = 0.3, seed.use = 42L, max.dim = 2L, initial.alpha = 1,
+  gamma = 1, negative.sample.rate = 5, n.epochs = 200L,
+  metric = "correlation", metric.kwds = NULL, verbose = TRUE,
+  reduction.key = "UMAP_", ...)
 
 \method{RunUMAP}{Seurat}(object, dims = 1:5, reduction = "pca",
   features = NULL, assay = "RNA", nneighbors = 30L, max.dim = 2L,
@@ -22,7 +29,8 @@ RunUMAP(object, ...)
 
 \item{...}{Arguments passed to other methods and UMAP}
 
-\item{assay}{Assay to pull data for when using \code{genes.use}}
+\item{assay}{Assay to pull data for when using \code{features}, or assay used to construct Graph
+if running UMAP on a Graph}
 
 \item{nneighbors}{This determines the number of neighboring points used in
 local approximations of manifold structure. Larger values will result in more
@@ -47,6 +55,24 @@ the number for the dimension names. UMAP by default}
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}
 
+\item{spread}{The effective scale of embedded points. In combination with min.dist this determines 
+how clustered/clumped the embedded points are.}
+
+\item{initial.alpha}{Initial learning rate for the SGD}
+
+\item{gamma}{Weight to apply to negative samples}
+
+\item{negative.sample.rate}{The number of negative samples to select per positive sample in the 
+optimization process. Increasing this value will result in greater repulsive force being applied,
+greater optimization cost, but slightly more accuracy.}
+
+\item{n.epochs}{The number of training epochs to be used in optimizing the low dimensional 
+embedding. Larger values result in more accurate embeddings.}
+
+\item{metric.kwds}{Key word arguments to be passed to the metric function}
+
+\item{verbose}{Prints information}
+
 \item{dims}{Which dimensions to use as input features, used only if
 \code{genes.use} is NULL}
 
@@ -57,8 +83,7 @@ UMAP input. Default is PCA}
 set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 on features}
 
-\item{reduction.name}{dimensional reduction name, specifies the position in
-the object$dr list. umap by default}
+\item{reduction.name}{Name to store dimensional reduction under in the Seurat object}
 }
 \value{
 Returns a Seurat object containing a UMAP representation
