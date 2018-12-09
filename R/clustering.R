@@ -204,6 +204,8 @@ FindNeighbors.default <- function(
   j <- as.numeric(x = t(x = nn.ranked))
   i <- ((1:length(x = j)) - 1) %/% k.param + 1
   nn.matrix <- as(object = sparseMatrix(i = i, j = j, x = 1), Class = "Graph")
+  rownames(x = nn.matrix) <- rownames(x = object)
+  colnames(x = nn.matrix) <- rownames(x = object)
   neighbor.graphs <- list(nn = nn.matrix)
   if (compute.SNN) {
     if (verbose) {
