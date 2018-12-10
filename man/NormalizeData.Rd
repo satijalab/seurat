@@ -11,15 +11,15 @@ NormalizeData(object, ...)
 
 \method{NormalizeData}{default}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  across = "features", block.size = NULL, verbose = TRUE, ...)
+  margin = 1, block.size = NULL, verbose = TRUE, ...)
 
 \method{NormalizeData}{Assay}(object,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, across = "features", ...)
+  margin = 1, verbose = TRUE, ...)
 
 \method{NormalizeData}{Seurat}(object, assay = NULL,
   normalization.method = "LogNormalize", scale.factor = 10000,
-  verbose = TRUE, across = "features", ...)
+  margin = 1, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -39,7 +39,7 @@ NormalizeData(object, ...)
 
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
-\item{across}{If performing CLR normalization, normalize across either "features" or "cells".}
+\item{margin}{If performing CLR normalization, normalize across features (1) or cells (2)}
 
 \item{block.size}{How many cells should be run in each chunk, will try to split evenly across threads}
 

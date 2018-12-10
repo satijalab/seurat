@@ -534,9 +534,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
     cell.names <- readLines(barcode.loc)
     if (all(grepl(pattern = "\\-1$", x = cell.names))) {
       cell.names <- as.vector(x = as.character(x = sapply(
-            X = cell.names,
-            FUN = ExtractField, field = 1,
-            delim = "-"
+        X = cell.names,
+        FUN = ExtractField, field = 1,
+        delim = "-"
       )))
     }
     if (is.null(x = names(x = data.dir))) {
@@ -591,7 +591,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
   # a matrix.
   if (length(x = list_of_data) == 1) {
     return(list_of_data[[1]])
-    } else {
+  } else {
     return(list_of_data)
   }
 }
@@ -1137,7 +1137,7 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
-#' @importFrom future.apply future_apply future_lapply
+#' @importFrom future.apply future_lapply
 #'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
@@ -1150,7 +1150,8 @@ FindVariableFeatures.Seurat <- function(
 #'   For counts per million (CPM) set \code{scale.factor = 1e6}}
 #' }
 #' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param across If performing CLR normalization, normalize across either "features" or "cells".
+#' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
+# @param across If performing CLR normalization, normalize across either "features" or "cells".
 #' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
 #' @param verbose display progress bar for normalization procedure
 #'
@@ -1161,7 +1162,8 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  across = "features",
+  # across = "features",
+  margin = 1,
   block.size = NULL,
   verbose = TRUE,
   ...
@@ -1170,11 +1172,6 @@ NormalizeData.default <- function(
     return(object)
   }
   normalized.data <- if (PlanThreads() > 1) {
-    my.lapply <- ifelse(
-      test = verbose && PlanThreads() == 1,
-      yes = pblapply,
-      no = future_lapply
-    )
     norm.function <- switch(
       EXPR = normalization.method,
       'LogNormalize' = LogNormalize,
@@ -1182,22 +1179,33 @@ NormalizeData.default <- function(
       'RC' = RelativeCounts,
       stop("Unkown normalization method: ", normalization.method)
     )
-    chunk.points <- ChunkPoints(
-      dsize = ncol(x = object),
-      csize = block.size %||% ceiling(x = ncol(x = object) / PlanThreads())
+    dsize <- switch(
+      EXPR = margin,
+      '1' = nrow(x = object),
+      '2' = ncol(x = object),
+      stop("'margin' must be 1 or 2")
     )
-    normalized.data <- my.lapply(
+    chunk.points <- ChunkPoints(
+      dsize = dsize,
+      csize = block.size %||% ceiling(x = dsize / PlanThreads())
+    )
+    normalized.data <- future_lapply(
       X = 1:ncol(x = chunk.points),
       FUN = function(i) {
         block <- chunk.points[, i]
         return(norm.function(
-          data = object[, block[1]:block[2], drop = FALSE],
+          data = if (margin == 1) {
+            object[block[1]:block[2], , drop = FALSE]
+          } else {
+            object[, block[1]:block[2], drop = FALSE]
+          },
           scale.factor = scale.factor,
           verbose = FALSE,
           custom_function = function(x) {
             return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
           },
-          across = across
+          margin = margin
+          # across = across
         ))
       }
     )
@@ -1215,7 +1223,8 @@ NormalizeData.default <- function(
         custom_function = function(x) {
           return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
         },
-        across = across
+        margin = margin
+        # across = across
       ),
       'RC' = RelativeCounts(
         data = object,
@@ -1235,8 +1244,9 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
+  margin = 1,
   verbose = TRUE,
-  across = "features",
+  # across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1271,8 +1281,9 @@ NormalizeData.Seurat <- function(
   assay = NULL,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
+  margin = 1,
   verbose = TRUE,
-  across = "features",
+  # across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -1743,28 +1754,35 @@ ScaleData.Seurat <- function(
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
+# @param margin Which way to we normalize. Set 1 for rows (features) or 2 for columns (genes)
 # @parm across Which way to we normalize? Choose form 'cells' or 'features'
+# @param verbose Show progress bar
 # @param ... Ignored
 #
 # @return Returns a matrix with the custom normalization
 #
 #' @importFrom methods as
+#' @importFrom pbapply pbapply
 # @import Matrix
 #
-CustomNormalize <- function(data, custom_function, across, ...) {
+CustomNormalize <- function(data, custom_function, margin, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
   if (class(x = data) != "dgCMatrix") {
     data <- as(object = data, Class = "dgCMatrix")
   }
-  margin <- switch(
-    EXPR = across,
-    'cells' = 2,
-    'features' = 1,
-    stop("'across' must be either 'cells' or 'features'")
-  )
-  norm.data <- apply(
+  myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
+  # margin <- switch(
+  #   EXPR = across,
+  #   'cells' = 2,
+  #   'features' = 1,
+  #   stop("'across' must be either 'cells' or 'features'")
+  # )
+  if (verbose) {
+    message("Normalizing across ", c('features', 'cells')[margin])
+  }
+  norm.data <- myapply(
     X = data,
     MARGIN = margin,
     FUN = custom_function)
