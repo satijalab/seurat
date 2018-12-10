@@ -1223,13 +1223,15 @@ NormalizeData.default <- function(
         custom_function = function(x) {
           return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
         },
-        margin = margin
+        margin = margin,
+        verbose = verbose
         # across = across
       ),
       'RC' = RelativeCounts(
         data = object,
         scale.factor = scale.factor,
-        verbose = verbose),
+        verbose = verbose
+      ),
       stop("Unkown normalization method: ", normalization.method)
     )
   }
@@ -1765,7 +1767,7 @@ ScaleData.Seurat <- function(
 #' @importFrom pbapply pbapply
 # @import Matrix
 #
-CustomNormalize <- function(data, custom_function, margin, ...) {
+CustomNormalize <- function(data, custom_function, margin, verbose = TRUE, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
