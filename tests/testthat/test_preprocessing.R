@@ -229,21 +229,21 @@ test_that("vst selection option returns expected values", {
 norm.fxn <- function(x) {x / mean(x)}
 test_that("CustomNormalize works as expected", {
   expect_equal(
-    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "cells"), 
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, across = "cells"),
+    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, across = "cells"),
+    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "features"), 
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 1),
     t(apply(X = pbmc.test, MARGIN = 1, FUN = norm.fxn))
   )
-  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "invalid"))
+  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 

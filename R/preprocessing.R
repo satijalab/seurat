@@ -1179,6 +1179,15 @@ NormalizeData.default <- function(
       'RC' = RelativeCounts,
       stop("Unkown normalization method: ", normalization.method)
     )
+    if (normalization.method != 'CLR') {
+      margin <- 2
+    }
+    tryCatch(
+      expr = Parenting(parent.find = 'Seurat', margin = margin),
+      error = function(e) {
+        invisible(x = NULL)
+      }
+    )
     dsize <- switch(
       EXPR = margin,
       '1' = nrow(x = object),
@@ -1209,7 +1218,15 @@ NormalizeData.default <- function(
         ))
       }
     )
-    do.call(what = 'cbind', args = normalized.data)
+    do.call(
+      what = switch(
+        EXPR = margin,
+        '1' = 'rbind',
+        '2' = 'cbind',
+        stop("'margin' must be 1 or 2")
+      ),
+      args = normalized.data
+    )
   } else {
     switch(
       EXPR = normalization.method,
