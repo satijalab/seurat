@@ -1161,12 +1161,23 @@ as.Seurat.SingleCellExperiment <- function(
     }
   )
   meta.data <- as.data.frame(SummarizedExperiment::colData(x = from))
+  # if cell names are NULL, fill with cell_X
+  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
+    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
+    cell.names <- paste0("cell_", 1:ncol(x = counts))
+    colnames(x = counts) <- cell.names
+    colnames(x = data) <- cell.names
+    rownames(x = meta.data) <- cell.names
+  }
   seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
   rownames(x = data) <- rownames(x = seurat.object)
   seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
   if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(from)) {
       embeddings <- SingleCellExperiment::reducedDim(x = from, type = dr)
+      if (is.null(rownames(x = embeddings))) {
+        rownames(x = embeddings)  <- cell.names
+      }
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
