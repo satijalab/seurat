@@ -126,10 +126,10 @@ test_that("CreateDimReducObject works", {
 test_that("CreateDimReducObject catches improper input", {
   bad.embeddings <- Embeddings(object = pca)
   colnames(x = bad.embeddings) <- paste0("PCA", 1:ncol(x = bad.embeddings))
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
+  expect_warning(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
   colnames(x = bad.embeddings) <- paste0("PC", 1:ncol(x = bad.embeddings), "X")
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings))
+  suppressWarnings(expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC")))
+  suppressWarnings(expect_error(CreateDimReducObject(embeddings = bad.embeddings)))
 })
 
 # Tests for creating a Seurat object

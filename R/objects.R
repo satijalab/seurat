@@ -459,7 +459,12 @@ CreateDimReducObject <- function(
   misc = list()
 ) {
   if (is.null(x = assay)) {
-    stop("Please specify the assay that was used to construct the reduction")
+    warning(
+      "No assay specified, setting assay as RNA by default.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    assay <- "RNA"
   }
   # Try to infer key from column names
   if (is.null(x = key) && is.null(x = colnames(x = embeddings))) {
