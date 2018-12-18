@@ -14,7 +14,7 @@ using namespace Rcpp;
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int sample_val, bool upsample = false, bool display_progress=true){
     Progress p(data.outerSize(), display_progress);
-    Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.cols());
+    Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.rows());
     for (int k=0; k < data.outerSize(); ++k){
       p.increment();
       for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
@@ -42,7 +42,7 @@ Eigen::SparseMatrix<double> RunUMISampling(Eigen::SparseMatrix<double> data, int
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> RunUMISamplingPerCell(Eigen::SparseMatrix<double> data, NumericVector sample_val, bool upsample = false, bool display_progress=true){
   Progress p(data.outerSize(), display_progress);
-  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.cols());
+  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.rows());
   for (int k=0; k < data.outerSize(); ++k){
     p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
@@ -113,7 +113,7 @@ Eigen::SparseMatrix<double> RowMergeMatrices(Eigen::SparseMatrix<double, Eigen::
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> LogNorm(Eigen::SparseMatrix<double> data, int scale_factor, bool display_progress = true){
   Progress p(data.outerSize(), display_progress);
-  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.cols());
+  Eigen::VectorXd colSums = data.transpose() * Eigen::VectorXd::Ones(data.rows());
   for (int k=0; k < data.outerSize(); ++k){
     p.increment();
     for (Eigen::SparseMatrix<double>::InnerIterator it(data, k); it; ++it){
