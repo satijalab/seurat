@@ -598,18 +598,18 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
 
 #' Read 10X hdf5 file
 #'
-#' Read gene expression matrix from 10X CellRanger hdf5 file
+#' Read count matrix from 10X CellRanger hdf5 file.
+#' This can be used to read both scATAC-seq and scRNA-seq matrices.
 #'
 #' @param filename Path to h5 file
-#' @param ensg.names Label row names with ENSG names rather than unique gene
-#' names
+#' @param use.names Label row names with feature names rather than ID numbers.
 #'
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
-Read10X_h5 <- function(filename, ensg.names = FALSE) {
+Read10X_h5 <- function(filename, use.names = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
@@ -617,29 +617,38 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
     stop("File not found")
   }
   infile <- hdf5r::H5File$new(filename)
-  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
-    stop("Only older (pre-3.0) 10X hdf5 files are supported.")
-  }
   genomes <- names(infile)
   output <- list()
+  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+    # cellranger version 3
+    if (use.names) {
+      feature_slot <- 'features/name'
+    } else {
+      feature_slot <- 'features/id'
+    }
+    
+  } else {
+    if (use.names) {
+      feature_slot <- 'gene_names'
+    } else {
+      feature_slot = 'genes'
+    }
+  }
   for (genome in genomes) {
     counts <- infile[[paste0(genome, '/data')]]
     indices <- infile[[paste0(genome, '/indices')]]
     indptr <- infile[[paste0(genome, '/indptr')]]
     shp <- infile[[paste0(genome, '/shape')]]
-    if (ensg.names) {
-      gene_names <- infile[[paste0(genome, '/genes')]][]
-    } else {
-      gene_names <- make.unique(infile[[paste0(genome, '/gene_names')]][])
-    }
+    features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
     sparse.mat <- sparseMatrix(
       i = indices[] + 1, p = indptr[],
       x = as.numeric(counts[]),
       dims = shp[], giveCsparse = FALSE
     )
-    rownames(sparse.mat) <- gene_names
+    rownames(sparse.mat) <- features
     colnames(sparse.mat) <- barcodes[]
+    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
     output[[genome]] <- sparse.mat
   }
   infile$close_all()
