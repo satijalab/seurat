@@ -1065,12 +1065,17 @@ FindVariableFeatures.Assay <- function(
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
-  slot <- "data"
   if (selection.method == "vst") {
-    slot <- "counts"
+    data <- GetAssayData(object = object, slot = "counts")
+    if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+      warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
+      data <- GetAssayData(object = object, slot = "data")
+    }
+  } else {
+    data <- GetAssayData(object = object, slot = "data")
   }
   hvf.info <- FindVariableFeatures(
-    object = GetAssayData(object = object, slot = slot),
+    object = data,
     selection.method = selection.method,
     loess.span = loess.span,
     clip.max = clip.max,
