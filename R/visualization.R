@@ -483,9 +483,10 @@ VlnPlot <- function(
     split.by = split.by,
     log = log,
     slot = slot,
+    combine = combine,
     ...
   )
-  return(plot + NoLegend())
+  return(plot)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
