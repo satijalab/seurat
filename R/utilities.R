@@ -357,8 +357,8 @@ CaseMatch <- function(search, match) {
 #' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
 #' pbmc_small <- CellCycleScoring(
 #'   object = pbmc_small,
-#'   g2m.genes = cc.genes$g2m.genes,
-#'   s.genes = cc.genes$s.genes
+#'   g2m.features = cc.genes$g2m.genes,
+#'   s.features = cc.genes$s.genes
 #' )
 #' head(x = pbmc_small@meta.data)
 #' }

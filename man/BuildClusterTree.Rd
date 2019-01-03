@@ -42,6 +42,7 @@ tree is constructed.
 }
 \examples{
 pbmc_small
-pbmc_small <- BuildClusterTree(pbmc_small, do.plot = FALSE)
+pbmc_small <- BuildClusterTree(object = pbmc_small)
+Tool(object = pbmc_small, slot = 'BuildClusterTree')
 
 }
