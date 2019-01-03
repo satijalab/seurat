@@ -42,11 +42,17 @@ test_that("Filtering handled properly", {
 context("NormalizeData")
 test_that("NormalizeData error handling", {
   expect_error(NormalizeData(object = object, assay = "FAKE"))
-  expect_equal(GetAssayData(object = object, slot = "counts"),
-               GetAssayData(object = NormalizeData(
-                  object = object,
-                  normalization.method = NULL),
-                slot = "data"))
+  expect_equal(
+    object = GetAssayData(
+      object = NormalizeData(
+        object = object,
+        normalization.method = NULL,
+        verbose = FALSE
+      ),
+      slot = "data"
+    ),
+    expected = GetAssayData(object = object, slot = "counts")
+  )
 })
 
 object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6)
@@ -57,7 +63,7 @@ test_that("NormalizeData scales properly", {
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"))
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
     LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
@@ -103,7 +109,7 @@ object2[["RNA"]] <- SetAssayData(
 )
 object2 <- ScaleData(object = object2, verbose = FALSE)
 
-object <- ScaleData(object = object)
+object <- ScaleData(object = object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is not sparse", {
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
@@ -146,7 +152,7 @@ test_that("Negative binomial regression works as expected", {
 })
 
 test_that("Regression error handling checks out", {
-  expect_error(ScaleData(object, vars.to.regress = "nCount_RNA", model.use = "not.a.model"))
+  expect_error(ScaleData(object, vars.to.regress = "nCount_RNA", model.use = "not.a.model", verbose = FALSE))
 })
 
 object <- ScaleData(
