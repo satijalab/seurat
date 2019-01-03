@@ -529,7 +529,6 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
-
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.

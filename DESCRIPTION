@@ -20,6 +20,7 @@ Depends:
     R (>= 3.4.0),
     methods,
 Imports:
+    ape,
     cluster,
     cowplot,
     fitdistrplus,
@@ -66,6 +67,7 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
+    'tree.R'
     'utilities.R'
     'visualization.R'
 RoxygenNote: 6.1.1
