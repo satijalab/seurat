@@ -323,7 +323,8 @@ HVFInfo <- function(object, ...) {
 #'
 #' @param x,object An object
 #' @param ... Arguments passed to other methods; for \code{RenameIdents}: named
-#' arguments as \code{old.ident = new.ident}
+#' arguments as \code{old.ident = new.ident}; for \code{ReorderIdent}: arguments
+#' passed on to \code{\link{FetchData}}
 #'
 #' @return \code{Idents}: The cell identies
 #'
@@ -497,6 +498,24 @@ OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
 }
 
+#' @inheritParams Idents
+#' @param var Feature or variable to order on
+#'
+#' @return \code{ReorderIdent}: An object with
+#'
+#' @rdname Idents
+#' @export ReorderIdent
+#' @aliases ReorderIdent
+#'
+#' @examples
+#' head(x = Idents(object = pbmc_small))
+#' pbmc_small <- ReorderIdents(object = pbmc_small, vars = 'PC_1')
+#' head(x = Idents(object = pbmc_small))
+#'
+ReorderIdent <- function(object, var, ...) {
+  UseMethod(generic = 'ReorderIdent', object = object)
+}
+
 #' Rename cells
 #'
 #' Change the cell names in all the different parts of an object. Can
@@ -521,7 +540,7 @@ RenameCells <- function(object, ...) {
 
 #' @inheritParams Idents
 #'
-#' @return \code{RenameIdents}: An object with selected
+#' @return \code{RenameIdents}: An object with selected identity classes renamed
 #'
 #' @rdname Idents
 #' @export RenameIdents

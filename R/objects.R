@@ -2133,6 +2133,58 @@ OldWhichCells.Seurat <- function(
   return(cells)
 }
 
+#' @param reverse Reverse ordering
+#' @param afxn Function to evaluate each identity class based on; default is
+#' \code{\link[base]{mean}}
+#' @param reorder.numeric Rename all identity classes to be increasing numbers
+#' starting from 1 (default is FALSE)
+#'
+#' @rdname Idents
+#' @export
+#' @method ReorderIdent Seurat
+#'
+ReorderIdent.Seurat <- function(
+  object,
+  var,
+  reverse = FALSE,
+  afxn = mean,
+  reorder.numeric = FALSE,
+  ...
+) {
+  data.use <- FetchData(object = object, vars = var, ...)[, 1]
+  rfxn <- ifelse(
+    test = reverse,
+    yes = function(x) {
+      return(max(x) + 1 - x)
+    },
+    no = Same
+  )
+  new.levels <- names(x = rfxn(x = sort(x = tapply(
+    X = data.use,
+    INDEX = Idents(object = object),
+    FUN = afxn
+  ))))
+  new.idents <- factor(
+    x = Idents(object = object),
+    levels = new.levels,
+    ordered = TRUE
+  )
+  if (reorder.numeric) {
+    new.idents <- rfxn(x = rank(x = tapply(
+      X = data.use,
+      INDEX = as.numeric(x = new.idents),
+      FUN = mean
+    )))[as.numeric(x = new.idents)]
+    new.idents <- factor(
+      x = new.idents,
+      levels = 1:length(x = new.idents),
+      ordered = TRUE
+    )
+  }
+  Idents(object = object) <- new.idents
+  return(object)
+}
+
 #' @param new.names vector of new cell names
 #'
 #' @rdname RenameCells
