@@ -29,7 +29,7 @@ the tree, assigning a numeric value ('1' is the leftmost node)}
 \item{verbose}{Show progress updates}
 }
 \value{
-A Seurat object where the cluster tree can be accessed with \link{\code{Tool}}
+A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 }
 \description{
 Constructs a phylogenetic tree relating the 'average' cell from each

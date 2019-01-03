@@ -29,7 +29,7 @@ NULL
 #' the tree, assigning a numeric value ('1' is the leftmost node)
 #' @param verbose Show progress updates
 #'
-#' @return A Seurat object where the cluster tree can be accessed with \link{\code{Tool}}
+#' @return A Seurat object where the cluster tree can be accessed with \code{\link{Tool}}
 #'
 #' @importFrom ape as.phylo
 #' @importFrom pbapply pblapply
