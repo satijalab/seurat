@@ -47,7 +47,7 @@ BuildClusterTree <- function(
   features = NULL,
   dims = NULL,
   graph = NULL,
-  do.plot = TRUE,
+  # do.plot = TRUE,
   reorder = FALSE,
   reorder.numeric = FALSE,
   verbose = TRUE

@@ -103,9 +103,11 @@ pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), repl
 Idents(object = pbmc_small) <- 'groups'
 levels(x = pbmc_small)
 
+\dontrun{
 head(x = Idents(object = pbmc_small))
-pbmc_small <- ReorderIdents(object = pbmc_small, vars = 'PC_1')
+pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
 head(x = Idents(object = pbmc_small))
+}
 
 # Rename cell identity classes
 # Can provide an arbitrary amount of idents to rename

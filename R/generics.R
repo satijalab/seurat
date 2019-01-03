@@ -508,9 +508,11 @@ OldWhichCells <- function(object, ...) {
 #' @aliases ReorderIdent
 #'
 #' @examples
+#' \dontrun{
 #' head(x = Idents(object = pbmc_small))
-#' pbmc_small <- ReorderIdents(object = pbmc_small, vars = 'PC_1')
+#' pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
 #' head(x = Idents(object = pbmc_small))
+#' }
 #'
 ReorderIdent <- function(object, var, ...) {
   UseMethod(generic = 'ReorderIdent', object = object)

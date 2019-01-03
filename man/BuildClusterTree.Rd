@@ -5,8 +5,7 @@
 \title{Phylogenetic Analysis of Identity Classes}
 \usage{
 BuildClusterTree(object, features = NULL, dims = NULL, graph = NULL,
-  do.plot = TRUE, reorder = FALSE, reorder.numeric = FALSE,
-  verbose = TRUE)
+  reorder = FALSE, reorder.numeric = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
