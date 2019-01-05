@@ -211,11 +211,19 @@ FindClusters <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' # Find markers for cluster 2
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
-#' head(markers)
+#' head(x = markers)
+#'
+#' # Pass 'clustertree' or an object of class phylo to ident.1 and
+#' # a node to ident.2 as a replacement for FindMarkersNode
+#' markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
+#' head(x = markers)
 #'
 #' @rdname FindMarkers
 #' @export FindMarkers
+#'
+#' @aliases FindMarkersNode
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)

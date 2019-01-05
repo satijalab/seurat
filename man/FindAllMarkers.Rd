@@ -2,14 +2,15 @@
 % Please edit documentation in R/differential_expression.R
 \name{FindAllMarkers}
 \alias{FindAllMarkers}
+\alias{FindAllMarkersNode}
 \title{Gene expression markers for all identity classes}
 \usage{
 FindAllMarkers(object, assay = NULL, features = NULL,
   logfc.threshold = 0.25, test.use = "wilcox", min.pct = 0.1,
-  min.diff.pct = -Inf, verbose = TRUE, only.pos = FALSE,
-  max.cells.per.ident = Inf, random.seed = 1, latent.vars = NULL,
-  min.cells.feature = 3, min.cells.group = 3, pseudocount.use = 1,
-  return.thresh = 0.01, ...)
+  min.diff.pct = -Inf, node = NULL, verbose = TRUE,
+  only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
+  latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
+  pseudocount.use = 1, return.thresh = 0.01, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -70,6 +71,9 @@ by not testing genes that are very infrequently expressed. Default is 0.1}
 \item{min.diff.pct}{only test genes that show a minimum difference in the
 fraction of detection between the two groups. Set to -Inf by default}
 
+\item{node}{A node to find markers for and all its children; requires
+\code{\link{BuildClusterTree}} to have been run previously; replaces \code{FindAllMarkersNode}}
+
 \item{verbose}{Print a progress bar once expression testing begins}
 
 \item{only.pos}{Only return positive markers (FALSE by default)}
@@ -102,7 +106,12 @@ statistics (p-values, ROC score, etc.)
 Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 }
 \examples{
-all_markers <- FindAllMarkers(object = pbmc_small)
-head(x = all_markers)
+# Find markers for all clusters
+all.markers <- FindAllMarkers(object = pbmc_small)
+head(x = all.markers)
+
+# Pass a value to node as a replacement for FindAllMarkersNode
+all.markers <- FindAllMarkers(object = pbmc_small, node = 4)
+head(x = all.markers)
 
 }

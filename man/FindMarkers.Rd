@@ -2,6 +2,7 @@
 % Please edit documentation in R/generics.R, R/differential_expression.R
 \name{FindMarkers}
 \alias{FindMarkers}
+\alias{FindMarkersNode}
 \alias{FindMarkers.default}
 \alias{FindMarkers.Seurat}
 \title{Gene expression markers of identity classes}
@@ -105,10 +106,13 @@ of the two groups, currently only used for poisson and negative binomial tests}
 \item{pseudocount.use}{Pseudocount to add to averaged expression values when
 calculating logFC. 1 by default.}
 
-\item{ident.1}{Identity class to define markers for}
+\item{ident.1}{Identity class to define markers for; pass an object of class
+\code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
+passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 
-\item{ident.2}{A second identity class for comparison. If NULL (default) -
-use all other cells for comparison.}
+\item{ident.2}{A second identity class for comparison; if \code{NULL},
+use all other cells for comparison; if an object of class \code{phylo} or
+'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
 \item{assay}{Assay to use in differential expression testing}
 }
@@ -127,14 +131,15 @@ the number of tests performed. Lastly, as Aaron Lun has pointed out, p-values
 should be interpreted cautiously, as the genes used for clustering are the
 same genes tested for differential expression.
 }
-\section{Methods (by class)}{
-\itemize{
-\item \code{Seurat}: Run differential expression test on a Seurat object
-}}
-
 \examples{
+# Find markers for cluster 2
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
-head(markers)
+head(x = markers)
+
+# Pass 'clustertree' or an object of class phylo to ident.1 and
+# a node to ident.2 as a replacement for FindMarkersNode
+markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
+head(x = markers)
 
 }
 \references{
