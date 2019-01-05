@@ -23,6 +23,9 @@ globalVariables(
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #'
+#' @importFrom ape drop.tip
+#' @importFrom stats setNames
+#'
 #' @export
 #'
 #' @aliases FindAllMarkersNode
@@ -84,14 +87,14 @@ FindAllMarkers <- function(
       node,
       as.numeric(x = setdiff(x = descendants, y = keep.children))
     )
-    tree <- ape::drop.tip(phy = tree, tip = drop.children)
+    tree <- drop.tip(phy = tree, tip = drop.children)
     new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
   genes.de <- list()
   for (i in 1:length(x = idents.all)) {
     if (verbose) {
-      message(paste("Calculating cluster", idents.all[i]))
+      message("Calculating cluster ", idents.all[i])
     }
     genes.de[[i]] <- tryCatch(
       expr = {
