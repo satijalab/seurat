@@ -1593,6 +1593,12 @@ DotPlot <- function(
     )
   }
   color.by <- ifelse(test = is.null(x = split.by), yes = 'avg.exp.scaled', no = 'colors')
+  if (!is.na(x = scale.min)) {
+    data.plot[data.plot$pct.exp < scale.min, 'pct.exp'] <- scale.min
+  }
+  if (!is.na(x = scale.max)) {
+    data.plot[data.plot$pct.exp > scale.max, 'pct.exp'] <- scale.max
+  }
   plot <- ggplot(data = data.plot, mapping = aes_string(x = 'features.plot', y = 'id')) +
     geom_point(mapping = aes_string(size = 'pct.exp', color = color.by)) +
     scale.func(range = c(0, dot.scale), limits = c(scale.min, scale.max)) +
