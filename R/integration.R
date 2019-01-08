@@ -6,85 +6,6 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' Select integration features
-#'
-#' Choose the features to use when integrating multiple datasets. This function ranks features by
-#' the number of datasets they appear in, breaking ties by the median rank across datasets. It
-#' returns the highest features by this ranking.
-#'
-#' @param object.list List of seurat objects
-#' @param nfeatures Number of features to return
-#' @param assay Name of assay from which to pull the variable features.
-#' @param verbose Print messages
-#' @param fvf.nfeatures nfeatures for FindVariableFeatures. Used if VariableFeatures have not been
-#' set for any object in object.list. 
-#' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
-#' 
-#' @export
-#'
-SelectIntegrationFeatures <- function(
-  object.list,
-  nfeatures = 2000,
-  assay = NULL,
-  verbose = TRUE,
-  fvf.nfeatures = 2000,
-  ...
-) {
-  if (!is.null(x = assay)) {
-    if (length(x = assay) != length(x = object.list)) {
-      stop("If specifying the assay, please specify one assay per object in the object.list")
-    }
-    for(ii in length(x = object.list)) {
-      DefaultAssay(object = object.list[[ii]]) <- assay[ii]
-    }
-  } else {
-    assay <- sapply(X = object.list, FUN = DefaultAssay)
-  }
-  for(ii in 1:length(x = object.list)) {
-    if (length(x = VariableFeatures(object = object.list[[ii]])) == 0) {
-      if (verbose) {
-        message(paste0("No variable features found for object", ii, " in the object.list. Running FindVariableFeatures ..."))
-      }
-      object.list[[ii]] <- FindVariableFeatures(object = object.list[[ii]], nfeatures = fvf.nfeatures, verbose = verbose, ...)
-    }
-  }
-  var.features <- unname(obj = unlist(x = lapply(
-    X = 1:length(x = object.list),
-    FUN = function(x) VariableFeatures(object = object.list[[x]], assay = assay[x]))
-  ))
-  var.features <- sort(x = table(var.features), decreasing = TRUE)
-  for(i in 1:length(x = object.list)) {
-    var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
-  }
-  tie.val <- var.features[min(nfeatures, length(x = var.features))]
-  features <- names(x = var.features[which(x = var.features > tie.val)])
-  if (length(x = features) > 0) {
-    feature.ranks <- sapply(X = features, FUN = function(x) {
-      ranks <- sapply(X = object.list, FUN = function(y) {
-        vf <- VariableFeatures(object = y)
-        if (x %in% vf){
-          return(which(x = x == vf))
-        }
-        return(NULL)
-      })
-      median(x = unlist(x = ranks))
-    })
-    features <- names(x = sort(x = feature.ranks))
-  }
-  features.tie <- var.features[which(x = var.features == tie.val)]
-  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
-    ranks <- sapply(X = object.list, FUN = function(y) {
-      vf <- VariableFeatures(object = y)
-      if (x %in% vf){
-        return(which(x = x == vf))
-      }
-      return(NULL)
-    })
-    median(x = unlist(x = ranks))
-  })
-  features <- c(features, names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features))))
-}
-
 #' Find integration anchors
 #'
 #' Finds the integration anchors
@@ -112,7 +33,6 @@ SelectIntegrationFeatures <- function(
 #'
 #' @return Returns an AnchorSet object
 #'
-#' @importFrom future plan
 #' @importFrom pbapply pblapply
 #' @importFrom future.apply future_lapply
 #'
@@ -133,7 +53,7 @@ FindIntegrationAnchors <- function(
   verbose = TRUE
 ) {
   my.lapply <- ifelse(
-    test = verbose && (eval(expr = formals(fun = plan())$workers) %||% 1) == 1,
+    test = verbose && PlanThreads() == 1,
     yes = pblapply,
     no = future_lapply
   )
@@ -141,7 +61,7 @@ FindIntegrationAnchors <- function(
     if (length(x = assay) != length(x = object.list)) {
       stop("If specifying the assay, please specify one assay per object in the object.list")
     }
-    for(ii in length(x = object.list)) {
+    for (ii in length(x = object.list)) {
       DefaultAssay(object = object.list[[ii]]) <- assay[ii]
     }
   } else {
@@ -245,8 +165,8 @@ FindIntegrationAnchors <- function(
 #'    when reference and query datasets are from scRNA-seq}
 #'    \item{cca: Run a CCA on the reference and query }
 #' }
-#' @param project.query Project the PCA from the query dataset onto the reference. Use only in rare 
-#' cases where the query dataset has a much larger cell number, but the reference dataset has a 
+#' @param project.query Project the PCA from the query dataset onto the reference. Use only in rare
+#' cases where the query dataset has a much larger cell number, but the reference dataset has a
 #' unique assay for transfer.
 #' @param features Features to use for dimensional reduction
 #' @param npcs Number of PCs to compute on reference. If null, then use an existing PCA structure in
@@ -608,6 +528,245 @@ IntegrateData <- function(
   return(unintegrated)
 }
 
+#' Calculate the local structure preservation metric
+#'
+#' Calculates a metric that describes how well the local structure of each group
+#' prior to integration is preserved after integration. This procedure works as
+#' follows: For each group, compute a PCA, compute the top num.neighbors in pca
+#' space, compute the top num.neighbors in corrected pca space, compute the
+#' size of the intersection of those two sets of neighbors.
+#' Return the average over all groups.
+#'
+#' @param object Seurat object
+#' @param grouping.var Grouping variable
+#' @param idents Optionally specify a set of idents to compute metric for
+#' @param neighbors Number of neighbors to compute in pca/corrected pca space
+#' @param reduction Dimensional reduction to use for corrected space
+#' @param reduced.dims Number of reduced dimensions to use
+#' @param orig.dims Number of PCs to use in original space
+#' @param verbose Display progress bar
+#'
+#' @return Returns the average preservation metric
+#'
+#' @importFrom RANN nn2
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#'
+#' @export
+#'
+LocalStruct <- function(
+  object,
+  grouping.var,
+  idents = NULL,
+  neighbors = 100,
+  reduction = "pca",
+  reduced.dims = 1:10,
+  orig.dims = 1:10,
+  verbose = TRUE
+) {
+  if (is.null(x = idents)) {
+    cells.use <- colnames(x = object)
+  } else {
+    cells.use <- WhichCells(object = object, idents = idents)
+  }
+  Idents(object = object) <- grouping.var
+  local.struct <- list()
+  ob.list <- SplitObject(object = object, split.by = grouping.var)
+  if (verbose) {
+    pb <- txtProgressBar(
+      min = 1,
+      max = length(x = ob.list),
+      style = 3,
+      file = stderr()
+    )
+  }
+  embeddings <- Embeddings(object = object[[reduction]])[, reduced.dims]
+
+  for (i in 1:length(x = ob.list)) {
+    ob <- ob.list[[i]]
+    ob <- FindVariableFeatures(
+      object = ob,
+      verbose = FALSE,
+      selection.method = "dispersion",
+      nfeatures = 2000
+    )
+    ob <- ScaleData(
+      object = ob,
+      features = VariableFeatures(object = ob),
+      verbose = FALSE
+    )
+    ob <- RunPCA(
+      object = ob,
+      features = VariableFeatures(object = ob),
+      verbose = FALSE,
+      npcs = max(orig.dims)
+    )
+    ob.cells <- intersect(x = cells.use, y = colnames(x = ob))
+    if (length(x = ob.cells) == 0) next
+    nn.corrected <- nn2(
+      data = embeddings[colnames(x = ob), ],
+      query = embeddings[ob.cells, ],
+      k = neighbors
+    )$nn.idx
+    nn.orig <- nn2(
+      data = Embeddings(object = ob[["pca"]])[, orig.dims],
+      query = Embeddings(object = ob[["pca"]])[ob.cells, orig.dims],
+      k = neighbors
+    )$nn.idx
+    local.struct[[i]] <- sapply(X = 1:nrow(x = nn.orig), FUN = function(x) {
+      length(x = intersect(x = nn.orig[x, ], y = nn.corrected[x, ])) / neighbors
+    })
+    if (verbose) {
+      setTxtProgressBar(pb = pb, value = i)
+    }
+  }
+  names(x = local.struct) <- names(x = ob.list)
+  return(local.struct)
+}
+
+#' Calculates a mixing metric
+#'
+#' Here we compute a measure of how well mixed a composite dataset is. To compute, we first examine
+#' the local neighborhood for each cell (looking at max.k neighbors) and determine for each group
+#' (could be the dataset after integration) the k nearest neighbor and what rank that neighbor was
+#' in the overall neighborhood. We then take the median across all groups as the mixing metric per
+#' cell.
+#'
+#' @param object Seurat object
+#' @param grouping.var Grouping variable for dataset
+#' @param reduction Which dimensionally reduced space to use
+#' @param dims Dimensions to use
+#' @param k Neighbor number to examine per group
+#' @param max.k Maximum size of local neighborhood to compute
+#' @param eps Error bound on the neighbor finding algorithm (from RANN)
+#' @param verbose Displays progress bar
+#'
+#' @return Returns a vector of values representing the entropy metric from each
+#' bootstrapped iteration.
+#'
+#' @importFrom RANN nn2
+#' @importFrom pbapply pbsapply
+#' @importFrom future.apply future_sapply
+#' @export
+#'
+MixingMetric <- function(
+  object,
+  grouping.var,
+  reduction = "pca",
+  dims = 1:2,
+  k = 5,
+  max.k = 300,
+  eps = 0,
+  verbose = TRUE
+) {
+  my.sapply <- ifelse(
+    test = verbose && PlanThreads() == 1,
+    yes = pbsapply,
+    no = future_sapply
+  )
+  embeddings <- Embeddings(object = object[[reduction]])[, dims]
+  nn <- nn2(
+    data = embeddings,
+    k = max.k,
+    eps = eps
+  )
+  group.info <- object[[grouping.var, drop = TRUE]]
+  groups <- unique(x = group.info)
+  mixing <- my.sapply(
+    X = 1:ncol(x = object),
+    FUN = function(x) {
+      sapply(X = groups, FUN = function(y) {
+        which(x = group.info[nn$nn.idx[x, ]] == y)[k]
+      })
+    }
+  )
+  mixing[is.na(x = mixing)] <- max.k
+  mixing <- apply(
+    X = mixing,
+    MARGIN = 2,
+    FUN = median
+  )
+  return(mixing)
+}
+
+#' Select integration features
+#'
+#' Choose the features to use when integrating multiple datasets. This function ranks features by
+#' the number of datasets they appear in, breaking ties by the median rank across datasets. It
+#' returns the highest features by this ranking.
+#'
+#' @param object.list List of seurat objects
+#' @param nfeatures Number of features to return
+#' @param assay Name of assay from which to pull the variable features.
+#' @param verbose Print messages
+#' @param fvf.nfeatures nfeatures for FindVariableFeatures. Used if VariableFeatures have not been
+#' set for any object in object.list.
+#' @param ... Additional parameters to \code{\link{FindVariableFeatures}}
+#'
+#' @export
+#'
+SelectIntegrationFeatures <- function(
+  object.list,
+  nfeatures = 2000,
+  assay = NULL,
+  verbose = TRUE,
+  fvf.nfeatures = 2000,
+  ...
+) {
+  if (!is.null(x = assay)) {
+    if (length(x = assay) != length(x = object.list)) {
+      stop("If specifying the assay, please specify one assay per object in the object.list")
+    }
+    for(ii in length(x = object.list)) {
+      DefaultAssay(object = object.list[[ii]]) <- assay[ii]
+    }
+  } else {
+    assay <- sapply(X = object.list, FUN = DefaultAssay)
+  }
+  for(ii in 1:length(x = object.list)) {
+    if (length(x = VariableFeatures(object = object.list[[ii]])) == 0) {
+      if (verbose) {
+        message(paste0("No variable features found for object", ii, " in the object.list. Running FindVariableFeatures ..."))
+      }
+      object.list[[ii]] <- FindVariableFeatures(object = object.list[[ii]], nfeatures = fvf.nfeatures, verbose = verbose, ...)
+    }
+  }
+  var.features <- unname(obj = unlist(x = lapply(
+    X = 1:length(x = object.list),
+    FUN = function(x) VariableFeatures(object = object.list[[x]], assay = assay[x]))
+  ))
+  var.features <- sort(x = table(var.features), decreasing = TRUE)
+  for(i in 1:length(x = object.list)) {
+    var.features <- var.features[names(x = var.features) %in% rownames(x = object.list[[i]][[assay[i]]])]
+  }
+  tie.val <- var.features[min(nfeatures, length(x = var.features))]
+  features <- names(x = var.features[which(x = var.features > tie.val)])
+  if (length(x = features) > 0) {
+    feature.ranks <- sapply(X = features, FUN = function(x) {
+      ranks <- sapply(X = object.list, FUN = function(y) {
+        vf <- VariableFeatures(object = y)
+        if (x %in% vf){
+          return(which(x = x == vf))
+        }
+        return(NULL)
+      })
+      median(x = unlist(x = ranks))
+    })
+    features <- names(x = sort(x = feature.ranks))
+  }
+  features.tie <- var.features[which(x = var.features == tie.val)]
+  tie.ranks <- sapply(X = names(x = features.tie), FUN = function(x) {
+    ranks <- sapply(X = object.list, FUN = function(y) {
+      vf <- VariableFeatures(object = y)
+      if (x %in% vf){
+        return(which(x = x == vf))
+      }
+      return(NULL)
+    })
+    median(x = unlist(x = ranks))
+  })
+  features <- c(features, names(x = head(x = sort(x = tie.ranks), nfeatures - length(x = features))))
+}
+
 #' Transfer Labels
 #'
 #' Transfers the labels
@@ -796,8 +955,212 @@ TransferData <- function(
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# New Internal
+# Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Internal
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Add dataset number and remove cell offset
+#
+# Record which dataset number in the original list of Seurat objects
+# each anchor cell came from, and correct the cell index so it corresponds to
+# the position of the anchor cell in its own dataset
+#
+# @param anchor.df Dataframe of anchors
+# @param offsets size of each dataset in anchor dataframe
+# @param obj.length Vector of object lengths
+#
+# @return Anchor dataframe with additional columns corresponding to the dataset of each cell
+#
+AddDatasetID <- function(
+  anchor.df,
+  offsets,
+  obj.lengths
+) {
+  ndataset <- length(x = offsets)
+  total.cells <- sum(obj.lengths)
+  offsets <- c(offsets, total.cells)
+  row.offset <- rep.int(x = offsets[1:ndataset], times = obj.lengths)
+  dataset <- rep.int(x = 1:ndataset, times = obj.lengths)
+  anchor.df <- data.frame(
+    'cell1' = anchor.df[, 1] - row.offset[anchor.df[, 1]],
+    'cell2' = anchor.df[, 2] - row.offset[anchor.df[, 2]],
+    'score' = anchor.df[, 3],
+    'dataset1' = dataset[anchor.df[, 1]],
+    'dataset2' = dataset[anchor.df[, 2]]
+  )
+  return(anchor.df)
+}
+
+# Add info to anchor matrix
+#
+# @param object Seurat object
+# @param toolname Name in tool slot to pull from
+# @param annotation Name in metadata to annotate anchors with
+# @param object.list List of objects using in FindIntegrationAnchors call
+#
+# @return Returns the anchor dataframe with additional columns for annotation metadata
+#
+AnnotateAnchors <- function(
+  object,
+  toolname = "integrated",
+  annotation = NULL,
+  object.list = NULL
+) {
+  anchors <- GetIntegrationData(
+    object = object,
+    integration.name = toolname,
+    slot = 'anchors'
+  )
+  for(i in annotation) {
+    if (! i %in% colnames(x = object[[]])) {
+      warning(i, " not in object metadata")
+      next
+    }
+    if(!is.null(x = object.list)) {
+      anchors[, paste0("cell1.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
+        as.character(object.list[[as.numeric(x[["dataset1"]])]][[]][as.numeric(x[["cell1"]]), i])
+      })
+      anchors[, paste0("cell2.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
+        as.character(object.list[[as.numeric(x[["dataset2"]])]][[]][as.numeric(x[["cell2"]]), i])
+      })
+    } else {
+      cells1 <- GetIntegrationData(
+        object = object,
+        integration.name = toolname,
+        slot = 'neighbors'
+      )$cells1
+      cells2 <- GetIntegrationData(
+        object = object,
+        integration.name = toolname,
+        slot = 'neighbors'
+      )$cells2
+      anchors[, paste0("cell1.", i)] <- object[[i]][cells1[anchors$cell1], , drop = TRUE]
+      anchors[, paste0("cell2.", i)] <- object[[i]][cells2[anchors$cell2], , drop = TRUE]
+      anchors[, paste0(i, ".match")] <- anchors[, paste0("cell1.", i)] == anchors[, paste0("cell2.", i)]
+    }
+  }
+  return(anchors)
+}
+
+# Build tree of datasets based on cell similarity
+#
+# @param similarity.matrix Dataset similarity matrix
+#
+# @return Returns a heirarchical clustering of datasets
+#
+#' @importFrom stats hclust
+#
+BuildSampleTree <- function(similarity.matrix) {
+  dist.mat <- as.dist(m = 1 / similarity.matrix)
+  clusters <- hclust(d = dist.mat)
+  return(clusters$merge)
+}
+
+# Construct nearest neighbor matrix from nn.idx
+#
+# @param nn.idx Nearest neighbor index matrix (nn.idx from RANN)
+# @param offset1 Offsets for the first neighbor
+# @param offset2 Offsets for the second neighbor
+#
+# @return returns a sparse matrix representing the NN matrix
+#
+ConstructNNMat <- function(nn.idx, offset1, offset2, dims) {
+  k <- ncol(x = nn.idx)
+  j <- as.numeric(x = t(x = nn.idx)) + offset2
+  i <- ((1:length(x = j)) - 1) %/% k + 1 + offset1
+  nn.mat <- sparseMatrix(i = i, j = j, x = 1, dims = dims)
+  return(nn.mat)
+}
+
+# Count anchors between all datasets
+#
+# Counts anchors between each dataset and scales based on total number of cells in the datasets
+#
+# @param anchor.df Matrix of anchors
+# @param offsets Dataset sizes in anchor matrix. Used to identify boundaries of each dataset in
+# matrix, so that total pairwise anchors between all datasets can be counted
+#
+# @return Returns a similarity matrix
+#
+CountAnchors <- function(
+  anchor.df,
+  offsets,
+  obj.lengths
+) {
+  similarity.matrix <- matrix(data = 0, ncol = length(x = offsets), nrow = length(x = offsets))
+  similarity.matrix[upper.tri(x = similarity.matrix, diag = TRUE)] <- NA
+  total.cells <- sum(obj.lengths)
+  offsets <- c(offsets, total.cells)
+  for (i in 1:nrow(x = similarity.matrix)){
+    for (j in 1:ncol(x = similarity.matrix)){
+      if (!is.na(x = similarity.matrix[i, j])){
+        relevant.rows <- anchor.df[(anchor.df$dataset1 %in% c(i, j)) & (anchor.df$dataset2 %in% c(i, j)), ]
+        score <- nrow(x = relevant.rows)
+        ncell <- min(obj.lengths[[i]], obj.lengths[[j]])
+        similarity.matrix[i, j] <- score / ncell
+      }
+    }
+  }
+  return(similarity.matrix)
+}
+
+FilterAnchors <- function(
+  object,
+  assay = NULL,
+  integration.name = 'integrated',
+  features = NULL,
+  k.filter = 200,
+  eps = 0,
+  verbose = TRUE
+) {
+  if (verbose) {
+    message("Filtering Anchors")
+  }
+  assay <- assay %||% DefaultAssay(object = object)
+  features <- features %||% VariableFeatures(object = object)
+  if (length(x = features) == 0) {
+    stop("No features provided and no VariableFeatures computed.")
+  }
+  features <- unique(x = features)
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+  cn.data1 <- L2Norm(
+    mat = as.matrix(x = t(x = GetAssayData(
+      object = object[[assay[1]]],
+      slot = "data")[features, nn.cells1])),
+    MARGIN = 1)
+  cn.data2 <- L2Norm(
+    mat = as.matrix(x = t(x = GetAssayData(
+      object = object[[assay[2]]],
+      slot = "data")[features, nn.cells2])),
+    MARGIN = 1)
+  nn <- nn2(
+    data = cn.data2[nn.cells2, ],
+    query = cn.data1[nn.cells1, ],
+    k = k.filter,
+    eps = eps
+  )
+
+  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
+  position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
+    which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
+  })
+  anchors <- anchors[!is.na(x = position), ]
+  if (verbose) {
+    message("\tRetained ", nrow(x = anchors), " anchors")
+  }
+  object <- SetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = "anchors",
+    new.data = anchors
+  )
+  return(object)
+}
 
 FindAnchors <- function(
   object.pair,
@@ -867,6 +1230,130 @@ FindAnchors <- function(
     slot = 'anchors'
   )
   return(anchors)
+}
+
+# Find Anchor pairs
+#
+FindAnchorPairs <- function(
+  object,
+  integration.name = 'integrated',
+  cells1 = NULL,
+  cells2 = NULL,
+  k.anchor = 5,
+  verbose = TRUE
+) {
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  max.nn <- c(ncol(x = neighbors$nnab$nn.idx), ncol(x = neighbors$nnba$nn.idx))
+  if (any(k.anchor > max.nn)) {
+    message(paste0('warning: requested k.anchor = ', k.anchor, ', only ', min(max.nn), ' in dataset'))
+    k.anchor <- min(max.nn)
+  }
+  if (verbose) {
+    message("Finding mutual nearest neighborhoods")
+  }
+  if (is.null(x = cells1)) {
+    cells1 <- colnames(x = object)
+  }
+  if (is.null(x = cells2)) {
+    cells2 <- colnames(x = object)
+  }
+  if (!(cells1 %in% colnames(object)) || !(cells2 %in% colnames(object))) {
+    warning("Requested cells not contained in Seurat object. Subsetting list of cells.")
+    cells1 <- intersect(x = cells1, y = colnames(x = object))
+    cells2 <- intersect(x = cells2, y = colnames(x = object))
+  }
+  # convert cell name to neighbor index
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+  cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
+  cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
+
+  ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
+  ncell <- ncell[ncell %in% cell1.index]
+  anchors <- list()
+  # pre allocate vector
+  anchors$cell1 <- rep(x = 0, length(x = ncell) * 5)
+  anchors$cell2 <- anchors$cell1
+  anchors$score <- anchors$cell1 + 1
+  idx <- 0
+  for (cell in ncell) {
+    neighbors.ab <- neighbors$nnab$nn.idx[cell, 1:k.anchor]
+    mutual.neighbors <- which(
+      x = neighbors$nnba$nn.idx[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
+      arr.ind = TRUE
+    )[, 1]
+    for (i in neighbors.ab[mutual.neighbors]){
+      idx <- idx + 1
+      anchors$cell1[idx] <- cell
+      anchors$cell2[idx] <- i
+      anchors$score[idx] <- 1
+    }
+  }
+  anchors$cell1 <- anchors$cell1[1:idx]
+  anchors$cell2 <- anchors$cell2[1:idx]
+  anchors$score <- anchors$score[1:idx]
+  anchors <- t(x = do.call(what = rbind, args = anchors))
+  anchors <- as.matrix(x = anchors)
+  object <- SetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'anchors',
+    new.data = anchors
+  )
+  if (verbose) {
+    message(paste0("\tFound ", nrow(x = anchors), " anchors"))
+  }
+  object <- LogSeuratCommand(object = object)
+  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+  return(object)
+}
+
+FindIntegrationMatrix <- function(
+  object,
+  assay = NULL,
+  integration.name = 'integrated',
+  features.integrate = NULL,
+  verbose = TRUE
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+  anchors <- GetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'anchors'
+  )
+  if (verbose) {
+    message("Finding integration vectors")
+  }
+  features.integrate <- features.integrate %||% rownames(
+    x = GetAssayData(object = object, assay = assay, slot = "data")
+  )
+  data.use1 <- t(x = GetAssayData(
+    object = object,
+    assay = assay,
+    slot = "data")[features.integrate, nn.cells1]
+  )
+  data.use2 <- t(x = GetAssayData(
+    object = object,
+    assay = assay,
+    slot = "data")[features.integrate, nn.cells2]
+  )
+  anchors1 <- nn.cells1[anchors[, "cell1"]]
+  anchors2 <- nn.cells2[anchors[, "cell2"]]
+  data.use1 <- data.use1[anchors1, ]
+  data.use2 <- data.use2[anchors2, ]
+  integration.matrix <- data.use2 - data.use1
+  object <- SetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'integration.matrix',
+    new.data = integration.matrix
+  )
+  object <- LogSeuratCommand(object = object)
+  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+  return(object)
 }
 
 # Find nearest neighbors
@@ -939,242 +1426,6 @@ FindNN <- function(
     integration.name = integration.name,
     slot = 'neighbors',
     new.data = list('nnaa' = nnaa, 'nnab' = nnab, 'nnba' = nnba, 'nnbb' = nnbb, 'cells1' = cells1, 'cells2' = cells2)
-  )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-  return(object)
-}
-
-# Find Anchor pairs
-#
-FindAnchorPairs <- function(
-  object,
-  integration.name = 'integrated',
-  cells1 = NULL,
-  cells2 = NULL,
-  k.anchor = 5,
-  verbose = TRUE
-) {
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  max.nn <- c(ncol(x = neighbors$nnab$nn.idx), ncol(x = neighbors$nnba$nn.idx))
-  if (any(k.anchor > max.nn)) {
-    message(paste0('warning: requested k.anchor = ', k.anchor, ', only ', min(max.nn), ' in dataset'))
-    k.anchor <- min(max.nn)
-  }
-  if (verbose) {
-    message("Finding mutual nearest neighborhoods")
-  }
-  if (is.null(x = cells1)) {
-    cells1 <- colnames(x = object)
-  }
-  if (is.null(x = cells2)) {
-    cells2 <- colnames(x = object)
-  }
-  if (!(cells1 %in% colnames(object)) || !(cells2 %in% colnames(object))) {
-    warning("Requested cells not contained in Seurat object. Subsetting list of cells.")
-    cells1 <- intersect(x = cells1, y = colnames(x = object))
-    cells2 <- intersect(x = cells2, y = colnames(x = object))
-  }
-  # convert cell name to neighbor index
-  nn.cells1 <- neighbors$cells1
-  nn.cells2 <- neighbors$cells2
-  cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
-  cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
-
-  ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
-  ncell <- ncell[ncell %in% cell1.index]
-  anchors <- list()
-  # pre allocate vector
-  anchors$cell1 <- rep(x = 0, length(x = ncell) * 5)
-  anchors$cell2 <- anchors$cell1
-  anchors$score <- anchors$cell1 + 1
-  idx <- 0
-  for (cell in ncell) {
-    neighbors.ab <- neighbors$nnab$nn.idx[cell, 1:k.anchor]
-    mutual.neighbors <- which(
-        x = neighbors$nnba$nn.idx[neighbors.ab, 1:k.anchor, drop = FALSE] == cell,
-        arr.ind = TRUE
-    )[, 1]
-    for (i in neighbors.ab[mutual.neighbors]){
-      idx <- idx + 1
-      anchors$cell1[idx] <- cell
-      anchors$cell2[idx] <- i
-      anchors$score[idx] <- 1
-    }
-  }
-  anchors$cell1 <- anchors$cell1[1:idx]
-  anchors$cell2 <- anchors$cell2[1:idx]
-  anchors$score <- anchors$score[1:idx]
-  anchors <- t(x = do.call(what = rbind, args = anchors))
-  anchors <- as.matrix(x = anchors)
-  object <- SetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'anchors',
-    new.data = anchors
-  )
-  if (verbose) {
-    message(paste0("\tFound ", nrow(x = anchors), " anchors"))
-  }
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-  return(object)
-}
-
-FilterAnchors <- function(
-  object,
-  assay = NULL,
-  integration.name = 'integrated',
-  features = NULL,
-  k.filter = 200,
-  eps = 0,
-  verbose = TRUE
-) {
-  if (verbose) {
-    message("Filtering Anchors")
-  }
-  assay <- assay %||% DefaultAssay(object = object)
-  features <- features %||% VariableFeatures(object = object)
-  if (length(x = features) == 0) {
-    stop("No features provided and no VariableFeatures computed.")
-  }
-  features <- unique(x = features)
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  nn.cells1 <- neighbors$cells1
-  nn.cells2 <- neighbors$cells2
-  cn.data1 <- L2Norm(
-    mat = as.matrix(x = t(x = GetAssayData(
-      object = object[[assay[1]]],
-      slot = "data")[features, nn.cells1])),
-    MARGIN = 1)
-  cn.data2 <- L2Norm(
-    mat = as.matrix(x = t(x = GetAssayData(
-      object = object[[assay[2]]],
-      slot = "data")[features, nn.cells2])),
-    MARGIN = 1)
-  nn <- nn2(
-    data = cn.data2[nn.cells2, ],
-    query = cn.data1[nn.cells1, ],
-    k = k.filter,
-    eps = eps
-  )
-
-  anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
-  position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
-    which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
-  })
-  anchors <- anchors[!is.na(x = position), ]
-  if (verbose) {
-    message("\tRetained ", nrow(x = anchors), " anchors")
-  }
-  object <- SetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = "anchors",
-    new.data = anchors
-  )
-  return(object)
-}
-
-ScoreAnchors <- function(
-  object,
-  assay = NULL,
-  integration.name = 'integrated',
-  verbose = TRUE,
-  k.score = 30,
-  do.cpp = TRUE
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "neighbors")
-  offset <- length(x = neighbors$cells1)
-  anchor.df$cell2 <- anchor.df$cell2 + offset
-  # make within dataset df
-  if (verbose) {
-    message("Extracting within-dataset neighbors!")
-  }
-  total.cells <- offset + length(neighbors$cells2)
-  nn.m1 <- ConstructNNMat(nn.idx = neighbors$nnaa$nn.idx[,1:k.score], offset1 = 0, offset2 = 0, dims = c(total.cells, total.cells))
-  nn.m2 <- ConstructNNMat(nn.idx = neighbors$nnab$nn.idx[,1:k.score], offset1 = 0, offset2 = offset, dims = c(total.cells, total.cells))
-  nn.m3 <- ConstructNNMat(nn.idx = neighbors$nnba$nn.idx[,1:k.score], offset1 = offset, offset2 = 0, dims = c(total.cells, total.cells))
-  nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
-  k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
-  anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
-
-  if (do.cpp){
-    anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
-  } else {
-    jaccard.dist <- tcrossprod(x = k.matrix)
-    anchor.matrix <- jaccard.dist * anchor.only
-  }
-
-  anchor.matrix <- as(object = anchor.matrix, Class = "dgTMatrix")
-  anchor.new <- data.frame(
-    'cell1' = anchor.matrix@i + 1,
-    'cell2' = anchor.matrix@j + 1,
-    'score' = anchor.matrix@x
-  )
-  anchor.new$cell2 <- anchor.new$cell2 - offset
-  max.score <- quantile(anchor.new$score, 0.9)
-  min.score <- quantile(anchor.new$score, 0.01)
-  anchor.new$score <- anchor.new$score - min.score
-  anchor.new$score <- anchor.new$score / (max.score - min.score)
-  anchor.new$score[anchor.new$score > 1] <-  1
-  anchor.new$score[anchor.new$score < 0] <- 0
-  anchor.new <- as.matrix(x = anchor.new)
-  object <- SetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'anchors',
-    new.data = anchor.new
-  )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-  return(object)
-}
-
-FindIntegrationMatrix <- function(
-  object,
-  assay = NULL,
-  integration.name = 'integrated',
-  features.integrate = NULL,
-  verbose = TRUE
-) {
-  assay <- assay %||% DefaultAssay(object = object)
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  nn.cells1 <- neighbors$cells1
-  nn.cells2 <- neighbors$cells2
-  anchors <- GetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'anchors'
-  )
-  if (verbose) {
-    message("Finding integration vectors")
-  }
-  features.integrate <- features.integrate %||% rownames(
-    x = GetAssayData(object = object, assay = assay, slot = "data")
-  )
-  data.use1 <- t(x = GetAssayData(
-    object = object,
-    assay = assay,
-    slot = "data")[features.integrate, nn.cells1]
-  )
-  data.use2 <- t(x = GetAssayData(
-    object = object,
-    assay = assay,
-    slot = "data")[features.integrate, nn.cells2]
-  )
-  anchors1 <- nn.cells1[anchors[, "cell1"]]
-  anchors2 <- nn.cells2[anchors[, "cell2"]]
-  data.use1 <- data.use1[anchors1, ]
-  data.use2 <- data.use2[anchors2, ]
-  integration.matrix <- data.use2 - data.use1
-  object <- SetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'integration.matrix',
-    new.data = integration.matrix
   )
   object <- LogSeuratCommand(object = object)
   command.name <- LogSeuratCommand(object = object, return.command = TRUE)
@@ -1276,421 +1527,6 @@ FindWeights <- function(
   return(object)
 }
 
-TransformDataMatrix <- function(
-  object,
-  assay = NULL,
-  new.assay.name = 'integrated',
-  integration.name = 'integrated',
-  features.to.integrate = NULL,
-  reduction = "cca",
-  do.cpp = TRUE,
-  verbose = TRUE
-) {
-  if(verbose) {
-    message("Integrating data")
-  }
-  assay <- assay %||% DefaultAssay(object = object)
-  weights <- GetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'weights'
-  )
-  integration.matrix <- GetIntegrationData(
-    object = object,
-    integration.name = integration.name,
-    slot = 'integration.matrix'
-  )
-  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
-  nn.cells1 <- neighbors$cells1
-  nn.cells2 <- neighbors$cells2
-
-  data.use1 <- t(x = GetAssayData(
-    object = object,
-    assay = assay,
-    slot = "data")[features.to.integrate, nn.cells1]
-  )
-  data.use2 <- t(x = GetAssayData(
-    object = object,
-    assay = assay,
-    slot = "data")[features.to.integrate, nn.cells2]
-  )
-  if (do.cpp) {
-    integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
-                                 weights = as(weights, "dgCMatrix"),
-                                 expression_cells2 = as(data.use2, "dgCMatrix"))
-    dimnames(integrated) <- dimnames(data.use2)
-  } else {
-    bv <-  t(weights) %*% integration.matrix
-    integrated <- data.use2 - bv
-  }
-
-  new.expression <- t(rbind(data.use1, integrated))
-  new.expression <- new.expression[, colnames(object)]
-  new.assay <- new(
-    Class = 'Assay',
-    counts = new(Class = "dgCMatrix"),
-    data = new.expression,
-    scale.data = matrix(),
-    var.features = vector(),
-    meta.features = data.frame(row.names = rownames(x = new.expression)),
-    misc = NULL
-  )
-  object[[new.assay.name]] <- new.assay
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
-  return(object)
-}
-
-ProjectCellEmbeddings <- function(
-  reference,
-  query,
-  reference.assay = NULL,
-  query.assay = NULL,
-  dims = 1:50,
-  verbose = TRUE,
-  feature.mean = NULL,
-  feature.sd = NULL
-) {
-  if (verbose) {
-    message("Projecting PCA")
-  }
-  reduction <- "pca"
-  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
-  query.assay <- query.assay %||% DefaultAssay(object = query)
-  features <- rownames(x = Loadings(object = reference[[reduction]]))
-  features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-
-  reference.data <-  GetAssayData(
-    object = reference,
-    assay.use = reference.assay,
-    slot = "data")[features, ]
-  query.data <- GetAssayData(
-    object = query,
-    assay.use = query.assay,
-    slot = "data")[features, ]
-
-  if (is.null(x = feature.mean)){
-    feature.mean <- rowMeans(x = reference.data)
-    feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
-    feature.sd[is.na(x = feature.sd)] <- 1
-    feature.mean[is.na(x = feature.mean)] <- 1
-  }
-  query.feature.mean <- rowMeans(x = query.data)
-  proj.data <- GetAssayData(
-    object = query,
-    assay = query.assay,
-    slot = "data"
-  )[features, ]
-  store.names <- dimnames(x = proj.data)
-  proj.data <- FastSparseRowScaleWithKnownStats(
-    mat = proj.data,
-    mu = feature.mean,
-    sigma = feature.sd,
-    display_progress = FALSE
-  )
-  dimnames(x = proj.data) <- store.names
-  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
-  proj.pca <- t(crossprod(x = ref.feature.loadings, y = proj.data))
-  return(proj.pca)
-}
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Methods for Seurat-defined generics
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-#' Calculate the local structure preservation metric
-#'
-#' Calculates a metric that describes how well the local structure of each group
-#' prior to integration is preserved after integration. This procedure works as
-#' follows: For each group, compute a PCA, compute the top num.neighbors in pca
-#' space, compute the top num.neighbors in corrected pca space, compute the
-#' size of the intersection of those two sets of neighbors.
-#' Return the average over all groups.
-#'
-#' @param object Seurat object
-#' @param grouping.var Grouping variable
-#' @param idents Optionally specify a set of idents to compute metric for
-#' @param neighbors Number of neighbors to compute in pca/corrected pca space
-#' @param reduction Dimensional reduction to use for corrected space
-#' @param reduced.dims Number of reduced dimensions to use
-#' @param orig.dims Number of PCs to use in original space
-#' @param verbose Display progress bar
-#'
-#' @return Returns the average preservation metric
-#'
-#' @importFrom RANN nn2
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#'
-#' @export
-#'
-LocalStruct <- function(
-  object,
-  grouping.var,
-  idents = NULL,
-  neighbors = 100,
-  reduction = "pca",
-  reduced.dims = 1:10,
-  orig.dims = 1:10,
-  verbose = TRUE
-) {
-  if (is.null(x = idents)) {
-    cells.use <- colnames(x = object)
-  } else {
-    cells.use <- WhichCells(object = object, idents = idents)
-  }
-  Idents(object = object) <- grouping.var
-  local.struct <- list()
-  ob.list <- SplitObject(object = object, split.by = grouping.var)
-  if (verbose) {
-    pb <- txtProgressBar(
-      min = 1,
-      max = length(x = ob.list),
-      style = 3,
-      file = stderr()
-    )
-  }
-  embeddings <- Embeddings(object = object[[reduction]])[, reduced.dims]
-
-  for (i in 1:length(x = ob.list)) {
-    ob <- ob.list[[i]]
-    ob <- FindVariableFeatures(
-      object = ob,
-      verbose = FALSE,
-      selection.method = "dispersion",
-      nfeatures = 2000
-    )
-    ob <- ScaleData(
-      object = ob,
-      features = VariableFeatures(object = ob),
-      verbose = FALSE
-    )
-    ob <- RunPCA(
-      object = ob,
-      features = VariableFeatures(object = ob),
-      verbose = FALSE,
-      npcs = max(orig.dims)
-    )
-    ob.cells <- intersect(x = cells.use, y = colnames(x = ob))
-    if (length(x = ob.cells) == 0) next
-    nn.corrected <- nn2(
-      data = embeddings[colnames(x = ob), ],
-      query = embeddings[ob.cells, ],
-      k = neighbors
-    )$nn.idx
-    nn.orig <- nn2(
-      data = Embeddings(object = ob[["pca"]])[, orig.dims],
-      query = Embeddings(object = ob[["pca"]])[ob.cells, orig.dims],
-      k = neighbors
-    )$nn.idx
-    local.struct[[i]] <- sapply(X = 1:nrow(x = nn.orig), FUN = function(x) {
-      length(x = intersect(x = nn.orig[x, ], y = nn.corrected[x, ])) / neighbors
-    })
-    if (verbose) {
-      setTxtProgressBar(pb = pb, value = i)
-    }
-  }
-  names(x = local.struct) <- names(x = ob.list)
-  return(local.struct)
-}
-
-#' Calculates a mixing metric
-#'
-#' Here we compute a measure of how well mixed a composite dataset is. To compute, we first examine
-#' the local neighborhood for each cell (looking at max.k neighbors) and determine for each group
-#' (could be the dataset after integration) the k nearest neighbor and what rank that neighbor was
-#' in the overall neighborhood. We then take the median across all groups as the mixing metric per
-#' cell.
-#'
-#' @param object Seurat object
-#' @param grouping.var Grouping variable for dataset
-#' @param reduction Which dimensionally reduced space to use
-#' @param dims Dimensions to use
-#' @param k Neighbor number to examine per group
-#' @param max.k Maximum size of local neighborhood to compute
-#' @param eps Error bound on the neighbor finding algorithm (from RANN)
-#' @param verbose Displays progress bar
-#'
-#' @return Returns a vector of values representing the entropy metric from each
-#' bootstrapped iteration.
-#'
-#' @importFrom RANN nn2
-#' @importFrom future plan
-#' @importFrom pbapply pbsapply
-#' @importFrom future.apply future_sapply
-#' @export
-#'
-MixingMetric <- function(
-  object,
-  grouping.var,
-  reduction = "pca",
-  dims = 1:2,
-  k = 5,
-  max.k = 300,
-  eps = 0,
-  verbose = TRUE
-) {
-  my.sapply <- ifelse(
-    test = verbose && (eval(expr = formals(fun = plan())$workers) %||% 1) == 1,
-    yes = pbsapply,
-    no = future_sapply
-  )
-  embeddings <- Embeddings(object = object[[reduction]])[, dims]
-  nn <- nn2(
-    data = embeddings,
-    k = max.k,
-    eps = eps
-  )
-  group.info <- object[[grouping.var, drop = TRUE]]
-  groups <- unique(x = group.info)
-  mixing <- my.sapply(
-    X = 1:ncol(x = object),
-    FUN = function(x) {
-     sapply(X = groups, FUN = function(y) {
-       which(x = group.info[nn$nn.idx[x, ]] == y)[k]
-     })
-    }
-  )
-  mixing[is.na(x = mixing)] <- max.k
-  mixing <- apply(
-    X = mixing,
-    MARGIN = 2,
-    FUN = median
-  )
-  return(mixing)
-}
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Internal
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-# Add dataset number and remove cell offset
-#
-# Record which dataset number in the original list of Seurat objects
-# each anchor cell came from, and correct the cell index so it corresponds to
-# the position of the anchor cell in its own dataset
-#
-# @param anchor.df Dataframe of anchors
-# @param offsets size of each dataset in anchor dataframe
-# @param obj.length Vector of object lengths
-#
-# @return Anchor dataframe with additional columns corresponding to the dataset of each cell
-#
-AddDatasetID <- function(
-  anchor.df,
-  offsets,
-  obj.lengths
-) {
-  ndataset <- length(offsets)
-  total.cells <- sum(obj.lengths)
-  offsets <- c(offsets, total.cells)
-  row.offset <- rep(offsets[1:ndataset], obj.lengths)
-  dataset <- rep(1:ndataset, obj.lengths)
-  anchor.df <- data.frame('cell1' = anchor.df[, 1] - row.offset[anchor.df[, 1]],
-                       'cell2' = anchor.df[, 2] - row.offset[anchor.df[, 2]],
-                       'score' = anchor.df[, 3],
-                       'dataset1' = dataset[anchor.df[, 1]],
-                       'dataset2' = dataset[anchor.df[, 2]])
-  return(anchor.df)
-}
-
-# Add info to anchor matrix
-#
-# @param object Seurat object
-# @param toolname Name in tool slot to pull from
-# @param annotation Name in metadata to annotate anchors with
-# @param object.list List of objects using in FindIntegrationAnchors call
-#
-# @return Returns the anchor dataframe with additional columns for annotation metadata
-#
-AnnotateAnchors <- function(
-  object,
-  toolname = "integrated",
-  annotation = NULL,
-  object.list = NULL
-) {
-  anchors <- GetIntegrationData(
-    object = object,
-    integration.name = toolname,
-    slot = 'anchors'
-  )
-  for(i in annotation) {
-    if (! i %in% colnames(x = object[[]])) {
-      warning(i, " not in object metadata")
-      next
-    }
-    if(!is.null(x = object.list)) {
-      anchors[, paste0("cell1.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset1"]])]][[]][as.numeric(x[["cell1"]]), i])
-      })
-      anchors[, paste0("cell2.", i)] <- apply(X = anchors, MARGIN = 1, function(x){
-        as.character(object.list[[as.numeric(x[["dataset2"]])]][[]][as.numeric(x[["cell2"]]), i])
-      })
-    } else {
-      cells1 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells1
-      cells2 <- GetIntegrationData(
-        object = object,
-        integration.name = toolname,
-        slot = 'neighbors'
-      )$cells2
-      anchors[, paste0("cell1.", i)] <- object[[i]][cells1[anchors$cell1], , drop = TRUE]
-      anchors[, paste0("cell2.", i)] <- object[[i]][cells2[anchors$cell2], , drop = TRUE]
-      anchors[, paste0(i, ".match")] <- anchors[, paste0("cell1.", i)] == anchors[, paste0("cell2.", i)]
-    }
-  }
-  return(anchors)
-}
-
-# Build tree of datasets based on cell similarity
-#
-# @param similarity.matrix Dataset similarity matrix
-#
-# @return Returns a heirarchical clustering of datasets
-#
-#' @importFrom stats hclust
-#
-BuildSampleTree <- function(similarity.matrix) {
-  dist.mat <- as.dist(m = 1 / similarity.matrix)
-  clusters <- hclust(d = dist.mat)
-  return(clusters$merge)
-}
-
-# Count anchors between all datasets
-#
-# Counts anchors between each dataset and scales based on total number of cells in the datasets
-#
-# @param anchor.df Matrix of anchors
-# @param offsets Dataset sizes in anchor matrix. Used to identify boundaries of each dataset in
-# matrix, so that total pairwise anchors between all datasets can be counted
-#
-# @return Returns a similarity matrix
-#
-CountAnchors <- function(
-  anchor.df,
-  offsets,
-  obj.lengths
-) {
-  similarity.matrix <- matrix(data = 0, ncol = length(x = offsets), nrow = length(x = offsets))
-  similarity.matrix[upper.tri(x = similarity.matrix, diag = TRUE)] <- NA
-  total.cells <- sum(obj.lengths)
-  offsets <- c(offsets, total.cells)
-  for (i in 1:nrow(x = similarity.matrix)){
-    for (j in 1:ncol(x = similarity.matrix)){
-      if (!is.na(x = similarity.matrix[i, j])){
-        relevant.rows <- anchor.df[(anchor.df$dataset1 %in% c(i, j)) & (anchor.df$dataset2 %in% c(i, j)), ]
-        score <- nrow(x = relevant.rows)
-        ncell <- min(obj.lengths[[i]], obj.lengths[[j]])
-        similarity.matrix[i, j] <- score / ncell
-      }
-    }
-  }
-  return(similarity.matrix)
-}
-
 # Convert nearest neighbor information to a sparse matrix
 #
 # @param idx Nearest neighbor index
@@ -1760,6 +1596,59 @@ ParseRow <- function(clustering, i){
   return(unlist(datasets))
 }
 
+ProjectCellEmbeddings <- function(
+  reference,
+  query,
+  reference.assay = NULL,
+  query.assay = NULL,
+  dims = 1:50,
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
+) {
+  if (verbose) {
+    message("Projecting PCA")
+  }
+  reduction <- "pca"
+  reference.assay <- reference.assay %||% DefaultAssay(object = reference)
+  query.assay <- query.assay %||% DefaultAssay(object = query)
+  features <- rownames(x = Loadings(object = reference[[reduction]]))
+  features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
+
+  reference.data <-  GetAssayData(
+    object = reference,
+    assay.use = reference.assay,
+    slot = "data")[features, ]
+  query.data <- GetAssayData(
+    object = query,
+    assay.use = query.assay,
+    slot = "data")[features, ]
+
+  if (is.null(x = feature.mean)){
+    feature.mean <- rowMeans(x = reference.data)
+    feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
+    feature.sd[is.na(x = feature.sd)] <- 1
+    feature.mean[is.na(x = feature.mean)] <- 1
+  }
+  query.feature.mean <- rowMeans(x = query.data)
+  proj.data <- GetAssayData(
+    object = query,
+    assay = query.assay,
+    slot = "data"
+  )[features, ]
+  store.names <- dimnames(x = proj.data)
+  proj.data <- FastSparseRowScaleWithKnownStats(
+    mat = proj.data,
+    mu = feature.mean,
+    sigma = feature.sd,
+    display_progress = FALSE
+  )
+  dimnames(x = proj.data) <- store.names
+  ref.feature.loadings <- Loadings(object = reference[[reduction]])[features, dims]
+  proj.pca <- t(crossprod(x = ref.feature.loadings, y = proj.data))
+  return(proj.pca)
+}
+
 # Calculate position along a defined reference range for a given vector of
 # numerics. Will range from 0 to 1.
 #
@@ -1777,6 +1666,62 @@ ReferenceRange <- function(x, lower = 0.025, upper = 0.975) {
            (quantile(x = x, probs = upper) - quantile(x = x, probs = lower)))
 }
 
+ScoreAnchors <- function(
+  object,
+  assay = NULL,
+  integration.name = 'integrated',
+  verbose = TRUE,
+  k.score = 30,
+  do.cpp = TRUE
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  anchor.df <- as.data.frame(x = GetIntegrationData(object = object, integration.name = integration.name, slot = 'anchors'))
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "neighbors")
+  offset <- length(x = neighbors$cells1)
+  anchor.df$cell2 <- anchor.df$cell2 + offset
+  # make within dataset df
+  if (verbose) {
+    message("Extracting within-dataset neighbors!")
+  }
+  total.cells <- offset + length(neighbors$cells2)
+  nn.m1 <- ConstructNNMat(nn.idx = neighbors$nnaa$nn.idx[,1:k.score], offset1 = 0, offset2 = 0, dims = c(total.cells, total.cells))
+  nn.m2 <- ConstructNNMat(nn.idx = neighbors$nnab$nn.idx[,1:k.score], offset1 = 0, offset2 = offset, dims = c(total.cells, total.cells))
+  nn.m3 <- ConstructNNMat(nn.idx = neighbors$nnba$nn.idx[,1:k.score], offset1 = offset, offset2 = 0, dims = c(total.cells, total.cells))
+  nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
+  k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
+  anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
+
+  if (do.cpp){
+    anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
+  } else {
+    jaccard.dist <- tcrossprod(x = k.matrix)
+    anchor.matrix <- jaccard.dist * anchor.only
+  }
+
+  anchor.matrix <- as(object = anchor.matrix, Class = "dgTMatrix")
+  anchor.new <- data.frame(
+    'cell1' = anchor.matrix@i + 1,
+    'cell2' = anchor.matrix@j + 1,
+    'score' = anchor.matrix@x
+  )
+  anchor.new$cell2 <- anchor.new$cell2 - offset
+  max.score <- quantile(anchor.new$score, 0.9)
+  min.score <- quantile(anchor.new$score, 0.01)
+  anchor.new$score <- anchor.new$score - min.score
+  anchor.new$score <- anchor.new$score / (max.score - min.score)
+  anchor.new$score[anchor.new$score > 1] <-  1
+  anchor.new$score[anchor.new$score < 0] <- 0
+  anchor.new <- as.matrix(x = anchor.new)
+  object <- SetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'anchors',
+    new.data = anchor.new
+  )
+  object <- LogSeuratCommand(object = object)
+  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+  return(object)
+}
 
 # Get top n features across given set of dimensions
 #
@@ -1794,6 +1739,7 @@ TopDimFeatures <- function(
   max.features = 200
 ) {
   dim.reduction <- object[[reduction]]
+  max.features <- max(length(x = dims) * 2, max.features)
   num.features <- sapply(X = 1:features.per.dim, FUN = function(y) {
     length(x = unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
         unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE))
@@ -1807,18 +1753,67 @@ TopDimFeatures <- function(
   return(features)
 }
 
-# Construct nearest neighbor matrix from nn.idx
-#
-# @param nn.idx Nearest neighbor index matrix (nn.idx from RANN)
-# @param offset1 Offsets for the first neighbor
-# @param offset2 Offsets for the second neighbor
-#
-# @return returns a sparse matrix representing the NN matrix
-#
-ConstructNNMat <- function(nn.idx, offset1, offset2, dims) {
-  k <- ncol(x = nn.idx)
-  j <- as.numeric(x = t(x = nn.idx)) + offset2
-  i <- ((1:length(x = j)) - 1) %/% k + 1 + offset1
-  nn.mat <- sparseMatrix(i = i, j = j, x = 1, dims = dims)
-  return(nn.mat)
+TransformDataMatrix <- function(
+  object,
+  assay = NULL,
+  new.assay.name = 'integrated',
+  integration.name = 'integrated',
+  features.to.integrate = NULL,
+  reduction = "cca",
+  do.cpp = TRUE,
+  verbose = TRUE
+) {
+  if(verbose) {
+    message("Integrating data")
+  }
+  assay <- assay %||% DefaultAssay(object = object)
+  weights <- GetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'weights'
+  )
+  integration.matrix <- GetIntegrationData(
+    object = object,
+    integration.name = integration.name,
+    slot = 'integration.matrix'
+  )
+  neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
+  nn.cells1 <- neighbors$cells1
+  nn.cells2 <- neighbors$cells2
+
+  data.use1 <- t(x = GetAssayData(
+    object = object,
+    assay = assay,
+    slot = "data")[features.to.integrate, nn.cells1]
+  )
+  data.use2 <- t(x = GetAssayData(
+    object = object,
+    assay = assay,
+    slot = "data")[features.to.integrate, nn.cells2]
+  )
+  if (do.cpp) {
+    integrated <- IntegrateDataC(integration_matrix = as(integration.matrix, "dgCMatrix"),
+                                 weights = as(weights, "dgCMatrix"),
+                                 expression_cells2 = as(data.use2, "dgCMatrix"))
+    dimnames(integrated) <- dimnames(data.use2)
+  } else {
+    bv <-  t(weights) %*% integration.matrix
+    integrated <- data.use2 - bv
+  }
+
+  new.expression <- t(rbind(data.use1, integrated))
+  new.expression <- new.expression[, colnames(object)]
+  new.assay <- new(
+    Class = 'Assay',
+    counts = new(Class = "dgCMatrix"),
+    data = new.expression,
+    scale.data = matrix(),
+    var.features = vector(),
+    meta.features = data.frame(row.names = rownames(x = new.expression)),
+    misc = NULL
+  )
+  object[[new.assay.name]] <- new.assay
+  object <- LogSeuratCommand(object = object)
+  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
+  return(object)
 }

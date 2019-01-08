@@ -29,7 +29,7 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{same.y.lims}{Set all the y-axis limits to the same values}
 
-\item{log}{plot Y axis on log scale}
+\item{log}{plot the feature axis on log scale}
 
 \item{ncol}{Number of columns if multiple plots are displayed}
 

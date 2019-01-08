@@ -26,7 +26,7 @@ NULL
 #' @param object Seurat object
 #' @param barcode.column Column to use as proxy for barcodes ("nCount_RNA" by default)
 #' @param group.column Column to group by ("orig.ident" by default)
-#' @param threshold.high Ignore barcodes of rank above this threshold in inflection calculation
+#' @param threshold.high Ignore barcodes of rank above thisf threshold in inflection calculation
 #' @param threshold.low Ignore barcodes of rank below this threshold in inflection calculation
 #'
 #' @return Returns Seurat object with a new list in the `tools` slot, `CalculateBarcodeInflections` with values:
@@ -324,6 +324,7 @@ HTODemux <- function(
 #' @param data Matrix with the raw count data
 #' @param scale.factor Scale the data. Default is 1e4
 #' @param verbose Print progress
+#' @param ... Ignored
 #'
 #' @return Returns a matrix with the normalize and log transformed data
 #'
@@ -338,7 +339,7 @@ HTODemux <- function(
 #' mat_norm <- LogNormalize(data = mat)
 #' mat_norm
 #'
-LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
+LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
@@ -352,44 +353,6 @@ LogNormalize <- function(data, scale.factor = 1e4, verbose = TRUE) {
   norm.data <- LogNorm(data, scale_factor = scale.factor, display_progress = verbose)
   colnames(x = norm.data) <- colnames(x = data)
   rownames(x = norm.data) <- rownames(x = data)
-  return(norm.data)
-}
-
-#' Normalize raw data to fractions
-#'
-#' Normalize count data to relative counts per cell by dividing by the total
-#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
-#' use \code{scale.factor = 1e6}.
-#'
-#' @param data Matrix with the raw count data
-#' @param scale.factor Scale the result. Default is 1
-#' @param verbose Print progress
-#'
-#' @return Returns a matrix with the relative counts
-#'
-#' @import Matrix
-#' @importFrom methods as
-#'
-#' @export
-#'
-#' @examples
-#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
-#' mat
-#' mat_norm <- RelativeCounts(data = mat)
-#' mat_norm
-#'
-RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE) {
-  if (class(x = data) == "data.frame") {
-    data <- as.matrix(x = data)
-  }
-  if (class(x = data) != "dgCMatrix") {
-    data <- as(object = data, Class = "dgCMatrix")
-  }
-  if (verbose) {
-    cat("Performing relative-counts-normalization\n", file = stderr())
-  }
-  norm.data <- data
-  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
   return(norm.data)
 }
 
@@ -571,9 +534,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
     cell.names <- readLines(barcode.loc)
     if (all(grepl(pattern = "\\-1$", x = cell.names))) {
       cell.names <- as.vector(x = as.character(x = sapply(
-            X = cell.names,
-            FUN = ExtractField, field = 1,
-            delim = "-"
+        X = cell.names,
+        FUN = ExtractField, field = 1,
+        delim = "-"
       )))
     }
     if (is.null(x = names(x = data.dir))) {
@@ -628,25 +591,25 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
   # a matrix.
   if (length(x = list_of_data) == 1) {
     return(list_of_data[[1]])
-    } else {
+  } else {
     return(list_of_data)
   }
 }
 
 #' Read 10X hdf5 file
 #'
-#' Read gene expression matrix from 10X CellRanger hdf5 file
+#' Read count matrix from 10X CellRanger hdf5 file.
+#' This can be used to read both scATAC-seq and scRNA-seq matrices.
 #'
 #' @param filename Path to h5 file
-#' @param ensg.names Label row names with ENSG names rather than unique gene
-#' names
+#' @param use.names Label row names with feature names rather than ID numbers.
 #'
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
-Read10X_h5 <- function(filename, ensg.names = FALSE) {
+Read10X_h5 <- function(filename, use.names = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
@@ -654,29 +617,38 @@ Read10X_h5 <- function(filename, ensg.names = FALSE) {
     stop("File not found")
   }
   infile <- hdf5r::H5File$new(filename)
-  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
-    stop("Only older (pre-3.0) 10X hdf5 files are supported.")
-  }
   genomes <- names(infile)
   output <- list()
+  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+    # cellranger version 3
+    if (use.names) {
+      feature_slot <- 'features/name'
+    } else {
+      feature_slot <- 'features/id'
+    }
+    
+  } else {
+    if (use.names) {
+      feature_slot <- 'gene_names'
+    } else {
+      feature_slot = 'genes'
+    }
+  }
   for (genome in genomes) {
     counts <- infile[[paste0(genome, '/data')]]
     indices <- infile[[paste0(genome, '/indices')]]
     indptr <- infile[[paste0(genome, '/indptr')]]
     shp <- infile[[paste0(genome, '/shape')]]
-    if (ensg.names) {
-      gene_names <- infile[[paste0(genome, '/genes')]][]
-    } else {
-      gene_names <- make.unique(infile[[paste0(genome, '/gene_names')]][])
-    }
+    features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
     sparse.mat <- sparseMatrix(
       i = indices[] + 1, p = indptr[],
       x = as.numeric(counts[]),
       dims = shp[], giveCsparse = FALSE
     )
-    rownames(sparse.mat) <- gene_names
+    rownames(sparse.mat) <- features
     colnames(sparse.mat) <- barcodes[]
+    sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
     output[[genome]] <- sparse.mat
   }
   infile$close_all()
@@ -810,6 +782,44 @@ RegressRegNB <- function(
   vst.out$y <- NULL
   object@misc[['vst.out']] <- vst.out
   return(object)
+}
+
+#' Normalize raw data to fractions
+#'
+#' Normalize count data to relative counts per cell by dividing by the total
+#' per cell. Optionally use a scale factor, e.g. for counts per million (CPM)
+#' use \code{scale.factor = 1e6}.
+#'
+#' @param data Matrix with the raw count data
+#' @param scale.factor Scale the result. Default is 1
+#' @param verbose Print progress
+#' @param ... Ignored
+#' @return Returns a matrix with the relative counts
+#'
+#' @import Matrix
+#' @importFrom methods as
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat
+#' mat_norm <- RelativeCounts(data = mat)
+#' mat_norm
+#'
+RelativeCounts <- function(data, scale.factor = 1, verbose = TRUE, ...) {
+  if (class(x = data) == "data.frame") {
+    data <- as.matrix(x = data)
+  }
+  if (class(x = data) != "dgCMatrix") {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  if (verbose) {
+    cat("Performing relative-counts-normalization\n", file = stderr())
+  }
+  norm.data <- data
+  norm.data@x <- norm.data@x / rep.int(colSums(norm.data), diff(norm.data@p)) * scale.factor
+  return(norm.data)
 }
 
 #' Sample UMI
@@ -1055,12 +1065,17 @@ FindVariableFeatures.Assay <- function(
   if (length(x = mean.cutoff) != 2 || length(x = dispersion.cutoff) != 2) {
     stop("Both 'mean.cutoff' and 'dispersion.cutoff' must be two numbers")
   }
-  slot <- "data"
   if (selection.method == "vst") {
-    slot <- "counts"
+    data <- GetAssayData(object = object, slot = "counts")
+    if (ncol(x = data) < 1 || nrow(x = data) < 1) {
+      warning("selection.method set to 'vst' but count slot is empty; will use data slot instead")
+      data <- GetAssayData(object = object, slot = "data")
+    }
+  } else {
+    data <- GetAssayData(object = object, slot = "data")
   }
   hvf.info <- FindVariableFeatures(
-    object = GetAssayData(object = object, slot = slot),
+    object = data,
     selection.method = selection.method,
     loess.span = loess.span,
     clip.max = clip.max,
@@ -1136,6 +1151,8 @@ FindVariableFeatures.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future.apply future_lapply
+#'
 #' @param normalization.method Method for normalization.
 #'  \itemize{
 #'   \item{LogNormalize: }{Feature counts for each cell are divided by the total
@@ -1146,9 +1163,10 @@ FindVariableFeatures.Seurat <- function(
 #'   counts for that cell and multiplied by the scale.factor. No log-transformation is applied.
 #'   For counts per million (CPM) set \code{scale.factor = 1e6}}
 #' }
-#' More methods to be added.
 #' @param scale.factor Sets the scale factor for cell-level normalization
-#' @param across If performing CLR normalization, normalize across either "features" or "cells".
+#' @param margin If performing CLR normalization, normalize across features (1) or cells (2)
+# @param across If performing CLR normalization, normalize across either "features" or "cells".
+#' @param block.size How many cells should be run in each chunk, will try to split evenly across threads
 #' @param verbose display progress bar for normalization procedure
 #'
 #' @rdname NormalizeData
@@ -1158,33 +1176,96 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
+  # across = "features",
+  margin = 1,
+  block.size = NULL,
   verbose = TRUE,
-  across = "features",
   ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
   }
-  normalized.data <- switch(
-    EXPR = normalization.method,
-    'LogNormalize' = LogNormalize(
-      data = object,
-      scale.factor = scale.factor,
-      verbose = verbose
-    ),
-    'CLR' = CustomNormalize(
-      data = object,
-      custom_function = function(x) {
-        return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
-      },
-      across = across
-    ),
-    'RC' = RelativeCounts(
-      data = object,
-      scale.factor = scale.factor,
-      verbose = verbose),
-    stop("Unkown normalization method: ", normalization.method)
-  )
+  normalized.data <- if (PlanThreads() > 1) {
+    norm.function <- switch(
+      EXPR = normalization.method,
+      'LogNormalize' = LogNormalize,
+      'CLR' = CustomNormalize,
+      'RC' = RelativeCounts,
+      stop("Unkown normalization method: ", normalization.method)
+    )
+    if (normalization.method != 'CLR') {
+      margin <- 2
+    }
+    tryCatch(
+      expr = Parenting(parent.find = 'Seurat', margin = margin),
+      error = function(e) {
+        invisible(x = NULL)
+      }
+    )
+    dsize <- switch(
+      EXPR = margin,
+      '1' = nrow(x = object),
+      '2' = ncol(x = object),
+      stop("'margin' must be 1 or 2")
+    )
+    chunk.points <- ChunkPoints(
+      dsize = dsize,
+      csize = block.size %||% ceiling(x = dsize / PlanThreads())
+    )
+    normalized.data <- future_lapply(
+      X = 1:ncol(x = chunk.points),
+      FUN = function(i) {
+        block <- chunk.points[, i]
+        return(norm.function(
+          data = if (margin == 1) {
+            object[block[1]:block[2], , drop = FALSE]
+          } else {
+            object[, block[1]:block[2], drop = FALSE]
+          },
+          scale.factor = scale.factor,
+          verbose = FALSE,
+          custom_function = function(x) {
+            return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+          },
+          margin = margin
+          # across = across
+        ))
+      }
+    )
+    do.call(
+      what = switch(
+        EXPR = margin,
+        '1' = 'rbind',
+        '2' = 'cbind',
+        stop("'margin' must be 1 or 2")
+      ),
+      args = normalized.data
+    )
+  } else {
+    switch(
+      EXPR = normalization.method,
+      'LogNormalize' = LogNormalize(
+        data = object,
+        scale.factor = scale.factor,
+        verbose = verbose
+      ),
+      'CLR' = CustomNormalize(
+        data = object,
+        custom_function = function(x) {
+          return(log1p(x = x / (exp(x = sum(log1p(x = x[x > 0]), na.rm = TRUE) / length(x = x + 1)))))
+        },
+        margin = margin,
+        verbose = verbose
+        # across = across
+      ),
+      'RC' = RelativeCounts(
+        data = object,
+        scale.factor = scale.factor,
+        verbose = verbose
+      ),
+      stop("Unkown normalization method: ", normalization.method)
+    )
+  }
   return(normalized.data)
 }
 
@@ -1196,8 +1277,9 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
+  margin = 1,
   verbose = TRUE,
-  across = "features",
+  # across = "features",
   ...
 ) {
   object <- SetAssayData(
@@ -1208,7 +1290,8 @@ NormalizeData.Assay <- function(
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose,
-      across = across
+      across = across,
+      ...
     )
   )
   return(object)
@@ -1231,8 +1314,9 @@ NormalizeData.Seurat <- function(
   assay = NULL,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
+  margin = 1,
   verbose = TRUE,
-  across = "features",
+  # across = "features",
   ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -1242,7 +1326,8 @@ NormalizeData.Seurat <- function(
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
-    across = across
+    across = across,
+    ...
   )
   object[[assay]] <- assay.data
   object <- LogSeuratCommand(object = object)
@@ -1426,6 +1511,8 @@ RunALRA.Seurat <- function(
   return(object)
 }
 
+#' @importFrom future.apply future_lapply
+#'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
 #' RegressOut). For example, nUMI, or percent.mito.
@@ -1469,8 +1556,7 @@ ScaleData.default <- function(
   features <- features %||% rownames(x = object)
   features <- as.vector(x = intersect(x = features, y = rownames(x = object)))
   object <- object[features, , drop = FALSE]
-  scaled.data <- matrix(data = NA, nrow = nrow(x = object), ncol = ncol(x = object))
-  dimnames(x = scaled.data) <- dimnames(x = object)
+  object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
   Parenting(
     parent.find = "ScaleData.Assay",
@@ -1492,52 +1578,100 @@ ScaleData.default <- function(
       )
     }
     # Currently, RegressOutMatrix will do nothing if latent.data = NULL
-    # TODO: implement parallelization for RegressOutMatrix
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    object <- RegressOutMatrix(
-      data.expr = object,
-      latent.data = latent.data,
-      features.regress = features,
-      model.use = model.use,
-      use.umi = use.umi,
-      verbose = verbose
-    )
+    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
+    if (PlanThreads() > 1) {
+      object <- future_lapply(
+        X = 1:ncol(x = chunk.points),
+        FUN = function(i) {
+          return(RegressOutMatrix(
+            data.expr = object[chunk.points[1, i]:chunk.points[2, i], , drop = FALSE],
+            latent.data = latent.data,
+            model.use = model.use,
+            use.umi = use.umi,
+            verbose = FALSE
+          ))
+        }
+      )
+      object <- do.call(what = 'rbind', args = object)
+    } else {
+      object <- RegressOutMatrix(
+        data.expr = object,
+        latent.data = latent.data,
+        features.regress = features,
+        model.use = model.use,
+        use.umi = use.umi,
+        verbose = verbose
+      )
+    }
+    dimnames(x = object) <- object.names
     gc(verbose = FALSE)
   }
-  max.block <- ceiling(x = length(x = features) / block.size)
   if (verbose) {
     message("Scaling data matrix")
-    pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
   }
-  for (i in 1:max.block) {
-    my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
-    my.inds <- my.inds[my.inds <= length(x = features)]
-    if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
-      scale.function <- FastSparseRowScale
-    } else {
-      object <- as.matrix(x = object)
-      scale.function <- FastRowScale
-    }
-    data.scale <- scale.function(
-      mat = object[features[my.inds], , drop = FALSE],
-      scale = do.scale,
-      center = do.center,
-      scale_max = scale.max,
-      display_progress = FALSE
+  if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
+    scale.function <- FastSparseRowScale
+  } else {
+    object <- as.matrix(x = object)
+    scale.function <- FastRowScale
+  }
+  if (PlanThreads() > 1) {
+    blocks <- ChunkPoints(dsize = length(x = features), csize = block.size)
+    scaled.data <- future_lapply(
+      X = 1:ncol(x = blocks),
+      FUN = function(i) {
+        block <- as.vector(x = blocks[, i])
+        data.scale <- scale.function(
+          mat = object[features[block[1]:block[2]], , drop = FALSE],
+          scale = do.scale,
+          center = do.center,
+          scale_max = scale.max,
+          display_progress = FALSE
+        )
+        dimnames(x = data.scale) <- dimnames(x = object[features[block[1]:block[2]], ])
+        suppressWarnings(expr = data.scale[is.na(x = data.scale)] <- 0)
+        gc(verbose = FALSE)
+        return(data.scale)
+      }
     )
-    dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
-    scaled.data[features[my.inds], ] <- data.scale
-    rm(data.scale)
-    gc(verbose = FALSE)
+    suppressWarnings(expr = scaled.data <- do.call(what = 'rbind', args = scaled.data))
+  } else {
+    scaled.data <- matrix(
+      data = NA,
+      nrow = nrow(x = object),
+      ncol = ncol(x = object),
+      dimnames = object.names
+    )
+    max.block <- ceiling(x = length(x = features) / block.size)
     if (verbose) {
-      setTxtProgressBar(pb = pb, value = i)
+      pb <- txtProgressBar(min = 0, max = max.block, style = 3, file = stderr())
+    }
+    for (i in 1:max.block) {
+      my.inds <- ((block.size * (i - 1)):(block.size * i - 1)) + 1
+      my.inds <- my.inds[my.inds <= length(x = features)]
+      data.scale <- scale.function(
+        mat = object[features[my.inds], , drop = FALSE],
+        scale = do.scale,
+        center = do.center,
+        scale_max = scale.max,
+        display_progress = FALSE
+      )
+      dimnames(x = data.scale) <- dimnames(x = object[features[my.inds], ])
+      scaled.data[features[my.inds], ] <- data.scale
+      rm(data.scale)
+      gc(verbose = FALSE)
+      if (verbose) {
+        setTxtProgressBar(pb = pb, value = i)
+      }
+    }
+    if (verbose) {
+      close(con = pb)
     }
   }
-  if (verbose) {
-    close(con = pb)
-  }
+  dimnames(x = scaled.data) <- object.names
   scaled.data[is.na(x = scaled.data)] <- 0
   gc(verbose = FALSE)
   return(scaled.data)
@@ -1653,27 +1787,35 @@ ScaleData.Seurat <- function(
 #
 # @param data Matrix with the raw count data
 # @param custom_function A custom normalization function
+# @param margin Which way to we normalize. Set 1 for rows (features) or 2 for columns (genes)
 # @parm across Which way to we normalize? Choose form 'cells' or 'features'
+# @param verbose Show progress bar
+# @param ... Ignored
 #
 # @return Returns a matrix with the custom normalization
 #
 #' @importFrom methods as
+#' @importFrom pbapply pbapply
 # @import Matrix
 #
-CustomNormalize <- function(data, custom_function, across) {
+CustomNormalize <- function(data, custom_function, margin, verbose = TRUE, ...) {
   if (class(x = data) == "data.frame") {
     data <- as.matrix(x = data)
   }
   if (class(x = data) != "dgCMatrix") {
     data <- as(object = data, Class = "dgCMatrix")
   }
-  margin <- switch(
-    EXPR = across,
-    'cells' = 2,
-    'features' = 1,
-    stop("'across' must be either 'cells' or 'features'")
-  )
-  norm.data <- apply(
+  myapply <- ifelse(test = verbose, yes = pbapply, no = apply)
+  # margin <- switch(
+  #   EXPR = across,
+  #   'cells' = 2,
+  #   'features' = 1,
+  #   stop("'across' must be either 'cells' or 'features'")
+  # )
+  if (verbose) {
+    message("Normalizing across ", c('features', 'cells')[margin])
+  }
+  norm.data <- myapply(
     X = data,
     MARGIN = margin,
     FUN = custom_function)
@@ -1714,7 +1856,7 @@ NBResiduals <- function(fmla, regression.mat, gene, return.mode = FALSE) {
 
 # Regress out techincal effects and cell cycle from a matrix
 #
-# Remove unwanted effects from scale.data
+# Remove unwanted effects from a matrix
 #
 # @parm data.expr An expression matrix to regress the effects of latent.data out
 # of should be the complete expression matrix in genes x cells

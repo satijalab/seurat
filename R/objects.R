@@ -332,7 +332,7 @@ seurat <- setClass(
 #' detected.
 #'
 #' @importFrom methods as
-#' @importFrom Matrix colSums
+#' @importFrom Matrix colSums rowSums
 #'
 #' @export
 #'
@@ -375,11 +375,11 @@ CreateAssayObject <- function(
     # Filter based on min.features
     if (min.features > 0) {
       nfeatures <- Matrix::colSums(x = counts > 0)
-      counts <- counts[, which(x = nfeatures > min.features)]
+      counts <- counts[, which(x = nfeatures >= min.features)]
     }
     # filter genes on the number of cells expressing
     if (min.cells > 0) {
-      num.cells <- rowSums(x = counts > 0)
+      num.cells <- Matrix::rowSums(x = counts > 0)
       counts <- counts[which(x = num.cells >= min.cells), ]
     }
     data <- counts
@@ -459,7 +459,12 @@ CreateDimReducObject <- function(
   misc = list()
 ) {
   if (is.null(x = assay)) {
-    stop("Please specify the assay that was used to construct the reduction")
+    warning(
+      "No assay specified, setting assay as RNA by default.",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+    assay <- "RNA"
   }
   # Try to infer key from column names
   if (is.null(x = key) && is.null(x = colnames(x = embeddings))) {
@@ -795,11 +800,25 @@ FetchData <- function(object, vars, cells = NULL, slot = 'data') {
         vars.alt[[var]] <- append(x = vars.alt[[var]], values = assay)
       }
     }
+    vars.many <- names(x = Filter(
+      f = function(x) {
+        return(length(x = x) > 1)
+      },
+      x = vars.alt
+    ))
+    if (length(x = vars.many) > 0) {
+      warning(
+        "Found the following features in more than one assay, excluding the default. We will not include these in the final dataframe: ",
+        paste(vars.many, collapse = ', '),
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
     vars.missing <- names(x = Filter(
       f = function(x) {
         return(length(x = x) != 1)
       },
-      vars.alt
+      x = vars.alt
     ))
     vars.alt <- Filter(
       f = function(x) {
@@ -1147,12 +1166,23 @@ as.Seurat.SingleCellExperiment <- function(
     }
   )
   meta.data <- as.data.frame(SummarizedExperiment::colData(x = from))
+  # if cell names are NULL, fill with cell_X
+  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
+    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
+    cell.names <- paste0("cell_", 1:ncol(x = counts))
+    colnames(x = counts) <- cell.names
+    colnames(x = data) <- cell.names
+    rownames(x = meta.data) <- cell.names
+  }
   seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
   rownames(x = data) <- rownames(x = seurat.object)
   seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
   if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
     for (dr in SingleCellExperiment::reducedDimNames(from)) {
       embeddings <- SingleCellExperiment::reducedDim(x = from, type = dr)
+      if (is.null(rownames(x = embeddings))) {
+        rownames(x = embeddings)  <- cell.names
+      }
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
@@ -1201,15 +1231,18 @@ Cells.default <- function(object, ...) {
   return(colnames(x = object))
 }
 
-#' @param command Name of the command to pull
+#' @param command Name of the command to pull, pass \code{NULL} to get the names of all commands run
 #' @param value Name of the parameter to pull the value for
 #'
 #' @rdname Command
 #' @export
 #' @method Command Seurat
 #'
-Command.Seurat <- function(object, command, value = NULL, ...) {
+Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
   commands <- slot(object = object, name = "commands")
+  if (is.null(x = command)) {
+    return(names(x = commands))
+  }
   if (is.null(x = commands[[command]])) {
     stop(command, " has not been run or is not a valid command.")
   }
@@ -2100,63 +2133,56 @@ OldWhichCells.Seurat <- function(
   return(cells)
 }
 
-#' @param dims Number of dimensions to display
-#' @param nfeatures Number of genes to display
-#' @param projected Use projected slot
+#' @param reverse Reverse ordering
+#' @param afxn Function to evaluate each identity class based on; default is
+#' \code{\link[base]{mean}}
+#' @param reorder.numeric Rename all identity classes to be increasing numbers
+#' starting from 1 (default is FALSE)
 #'
+#' @rdname Idents
 #' @export
+#' @method ReorderIdent Seurat
 #'
-#' @rdname Print
-#' @method Print DimReduc
-#'
-Print.DimReduc <- function(
+ReorderIdent.Seurat <- function(
   object,
-  dims = 1:5,
-  nfeatures = 20,
-  projected = FALSE,
+  var,
+  reverse = FALSE,
+  afxn = mean,
+  reorder.numeric = FALSE,
   ...
 ) {
-  loadings <- Loadings(object = object, projected = projected)
-  nfeatures <- min(nfeatures, nrow(x = loadings))
-  if (ncol(x = loadings) == 0) {
-    warning("Dimensions have not been projected. Setting projected = FALSE")
-    projected <- FALSE
-    loadings <- Loadings(object, projected = projected)
-  }
-  if (min(dims) > ncol(x = loadings)) {
-    stop("Cannot print dimensions greater than computed")
-  }
-  if (max(dims) > ncol(x = loadings)) {
-    warning(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
-    dims <- min(dims):ncol(x = loadings)
-  }
-  for (dim in dims) {
-    features <- TopFeatures(
-      object = object,
-      dim = dim,
-      nfeatures = nfeatures * 2,
-      projected = projected,
-      balanced = TRUE
+  data.use <- FetchData(object = object, vars = var, ...)[, 1]
+  rfxn <- ifelse(
+    test = reverse,
+    yes = function(x) {
+      return(max(x) + 1 - x)
+    },
+    no = Same
+  )
+  new.levels <- names(x = rfxn(x = sort(x = tapply(
+    X = data.use,
+    INDEX = Idents(object = object),
+    FUN = afxn
+  ))))
+  new.idents <- factor(
+    x = Idents(object = object),
+    levels = new.levels,
+    ordered = TRUE
+  )
+  if (reorder.numeric) {
+    new.idents <- rfxn(x = rank(x = tapply(
+      X = data.use,
+      INDEX = as.numeric(x = new.idents),
+      FUN = mean
+    )))[as.numeric(x = new.idents)]
+    new.idents <- factor(
+      x = new.idents,
+      levels = 1:length(x = new.idents),
+      ordered = TRUE
     )
-   message(paste0(Key(object = object), dim))
-   pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
-   message(paste0("Positive: "), paste(pos.features[[1]], collapse = ", "))
-   pos.features[[1]] <- NULL
-   if (length(x = pos.features) > 0) {
-     for (i in pos.features) {
-       message(paste0("\t  ", paste(i, collapse = ", ")))
-     }
-   }
-   neg.features <- split(x = features$negative, f = ceiling(x = seq_along(along.with = features$negative) / 10))
-   message(paste0("Negative: "), paste(neg.features[[1]], collapse = ", "))
-   neg.features[[1]] <- NULL
-   if (length(x = neg.features) > 0) {
-     for (i in neg.features) {
-       message(paste0("\t  ", paste(i, collapse = ", ")))
-     }
-   }
-   message("")
   }
+  Idents(object = object) <- new.idents
+  return(object)
 }
 
 #' @param new.names vector of new cell names
@@ -3035,6 +3061,22 @@ WhichCells.Seurat <- function(
   return(data.return)
 }
 
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Assay
+#'
+AddMetaData.Assay <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Seurat
+#'
+AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
 #' @export
 #' @method as.logical JackStrawData
 #'
@@ -3322,6 +3364,67 @@ names.Seurat <- function(x) {
   return(FilterObjects(object = x, classes.keep = c('Assay', 'DimReduc', 'Graph')))
 }
 
+#' Print the results of a dimensional reduction analysis
+#'
+#' Prints a set of features that most strongly define a set of components
+#'
+#' @param x An object
+#' @param dims Number of dimensions to display
+#' @param nfeatures Number of genes to display
+#' @param projected Use projected slot
+#' @param ... Arguments passed to other methods
+#'
+#' @return Set of features defining the components
+#'
+#' @aliases print
+#' @seealso \code{\link[base]{cat}}
+#'
+#' @export
+#' @method print DimReduc
+#'
+print.DimReduc <- function(x, dims = 1:5, nfeatures = 20, projected = FALSE, ...) {
+  loadings <- Loadings(object = x, projected = projected)
+  nfeatures <- min(nfeatures, nrow(x = loadings))
+  if (ncol(x = loadings) == 0) {
+    warning("Dimensions have not been projected. Setting projected = FALSE")
+    projected <- FALSE
+    loadings <- Loadings(object = x, projected = projected)
+  }
+  if (min(dims) > ncol(x = loadings)) {
+    stop("Cannot print dimensions greater than computed")
+  }
+  if (max(dims) > ncol(x = loadings)) {
+    warning(paste0("Only ", ncol(x = loadings), " dimensions have been computed."))
+    dims <- min(dims):ncol(x = loadings)
+  }
+  for (dim in dims) {
+    features <- TopFeatures(
+      object = x,
+      dim = dim,
+      nfeatures = nfeatures * 2,
+      projected = projected,
+      balanced = TRUE
+    )
+    cat(Key(object = x), dim, '\n')
+    pos.features <- split(x = features$positive, f = ceiling(x = seq_along(along.with = features$positive) / 10))
+    cat("Positive: ", paste(pos.features[[1]], collapse = ", "), '\n')
+    pos.features[[1]] <- NULL
+    if (length(x = pos.features) > 0) {
+      for (i in pos.features) {
+        cat("\t  ", paste(i, collapse = ", "), '\n')
+      }
+    }
+    neg.features <- split(x = features$negative, f = ceiling(x = seq_along(along.with = features$negative) / 10))
+    cat("Negative: ", paste(neg.features[[1]], collapse = ", "), '\n')
+    neg.features[[1]] <- NULL
+    if (length(x = neg.features) > 0) {
+      for (i in neg.features) {
+        cat("\t  ", paste(i, collapse = ", "), '\n')
+      }
+    }
+  }
+}
+
 #' @importFrom stats na.omit
 #'
 #' @export
@@ -3565,36 +3668,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
 # S4 methods
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-# Internal AddMetaData defintion
-#
-# @param object An object
-# @param metadata A vector, list, or data.frame with metadata to add
-# @param col.name A name for meta data if not a named list or data.frame
-#
-# @return object with metadata added
-#
-.AddMetaData <- function(object, metadata, col.name = NULL) {
-  if (is.null(x = col.name) && is.atomic(x = metadata)) {
-    stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
-  }
-  if (inherits(x = metadata, what = c('matrix', 'Matrix'))) {
-    metadata <- as.data.frame(x = metadata)
-  }
-  col.name <- col.name %||% names(x = metadata) %||% colnames(x = metadata)
-  if (is.null(x = col.name)) {
-    stop("No metadata name provided and could not infer it from metadata object")
-  }
-  object[[col.name]] <- metadata
-  # if (class(x = metadata) == "data.frame") {
-  #   for (ii in 1:ncol(x = metadata)) {
-  #     object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
-  #   }
-  # } else {
-  #   object[[col.name]] <- metadata
-  # }
-  return(object)
-}
-
 #' @rdname AddMetaData
 #'
 setMethod(
@@ -3803,22 +3876,6 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     gc(verbose = FALSE)
     return(x)
   }
-)
-
-#' @rdname AddMetaData
-#'
-setMethod(
-  f = "AddMetaData",
-  signature = c('object' = "Assay"),
-  definition = .AddMetaData
-)
-
-#' @rdname AddMetaData
-#'
-setMethod(
-  f = "AddMetaData",
-  signature = c('object' = "Seurat"),
-  definition = .AddMetaData
 )
 
 setMethod(
@@ -4066,6 +4123,52 @@ setMethod(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Internal AddMetaData defintion
+#
+# @param object An object
+# @param metadata A vector, list, or data.frame with metadata to add
+# @param col.name A name for meta data if not a named list or data.frame
+#
+# @return object with metadata added
+#
+.AddMetaData <- function(object, metadata, col.name = NULL) {
+  if (is.null(x = col.name) && is.atomic(x = metadata)) {
+    stop("'col.name' must be provided for atomic metadata types (eg. vectors)")
+  }
+  if (inherits(x = metadata, what = c('matrix', 'Matrix'))) {
+    metadata <- as.data.frame(x = metadata)
+  }
+  col.name <- col.name %||% names(x = metadata) %||% colnames(x = metadata)
+  if (is.null(x = col.name)) {
+    stop("No metadata name provided and could not infer it from metadata object")
+  }
+  object[[col.name]] <- metadata
+  # if (class(x = metadata) == "data.frame") {
+  #   for (ii in 1:ncol(x = metadata)) {
+  #     object[[colnames(x = metadata)[ii]]] <- metadata[, ii, drop = FALSE]
+  #   }
+  # } else {
+  #   object[[col.name]] <- metadata
+  # }
+  return(object)
+}
+
+# Find the names of collections in an object
+#
+# @return A vector with the names of slots that are a list
+#
+Collections <- function(object) {
+  collections <- vapply(
+    X = slotNames(x = object),
+    FUN = function(x) {
+      return(any(grepl(pattern = 'list', x = class(x = slot(object = object, name = x)))))
+    },
+    FUN.VALUE = logical(length = 1L)
+  )
+  collections <- Filter(f = isTRUE, x = collections)
+  return(names(x = collections))
+}
 
 # Calculate nCount and nFeature
 #

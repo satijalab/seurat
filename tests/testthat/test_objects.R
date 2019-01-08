@@ -69,7 +69,7 @@ test_that("CreateAssayObject works as expected", {
 
 rna.assay2 <- CreateAssayObject(counts = pbmc.raw, min.cells = 10, min.features = 30)
 test_that("CreateAssayObject filtering works", {
-  expect_equal(dim(x = rna.assay2), c(162, 75))
+  expect_equal(dim(x = rna.assay2), c(163, 77))
   expect_true(all(rowSums(GetAssayData(object = rna.assay2, slot = "counts")) >= 10))
   expect_true(all(colSums(GetAssayData(object = rna.assay2, slot = "counts")) >= 30))
 })
@@ -91,6 +91,15 @@ test_that("CreateAssayObject catches improper input", {
   rownames(x = pbmc.raw2) <- c()
   expect_error(CreateAssayObject(counts = pbmc.raw2))
   expect_error(CreateAssayObject(data = pbmc.raw2))
+  pbmc.raw.mat <- as.matrix(x = pbmc.raw)
+  pbmc.raw.df <- as.data.frame(x = pbmc.raw.mat)
+  rna.assay3 <- CreateAssayObject(counts = pbmc.raw.df)
+  rna.assay4 <- CreateAssayObject(counts = pbmc.raw.mat)
+  expect_is(object = GetAssayData(object = rna.assay3, slot = "counts"), class = "dgCMatrix")
+  expect_is(object = GetAssayData(object = rna.assay4, slot = "counts"), class = "dgCMatrix")
+  pbmc.raw.underscores <- pbmc.raw
+  rownames(pbmc.raw.underscores) <- gsub(pattern = "-", replacement = "_", x = rownames(pbmc.raw.underscores))
+  expect_warning(CreateAssayObject(counts = pbmc.raw.underscores))
 })
 
 # Tests for creating an DimReduc object
@@ -117,10 +126,10 @@ test_that("CreateDimReducObject works", {
 test_that("CreateDimReducObject catches improper input", {
   bad.embeddings <- Embeddings(object = pca)
   colnames(x = bad.embeddings) <- paste0("PCA", 1:ncol(x = bad.embeddings))
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
+  expect_warning(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
   colnames(x = bad.embeddings) <- paste0("PC", 1:ncol(x = bad.embeddings), "X")
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC"))
-  expect_error(CreateDimReducObject(embeddings = bad.embeddings))
+  suppressWarnings(expect_error(CreateDimReducObject(embeddings = bad.embeddings, key = "PC")))
+  suppressWarnings(expect_error(CreateDimReducObject(embeddings = bad.embeddings)))
 })
 
 # Tests for creating a Seurat object

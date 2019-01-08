@@ -32,8 +32,8 @@ object.filtered <- CreateSeuratObject(
 )
 
 test_that("Filtering handled properly", {
-  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 162)
-  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 75)
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 163)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
 
@@ -42,11 +42,17 @@ test_that("Filtering handled properly", {
 context("NormalizeData")
 test_that("NormalizeData error handling", {
   expect_error(NormalizeData(object = object, assay = "FAKE"))
-  expect_equal(GetAssayData(object = object, slot = "counts"),
-               GetAssayData(object = NormalizeData(
-                  object = object,
-                  normalization.method = NULL),
-                slot = "data"))
+  expect_equal(
+    object = GetAssayData(
+      object = NormalizeData(
+        object = object,
+        normalization.method = NULL,
+        verbose = FALSE
+      ),
+      slot = "data"
+    ),
+    expected = GetAssayData(object = object, slot = "counts")
+  )
 })
 
 object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6)
@@ -57,7 +63,7 @@ test_that("NormalizeData scales properly", {
   expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"))
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
   expect_equal(
     LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
@@ -73,6 +79,15 @@ test_that("CLR normalization returns expected values", {
   expect_equal(clr.counts[230, 80], 0)
 })
 
+rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE)
+test_that("Relative count normalization returns expected values", {
+  expect_equal(rc.counts[2, 1], 142.8571, tolerance = 1e-6)
+  expect_equal(rc.counts[228, 76], 18.97533, tolerance = 1e-6)
+  expect_equal(rc.counts[230, 80], 0)
+  rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE, scale.factor = 1e6)
+  expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
+})
+
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
@@ -83,16 +98,26 @@ test_that("ScaleData returns expected values when input is a sparse matrix", {
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
-object[["RNA"]] <- SetAssayData(
+new.data <- as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+new.data[1, ] <- rep(x = 0, times = ncol(x = new.data))
+object2 <- object
+
+object2[["RNA"]] <- SetAssayData(
   object = object[["RNA"]],
   slot = "data",
-  new.data = as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+  new.data = new.data
 )
-object <- ScaleData(object = object)
+object2 <- ScaleData(object = object2, verbose = FALSE)
+
+object <- ScaleData(object = object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is not sparse", {
-  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
   expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
+})
+
+test_that("ScaleData handles zero variance features properly", {
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 1], 0)
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 80], 0)
 })
 
 # Tests for various regression techniques
@@ -127,7 +152,7 @@ test_that("Negative binomial regression works as expected", {
 })
 
 test_that("Regression error handling checks out", {
-  expect_error(ScaleData(object, vars.to.regress = "nCount_RNA", model.use = "not.a.model"))
+  expect_error(ScaleData(object, vars.to.regress = "nCount_RNA", model.use = "not.a.model", verbose = FALSE))
 })
 
 object <- ScaleData(
@@ -210,21 +235,21 @@ test_that("vst selection option returns expected values", {
 norm.fxn <- function(x) {x / mean(x)}
 test_that("CustomNormalize works as expected", {
   expect_equal(
-    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "cells"), 
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, across = "cells"),
+    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, across = "cells"),
+    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, margin = 2),
     apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
   )
   expect_equal(
-    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "features"), 
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 1),
     t(apply(X = pbmc.test, MARGIN = 1, FUN = norm.fxn))
   )
-  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, across = "invalid"))
+  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 

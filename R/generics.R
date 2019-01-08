@@ -29,14 +29,9 @@
 #' )
 #' head(x = pbmc_small[[]])
 #'
-#'
-setGeneric(
-  name = "AddMetaData",
-  def = function(object, metadata, col.name = NULL) {
-    standardGeneric("AddMetaData")
-    },
-  signature = c("object", "metadata", "col.name")
-)
+AddMetaData <- function(object, metadata, col.name = NULL) {
+  UseMethod(generic = 'AddMetaData', object = object)
+}
 
 #' @rdname Convert
 #' @export as.Seurat
@@ -216,11 +211,20 @@ FindClusters <- function(object, ...) {
 #' @export
 #'
 #' @examples
+#' # Find markers for cluster 2
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
-#' head(markers)
+#' head(x = markers)
+#'
+#' # Pass 'clustertree' or an object of class phylo to ident.1 and
+#' # a node to ident.2 as a replacement for FindMarkersNode
+#' pbmc_small <- BuildClusterTree(object = pbmc_small)
+#' markers <- FindMarkers(object = pbmc_small, ident.1 = 'clustertree', ident.2 = 5)
+#' head(x = markers)
 #'
 #' @rdname FindMarkers
 #' @export FindMarkers
+#'
+#' @aliases FindMarkersNode
 #'
 FindMarkers <- function(object, ...) {
   UseMethod(generic = 'FindMarkers', object = object)
@@ -328,7 +332,8 @@ HVFInfo <- function(object, ...) {
 #'
 #' @param x,object An object
 #' @param ... Arguments passed to other methods; for \code{RenameIdents}: named
-#' arguments as \code{old.ident = new.ident}
+#' arguments as \code{old.ident = new.ident}; for \code{ReorderIdent}: arguments
+#' passed on to \code{\link{FetchData}}
 #'
 #' @return \code{Idents}: The cell identies
 #'
@@ -502,20 +507,24 @@ OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
 }
 
-#' Print the results of a dimensional reduction analysis
+#' @inheritParams Idents
+#' @param var Feature or variable to order on
 #'
-#' Prints a set of genes that most strongly define a set of components
+#' @return \code{ReorderIdent}: An object with
 #'
-#' @param object An object
-#' @param ... Arguments passed to other methods
+#' @rdname Idents
+#' @export ReorderIdent
+#' @aliases ReorderIdent
 #'
-#' @return Set of features defining the components
+#' @examples
+#' \dontrun{
+#' head(x = Idents(object = pbmc_small))
+#' pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+#' head(x = Idents(object = pbmc_small))
+#' }
 #'
-#' @rdname Print
-#' @export Print
-#'
-Print <- function(object, ...) {
-  UseMethod(generic = "Print", object = object)
+ReorderIdent <- function(object, var, ...) {
+  UseMethod(generic = 'ReorderIdent', object = object)
 }
 
 #' Rename cells
@@ -542,7 +551,7 @@ RenameCells <- function(object, ...) {
 
 #' @inheritParams Idents
 #'
-#' @return \code{RenameIdents}: An object with selected
+#' @return \code{RenameIdents}: An object with selected identity classes renamed
 #'
 #' @rdname Idents
 #' @export RenameIdents
@@ -622,7 +631,7 @@ RunALRA <- function(object, ...) {
 #' pbmc2[["group"]] <- "group2"
 #' pbmc_cca <- RunCCA(object1 = pbmc1, object2 = pbmc2)
 #' # Print results
-#' Print(object = pbmc_cca[["cca"]])
+#' print(x = pbmc_cca[["cca"]])
 #'
 #' @rdname RunCCA
 #' @export RunCCA

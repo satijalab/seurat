@@ -95,6 +95,31 @@ test_that("Fast implementation of row scaling returns expected values", {
   expect_true(max(mat.clipped, na.rm = T) >= 0.2)
 })
 
+mat <- as(object = matrix(rnorm(1000), nrow = 10, ncol = 10), Class = "dgCMatrix")
+
+test_that("Row scaling with known stats works", {
+  mat.rowmeans <- rowMeans(x = mat)
+  mat.sd <- apply(X = mat, MARGIN = 1, FUN = sd)
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = mat.rowmeans, scale = mat.sd)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = TRUE, center = TRUE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = FALSE, scale = mat.sd)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = TRUE, center = FALSE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  expect_equal(
+    t(scale(t(as.matrix(mat)), center = mat.rowmeans, scale = FALSE)), 
+    FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = FALSE, center = TRUE, scale_max = 10, display_progress = FALSE),
+    check.attributes = FALSE
+  )
+  mat.clipped <- FastSparseRowScaleWithKnownStats(mat = mat, mu = mat.rowmeans, sigma = mat.sd, scale = FALSE, center = TRUE, scale_max = 0.2, display_progress = FALSE)
+  expect_true(max(mat.clipped, na.rm = T) >= 0.2)
+})
+
+
 # Tests for fast basic stats functions
 # --------------------------------------------------------------------------------
 context("Fast Basic Stats Functions")
@@ -148,6 +173,11 @@ test_that("Fast implementation of LogVMR returns expected values", {
   expect_equal(FastLogVMR(mat, display_progress = F)[1], 7.615384, tolerance = 1e-6)
   expect_equal(FastLogVMR(mat, display_progress = F)[5], 7.546768, tolerance = 1e-6)
   expect_equal(FastLogVMR(mat, display_progress = F)[10], 10.11755, tolerance = 1e-6)
+})
+
+test_that("Row variance calculations for sparse matrices work", {
+  expect_equal(apply(X = mat, MARGIN = 1, FUN = var), SparseRowVar(mat = mat, display_progress = FALSE), tolerance = 1e-6)
+  expect_equal(apply(X = mat2, MARGIN = 1, FUN = var), SparseRowVar(mat = as(object = mat2, Class = "dgCMatrix"), display_progress = FALSE), tolerance = 1e-6)
 })
 
 # Tests for data structure manipulations

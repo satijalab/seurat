@@ -20,6 +20,7 @@ Depends:
     R (>= 3.4.0),
     methods,
 Imports:
+    ape,
     cluster,
     cowplot,
     fitdistrplus,
@@ -30,15 +31,14 @@ Imports:
     ggridges,
     graphics,
     grDevices,
+    grid,
     ica,
     igraph,
-    ini,
     irlba,
     lmtest,
     MASS,
     Matrix (>= 1.2.14),
     metap,
-    parallel,
     pbapply,
     plotly,
     png,
@@ -51,8 +51,8 @@ Imports:
     Rtsne,
     scales,
     SDMTools,
-    tsne,
     stats,
+    tsne,
     utils
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress
 License: GPL-3 | file LICENSE
@@ -67,6 +67,7 @@ Collate:
     'integration.R'
     'objects.R'
     'preprocessing.R'
+    'tree.R'
     'utilities.R'
     'visualization.R'
 RoxygenNote: 6.1.1

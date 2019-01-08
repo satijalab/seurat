@@ -382,7 +382,7 @@ HTOHeatmap <- function(
 #' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.max Maximum y axis value
 #' @param same.y.lims Set all the y-axis limits to the same values
-#' @param log plot Y axis on log scale
+#' @param log plot the feature axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
@@ -483,9 +483,10 @@ VlnPlot <- function(
     split.by = split.by,
     log = log,
     slot = slot,
+    combine = combine,
     ...
   )
-  return(plot + NoLegend())
+  return(plot)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -603,7 +604,7 @@ DimPlot <- function(
     X = group.by,
     FUN = function(x) {
       return(SingleDimPlot(
-        data = data[, c(dims, x, split.by)],
+        data = data[, c(dims, x, split.by, shape.by)],
         dims = dims,
         col.by = x,
         cols = cols,

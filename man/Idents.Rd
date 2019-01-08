@@ -3,12 +3,14 @@
 \name{Idents}
 \alias{Idents}
 \alias{Idents<-}
+\alias{ReorderIdent}
 \alias{RenameIdents}
 \alias{RenameIdent}
 \alias{SetIdent}
 \alias{StashIdent}
 \alias{Idents.Seurat}
 \alias{Idents<-.Seurat}
+\alias{ReorderIdent.Seurat}
 \alias{RenameIdents.Seurat}
 \alias{SetIdent.Seurat}
 \alias{StashIdent.Seurat}
@@ -20,6 +22,8 @@ Idents(object, ...)
 
 Idents(object, ...) <- value
 
+ReorderIdent(object, var, ...)
+
 RenameIdents(object, ...)
 
 SetIdent(object, ...)
@@ -30,6 +34,9 @@ StashIdent(object, save.name, ...)
 
 \method{Idents}{Seurat}(object, cells = NULL, drop = FALSE,
   ...) <- value
+
+\method{ReorderIdent}{Seurat}(object, var, reverse = FALSE,
+  afxn = mean, reorder.numeric = FALSE, ...)
 
 \method{RenameIdents}{Seurat}(object, ...)
 
@@ -43,15 +50,26 @@ StashIdent(object, save.name, ...)
 }
 \arguments{
 \item{...}{Arguments passed to other methods; for \code{RenameIdents}: named
-arguments as \code{old.ident = new.ident}}
+arguments as \code{old.ident = new.ident}; for \code{ReorderIdent}: arguments
+passed on to \code{\link{FetchData}}}
 
 \item{value}{The name of the identites to pull from object metadata or the identities themselves}
+
+\item{var}{Feature or variable to order on}
 
 \item{save.name}{Store current identity information under this name}
 
 \item{cells}{Set cell identities for specific cells}
 
 \item{drop}{Drop unused levels}
+
+\item{reverse}{Reverse ordering}
+
+\item{afxn}{Function to evaluate each identity class based on; default is
+\code{\link[base]{mean}}}
+
+\item{reorder.numeric}{Rename all identity classes to be increasing numbers
+starting from 1 (default is FALSE)}
 
 \item{x, object}{An object}
 }
@@ -60,7 +78,9 @@ arguments as \code{old.ident = new.ident}}
 
 \code{Idents<-}: An object with the cell identites changed
 
-\code{RenameIdents}: An object with selected
+\code{ReorderIdent}: An object with
+
+\code{RenameIdents}: An object with selected identity classes renamed
 
 \code{SetIdent}: An object with new identity classes set
 
@@ -82,6 +102,12 @@ head(x = Idents(object = pbmc_small))
 pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), replace = TRUE)
 Idents(object = pbmc_small) <- 'groups'
 levels(x = pbmc_small)
+
+\dontrun{
+head(x = Idents(object = pbmc_small))
+pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+head(x = Idents(object = pbmc_small))
+}
 
 # Rename cell identity classes
 # Can provide an arbitrary amount of idents to rename
