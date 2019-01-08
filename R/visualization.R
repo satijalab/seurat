@@ -604,7 +604,7 @@ DimPlot <- function(
     X = group.by,
     FUN = function(x) {
       return(SingleDimPlot(
-        data = data[, c(dims, x, split.by)],
+        data = data[, c(dims, x, split.by, shape.by)],
         dims = dims,
         col.by = x,
         cols = cols,
