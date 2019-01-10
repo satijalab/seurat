@@ -1290,7 +1290,7 @@ NormalizeData.Assay <- function(
       normalization.method = normalization.method,
       scale.factor = scale.factor,
       verbose = verbose,
-      across = across,
+      margin = margin,
       ...
     )
   )
@@ -1326,7 +1326,7 @@ NormalizeData.Seurat <- function(
     normalization.method = normalization.method,
     scale.factor = scale.factor,
     verbose = verbose,
-    across = across,
+    margin = margin,
     ...
   )
   object[[assay]] <- assay.data
