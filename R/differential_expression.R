@@ -16,15 +16,29 @@ globalVariables(
 #' Finds markers (differentially expressed genes) for each of the identity classes in a dataset
 #'
 #' @inheritParams FindMarkers
+#' @param node A node to find markers for and all its children; requires
+#' \code{\link{BuildClusterTree}} to have been run previously; replaces \code{FindAllMarkersNode}
 #' @param return.thresh Only return markers that have a p-value < return.thresh, or a power > return.thresh (if the test is ROC)
 #'
 #' @return Matrix containing a ranked list of putative markers, and associated
 #' statistics (p-values, ROC score, etc.)
 #'
+#' @importFrom ape drop.tip
+#' @importFrom stats setNames
+#'
 #' @export
+#'
+#' @aliases FindAllMarkersNode
+#'
 #' @examples
-#' all_markers <- FindAllMarkers(object = pbmc_small)
-#' head(x = all_markers)
+#' # Find markers for all clusters
+#' all.markers <- FindAllMarkers(object = pbmc_small)
+#' head(x = all.markers)
+#'
+#' # Pass a value to node as a replacement for FindAllMarkersNode
+#' pbmc_small <- BuildClusterTree(object = pbmc_small)
+#' all.markers <- FindAllMarkers(object = pbmc_small, node = 4)
+#' head(x = all.markers)
 #'
 FindAllMarkers <- function(
   object,
@@ -34,6 +48,7 @@ FindAllMarkers <- function(
   test.use = "wilcox",
   min.pct = 0.1,
   min.diff.pct = -Inf,
+  node = NULL,
   verbose = TRUE,
   only.pos = FALSE,
   max.cells.per.ident = Inf,
@@ -45,19 +60,58 @@ FindAllMarkers <- function(
   return.thresh = 1e-2,
   ...
 ) {
+  MapVals <- function(vec, from, to) {
+    vec2 <- setNames(object = to, nm = from)[as.character(x = vec)]
+    vec2[is.na(x = vec2)] <- vec[is.na(x = vec2)]
+    return(unname(obj = vec2))
+  }
   if ((test.use == "roc") && (return.thresh == 1e-2)) {
     return.thresh <- 0.7
   }
-  idents.all <- sort(x = unique(x = Idents(object = object)))
+  if (is.null(x = node)) {
+    idents.all <- sort(x = unique(x = Idents(object = object)))
+  } else {
+    tree <- Tool(object = object, slot = 'BuildClusterTree')
+    if (is.null(x = tree)) {
+      stop("Please run 'BuildClusterTree' before finding markers on nodes")
+    }
+    descendants <- DFT(tree = tree, node = node, include.children = TRUE)
+    all.children <- sort(x = tree$edge[, 2][!tree$edge[, 2] %in% tree$edge[, 1]])
+    descendants <- MapVals(
+      vec = descendants,
+      from = all.children,
+      to = tree$tip.label
+    )
+    drop.children <- setdiff(x = tree$tip.label, y = descendants)
+    keep.children <- setdiff(x = tree$tip.label, y = drop.children)
+    orig.nodes <- c(
+      node,
+      as.numeric(x = setdiff(x = descendants, y = keep.children))
+    )
+    tree <- drop.tip(phy = tree, tip = drop.children)
+    new.nodes <- unique(x = tree$edge[, 1, drop = TRUE])
+    idents.all <- (tree$Nnode + 2):max(tree$edge)
+  }
   genes.de <- list()
   for (i in 1:length(x = idents.all)) {
+    if (verbose) {
+      message("Calculating cluster ", idents.all[i])
+    }
     genes.de[[i]] <- tryCatch(
-      {
+      expr = {
         FindMarkers(
           object = object,
           assay = assay,
-          ident.1 = idents.all[i],
-          ident.2 = NULL,
+          ident.1 = if (is.null(x = node)) {
+            idents.all[i]
+          } else {
+            tree
+          },
+          ident.2 = if (is.null(x = node)) {
+            NULL
+          } else {
+            idents.all[i]
+          },
           features = features,
           logfc.threshold = logfc.threshold,
           test.use = test.use,
@@ -74,13 +128,10 @@ FindAllMarkers <- function(
           ...
         )
       },
-      error = function(cond){
+      error = function(cond) {
         return(NULL)
       }
     )
-    if (verbose) {
-      message(paste("Calculating cluster", idents.all[i]))
-    }
   }
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
@@ -94,7 +145,7 @@ FindAllMarkers <- function(
           x = gde,
           subset = (myAUC > return.thresh | myAUC < (1 - return.thresh))
         )
-      } else {
+      } else if (is.null(x = node) || test.use %in% c('bimod', 't')) {
         gde <- gde[order(gde$p_val, -gde$avg_logFC), ]
         gde <- subset(x = gde, subset = p_val < return.thresh)
       }
@@ -107,12 +158,19 @@ FindAllMarkers <- function(
       }
     }
   }
-  if ((only.pos) && nrow(gde.all) > 0) {
+  if ((only.pos) && nrow(x = gde.all) > 0) {
     return(subset(x = gde.all, subset = avg_logFC > 0))
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
-  if (nrow(gde.all) == 0) {
-    warning("No DE genes identified.")
+  if (nrow(x = gde.all) == 0) {
+    warning("No DE genes identified", call. = FALSE)
+  }
+  if (!is.null(x = node)) {
+    gde.all$cluster <- MapVals(
+      vec = gde.all$cluster,
+      from = new.nodes,
+      to = orig.nodes
+    )
   }
   return(gde.all)
 }
@@ -162,7 +220,7 @@ FindConservedMarkers <- function(
   object <- SetIdent(
     object = object,
     cells = colnames(x = object),
-    ident.use = paste(Idents(object = object), object.var[, 1], sep = "_")
+    value = paste(Idents(object = object), object.var[, 1], sep = "_")
   )
   levels.split <- names(x = sort(x = table(object.var[, 1])))
   num.groups <- length(levels.split)
@@ -313,7 +371,7 @@ FindConservedMarkers <- function(
 #' Default is no downsampling. Not activated by default (set to Inf)
 #' @param random.seed Random seed for downsampling
 #' @param latent.vars Variables to test, used only when \code{test.use} is one of
-#' 'negbinom', 'poisson', or 'MAST'
+#' 'LR', 'negbinom', 'poisson', or 'MAST'
 #' @param min.cells.feature Minimum number of cells expressing the feature in at least one
 #' of the two groups, currently only used for poisson and negative binomial tests
 #' @param min.cells.group Minimum number of cells in one of the groups
@@ -529,13 +587,17 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
-
-#' @param ident.1 Identity class to define markers for
-#' @param ident.2 A second identity class for comparison. If NULL (default) -
-#' use all other cells for comparison.
+#' @param ident.1 Identity class to define markers for; pass an object of class
+#' \code{phylo} or 'clustertree' to find markers for a node in a cluster tree;
+#' passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run
+#' @param ident.2 A second identity class for comparison; if \code{NULL},
+#' use all other cells for comparison; if an object of class \code{phylo} or
+#' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
 #' @param assay Assay to use in differential expression testing
 #'
-#' @describeIn FindMarkers Run differential expression test on a Seurat object
+#' @importFrom methods is
+#'
+#' @rdname FindMarkers
 #' @export
 #' @method FindMarkers Seurat
 #'
@@ -568,6 +630,20 @@ FindMarkers.Seurat <- function(
   data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
+  } else if (ident.1 == 'clustertree' || is(object = ident.1, class2 = 'phylo')) {
+    if (is.null(x = ident.2)) {
+      stop("Please pass a node to 'ident.2' to run FindMarkers on a tree")
+    }
+    tree <- if (is(object = ident.1, class2 = 'phylo')) {
+      ident.1
+    } else {
+      Tool(object = object, slot = 'BuildClusterTree')
+    }
+    if (is.null(x = tree)) {
+      stop("Please run 'BuildClusterTree' or pass an object of class 'phylo' as 'ident.1'")
+    }
+    ident.1 <- tree$tip.label[GetLeftDescendants(tree = tree, node = ident.2)]
+    ident.2 <- tree$tip.label[GetRightDescendants(tree = tree, node = ident.2)]
   }
   if (length(x = as.vector(x = ident.1)) > 1 &&
       any(as.character(x = ident.1) %in% colnames(x = data.use))) {

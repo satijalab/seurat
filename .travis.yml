@@ -30,6 +30,9 @@ addons:
       - build-essential
       - libtool
       - libmagick++-dev
+  homebrew:
+    packages:
+      - libgit2
 
 #bioc_packages:
 #  - GenomeInfoDbData

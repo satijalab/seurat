@@ -357,8 +357,8 @@ CaseMatch <- function(search, match) {
 #' # An example is available at http://satijalab.org/seurat/cell_cycle_vignette.html
 #' pbmc_small <- CellCycleScoring(
 #'   object = pbmc_small,
-#'   g2m.genes = cc.genes$g2m.genes,
-#'   s.genes = cc.genes$s.genes
+#'   g2m.features = cc.genes$g2m.genes,
+#'   s.features = cc.genes$s.genes
 #' )
 #' head(x = pbmc_small@meta.data)
 #' }
@@ -543,6 +543,7 @@ ExpMean <- function(x) {
 #'
 #' @importFrom utils browseURL
 #' @importFrom reticulate py_module_available import
+#' @importFrom tools file_ext
 #'
 #' @export
 #'
@@ -663,8 +664,13 @@ ExportToCellbrowser <- function(
   # Export markers
   markers.string <- ''
   if (!is.null(x = markers.file)) {
-    file.copy(from = markers.file, to = file.path(dir, "markers.tsv"))
-    markers.string <- 'markers = [{"file": "markers.tsv", "shortLabel": "Seurat Cluster Markers"}]'
+    ext <- file_ext(x = markers.file)
+    fname <- paste0("markers.", ext)
+    file.copy(from = markers.file, to = file.path(dir, fname))
+    markers.string <- sprintf(
+      'markers = [{"file": "%s", "shortLabel": "Seurat Cluster Markers"}]',
+      fname
+    )
   }
   config <- c(
     'name="%s"',

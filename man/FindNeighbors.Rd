@@ -4,6 +4,7 @@
 \alias{FindNeighbors}
 \alias{FindNeighbors.default}
 \alias{FindNeighbors.Assay}
+\alias{FindNeighbors.dist}
 \alias{FindNeighbors.Seurat}
 \title{SNN Graph Construction}
 \usage{
@@ -17,6 +18,10 @@ FindNeighbors(object, ...)
   compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
+\method{FindNeighbors}{dist}(object, k.param = 10, compute.SNN = TRUE,
+  prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
+  force.recalc = FALSE, ...)
+
 \method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
   assay = NULL, features = NULL, k.param = 30, compute.SNN = TRUE,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
@@ -28,7 +33,8 @@ FindNeighbors(object, ...)
 \item{...}{Arguments passed to other methods}
 
 \item{distance.matrix}{Boolean value of whether the provided matrix is a
-distance matrix}
+distance matrix; note, for objects of class \code{dist}, this parameter will
+be set automatically}
 
 \item{k.param}{Defines k for the k-nearest neighbor algorithm}
 

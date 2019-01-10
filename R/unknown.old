@@ -2346,15 +2346,16 @@ AverageDetectionRate <- function(object, thresh.min = 0) {
 #' head(AveragePCA(object = pbmc_small))
 #'
 AveragePCA <- function(object) {
-  ident.use <- object@ident
-  embeddings <- GetDimReduction(
-    object = object,
-    reduction.type = 'pca',
-    slot = 'cell.embeddings'
-  )
+  # ident.use <- object@ident
+  embeddings <- Embeddings(object = object, reduction = 'pca')
+  # embeddings <- GetDimReduction(
+  #   object = object,
+  #   reduction.type = 'pca',
+  #   slot = 'cell.embeddings'
+  # )
   data.all <- NULL
-  for (i in levels(x = ident.use)) {
-    temp.cells <- WhichCells(object = object, ident = i)
+  for (i in levels(x = object)) {
+    temp.cells <- WhichCells(object = object, idents = i)
     if (length(x = temp.cells) == 1) {
       data.temp <- apply(
         X = data.frame((embeddings[c(temp.cells, temp.cells), ])),
@@ -2576,6 +2577,7 @@ GenesInCluster <- function(object, cluster.num, max.genes = 1e6) {
   )
   return(toReturn)
 }
+
 #' Find gene terms from Enrichr
 #'
 #' Fing gene terms from Enrichr and return the XML information
