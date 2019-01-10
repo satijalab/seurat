@@ -17,14 +17,14 @@ MULTIseqDemux(object, assay = "HTO", quantile = 0.7,
 
 \item{autoThresh}{Whether to perform automated threshold finding to define the best quantile. Default is FALSE}
 
-\item{maxiter}{Maximum number of iterations if autoThresh = TRUE. Default is 3}
+\item{maxiter}{Maximum number of iterations if autoThresh = TRUE. Default is}
 
 \item{qrange}{A range of possible quantile values to try if autoThresh = TRUE}
 
 \item{verbose}{Prints the output}
 }
 \value{
-A Seurat object with demultiplexing results stored at object@meta.data$MULTI_ID
+A Seurat object with demultiplexing results stored at \code{object$MULTI_ID}
 }
 \description{
 Identify singlets, doublets and negative cells from multiplexing experiments. Annotate singlets by tags.
@@ -34,4 +34,7 @@ Identify singlets, doublets and negative cells from multiplexing experiments. An
 object <- MULTIseqDemux(object)
 }
 
+}
+\references{
+\url{https://www.biorxiv.org/content/early/2018/08/08/387241}
 }
