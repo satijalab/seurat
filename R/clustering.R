@@ -141,7 +141,8 @@ FindClusters.Seurat <- function(
 }
 
 #' @param distance.matrix Boolean value of whether the provided matrix is a
-#' distance matrix
+#' distance matrix; note, for objects of class \code{dist}, this parameter will
+#' be set automatically
 #' @param k.param Defines k for the k-nearest neighbor algorithm
 #' @param compute.SNN also compute the shared nearest neighbor graph
 #' @param prune.SNN Sets the cutoff for acceptable Jaccard index when
@@ -172,9 +173,19 @@ FindNeighbors.default <- function(
   force.recalc = FALSE,
   ...
 ) {
+  if (is.null(x = dim(x = object))) {
+    warning(
+      "Object should have two dimensions, attempting to coerce to matrix",
+      call. = FALSE
+    )
+    object <- as.matrix(x = object)
+  }
   n.cells <- nrow(x = object)
   if (n.cells < k.param) {
-    warning("k.param set larger than number of cells. Setting k.param to number of cells - 1.")
+    warning(
+      "k.param set larger than number of cells. Setting k.param to number of cells - 1.",
+      call. = FALSE
+    )
     k.param <- n.cells - 1
   }
   # find the k-nearest neighbors for each single cell
@@ -250,6 +261,33 @@ FindNeighbors.Assay <- function(
     force.recalc = force.recalc
   )
   return(neighbor.graphs)
+}
+
+#' @rdname FindNeighbors
+#' @export
+#' @method FindNeighbors dist
+#'
+FindNeighbors.dist <- function(
+  object,
+  k.param = 10,
+  compute.SNN = TRUE,
+  prune.SNN = 1/15,
+  nn.eps = 0,
+  verbose = TRUE,
+  force.recalc = FALSE,
+  ...
+) {
+  return(FindNeighbors(
+    object = as.matrix(x = object),
+    distance.matrix = TRUE,
+    k.param = k.param,
+    compute.SNN = compute.SNN,
+    prune.SNN = prune.SNN,
+    nn.eps = nn.eps,
+    verbose = verbose,
+    force.recalc = force.recalc,
+    ...
+  ))
 }
 
 #' @param assay Assay to use in construction of SNN

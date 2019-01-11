@@ -220,7 +220,7 @@ FindConservedMarkers <- function(
   object <- SetIdent(
     object = object,
     cells = colnames(x = object),
-    ident.use = paste(Idents(object = object), object.var[, 1], sep = "_")
+    value = paste(Idents(object = object), object.var[, 1], sep = "_")
   )
   levels.split <- names(x = sort(x = table(object.var[, 1])))
   num.groups <- length(levels.split)
