@@ -413,7 +413,7 @@ MULTIseqDemux <- function(
         names(x = bar.table_sweep.list)[n] <- paste0("q=" , q)
       }
       # Determine which q values results in the highest pSinglet
-      res_round <- FindThresh(call.list = bar.table_sweep.lis)$res
+      res_round <- FindThresh(call.list = bar.table_sweep.list)$res
       res.use <- res_round[res_round$Subset == "pSinglet", ]
       q.use <- res.use[which.max(res.use$Proportion),"q"]
       if (verbose) {
@@ -2025,8 +2025,6 @@ CustomNormalize <- function(data, custom_function, margin, verbose = TRUE, ...) 
 #   \item{extrema}{...}
 # }
 #
-#' @importFrom reshape2 melt
-#
 # @author Chris McGinnis, Gartner Lab, UCSF
 #
 # @examples
@@ -2053,12 +2051,14 @@ FindThresh <- function(call.list) {
     }
     res$pSinglet[i] <- sum(temp[which(x = !names(x = temp) %in% c("Doublet", "Negative"))])
   }
-  res <- reshape2::melt(data = res, id.vars = "q")
+  res.q <- res$q
+  q.ind <- grep(pattern = 'q', x = colnames(x = res))
+  res <- Melt(x = res[, -q.ind])
+  res[, 1] <- rep.int(x = res.q, times = length(x = unique(res[, 2])))
+  colnames(x = res) <- c('q', 'variable', 'value')
   res[, 4] <- res$value/nCell
   colnames(x = res)[2:4] <- c("Subset", "nCells", "Proportion")
-  # assign(x = paste0("res_", id), value = res, envir = .GlobalEnv)
   extrema <- res$q[LocalMaxima(x = res$Proportion[which(x = res$Subset == "pSinglet")])]
-  # assign(x = paste0("extrema_", id), value = extrema, envir = .GlobalEnv)
   return(list(res = res, extrema = extrema))
 }
 
