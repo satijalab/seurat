@@ -27,12 +27,14 @@ HTODemux(object, assay = "HTO", positive.quantile = 0.99,
 }
 \value{
 The Seurat object with the following demultiplexed information stored in the meta data:
-\item{hash.maxID}{Name of hashtag with the highest signal}
-\item{hash.secondID}{Name of hashtag with the second highest signal}
-\item{hash.margin}{The difference between signals for hash.maxID and hash.secondID}
-\item{classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
-\item{classification.global}{Global classification result (singlet, doublet or negative)}
-\item{hash.ID}{Classification result where doublet IDs are collapsed}
+\describe{
+  \item{hash.maxID}{Name of hashtag with the highest signal}
+  \item{hash.secondID}{Name of hashtag with the second highest signal}
+  \item{hash.margin}{The difference between signals for hash.maxID and hash.secondID}
+  \item{classification}{Classification result, with doublets/multiplets named by the top two highest hashtags}
+  \item{classification.global}{Global classification result (singlet, doublet or negative)}
+  \item{hash.ID}{Classification result where doublet IDs are collapsed}
+}
 }
 \description{
 Assign sample-of-origin for each cell, annotate doublets.
