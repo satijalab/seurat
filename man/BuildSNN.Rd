@@ -5,9 +5,10 @@
 \title{SNN Graph Construction}
 \usage{
 BuildSNN(object, genes.use = NULL, reduction.type = "pca",
-  dims.use = NULL, k.param = 10, plot.SNN = FALSE, prune.SNN = 1/15,
-  print.output = TRUE, distance.matrix = NULL, force.recalc = FALSE,
-  filename = NULL, save.SNN = TRUE, nn.eps = 0)
+  dims.use = NULL, k.param = 10, plot.SNN = FALSE,
+  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
+  force.recalc = FALSE, filename = NULL, save.SNN = TRUE,
+  nn.eps = 0)
 }
 \arguments{
 \item{object}{Seurat object}

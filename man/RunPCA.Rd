@@ -4,10 +4,11 @@
 \alias{RunPCA}
 \title{Run Principal Component Analysis on gene expression using IRLBA}
 \usage{
-RunPCA(object, pc.genes = NULL, pcs.compute = 20, use.imputed = FALSE,
-  rev.pca = FALSE, weight.by.var = TRUE, do.print = TRUE,
-  pcs.print = 1:5, genes.print = 30, reduction.name = "pca",
-  reduction.key = "PC", assay.type = "RNA", seed.use = 42, ...)
+RunPCA(object, pc.genes = NULL, pcs.compute = 20,
+  use.imputed = FALSE, rev.pca = FALSE, weight.by.var = TRUE,
+  do.print = TRUE, pcs.print = 1:5, genes.print = 30,
+  reduction.name = "pca", reduction.key = "PC", assay.type = "RNA",
+  seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}

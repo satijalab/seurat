@@ -7,8 +7,9 @@
 ScaleData(object, genes.use = NULL, data.use = NULL, vars.to.regress,
   model.use = "linear", use.umi = FALSE, do.scale = TRUE,
   do.center = TRUE, scale.max = 10, block.size = 1000,
-  min.cells.to.block = 3000, display.progress = TRUE, assay.type = "RNA",
-  do.cpp = TRUE, check.for.norm = TRUE, do.par = FALSE, num.cores = 1)
+  min.cells.to.block = 3000, display.progress = TRUE,
+  assay.type = "RNA", do.cpp = TRUE, check.for.norm = TRUE,
+  do.par = FALSE, num.cores = 1)
 }
 \arguments{
 \item{object}{Seurat object}

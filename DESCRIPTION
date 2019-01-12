@@ -94,7 +94,7 @@ Collate:
     'utilities.R'
     'utilities_internal.R'
     'zfRenderSeurat.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 Suggests:
     gdata,
     VGAM,

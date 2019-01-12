@@ -4,8 +4,8 @@
 \alias{DimElbowPlot}
 \title{Quickly Pick Relevant Dimensions}
 \usage{
-DimElbowPlot(object, reduction.type = "pca", dims.plot = 20, xlab = "",
-  ylab = "", title = "")
+DimElbowPlot(object, reduction.type = "pca", dims.plot = 20,
+  xlab = "", ylab = "", title = "")
 }
 \arguments{
 \item{object}{Seurat object}

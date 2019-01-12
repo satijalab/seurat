@@ -8,8 +8,9 @@ FindVariableGenes(object, mean.function = ExpMean,
   dispersion.function = LogVMR, do.plot = TRUE, set.var.genes = TRUE,
   x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
   y.high.cutoff = Inf, num.bin = 20, binning.method = "equal_width",
-  selection.method = "mean.var.plot", top.genes = 1000, do.recalc = TRUE,
-  sort.results = TRUE, do.cpp = TRUE, display.progress = TRUE, ...)
+  selection.method = "mean.var.plot", top.genes = 1000,
+  do.recalc = TRUE, sort.results = TRUE, do.cpp = TRUE,
+  display.progress = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

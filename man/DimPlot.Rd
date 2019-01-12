@@ -5,15 +5,15 @@
 \title{Dimensional reduction plot}
 \usage{
 DimPlot(object, reduction.use = "pca", dim.1 = 1, dim.2 = 2,
-  cells.use = NULL, pt.size = 1, do.return = FALSE, do.bare = FALSE,
-  cols.use = NULL, group.by = "ident", pt.shape = NULL,
-  do.hover = FALSE, data.hover = "ident", do.identify = FALSE,
-  do.label = FALSE, label.size = 4, no.legend = FALSE,
-  coord.fixed = FALSE, no.axes = FALSE, dark.theme = FALSE,
-  plot.order = NULL, cells.highlight = NULL, cols.highlight = "red",
-  sizes.highlight = 1, plot.title = NULL, vector.friendly = FALSE,
-  png.file = NULL, png.arguments = c(10, 10, 100), na.value = "grey50",
-  ...)
+  cells.use = NULL, pt.size = 1, do.return = FALSE,
+  do.bare = FALSE, cols.use = NULL, group.by = "ident",
+  pt.shape = NULL, do.hover = FALSE, data.hover = "ident",
+  do.identify = FALSE, do.label = FALSE, label.size = 4,
+  no.legend = FALSE, coord.fixed = FALSE, no.axes = FALSE,
+  dark.theme = FALSE, plot.order = NULL, cells.highlight = NULL,
+  cols.highlight = "red", sizes.highlight = 1, plot.title = NULL,
+  vector.friendly = FALSE, png.file = NULL, png.arguments = c(10, 10,
+  100), na.value = "grey50", ...)
 }
 \arguments{
 \item{object}{Seurat object}

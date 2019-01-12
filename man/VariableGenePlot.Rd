@@ -5,11 +5,11 @@
 \title{View variable genes}
 \usage{
 VariableGenePlot(object, do.text = TRUE, cex.use = 0.5,
-  cex.text.use = 0.5, do.spike = FALSE, pch.use = 16, col.use = "black",
-  spike.col.use = "red", plot.both = FALSE, do.contour = TRUE,
-  contour.lwd = 3, contour.col = "white", contour.lty = 2,
-  x.low.cutoff = 0.1, x.high.cutoff = 8, y.cutoff = 1,
-  y.high.cutoff = Inf)
+  cex.text.use = 0.5, do.spike = FALSE, pch.use = 16,
+  col.use = "black", spike.col.use = "red", plot.both = FALSE,
+  do.contour = TRUE, contour.lwd = 3, contour.col = "white",
+  contour.lty = 2, x.low.cutoff = 0.1, x.high.cutoff = 8,
+  y.cutoff = 1, y.high.cutoff = Inf)
 }
 \arguments{
 \item{object}{Seurat object}

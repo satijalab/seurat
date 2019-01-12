@@ -4,10 +4,11 @@
 \alias{RunUMAP}
 \title{Run UMAP}
 \usage{
-RunUMAP(object, cells.use = NULL, dims.use = 1:5, reduction.use = "pca",
-  genes.use = NULL, assay.use = "RNA", max.dim = 2L,
-  reduction.name = "umap", reduction.key = "UMAP", n_neighbors = 30L,
-  min_dist = 0.3, metric = "correlation", seed.use = 42, ...)
+RunUMAP(object, cells.use = NULL, dims.use = 1:5,
+  reduction.use = "pca", genes.use = NULL, assay.use = "RNA",
+  max.dim = 2L, reduction.name = "umap", reduction.key = "UMAP",
+  n_neighbors = 30L, min_dist = 0.3, metric = "correlation",
+  seed.use = 42, ...)
 }
 \arguments{
 \item{object}{Seurat object}

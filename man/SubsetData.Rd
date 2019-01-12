@@ -4,11 +4,11 @@
 \alias{SubsetData}
 \title{Return a subset of the Seurat object}
 \usage{
-SubsetData(object, cells.use = NULL, subset.name = NULL, ident.use = NULL,
-  ident.remove = NULL, accept.low = -Inf, accept.high = Inf,
-  accept.value = NULL, do.center = FALSE, do.scale = FALSE,
-  max.cells.per.ident = Inf, random.seed = 1, do.clean = FALSE,
-  subset.raw, ...)
+SubsetData(object, cells.use = NULL, subset.name = NULL,
+  ident.use = NULL, ident.remove = NULL, accept.low = -Inf,
+  accept.high = Inf, accept.value = NULL, do.center = FALSE,
+  do.scale = FALSE, max.cells.per.ident = Inf, random.seed = 1,
+  do.clean = FALSE, subset.raw, ...)
 }
 \arguments{
 \item{object}{Seurat object}

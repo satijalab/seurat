@@ -4,8 +4,8 @@
 \alias{MarkerTest}
 \title{ROC-based marker discovery}
 \usage{
-MarkerTest(object, cells.1, cells.2, genes.use = NULL, print.bar = TRUE,
-  assay.type = "RNA")
+MarkerTest(object, cells.1, cells.2, genes.use = NULL,
+  print.bar = TRUE, assay.type = "RNA")
 }
 \arguments{
 \item{object}{Seurat object}

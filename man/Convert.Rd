@@ -17,8 +17,8 @@ Convert(from, ...)
   chunk.size = 1000, overwrite = FALSE, display.progress = TRUE,
   anndata.raw = "raw.data", anndata.X = "data", ...)
 
-\method{Convert}{SingleCellExperiment}(from, to, raw.data.slot = "counts",
-  data.slot = "logcounts", ...)
+\method{Convert}{SingleCellExperiment}(from, to,
+  raw.data.slot = "counts", data.slot = "logcounts", ...)
 
 \method{Convert}{anndata.base.AnnData}(from, to, X.slot = "scale.data",
   raw.slot = "data", ...)

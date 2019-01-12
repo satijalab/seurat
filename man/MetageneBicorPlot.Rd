@@ -4,9 +4,9 @@
 \alias{MetageneBicorPlot}
 \title{Plot CC bicor saturation plot}
 \usage{
-MetageneBicorPlot(object, bicor.data, grouping.var, dims.eval, gene.num = 30,
-  num.possible.genes = 2000, return.mat = FALSE, smooth = TRUE,
-  display.progress = TRUE)
+MetageneBicorPlot(object, bicor.data, grouping.var, dims.eval,
+  gene.num = 30, num.possible.genes = 2000, return.mat = FALSE,
+  smooth = TRUE, display.progress = TRUE)
 }
 \arguments{
 \item{object}{A Seurat object}

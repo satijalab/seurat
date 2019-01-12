@@ -4,9 +4,10 @@
 \alias{RunTSNE}
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
-RunTSNE(object, reduction.use = "pca", cells.use = NULL, dims.use = 1:5,
-  genes.use = NULL, seed.use = 1, tsne.method = "Rtsne", add.iter = 0,
-  dim.embed = 2, distance.matrix = NULL, reduction.name = "tsne",
+RunTSNE(object, reduction.use = "pca", cells.use = NULL,
+  dims.use = 1:5, genes.use = NULL, seed.use = 1,
+  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
+  distance.matrix = NULL, reduction.name = "tsne",
   reduction.key = "tSNE_", ...)
 }
 \arguments{

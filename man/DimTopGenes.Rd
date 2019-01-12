@@ -4,8 +4,8 @@
 \alias{DimTopGenes}
 \title{Find genes with highest scores for a given dimensional reduction technique}
 \usage{
-DimTopGenes(object, dim.use = 1, reduction.type = "pca", num.genes = 30,
-  use.full = FALSE, do.balanced = FALSE)
+DimTopGenes(object, dim.use = 1, reduction.type = "pca",
+  num.genes = 30, use.full = FALSE, do.balanced = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

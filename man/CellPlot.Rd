@@ -5,8 +5,8 @@
 \title{Cell-cell scatter plot}
 \usage{
 CellPlot(object, cell1, cell2, gene.ids = NULL, col.use = "black",
-  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5, do.hover = FALSE,
-  do.identify = FALSE, ...)
+  nrpoints.use = Inf, pch.use = 16, cex.use = 0.5,
+  do.hover = FALSE, do.identify = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}

@@ -4,8 +4,8 @@
 \alias{FetchData}
 \title{Access cellular data}
 \usage{
-FetchData(object, vars.all = NULL, cells.use = NULL, use.imputed = FALSE,
-  use.scaled = FALSE, use.raw = FALSE)
+FetchData(object, vars.all = NULL, cells.use = NULL,
+  use.imputed = FALSE, use.scaled = FALSE, use.raw = FALSE)
 }
 \arguments{
 \item{object}{Seurat object}

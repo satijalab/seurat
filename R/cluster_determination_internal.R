@@ -10,7 +10,9 @@
 #                             (smaller) number of communities.
 # @param algorithm            Algorithm for modularity optimization (1 =
 #                             original Louvain algorithm; 2 = Louvain algorithm
-#                             with multilevel refinement; 3 = SLM algorithm)
+#                             with multilevel refinement; 3 = SLM algorithm;
+#                             4 = Leiden algorithm). Leiden requires the 
+#                             leidenalg python package (e.g. via pip install leidenalg).
 # @param n.start              Number of random starts.
 # @param n.iter               Maximal number of iterations per random start.
 # @param random.seed          Seed of the random number generator
@@ -160,3 +162,42 @@ kmeans.info <- setClass(
     cell.kmeans.obj = "ANY"
   )
 )
+
+
+# Set up Leiden clustering algorithm
+# @name Leiden State Matrix
+# @rdname leiden
+#
+# @title Run Leiden clustering algorithm
+#
+# @description Implements the Leiden clustering algorithm in R using reticulate to run the Python version. Requires the python "leidenalg" and "igraph" modules to be installed. Returns a vector of partition indices.
+#
+# @param object A seurat class object.
+# @param ... Parameters to pass to the Python leidenalg function.
+#
+# @keywords graph network igraph mvtnorm simulation
+# @import reticulate
+# @importFrom igraph graph_from_adjacency_matrix write.graph
+# @export
+
+RunLeiden <- function(object, ...){
+  if (!py_module_available(module = 'leidenalg')) {
+    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
+  }
+  
+  #import python modules with reticulate
+  leidenalg <- reticulate::import("leidenalg")
+  ig <- reticulate::import("igraph")
+  
+  #export graph structure to call from Python
+  snn_graph <- object@snn
+  
+  #passes iGraph object to working directory to pass to python
+  igraph::write.graph(snn_graph, file = ".graph.edges", format = "graphml")
+  #import graph structure as a Python compatible object
+  snn_graph <-  ig$Graph$Read_GraphML(".graph.edges")
+  
+  #compute partitions
+  part <- leidenalg$find_partition(snn_graph, leidenalg$ModularityVertexPartition, ...)
+  return(part$membership+1)
+}

@@ -5,12 +5,12 @@
 \title{Cluster Determination}
 \usage{
 FindClusters(object, genes.use = NULL, reduction.type = "pca",
-  dims.use = NULL, k.param = 30, plot.SNN = FALSE, prune.SNN = 1/15,
-  print.output = TRUE, distance.matrix = NULL, save.SNN = FALSE,
-  reuse.SNN = FALSE, force.recalc = FALSE, nn.eps = 0,
-  modularity.fxn = 1, resolution = 0.8, algorithm = 1, n.start = 100,
-  n.iter = 10, random.seed = 0, temp.file.location = NULL,
-  edge.file.name = NULL)
+  dims.use = NULL, k.param = 30, plot.SNN = FALSE,
+  prune.SNN = 1/15, print.output = TRUE, distance.matrix = NULL,
+  save.SNN = FALSE, reuse.SNN = FALSE, force.recalc = FALSE,
+  nn.eps = 0, modularity.fxn = 1, resolution = 0.8, algorithm = 1,
+  n.start = 100, n.iter = 10, random.seed = 0,
+  temp.file.location = NULL, edge.file.name = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -57,7 +57,8 @@ default of 0.0 implies exact nearest neighbor search}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-algorithm).}
+algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python 
+package (e.g. via pip install leidenalg).}
 
 \item{n.start}{Number of random starts.}
 

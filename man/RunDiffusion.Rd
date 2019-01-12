@@ -4,9 +4,10 @@
 \alias{RunDiffusion}
 \title{Run diffusion map}
 \usage{
-RunDiffusion(object, cells.use = NULL, dims.use = 1:5, genes.use = NULL,
-  reduction.use = "pca", q.use = 0.01, max.dim = 2, scale.clip = 10,
-  reduction.name = "dm", reduction.key = "DM", ...)
+RunDiffusion(object, cells.use = NULL, dims.use = 1:5,
+  genes.use = NULL, reduction.use = "pca", q.use = 0.01,
+  max.dim = 2, scale.clip = 10, reduction.name = "dm",
+  reduction.key = "DM", ...)
 }
 \arguments{
 \item{object}{Seurat object}

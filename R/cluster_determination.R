@@ -38,7 +38,8 @@ NULL
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm).
+#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python 
+#' package (e.g. via pip install leidenalg).
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -49,6 +50,8 @@ NULL
 #' @importFrom Matrix sparseMatrix
 #' @importFrom methods .hasSlot
 #' @importFrom igraph plot.igraph graph.adjlist
+#' @import reticulate
+#' @importFrom igraph graph_from_adjacency_matrix write.graph
 #'
 #' @return Returns a Seurat object and optionally the SNN matrix,
 #'         object@@ident has been updated with new cluster info
@@ -160,18 +163,22 @@ FindClusters <- function(
     object <- SetCalcParams(object = object,
                                  calculation = paste0("FindClusters.res.", r),
                                  ... = parameters.to.store)
-    ids <- RunModularityClustering(
-      SNN = object@snn,
-      modularity = modularity.fxn,
-      resolution = r,
-      algorithm = algorithm,
-      n.start = n.start,
-      n.iter = n.iter,
-      random.seed = random.seed,
-      print.output = print.output,
-      temp.file.location = temp.file.location,
-      edge.file.name = edge.file.name
-    )
+    if(algorithm %in% c(1:3) || tolower(algorithm) == "louvain"){
+      ids <- RunModularityClustering(
+        SNN = object@snn,
+        modularity = modularity.fxn,
+        resolution = r,
+        algorithm = algorithm,
+        n.start = n.start,
+        n.iter = n.iter,
+        random.seed = random.seed,
+        print.output = print.output,
+        temp.file.location = temp.file.location,
+        edge.file.name = edge.file.name
+      )
+    } else if (algorithm== 4 || tolower(algorithm) == "leiden"){
+      ids <- RunLeiden(object)
+    }
     object <- SetIdent(
       object = object,
       cells.use = object@cell.names,

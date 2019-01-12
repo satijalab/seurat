@@ -4,8 +4,8 @@
 \alias{DESeq2DETest}
 \title{Differential expression using DESeq2}
 \usage{
-DESeq2DETest(object, cells.1, cells.2, genes.use = NULL, assay.type = "RNA",
-  ...)
+DESeq2DETest(object, cells.1, cells.2, genes.use = NULL,
+  assay.type = "RNA", ...)
 }
 \arguments{
 \item{object}{Seurat object}
