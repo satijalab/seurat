@@ -35,6 +35,7 @@ Imports:
     ica,
     igraph,
     irlba,
+    KernSmooth,
     lmtest,
     MASS,
     Matrix (>= 1.2.14),
