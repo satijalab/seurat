@@ -4,8 +4,7 @@
 \alias{ClassifyCells}
 \title{Classify New Data}
 \usage{
-ClassifyCells(object, classifier, training.genes = NULL,
-  training.classes = NULL, new.data = NULL, ...)
+ClassifyCells(data, q)
 }
 \arguments{
 \item{object}{Seurat object on which to train the classifier}

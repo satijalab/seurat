@@ -11,264 +11,245 @@ context("Object creation")
 fake.meta.data <- data.frame(rep(1, ncol(pbmc.test)))
 rownames(fake.meta.data) <- colnames(pbmc.test)
 colnames(fake.meta.data) <- "FMD"
-object <- CreateSeuratObject(raw.data = pbmc.test,
-                             normalization.method = "LogNormalize",
-                             do.scale = T,
-                             meta.data = fake.meta.data,
-                             # save.raw = F,
-                             display.progress = F)
+object <- CreateSeuratObject(counts = pbmc.test,
+                             meta.data = fake.meta.data)
 test_that("object initialization actually creates seurat object", {
-  expect_is(object, "seurat")
+  expect_is(object, "Seurat")
 })
-
-# test_that("save.raw option handled properly", {
-#   expect_equal(dim(object@raw.data), c(1, 1))
-#   expect_equal(object@raw.data[1, 1], NA)
-# })
 
 test_that("meta.data slot generated correctly", {
-  expect_equal(dim(object@meta.data), c(80, 4))
-  expect_equal(colnames(object@meta.data), c("nGene", "nUMI", "FMD", "orig.ident"))
-  expect_equal(rownames(object@meta.data), colnames(object@data))
-  expect_equal(object@meta.data$nGene[1:5], c(47, 52, 50, 56, 53))
-  expect_equal(object@meta.data$nUMI[75:80], c(228, 527, 202, 157, 150, 233))
+  expect_equal(dim(object[[]]), c(80, 4))
+  expect_equal(colnames(object[[]]), c("orig.ident", "nCount_RNA", "nFeature_RNA", "FMD"))
+  expect_equal(rownames(object[[]]), colnames(object))
+  expect_equal(object[["nFeature_RNA"]][1:5, ], c(47, 52, 50, 56, 53))
+  expect_equal(object[["nCount_RNA"]][75:80, ], c(228, 527, 202, 157, 150, 233))
 })
 
-test_that("normalization and scaling run during object creation process", {
-  expect_equal(object@data[2, 1], 4.968821, tolerance = 1e-6)
-  expect_equal(object@data[174, 80], 5.554937, tolerance = 1e-6)
-  expect_equal(object@scale.data[2, 1], 1.917418, tolerance = 1e-6)
-  expect_equal(object@scale.data[174, 80], 1.998957, tolerance = 1e-6)
-})
+object.filtered <- CreateSeuratObject(
+  counts = pbmc.test,
+  min.cells = 10,
+  min.features = 30
+)
 
-object <- CreateSeuratObject(raw.data = pbmc.test,
-                             is.expr = 2,
-                             min.cells = 3,
-                             min.genes = 10)
-
-test_that("Expression threshold zeros out proper entries in expression matrix", {
-  expect_equal(nnzero(object@data), 1939)
-  expect_equal(nnzero(object@raw.data), 3197)
-})
-
-test_that("Genes are filtered out based on min.cells", {
-  expect_equal(nrow(object@raw.data), 162)
-  expect_equal(nrow(object@data), 162)
-})
-
-# Tests for Read10X
-# --------------------------------------------------------------------------------
-context("Read10X")
-
-test_that("Read10X handles missing files properly", {
-  expect_error(Read10X("."))
-  expect_error(Read10X("./notadir/"))
-})
-
-test.data <- Read10X("../testdata/")
-test_that("Read10X creates sparse matrix", {
-  expect_is(test.data, "dgTMatrix")
+test_that("Filtering handled properly", {
+  expect_equal(nrow(x = GetAssayData(object = object.filtered, slot = "counts")), 163)
+  expect_equal(ncol(x = GetAssayData(object = object.filtered, slot = "counts")), 77)
 })
 
 
 # Tests for NormalizeData
 # --------------------------------------------------------------------------------
 context("NormalizeData")
-
-test.object <- object
-test.object@raw.data <- NULL
-
 test_that("NormalizeData error handling", {
-  expect_error(NormalizeData(object, assay.type = "FAKE"))
-  expect_equal(object@data, NormalizeData(object, normalization.method = NULL)@data)
-  expect_error(NormalizeData(test.object))
+  expect_error(NormalizeData(object = object, assay = "FAKE"))
+  expect_equal(
+    object = GetAssayData(
+      object = NormalizeData(
+        object = object,
+        normalization.method = NULL,
+        verbose = FALSE
+      ),
+      slot = "data"
+    ),
+    expected = GetAssayData(object = object, slot = "counts")
+  )
 })
 
-object <- NormalizeData(object, scale.factor = 1e6, display.progress = F)
+object <- NormalizeData(object = object, verbose = FALSE, scale.factor = 1e6)
 test_that("NormalizeData scales properly", {
-  expect_equal(object@data[2, 2], 9.304742, tolerance = 1e-6)
-  expect_equal(object@data[161, 55], 7.659003, tolerance = 1e-6)
-  expect_equal(object@calc.params$NormalizeData$scale.factor, 1e6)
-  expect_equal(object@calc.params$NormalizeData$normalization.method, "LogNormalize")
+  expect_equal(GetAssayData(object = object, slot = "data")[2, 1], 9.567085, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object, slot = "data")[161, 55], 8.415309, tolerance = 1e-6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "scale.factor"), 1e6)
+  expect_equal(Command(object = object, command = "NormalizeData.RNA", value = "normalization.method"), "LogNormalize")
 })
 
-normalized.data <- LogNormalize(data = object@raw.data)
+normalized.data <- LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE)
 test_that("LogNormalize normalizes properly", {
-  expect_equal(LogNormalize(data = object@raw.data, display.progress = F), LogNormalize(data = as.data.frame(as.matrix(object@raw.data)), display.progress = F))
+  expect_equal(
+    LogNormalize(data = GetAssayData(object = object[["RNA"]], slot = "counts"), verbose = FALSE),
+    LogNormalize(data = as.data.frame(as.matrix(GetAssayData(object = object[["RNA"]], slot = "counts"))), verbose = FALSE)
+  )
+})
+
+clr.counts <- NormalizeData(object = pbmc.test, normalization.method = "CLR", verbose = FALSE)
+test_that("CLR normalization returns expected values", {
+  expect_equal(dim(clr.counts), c(dim(pbmc.test)))
+  expect_equal(clr.counts[2, 1], 0.5517828, tolerance = 1e-6)
+  expect_equal(clr.counts[228, 76], 0.5971381, tolerance = 1e-6)
+  expect_equal(clr.counts[230, 80], 0)
+})
+
+rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE)
+test_that("Relative count normalization returns expected values", {
+  expect_equal(rc.counts[2, 1], 142.8571, tolerance = 1e-6)
+  expect_equal(rc.counts[228, 76], 18.97533, tolerance = 1e-6)
+  expect_equal(rc.counts[230, 80], 0)
+  rc.counts <- NormalizeData(object = pbmc.test, normalization.method = "RC", verbose = FALSE, scale.factor = 1e6)
+  expect_equal(rc.counts[2, 1], 14285.71, tolerance = 1e-6)
 })
 
 # Tests for ScaleData
 # --------------------------------------------------------------------------------
 context("ScaleData")
-object <- ScaleData(object, do.cpp = F, display.progress = F)
-test_that("Old R implementation (ScaleDataR) works properly", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
-})
-
-object <- ScaleData(object, display.progress = F)
+object <- ScaleData(object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is a sparse matrix", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.4148587, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
 })
 
-object@data <- as.matrix(object@data)
-object <- ScaleData(object)
+new.data <- as.matrix(GetAssayData(object = object[["RNA"]], slot = "data"))
+new.data[1, ] <- rep(x = 0, times = ncol(x = new.data))
+object2 <- object
+
+object2[["RNA"]] <- SetAssayData(
+  object = object[["RNA"]],
+  slot = "data",
+  new.data = new.data
+)
+object2 <- ScaleData(object = object2, verbose = FALSE)
+
+object <- ScaleData(object = object, verbose = FALSE)
 test_that("ScaleData returns expected values when input is not sparse", {
-  expect_equal(object@scale.data[1, 1], -0.2995232, tolerance = 1e-6)
-  expect_equal(object@scale.data[75, 25], 1.993555, tolerance = 1e-6)
-  expect_equal(object@scale.data[162, 59], -0.5480965, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[75, 25], -0.2562305, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[162, 59], -0.4363939, tolerance = 1e-6)
+})
+
+test_that("ScaleData handles zero variance features properly", {
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 1], 0)
+  expect_equal(GetAssayData(object = object2[["RNA"]], slot = "scale.data")[1, 80], 0)
 })
 
 # Tests for various regression techniques
 context("Regression")
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "linear")
+object <- ScaleData(
+  object = object,
+  vars.to.regress = "nCount_RNA",
+  features = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "linear")
 
 test_that("Linear regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.6436435, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.09035383, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.2723782, tolerance = 1e-6)
 })
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "negbinom")
+object <- ScaleData(
+  object,
+  vars.to.regress = "nCount_RNA",
+  features = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "negbinom")
 
 test_that("Negative binomial regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.4150756, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.6586565, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.4537495, tolerance = 1e-6)
-})
-
-object <- suppressWarnings(RegressOutNB(object = object,
-                                        latent.vars = "nUMI",
-                                        genes.regress = rownames(object@data)[1:10]))
-
-test_that("Other negative binomial regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.274358, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.5623909, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.3456492, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -0.5888811, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], -0.2553394, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1921429, tolerance = 1e-6)
 })
 
 test_that("Regression error handling checks out", {
-  expect_error(ScaleData(object, vars.to.regress = "nUMI", model.use = "not.a.model"))
+  expect_error(ScaleData(object, vars.to.regress = "nCount_RNA", model.use = "not.a.model", verbose = FALSE))
 })
 
-object <- ScaleData(object,
-                    vars.to.regress = "nUMI",
-                    genes.use = rownames(object@data)[1:10],
-                    display.progress = F,
-                    model.use = "poisson")
+object <- ScaleData(
+  object,
+  vars.to.regress = "nCount_RNA",
+  features = rownames(x = object)[1:10],
+  verbose = FALSE,
+  model.use = "poisson")
 
 test_that("Poisson regression works as expected", {
-  expect_equal(dim(object@scale.data), c(10, 59))
-  expect_equal(object@scale.data[1, 1], -0.6115097, tolerance = 1e-6)
-  expect_equal(object@scale.data[5, 25], -0.5971585, tolerance = 1e-6)
-  expect_equal(object@scale.data[10, 59], -0.4533085, tolerance = 1e-6)
+  expect_equal(dim(x = GetAssayData(object = object[["RNA"]], slot = "scale.data")), c(10, 80))
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[1, 1], -1.011717, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[5, 25], 0.05575307, tolerance = 1e-6)
+  expect_equal(GetAssayData(object = object[["RNA"]], slot = "scale.data")[10, 80], -0.1662119, tolerance = 1e-6)
 })
 
-if (detectCores() > 1) {
-  object <- ScaleData(object,
-  vars.to.regress = "nUMI",
-  genes.use = rownames(object@data)[1:10],
-  display.progress = F,
-  model.use = "linear",
-  do.par = TRUE,
-  num.cores = 2)
 
-  test_that("Parallelization works", {
-    expect_equal(dim(object@scale.data), c(10, 59))
-    expect_equal(object@scale.data[1, 1], -0.4039399, tolerance = 1e-6)
-    expect_equal(object@scale.data[5, 25], -0.9216946, tolerance = 1e-6)
-    expect_equal(object@scale.data[10, 59], -0.5475258, tolerance = 1e-6)
-  })
-}
-
-
-# Tests for SampleUMI
-# --------------------------------------------------------------------------------
+#Tests for SampleUMI
+#--------------------------------------------------------------------------------
 context("SampleUMI")
 
-downsampled.umis <- SampleUMI(object@raw.data, max.umi = 100, progress.bar = F)
-downsampled.umis.p.cell <- SampleUMI(object@raw.data, max.umi = seq(50, 630, 10), progress.bar = F, upsample = T)
+downsampled.umis <- SampleUMI(
+  data = GetAssayData(object = object, slot = "counts"),
+  max.umi = 100,
+  verbose = FALSE
+)
+downsampled.umis.p.cell <- SampleUMI(
+  data = GetAssayData(object = object, slot = "counts"),
+  max.umi = seq(50, 840, 10),
+  verbose = FALSE,
+  upsample = TRUE
+)
 test_that("SampleUMI gives reasonable downsampled/upsampled UMI counts", {
-  expect_true(!any(colSums(downsampled.umis) < 80, colSums(downsampled.umis) > 120))
-  expect_error(SampleUMI(object@raw.data, max.umi = rep(1, 5)))
-  expect_true(!is.unsorted(colSums(downsampled.umis.p.cell)))
+  expect_true(!any(colSums(x = downsampled.umis) < 30, colSums(x = downsampled.umis) > 120))
+  expect_error(SampleUMI(data = GetAssayData(object = object, slot = "raw.data"), max.umi = rep(1, 5)))
+  expect_true(!is.unsorted(x = colSums(x = downsampled.umis.p.cell)))
+  expect_error(SampleUMI(
+    data = GetAssayData(object = object, slot = "counts"),
+    max.umi = seq(50, 900, 10),
+    verbose = FALSE,
+    upsample = TRUE
+  ))
 })
 
-# Tests for FindVariableGenes
+# Tests for FindVariableFeatures
 # --------------------------------------------------------------------------------
-context("FindVariableGenes")
+context("FindVariableFeatures")
 
-object <- FindVariableGenes(object, display.progress = F, do.cpp = F, do.plot = F)
-test_that("R implementation of FindVariableGenes returns expected values", {
-  expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-  expect_equal(length(object@var.genes), 10)
-  expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-  expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-  expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-  expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
+object <- FindVariableFeatures(object = object, selection.method = "mean.var.plot", verbose = FALSE)
+test_that("mean.var.plot selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PTGDR", "SATB1", "ZNF330", "S100B"))
+  expect_equal(length(x = VariableFeatures(object = object)), 20)
+  expect_equal(HVFInfo(object = object[["RNA"]])$mean[1:2], c(8.328927, 8.444462), tolerance = 1e6)
+  expect_equal(HVFInfo(object = object[["RNA"]])$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]])$dispersion.scaled[1:2]), c(0.1113214, -0.1113214), tolerance = 1e6)
 })
 
-object <- FindVariableGenes(object, display.progress = F, do.plot = F)
-test_that("C++ implementation of FindVariableGenes returns expected values", {
-  expect_equal(object@var.genes[1:2], c("MS4A1", "CD2"))
-  expect_equal(length(object@var.genes), 10)
-  expect_equal(object@hvg.info$gene.mean[1:2], c(8.856202, 10.472897), tolerance = 1e6)
-  expect_equal(object@hvg.info$gene.dispersion[1:2], c(12.41696, 12.23218), tolerance = 1e6)
-  expect_equal(as.numeric(object@hvg.info$gene.dispersion.scaled[1:2]), c(1.7506589, 1.1963021), tolerance = 1e6)
-  expect_true(!is.unsorted(rev(object@hvg.info$gene.dispersion)))
-  expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, mean.function = mean))
-  expect_warning(FindVariableGenes(object, display.progress = F, do.plot = F, dispersion.function = ExpSD))
+object <- FindVariableFeatures(object, selection.method = "dispersion", verbose = FALSE)
+test_that("dispersion selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PCMT1", "PPBP", "LYAR", "VDAC3"))
+  expect_equal(length(x = VariableFeatures(object = object)), 230)
+  expect_equal(HVFInfo(object = object[["RNA"]])$mean[1:2], c(8.328927, 8.444462), tolerance = 1e6)
+  expect_equal(HVFInfo(object = object[["RNA"]])$dispersion[1:2], c(10.552507, 10.088223), tolerance = 1e6)
+  expect_equal(as.numeric(HVFInfo(object = object[["RNA"]])$dispersion.scaled[1:2]), c(0.1113214, -0.1113214), tolerance = 1e6)
+  expect_true(!is.unsorted(rev(HVFInfo(object = object[["RNA"]])[VariableFeatures(object = object), "dispersion"])))
 })
 
-var.genes <- FindVariableGenes(object, set.var.genes = F)
-test_that("Option to only return vector of genes works", {
-  expect_equal(length(var.genes), 10)
-  expect_equal(length(var.genes), length(object@var.genes))
-  expect_equal(var.genes[1:2], c("MS4A1", "CD2"))
+object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+test_that("vst selection option returns expected values", {
+  expect_equal(VariableFeatures(object = object)[1:4], c("PPBP", "IGLL5", "VDAC3", "CD1C"))
+  expect_equal(length(x = VariableFeatures(object = object)), 230)
+  expect_equal(unname(object[["RNA"]][["variance", drop = TRUE]][1:2]), c(1.0251582, 1.2810127), tolerance = 1e6)
+  expect_equal(unname(object[["RNA"]][["variance.expected", drop = TRUE]][1:2]), c(1.1411616, 2.7076228), tolerance = 1e6)
+  expect_equal(unname(object[["RNA"]][["variance.standardized", drop = TRUE]][1:2]), c(0.8983463, 0.4731134), tolerance = 1e6)
+  expect_true(!is.unsorted(rev(object[["RNA"]][["variance.standardized", drop = TRUE]][VariableFeatures(object = object)])))
 })
 
-object2 <- FindVariableGenes(object, display.progress = F, do.plot = F, do.recalc = FALSE)
-test_that("do.recalc doesn't change vector of variable genes", {
-  expect_equal(intersect(object@var.genes, object2@var.genes), object@var.genes)
+# Tests for internal functions
+# ------------------------------------------------------------------------------
+norm.fxn <- function(x) {x / mean(x)}
+test_that("CustomNormalize works as expected", {
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 2),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.matrix(pbmc.test), custom_function = norm.fxn, margin = 2),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = as.data.frame(as.matrix(pbmc.test)), custom_function = norm.fxn, margin = 2),
+    apply(X = pbmc.test, MARGIN = 2, FUN = norm.fxn)
+  )
+  expect_equal(
+    CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 1),
+    t(apply(X = pbmc.test, MARGIN = 1, FUN = norm.fxn))
+  )
+  expect_error(CustomNormalize(data = pbmc.test, custom_function = norm.fxn, margin = 10))
 })
 
-# Tests for FilterCells
-# --------------------------------------------------------------------------------
-context("FilterCells")
-
-object.filtered <- FilterCells(object, subset.names = c("nGene", "nUMI"), low.thresholds = c(20, 100))
-
-test_that("FilterCells low thresholds work properly", {
-  expect_equal(length(object.filtered@cell.names), 31)
-  expect_true(!any(object.filtered@meta.data$nGene < 20))
-  expect_true(!any(object.filtered@meta.data$nUMI < 100))
-})
-
-object.filtered <- FilterCells(object, subset.names = c("nGene", "nUMI"), high.thresholds = c(30, 300))
-
-test_that("FilterCells high thresholds work properly", {
-  expect_equal(length(object.filtered@cell.names), 38)
-  expect_true(!any(object.filtered@meta.data$nGene > 30))
-  expect_true(!any(object.filtered@meta.data$nUMI > 300))
-})
-
-test_that("FilterCells handles input correctly", {
-  expect_error(FilterCells(object, subset.names = c("nGene", "nUMI"), high.thresholds = 30))
-  expect_error(FilterCells(object, subset.names = c("nGene", "nUMI"), low.thresholds = 20))
-  expect_error(FilterCells(object, subset.names = c("nGene"), high.thresholds = c(30, 300)))
-})

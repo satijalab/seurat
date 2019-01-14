@@ -4,35 +4,30 @@
 \alias{ProjectDim}
 \title{Project Dimensional reduction onto full dataset}
 \usage{
-ProjectDim(object, reduction.type = "pca", dims.print = 1:5,
-  dims.store = 30, genes.print = 30, replace.dim = FALSE,
-  do.center = FALSE, do.print = TRUE, assay.type = "RNA")
+ProjectDim(object, reduction = "pca", assay = NULL, dims.print = 1:5,
+  nfeatures.print = 20, overwrite = FALSE, do.center = FALSE,
+  verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
 
-\item{reduction.type}{Reduction to use}
+\item{reduction}{Reduction to use}
 
-\item{dims.print}{Number of dims to print genes for}
+\item{assay}{Assay to use}
 
-\item{dims.store}{Number of dims to store (default is 30)}
+\item{dims.print}{Number of dims to print features for}
 
-\item{genes.print}{Number of genes with highest/lowest loadings to print for
-each PC}
+\item{nfeatures.print}{Number of features with highest/lowest loadings to print for
+each dimension}
 
-\item{replace.dim}{Replace the existing data (overwrite
-object@dr$XXX@gene.loadings), not done by default.}
+\item{overwrite}{Replace the existing data in feature.loadings}
 
 \item{do.center}{Center the dataset prior to projection (should be set to TRUE)}
 
-\item{do.print}{Print top genes associated with the projected dimensions}
-
-\item{assay.type}{Data type, RNA by default. Can be changed for multimodal
-datasets (i.e. project a PCA done on RNA, onto CITE-seq data)}
+\item{verbose}{Print top genes associated with the projected dimensions}
 }
 \value{
-Returns Seurat object with the projected values in
-object@dr$XXX@gene.loadings.full
+Returns Seurat object with the projected values
 }
 \description{
 Takes a pre-computed dimensional reduction (typically calculated on a subset
@@ -42,8 +37,8 @@ all genes.
 }
 \examples{
 pbmc_small
-pbmc_small <- ProjectDim(pbmc_small, reduction.type = "pca")
+pbmc_small <- ProjectDim(object = pbmc_small, reduction = "pca")
 # Vizualize top projected genes in heatmap
-DimHeatmap(pbmc_small,pc.use = 1,use.full = TRUE,do.balanced = TRUE,reduction.type = "pca")
+DimHeatmap(object = pbmc_small, reduction = "pca", dims = 1, balanced = TRUE)
 
 }

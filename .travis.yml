@@ -30,14 +30,17 @@ addons:
       - build-essential
       - libtool
       - libmagick++-dev
+  homebrew:
+    packages:
+      - libgit2
 
-bioc_packages:
-  - GenomeInfoDbData
-  - DESeq2
-  - MAST
-  - S4Vectors
-  - SummarizedExperiment
-  - SingleCellExperiment
+#bioc_packages:
+#  - GenomeInfoDbData
+#  - DESeq2
+#  - MAST
+#  - S4Vectors
+#  - SummarizedExperiment
+#  - SingleCellExperiment
 
 r_github_packages:
   - mojaveazure/loomR
