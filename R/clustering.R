@@ -18,7 +18,7 @@ NULL
 #' (below) 1.0 if you want to obtain a larger (smaller) number of communities.
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-#' algorithm).
+#' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -50,18 +50,22 @@ FindClusters.default <- function(
     clustering.results <- future_lapply(
       X = resolution,
       FUN = function(r) {
-        ids <- RunModularityClustering(
-          SNN = object,
-          modularity = modularity.fxn,
-          resolution = r,
-          algorithm = algorithm,
-          n.start = n.start,
-          n.iter = n.iter,
-          random.seed = random.seed,
-          print.output = verbose,
-          temp.file.location = temp.file.location,
-          edge.file.name = edge.file.name
-        )
+        if(algorithm %in% c(1:3) || tolower(algorithm) == "louvain"){
+          ids <- RunModularityClustering(
+            SNN = object,
+            modularity = modularity.fxn,
+            resolution = r,
+            algorithm = algorithm,
+            n.start = n.start,
+            n.iter = n.iter,
+            random.seed = random.seed,
+            print.output = verbose,
+            temp.file.location = temp.file.location,
+            edge.file.name = edge.file.name
+          )
+        } else if (algorithm== 4 || tolower(algorithm) == "leiden"){
+          ids <- RunLeiden(object)
+        }
         names(x = ids) <- colnames(x = object)
         ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
         results <- list(factor(x = ids))
@@ -438,7 +442,7 @@ GroupSingletons <- function(ids, SNN, verbose) {
 # @param SNN SNN matrix to use as input for the clustering algorithms
 # @param modularity Modularity function to use in clustering (1 = standard; 2 = alternative)
 # @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities
-# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm)
+# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
 # @param n.start Number of random starts
 # @param n.iter Maximal number of iterations per random start
 # @param random.seed Seed of the random number generator
@@ -476,3 +480,42 @@ RunModularityClustering <- function(
   )
   return(clusters)
 }
+
+# Set up Leiden clustering algorithm
+# @name Leiden State Matrix
+# @rdname leiden
+#
+# @title Run Leiden clustering algorithm
+#
+# @description Implements the Leiden clustering algorithm in R using reticulate to run the Python version. Requires the python "leidenalg" and "igraph" modules to be installed. Returns a vector of partition indices.
+#
+# @param object A seurat class object.
+# @param ... Parameters to pass to the Python leidenalg function.
+#
+# @keywords graph network igraph mvtnorm simulation
+# @import reticulate
+# @importFrom igraph graph_from_adjacency_matrix write.graph
+# @export
+
+RunLeiden <- function(object, ...){
+  if (!py_module_available(module = 'leidenalg')) {
+    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
+  }
+  
+  #import python modules with reticulate
+  leidenalg <- reticulate::import("leidenalg")
+  ig <- reticulate::import("igraph")
+  
+  #export graph structure to call from Python
+  snn_graph <- object@snn
+  
+  #passes iGraph object to working directory to pass to python
+  igraph::write.graph(snn_graph, file = ".graph.edges", format = "graphml")
+  #import graph structure as a Python compatible object
+  snn_graph <-  ig$Graph$Read_GraphML(".graph.edges")
+  
+  #compute partitions
+  part <- leidenalg$find_partition(snn_graph, leidenalg$ModularityVertexPartition, ...)
+  return(part$membership+1)
+}
+

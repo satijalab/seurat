@@ -31,7 +31,7 @@ FindClusters(object, ...)
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-algorithm).}
+algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
 
 \item{n.start}{Number of random starts.}
 
