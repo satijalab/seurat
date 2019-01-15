@@ -793,6 +793,9 @@ FeaturePlot <- function(
   if (!is.factor(x = data$split)) {
     data$split <- factor(x = data$split)
   }
+  if (!is.null(x = shape.by)) {
+    data[, shape.by] <- object[[shape.by, drop = TRUE]]
+  }
   plots <- vector(
     mode = "list",
     length = ifelse(
@@ -828,11 +831,12 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       plot <- SingleDimPlot(
-        data = data.plot[, c(dims, feature)],
+        data = data.plot[, c(dims, feature, shape.by)],
         dims = dims,
         col.by = feature,
         pt.size = pt.size,
         cols = cols.use,
+        shape.by = shape.by,
         label = label,
         label.size = label.size
       ) +
