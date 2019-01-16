@@ -3252,7 +3252,7 @@ merge.Assay <- function(
 #' @return Merged object
 #'
 #' @rdname merge.Seurat
-#' @aliases merge
+#' @aliases merge MergeSeurat AddSamples
 #'
 #' @export
 #' @method merge Seurat
