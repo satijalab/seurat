@@ -126,7 +126,7 @@ DimHeatmap <- function(
     par(mfrow = c(nrow, ncol))
   }
   for (i in 1:length(x = dims)) {
-    dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
+    dim.features <- c(features[[i]][[2]], rev(x = features[[i]][[1]]))
     dim.features <- rev(x = unlist(x = lapply(
       X = dim.features,
       FUN = function(feat) {
