@@ -1137,6 +1137,30 @@ UpdateSeuratObject <- function(object) {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @export
+#' @method as.Graph Matrix
+#' 
+as.Graph.Matrix <- function(
+  from
+) {
+  if (is.null(rownames(x = from))) {
+    stop("Please provide rownames to the matrix before converting to a Graph.")
+  }
+  if (is.null(colnames(x = from))) {
+    stop("Please provide colnames to the matrix before converting to a Graph.")
+  }
+  return(as(object = from, Class = "Graph"))
+}
+
+#' @export
+#' @method as.Graph matrix
+#' 
+as.Graph.matrix <- function(
+  from
+) {
+  return(as.Graph.Matrix(from = from))
+}
+
 #' @param counts name of the SingleCellExperiment assay to slot into @@counts
 #' @param data name of the SingleCellExperiment assay to slot into @@data
 #'

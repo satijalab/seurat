@@ -33,6 +33,17 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   UseMethod(generic = 'AddMetaData', object = object)
 }
 
+#' Convert a matrix (or Matrix) to the Graph class.
+
+#' @param from The matrix to convert
+#' 
+#' @export as.Graph
+#' @aliases as.Graph
+#' 
+as.Graph <- function(from, ...) {
+  UseMethod(generic = "as.Graph", object = from)
+}
+
 #' @rdname Convert
 #' @export as.Seurat
 #' @aliases as.Seurat

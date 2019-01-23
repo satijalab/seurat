@@ -180,6 +180,9 @@ FindNeighbors.default <- function(
     )
     object <- as.matrix(x = object)
   }
+  if (is.null(rownames(x = object))) {
+    stop("Please provide rownames (cell names) with the input object")
+  }
   n.cells <- nrow(x = object)
   if (n.cells < k.param) {
     warning(
@@ -228,7 +231,7 @@ FindNeighbors.default <- function(
     )
     rownames(x = snn.matrix) <- rownames(x = object)
     colnames(x = snn.matrix) <- rownames(x = object)
-    snn.matrix <- as(object = snn.matrix, Class = "Graph")
+    snn.matrix <- as.Graph(from = snn.matrix)
     neighbor.graphs[["snn"]] <- snn.matrix
   }
   return(neighbor.graphs)
