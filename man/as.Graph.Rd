@@ -8,6 +8,8 @@ as.Graph(from, ...)
 }
 \arguments{
 \item{from}{The matrix to convert}
+
+\item{...}{Arguments passed to other methods (ignored for now)}
 }
 \description{
 Convert a matrix (or Matrix) to the Graph class.

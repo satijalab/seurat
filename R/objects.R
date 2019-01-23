@@ -1141,7 +1141,8 @@ UpdateSeuratObject <- function(object) {
 #' @method as.Graph Matrix
 #' 
 as.Graph.Matrix <- function(
-  from
+  from,
+  ...
 ) {
   if (is.null(rownames(x = from))) {
     stop("Please provide rownames to the matrix before converting to a Graph.")
@@ -1156,7 +1157,8 @@ as.Graph.Matrix <- function(
 #' @method as.Graph matrix
 #' 
 as.Graph.matrix <- function(
-  from
+  from,
+  ...
 ) {
   return(as.Graph.Matrix(from = from))
 }

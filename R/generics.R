@@ -36,6 +36,8 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 #' Convert a matrix (or Matrix) to the Graph class.
 
 #' @param from The matrix to convert
+#' @param ... Arguments passed to other methods (ignored for now)
+#' 
 #' 
 #' @export as.Graph
 #' @aliases as.Graph
