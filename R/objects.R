@@ -4618,7 +4618,7 @@ Projected <- function(object) {
 Top <- function(data, num, balanced) {
   top <- if (balanced) {
     num <- round(x = num / 2)
-    data <- data[order(data), , drop = FALSE]
+    data <- data[order(data, decreasing = TRUE), , drop = FALSE]
     positive <- head(x = rownames(x = data), n = num)
     negative <- rev(x = tail(x = rownames(x = data), n = num))
     list(positive = positive, negative = negative)
