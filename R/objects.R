@@ -1214,6 +1214,9 @@ as.Seurat.SingleCellExperiment <- function(
         replacement = "_",
         x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
         )[1])
+      if (length(x = key) == 0) {
+        key <- paste0(dr, "_")
+      }
       colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
       seurat.object[[dr]] <- CreateDimReducObject(
         embeddings = embeddings,
