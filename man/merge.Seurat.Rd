@@ -4,6 +4,8 @@
 \alias{merge.Assay}
 \alias{merge.Seurat}
 \alias{merge}
+\alias{MergeSeurat}
+\alias{AddSamples}
 \title{Merge Seurat Objects}
 \usage{
 \method{merge}{Assay}(x = NULL, y = NULL, add.cell.ids = NULL,

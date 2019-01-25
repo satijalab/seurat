@@ -126,7 +126,7 @@ DimHeatmap <- function(
     par(mfrow = c(nrow, ncol))
   }
   for (i in 1:length(x = dims)) {
-    dim.features <- unname(obj = unlist(x = rev(x = features[[i]])))
+    dim.features <- c(features[[i]][[2]], rev(x = features[[i]][[1]]))
     dim.features <- rev(x = unlist(x = lapply(
       X = dim.features,
       FUN = function(feat) {
@@ -224,12 +224,21 @@ DoHeatmap <- function(
     yes = 2.5,
     no = 6
   )
-  data <- FetchData(
-    object = object,
-    vars = features,
-    cells = cells,
-    slot = slot
-  )
+  # make sure features are present 
+  possible.features <- rownames(x = GetAssayData(object = object, slot = slot))
+  if (any(!features %in% possible.features)) {
+    bad.features <- features[!features %in% possible.features]
+    features <- features[features %in% possible.features]
+    if(length(x = features) == 0) {
+      stop("No requested features found in the ", slot, " slot for the ", assay, " assay.")
+    }
+    warning("The following features were omitted as they were not found in the ", slot, 
+            " slot for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
+  }
+  data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
+    object = object, 
+    slot = slot)[features, cells, drop = FALSE])))
+  
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -793,6 +802,9 @@ FeaturePlot <- function(
   if (!is.factor(x = data$split)) {
     data$split <- factor(x = data$split)
   }
+  if (!is.null(x = shape.by)) {
+    data[, shape.by] <- object[[shape.by, drop = TRUE]]
+  }
   plots <- vector(
     mode = "list",
     length = ifelse(
@@ -828,11 +840,12 @@ FeaturePlot <- function(
         cols.use <- NULL
       }
       plot <- SingleDimPlot(
-        data = data.plot[, c(dims, feature)],
+        data = data.plot[, c(dims, feature, shape.by)],
         dims = dims,
         col.by = feature,
         pt.size = pt.size,
         cols = cols.use,
+        shape.by = shape.by,
         label = label,
         label.size = label.size
       ) +
