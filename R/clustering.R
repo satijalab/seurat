@@ -496,7 +496,6 @@ RunModularityClustering <- function(
 # @param ... Parameters to pass to the Python leidenalg function.
 #
 # @keywords graph network igraph mvtnorm simulation
-#' @import  reticulate 
 #' @importFrom reticulate import r_to_py
 # @export
 
