@@ -231,7 +231,7 @@ FindNeighbors.default <- function(
     )
     rownames(x = snn.matrix) <- rownames(x = object)
     colnames(x = snn.matrix) <- rownames(x = object)
-    snn.matrix <- as.Graph(from = snn.matrix)
+    snn.matrix <- as.Graph(x = snn.matrix)
     neighbor.graphs[["snn"]] <- snn.matrix
   }
   return(neighbor.graphs)

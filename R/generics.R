@@ -35,31 +35,36 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
 
 #' Convert a matrix (or Matrix) to the Graph class.
 
-#' @param from The matrix to convert
+#' @param x The matrix to convert
 #' @param ... Arguments passed to other methods (ignored for now)
-#' 
-#' 
+#'
+#' @rdname as.Graph
 #' @export as.Graph
-#' @aliases as.Graph
-#' 
-as.Graph <- function(from, ...) {
-  UseMethod(generic = "as.Graph", object = from)
+#'
+as.Graph <- function(x, ...) {
+  UseMethod(generic = "as.Graph", object = x)
 }
 
-#' @rdname Convert
+#' Convert objects to Seurat objects
+#'
+#' @param x An object to convert to class \code{Seurat}
+#'
+#' @rdname as.Seurat
 #' @export as.Seurat
-#' @aliases as.Seurat
 #'
-as.Seurat <- function(from, ...) {
-  UseMethod(generic = 'as.Seurat', object = from)
+as.Seurat <- function(x, ...) {
+  UseMethod(generic = 'as.Seurat', object = x)
 }
 
-#' @rdname Convert
-#' @export as.SingleCellExperiment
-#' @aliases as.SingleCellExperiment
+#' Convert objects to SingleCellExperiment objects
 #'
-as.SingleCellExperiment <- function(from, ...) {
-  UseMethod(generic = 'as.SingleCellExperiment', object = from)
+#' @param x An object to convert to class \code{SingleCellExperiment}
+#'
+#' @rdname as.SingleCellExperiment
+#' @export as.SingleCellExperiment
+#'
+as.SingleCellExperiment <- function(x, ...) {
+  UseMethod(generic = 'as.SingleCellExperiment', object = x)
 }
 
 #' Convert between data frames and sparse matrices
@@ -111,15 +116,15 @@ Command <- function(object, ...) {
 
 #' Convert Seurat objects to other classes and vice versa
 #'
-#' Currently, we support direct conversion to/from loom (\url{http://loompy.org/}),
-#' SingleCellExperiment (\url{https://bioconductor.org/packages/release/bioc/html/SingleCellExperiment.html}),
-#' and Anndata(\url{https://anndata.readthedocs.io/en/latest/}) objects.
+#' Defunct, please use other converters to convert to and from \code{Seurat} objects
 #'
 #' @param from Object to convert from
 #' @param to Class of object to convert to
 #' @param ... Arguments passed to other methods
 #'
 #' @return An object of class \code{to}
+#'
+#' @seealso \code{\link{WriteH5AD}} \code{\link{as.Seurat}} \code{\link{as.SingleCellExperiment}}
 #'
 #' @rdname Convert
 #' @export Convert
@@ -945,4 +950,53 @@ VariableFeatures <- function(object, ...) {
 #'
 WhichCells <- function(object, ...) {
   UseMethod(generic = 'WhichCells', object = object)
+}
+
+#' Read from and write to h5ad files
+#'
+#' Utilize the Anndata h5ad file format for storing and sharing single-cell expression
+#' data. Provided are tools for writing objects to h5ad files, as well as reading
+#' h5ad files into a Seurat object
+#'
+#' @details
+#' \code{ReadH5AD} and \code{WriteH5AD} will try to automatically fill slots based
+#' on data type and presence. For example, objects will be filled with scaled and
+#' normalized data if \code{adata.X} is a dense matrix and \code{raw} is present
+#' (when reading), or if the \code{scale.data} slot is filled (when writing). The
+#' following is a list of how objects will be filled
+#' \describe{
+#'   \item{\code{adata.X} is dense and \code{adata.raw} is filled; \code{ScaleData} is filled}{Objects will be filled with scaled and normalized data}
+#'   \item{
+#'     \code{adata.X} is sparse and \code{adata.raw} is filled; \code{NormalizeData} has been run, \code{ScaleData} has not been run
+#'   }{
+#'     Objects will be filled with normalized and raw data
+#'   }
+#'   \item{\code{adata.X} is sparse and \code{adata.raw} is not filled; \code{NormalizeData} has not been run}{Objects will be filled with raw data only}
+#' }
+#' In addition, dimensional reduction information and nearest-neighbor graphs will
+#' be searched for and added if and only if scaled data is being added.
+#'
+#' When reading: project name is \code{basename(file)}; identity classes will be
+#' set as the project name; all cell-level metadata from \code{adata.obs} will be
+#' taken; feature level metadata from \code{data.var} and \code{adata.raw.var}
+#' (if present) will be merged and stored in assay \code{meta.features}; highly
+#' variable features will be set if \code{highly_variable} is present in feature-level
+#' metadata; dimensional reduction objects will be given the assay name provided
+#' to the function call; graphs will be named \code{assay_method} if method is
+#' present, otherwise \code{assay_adata}
+#'
+#' When writing: only one assay will be written; all dimensional reductions and
+#' graphs associated with that assay will be stored, no other reductions or graphs
+#' will be written; active identity classes will be stored in \code{adata.obs} as
+#' \code{active_ident}
+#'
+#' @param object An object
+#' @param ... arguments passed to other methods
+#'
+#' @return \code{WriteH5AD}: None, writes to disk
+#'
+#' @rdname h5ad
+#'
+WriteH5AD <- function(object, ...) {
+  UseMethod(generic = 'WriteH5AD', object = object)
 }

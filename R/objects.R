@@ -354,8 +354,7 @@ CreateAssayObject <- function(
     stop("Must provide either 'counts' or 'data'")
   } else if (!missing(x = counts) && !missing(x = data)) {
     stop("Either 'counts' or 'data' must be missing; both cannot be provided")
-  }
-  else if (!missing(x = counts)) {
+  } else if (!missing(x = counts)) {
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
       stop("Non-unique features (rownames) present in the input matrix")
@@ -398,12 +397,20 @@ CreateAssayObject <- function(
       stop("No feature names (rownames) names present in the input matrix")
     }
     if (min.cells != 0 | min.features != 0) {
-      warning("No filtering performed if passing to data rather than counts")
+      warning(
+        "No filtering performed if passing to data rather than counts",
+        call. = FALSE,
+        immediate. = TRUE
+      )
     }
     counts <- new(Class = 'matrix')
   }
   if (any(grepl(pattern = '_', x = rownames(x = counts))) || any(grepl(pattern = '_', x = rownames(x = data)))) {
-    warning("Feature names cannot have underscores ('_'), replacing with dashes ('-')")
+    warning(
+      "Feature names cannot have underscores ('_'), replacing with dashes ('-')",
+      call. = FALSE,
+      immediate. = TRUE
+    )
     rownames(x = counts) <- gsub(
       pattern = '_',
       replacement = '-',
@@ -904,6 +911,346 @@ GetIntegrationData <- function(object, integration.name, slot) {
   return(slot(object = int.data, name = slot))
 }
 
+#' @param file Name of h5ad file
+#' @param assay Name of assay to store
+#' @param verbose Show progress updates
+#'
+#' @return \code{ReadH5AD}: A Seurat object with data from the h5ad file
+#'
+#' @importFrom methods is
+#' @importFrom Matrix sparseMatrix
+#' @importFrom utils packageVersion
+#'
+#' @aliases ReadH5AD
+#'
+#' @rdname h5ad
+#' @export
+#'
+ReadH5AD <- function(file, assay = 'RNA', verbose = TRUE) {
+  if (!PackageCheck('hdf5r', error = FALSE)) {
+    stop("Please install hdf5r' for h5ad capabilities")
+  }
+  if (!file.exists(file)) {
+    stop("Unable to find input H5AD file ", file)
+  }
+  hfile <- hdf5r::h5file(filename = file, mode = 'r')
+  # Pull assay data
+  # If X is an H5D, assume scaled
+  # Otherwise, if hfile$exists(name = 'raw'), assume X is normalized
+  # Otherwise, assume hfile[['X']] is raw counts
+  if (verbose) {
+    message("Pulling expression matrices and metadata")
+  }
+  x <- if (is(object = hfile[['X']], class2 = 'H5Group')) {
+    as.sparse(x = hfile[['X']])
+  } else {
+    hfile[['X']][, ]
+  }
+  # x will be an S3 matrix if X was scaled, otherwise will be a dgCMatrix
+  scaled <- is.matrix(x = x)
+  if (verbose) {
+    message("Data is ", ifelse(test = scaled, yes = 'scaled', no = 'unscaled'))
+  }
+  # Pull cell- and feature-level metadata
+  obs <- hfile[['obs']][]
+  x.var <- hfile[['var']][]
+  rownames(x = x) <- rownames(x = x.var) <- x.var$index
+  colnames(x = x) <- rownames(x = obs) <- obs$index
+  # Pull raw expression matrix and feature-level metadata
+  if (hfile$exists(name = 'raw.X')) {
+    raw <- as.sparse(x = hfile[['raw.X']])
+    raw.var <- hfile[['raw.var']][]
+    rownames(x = raw) <- rownames(x = raw.var) <- raw.var$index
+    colnames(x = raw) <- obs$index
+    raw.var <- raw.var[, -which(x = colnames(x = raw.var) == 'index'), drop = FALSE]
+    x.slot <- ifelse(test = scaled, yes = 'scale.data', no = 'data')
+  } else {
+    # If X is scaled, we required normalized data present in raw
+    if (scaled) {
+      stop("Seurat requires normalized data present in the raw slot when X is scaled")
+    } else {
+      x.slot <- 'raw'
+    }
+  }
+  obs <- obs[, -which(x = colnames(x = obs) == 'index'), drop = FALSE]
+  x.var <- x.var[, -which(x = colnames(x = x.var) == 'index'), drop = FALSE]
+  # Merge raw.var and x.va
+  # Only happens when we have a raw.X and raw.var in the h5ad file
+  if (x.slot != 'raw') {
+    if (verbose) {
+      message("Merging feature-level metadata dataframes")
+    }
+    x.var <- x.var[, -which(x = colnames(x = x.var) %in% colnames(x = raw.var))]
+    meta.features <- merge(x = raw.var, y = x.var, by = 0, all = TRUE)
+    rownames(x = meta.features) <- meta.features$Row.names
+    meta.features <- meta.features[, -which(x = colnames(x = meta.features) == 'Row.names')]
+    rm(raw.var)
+  } else {
+    meta.features <- x.var
+  }
+  # Fix meta feature colnames
+  colnames(x = meta.features) <- gsub(
+    pattern = 'dispersions_norm',
+    replacement = 'dispersion.scaled',
+    x = colnames(x = meta.features)
+  )
+  colnames(x = meta.features) <- gsub(
+    pattern = 'dispersions',
+    replacement = 'dispersion',
+    x = colnames(x = meta.features)
+  )
+  colnames(x = meta.features) <- gsub(
+    pattern = 'means',
+    replacement = 'mean',
+    x = colnames(x = meta.features)
+  )
+  colnames(x = meta.features) <- gsub(
+    pattern = '_',
+    replacement = '.',
+    x = colnames(x = meta.features)
+  )
+  if ('highly.variable' %in% colnames(x = meta.features)) {
+    meta.features$highly.variable[is.na(x = meta.features$highly.variable)] <- FALSE
+  }
+  rm(x.var)
+  gc(verbose = FALSE)
+  # Fix metadata colnames
+  colnames(x = obs) <- gsub(
+    pattern = '_',
+    replacement = '.',
+    x = colnames(x = obs)
+  )
+  colnames(x = obs) <- gsub(
+    pattern = 'n.genes',
+    replacement = paste0('nFeatures_', assay),
+    x = colnames(x = obs)
+  )
+  colnames(x = obs) <- gsub(
+    pattern = 'n.counts',
+    replacement = paste0('nCount_', assay),
+    x = colnames(x = obs)
+  )
+  # Assemble assay object
+  if (verbose) {
+    message("Creating assay object")
+    message(
+      "Storing X as ",
+      x.slot,
+      ifelse(
+        test = x.slot != 'counts',
+        yes = paste(" and raw as", ifelse(test = scaled, yes = 'data', no = 'counts')),
+        no = ''
+      )
+    )
+  }
+  if (scaled) {
+    assays <- list(CreateAssayObject(data = raw))
+    assays[[1]] <- SetAssayData(
+      object = assays[[1]],
+      slot = 'scale.data',
+      new.data = x
+    )
+    rm(raw)
+  } else if (x.slot == 'data') {
+    assays <- list(CreateAssayObject(counts = raw))
+    assays[[1]] <- SetAssayData(
+      object = assays[[1]],
+      slot = 'data',
+      new.data = x
+    )
+    rm(raw)
+  } else {
+    assays <- list(CreateAssayObject(counts = x))
+  }
+  names(x = assays) <- assay
+  # Add meta feature information
+  assays[[assay]][[names(x = meta.features)]] <- meta.features
+  # Add highly variable feature information
+  if ('highly.variable' %in% colnames(x = assays[[assay]][[]])) {
+    if (verbose) {
+      message("Setting highly variable features")
+    }
+    hvf.info <- HVFInfo(object = assays[[assay]])
+    hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
+    means.use <- (hvf.info$mean > 0.1) & (hvf.info$mean < 8)
+    dispersions.use <- (hvf.info$dispersion.scaled > 1) & (hvf.info$dispersion.scaled < Inf)
+    top.features <- rownames(x = hvf.info)[which(means.use & dispersions.use)]
+    VariableFeatures(object = assays[[assay]]) <- top.features
+  } else if (verbose) {
+    message("No variable feature expression found in h5ad file")
+  }
+  Key(object = assays[[assay]]) <- paste0(tolower(x = assay), '_')
+  rm(x)
+  gc(verbose = FALSE)
+  # Get dimensional reduction information
+  # If data isn't scaled, don't bother
+  if (scaled && hfile$exists(name = 'obsm')) {
+    if (verbose) {
+      message("Pulling dimensional reduction information")
+      message("Pulling cell embeddings")
+    }
+    # Pull cell embeddings
+    embed.reduc <- hfile[['obsm']]$get_type()$get_cpd_labels()
+    embed.n <- sapply(
+      X = hfile[['obsm']]$get_type()$describe()$cpd_types,
+      FUN = '[[',
+      'array_dims'
+    )
+    names(x = embed.n) <- embed.reduc
+    ncells <- hfile[['obsm']]$dims
+    embeddings <- lapply(
+      X = embed.reduc,
+      FUN = function(r) {
+        return(t(x = vapply(
+          X = 1:ncells,
+          FUN = function(i) {
+            return(hfile[['obsm']][i][[r]])
+          },
+          FUN.VALUE = numeric(length = embed.n[[r]])
+        )))
+      }
+    )
+    names(x = embeddings) <- embed.reduc
+    for (i in 1:length(x = embeddings)) {
+      rownames(x = embeddings[[i]]) <- colnames(x = assays[[assay]])
+    }
+    # Pull feature loadings
+    if (hfile$exists(name = 'varm')) {
+      if (verbose) {
+        message("Pulling feature loadings")
+      }
+      load.reduc <- hfile[['varm']]$get_type()$get_cpd_labels()
+      load.n <- sapply(
+        X = hfile[['varm']]$get_type()$describe()$cpd_types,
+        FUN = '[[',
+        'array_dims'
+      )
+      names(x = load.n) <- load.reduc
+      nfeatures <- hfile[['varm']]$dims
+      loadings <- lapply(
+        X = load.reduc,
+        FUN = function(r) {
+          return(t(x = vapply(
+            X = 1:nfeatures,
+            FUN = function(i) {
+              return(hfile[['varm']][i][[r]])
+            },
+            FUN.VALUE = numeric(length = load.n[[load.reduc]])
+          )))
+        }
+      )
+      match.ind <- lapply(
+        X = gsub(pattern = 's$', replacement = '', x = tolower(x = load.reduc)),
+        FUN = grep,
+        x = embed.reduc
+      )
+      no.match <- which(x = sapply(X = match.ind, FUN = length) != 1)
+      if (length(x = no.match) >= 1) {
+        warning(
+          "Unable to determine where the following feature loadings belong: ",
+          paste(load.reduc[no.match], collapse = ', '),
+          call. = FALSE,
+          immediate. = TRUE
+        )
+        loadings <- loadings[-no.match]
+        load.reduc <- load.reduc[-no.match]
+        match.ind <- match.ind[-no.match]
+      }
+      names(x = loadings) <- embed.reduc[unlist(x = match.ind)]
+      for (i in 1:length(x = loadings)) {
+        rownames(x = loadings[[i]]) <- rownames(x = GetAssayData(
+          object = assays[[assay]],
+          slot = 'scale.data'
+        ))
+      }
+    } else {
+      if (verbose) {
+        message("No feature loadings found")
+      }
+      loadings <- list()
+    }
+    # Create DimReduc objects
+    dim.reducs <- vector(mode = 'list', length = length(x = embed.reduc))
+    for (i in 1:length(x = embed.reduc)) {
+      r <- embed.reduc[i]
+      key <- tolower(x = gsub(pattern = 'X_', replacement = '', x = r))
+      key <- switch(
+        EXPR = key,
+        'pca' = 'PC',
+        'tsne' = 'tSNE',
+        toupper(x = key)
+      )
+      key <- paste0(key, '_')
+      stdev <- if (r == 'X_pca' && hfile$exists(name = 'uns') && hfile$exists(name = 'uns/pca/variance')) {
+        sqrt(x = hfile[['uns/pca/variance']][])
+      } else {
+        numeric(length = 0L)
+      }
+      dim.reducs[[i]] <- CreateDimReducObject(
+        embeddings = embeddings[[r]],
+        loadings = loadings[[r]] %||% new(Class = 'matrix'),
+        assay = assay,
+        stdev = stdev,
+        key = key
+      )
+    }
+    # Properly name dimensional reductions
+    names(x = dim.reducs) <- gsub(pattern = 'X_', replacement = '', x = embed.reduc)
+    # Clean up
+    rm(embeddings, loadings)
+    gc(verbose = FALSE)
+  } else {
+    if (verbose) {
+      message("No dimensional reduction information found")
+    }
+    dim.reducs <- list()
+  }
+  # Create the Seurat object
+  if (verbose) {
+    message("Assembling Seurat object")
+  }
+  # Create a project name, will be used as identity classes
+  project <- gsub(
+    pattern = '\\.h5ad',
+    replacement = '',
+    x = basename(file)
+  )
+  object <- new(
+    Class = 'Seurat',
+    assays = assays,
+    meta.data = obs,
+    version = packageVersion(pkg = 'Seurat'),
+    project.name = project
+  )
+  # Set default assay and identity information
+  DefaultAssay(object = object) <- assay
+  Idents(object = object) <- project
+  # Add dimensional reduction infrom
+  if (scaled && length(x = dim.reducs) > 1) {
+    for (r in names(x = dim.reducs)) {
+      object[[r]] <- dim.reducs[[r]]
+    }
+  }
+  # Get graph information
+  if (scaled && hfile$exists(name = 'uns') && hfile$exists(name = 'uns/neighbors')) {
+    if (verbose) {
+      message("Finding nearest neighbor graph")
+    }
+    graph <- as.sparse(x = hfile[['uns/neighbors/distances']])
+    colnames(x = graph) <- rownames(x = graph) <- colnames(x = object)
+    method <- ifelse(
+      test = hfile[['uns/neighbors/params']]$exists(name = 'method'),
+      yes = hfile[['uns/neighbors/params/method']][],
+      no = 'adata'
+    )
+    object[[paste(assay, method, sep = '_')]] <- as.Graph(x = graph)
+  } else if (verbose) {
+    message("No nearest-neighbor graph")
+  }
+  hfile$close_all()
+  return(object)
+}
+
 #' Set integation data
 #'
 #' @param object Seurat object
@@ -1137,41 +1484,40 @@ UpdateSeuratObject <- function(object) {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @rdname as.Graph
 #' @export
 #' @method as.Graph Matrix
-#' 
-as.Graph.Matrix <- function(
-  from,
-  ...
-) {
-  if (is.null(rownames(x = from))) {
+#'
+as.Graph.Matrix <- function(x, ...) {
+  if (!inherits(x = x, what = 'dgCMatrix')) {
+    x <- as(object = x, Class = 'dgCMatrix')
+  }
+  if (is.null(x = rownames(x = x))) {
     stop("Please provide rownames to the matrix before converting to a Graph.")
   }
-  if (is.null(colnames(x = from))) {
+  if (is.null(x = colnames(x = x))) {
     stop("Please provide colnames to the matrix before converting to a Graph.")
   }
-  return(as(object = from, Class = "Graph"))
+  return(as(object = x, Class = "Graph"))
 }
 
+#' @rdname as.Graph
 #' @export
 #' @method as.Graph matrix
-#' 
-as.Graph.matrix <- function(
-  from,
-  ...
-) {
-  return(as.Graph.Matrix(from = from))
+#'
+as.Graph.matrix <- function(x, ...) {
+  return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
-#' @param counts name of the SingleCellExperiment assay to slot into @@counts
-#' @param data name of the SingleCellExperiment assay to slot into @@data
+#' @param counts name of the SingleCellExperiment assay to store as \code{counts}
+#' @param data name of the SingleCellExperiment assay to slot as \code{data}
 #'
-#' @rdname Convert
+#' @rdname as.Seurat
 #' @export
 #' @method as.Seurat SingleCellExperiment
 #'
 as.Seurat.SingleCellExperiment <- function(
-  from,
+  x,
   counts = "counts",
   data = "logcounts",
   ...
@@ -1180,18 +1526,18 @@ as.Seurat.SingleCellExperiment <- function(
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   counts <- tryCatch(
-    expr = SummarizedExperiment::assay(from, counts),
+    expr = SummarizedExperiment::assay(x, counts),
     error = function(e) {
       stop("No data in provided assay - ", counts)
     }
   )
   data <- tryCatch(
-    expr = SummarizedExperiment::assay(from, data),
+    expr = SummarizedExperiment::assay(x, data),
     error = function(e) {
       stop("No data in provided assay - ", data)
     }
   )
-  meta.data <- as.data.frame(SummarizedExperiment::colData(x = from))
+  meta.data <- as.data.frame(SummarizedExperiment::colData(x = x))
   # if cell names are NULL, fill with cell_X
   if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
     warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
@@ -1203,16 +1549,16 @@ as.Seurat.SingleCellExperiment <- function(
   seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
   rownames(x = data) <- rownames(x = seurat.object)
   seurat.object <- SetAssayData(object = seurat.object, slot = "data", new.data = data)
-  if (length(x = SingleCellExperiment::reducedDimNames(from)) > 0) {
-    for (dr in SingleCellExperiment::reducedDimNames(from)) {
-      embeddings <- SingleCellExperiment::reducedDim(x = from, type = dr)
+  if (length(x = SingleCellExperiment::reducedDimNames(x)) > 0) {
+    for (dr in SingleCellExperiment::reducedDimNames(x)) {
+      embeddings <- SingleCellExperiment::reducedDim(x = x, type = dr)
       if (is.null(rownames(x = embeddings))) {
         rownames(x = embeddings)  <- cell.names
       }
       key <- gsub(
         pattern = "[[:digit:]]",
         replacement = "_",
-        x = colnames(x = SingleCellExperiment::reducedDim(x = from, type = dr)
+        x = colnames(x = SingleCellExperiment::reducedDim(x = x, type = dr)
         )[1])
       if (length(x = key) == 0) {
         key <- paste0(dr, "_")
@@ -1230,27 +1576,47 @@ as.Seurat.SingleCellExperiment <- function(
 
 #' @param assay Assay to convert
 #'
-#' @rdname Convert
+#' @rdname as.SingleCellExperiment
 #' @export
 #' @method as.SingleCellExperiment Seurat
 #'
-as.SingleCellExperiment.Seurat <- function(from, assay = NULL, ...) {
+as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   if (!PackageCheck('SingleCellExperiment', error = FALSE)) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
-  assay <- assay %||% DefaultAssay(object = from)
+  assay <- assay %||% DefaultAssay(object = x)
   sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
-    counts = GetAssayData(object = from, assay = assay, slot = "counts"),
-    logcounts = GetAssayData(object = from, assay = assay, slot = "data")
+    counts = GetAssayData(object = x, assay = assay, slot = "counts"),
+    logcounts = GetAssayData(object = x, assay = assay, slot = "data")
   ))
-  metadata <- from[[]]
-  metadata$ident <- Idents(object = from)
+  metadata <- x[[]]
+  metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
-  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(from[[assay]][[]])
-  for (dr in FilterObjects(object = from, classes.keep = "DimReduc")) {
-    SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Embeddings(object = from[[dr]])
+  SummarizedExperiment::rowData(sce) <- S4Vectors::DataFrame(x[[assay]][[]])
+  for (dr in FilterObjects(object = x, classes.keep = "DimReduc")) {
+    SingleCellExperiment::reducedDim(sce, toupper(x = dr)) <- Embeddings(object = x[[dr]])
   }
   return(sce)
+}
+
+#' @importFrom methods is
+#' @importFrom Matrix sparseMatrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse H5Group
+#'
+as.sparse.H5Group <- function(x, ...) {
+  for (i in c('data', 'indices', 'indptr')) {
+    if (!x$exists(name = i) && is(object = x[[i]], class2 = 'H5D')) {
+      stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
+    }
+  }
+  return(sparseMatrix(
+    i = x[['indices']][] + 1,
+    p = x[['indptr']][],
+    x = x[['data']][]
+  ))
 }
 
 #' @rdname Cells
@@ -1286,100 +1652,12 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
   return(params[[value]])
 }
 
-#' @param X.slot Seurat slot to transfer anndata X into. Default is scale.data
-#' @param raw.slot Seurat slot to transfer anndata raw into. Default is data
-#'
-#' @importFrom reticulate py_to_r
-#'
 #' @rdname Convert
 #' @export
 #' @method Convert anndata.base.AnnData
 #'
-Convert.anndata.base.AnnData <- function(
-  from,
-  to,
-  X.slot = "scale.data",
-  raw.slot = "data",
-  ...
-) {
-  object.to <- switch(
-    EXPR = to,
-    'seurat' = {
-      raw.data.matrix <- sparseMatrix(
-        i = as.numeric(x = from$raw$X$indices),
-        p = as.numeric(x = from$raw$X$indptr),
-        x = as.numeric(x = from$raw$X$data),
-        index1 = FALSE
-      )
-      rownames(x = raw.data.matrix) <- rownames(x = py_to_r(from$raw$var))
-      colnames(x = raw.data.matrix) <- rownames(x = py_to_r(from$obs))
-      data.matrix <- t(x = py_to_r(from$X))
-      rownames(x = data.matrix) <- rownames(x = py_to_r(from$var))
-      colnames(x = data.matrix) <- rownames(x = py_to_r(from$obs))
-      meta.data <- py_to_r(from$obs)
-      if ("n_counts" %in% colnames(x = meta.data)) {
-        colnames(x = meta.data) <- gsub(
-          pattern = "n_counts",
-          replacement = "nUMI",
-          x = colnames(x = meta.data)
-        )
-      }
-      if ("n_gene" %in% colnames(x = meta.data)) {
-        colnames(x = meta.data) <- gsub(
-          pattern = "n_gene",
-          replacement = "nGene",
-          x = colnames(x = meta.data)
-        )
-      }
-      seurat.object <- CreateSeuratObject(
-        counts = raw.data.matrix,
-        meta.data = meta.data
-      )
-      seurat.object <- SetAssayData(
-        object = seurat.object,
-        assay.type = "RNA",
-        slot = X.slot,
-        new.data = data.matrix
-      )
-      #todo, deal with obsm fields that are not dimensional reductions, or have different name structures
-      drs <- unlist(x = py_to_r(from$obsm$keys()))
-      for (dr in drs) {
-        dr.embed <- py_to_r(from$obsm[[eval(dr)]])
-        dr.name <- ExtractField(string = dr, field = 2)
-        if (is.na(dr.name)) {
-          dr.name <- dr
-        }
-        dr.dict <- list(tSNE_ = "tsne", PC = "pca")
-        if (dr.name %in% dr.dict) {
-          dr.key <- names(x = which(x = dr.dict == dr.name))
-        } else {
-          dr.key <- toupper(x = dr.name)
-        }
-        colnames(x = dr.embed) <- paste0(dr.key, 1:ncol(x = dr.embed))
-        rownames(x = dr.embed) <- colnames(x = seurat.object)
-        seurat.object[[dr.name]] <- CreateDimReducObject(
-          embeddings = dr.embed,
-          key = dr.key,
-          assay = DefaultAssay(object = seurat.object)
-        )
-        # seurat.object <- SetDimReduction(
-        #   object = seurat.object,
-        #   reduction.type = dr.name,
-        #   slot = "cell.embeddings",
-        #   new.data = dr.embed
-        # )
-        # seurat.object <- SetDimReduction(
-        #   object = seurat.object,
-        #   reduction.type = dr.name,
-        #   slot = "key",
-        #   new.data = dr.key
-        # )
-      }
-      seurat.object
-    },
-    stop(paste0("Cannot convert AnnData objects to class '", to, "'"))
-  )
-  return(object.to)
+Convert.anndata.base.AnnData <- function(...) {
+  .Defunct(new = 'ReadH5AD')
 }
 
 #' @param filename Filename for writing files
@@ -1508,90 +1786,7 @@ Convert.seurat <- function(
       # loomfile
     },
     'anndata' = {
-      .NotYetImplemented()
-      if (!py_module_available("anndata")) {
-        stop("Please install the anndata python module")
-      }
-      ad <- import("anndata")
-      raw <- switch(
-        EXPR = anndata.raw,
-        "raw.data" = from@raw.data,
-        "data" = from@data,
-        stop("Invalid Seurat data slot. Please choose one of: raw.data, data")
-      )
-      raw <- raw[,from@cell.names]
-      X <- switch(
-        EXPR = anndata.X,
-        "data" = from@data,
-        "scale.data" = from@scale.data,
-        stop("Invalid Seurat data slot. Please choose one of: data, scale.data")
-      )
-      cell_names <- colnames(x = X)
-      gene_names <- rownames(x = X)
-      if (inherits(x = raw, what = c('matrix', 'Matrix'))) {
-        raw <- as(object = raw, Class = "dgCMatrix")
-      } else {
-        raw <- as(object = as.matrix(x = raw), Class = "dgCMatrix")
-      }
-      scipy <- import(module = 'scipy.sparse', convert = FALSE)
-      sp_sparse_csc <- scipy$csc_matrix
-      raw.rownames <- rownames(x = raw)
-      raw <- sp_sparse_csc(
-        tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)),
-        shape = tuple(raw@Dim[1], raw@Dim[2])
-      )
-      if (inherits(x = raw, what = c('matrix', 'Matrix', 'data.frame'))) {
-        raw <- r_to_py(x = raw)
-      }
-      raw <- raw$T
-      raw <- dict(X = raw, var = dict(var_names = raw.rownames))
-      if (anndata.X == 'data') {
-        X <- sp_sparse_csc(
-          tuple(np_array(X@x), np_array(X@i), np_array(X@p)),
-          shape = tuple(X@Dim[1], X@Dim[2])
-        )
-        X <- X$T
-      } else {
-        X <- np_array(t(x = X))
-      }
-      obsm <- list()
-      for (dr in names(from@dr)) {
-        obsm[[paste0("X_",dr)]] <- np_array(Embeddings(object = from[[dr]]))
-      }
-      obsm <- if (!identical(obsm, list())) dict(obsm) else NULL
-      meta_data <- from@meta.data
-      if ("nUMI" %in% colnames(x = meta_data)) {
-        colnames(x = meta_data) <- gsub(
-          pattern = "nUMI",
-          replacement = "n_counts",
-          x = colnames(x = meta_data)
-        )
-      }
-      if ("nGene" %in% colnames(x = meta_data)) {
-        colnames(x = meta_data) <- gsub(
-          pattern = "nGene",
-          replacement = "n_genes",
-          x = colnames(x = meta_data)
-        )
-      }
-      colnames(x = meta_data) <- gsub(
-        pattern = "\\.",
-        replacement = "_",
-        x = colnames(x = meta_data)
-      )
-      anndata.object <- ad$AnnData(
-        raw = raw,
-        X = X,
-        obs = meta_data,
-        var = from@hvg.info,
-        obsm = obsm
-      )
-      anndata.object$var_names <- gene_names
-      anndata.object$obs_names <- cell_names
-      if (!missing(x = filename)) {
-        anndata.object$write(filename)
-      }
-      anndata.object
+      .Defunct(new = 'WriteH5AD', msg = "Use WriteH5AD to store Seurat objects as h5ad")
     },
     stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
   )
@@ -2865,6 +3060,106 @@ WhichCells.Seurat <- function(
   )
   cells <- na.omit(object = unlist(x = cells, use.names = FALSE))
   return(as.character(x = cells))
+}
+
+#' @rdname h5ad
+#' @export
+#' @method WriteH5AD Seurat
+#'
+WriteH5AD.Seurat <- function(
+  object,
+  file,
+  assay = NULL,
+  verbose = TRUE,
+  ...
+) {
+  if (!PackageCheck('hdf5r', error = FALSE)) {
+    stop("Please install hdf5r to enable h5ad functionality")
+  }
+  .NotYetImplemented()
+  if (!py_module_available("anndata")) {
+    stop("Please install the anndata python module")
+  }
+  ad <- import("anndata")
+  raw <- switch(
+    EXPR = anndata.raw,
+    "raw.data" = from@raw.data,
+    "data" = from@data,
+    stop("Invalid Seurat data slot. Please choose one of: raw.data, data")
+  )
+  raw <- raw[,from@cell.names]
+  X <- switch(
+    EXPR = anndata.X,
+    "data" = from@data,
+    "scale.data" = from@scale.data,
+    stop("Invalid Seurat data slot. Please choose one of: data, scale.data")
+  )
+  cell_names <- colnames(x = X)
+  gene_names <- rownames(x = X)
+  if (inherits(x = raw, what = c('matrix', 'Matrix'))) {
+    raw <- as(object = raw, Class = "dgCMatrix")
+  } else {
+    raw <- as(object = as.matrix(x = raw), Class = "dgCMatrix")
+  }
+  scipy <- import(module = 'scipy.sparse', convert = FALSE)
+  sp_sparse_csc <- scipy$csc_matrix
+  raw.rownames <- rownames(x = raw)
+  raw <- sp_sparse_csc(
+    tuple(np_array(raw@x), np_array(raw@i), np_array(raw@p)),
+    shape = tuple(raw@Dim[1], raw@Dim[2])
+  )
+  if (inherits(x = raw, what = c('matrix', 'Matrix', 'data.frame'))) {
+    raw <- r_to_py(x = raw)
+  }
+  raw <- raw$T
+  raw <- dict(X = raw, var = dict(var_names = raw.rownames))
+  if (anndata.X == 'data') {
+    X <- sp_sparse_csc(
+      tuple(np_array(X@x), np_array(X@i), np_array(X@p)),
+      shape = tuple(X@Dim[1], X@Dim[2])
+    )
+    X <- X$T
+  } else {
+    X <- np_array(t(x = X))
+  }
+  obsm <- list()
+  for (dr in names(from@dr)) {
+    obsm[[paste0("X_",dr)]] <- np_array(Embeddings(object = from[[dr]]))
+  }
+  obsm <- if (!identical(obsm, list())) dict(obsm) else NULL
+  meta_data <- from@meta.data
+  if ("nUMI" %in% colnames(x = meta_data)) {
+    colnames(x = meta_data) <- gsub(
+      pattern = "nUMI",
+      replacement = "n_counts",
+      x = colnames(x = meta_data)
+    )
+  }
+  if ("nGene" %in% colnames(x = meta_data)) {
+    colnames(x = meta_data) <- gsub(
+      pattern = "nGene",
+      replacement = "n_genes",
+      x = colnames(x = meta_data)
+    )
+  }
+  colnames(x = meta_data) <- gsub(
+    pattern = "\\.",
+    replacement = "_",
+    x = colnames(x = meta_data)
+  )
+  anndata.object <- ad$AnnData(
+    raw = raw,
+    X = X,
+    obs = meta_data,
+    var = from@hvg.info,
+    obsm = obsm
+  )
+  anndata.object$var_names <- gene_names
+  anndata.object$obs_names <- cell_names
+  if (!missing(x = filename)) {
+    anndata.object$write(filename)
+  }
+  invisible(x = NULL)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
