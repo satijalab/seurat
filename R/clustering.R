@@ -64,7 +64,9 @@ FindClusters.default <- function(
             edge.file.name = edge.file.name
           )
         } else if (algorithm== 4 || tolower(algorithm) == "leiden"){
-          ids <- RunLeiden(object)
+          ids <- RunLeiden(adj_mat = object)
+        } else {
+          stop("algorithm not recognised, please specify as an integer or string")
         }
         names(x = ids) <- colnames(x = object)
         ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
@@ -492,14 +494,14 @@ RunModularityClustering <- function(
 #
 # @description Implements the Leiden clustering algorithm in R using reticulate to run the Python version. Requires the python "leidenalg" and "igraph" modules to be installed. Returns a vector of partition indices.
 #
-# @param object A seurat class object.
+# @param adj_mat An adjacency matrix or SNN matrix
 # @param ... Parameters to pass to the Python leidenalg function.
 #
 # @keywords graph network igraph mvtnorm simulation
 #' @importFrom reticulate import r_to_py
 # @export
 
-RunLeiden <- function(object, ...){
+RunLeiden <- function(adj_mat, ...){
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
   }
