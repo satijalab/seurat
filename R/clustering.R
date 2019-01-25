@@ -494,7 +494,6 @@ RunModularityClustering <- function(
 #
 # @keywords graph network igraph mvtnorm simulation
 # @import reticulate
-# @importFrom igraph graph_from_adjacency_matrix write.graph
 # @export
 
 RunLeiden <- function(object, ...){
@@ -506,13 +505,15 @@ RunLeiden <- function(object, ...){
   leidenalg <- reticulate::import("leidenalg")
   ig <- reticulate::import("igraph")
   
-  #export graph structure to call from Python
-  snn_graph <- object@snn
+  #convert matrix input
+  adj_mat <- as.matrix(ceiling(adj_mat))
   
-  #passes iGraph object to working directory to pass to python
-  igraph::write.graph(snn_graph, file = ".graph.edges", format = "graphml")
-  #import graph structure as a Python compatible object
-  snn_graph <-  ig$Graph$Read_GraphML(".graph.edges")
+  ##convert to python numpy.ndarray, then a list
+  adj_mat_py <- reticulate::r_to_py(adj_mat)
+  adj_mat_py <- adj_mat_py$tolist()
+  
+  #convert graph structure to a Python compatible object
+  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
   
   #compute partitions
   part <- leidenalg$find_partition(snn_graph, leidenalg$ModularityVertexPartition, ...)
