@@ -47,6 +47,10 @@ Specify the ABSOLUTE path.}
 \item{verbose}{Print output}
 
 \item{graph.name}{Name of graph to use for the clustering algorithm}
+
+\item{partition_type}{Type of partition to use for Leiden algorithm. Defaults to RBConfigurationVertexPartition. Options include: ModularityVertexPartition, RBERVertexPartition, CPMVertexPartition, MutableVertexPartition, SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python module documentation for more details)}
+
+\item{resolution_parameter}{A parameter controlling the coarseness of the clusters for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for partition types that accept a resolution parameter)}
 }
 \value{
 Returns a Seurat object and optionally the SNN matrix,
