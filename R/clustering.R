@@ -496,7 +496,8 @@ RunModularityClustering <- function(
 # @param ... Parameters to pass to the Python leidenalg function.
 #
 # @keywords graph network igraph mvtnorm simulation
-# @import reticulate
+#' @import  reticulate 
+#' @importFrom reticulate import r_to_py
 # @export
 
 RunLeiden <- function(object, ...){
@@ -505,14 +506,14 @@ RunLeiden <- function(object, ...){
   }
   
   #import python modules with reticulate
-  leidenalg <- reticulate::import("leidenalg")
-  ig <- reticulate::import("igraph")
+  leidenalg <- import("leidenalg")
+  ig <- import("igraph")
   
   #convert matrix input
   adj_mat <- as.matrix(ceiling(adj_mat))
   
   ##convert to python numpy.ndarray, then a list
-  adj_mat_py <- reticulate::r_to_py(adj_mat)
+  adj_mat_py <- r_to_py(adj_mat)
   adj_mat_py <- adj_mat_py$tolist()
   
   #convert graph structure to a Python compatible object
