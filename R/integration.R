@@ -61,9 +61,13 @@ FindIntegrationAnchors <- function(
     if (length(x = assay) != length(x = object.list)) {
       stop("If specifying the assay, please specify one assay per object in the object.list")
     }
-    for (ii in length(x = object.list)) {
-      DefaultAssay(object = object.list[[ii]]) <- assay[ii]
-    }
+    object.list <- sapply(
+      X = 1:length(x = object.list), 
+      FUN = function(x) {
+        DefaultAssay(object = object.list[[x]]) <- assay[x]
+        return(object.list[[x]])
+      }
+    )
   } else {
     assay <- sapply(X = object.list, FUN = DefaultAssay)
   }
@@ -110,6 +114,8 @@ FindIntegrationAnchors <- function(
       object.pair <- RunCCA(
         object1 = object.1,
         object2 = object.2,
+        assay1 = assay[i],
+        assay2 = assay[j],
         features = anchor.features,
         num.cc = max(dims),
         renormalize = FALSE,
