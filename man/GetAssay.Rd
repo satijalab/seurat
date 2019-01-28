@@ -3,7 +3,7 @@
 \name{GetAssay}
 \alias{GetAssay}
 \alias{GetAssay.Seurat}
-\title{Get an assay from an object}
+\title{Get an Assay object from a given Seurat object.}
 \usage{
 GetAssay(object, ...)
 
@@ -20,5 +20,9 @@ GetAssay(object, ...)
 Returns an Assay object
 }
 \description{
-Get an assay from an object
+Get an Assay object from a given Seurat object.
+}
+\examples{
+GetAssay(object = pbmc_small, assay = "RNA")
+
 }

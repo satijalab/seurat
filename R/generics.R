@@ -133,7 +133,7 @@ Convert <- function(from, ...) {
   UseMethod(generic = 'Convert', object = from)
 }
 
-#' Get the default assay
+#' Get and set the default assay
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -302,7 +302,7 @@ FindVariableFeatures <- function(object, ...) {
   UseMethod(generic = 'FindVariableFeatures', object = object)
 }
 
-#' Get an assay from an object
+#' Get an Assay object from a given Seurat object.
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -316,14 +316,15 @@ GetAssay <- function(object, ...) {
   UseMethod(generic = 'GetAssay', object = object)
 }
 
-#' Accessor function for multimodal data
+#' General accessor function for the Assay class
 #'
-#' Pull information for specified stored dimensional reduction analysis
+#' This function can be used to pull information from any of the slots in the Assay class. For 
+#' example, pull one of the data matrices("counts", "data", or "scale.data").
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns assay data
+#' @return Returns info from requested slot
 #'
 #' @rdname GetAssayData
 #' @export GetAssayData

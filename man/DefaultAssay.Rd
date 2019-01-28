@@ -6,7 +6,7 @@
 \alias{DefaultAssay.DimReduc}
 \alias{DefaultAssay.Seurat}
 \alias{DefaultAssay<-.Seurat}
-\title{Get the default assay}
+\title{Get and set the default assay}
 \usage{
 DefaultAssay(object, ...)
 
@@ -31,5 +31,18 @@ The name of the default assay
 An object with the new default assay
 }
 \description{
-Get the default assay
+Get and set the default assay
+}
+\examples{
+# Get current default assay 
+DefaultAssay(object = pbmc_small)
+
+# Create dummy new assay to demo switching default assays
+new.assay <- pbmc_small[["RNA"]]
+Key(object = new.assay) <- "RNA2_"
+pbmc_small[["RNA2"]] <- new.assay
+# switch default assay to RNA2
+DefaultAssay(object = pbmc_small) <- "RNA2"
+DefaultAssay(object = pbmc_small)
+
 }

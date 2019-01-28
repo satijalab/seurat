@@ -20,3 +20,17 @@ as.Graph(x, ...)
 \description{
 Convert a matrix (or Matrix) to the Graph class.
 }
+\examples{
+# converting sparse matrix
+mat <- Matrix::rsparsematrix(nrow = 10, ncol = 10, density = 0.1)
+rownames(x = mat) <- paste0("feature_", 1:10)
+colnames(x = mat) <- paste0("cell_", 1:10)
+g <- as.Graph(x = mat)
+
+# converting dense matrix
+mat <- matrix(data = 1:16, nrow = 4)
+rownames(x = mat) <- paste0("feature_", 1:4)
+colnames(x = mat) <- paste0("cell_", 1:4)
+g <- as.Graph(x = mat)
+
+}

@@ -1488,6 +1488,13 @@ UpdateSeuratObject <- function(object) {
 #' @export
 #' @method as.Graph Matrix
 #'
+#' @examples
+#' # converting sparse matrix
+#' mat <- Matrix::rsparsematrix(nrow = 10, ncol = 10, density = 0.1)
+#' rownames(x = mat) <- paste0("feature_", 1:10)
+#' colnames(x = mat) <- paste0("cell_", 1:10)
+#' g <- as.Graph(x = mat)
+#' 
 as.Graph.Matrix <- function(x, ...) {
   if (!inherits(x = x, what = 'dgCMatrix')) {
     x <- as(object = x, Class = 'dgCMatrix')
@@ -1504,7 +1511,14 @@ as.Graph.Matrix <- function(x, ...) {
 #' @rdname as.Graph
 #' @export
 #' @method as.Graph matrix
-#'
+#' 
+#' @examples
+#' # converting dense matrix
+#' mat <- matrix(data = 1:16, nrow = 4)
+#' rownames(x = mat) <- paste0("feature_", 1:4)
+#' colnames(x = mat) <- paste0("cell_", 1:4)
+#' g <- as.Graph(x = mat)
+#' 
 as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
@@ -1805,6 +1819,10 @@ DefaultAssay.DimReduc <- function(object, ...) {
 #' @export
 #' @method DefaultAssay Seurat
 #'
+#' @examples 
+#' # Get current default assay 
+#' DefaultAssay(object = pbmc_small)
+#' 
 DefaultAssay.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.assay'))
 }
@@ -1821,6 +1839,15 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' @export
 #' @method DefaultAssay<- Seurat
 #'
+#' @examples
+#' # Create dummy new assay to demo switching default assays
+#' new.assay <- pbmc_small[["RNA"]]
+#' Key(object = new.assay) <- "RNA2_"
+#' pbmc_small[["RNA2"]] <- new.assay
+#' # switch default assay to RNA2
+#' DefaultAssay(object = pbmc_small) <- "RNA2"
+#' DefaultAssay(object = pbmc_small)
+#' 
 "DefaultAssay<-.Seurat" <- function(object, ..., value) {
   if (!value %in% names(x = slot(object = object, name = 'assays'))) {
     stop("Cannot find assay ", value)
@@ -1832,6 +1859,10 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' @rdname Embeddings
 #' @export
 #' @method Embeddings DimReduc
+#' 
+#' @examples 
+#' # Get the embeddings directly from a DimReduc object
+#' Embeddings(object = pbmc_small[["pca"]])[1:5, 1:5]
 #'
 Embeddings.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'cell.embeddings'))
@@ -1843,6 +1874,10 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @export
 #' @method Embeddings Seurat
 #'
+#' @examples 
+#' # Get the embeddings from a specific DimReduc in a Seurat object
+#' Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
+#' 
 Embeddings.Seurat <- function(object, reduction, ...) {
   return(Embeddings(object = object[[reduction]], ...))
 }
@@ -1853,6 +1888,9 @@ Embeddings.Seurat <- function(object, reduction, ...) {
 #' @export
 #' @method GetAssay Seurat
 #'
+#' @examples 
+#' GetAssay(object = pbmc_small, assay = "RNA")
+#' 
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
@@ -1866,12 +1904,16 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
   return(slot(object = object, name = 'assays')[[assay]])
 }
 
-#' @param slot Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data
+#' @param slot Specific information to pull (i.e. raw.data, data, scale.data, ...)
 #'
 #' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Assay
 #'
+#' @examples 
+#' # Get the data directly from an Assay object
+#' GetAssayData(object = pbmc_small[["RNA"]], slot = "data")[1:5,1:5]
+#' 
 GetAssayData.Assay <- function(object, slot = 'data', ...) {
   return(slot(object = object, name = slot))
 }
@@ -1881,7 +1923,11 @@ GetAssayData.Assay <- function(object, slot = 'data', ...) {
 #' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Seurat
-#'
+#' 
+#' @examples 
+#' # Get the data from a specific Assay in a Seurat object
+#' GetAssayData(object = pbmc_small, assay = "RNA", slot = "data")[1:5,1:5]
+#' 
 GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   return(GetAssayData(

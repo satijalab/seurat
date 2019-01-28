@@ -4,7 +4,7 @@
 \alias{GetAssayData}
 \alias{GetAssayData.Assay}
 \alias{GetAssayData.Seurat}
-\title{Accessor function for multimodal data}
+\title{General accessor function for the Assay class}
 \usage{
 GetAssayData(object, ...)
 
@@ -17,13 +17,22 @@ GetAssayData(object, ...)
 
 \item{...}{Arguments passed to other methods}
 
-\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data,...). Default is data}
+\item{slot}{Specific information to pull (i.e. raw.data, data, scale.data, ...)}
 
 \item{assay}{Name of assay to pull data from}
 }
 \value{
-Returns assay data
+Returns info from requested slot
 }
 \description{
-Pull information for specified stored dimensional reduction analysis
+This function can be used to pull information from any of the slots in the Assay class. For 
+example, pull one of the data matrices("counts", "data", or "scale.data").
+}
+\examples{
+# Get the data directly from an Assay object
+GetAssayData(object = pbmc_small[["RNA"]], slot = "data")[1:5,1:5]
+
+# Get the data from a specific Assay in a Seurat object
+GetAssayData(object = pbmc_small, assay = "RNA", slot = "data")[1:5,1:5]
+
 }

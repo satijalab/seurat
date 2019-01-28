@@ -22,3 +22,11 @@ Embeddings(object, ...)
 \description{
 Get cell embeddings
 }
+\examples{
+# Get the embeddings directly from a DimReduc object
+Embeddings(object = pbmc_small[["pca"]])[1:5, 1:5]
+
+# Get the embeddings from a specific DimReduc in a Seurat object
+Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
+
+}
