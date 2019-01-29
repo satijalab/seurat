@@ -19,8 +19,6 @@ NULL
 #' @param algorithm Algorithm for modularity optimization (1 = original Louvain
 #' algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
 #' algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
-#' @param partition_type Type of partition to use for Leiden algorithm. Defaults to RBConfigurationVertexPartition. Options include: ModularityVertexPartition, RBERVertexPartition, CPMVertexPartition, MutableVertexPartition, SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python module documentation for more details)
-#' @param resolution_parameter A parameter controlling the coarseness of the clusters for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for partition types that accept a resolution parameter)
 #' @param n.start Number of random starts.
 #' @param n.iter Maximal number of iterations per random start.
 #' @param random.seed Seed of the random number generator.
@@ -52,7 +50,7 @@ FindClusters.default <- function(
     clustering.results <- future_lapply(
       X = resolution,
       FUN = function(r) {
-        if(algorithm %in% c(1:3) || tolower(algorithm) == "louvain"){
+        if (algorithm %in% c(1:3) || tolower(x = algorithm) == "louvain") {
           ids <- RunModularityClustering(
             SNN = object,
             modularity = modularity.fxn,
@@ -65,8 +63,12 @@ FindClusters.default <- function(
             temp.file.location = temp.file.location,
             edge.file.name = edge.file.name
           )
-        } else if (algorithm== 4 || tolower(algorithm) == "leiden"){
-          ids <- RunLeiden(adj_mat = object, partition_type == "RBConfigurationVertexPartition", resolution_type = 1)
+        } else if (algorithm == 4 || tolower(x = algorithm) == "leiden") {
+          ids <- RunLeiden(
+            adj_mat = object,
+            partition_type == "RBConfigurationVertexPartition",
+            resolution_type = 1
+          )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
         }
@@ -444,6 +446,106 @@ GroupSingletons <- function(ids, SNN, verbose) {
   return(ids)
 }
 
+# Run Leiden clustering algorithm
+#
+# Implements the Leiden clustering algorithm in R using reticulate
+# to run the Python version. Requires the python "leidenalg" and "igraph" modules
+# to be installed. Returns a vector of partition indices.
+#
+# @param adj_mat An adjacency matrix or SNN matrix
+# @param partition_type Type of partition to use for Leiden algorithm.
+# Defaults to RBConfigurationVertexPartition. Options include: ModularityVertexPartition,
+# RBERVertexPartition, CPMVertexPartition, MutableVertexPartition,
+# SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python
+# module documentation for more details)
+# @param resolution_parameter A parameter controlling the coarseness of the clusters
+# for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
+# partition types that accept a resolution parameter)
+# @param ... Parameters to pass to the Python leidenalg function.
+#
+# @keywords graph network igraph mvtnorm simulation
+#
+#' @importFrom reticulate py_module_available import r_to_py
+#
+# @author Tom Kelly
+#
+# @export
+#
+RunLeiden <- function(
+  adj_mat,
+  partition_type = c(
+    'RBConfigurationVertexPartition',
+    'ModularityVertexPartition',
+    'RBERVertexPartition',
+    'CPMVertexPartition',
+    'MutableVertexPartition',
+    'SignificanceVertexPartition',
+    'SurpriseVertexPartition'
+  ),
+  resolution_parameter = 1,
+  ...
+) {
+  if (!py_module_available(module = 'leidenalg')) {
+    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
+  }
+  # import python modules with reticulate
+  leidenalg <- import(module = "leidenalg")
+  ig <- import(module = "igraph")
+  # convert matrix input
+  adj_mat <- as.matrix(x = ceiling(x = adj_mat))
+  # convert to python numpy.ndarray, then a list
+  adj_mat_py <- r_to_py(x = adj_mat)
+  adj_mat_py <- adj_mat_py$tolist()
+  # convert graph structure to a Python compatible object
+  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
+  # compute partitions
+  part <- switch(
+    EXPR = partition_type,
+    'RBConfigurationVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$RBConfigurationVertexPartition,
+      resolution_parameter = resolution_parameter,
+      ...
+    ),
+    'ModularityVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$ModularityVertexPartition,
+      ...
+    ),
+    'RBERVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$RBERVertexPartition,
+      resolution_parameter = resolution_parameter,
+      ...
+    ),
+    'CPMVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$CPMVertexPartition,
+      resolution_parameter = resolution_parameter,
+      ...
+    ),
+    'MutableVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$MutableVertexPartition,
+      ...
+    ),
+    'SignificanceVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$SignificanceVertexPartition,
+      resolution_parameter = resolution_parameter,
+      ...
+    ),
+    'SurpriseVertexPartition' = leidenalg$find_partition(
+      snn_graph,
+      leidenalg$SurpriseVertexPartition,
+      resolution_parameter = resolution_parameter,
+      ...
+    ),
+    stop("please specify a partition type as a string out of those documented")
+  )
+  return(part$membership + 1)
+}
+
 # Runs the modularity optimizer (C++ port of java program ModularityOptimizer.jar)
 #
 # @param SNN SNN matrix to use as input for the clustering algorithms
@@ -487,59 +589,3 @@ RunModularityClustering <- function(
   )
   return(clusters)
 }
-
-# Set up Leiden clustering algorithm
-# @name Leiden State Matrix
-# @rdname leiden
-#
-# @title Run Leiden clustering algorithm
-#
-# @description Implements the Leiden clustering algorithm in R using reticulate to run the Python version. Requires the python "leidenalg" and "igraph" modules to be installed. Returns a vector of partition indices.
-#
-# @param adj_mat An adjacency matrix or SNN matrix
-# @param ... Parameters to pass to the Python leidenalg function.
-#
-# @keywords graph network igraph mvtnorm simulation
-#' @importFrom reticulate import r_to_py
-# @export
-
-RunLeiden <- function(adj_mat, partition_type = c('RBConfigurationVertexPartition', 'ModularityVertexPartition', 'RBERVertexPartition', 'CPMVertexPartition', 'MutableVertexPartition', 'SignificanceVertexPartition', 'SurpriseVertexPartition'), resolution_parameter = 1, ...){
-  if (!py_module_available(module = 'leidenalg')) {
-    stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
-  }
-  
-  #import python modules with reticulate
-  leidenalg <- import("leidenalg")
-  ig <- import("igraph")
-  
-  #convert matrix input
-  adj_mat <- as.matrix(ceiling(adj_mat))
-  
-  ##convert to python numpy.ndarray, then a list
-  adj_mat_py <- r_to_py(adj_mat)
-  adj_mat_py <- adj_mat_py$tolist()
-  
-  #convert graph structure to a Python compatible object
-  snn_graph <- ig$Graph$Adjacency(adj_mat_py)
-  
-  #compute partitions
-  if(partition_type == "RBConfigurationVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$RBConfigurationVertexPartition, resolution_parameter = resolution_parameter, ...)
-  } else if(partition_type == "ModularityVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$ModularityVertexPartition, ...)
-  } else if(partition_type == "RBERVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$RBERVertexPartition, resolution_parameter = resolution_parameter, ...)
-  } else if(partition_type == "CPMVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$CPMVertexPartition, resolution_parameter = resolution_parameter, ...)
-  } else if(partition_type == "MutableVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$MutableVertexPartition, ...)
-  } else if(partition_type == "SignificanceVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$SignificanceVertexPartition, resolution_parameter = resolution_parameter, ...)
-  } else if(partition_type == "SurpriseVertexPartition"){
-    part <- leidenalg$find_partition(snn_graph, leidenalg$SurpriseVertexPartition, resolution_parameter = resolution_parameter, ...)
-  } else {
-    stop("please specify a partition type as a string out of those documented")
-  }
-  return(part$membership+1)
-}
-
