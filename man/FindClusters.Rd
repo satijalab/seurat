@@ -9,15 +9,16 @@
 FindClusters(object, ...)
 
 \method{FindClusters}{default}(object, modularity.fxn = 1,
+  initial_membership = NULL, weights = NULL, node_sizes = NULL,
   resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
   random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
   verbose = TRUE, ...)
 
 \method{FindClusters}{Seurat}(object, graph.name = NULL,
-  modularity.fxn = 1, resolution = 0.8, algorithm = 1,
-  n.start = 10, n.iter = 10, random.seed = 0,
-  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  ...)
+  modularity.fxn = 1, initial_membership = NULL, weights = NULL,
+  node_sizes = NULL, resolution = 0.8, algorithm = 1, n.start = 10,
+  n.iter = 10, random.seed = 0, temp.file.location = NULL,
+  edge.file.name = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -60,4 +61,8 @@ determine clusters. For a full description of the algorithms, see Waltman and
 van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
 Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 optimizer code in Rcpp!
+}
+\details{
+To run Leiden algorithm, you must first install the leidenalg python
+package (e.g. via pip install leidenalg), see Traag et al (2018).
 }

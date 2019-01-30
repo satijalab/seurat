@@ -33,8 +33,8 @@ IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN,
   // validate arguments
   if(modularityFunction != 1 && modularityFunction != 2)
     stop("Modularity parameter must be equal to 1 or 2.");
-  if(algorithm != 1 && algorithm !=2 && algorithm !=3)
-    stop("Algorith for modularity optimization must be 1, 2 or 3");
+  if(algorithm != 1 && algorithm !=2 && algorithm !=3 && algorithm !=4)
+    stop("Algorithm for modularity optimization must be 1, 2, 3, or 4");
   if(nRandomStarts < 1)
     stop("Have to have at least one start");
   if(nIterations < 1)

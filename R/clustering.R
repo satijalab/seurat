@@ -33,6 +33,9 @@ NULL
 FindClusters.default <- function(
   object,
   modularity.fxn = 1,
+  initial_membership = NULL,
+  weights = NULL, 
+  node_sizes = NULL,
   resolution = 0.8,
   algorithm = 1,
   n.start = 10,
@@ -46,11 +49,17 @@ FindClusters.default <- function(
   if (is.null(x = object)) {
     stop("Please provide an SNN graph")
   }
+  if (tolower(x = algorithm) == "louvain"){
+    algorithm <- 1
+  }
+  if (tolower(x = algorithm) == "leiden"){
+    algorithm <- 4
+  }
   if (PlanThreads() > 1) {
     clustering.results <- future_lapply(
       X = resolution,
       FUN = function(r) {
-        if (algorithm %in% c(1:3) || tolower(x = algorithm) == "louvain") {
+        if (algorithm %in% c(1:3)) {
           ids <- RunModularityClustering(
             SNN = object,
             modularity = modularity.fxn,
@@ -63,11 +72,14 @@ FindClusters.default <- function(
             temp.file.location = temp.file.location,
             edge.file.name = edge.file.name
           )
-        } else if (algorithm == 4 || tolower(x = algorithm) == "leiden") {
+        } else if (algorithm == 4) {
           ids <- RunLeiden(
             adj_mat = object,
             partition_type == "RBConfigurationVertexPartition",
-            resolution_type = 1
+            initial_membership = initial_membership,
+            weights = weights, 
+            node_sizes = node_sizes,
+            resolution_parameter = resolution
           )
         } else {
           stop("algorithm not recognised, please specify as an integer or string")
@@ -83,17 +95,30 @@ FindClusters.default <- function(
   } else {
     clustering.results <- data.frame(row.names = colnames(x = object))
     for (r in resolution) {
-      ids <- RunModularityClustering(
-        SNN = object,
-        modularity = modularity.fxn,
-        resolution = r,
-        algorithm = algorithm,
-        n.start = n.start,
-        n.iter = n.iter,
-        random.seed = random.seed,
-        print.output = verbose,
-        temp.file.location = temp.file.location,
-        edge.file.name = edge.file.name)
+      if (algorithm %in% c(1:3)) {
+        ids <- RunModularityClustering(
+          SNN = object,
+          modularity = modularity.fxn,
+          resolution = r,
+          algorithm = algorithm,
+          n.start = n.start,
+          n.iter = n.iter,
+          random.seed = random.seed,
+          print.output = verbose,
+          temp.file.location = temp.file.location,
+          edge.file.name = edge.file.name)
+      } else if (algorithm == 4) {
+        ids <- RunLeiden(
+          adj_mat = object,
+          partition_type = "RBConfigurationVertexPartition",
+          initial_membership = initial_membership,
+          weights = weights, 
+          node_sizes = node_sizes,
+          resolution_parameter = r
+        )
+      } else {
+        stop("algorithm not recognised, please specify as an integer or string")
+      }
       names(x = ids) <- colnames(x = object)
       ids <- GroupSingletons(ids = ids, SNN = object, verbose = verbose)
       clustering.results[, paste0("res.", r)] <- factor(x = ids)
@@ -114,6 +139,9 @@ FindClusters.Seurat <- function(
   object,
   graph.name = NULL,
   modularity.fxn = 1,
+  initial_membership = NULL,
+  weights = NULL, 
+  node_sizes = NULL,
   resolution = 0.8,
   algorithm = 1,
   n.start = 10,
@@ -134,6 +162,9 @@ FindClusters.Seurat <- function(
   clustering.results <- FindClusters(
     object = object[[graph.name]],
     modularity.fxn = modularity.fxn,
+    initial_membership = initial_membership,
+    weights = weights, 
+    node_sizes = node_sizes,
     resolution = resolution,
     algorithm = algorithm,
     n.start = n.start,
@@ -458,10 +489,10 @@ GroupSingletons <- function(ids, SNN, verbose) {
 # RBERVertexPartition, CPMVertexPartition, MutableVertexPartition,
 # SignificanceVertexPartition, SurpriseVertexPartition (see the Leiden python
 # module documentation for more details)
+# @param initial_membership,weights,node_sizes Parameters to pass to the Python leidenalg function.
 # @param resolution_parameter A parameter controlling the coarseness of the clusters
 # for Leiden algorithm. Higher values lead to more clusters. (defaults to 1.0 for
 # partition types that accept a resolution parameter)
-# @param ... Parameters to pass to the Python leidenalg function.
 #
 # @keywords graph network igraph mvtnorm simulation
 #
@@ -482,8 +513,10 @@ RunLeiden <- function(
     'SignificanceVertexPartition',
     'SurpriseVertexPartition'
   ),
-  resolution_parameter = 1,
-  ...
+  initial_membership = NULL,
+  weights = NULL, 
+  node_sizes = NULL,
+  resolution_parameter = 1
 ) {
   if (!py_module_available(module = 'leidenalg')) {
     stop("Cannot find Leiden algorithm, please install through pip (e.g. pip install leidenalg).")
@@ -504,42 +537,42 @@ RunLeiden <- function(
     'RBConfigurationVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$RBConfigurationVertexPartition,
-      resolution_parameter = resolution_parameter,
-      ...
+      initial_membership = initial_membership, weights = weights,
+      resolution_parameter = resolution_parameter
     ),
     'ModularityVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$ModularityVertexPartition,
-      ...
+      initial_membership = initial_membership, weights = weights
     ),
     'RBERVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$RBERVertexPartition,
-      resolution_parameter = resolution_parameter,
-      ...
+      initial_membership = initial_membership, weights = weights, node_sizes = node_sizes,
+      resolution_parameter = resolution_parameter
     ),
     'CPMVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$CPMVertexPartition,
+      initial_membership = initial_membership, weights = weights, node_sizes = node_sizes,
       resolution_parameter = resolution_parameter,
       ...
     ),
     'MutableVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$MutableVertexPartition,
-      ...
+      initial_membership = initial_membership
     ),
     'SignificanceVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$SignificanceVertexPartition,
-      resolution_parameter = resolution_parameter,
-      ...
+      initial_membership = initial_membership, node_sizes = node_sizes,
+      resolution_parameter = resolution_parameter
     ),
     'SurpriseVertexPartition' = leidenalg$find_partition(
       snn_graph,
       leidenalg$SurpriseVertexPartition,
-      resolution_parameter = resolution_parameter,
-      ...
+      initial_membership = initial_membership, weights = weights, node_sizes = node_sizes
     ),
     stop("please specify a partition type as a string out of those documented")
   )
@@ -551,7 +584,7 @@ RunLeiden <- function(
 # @param SNN SNN matrix to use as input for the clustering algorithms
 # @param modularity Modularity function to use in clustering (1 = standard; 2 = alternative)
 # @param resolution Value of the resolution parameter, use a value above (below) 1.0 if you want to obtain a larger (smaller) number of communities
-# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.
+# @param algorithm Algorithm for modularity optimization (1 = original Louvain algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python module.
 # @param n.start Number of random starts
 # @param n.iter Maximal number of iterations per random start
 # @param random.seed Seed of the random number generator
