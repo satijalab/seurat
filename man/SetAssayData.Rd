@@ -39,6 +39,11 @@ new.assay <- SetAssayData(object = pbmc_small[["RNA"]], slot = "counts", new.dat
 # Set an Assay slot through the Seurat object
 count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
 count.data <- as.matrix(x = count.data + 1)
-new.seurat.object <- SetAssayData(object = pbmc_small, slot = "counts", new.data = count.data, assay = "RNA")
+new.seurat.object <- SetAssayData(
+    object = pbmc_small, 
+    slot = "counts", 
+    new.data = count.data, 
+    assay = "RNA"
+)
 
 }

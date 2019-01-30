@@ -2142,8 +2142,8 @@ Key.Seurat <- function(object, ...) {
 #'
 #' @examples 
 #' # Set the key for an Assay
-#' Key(object = pbmc[["RNA"]]) <- "newkey_"
-#' Key(object = pbmc[["RNA"]])
+#' Key(object = pbmc_small[["RNA"]]) <- "newkey_"
+#' Key(object = pbmc_small[["RNA"]])
 #' 
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
@@ -2156,8 +2156,8 @@ Key.Seurat <- function(object, ...) {
 #'
 #' @examples 
 #' # Set the key for DimReduc
-#' Key(object = pbmc[["pca"]]) <- "newkey2_"
-#' Key(object = pbmc[["pca"]])
+#' Key(object = pbmc_small[["pca"]]) <- "newkey2_"
+#' Key(object = pbmc_small[["pca"]])
 #' 
 "Key<-.DimReduc" <- function(object, ..., value) {
   old.key <- Key(object = object)
@@ -2731,7 +2731,12 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 #' # Set an Assay slot through the Seurat object
 #' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
 #' count.data <- as.matrix(x = count.data + 1)
-#' new.seurat.object <- SetAssayData(object = pbmc_small, slot = "counts", new.data = count.data, assay = "RNA")
+#' new.seurat.object <- SetAssayData(
+#'     object = pbmc_small, 
+#'     slot = "counts", 
+#'     new.data = count.data, 
+#'     assay = "RNA"
+#' )
 #'
 SetAssayData.Seurat <- function(
   object,

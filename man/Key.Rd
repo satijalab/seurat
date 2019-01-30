@@ -47,11 +47,11 @@ Key(object = pbmc_small[["pca"]])
 Key(object = pbmc_small)
 
 # Set the key for an Assay
-Key(object = pbmc[["RNA"]]) <- "newkey_"
-Key(object = pbmc[["RNA"]])
+Key(object = pbmc_small[["RNA"]]) <- "newkey_"
+Key(object = pbmc_small[["RNA"]])
 
 # Set the key for DimReduc
-Key(object = pbmc[["pca"]]) <- "newkey2_"
-Key(object = pbmc[["pca"]])
+Key(object = pbmc_small[["pca"]]) <- "newkey2_"
+Key(object = pbmc_small[["pca"]])
 
 }
