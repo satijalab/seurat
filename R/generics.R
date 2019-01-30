@@ -506,6 +506,26 @@ NormalizeData <- function(object, ...) {
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
+#' Identify cells matching certain criteria
+#'
+#' Returns a list of cells that match a particular set of criteria such as
+#' identity class, high/low values for particular PCs, ect..
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods and \code{FetchData}
+#'
+#' @return A vector of cell names
+#'
+#' @rdname OldWhichCells
+#' @export OldWhichCells
+#'
+#' @examples
+#' OldWhichCells(object = pbmc_small, ident.keep = 2)
+#'
+OldWhichCells <- function(object, ...) {
+  UseMethod(generic = 'OldWhichCells', object = object)
+}
+
 #' @inheritParams Idents
 #' @param var Feature or variable to order on
 #'
