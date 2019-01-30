@@ -2330,6 +2330,15 @@ ReorderIdent.Seurat <- function(
 #' @export
 #' @method RenameCells Assay
 #'
+#' @examples
+#' # Rename cells in an Assay
+#' head(x = colnames(x = pbmc_small[["RNA"]]))
+#' renamed.assay <- RenameCells(
+#'     object = pbmc_small[["RNA"]], 
+#'     new.names = paste0("A_", colnames(x = pbmc_small[["RNA"]]))
+#' )
+#' head(x = colnames(x = renamed.assay))
+#'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
@@ -2345,9 +2354,18 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 #' @export
 #' @method RenameCells DimReduc
 #'
+#' @examples
+#' # Rename cells in a DimReduc
+#' head(x = colnames(x = pbmc_small[["pca"]]))
+#' renamed.dimreduc <- RenameCells(
+#'     object = pbmc_small[["pca"]], 
+#'     new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
+#' )
+#' head(x = colnames(x = renamed.dimreduc))
+#'
 RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
-  rownames(old.data) <- new.names
+  rownames(x = old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
   return(object)
 }
@@ -2363,6 +2381,12 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 #' @rdname RenameCells
 #' @export
 #' @method RenameCells Seurat
+#'
+#' @examples
+#' # Rename cells in a Seurat object
+#' head(x = colnames(x = pbmc_small))
+#' pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "A")
+#' head(x = colnames(x = pbmc_small))
 #'
 RenameCells.Seurat <- function(
   object,
@@ -2465,6 +2489,12 @@ RenameIdents.Seurat <- function(object, ...) {
 #' @export
 #' @method SetAssayData Assay
 #'
+#' @examples 
+#' # Set an Assay slot directly
+#' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+#' count.data <- as.matrix(x = count.data + 1)
+#' new.assay <- SetAssayData(object = pbmc_small[["RNA"]], slot = "counts", new.data = count.data)
+#'
 SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
@@ -2512,6 +2542,12 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 #' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Seurat
+#'
+#' @examples 
+#' # Set an Assay slot through the Seurat object
+#' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+#' count.data <- as.matrix(x = count.data + 1)
+#' new.seurat.object <- SetAssayData(object = pbmc_small, slot = "counts", new.data = count.data, assay = "RNA")
 #'
 SetAssayData.Seurat <- function(
   object,

@@ -539,11 +539,6 @@ ReorderIdent <- function(object, var, ...) {
 #' @rdname RenameCells
 #' @export RenameCells
 #'
-#' @examples
-#' head(x = colnames(x = pbmc_small))
-#' pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
-#' head(x = colnames(x = pbmc_small))
-#'
 RenameCells <- function(object, ...) {
   UseMethod(generic = 'RenameCells', object = object)
 }

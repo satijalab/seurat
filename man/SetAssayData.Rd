@@ -30,3 +30,15 @@ object with the assay data set
 \description{
 Setter for multimodal data
 }
+\examples{
+# Set an Assay slot directly
+count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+count.data <- as.matrix(x = count.data + 1)
+new.assay <- SetAssayData(object = pbmc_small[["RNA"]], slot = "counts", new.data = count.data)
+
+# Set an Assay slot through the Seurat object
+count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+count.data <- as.matrix(x = count.data + 1)
+new.seurat.object <- SetAssayData(object = pbmc_small, slot = "counts", new.data = count.data, assay = "RNA")
+
+}
