@@ -75,7 +75,7 @@ FindClusters.default <- function(
         } else if (algorithm == 4) {
           ids <- RunLeiden(
             adj_mat = object,
-            partition_type == "RBConfigurationVertexPartition",
+            partition_type = "RBConfigurationVertexPartition",
             initial_membership = initial_membership,
             weights = weights, 
             node_sizes = node_sizes,
@@ -555,8 +555,7 @@ RunLeiden <- function(
       snn_graph,
       leidenalg$CPMVertexPartition,
       initial_membership = initial_membership, weights = weights, node_sizes = node_sizes,
-      resolution_parameter = resolution_parameter,
-      ...
+      resolution_parameter = resolution_parameter
     ),
     'MutableVertexPartition' = leidenalg$find_partition(
       snn_graph,
