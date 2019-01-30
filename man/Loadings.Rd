@@ -34,3 +34,16 @@ Get feature loadings
 
 Add feature loadings
 }
+\examples{
+# Get the feature loadings for a given DimReduc
+Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
+
+# Get the feature loadings for a specified DimReduc in a Seurat object
+Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
+
+# Set the feature loadings for a given DimReduc
+new.loadings <- Loadings(object = pbmc_small[["pca"]])
+new.loadings <- new.loadings + 0.01
+Loadings(object = pbmc_small[["pca"]]) <- new.loadings
+
+}

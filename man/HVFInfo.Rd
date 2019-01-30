@@ -25,3 +25,11 @@ A dataframe with feature means, dispersion, and scaled dispersion
 \description{
 Get highly variable feature information
 }
+\examples{
+# Get the HVF info directly from an Assay object
+HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
+
+# Get the HVF info from a specific Assay in a Seurat object
+HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
+
+}

@@ -1939,6 +1939,10 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
+#' 
+#' @examples 
+#' # Get the HVF info directly from an Assay object
+#' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
 #'
 HVFInfo.Assay <- function(object, ...) {
   vars <- c(
@@ -1958,6 +1962,10 @@ HVFInfo.Assay <- function(object, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
+#' 
+#' @examples 
+#' # Get the HVF info from a specific Assay in a Seurat object
+#' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 #'
 HVFInfo.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -2090,6 +2098,10 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' @export
 #' @method Key Assay
 #'
+#' @examples 
+#' # Get an Assay key
+#' Key(object = pbmc_small[["RNA"]])
+#' 
 Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2097,7 +2109,11 @@ Key.Assay <- function(object, ...) {
 #' @rdname Key
 #' @export
 #' @method Key DimReduc
-#'
+#' 
+#' @examples
+#' # Get a DimReduc key
+#' Key(object = pbmc_small[["pca"]])
+#' 
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2106,6 +2122,10 @@ Key.DimReduc <- function(object, ...) {
 #' @export
 #' @method Key Seurat
 #'
+#' @examples
+#' # Show all keys associated with a Seurat object
+#' Key(object = pbmc_small)
+#' 
 Key.Seurat <- function(object, ...) {
   keyed.objects <- FilterObjects(object = object)
   return(sapply(
@@ -2120,6 +2140,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- Assay
 #'
+#' @examples 
+#' # Set the key for an Assay
+#' Key(object = pbmc[["RNA"]]) <- "newkey_"
+#' Key(object = pbmc[["RNA"]])
+#' 
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
   return(object)
@@ -2129,6 +2154,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- DimReduc
 #'
+#' @examples 
+#' # Set the key for DimReduc
+#' Key(object = pbmc[["pca"]]) <- "newkey2_"
+#' Key(object = pbmc[["pca"]])
+#' 
 "Key<-.DimReduc" <- function(object, ..., value) {
   old.key <- Key(object = object)
   slots <- Filter(
@@ -2157,6 +2187,10 @@ Key.Seurat <- function(object, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings DimReduc
+#' 
+#' @examples
+#' # Get the feature loadings for a given DimReduc
+#' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
   projected <- projected %||% Projected(object = object)
@@ -2173,6 +2207,10 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings Seurat
+#' 
+#' @examples
+#' # Get the feature loadings for a specified DimReduc in a Seurat object
+#' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
 Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
@@ -2181,6 +2219,12 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
+#' 
+#' @examples 
+#' # Set the feature loadings for a given DimReduc
+#' new.loadings <- Loadings(object = pbmc_small[["pca"]])
+#' new.loadings <- new.loadings + 0.01
+#' Loadings(object = pbmc_small[["pca"]]) <- new.loadings
 #'
 "Loadings<-.DimReduc" <- function(object, projected = TRUE, ..., value) {
   slot.use <- ifelse(
@@ -2201,6 +2245,10 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @export
 #' @method Misc Seurat
 #'
+#' @examples 
+#' # Get the misc info
+#' Misc(object = pbmc_small, slot = "example")
+#' 
 Misc.Seurat <- function(object, slot = NULL, ...) {
   if (is.null(x = slot)) {
     return(slot(object = object, name = 'misc'))
@@ -2211,6 +2259,10 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @rdname Misc
 #' @export
 #' @method Misc<- Seurat
+#'
+#' @examples
+#'# Add misc info
+#' Misc(object = pbmc_small, slot = "example") <- "testing_misc"
 #'
 "Misc<-.Seurat" <- function(object, slot, ..., value) {
   if (slot %in% names(x = Misc(object = object))) {
