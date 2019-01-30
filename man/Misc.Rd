@@ -34,3 +34,11 @@ Access miscellaneous data
 
 Set miscellaneous data
 }
+\examples{
+# Get the misc info
+Misc(object = pbmc_small, slot = "example")
+
+# Add misc info
+Misc(object = pbmc_small, slot = "example") <- "testing_misc"
+
+}

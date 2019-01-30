@@ -36,3 +36,22 @@ Get a key
 
 Set a key
 }
+\examples{
+# Get an Assay key
+Key(object = pbmc_small[["RNA"]])
+
+# Get a DimReduc key
+Key(object = pbmc_small[["pca"]])
+
+# Show all keys associated with a Seurat object
+Key(object = pbmc_small)
+
+# Set the key for an Assay
+Key(object = pbmc[["RNA"]]) <- "newkey_"
+Key(object = pbmc[["RNA"]])
+
+# Set the key for DimReduc
+Key(object = pbmc[["pca"]]) <- "newkey2_"
+Key(object = pbmc[["pca"]])
+
+}

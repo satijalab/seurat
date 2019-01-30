@@ -40,8 +40,25 @@ If \code{add.cell.id} is set a prefix is added to existing cell names. If
 \code{new.names} is set these will be used to replace existing names.
 }
 \examples{
+# Rename cells in an Assay
+head(x = colnames(x = pbmc_small[["RNA"]]))
+renamed.assay <- RenameCells(
+    object = pbmc_small[["RNA"]], 
+    new.names = paste0("A_", colnames(x = pbmc_small[["RNA"]]))
+)
+head(x = colnames(x = renamed.assay))
+
+# Rename cells in a DimReduc
+head(x = colnames(x = pbmc_small[["pca"]]))
+renamed.dimreduc <- RenameCells(
+    object = pbmc_small[["pca"]], 
+    new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
+)
+head(x = colnames(x = renamed.dimreduc))
+
+# Rename cells in a Seurat object
 head(x = colnames(x = pbmc_small))
-pbmc_small <- RenameCells(pbmc_small, add.cell.id = "Test")
+pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "A")
 head(x = colnames(x = pbmc_small))
 
 }

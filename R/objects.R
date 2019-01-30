@@ -1939,6 +1939,10 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
+#' 
+#' @examples 
+#' # Get the HVF info directly from an Assay object
+#' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
 #'
 HVFInfo.Assay <- function(object, ...) {
   vars <- c(
@@ -1958,6 +1962,10 @@ HVFInfo.Assay <- function(object, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
+#' 
+#' @examples 
+#' # Get the HVF info from a specific Assay in a Seurat object
+#' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 #'
 HVFInfo.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -2090,6 +2098,10 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' @export
 #' @method Key Assay
 #'
+#' @examples 
+#' # Get an Assay key
+#' Key(object = pbmc_small[["RNA"]])
+#' 
 Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2097,7 +2109,11 @@ Key.Assay <- function(object, ...) {
 #' @rdname Key
 #' @export
 #' @method Key DimReduc
-#'
+#' 
+#' @examples
+#' # Get a DimReduc key
+#' Key(object = pbmc_small[["pca"]])
+#' 
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2106,6 +2122,10 @@ Key.DimReduc <- function(object, ...) {
 #' @export
 #' @method Key Seurat
 #'
+#' @examples
+#' # Show all keys associated with a Seurat object
+#' Key(object = pbmc_small)
+#' 
 Key.Seurat <- function(object, ...) {
   keyed.objects <- FilterObjects(object = object)
   return(sapply(
@@ -2120,6 +2140,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- Assay
 #'
+#' @examples 
+#' # Set the key for an Assay
+#' Key(object = pbmc[["RNA"]]) <- "newkey_"
+#' Key(object = pbmc[["RNA"]])
+#' 
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
   return(object)
@@ -2129,6 +2154,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- DimReduc
 #'
+#' @examples 
+#' # Set the key for DimReduc
+#' Key(object = pbmc[["pca"]]) <- "newkey2_"
+#' Key(object = pbmc[["pca"]])
+#' 
 "Key<-.DimReduc" <- function(object, ..., value) {
   old.key <- Key(object = object)
   slots <- Filter(
@@ -2157,6 +2187,10 @@ Key.Seurat <- function(object, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings DimReduc
+#' 
+#' @examples
+#' # Get the feature loadings for a given DimReduc
+#' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
 #'
 Loadings.DimReduc <- function(object, projected = NULL, ...) {
   projected <- projected %||% Projected(object = object)
@@ -2173,6 +2207,10 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings Seurat
+#' 
+#' @examples
+#' # Get the feature loadings for a specified DimReduc in a Seurat object
+#' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
 #'
 Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
   return(Loadings(object = object[[reduction]], projected = projected, ...))
@@ -2181,6 +2219,12 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
+#' 
+#' @examples 
+#' # Set the feature loadings for a given DimReduc
+#' new.loadings <- Loadings(object = pbmc_small[["pca"]])
+#' new.loadings <- new.loadings + 0.01
+#' Loadings(object = pbmc_small[["pca"]]) <- new.loadings
 #'
 "Loadings<-.DimReduc" <- function(object, projected = TRUE, ..., value) {
   slot.use <- ifelse(
@@ -2201,6 +2245,10 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @export
 #' @method Misc Seurat
 #'
+#' @examples 
+#' # Get the misc info
+#' Misc(object = pbmc_small, slot = "example")
+#' 
 Misc.Seurat <- function(object, slot = NULL, ...) {
   if (is.null(x = slot)) {
     return(slot(object = object, name = 'misc'))
@@ -2212,195 +2260,16 @@ Misc.Seurat <- function(object, slot = NULL, ...) {
 #' @export
 #' @method Misc<- Seurat
 #'
+#' @examples
+#'# Add misc info
+#' Misc(object = pbmc_small, slot = "example") <- "testing_misc"
+#'
 "Misc<-.Seurat" <- function(object, slot, ..., value) {
   if (slot %in% names(x = Misc(object = object))) {
     warning("Overwriting miscellanous data for ", slot)
   }
   slot(object = object, name = 'misc')[[slot]] <- value
   return(object)
-}
-
-#' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
-#'
-#' @rdname OldWhichCells
-#' @export
-#' @method OldWhichCells Assay
-#'
-OldWhichCells.Assay <- function(
-  object,
-  cells,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  ...
-) {
-  cells <- cells %||% colnames(x = object)
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(x = subset.name)
-    data.use <- GetAssayData(
-      object = object,
-      ... = ...
-    )
-    data.use <- t(x = data.use[subset.name, cells, drop = FALSE])
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!(accept.value %in% unique(x = data.use[, 1]))]
-        stop("Identity: ", bad.vals, " not found.")
-      }
-      pass.inds <- which(x = apply(data.use, MARGIN = 1, function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
-  }
-  return(cells)
-}
-
-#' @param ident.keep Create a cell subset based on the provided identity classes
-#' @param ident.remove Subtract out cells from these identity classes (used for
-#' filtration)
-#' @param max.cells.per.ident Can be used to downsample the data to a certain
-#' max per cell ident. Default is INF.
-#' @param random.seed Random seed for downsampling
-#' @param assay Which assay to filter on
-#'
-#' @seealso \code{\link{FetchData}}
-#'
-#' @rdname OldWhichCells
-#' @export
-#' @method OldWhichCells Seurat
-#'
-OldWhichCells.Seurat <- function(
-  object,
-  cells = NULL,
-  subset.name = NULL,
-  low.threshold = -Inf,
-  high.threshold = Inf,
-  accept.value = NULL,
-  ident.keep = NULL,
-  ident.remove = NULL,
-  max.cells.per.ident = Inf,
-  random.seed = 1,
-  assay = NULL,
-  ...
-) {
-  # input checking
-  if (length(x = subset.name) > 1) {
-    stop("subset.name must be a single parameter")
-  }
-  if (length(x = low.threshold) > 1 | length(x = high.threshold) > 1) {
-    stop("Multiple values passed to low.threshold or high.threshold")
-  }
-  if (low.threshold >= high.threshold) {
-    stop("low.threshold is greater than or equal to high.threshold")
-  }
-  if (!is.na(x = random.seed)) {
-    set.seed(seed = random.seed)
-  }
-  expression <- character(length = 0L)
-  if (!is.null(x = subset.name)) {
-    sub <- gsub(
-      pattern = '"',
-      replacement = '',
-      x = deparse(expr = substitute(expr = subset.name))
-    )
-    if (!is.infinite(x = low.threshold)) {
-      expression <- c(
-        expression,
-        paste(sub, '>', deparse(expr = substitute(expr = low.threshold)))
-      )
-    }
-    if (!is.infinite(x = high.threshold)) {
-      expression <- c(
-        expression,
-        paste(sub, '<', deparse(expr = substitute(expr = high.threshold)))
-      )
-    }
-    if (!is.null(x = accept.value)) {
-      expression <- c(
-        expression,
-        paste(sub, '==', deparse(expr = substitute(expr = accept.value)))
-      )
-    }
-  }
-  #message(
-  #  'With Seurat 3.X, identifying cells can now be done with:\n',
-  #  'WhichCells(object = ',
-  #  deparse(expr = substitute(expr = object)),
-  #  if (length(x = expression) > 0) {
-  #    paste0(', subset = ', paste(expression, collapse = ' & '))
-  #  },
-  #  if (!is.null(x = cells)) {
-  #    paste(', cells =', deparse(expr = substitute(expr = cells)))
-  #  },
-  #  if (!is.null(x = ident.keep)) {
-  #    paste(', idents =', deparse(expr = substitute(expr = ident.keep)))
-  #  },
-  #  if (!is.infinite(x = max.cells.per.ident)) {
-  #    paste0(', downsample = ', max.cells.per.ident, ', seed = ', random.seed)
-  #  },
-  #  ')'
-  #)
-  cells <- cells %||% colnames(x = object)
-  assay <- assay %||% DefaultAssay(object = object)
-  ident.keep <- ident.keep %||% unique(x = Idents(object = object))
-  bad.remove.idents <- ident.remove[!ident.remove %in% unique(x = Idents(object = object))]
-  if (length(bad.remove.idents) > 0) {
-    stop(paste("Identity :", bad.remove.idents, "not found.   "))
-  }
-  ident.keep <- setdiff(x = ident.keep, y = ident.remove)
-  if (!all(ident.keep %in% unique(Idents(object = object)))) {
-    bad.idents <- ident.keep[!(ident.keep %in% unique(x = Idents(object = object)))]
-    stop("Identity: ", bad.idents, " not found.")
-  }
-  cells.to.use <- character()
-  for (id in ident.keep) {
-    cells.in.ident <- Idents(object = object)[cells]
-    cells.in.ident <- names(x = cells.in.ident[cells.in.ident == id])
-    cells.in.ident <- cells.in.ident[!is.na(x = cells.in.ident)]
-    if (length(x = cells.in.ident) > max.cells.per.ident) {
-      cells.in.ident <- sample(x = cells.in.ident, size = max.cells.per.ident)
-    }
-    cells.to.use <- c(cells.to.use, cells.in.ident)
-  }
-  cells <- cells.to.use
-  if (!is.null(x = subset.name)) {
-    subset.name <- as.character(subset.name)
-    data.use <- FetchData(
-      object = object,
-      vars = subset.name,
-      cells = cells,
-      ...
-    )
-    if (!is.null(x = accept.value)) {
-      if (!all(accept.value %in% unique(x = data.use[, 1]))) {
-        bad.vals <- accept.value[!accept.value %in% unique(x = data.use[, 1])]
-        stop("Identity: ", bad.vals, " not found.")
-      }
-      pass.inds <- which(x = apply(X = data.use, MARGIN = 1, FUN = function(x) x %in% accept.value))
-    } else {
-      pass.inds <- which(x = (data.use > low.threshold) & (data.use < high.threshold))
-    }
-    cells <- rownames(x = data.use)[pass.inds]
-  }
-  return(cells)
 }
 
 #' @param reverse Reverse ordering
@@ -2461,6 +2330,15 @@ ReorderIdent.Seurat <- function(
 #' @export
 #' @method RenameCells Assay
 #'
+#' @examples
+#' # Rename cells in an Assay
+#' head(x = colnames(x = pbmc_small[["RNA"]]))
+#' renamed.assay <- RenameCells(
+#'     object = pbmc_small[["RNA"]], 
+#'     new.names = paste0("A_", colnames(x = pbmc_small[["RNA"]]))
+#' )
+#' head(x = colnames(x = renamed.assay))
+#'
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
@@ -2476,9 +2354,18 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 #' @export
 #' @method RenameCells DimReduc
 #'
+#' @examples
+#' # Rename cells in a DimReduc
+#' head(x = colnames(x = pbmc_small[["pca"]]))
+#' renamed.dimreduc <- RenameCells(
+#'     object = pbmc_small[["pca"]], 
+#'     new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
+#' )
+#' head(x = colnames(x = renamed.dimreduc))
+#'
 RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
   old.data <- Embeddings(object = object)
-  rownames(old.data) <- new.names
+  rownames(x = old.data) <- new.names
   slot(object = object, name = "cell.embeddings") <- old.data
   return(object)
 }
@@ -2494,6 +2381,12 @@ RenameCells.DimReduc <- function(object, new.names = NULL, ...) {
 #' @rdname RenameCells
 #' @export
 #' @method RenameCells Seurat
+#'
+#' @examples
+#' # Rename cells in a Seurat object
+#' head(x = colnames(x = pbmc_small))
+#' pbmc_small <- RenameCells(object = pbmc_small, add.cell.id = "A")
+#' head(x = colnames(x = pbmc_small))
 #'
 RenameCells.Seurat <- function(
   object,
@@ -2596,6 +2489,12 @@ RenameIdents.Seurat <- function(object, ...) {
 #' @export
 #' @method SetAssayData Assay
 #'
+#' @examples 
+#' # Set an Assay slot directly
+#' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+#' count.data <- as.matrix(x = count.data + 1)
+#' new.assay <- SetAssayData(object = pbmc_small[["RNA"]], slot = "counts", new.data = count.data)
+#'
 SetAssayData.Assay <- function(object, slot, new.data, ...) {
   slots.use <- c('counts', 'data', 'scale.data')
   if (!slot %in% slots.use) {
@@ -2643,6 +2542,12 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 #' @rdname SetAssayData
 #' @export
 #' @method SetAssayData Seurat
+#'
+#' @examples 
+#' # Set an Assay slot through the Seurat object
+#' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
+#' count.data <- as.matrix(x = count.data + 1)
+#' new.seurat.object <- SetAssayData(object = pbmc_small, slot = "counts", new.data = count.data, assay = "RNA")
 #'
 SetAssayData.Seurat <- function(
   object,
