@@ -811,25 +811,45 @@ RegressRegNB <- function(
   assay <- assay %||% DefaultAssay(object = object)
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
-  vst.out <- sctransform::vst(
-    umi,
-    show_progress = verbose,
-    return_cell_attr = TRUE,
-    return_corrected_umi = do.correct.umi,
-    ...
-  )
+  cell.attr <- slot(object = object, name = 'meta.data')
+  
+  vst.args <- list(...)
+  # check for batch_var in meta data
+  if ('batch_var' %in% names(vst.args)) {
+    if (!(vst.args[['batch_var']] %in% colnames(cell.attr))) {
+      stop('batch_var not found in seurat object meta data')
+    }
+  }
+  
+  # check for latent_var in meta data
+  if ('latent_var' %in% names(vst.args)) {
+    known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
+    if (!all(vst.args[['latent_var']] %in% c(colnames(cell.attr), known.attr))) {
+      stop('latent_var values are not from the set of cell attributes sctransform calculates 
+           by default and cannot be found in seurat object meta data')
+    }
+  }
+
+  if (any(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi') %in% names(vst.args))) {
+    warning(paste('the following arguments will be ignored because they are set within this function:', paste(c('cell_attr', 'show_progress', 'return_cell_attr', 'return_corrected_umi'), collapse = ', ')))
+  }
+  vst.args[['umi']] <- umi
+  vst.args[['cell_attr']] <- cell.attr
+  vst.args[['show_progress']] <- verbose
+  vst.args[['return_cell_attr']] <- TRUE
+  vst.args[['return_corrected_umi']] <- do.correct.umi
+  vst.out <- do.call(sctransform::vst, vst.args)
+
   # put corrected umi counts in data slot
   if (do.correct.umi) {
     if (verbose) {
       message('Placing corrected UMI matrix in data slot')
     }
-    # skip SetAssayData.Assay because of restrictive dimension checks there
-    slot(object = assay.obj, name = 'data') <- vst.out$umi_corrected
-    # assay.obj <- SetAssayData(
-    #   object = assay.obj,
-    #   slot = 'data',
-    #   new.data = umi.corrected
-    # )
+    assay.obj <- SetAssayData(
+      object = assay.obj,
+      slot = 'data',
+      new.data = vst.out$umi_corrected
+    )
   }
   # set variable features
   if (verbose) {
