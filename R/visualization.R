@@ -1760,6 +1760,35 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+#' Plot clusters as a tree
+#'
+#' Plots previously computed tree (from BuildClusterTree)
+#'
+#' @param object Seurat object
+#' @param \dots Additional arguments to ape::plot.phylo
+#'
+#' @return Plots dendogram (must be precomputed using BuildClusterTree), returns no value
+#'
+#' @importFrom ape plot.phylo
+#' @importFrom ape nodelabels
+#'
+#' @export
+#'
+#' @examples
+#' pbmc_small <- BuildClusterTree(object = pbmc_small)
+#' PlotClusterTree(object = pbmc_small)
+#'
+PlotClusterTree <- function(object, ...) {
+  
+  if (is.null(x = Tool(object = pbmc_small, slot = "BuildClusterTree"))) {
+    stop("Phylogenetic tree does not exist, build using BuildClusterTree")
+  }
+  data.tree <- Tool(object = pbmc_small, slot = "BuildClusterTree")
+  plot.phylo(x = data.tree, direction = "downwards", ...)
+  nodelabels()
+}
+
+
 #' Visualize Dimensional Reduction genes
 #'
 #' Visualize top genes associated with reduction components
