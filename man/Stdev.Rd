@@ -22,3 +22,11 @@ Stdev(object, ...)
 \description{
 Get the standard deviations for an object
 }
+\examples{
+# Get the standard deviations for each PC from the DimReduc object
+Stdev(object = pbmc_small[["pca"]])
+
+# Get the standard deviations for each PC from the Seurat object
+Stdev(object = pbmc_small, reduction = "pca")
+
+}

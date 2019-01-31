@@ -2796,6 +2796,10 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 #' @export
 #' @method Stdev DimReduc
 #'
+#' @examples 
+#' # Get the standard deviations for each PC from the DimReduc object
+#' Stdev(object = pbmc_small[["pca"]])
+#' 
 Stdev.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'stdev'))
 }
@@ -2805,6 +2809,10 @@ Stdev.DimReduc <- function(object, ...) {
 #' @rdname Stdev
 #' @export
 #' @method Stdev Seurat
+#'
+#' @examples
+#' # Get the standard deviations for each PC from the Seurat object
+#' Stdev(object = pbmc_small, reduction = "pca")
 #'
 Stdev.Seurat <- function(object, reduction, ...) {
   return(Stdev(object = object[[reduction]]))
@@ -2970,6 +2978,9 @@ SubsetData.Seurat <- function(
 #' @export
 #' @method Tool Seurat
 #'
+#' @examples 
+#' Tool(object = pbmc_small)
+#' 
 Tool.Seurat <- function(object, slot = NULL, ...) {
   if (is.null(x = slot)) {
     return(names(x = slot(object = object, name = 'tools')))
@@ -2981,6 +2992,12 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' @export
 #' @method Tool<- Seurat
 #'
+#' @examples 
+#' \dontrun{
+#' sample.tool.output <- matrix(data = rnorm(n = 16), nrow = 4)
+#' # must be run from within a function
+#' Tool(object = pbmc_small) <- sample.tool.output
+#' }
 "Tool<-.Seurat" <- function(object, ..., value) {
   calls <- as.character(x = sys.calls())
   calls <- lapply(

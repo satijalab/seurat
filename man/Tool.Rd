@@ -40,3 +40,12 @@ so each function gets one entry in the tools list and cannot overwrite another
 function's entry. The automatic naming will also remove any method identifiers
 (eg. RunPCA.Seurat will become RunPCA); please plan accordingly.
 }
+\examples{
+Tool(object = pbmc_small)
+
+\dontrun{
+sample.tool.output <- matrix(data = rnorm(n = 16), nrow = 4)
+# must be run from within a function
+Tool(object = pbmc_small) <- sample.tool.output
+}
+}
