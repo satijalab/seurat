@@ -1780,10 +1780,10 @@ JackStrawPlot <- function(
 #'
 PlotClusterTree <- function(object, ...) {
   
-  if (is.null(x = Tool(object = pbmc_small, slot = "BuildClusterTree"))) {
+  if (is.null(x = Tool(object = objects, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
-  data.tree <- Tool(object = pbmc_small, slot = "BuildClusterTree")
+  data.tree <- Tool(object = object, slot = "BuildClusterTree")
   plot.phylo(x = data.tree, direction = "downwards", ...)
   nodelabels()
 }
