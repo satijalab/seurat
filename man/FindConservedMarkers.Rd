@@ -5,7 +5,7 @@
 \title{Finds markers that are conserved between the two groups}
 \usage{
 FindConservedMarkers(object, ident.1, ident.2 = NULL, grouping.var,
-  assay.type = "RNA", meta.method = minimump, ...)
+  assay.type = "RNA", meta.method = minimump, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -21,6 +21,8 @@ use all other cells for comparison.}
 
 \item{meta.method}{method for combining p-values. Should be a function from
 the metap package (NOTE: pass the function, not a string)}
+
+\item{verbose}{Print a progress bar once expression testing begins}
 
 \item{\dots}{parameters to pass to FindMarkers}
 }

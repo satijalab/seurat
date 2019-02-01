@@ -211,6 +211,7 @@ FindConservedMarkers <- function(
   grouping.var,
   assay.type = "RNA",
   meta.method = minimump,
+  verbose = TRUE,
   ...
 ) {
   if (class(x = meta.method) != "function") {
@@ -249,17 +250,12 @@ FindConservedMarkers <- function(
     if (!is.null(x = ident.2)) {
       ident.use.2 <- paste(ident.2, level.use, sep = "_")
     }
-    cat(
-      paste0(
-        "Testing ",
-        ident.use.1,
-        " vs ",
-        paste(ident.use.2, collapse = ", "), "\n"
-      ),
-      file = stderr()
-    )
-    if (!ident.use.2 %in% Idents(object = object)) {
-      stop("Identity: ", ident.2, " not present in group ", level.use)
+    if (verbose) {
+      message(paste0("Testing ", ident.use.1, " vs ", paste(ident.use.2, collapse = ", "), "\n")) 
+    }
+    if (any(!ident.use.2 %in% Idents(object = object))) {
+      bad.idents <- ident.use.2[!ident.use.2 %in% Idents(object = object)]
+      stop(paste0("The following identities are not present in group ", level.use, ": ", paste(bad.idents, collapse = ", ")))
     }
     marker.test[[i]] <- FindMarkers(
       object = object,
