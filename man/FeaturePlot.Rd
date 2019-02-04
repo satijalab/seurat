@@ -10,7 +10,7 @@ FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   max.cutoff = NA, reduction = NULL, split.by = NULL,
   shape.by = NULL, blend = FALSE, blend.threshold = 0.5,
   order = NULL, label = FALSE, label.size = 4, ncol = NULL,
-  combine = TRUE, coord.fixed = FALSE)
+  combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -56,6 +56,8 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
 \item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
+
+\item{by.col}{If splitting by a factor, plot the splits per column with the features as rows.}
 }
 \value{
 A ggplot object

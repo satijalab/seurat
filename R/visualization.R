@@ -663,6 +663,7 @@ DimPlot <- function(
 #' @param ncol Number of columns to combine multiple feature plots to, ignored if \code{split.by} is not \code{NULL}
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
+#' @param by.col If splitting by a factor, plot the splits per column with the features as rows.
 #'
 #' @return A ggplot object
 #'
@@ -671,6 +672,7 @@ DimPlot <- function(
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 labs scale_x_continuous scale_y_continuous theme element_rect dup_axis guides
 #' element_blank element_text margin scale_color_brewer scale_color_gradientn scale_color_manual coord_fixed
+#' ggtitle
 #'
 #' @export
 #'
@@ -703,7 +705,8 @@ FeaturePlot <- function(
   label.size = 4,
   ncol = NULL,
   combine = TRUE,
-  coord.fixed = FALSE
+  coord.fixed = FALSE,
+  by.col = TRUE
 ) {
   no.right <- theme(
     axis.line.y.right = element_blank(),
@@ -959,12 +962,49 @@ FeaturePlot <- function(
     } else {
       split.by %iff% 'none'
     }
-    plots <- CombinePlots(
-      plots = plots,
-      ncol = ncol,
-      legend = legend,
-      nrow = split.by %iff% length(x = levels(x = data$split))
-    )
+    if (by.col & !is.null(x = split.by)) {
+      plots <- lapply(X = plots, FUN = function(x) {
+        suppressMessages(x + 
+        theme_cowplot() + ggtitle("") + 
+        scale_y_continuous(sec.axis = dup_axis(name = "")) + no.right
+        )
+      })
+      nsplits <- length(x = levels(x = data$split))
+      idx <- 1
+      for(i in (length(x = features) * (nsplits - 1) + 1): (length(x = features) * nsplits)) {
+        plots[[i]] <- suppressMessages(plots[[i]] + scale_y_continuous(sec.axis = dup_axis(name = features[[idx]])) + no.right)
+        idx <- idx + 1
+      }
+      idx <- 1
+      for(i in which(x = 1:length(x = plots) %% length(x = features) == 1)) {
+        plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+        idx <- idx + 1
+      }
+      idx <- 1
+      if (length(x = features) == 1) {
+        for(i in 1:length(x = plots)) {
+          plots[[i]] <- plots[[i]] + ggtitle(levels(x = data$split)[[idx]])
+          idx <- idx + 1
+        }
+      }
+      plots <- plots[c(do.call(
+        what = rbind, 
+        args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
+      ))]
+      plots <- CombinePlots(
+        plots = plots,
+        ncol = nsplits,
+        legend = legend
+      )
+    }
+    else {
+      plots <- CombinePlots(
+        plots = plots,
+        ncol = ncol,
+        legend = legend,
+        nrow = split.by %iff% length(x = levels(x = data$split))
+      )
+    }
   }
   return(plots)
 }
