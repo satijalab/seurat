@@ -590,6 +590,8 @@ FindMarkers.default <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
 #' @param assay Assay to use in differential expression testing
+#' @param group.by Regroup cells into a different identity class prior to performing differential expression (see example)
+#' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
 #'
 #' @importFrom methods is
 #'
@@ -601,6 +603,8 @@ FindMarkers.Seurat <- function(
   object,
   ident.1 = NULL,
   ident.2 = NULL,
+  group.by = NULL,
+  subset.ident = NULL,
   assay = NULL,
   features = NULL,
   logfc.threshold = 0.25,
@@ -617,6 +621,12 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
+  if (!is.null(group.by)) {
+    if (!is.null(subset.ident)) {
+      object <- subset(object,idents = subset.ident)
+    }
+    Idents(object) <- group.by
+  }
   assay <- assay %||% DefaultAssay(object = object)
   data.slot <- ifelse(
     test = test.use %in% c("negbinom", "poisson", "DESeq2"),
