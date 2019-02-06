@@ -641,6 +641,136 @@ RunICA.Seurat <- function(
   return(object)
 }
 
+#' @param assay Which assay to use. If NULL, use the default assay
+#' @param n Number of singular values to compute
+#' @param reduction.key Key for dimension reduction object
+#' @param scale.max Clipping value for cell embeddings
+#' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
+#' NULL will not set a seed.
+#' @param verbose Print messages
+#' 
+#' @importFrom irlba irlba
+#' 
+#' @rdname RunLSI
+#' @export
+RunLSI.default <- function(
+  object,
+  assay = NULL,
+  n = 50,
+  reduction.key = 'LSI_',
+  scale.max = 1.5,
+  seed.use = 42,
+  verbose = TRUE,
+  ...
+) {
+  if (!is.null(seed.use)) {
+    set.seed(seed = seed.use)
+  }
+  tf.idf <- TF.IDF(data = object, verbose = verbose)
+  tf.idf <- LogNorm(data = tf.idf, display_progress = verbose, scale_factor = 1e4)
+  colnames(x = tf.idf) <- colnames(x = object)
+  rownames(x = tf.idf) <- rownames(x = object)
+  n <- min(n, ncol(x = object) - 1)
+  if (verbose) {
+    message("Running SVD on TF-IDF matrix")
+  }
+  lsi <- irlba(A = t(tf.idf), nv = n)
+  feature.loadings <- lsi$v
+  sdev <- lsi$d / sqrt(max(1, nrow(x = object) - 1))
+  cell.embeddings <- lsi$u
+  if (verbose) {
+    message('Scaling cell embeddings')
+  }
+  embed.mean <- apply(X = cell.embeddings, MARGIN = 1, FUN = mean)
+  embed.sd <- apply(X = cell.embeddings, MARGIN = 1, FUN = sd)
+  norm.embeddings <- (cell.embeddings - embed.mean) / embed.sd
+  if (!is.null(x = scale.max)) {
+    norm.embeddings[norm.embeddings > scale.max] <- scale.max
+    norm.embeddings[norm.embeddings < -scale.max] <- -scale.max
+  }
+  rownames(x = feature.loadings) <- rownames(x = object)
+  colnames(x = feature.loadings) <- paste0(reduction.key, 1:n)
+  rownames(x = norm.embeddings) <- colnames(x = object)
+  colnames(x = norm.embeddings) <- paste0(reduction.key, 1:n)
+  reduction.data <- CreateDimReducObject(
+    embeddings = norm.embeddings,
+    loadings = feature.loadings,
+    assay = assay,
+    stdev = sdev,
+    key = reduction.key
+  )
+  return(reduction.data)
+}
+
+#' @param features Which features to use. If NULL, use variable features
+#' 
+#' @rdname RunLSI
+#' @export
+#' @method RunLSI Assay
+RunLSI.Assay <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = 'LSI_',
+  scale.max = 1.5,
+  verbose = TRUE,
+  ...
+) {
+  features <- features %||% VariableFeatures(object)
+  data.use <- GetAssayData(
+    object = object,
+    slot = 'counts'
+  )[features, ]
+  reduction.data <- RunLSI(
+    object = data.use,
+    assay = assay,
+    features = features,
+    n = n,
+    reduction.key = reduction.key,
+    scale.max = scale.max,
+    verbose = verbose,
+    ...
+  )
+  return(reduction.data)
+}
+
+#' @param reduction.name Name for stored dimension reduction object. Default 'lsi'
+#' @examples
+#' lsi <- RunLSI(object = pbmc_small, n = 5)
+#' 
+#' @rdname RunLSI
+#' 
+#' @export
+#' @method RunLSI Seurat
+RunLSI.Seurat <- function(
+  object,
+  assay = NULL,
+  features = NULL,
+  n = 50,
+  reduction.key = 'LSI_',
+  reduction.name = 'lsi',
+  scale.max = 1.5,
+  verbose = TRUE,
+  ...
+) {
+  assay <- assay %||% DefaultAssay(object)
+  assay.data <- GetAssay(object = object, assay = assay)
+  reduction.data <- RunLSI(
+    object = assay.data,
+    assay = assay,
+    features = features,
+    n = n,
+    reduction.key = reduction.key,
+    scale.max = scale.max,
+    verbose = verbose,
+    ...
+  )
+  object[[reduction.name]] <- reduction.data
+  object <- LogSeuratCommand(object = object)
+  return(object)
+}
+
 
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)

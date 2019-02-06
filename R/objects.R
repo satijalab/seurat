@@ -2526,7 +2526,7 @@ ReorderIdent.Seurat <- function(
 RenameCells.Assay <- function(object, new.names = NULL, ...) {
   for (data.slot in c("counts", "data", "scale.data")) {
     old.data <- GetAssayData(object = object, slot = data.slot)
-    if (ncol(x = old.data) == 0) {
+    if (ncol(x = old.data) <= 1) {
       next
     }
     colnames(x = slot(object = object, name = data.slot)) <- new.names

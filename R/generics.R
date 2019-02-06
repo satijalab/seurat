@@ -669,6 +669,21 @@ RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
 }
 
+#' Run Latent Semantic Indexing on binary count matrix
+#'
+#' For details about stored LSI calculation parameters, see
+#' \code{PrintLSIParams}.
+#'
+#' @param object Seurat object
+#' @param ... Arguments passed to other methods
+#' 
+#' @rdname RunLSI
+#' @export RunLSI
+#'
+RunLSI <- function(object, ...) {
+  UseMethod(generic = "RunLSI", object = object)
+}
+
 #' Run Principal Component Analysis
 #'
 #' Run a PCA dimensionality reduction. For details about stored PCA calculation
