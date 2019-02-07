@@ -195,7 +195,7 @@ CreateGeneActivityMatrix <- function(
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
-  gtf <- GenomeInfoDb::renameSeqlevels(gtf, value = unique(x = paste0('chr', GenomicRanges::seqnames(x = gtf))))
+  GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
   gtf.genes <- gtf[gtf$type == 'gene']
   
   # Extend definition up/downstream
