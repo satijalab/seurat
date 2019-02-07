@@ -9,15 +9,16 @@
 FindClusters(object, ...)
 
 \method{FindClusters}{default}(object, modularity.fxn = 1,
+  initial.membership = NULL, weights = NULL, node.sizes = NULL,
   resolution = 0.8, algorithm = 1, n.start = 10, n.iter = 10,
   random.seed = 0, temp.file.location = NULL, edge.file.name = NULL,
   verbose = TRUE, ...)
 
 \method{FindClusters}{Seurat}(object, graph.name = NULL,
-  modularity.fxn = 1, resolution = 0.8, algorithm = 1,
-  n.start = 10, n.iter = 10, random.seed = 0,
-  temp.file.location = NULL, edge.file.name = NULL, verbose = TRUE,
-  ...)
+  modularity.fxn = 1, initial.membership = NULL, weights = NULL,
+  node.sizes = NULL, resolution = 0.8, algorithm = 1, n.start = 10,
+  n.iter = 10, random.seed = 0, temp.file.location = NULL,
+  edge.file.name = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -26,12 +27,14 @@ FindClusters(object, ...)
 
 \item{modularity.fxn}{Modularity function (1 = standard; 2 = alternative).}
 
+\item{initial.membership, weights, node.sizes}{Parameters to pass to the Python leidenalg function.}
+
 \item{resolution}{Value of the resolution parameter, use a value above
 (below) 1.0 if you want to obtain a larger (smaller) number of communities.}
 
 \item{algorithm}{Algorithm for modularity optimization (1 = original Louvain
 algorithm; 2 = Louvain algorithm with multilevel refinement; 3 = SLM
-algorithm).}
+algorithm; 4 = Leiden algorithm). Leiden requires the leidenalg python.}
 
 \item{n.start}{Number of random starts.}
 
@@ -60,4 +63,8 @@ determine clusters. For a full description of the algorithms, see Waltman and
 van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
 Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 optimizer code in Rcpp!
+}
+\details{
+To run Leiden algorithm, you must first install the leidenalg python
+package (e.g. via pip install leidenalg), see Traag et al (2018).
 }
