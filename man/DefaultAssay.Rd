@@ -34,7 +34,7 @@ An object with the new default assay
 Get and set the default assay
 }
 \examples{
-# Get current default assay 
+# Get current default assay
 DefaultAssay(object = pbmc_small)
 
 # Create dummy new assay to demo switching default assays

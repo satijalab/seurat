@@ -43,7 +43,7 @@ If \code{add.cell.id} is set a prefix is added to existing cell names. If
 # Rename cells in an Assay
 head(x = colnames(x = pbmc_small[["RNA"]]))
 renamed.assay <- RenameCells(
-    object = pbmc_small[["RNA"]], 
+    object = pbmc_small[["RNA"]],
     new.names = paste0("A_", colnames(x = pbmc_small[["RNA"]]))
 )
 head(x = colnames(x = renamed.assay))
@@ -51,7 +51,7 @@ head(x = colnames(x = renamed.assay))
 # Rename cells in a DimReduc
 head(x = colnames(x = pbmc_small[["pca"]]))
 renamed.dimreduc <- RenameCells(
-    object = pbmc_small[["pca"]], 
+    object = pbmc_small[["pca"]],
     new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
 )
 head(x = colnames(x = renamed.dimreduc))

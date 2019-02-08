@@ -10,15 +10,15 @@
 RunLSI(object, ...)
 
 \method{RunLSI}{default}(object, assay = NULL, n = 50,
-  reduction.key = "LSI_", scale.max = 1.5, seed.use = 42,
+  reduction.key = "LSI_", scale.max = NULL, seed.use = 42,
   verbose = TRUE, ...)
 
 \method{RunLSI}{Assay}(object, assay = NULL, features = NULL, n = 50,
-  reduction.key = "LSI_", scale.max = 1.5, verbose = TRUE, ...)
+  reduction.key = "LSI_", scale.max = NULL, verbose = TRUE, ...)
 
 \method{RunLSI}{Seurat}(object, assay = NULL, features = NULL,
   n = 50, reduction.key = "LSI_", reduction.name = "lsi",
-  scale.max = 1.5, verbose = TRUE, ...)
+  scale.max = NULL, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -31,7 +31,7 @@ RunLSI(object, ...)
 
 \item{reduction.key}{Key for dimension reduction object}
 
-\item{scale.max}{Clipping value for cell embeddings}
+\item{scale.max}{Clipping value for cell embeddings. Default (NULL) is no clipping.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed.}
