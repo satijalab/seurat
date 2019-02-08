@@ -628,6 +628,13 @@ FindMarkers.Seurat <- function(
     Idents(object) <- group.by
   }
   assay <- assay %||% DefaultAssay(object = object)
+  if (assay %in% names(object@reductions)) {
+    # perform DE on, for example, PCA embeddings.
+    # workaround is to add the embeddings as a new temporary assay object
+    embeddings <- t(object[[assay]]@cell.embeddings)
+    assay <- paste0("assay_",assay)
+    object[[assay]] <- CreateAssayObject(data = embeddings)
+  }
   data.slot <- ifelse(
     test = test.use %in% c("negbinom", "poisson", "DESeq2"),
     yes = 'counts',

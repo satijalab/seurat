@@ -537,6 +537,7 @@ VlnPlot <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param ncol Number of columns for display when combining plots
 #'
 #' @inheritDotParams CombinePlots
 #' @return A ggplot object
@@ -574,6 +575,7 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   combine = TRUE,
+  ncol = NULL,
   ...
 ) {
   if (length(x = dims) != 2) {
@@ -588,6 +590,7 @@ DimPlot <- function(
   cells <- cells %||% colnames(x = object)
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
+  orig.dims <- dims
   dims <- paste0(Key(object = object[[reduction]]), dims)
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
@@ -597,44 +600,66 @@ DimPlot <- function(
       data[, group] <- factor(x = data[, group])
     }
   }
+  
+  features <- NULL
   if (!is.null(x = shape.by)) {
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
-  if (!is.null(x = split.by)) {
-    if (length(x = group.by) > 1) {
-      nrow <- ncol <- 1
-    } else {
-      nrow <- NULL
-      ncol <- list(...)$ncol
-    }
-    data[, split.by] <- object[[split.by, drop = TRUE]]
+  if (!is.null(group.by)) {
+    features <- group.by
   }
-  plots <- lapply(
-    X = group.by,
-    FUN = function(x) {
-      return(SingleDimPlot(
-        data = data[, c(dims, x, split.by, shape.by)],
-        dims = dims,
-        col.by = x,
-        cols = cols,
-        pt.size = pt.size,
-        shape.by = shape.by,
-        order = order,
-        label = label,
-        repel = repel,
-        label.size = label.size,
-        cells.highlight = cells.highlight,
-        cols.highlight = cols.highlight,
-        sizes.highlight = sizes.highlight,
-        na.value = na.value
-      ))
-    }
-  )
   if (!is.null(x = split.by)) {
+    data[, split.by] <- object[[split.by, drop = TRUE]]
+    features <- unique(FetchData(object,split.by)[,1])
+  }
+
+  if ((is.null(x = ncol))&!is.null(features)) {
+    ncol <- 2
+    if (length(x = features) == 1) {
+      ncol <- 1
+    }
+    if (length(x = features) > 6) {
+      ncol <- 3
+    }
+    if (length(x = features) > 9) {
+      ncol <- 4
+    }
+  }
+  if (is.null(split.by)) {
     plots <- lapply(
-      X = plots,
+      X = group.by,
       FUN = function(x) {
-        x + facet_wrap(facets = split.by, nrow = nrow)
+        return(SingleDimPlot(
+          data = data[, c(dims, x, split.by, shape.by)],
+          dims = dims,
+          col.by = x,
+          cols = cols,
+          pt.size = pt.size,
+          shape.by = shape.by,
+          order = order,
+          label = label,
+          repel = repel,
+          label.size = label.size,
+          cells.highlight = cells.highlight,
+          cols.highlight = cols.highlight,
+          sizes.highlight = sizes.highlight,
+          na.value = na.value
+        ))
+      }
+    )
+  }
+  if (!is.null(x = split.by)) {
+    bigPlot <-  DimPlot(object = object,dims = orig.dims,cells = cells,cols = cols,pt.size = pt.size,reduction = reduction,shape.by = shape.by,order = order,label = label,
+                        label.size = label.size,repel = repel,cells.highlight = cells.highlight,cols.highlight = cols.highlight,sizes.highlight = sizes.highlight,na.value = na.value) 
+    xlimits <- ggplot_build(bigPlot)$layout$panel_scales_x[[1]]$range$range
+    ylimits <- ggplot_build(bigPlot)$layout$panel_scales_y[[1]]$range$range
+    
+    plots <- lapply(
+      X = sort(unique(object[[split.by]][,1])),
+      FUN = function(x) {
+        cells.use <- Cells(object)[which(object[[split.by]] == x)]
+        DimPlot(object = object,dims = orig.dims,cells = cells.use,cols = cols,pt.size = pt.size,reduction = reduction,shape.by = shape.by,order = order,label = label,
+                label.size = label.size,repel = repel,cells.highlight = cells.highlight,cols.highlight = cols.highlight,sizes.highlight = sizes.highlight,na.value = na.value) + ggtitle(x) + xlim(xlimits[1],xlimits[2]) + ylim(ylimits[1],ylimits[2])
       }
     )
   }
