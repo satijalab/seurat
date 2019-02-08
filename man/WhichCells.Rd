@@ -22,7 +22,9 @@ WhichCells(object, ...)
 \item{cells}{Subset of cell names}
 
 \item{expression}{A predicate expression for feature/variable expression, can
-evalue anything that can be pulled by \code{FetchData}}
+evalue anything that can be pulled by \code{FetchData}; please note, you may
+need to wrap feature names in backticks (\code{``}) if dashes between numbers
+are present in the feature name}
 
 \item{invert}{Invert the selection of cells}
 

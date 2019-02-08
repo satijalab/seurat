@@ -1494,7 +1494,7 @@ UpdateSeuratObject <- function(object) {
 #' rownames(x = mat) <- paste0("feature_", 1:10)
 #' colnames(x = mat) <- paste0("cell_", 1:10)
 #' g <- as.Graph(x = mat)
-#' 
+#'
 as.Graph.Matrix <- function(x, ...) {
   if (!inherits(x = x, what = 'dgCMatrix')) {
     x <- as(object = x, Class = 'dgCMatrix')
@@ -1511,14 +1511,14 @@ as.Graph.Matrix <- function(x, ...) {
 #' @rdname as.Graph
 #' @export
 #' @method as.Graph matrix
-#' 
+#'
 #' @examples
 #' # converting dense matrix
 #' mat <- matrix(data = 1:16, nrow = 4)
 #' rownames(x = mat) <- paste0("feature_", 1:4)
 #' colnames(x = mat) <- paste0("cell_", 1:4)
 #' g <- as.Graph(x = mat)
-#' 
+#'
 as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
@@ -1819,10 +1819,10 @@ DefaultAssay.DimReduc <- function(object, ...) {
 #' @export
 #' @method DefaultAssay Seurat
 #'
-#' @examples 
-#' # Get current default assay 
+#' @examples
+#' # Get current default assay
 #' DefaultAssay(object = pbmc_small)
-#' 
+#'
 DefaultAssay.Seurat <- function(object, ...) {
   return(slot(object = object, name = 'active.assay'))
 }
@@ -1847,7 +1847,7 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' # switch default assay to RNA2
 #' DefaultAssay(object = pbmc_small) <- "RNA2"
 #' DefaultAssay(object = pbmc_small)
-#' 
+#'
 "DefaultAssay<-.Seurat" <- function(object, ..., value) {
   if (!value %in% names(x = slot(object = object, name = 'assays'))) {
     stop("Cannot find assay ", value)
@@ -1859,8 +1859,8 @@ DefaultAssay.Seurat <- function(object, ...) {
 #' @rdname Embeddings
 #' @export
 #' @method Embeddings DimReduc
-#' 
-#' @examples 
+#'
+#' @examples
 #' # Get the embeddings directly from a DimReduc object
 #' Embeddings(object = pbmc_small[["pca"]])[1:5, 1:5]
 #'
@@ -1874,10 +1874,10 @@ Embeddings.DimReduc <- function(object, ...) {
 #' @export
 #' @method Embeddings Seurat
 #'
-#' @examples 
+#' @examples
 #' # Get the embeddings from a specific DimReduc in a Seurat object
 #' Embeddings(object = pbmc_small, reduction = "pca")[1:5, 1:5]
-#' 
+#'
 Embeddings.Seurat <- function(object, reduction, ...) {
   return(Embeddings(object = object[[reduction]], ...))
 }
@@ -1888,9 +1888,9 @@ Embeddings.Seurat <- function(object, reduction, ...) {
 #' @export
 #' @method GetAssay Seurat
 #'
-#' @examples 
+#' @examples
 #' GetAssay(object = pbmc_small, assay = "RNA")
-#' 
+#'
 GetAssay.Seurat <- function(object, assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   object.assays <- FilterObjects(object = object, classes.keep = 'Assay')
@@ -1910,10 +1910,10 @@ GetAssay.Seurat <- function(object, assay = NULL, ...) {
 #' @export
 #' @method GetAssayData Assay
 #'
-#' @examples 
+#' @examples
 #' # Get the data directly from an Assay object
 #' GetAssayData(object = pbmc_small[["RNA"]], slot = "data")[1:5,1:5]
-#' 
+#'
 GetAssayData.Assay <- function(object, slot = 'data', ...) {
   return(slot(object = object, name = slot))
 }
@@ -1923,11 +1923,11 @@ GetAssayData.Assay <- function(object, slot = 'data', ...) {
 #' @rdname GetAssayData
 #' @export
 #' @method GetAssayData Seurat
-#' 
-#' @examples 
+#'
+#' @examples
 #' # Get the data from a specific Assay in a Seurat object
 #' GetAssayData(object = pbmc_small, assay = "RNA", slot = "data")[1:5,1:5]
-#' 
+#'
 GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
   assay <- assay %||% DefaultAssay(object = object)
   return(GetAssayData(
@@ -1939,8 +1939,8 @@ GetAssayData.Seurat <- function(object, slot = 'data', assay = NULL, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Assay
-#' 
-#' @examples 
+#'
+#' @examples
 #' # Get the HVF info directly from an Assay object
 #' HVFInfo(object = pbmc_small[["RNA"]])[1:5, ]
 #'
@@ -1962,8 +1962,8 @@ HVFInfo.Assay <- function(object, ...) {
 #' @rdname HVFInfo
 #' @export
 #' @method HVFInfo Seurat
-#' 
-#' @examples 
+#'
+#' @examples
 #' # Get the HVF info from a specific Assay in a Seurat object
 #' HVFInfo(object = pbmc_small, assay = "RNA")[1:5, ]
 #'
@@ -2098,10 +2098,10 @@ JS.JackStrawData <- function(object, slot, ...) {
 #' @export
 #' @method Key Assay
 #'
-#' @examples 
+#' @examples
 #' # Get an Assay key
 #' Key(object = pbmc_small[["RNA"]])
-#' 
+#'
 Key.Assay <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2109,11 +2109,11 @@ Key.Assay <- function(object, ...) {
 #' @rdname Key
 #' @export
 #' @method Key DimReduc
-#' 
+#'
 #' @examples
 #' # Get a DimReduc key
 #' Key(object = pbmc_small[["pca"]])
-#' 
+#'
 Key.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'key'))
 }
@@ -2125,7 +2125,7 @@ Key.DimReduc <- function(object, ...) {
 #' @examples
 #' # Show all keys associated with a Seurat object
 #' Key(object = pbmc_small)
-#' 
+#'
 Key.Seurat <- function(object, ...) {
   keyed.objects <- FilterObjects(object = object)
   return(sapply(
@@ -2140,11 +2140,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- Assay
 #'
-#' @examples 
+#' @examples
 #' # Set the key for an Assay
 #' Key(object = pbmc_small[["RNA"]]) <- "newkey_"
 #' Key(object = pbmc_small[["RNA"]])
-#' 
+#'
 "Key<-.Assay" <- function(object, ..., value) {
   slot(object = object, name = 'key') <- value
   return(object)
@@ -2154,11 +2154,11 @@ Key.Seurat <- function(object, ...) {
 #' @export
 #' @method Key<- DimReduc
 #'
-#' @examples 
+#' @examples
 #' # Set the key for DimReduc
 #' Key(object = pbmc_small[["pca"]]) <- "newkey2_"
 #' Key(object = pbmc_small[["pca"]])
-#' 
+#'
 "Key<-.DimReduc" <- function(object, ..., value) {
   old.key <- Key(object = object)
   slots <- Filter(
@@ -2187,7 +2187,7 @@ Key.Seurat <- function(object, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings DimReduc
-#' 
+#'
 #' @examples
 #' # Get the feature loadings for a given DimReduc
 #' Loadings(object = pbmc_small[["pca"]])[1:5,1:5]
@@ -2207,7 +2207,7 @@ Loadings.DimReduc <- function(object, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings Seurat
-#' 
+#'
 #' @examples
 #' # Get the feature loadings for a specified DimReduc in a Seurat object
 #' Loadings(object = pbmc_small, reduction = "pca")[1:5,1:5]
@@ -2219,8 +2219,8 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @rdname Loadings
 #' @export
 #' @method Loadings<- DimReduc
-#' 
-#' @examples 
+#'
+#' @examples
 #' # Set the feature loadings for a given DimReduc
 #' new.loadings <- Loadings(object = pbmc_small[["pca"]])
 #' new.loadings <- new.loadings + 0.01
@@ -2245,10 +2245,10 @@ Loadings.Seurat <- function(object, reduction, projected = NULL, ...) {
 #' @export
 #' @method Misc Seurat
 #'
-#' @examples 
+#' @examples
 #' # Get the misc info
 #' Misc(object = pbmc_small, slot = "example")
-#' 
+#'
 Misc.Seurat <- function(object, slot = NULL, ...) {
   if (is.null(x = slot)) {
     return(slot(object = object, name = 'misc'))
@@ -2518,7 +2518,7 @@ ReorderIdent.Seurat <- function(
 #' # Rename cells in an Assay
 #' head(x = colnames(x = pbmc_small[["RNA"]]))
 #' renamed.assay <- RenameCells(
-#'     object = pbmc_small[["RNA"]], 
+#'     object = pbmc_small[["RNA"]],
 #'     new.names = paste0("A_", colnames(x = pbmc_small[["RNA"]]))
 #' )
 #' head(x = colnames(x = renamed.assay))
@@ -2542,7 +2542,7 @@ RenameCells.Assay <- function(object, new.names = NULL, ...) {
 #' # Rename cells in a DimReduc
 #' head(x = colnames(x = pbmc_small[["pca"]]))
 #' renamed.dimreduc <- RenameCells(
-#'     object = pbmc_small[["pca"]], 
+#'     object = pbmc_small[["pca"]],
 #'     new.names = paste0("A_", colnames(x = pbmc_small[["pca"]]))
 #' )
 #' head(x = colnames(x = renamed.dimreduc))
@@ -2673,7 +2673,7 @@ RenameIdents.Seurat <- function(object, ...) {
 #' @export
 #' @method SetAssayData Assay
 #'
-#' @examples 
+#' @examples
 #' # Set an Assay slot directly
 #' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
 #' count.data <- as.matrix(x = count.data + 1)
@@ -2727,14 +2727,14 @@ SetAssayData.Assay <- function(object, slot, new.data, ...) {
 #' @export
 #' @method SetAssayData Seurat
 #'
-#' @examples 
+#' @examples
 #' # Set an Assay slot through the Seurat object
 #' count.data <- GetAssayData(object = pbmc_small[["RNA"]], slot = "counts")
 #' count.data <- as.matrix(x = count.data + 1)
 #' new.seurat.object <- SetAssayData(
-#'     object = pbmc_small, 
-#'     slot = "counts", 
-#'     new.data = count.data, 
+#'     object = pbmc_small,
+#'     slot = "counts",
+#'     new.data = count.data,
 #'     assay = "RNA"
 #' )
 #'
@@ -2796,10 +2796,10 @@ StashIdent.Seurat <- function(object, save.name = 'orig.ident', ...) {
 #' @export
 #' @method Stdev DimReduc
 #'
-#' @examples 
+#' @examples
 #' # Get the standard deviations for each PC from the DimReduc object
 #' Stdev(object = pbmc_small[["pca"]])
-#' 
+#'
 Stdev.DimReduc <- function(object, ...) {
   return(slot(object = object, name = 'stdev'))
 }
@@ -2978,9 +2978,9 @@ SubsetData.Seurat <- function(
 #' @export
 #' @method Tool Seurat
 #'
-#' @examples 
+#' @examples
 #' Tool(object = pbmc_small)
-#' 
+#'
 Tool.Seurat <- function(object, slot = NULL, ...) {
   if (is.null(x = slot)) {
     return(names(x = slot(object = object, name = 'tools')))
@@ -2992,7 +2992,7 @@ Tool.Seurat <- function(object, slot = NULL, ...) {
 #' @export
 #' @method Tool<- Seurat
 #'
-#' @examples 
+#' @examples
 #' \dontrun{
 #' sample.tool.output <- matrix(data = rnorm(n = 16), nrow = 4)
 #' # must be run from within a function
@@ -3068,7 +3068,9 @@ VariableFeatures.Seurat <- function(object, assay = NULL, ...) {
 
 #' @param cells Subset of cell names
 #' @param expression A predicate expression for feature/variable expression, can
-#' evalue anything that can be pulled by \code{FetchData}
+#' evalue anything that can be pulled by \code{FetchData}; please note, you may
+#' need to wrap feature names in backticks (\code{``}) if dashes between numbers
+#' are present in the feature name
 #' @param invert Invert the selection of cells
 #'
 #' @importFrom stats na.omit
@@ -3105,6 +3107,11 @@ WhichCells.Assay <- function(
       replacement = '',
       x = expr.char,
       fixed = TRUE
+    )
+    expr.char <- gsub(
+      pattern = '`',
+      replacement = '',
+      x = expr.char
     )
     vars.use <- which(x = expr.char %in% rownames(x = object))
     expr.char <- expr.char[vars.use]
@@ -3188,6 +3195,11 @@ WhichCells.Seurat <- function(
       replacement = '',
       x = expr.char,
       fixed = TRUE
+    )
+    expr.char <- gsub(
+      pattern = '`',
+      replacement = '',
+      x = expr.char
     )
     vars.use <- which(
       x = expr.char %in% rownames(x = object) |
