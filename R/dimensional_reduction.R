@@ -1540,13 +1540,12 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
-# commit 7a5212e on Oct 27, 2018
+# Based on Kluger Lab FIt-SNE v1.1.0 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit d2cf403 on Feb 8, 2019
 #
 #' @importFrom utils file_test
 #
-fftRtsne <- function(
-  X,
+fftRtsne <- function(X, 
   dims = 2,
   perplexity = 30,
   theta = 0.5,
@@ -1579,8 +1578,9 @@ fftRtsne <- function(
   nthreads = getOption('mc.cores', default = 1),
   perplexity_list = NULL,
   get_costs = FALSE,
-  ...
-) {
+  df = 1.0,
+  ... ) {
+  version_number = '1.1.0'
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1598,11 +1598,11 @@ fftRtsne <- function(
     stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
   }
   # check fast_tsne version
-  ft.out <- system2(command = fast_tsne_path, stdout = TRUE)
-  if (!grepl('= t-SNE v1.', ft.out[1])) {
+  ft.out <- suppressWarnings(system2(command = fast_tsne_path, stdout = TRUE))
+  if (!grepl('= t-SNE v1.1', ft.out[1])) {
     message('First line of fast_tsne output is')
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.1.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
   
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
@@ -1688,13 +1688,14 @@ fftRtsne <- function(
   tX = c(t(X))
   writeBin(object = tX, con = f) 
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4) 
+  writeBin(as.numeric(df), f, size=8)
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4) 
   if (!is.null(x = initialization)) {
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
   
-  flag <- system2(command = fast_tsne_path, args = c(data_path, result_path, nthreads))
+  flag= system2(command=fast_tsne_path, args=c(version_number,data_path, result_path, nthreads));
   if (flag != 0) {
     stop('tsne call failed')
   }
@@ -1704,6 +1705,7 @@ fftRtsne <- function(
   Y <- readBin(con = f, what = numeric(), n = n * d)
   Y <- t(x = matrix(Y, nrow = d))
   if (get_costs) {
+    tmp <- readBin(f, integer(), n=1, size=4);
     costs <- readBin(con = f, what = numeric(), n = max_iter, size = 8)
     Yout <- list(Y = Y, costs = costs)
   }else {
