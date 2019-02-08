@@ -88,4 +88,6 @@ Suggests:
     SingleCellExperiment,
     MAST,
     DESeq2,
-    destiny
+    destiny,
+    GenomicRanges,
+    rtracklayer

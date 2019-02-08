@@ -1150,6 +1150,21 @@ ExtractField <- function(string, field = 1, delim = "_") {
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
+# Resize GenomicRanges upstream and or downstream
+# from https://support.bioconductor.org/p/78652/
+# 
+Extend <- function(x, upstream = 0, downstream = 0) {
+  if (any(GenomicRanges::strand(x = x) == "*")) {
+    warning("'*' ranges were treated as '+'")
+  }
+  on_plus <- GenomicRanges::strand(x = x) == "+" | GenomicRanges::strand(x = x) == "*"
+  new_start <- GenomicRanges::start(x = x) - ifelse(test = on_plus, yes = upstream, no = downstream)
+  new_end <- GenomicRanges::end(x = x) + ifelse(test = on_plus, yes = downstream, no = upstream)
+  IRanges::ranges(x = x) <- IRanges::IRanges(start = new_start, end = new_end)
+  x <- GenomicRanges::trim(x = x)
+  return(x)
+}
+
 # Interleave vectors together
 #
 # @param ... Vectors to be interleaved
@@ -1220,6 +1235,9 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   # check if function works on the Assay and/or the DimReduc Level
   assay <- params[["assay"]]
   reduction <- params[["reduction"]]
+  if (class(x = reduction) == 'DimReduc') {
+    reduction = 'DimReduc'
+  }
   # rename function name to include Assay/DimReduc info
   command.name <- paste(command.name, assay, reduction, sep = '.')
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)

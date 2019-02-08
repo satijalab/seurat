@@ -4,7 +4,7 @@
 \alias{TransferData}
 \title{Transfer Labels}
 \usage{
-TransferData(anchorset, refdata, reduction = "pcaproject",
+TransferData(anchorset, refdata, weight.reduction = "pcaproject",
   l2.norm = FALSE, dims = 1:30, k.weight = 50, sd.weight = 1,
   eps = 0, do.cpp = TRUE, verbose = TRUE, slot = "data")
 }
@@ -14,11 +14,12 @@ TransferData(anchorset, refdata, reduction = "pcaproject",
 \item{refdata}{Data to transfer. Should be either a vector where the names correspond to
 reference cells, or a matrix, where the column names correspond to the reference cells.}
 
-\item{reduction}{Dimensional reduction to use for the weighting. Options are:
+\item{weight.reduction}{Dimensional reduction to use for the weighting. Options are:
 \itemize{
    \item{pcaproject: Use the projected PCA used for anchor building}
    \item{pca: Use an internal PCA on the query only}
    \item{cca: Use the CCA used for anchor building}
+   \item{custom DimReduc: User provided DimReduc object computed on the query cells}
 }}
 
 \item{l2.norm}{Perform L2 normalization on the cell embeddings after dimensional reduction}

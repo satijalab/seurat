@@ -153,6 +153,91 @@ CalculateBarcodeInflections <- function(
   return(object)
 }
 
+#' Convert a peak matrix to a gene activity matrix
+#' 
+#' This function will take in a peak matrix and an annotation file (gtf) and collapse the peak
+#' matrix to a gene activity matrix. It makes the simplifying assumption that all counts in the gene
+#' body plus X kb up and or downstream should be attributed to that gene. 
+#' 
+#' @param peak.matrix Matrix of peak counts
+#' @param annotation.file Path to GTF annotation file
+#' @param seq.levels Which seqlevels to keep (corresponds to chromosomes usually)
+#' @param include.body Include the gene body?
+#' @param upstream Number of bases upstream to consider
+#' @param downstream Number of bases downstream to consider
+#' @param verbose Print progress/messages
+#' 
+#' @export
+#' 
+CreateGeneActivityMatrix <- function(
+  peak.matrix,
+  annotation.file,
+  seq.levels = c(1:22, "X", "Y"),
+  include.body = TRUE,
+  upstream = 2000,
+  downstream = 0,
+  verbose = TRUE
+) {
+  if (!PackageCheck('GenomicRanges', error = FALSE)) {
+    stop("Please install GenomicRanges from Bioconductor.")
+  }
+  if (!PackageCheck('rtracklayer', error = FALSE)) {
+    stop("Please install rtracklayer from Bioconductor.")
+  }
+  
+  # convert peak matrix to GRanges object
+  peak.df <- rownames(x = peak.matrix)
+  peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
+  peak.df <- as.data.frame(x = peak.df)
+  colnames(x = peak.df) <- c("chromosome", 'start', 'end')
+  peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
+  
+  # get annotation file, select genes
+  gtf <- rtracklayer::import(con = annotation.file)
+  gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
+  GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
+  gtf.genes <- gtf[gtf$type == 'gene']
+  
+  # Extend definition up/downstream
+  if (include.body) {
+    gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
+  } else {
+    gtf.body_prom <- SummarizedExperiment::promoters(x = gtf.genes, upstream = upstream, downstream = downstream)
+  }
+  gene.distances <- GenomicRanges::distanceToNearest(x = peaks.gr, subject = gtf.body_prom)
+  keep.overlaps <- gene.distances[rtracklayer::mcols(x = gene.distances)$distance == 0]
+  peak.ids <- peaks.gr[S4Vectors::queryHits(x = keep.overlaps)]
+  gene.ids <- gtf.genes[S4Vectors::subjectHits(x = keep.overlaps)]
+  peak.ids$gene.name <- gene.ids$gene_name
+  peak.ids <- as.data.frame(x = peak.ids)
+  peak.ids$peak <- paste0(peak.ids$seqnames, ":", peak.ids$start, "-", peak.ids$end)
+  annotations <- peak.ids[, c('peak', 'gene.name')]
+  colnames(x = annotations) <- c('feature', 'new_feature')
+  
+  # collapse into expression matrix
+  peak.matrix <- as(object = peak.matrix, Class = 'matrix')
+  all.features <- unique(x = annotations$new_feature)
+  
+  if (PlanThreads() > 1) {
+    mysapply <- future_sapply
+  } else {
+    mysapply <- ifelse(test = verbose, yes = pbsapply, no = sapply)
+  }
+  newmat <- mysapply(X = 1:length(x = all.features), FUN = function(x){
+    features.use <- annotations[annotations$new_feature == all.features[[x]], ]$feature
+    submat <- peak.matrix[features.use, ]
+    if (length(x = features.use) > 1) {
+      return(Matrix::colSums(x = submat))
+    } else {
+      return(submat)
+    }
+  })
+  newmat <- t(x = newmat)
+  rownames(x = newmat) <- all.features
+  colnames(x = newmat) <- colnames(x = peak.matrix)
+  return(as(object = newmat, Class = 'dgCMatrix'))
+}
+
 #' Demultiplex samples based on data from cell 'hashing'
 #'
 #' Assign sample-of-origin for each cell, annotate doublets.
@@ -1032,6 +1117,43 @@ SubsetByBarcodeInflections <- function(object) {
     stop("Barcode inflections not calculated, please run CalculateBarcodeInflections")
   }
   return(object[, cbi.data$cells_pass])
+}
+
+#' Term frequency-inverse document frequency
+#'
+#' Normalize binary data per cell using the term frequency-inverse document frequency
+#' normalization method (TF-IDF).
+#' This is suitable for the normalization of binary ATAC peak datasets.
+#'
+#' @param data Matrix with the raw count data
+#' @param verbose Print progress
+#'
+#' @return Returns a matrix with the normalized data
+#'
+#' @importFrom Matrix colSums rowSums
+#'
+#' @export
+#'
+#' @examples
+#' mat <- matrix(data = rbinom(n = 25, size = 5, prob = 0.2), nrow = 5)
+#' mat_norm <- TF.IDF(data = mat)
+#'
+TF.IDF <- function(data, verbose = TRUE) {
+  if (class(x = data) == "data.frame") {
+    data <- as.matrix(x = data)
+  }
+  if (class(x = data) != "dgCMatrix") {
+    data <- as(object = data, Class = "dgCMatrix")
+  }
+  if (verbose) {
+    message("Performing TF-IDF normalization")
+  }
+  npeaks <- colSums(x = data)
+  tf <- t(x = t(x = data) / npeaks)
+  idf <- ncol(x = data) / rowSums(x = data)
+  norm.data <- Diagonal(n = length(x = idf), x = idf) %*% tf
+  norm.data[which(x = is.na(x = norm.data))] <- 0
+  return(norm.data)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

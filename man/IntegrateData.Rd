@@ -6,8 +6,9 @@
 \usage{
 IntegrateData(anchorset, new.assay.name = "integrated",
   features = NULL, features.to.integrate = NULL, dims = 1:30,
-  k.weight = 100, sd.weight = 1, sample.tree = NULL,
-  preserve.order = FALSE, do.cpp = TRUE, eps = 0, verbose = TRUE)
+  k.weight = 100, weight.reduction = NULL, sd.weight = 1,
+  sample.tree = NULL, preserve.order = FALSE, do.cpp = TRUE,
+  eps = 0, verbose = TRUE)
 }
 \arguments{
 \item{anchorset}{Results from FindIntegrationAnchors}
@@ -24,15 +25,26 @@ used in anchor finding.}
 
 \item{k.weight}{Number of neighbors to consider when weighting}
 
+\item{weight.reduction}{Dimension reduction to use when calculating anchor weights.
+This can be either:
+\itemize{
+   \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
+   \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+   \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
+}
+Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
+first merge between reference and query, as the merged object will subsequently contain more cells than was in 
+query, and weights will need to be calculated for all cells in the object.}
+
 \item{sd.weight}{Controls the bandwidth of the Gaussian kernel for weighting}
 
-\item{sample.tree}{Specify the order of integration. If null, will compute automatically.}
+\item{sample.tree}{Specify the order of integration. If NULL, will compute automatically.}
 
-\item{preserve.order}{Integrate the objects in the order they were provided to FindAnchors}
+\item{preserve.order}{Do not reorder objects based on size for each pairwise integration.}
 
 \item{do.cpp}{Run cpp code where applicable}
 
-\item{eps}{Error bound on the neighbor finding algorithm (from RANN)}
+\item{eps}{Error bound on the neighbor finding algorithm (from \code{\link{RANN}})}
 
 \item{verbose}{Print progress bars and output}
 }

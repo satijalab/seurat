@@ -225,7 +225,7 @@ FindTransferAnchors <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   DefaultAssay(object = reference) <- reference.assay
   DefaultAssay(object = query) <- query.assay
-
+  
   ## find anchors using PCA projection
   if (reduction == 'pcaproject') {
     if (project.query){
@@ -280,7 +280,7 @@ FindTransferAnchors <- function(
       Loadings(object = combined.ob[["pcaproject"]]) <- old.loadings[, dims]
     }
   }
-
+  
   ## find anchors using CCA
   if (reduction == 'cca') {
     reference <- ScaleData(object = reference, features = features, verbose = FALSE)
@@ -295,7 +295,7 @@ FindTransferAnchors <- function(
       verbose = verbose
     )
   }
-
+  
   if (l2.norm){
     combined.ob <- L2Dim(object = combined.ob, reduction = reduction)
     reduction <- paste0(reduction, ".l2")
@@ -338,11 +338,21 @@ FindTransferAnchors <- function(
 #' used in anchor finding.
 #' @param dims Number of PCs to use in the weighting procedure
 #' @param k.weight Number of neighbors to consider when weighting
+#' @param weight.reduction Dimension reduction to use when calculating anchor weights.
+#' This can be either:
+#' \itemize{
+#'    \item{A string, specifying the name of a dimension reduction present in all objects to be integrated}
+#'    \item{A vector of strings, specifying the name of a dimension reduction to use for each object to be integrated}
+#'    \item{NULL, in which case a new PCA will be calculated and used to calculate anchor weights}
+#' }
+#' Note that, if specified, the requested dimension reduction will only be used for calculating anchor weights in the
+#' first merge between reference and query, as the merged object will subsequently contain more cells than was in 
+#' query, and weights will need to be calculated for all cells in the object.
 #' @param sd.weight Controls the bandwidth of the Gaussian kernel for weighting
-#' @param sample.tree Specify the order of integration. If null, will compute automatically.
-#' @param preserve.order Integrate the objects in the order they were provided to FindAnchors
+#' @param sample.tree Specify the order of integration. If NULL, will compute automatically.
+#' @param preserve.order Do not reorder objects based on size for each pairwise integration.
 #' @param do.cpp Run cpp code where applicable
-#' @param eps Error bound on the neighbor finding algorithm (from RANN)
+#' @param eps Error bound on the neighbor finding algorithm (from \code{\link{RANN}})
 #' @param verbose Print progress bars and output
 #'
 #' @return Returns a Seurat object with a new integrated Assay
@@ -356,6 +366,7 @@ IntegrateData <- function(
   features.to.integrate = NULL,
   dims = 1:30,
   k.weight = 100,
+  weight.reduction = NULL,
   sd.weight = 1,
   sample.tree = NULL,
   preserve.order = FALSE,
@@ -368,7 +379,31 @@ IntegrateData <- function(
   offsets <- slot(object = anchorset, name = "offsets")
   features <- features %||% slot(object = anchorset, name = "anchor.features")
   features.to.integrate <- features.to.integrate %||% features
-  objects.ncell <- sapply(X = object.list, FUN = ncol) #function(x) ncol(x = x))
+  objects.ncell <- sapply(X = object.list, FUN = ncol)
+  if (!is.null(x = weight.reduction)) {
+    if (length(x = weight.reduction) == 1 | inherits(x = weight.reduction, what = "DimReduc")) {
+      if (length(x = object.list) == 2) {
+        weight.reduction <- list(NULL, weight.reduction)
+      } else if (inherits(x = weight.reduction, what = "character")) {
+        weight.reduction <- rep(x = weight.reduction, times = length(x = object.list))
+      } else {
+        stop("Invalid input for weight.reduction. Please specify either the names of the dimension",
+             "reduction for each object in the list or provide DimReduc objects.")
+      }
+    }
+    if (length(x = weight.reduction) != length(x = object.list)) {
+      stop("Please specify a dimension reduction for each object, or one dimension reduction to be used for all objects")
+    }
+    available.reductions <- lapply(X = object.list, FUN = FilterObjects, classes.keep = 'DimReduc')
+    for (ii in 1:length(x = weight.reduction)) {
+      if (ii == 1 & is.null(x = weight.reduction[[ii]])) next
+      if (!inherits(x = weight.reduction[[ii]], what = "DimReduc")) {
+        if (!weight.reduction[[ii]] %in% available.reductions[[ii]]) {
+          stop("Requested dimension reduction (", weight.reduction[[ii]], ") is not present in object ", ii)
+        }
+      }
+    }
+  }
   if (is.null(x = sample.tree)) {
     similarity.matrix <- CountAnchors(
       anchor.df = anchors,
@@ -453,25 +488,35 @@ IntegrateData <- function(
       verbose = verbose
     )
     assay <- DefaultAssay(object = merged.obj)
-    merged.obj <- ScaleData(
-      object = merged.obj,
-      features = features,
-      verbose = FALSE
-    )
-    merged.obj <- RunPCA(
-      object = merged.obj,
-      npcs = max(dims),
-      verbose = FALSE,
-      features = features
-    )
+    if (is.null(weight.reduction) | (as.numeric(merge.pair[[2]]) > 0)) {
+      merged.obj <- ScaleData(
+        object = merged.obj,
+        features = features,
+        verbose = FALSE
+      )
+      merged.obj <- RunPCA(
+        object = merged.obj,
+        npcs = max(dims),
+        verbose = FALSE,
+        features = features
+      )
+      dr.weights <- merged.obj[['pca']]
+    } else {
+      dataset.id <- -(as.numeric(merge.pair[[2]]))
+      dr <- weight.reduction[[dataset.id]]
+      if (inherits(x = dr, what = "DimReduc")) {
+        dr.weights <- dr
+      } else {
+        dr.weights <- object.2[[dr]]
+      }
+    }
     merged.obj <- FindWeights(
       object = merged.obj,
       integration.name = integration.name,
-      reduction = 'pca',
-      nn.reduction = 'pca',
-      do.cpp = do.cpp,
-      nn.dims = dims,
-      k.weight = k.weight,
+      reduction = dr.weights,
+      cpp = do.cpp,
+      dims = dims,
+      k = k.weight,
       sd.weight = sd.weight,
       eps = eps,
       verbose = verbose
@@ -586,7 +631,7 @@ LocalStruct <- function(
     )
   }
   embeddings <- Embeddings(object = object[[reduction]])[, reduced.dims]
-
+  
   for (i in 1:length(x = ob.list)) {
     ob <- ob.list[[i]]
     ob <- FindVariableFeatures(
@@ -780,11 +825,12 @@ SelectIntegrationFeatures <- function(
 #' @param anchorset Results from FindTransferAnchors
 #' @param refdata Data to transfer. Should be either a vector where the names correspond to
 #' reference cells, or a matrix, where the column names correspond to the reference cells.
-#' @param reduction Dimensional reduction to use for the weighting. Options are:
+#' @param weight.reduction Dimensional reduction to use for the weighting. Options are:
 #' \itemize{
 #'    \item{pcaproject: Use the projected PCA used for anchor building}
 #'    \item{pca: Use an internal PCA on the query only}
 #'    \item{cca: Use the CCA used for anchor building}
+#'    \item{custom DimReduc: User provided DimReduc object computed on the query cells}
 #' }
 #' @param l2.norm Perform L2 normalization on the cell embeddings after dimensional reduction
 #' @param dims Number of PCs to use in the weighting procedure
@@ -803,7 +849,7 @@ SelectIntegrationFeatures <- function(
 TransferData <- function(
   anchorset,
   refdata,
-  reduction = 'pcaproject',
+  weight.reduction = 'pcaproject',
   l2.norm = FALSE,
   dims = 1:30,
   k.weight = 50,
@@ -813,12 +859,11 @@ TransferData <- function(
   verbose = TRUE,
   slot = "data"
 ) {
-
   combined.ob <- slot(object = anchorset, name = "object.list")[[1]]
   anchors <- slot(object = anchorset, name = "anchors")
   reference.cells <- slot(object = anchorset, name = "reference.cells")
   query.cells <- slot(object = anchorset, name = "query.cells")
-
+  
   if (inherits(x = refdata, what = c("character", "factor"))) {
     if (length(x = refdata) != length(x = reference.cells)) {
       stop(paste0("Please provide a vector that is the same length as the number of reference cells",
@@ -834,6 +879,7 @@ TransferData <- function(
                   "Number of columns in provided matrix : ", ncol(x = refdata), "\n",
                   "Number of columns required           : ", length(x = reference.cells)))
     }
+    colnames(x = refdata) <- paste0(colnames(x = refdata), "_reference")
     if (any(!colnames(x = refdata) == reference.cells)) {
       if (any(!colnames(x = refdata) %in% reference.cells) | any(!reference.cells %in% colnames(x = refdata))) {
         stop("Some (or all) of the column names of the provided refdata don't match the reference cells used in anchor finding.")
@@ -846,17 +892,16 @@ TransferData <- function(
     label.transfer <- FALSE
   } else {
     stop(paste0("Please provide either a vector (character or factor) for label transfer or a matrix",
-         "for feature transfer.\n", "Type provided: ", class(x = refdata)))
+                "for feature transfer.\n", "Type provided: ", class(x = refdata)))
   }
-
-  if (reduction == 'pca') {
+  if (!inherits(x = weight.reduction, what = "DimReduc") && weight.reduction == 'pca') {
     message("Running PCA on query dataset")
     features <- slot(object = anchorset, name = "anchor.features")
     query <- combined.ob[features, query.cells]
     query <- ScaleData(object = query, features = features, verbose = FALSE)
     query <- RunPCA(object = query, npcs = max(dims), features = features, verbose = FALSE)
     query.pca <- Embeddings(query[['pca']])
-
+    
     #fill with 0s
     ref.pca <- matrix(
       data = 0,
@@ -876,9 +921,13 @@ TransferData <- function(
     }
   }
   if (l2.norm) {
-    reduction <- paste0(reduction, ".l2")
+    weight.reduction <- paste0(weight.reduction, ".l2")
   }
-
+  if (inherits(x = weight.reduction, what = "DimReduc")) {
+    weight.reduction <- RenameCells(object = weight.reduction, new.names = paste0(Cells(object = weight.reduction), "_query"))
+  } else {
+    weight.reduction <- combined.ob[[weight.reduction]]
+  }
   combined.ob <- SetIntegrationData(
     object = combined.ob,
     integration.name = "integrated",
@@ -897,13 +946,12 @@ TransferData <- function(
   )
   combined.ob <- FindWeights(
     object = combined.ob,
-    reduction = reduction,
-    nn.reduction = reduction,
-    nn.dims = dims,
-    k.weight = k.weight,
+    reduction = weight.reduction,
+    dims = dims,
+    k = k.weight,
     sd.weight = sd.weight,
     eps = eps,
-    do.cpp = do.cpp,
+    cpp = do.cpp,
     verbose = verbose
   )
   weights <- GetIntegrationData(
@@ -1150,7 +1198,7 @@ FilterAnchors <- function(
     k = k.filter,
     eps = eps
   )
-
+  
   anchors <- GetIntegrationData(object = object, integration.name = integration.name, slot = "anchors")
   position <- sapply(X = 1:nrow(x = anchors), FUN = function(x) {
     which(x = anchors[x, "cell2"] == nn$nn.idx[anchors[x, "cell1"], ])[1]
@@ -1273,7 +1321,7 @@ FindAnchorPairs <- function(
   nn.cells2 <- neighbors$cells2
   cell1.index <- sapply(X = cells1, FUN = function(x) return(which(x == nn.cells1)))
   cell2.index <- sapply(X = cells2, FUN = function(x) return(which(x == nn.cells2)))
-
+  
   ncell <- 1:nrow(x = neighbors$nnab$nn.idx)
   ncell <- ncell[ncell %in% cell1.index]
   anchors <- list()
@@ -1404,7 +1452,7 @@ FindNN <- function(
   dims.cells1.opposite <- dim.data.opposite[cells1, ]
   dims.cells2.self <- dim.data.self[cells2, ]
   dims.cells2.opposite <- dim.data.opposite[cells2, ]
-
+  
   nnaa <- nn2(
     data = dims.cells1.self,
     k = k + 1,
@@ -1438,23 +1486,25 @@ FindNN <- function(
   return(object)
 }
 
+# @param reduction a DimReduc object containing cells in the query object
 FindWeights <- function(
   object,
+  reduction = NULL,
   assay = NULL,
   integration.name = 'integrated',
-  reduction = "cca",
-  nn.reduction = "cca",
-  nn.dims = 1:10,
+  dims = 1:10,
   features = NULL,
-  k.weight = 300,
+  k = 300,
   sd.weight = 1,
   eps = 0,
-  min.dist = 0,
   verbose = TRUE,
-  do.cpp = FALSE
+  cpp = FALSE
 ) {
   if (verbose) {
     message("Finding integration vector weights")
+  }
+  if (is.null(reduction) & is.null(features)) {
+    stop("Need to specify either dimension reduction object or a set of features")
   }
   assay <- assay %||% DefaultAssay(object = object)
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
@@ -1467,14 +1517,14 @@ FindWeights <- function(
   )
   anchors.cells2 <- nn.cells2[anchors[, "cell2"]]
   if (is.null(x = features)) {
-    data.use <- Embeddings(object[[nn.reduction]])[nn.cells2, nn.dims]
+    data.use <- Embeddings(reduction)[nn.cells2, dims]
   } else {
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, nn.cells2])
   }
   knn_2_2 <- nn2(
     data = data.use[anchors.cells2, ],
     query = data.use,
-    k = k.weight + 1,
+    k = k + 1,
     eps = eps
   )
   distances <- knn_2_2$nn.dists[, -1]
@@ -1485,7 +1535,7 @@ FindWeights <- function(
     integration.name = integration.name,
     slot = "integration.matrix"
   )
-  if (do.cpp) {
+  if (cpp) {
     weights <- FindWeightsC(
       integration_matrix = as(integration.matrix, "dgCMatrix"),
       cells2 = 0:(length(x = nn.cells2) - 1),
@@ -1494,7 +1544,7 @@ FindWeights <- function(
       integration_matrix_rownames = rownames(x = integration.matrix),
       cell_index = cell.index,
       anchor_score = anchors[, "score"],
-      min_dist = min.dist,
+      min_dist = 0,
       sd = sd.weight,
       display_progress = verbose
     )
@@ -1503,7 +1553,7 @@ FindWeights <- function(
       pb <- txtProgressBar(min = 1, max = length(x = nn.cells2), initial = 1, style = 3, file = stderr())
     }
     dist.weights <- matrix(
-      data = min.dist,
+      data = 0,
       nrow = nrow(x = integration.matrix),
       ncol = length(x = nn.cells2)
     )
@@ -1515,9 +1565,9 @@ FindWeights <- function(
         anchor.index <- which(rownames(integration.matrix) == i)
         dist.weights[anchor.index, cell] <- wt[[i]]
       }
-      if(verbose) setTxtProgressBar(pb, cell)
+      if (verbose) setTxtProgressBar(pb, cell)
     }
-    if(verbose) message("")
+    if (verbose) message("")
     dist.anchor.weight <- dist.weights * anchors[, "score"]
     weights <- 1 - exp(-1 * dist.anchor.weight / (2 * (1 / sd.weight)) ^ 2)
     weights <- sweep(weights, 2, Matrix::colSums(weights), "/")
@@ -1620,7 +1670,7 @@ ProjectCellEmbeddings <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
-
+  
   reference.data <-  GetAssayData(
     object = reference,
     assay.use = reference.assay,
@@ -1629,7 +1679,7 @@ ProjectCellEmbeddings <- function(
     object = query,
     assay.use = query.assay,
     slot = "data")[features, ]
-
+  
   if (is.null(x = feature.mean)){
     feature.mean <- rowMeans(x = reference.data)
     feature.sd <- sqrt(SparseRowVar2(mat = reference.data, mu = feature.mean, display_progress = FALSE))
@@ -1696,14 +1746,14 @@ ScoreAnchors <- function(
   nn.m4 <- ConstructNNMat(nn.idx = neighbors$nnbb$nn.idx[,1:k.score], offset1 = offset, offset2 = offset, dims = c(total.cells, total.cells))
   k.matrix <- nn.m1 + nn.m2 + nn.m3 + nn.m4
   anchor.only <- sparseMatrix(i = anchor.df[, 1], j = anchor.df[, 2], x = 1, dims = c(total.cells, total.cells))
-
+  
   if (do.cpp){
     anchor.matrix <- SNNAnchor(k_matrix = k.matrix, anchor_only = anchor.only)
   } else {
     jaccard.dist <- tcrossprod(x = k.matrix)
     anchor.matrix <- jaccard.dist * anchor.only
   }
-
+  
   anchor.matrix <- as(object = anchor.matrix, Class = "dgTMatrix")
   anchor.new <- data.frame(
     'cell1' = anchor.matrix@i + 1,
@@ -1748,13 +1798,13 @@ TopDimFeatures <- function(
   max.features <- max(length(x = dims) * 2, max.features)
   num.features <- sapply(X = 1:features.per.dim, FUN = function(y) {
     length(x = unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
-        unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE))
-      }))))
-    })
+      unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = y, balanced = TRUE))
+    }))))
+  })
   max.per.pc <- which.max(x = num.features[num.features < max.features])
   features <- unique(x = as.vector(x = sapply(X = dims, FUN = function(x) {
     unlist(x = TopFeatures(object = dim.reduction, dim = x, nfeatures = max.per.pc, balanced = TRUE))
-    })))
+  })))
   features <- unique(x = features)
   return(features)
 }
@@ -1786,7 +1836,7 @@ TransformDataMatrix <- function(
   neighbors <- GetIntegrationData(object = object, integration.name = integration.name, slot = 'neighbors')
   nn.cells1 <- neighbors$cells1
   nn.cells2 <- neighbors$cells2
-
+  
   data.use1 <- t(x = GetAssayData(
     object = object,
     assay = assay,
@@ -1806,7 +1856,7 @@ TransformDataMatrix <- function(
     bv <-  t(weights) %*% integration.matrix
     integrated <- data.use2 - bv
   }
-
+  
   new.expression <- t(rbind(data.use1, integrated))
   new.expression <- new.expression[, colnames(object)]
   new.assay <- new(

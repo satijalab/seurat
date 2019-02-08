@@ -180,6 +180,9 @@ Embeddings <- function(object, ...) {
 #' van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
 #' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 #' optimizer code in Rcpp!
+#' 
+#' To run Leiden algorithm, you must first install the leidenalg python
+#' package (e.g. via pip install leidenalg), see Traag et al (2018). 
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -671,6 +674,21 @@ RunCCA <- function(object1, object2, ...) {
 #'
 RunICA <- function(object, ...) {
   UseMethod(generic = "RunICA", object = object)
+}
+
+#' Run Latent Semantic Indexing on binary count matrix
+#'
+#' For details about stored LSI calculation parameters, see
+#' \code{PrintLSIParams}.
+#'
+#' @param object Seurat object
+#' @param ... Arguments passed to other methods
+#' 
+#' @rdname RunLSI
+#' @export RunLSI
+#'
+RunLSI <- function(object, ...) {
+  UseMethod(generic = "RunLSI", object = object)
 }
 
 #' Run Principal Component Analysis
