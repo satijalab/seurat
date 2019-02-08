@@ -644,7 +644,7 @@ RunICA.Seurat <- function(
 #' @param assay Which assay to use. If NULL, use the default assay
 #' @param n Number of singular values to compute
 #' @param reduction.key Key for dimension reduction object
-#' @param scale.max Clipping value for cell embeddings
+#' @param scale.max Clipping value for cell embeddings. Default (NULL) is no clipping.
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
 #' @param verbose Print messages
@@ -658,7 +658,7 @@ RunLSI.default <- function(
   assay = NULL,
   n = 50,
   reduction.key = 'LSI_',
-  scale.max = 1.5,
+  scale.max = NULL,
   seed.use = 42,
   verbose = TRUE,
   ...
@@ -713,7 +713,7 @@ RunLSI.Assay <- function(
   features = NULL,
   n = 50,
   reduction.key = 'LSI_',
-  scale.max = 1.5,
+  scale.max = NULL,
   verbose = TRUE,
   ...
 ) {
@@ -750,7 +750,7 @@ RunLSI.Seurat <- function(
   n = 50,
   reduction.key = 'LSI_',
   reduction.name = 'lsi',
-  scale.max = 1.5,
+  scale.max = NULL,
   verbose = TRUE,
   ...
 ) {
