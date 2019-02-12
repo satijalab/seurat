@@ -3733,7 +3733,7 @@ SingleDimPlot <- function(
       mapping = aes_string(
         x = dims[1],
         y = dims[2],
-        color = col.by,
+        color = paste0("`", col.by, "`"),
         shape = shape.by
       ),
       size = pt.size
