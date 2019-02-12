@@ -590,6 +590,7 @@ FindMarkers.default <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
 #' @param assay Assay to use in differential expression testing
+#' @param reduction Reduction to use in differential expression testing - will test for DE on cell embeddings
 #' @param group.by Regroup cells into a different identity class prior to performing differential expression (see example)
 #' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
 #'

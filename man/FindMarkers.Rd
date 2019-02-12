@@ -120,6 +120,8 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
 
 \item{assay}{Assay to use in differential expression testing}
+
+\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
