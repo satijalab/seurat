@@ -606,6 +606,7 @@ FindMarkers.Seurat <- function(
   group.by = NULL,
   subset.ident = NULL,
   assay = NULL,
+  reduction = NULL, 
   features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
@@ -627,20 +628,23 @@ FindMarkers.Seurat <- function(
     }
     Idents(object = object) <- group.by
   }
-  assay <- assay %||% DefaultAssay(object = object)
-  if (assay %in% FilterObjects(object = object, classes.keep = "DimReduc")) {
-    # perform DE on, for example, PCA embeddings.
-    # workaround is to add the embeddings as a new temporary assay object
-    embeddings <- t(x = Embeddings(object = object, assay = assay))
-    assay <- paste0("assay_", assay)
-    object[[assay]] <- CreateAssayObject(data = embeddings)
+  if (!is.null(x = assay) & !is.null(x = reduction)) {
+    stop("Please only specify either assay or reduction.")
   }
   data.slot <- ifelse(
     test = test.use %in% c("negbinom", "poisson", "DESeq2"),
     yes = 'counts',
     no = 'data'
   )
-  data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
+  if (is.null(x = reduction)) {
+    assay <- assay %||% DefaultAssay(object = object)
+    data.use <-  GetAssayData(object = object[[assay]], slot = data.slot)
+  } else {
+    if (data.slot == "counts") {
+      stop("The following tests cannot be used when specifying a reduction as they assume a count model: negbinom, poisson, DESeq2")
+    }
+    data.use <- t(x = Embeddings(object = object, reduction = reduction))
+  }
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
   } else if (ident.1 == 'clustertree' || is(object = ident.1, class2 = 'phylo')) {
