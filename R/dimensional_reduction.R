@@ -648,9 +648,9 @@ RunICA.Seurat <- function(
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed.
 #' @param verbose Print messages
-#' 
+#'
 #' @importFrom irlba irlba
-#' 
+#'
 #' @rdname RunLSI
 #' @export
 RunLSI.default <- function(
@@ -703,7 +703,7 @@ RunLSI.default <- function(
 }
 
 #' @param features Which features to use. If NULL, use variable features
-#' 
+#'
 #' @rdname RunLSI
 #' @export
 #' @method RunLSI Assay
@@ -738,9 +738,9 @@ RunLSI.Assay <- function(
 #' @param reduction.name Name for stored dimension reduction object. Default 'lsi'
 #' @examples
 #' lsi <- RunLSI(object = pbmc_small, n = 5)
-#' 
+#'
 #' @rdname RunLSI
-#' 
+#'
 #' @export
 #' @method RunLSI Seurat
 RunLSI.Seurat <- function(
@@ -1133,7 +1133,7 @@ RunUMAP.default <- function(
   set.op.mix.ratio = 1.0,
   local.connectivity = 1L,
   repulsion.strength = 1,
-  negative.sample.rate = 5, 
+  negative.sample.rate = 5,
   a = NULL,
   b = NULL,
   seed.use = 42,
@@ -1155,18 +1155,18 @@ RunUMAP.default <- function(
     n_neighbors = as.integer(x = n.neighbors),
     n_components = as.integer(x = n.components),
     metric = metric,
-    n_epochs = n.epochs, 
-    learning_rate = learning.rate, 
-    min_dist = min.dist, 
-    spread = spread, 
-    set_op_mix_ratio = set.op.mix.ratio, 
-    local_connectivity = local.connectivity, 
-    repulsion_strength = repulsion.strength, 
-    negative_sample_rate = negative.sample.rate, 
-    a = a, 
-    b = b, 
-    metric_kwds = metric.kwds, 
-    angular_rp_forest = angular.rp.forest, 
+    n_epochs = n.epochs,
+    learning_rate = learning.rate,
+    min_dist = min.dist,
+    spread = spread,
+    set_op_mix_ratio = set.op.mix.ratio,
+    local_connectivity = local.connectivity,
+    repulsion_strength = repulsion.strength,
+    negative_sample_rate = negative.sample.rate,
+    a = a,
+    b = b,
+    metric_kwds = metric.kwds,
+    angular_rp_forest = angular.rp.forest,
     verbose = verbose
   )
   umap_output <- umap$fit_transform(as.matrix(x = object))
@@ -1210,7 +1210,7 @@ RunUMAP.Graph <- function(
   }
   if (!py_module_available(module = 'numpy')) {
     stop("Cannot find numpy, please install through pip (e.g. pip install numpy).")
-  }  
+  }
   if (!py_module_available(module = 'sklearn')) {
     stop("Cannot find sklearn, please install through pip (e.g. pip install scikit-learn).")
   }
@@ -1230,18 +1230,18 @@ RunUMAP.Graph <- function(
   n.epochs <- n.epochs %||% 0L
   random.state <- sklearn$utils$check_random_state(seed = as.integer(x = seed.use))
   embeddings <- umap$umap_$simplicial_set_embedding(
-    data = data, 
-    graph = object,  
-    n_components = n.components, 
-    initial_alpha = learning.rate, 
-    a = a, 
-    b = b, 
-    gamma = repulsion.strength, 
+    data = data,
+    graph = object,
+    n_components = n.components,
+    initial_alpha = learning.rate,
+    a = a,
+    b = b,
+    gamma = repulsion.strength,
     negative_sample_rate = negative.sample.rate,
-    n_epochs = n.epochs, 
-    random_state = random.state, 
-    init = "spectral", 
-    metric = metric, 
+    n_epochs = n.epochs,
+    random_state = random.state,
+    init = "spectral",
+    metric = metric,
     metric_kwds = metric.kwds,
     verbose = verbose
   )
@@ -1271,49 +1271,49 @@ RunUMAP.Graph <- function(
 #' @param metric metric: This determines the choice of metric used to measure
 #' distance in the input space. A wide variety of metrics are already coded, and
 #' a user defined function can be passed as long as it has been JITd by numba.
-#' @param n.epochs he number of training epochs to be used in optimizing the low dimensional 
-#' embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will 
+#' @param n.epochs he number of training epochs to be used in optimizing the low dimensional
+#' embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will
 #' be selected based on the size of the input dataset (200 for large datasets, 500 for small).
 #' @param learning.rate The initial learning rate for the embedding optimization.
-#' @param min.dist This controls how tightly the embedding is allowed compress points together. 
-#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the 
-#' algorithm to optimise more accurately with regard to local structure. Sensible values are in 
+#' @param min.dist This controls how tightly the embedding is allowed compress points together.
+#' Larger values ensure embedded points are moreevenly distributed, while smaller values allow the
+#' algorithm to optimise more accurately with regard to local structure. Sensible values are in
 #' the range 0.001 to 0.5.
-#' @param spread The effective scale of embedded points. In combination with min.dist this 
+#' @param spread The effective scale of embedded points. In combination with min.dist this
 #' determines how clustered/clumped the embedded points are.
 #' @param set.op.mix.ratio Interpolate between (fuzzy) union and intersection as the set operation
 #' used to combine local fuzzy simplicial sets to obtain a global fuzzy simplicial sets. Both fuzzy
-#' set operations use the product t-norm. The value of this parameter should be between 0.0 and 
+#' set operations use the product t-norm. The value of this parameter should be between 0.0 and
 #' 1.0; a value of 1.0 will use a pure fuzzy union, while 0.0 will use a pure fuzzy intersection.
-#' @param local.connectivity The local connectivity required – i.e. the number of nearest neighbors 
-#' that should be assumed to be connected at a local level. The higher this value the more connected 
-#' the manifold becomes locally. In practice this should be not more than the local intrinsic 
+#' @param local.connectivity The local connectivity required – i.e. the number of nearest neighbors
+#' that should be assumed to be connected at a local level. The higher this value the more connected
+#' the manifold becomes locally. In practice this should be not more than the local intrinsic
 #' dimension of the manifold.
-#' @param repulsion.strength Weighting applied to negative samples in low dimensional embedding 
-#' optimization. Values higher than one will result in greater weight being given to negative 
+#' @param repulsion.strength Weighting applied to negative samples in low dimensional embedding
+#' optimization. Values higher than one will result in greater weight being given to negative
 #' samples.
-#' @param negative.sample.rate The number of negative samples to select per positive sample in the 
-#' optimization process. Increasing this value will result in greater repulsive force being applied, 
+#' @param negative.sample.rate The number of negative samples to select per positive sample in the
+#' optimization process. Increasing this value will result in greater repulsive force being applied,
 #' greater optimization cost, but slightly more accuracy.
-#' @param a More specific parameters controlling the embedding. If NULL, these values are set 
+#' @param a More specific parameters controlling the embedding. If NULL, these values are set
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
-#' right adjoint functor. 
-#' @param b More specific parameters controlling the embedding. If NULL, these values are set 
+#' right adjoint functor.
+#' @param b More specific parameters controlling the embedding. If NULL, these values are set
 #' automatically as determined by min. dist and spread. Parameter of differentiable approximation of
-#' right adjoint functor. 
-#' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for 
+#' right adjoint functor.
+#' @param metric.kwds A dictionary of arguments to pass on to the metric, such as the p value for
 #' Minkowski distance. If NULL then no arguments are passed on.
-#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the 
-#' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that 
-#' use an angular style distance such as cosine, correlation etc. In the case of those metrics 
+#' @param angular.rp.forest Whether to use an angular random projection forest to initialise the
+#' approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
+#' use an angular style distance such as cosine, correlation etc. In the case of those metrics
 #' angular forests will be chosen automatically.
 #' @param reduction.name Name to store dimensional reduction under in the Seurat object
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. UMAP by default
 #' @param seed.use Set a random seed. By default, sets the seed to 42. Setting
 #' NULL will not set a seed
-#' @param verbose Controls verbosity 
-#' 
+#' @param verbose Controls verbosity
+#'
 #' @rdname RunUMAP
 #' @export
 #' @method RunUMAP Seurat
@@ -1335,7 +1335,7 @@ RunUMAP.Seurat <- function(
   set.op.mix.ratio = 1,
   local.connectivity = 1L,
   repulsion.strength = 1,
-  negative.sample.rate = 5L, 
+  negative.sample.rate = 5L,
   a = NULL,
   b = NULL,
   seed.use = 42L,
@@ -1372,7 +1372,7 @@ RunUMAP.Seurat <- function(
     set.op.mix.ratio = set.op.mix.ratio,
     local.connectivity = local.connectivity,
     repulsion.strength = repulsion.strength,
-    negative.sample.rate = negative.sample.rate, 
+    negative.sample.rate = negative.sample.rate,
     a = a,
     b = b,
     seed.use = seed.use,
@@ -1545,7 +1545,7 @@ EmpiricalP <- function(x, nullval) {
 #
 #' @importFrom utils file_test
 #
-fftRtsne <- function(X, 
+fftRtsne <- function(X,
   dims = 2,
   perplexity = 30,
   theta = 0.5,
@@ -1579,8 +1579,9 @@ fftRtsne <- function(X,
   perplexity_list = NULL,
   get_costs = FALSE,
   df = 1.0,
-  ... ) {
-  version_number = '1.1.0'
+  ...
+) {
+  version_number <- '1.1.0'
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1598,13 +1599,12 @@ fftRtsne <- function(X,
     stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
   }
   # check fast_tsne version
-  ft.out <- suppressWarnings(system2(command = fast_tsne_path, stdout = TRUE))
-  if (!grepl('= t-SNE v1.1', ft.out[1])) {
+  ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
+  if (!grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
     message('First line of fast_tsne output is')
     message(ft.out[1])
     stop("Our FIt-SNE wrapper requires FIt-SNE v1.1.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
-  
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
   }
@@ -1630,17 +1630,15 @@ fftRtsne <- function(X,
     stop("Incorrect dimensionality.")
   }
   if (search_k == -1) {
-    if (perplexity>0) {
+    if (perplexity > 0) {
       search_k <- n_trees * perplexity * 3
-    } else if (perplexity==0) {
+    } else if (perplexity == 0) {
       search_k <- n_trees * max(perplexity_list) * 3
-    } else { 
+    } else {
       search_k <- n_trees * K * 3
     }
   }
-  
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
-  
   if (is.null(load_affinities)) {
     load_affinities <- 0
   } else {
@@ -1649,12 +1647,11 @@ fftRtsne <- function(X,
     } else if (load_affinities == 'save') {
       load_affinities <- 2
     } else {
-      load_affinities <- 0;
+      load_affinities <- 0
     }
   }
-  
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
-  f <- file(data_path, "wb")
+  f <- file(description = data_path, open = "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
@@ -1663,7 +1660,7 @@ fftRtsne <- function(X,
   writeBin(object = as.numeric(x = perplexity), con = f, size = 8) #theta
   if (perplexity == 0) {
     writeBin(object = as.integer(x = length(x = perplexity_list)), con = f, size = 4)
-    writeBin(object = perplexity_list, con = f) 
+    writeBin(object = perplexity_list, con = f)
   }
   writeBin(object = as.integer(x = dims), con = f, size = 4) #theta
   writeBin(object = as.integer(x = max_iter), con = f, size = 4)
@@ -1675,27 +1672,29 @@ fftRtsne <- function(X,
   writeBin(object = as.integer(x = K), con = f, size = 4) #K
   writeBin(object = as.numeric(x = sigma), con = f, size = 8) #sigma
   writeBin(object = as.integer(x = nbody_algo), con = f, size = 4)  #not barnes hut
-  writeBin(object = as.integer(x = knn_algo), con = f, size = 4) 
+  writeBin(object = as.integer(x = knn_algo), con = f, size = 4)
   writeBin(object = as.numeric(x = exaggeration_factor), con = f, size = 8) #compexag
-  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4) 
-  writeBin(object = as.integer(x = n_trees), con = f, size = 4) 
-  writeBin(object = as.integer(x = search_k), con = f, size = 4) 
-  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4) 
-  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8) 
-  writeBin(object = as.integer(x = nterms), con = f, size = 4) 
-  writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8) 
-  writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4) 
+  writeBin(object = as.integer(x = no_momentum_during_exag), con = f, size = 4)
+  writeBin(object = as.integer(x = n_trees), con = f, size = 4)
+  writeBin(object = as.integer(x = search_k), con = f, size = 4)
+  writeBin(object = as.integer(x = start_late_exag_iter), con = f, size = 4)
+  writeBin(object = as.numeric(x = late_exag_coeff), con = f, size = 8)
+  writeBin(object = as.integer(x = nterms), con = f, size = 4)
+  writeBin(object = as.numeric(x = intervals_per_integer), con = f, size = 8)
+  writeBin(object = as.integer(x = min_num_intervals), con = f, size = 4)
   tX = c(t(X))
-  writeBin(object = tX, con = f) 
-  writeBin(object = as.integer(x = rand_seed), con = f, size = 4) 
-  writeBin(as.numeric(df), f, size=8)
-  writeBin(object = as.integer(x = load_affinities), con = f, size = 4) 
+  writeBin(object = tX, con = f)
+  writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
+  writeBin(object = as.numeric(x = df), con = f, size = 8)
+  writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
   if (!is.null(x = initialization)) {
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
-  
-  flag= system2(command=fast_tsne_path, args=c(version_number,data_path, result_path, nthreads));
+  flag <- system2(
+    command = fast_tsne_path,
+    args = c(version_number, data_path, result_path, nthreads)
+  )
   if (flag != 0) {
     stop('tsne call failed')
   }
@@ -1705,10 +1704,10 @@ fftRtsne <- function(X,
   Y <- readBin(con = f, what = numeric(), n = n * d)
   Y <- t(x = matrix(Y, nrow = d))
   if (get_costs) {
-    tmp <- readBin(f, integer(), n=1, size=4);
+    tmp <- readBin(con = f, what = integer(), n = 1, size = 4)
     costs <- readBin(con = f, what = numeric(), n = max_iter, size = 8)
     Yout <- list(Y = Y, costs = costs)
-  }else {
+  } else {
     Yout <- Y
   }
   close(con = f)
@@ -1716,7 +1715,6 @@ fftRtsne <- function(X,
   file.remove(result_path)
   return(Yout)
 }
-
 
 #internal
 #
