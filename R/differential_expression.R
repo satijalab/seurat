@@ -621,18 +621,18 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
-  if (!is.null(group.by)) {
-    if (!is.null(subset.ident)) {
-      object <- subset(object,idents = subset.ident)
+  if (!is.null(x = group.by)) {
+    if (!is.null(x = subset.ident)) {
+      object <- subset(x = object, idents = subset.ident)
     }
-    Idents(object) <- group.by
+    Idents(object = object) <- group.by
   }
   assay <- assay %||% DefaultAssay(object = object)
-  if (assay %in% names(object@reductions)) {
+  if (assay %in% FilterObjects(object = object, classes.keep = "DimReduc")) {
     # perform DE on, for example, PCA embeddings.
     # workaround is to add the embeddings as a new temporary assay object
-    embeddings <- t(object[[assay]]@cell.embeddings)
-    assay <- paste0("assay_",assay)
+    embeddings <- t(x = Embeddings(object = object, assay = assay))
+    assay <- paste0("assay_", assay)
     object[[assay]] <- CreateAssayObject(data = embeddings)
   }
   data.slot <- ifelse(

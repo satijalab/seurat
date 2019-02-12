@@ -17,11 +17,12 @@ FindMarkers(object, ...)
   pseudocount.use = 1, ...)
 
 \method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
-  assay = NULL, features = NULL, logfc.threshold = 0.25,
-  test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
-  verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
-  random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
-  min.cells.group = 3, pseudocount.use = 1, ...)
+  group.by = NULL, subset.ident = NULL, assay = NULL,
+  features = NULL, logfc.threshold = 0.25, test.use = "wilcox",
+  min.pct = 0.1, min.diff.pct = -Inf, verbose = TRUE,
+  only.pos = FALSE, max.cells.per.ident = Inf, random.seed = 1,
+  latent.vars = NULL, min.cells.feature = 3, min.cells.group = 3,
+  pseudocount.use = 1, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -114,6 +115,10 @@ passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
+\item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
+
+\item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
+
 \item{assay}{Assay to use in differential expression testing}
 }
 \value{
@@ -134,6 +139,10 @@ same genes tested for differential expression.
 \examples{
 # Find markers for cluster 2
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
+head(x = markers)
+
+# Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata variable 'group')
+markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 head(x = markers)
 
 # Pass 'clustertree' or an object of class phylo to ident.1 and
