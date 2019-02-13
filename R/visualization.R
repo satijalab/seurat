@@ -224,7 +224,7 @@ DoHeatmap <- function(
     yes = 2.5,
     no = 6
   )
-  # make sure features are present 
+  # make sure features are present
   possible.features <- rownames(x = GetAssayData(object = object, slot = slot))
   if (any(!features %in% possible.features)) {
     bad.features <- features[!features %in% possible.features]
@@ -232,13 +232,13 @@ DoHeatmap <- function(
     if(length(x = features) == 0) {
       stop("No requested features found in the ", slot, " slot for the ", assay, " assay.")
     }
-    warning("The following features were omitted as they were not found in the ", slot, 
+    warning("The following features were omitted as they were not found in the ", slot,
             " slot for the ", assay, " assay: ", paste(bad.features, collapse = ", "))
   }
   data <- as.data.frame(x = as.matrix(x = t(x = GetAssayData(
-    object = object, 
+    object = object,
     slot = slot)[features, cells, drop = FALSE])))
-  
+
   object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
   group.by <- group.by %||% 'ident'
   groups.use <- object[[group.by]][cells, , drop = FALSE]
@@ -537,11 +537,13 @@ VlnPlot <- function(
 #' groups in cells.highlight
 #' @param na.value Color value for NA points when using custom scale
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
+#' @param ncol Number of columns for display when combining plots
 #'
 #' @inheritDotParams CombinePlots
 #' @return A ggplot object
 #'
-#' @importFrom ggplot2 facet_wrap
+#' @importFrom rlang !!
+#' @importFrom ggplot2 facet_wrap vars sym
 #'
 #' @export
 #'
@@ -574,6 +576,7 @@ DimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50',
   combine = TRUE,
+  ncol = NULL,
   ...
 ) {
   if (length(x = dims) != 2) {
@@ -601,18 +604,12 @@ DimPlot <- function(
     data[, shape.by] <- object[[shape.by, drop = TRUE]]
   }
   if (!is.null(x = split.by)) {
-    if (length(x = group.by) > 1) {
-      nrow <- ncol <- 1
-    } else {
-      nrow <- NULL
-      ncol <- list(...)$ncol
-    }
     data[, split.by] <- object[[split.by, drop = TRUE]]
   }
   plots <- lapply(
     X = group.by,
     FUN = function(x) {
-      return(SingleDimPlot(
+      plot <- SingleDimPlot(
         data = data[, c(dims, x, split.by, shape.by)],
         dims = dims,
         col.by = x,
@@ -620,26 +617,45 @@ DimPlot <- function(
         pt.size = pt.size,
         shape.by = shape.by,
         order = order,
-        label = label,
-        repel = repel,
-        label.size = label.size,
+        label = FALSE,
         cells.highlight = cells.highlight,
         cols.highlight = cols.highlight,
         sizes.highlight = sizes.highlight,
         na.value = na.value
-      ))
+      )
+      if (label) {
+        plot <- LabelClusters(
+          plot = plot,
+          id = x,
+          repel = repel,
+          size = label.size,
+          split.by = split.by
+        )
+      }
+      if (!is.null(x = split.by)) {
+        plot <- plot + FacetTheme() +
+          facet_wrap(
+            facets = vars(!!sym(x = split.by)),
+            ncol = if (length(x = group.by) > 1) {
+              length(x = unique(x = data[, split.by]))
+            } else {
+              NULL
+            }
+          )
+      }
+      return(plot)
     }
   )
-  if (!is.null(x = split.by)) {
-    plots <- lapply(
-      X = plots,
-      FUN = function(x) {
-        x + facet_wrap(facets = split.by, nrow = nrow)
-      }
-    )
-  }
   if (combine) {
-    plots <- CombinePlots(plots = plots, ncol = ncol, ...)
+    plots <- CombinePlots(
+      plots = plots,
+      ncol = if (!is.null(x = split.by) && length(x = group.by) > 1) {
+        1
+      } else {
+        ncol
+      },
+      ...
+    )
   }
   return(plots)
 }
@@ -964,8 +980,8 @@ FeaturePlot <- function(
     }
     if (by.col & !is.null(x = split.by)) {
       plots <- lapply(X = plots, FUN = function(x) {
-        suppressMessages(x + 
-        theme_cowplot() + ggtitle("") + 
+        suppressMessages(x +
+        theme_cowplot() + ggtitle("") +
         scale_y_continuous(sec.axis = dup_axis(name = "")) + no.right
         )
       })
@@ -988,7 +1004,7 @@ FeaturePlot <- function(
         }
       }
       plots <- plots[c(do.call(
-        what = rbind, 
+        what = rbind,
         args = split(x = 1:length(x = plots), f = ceiling(x = seq_along(along.with = 1:length(x = plots))/length(x = features)))
       ))]
       plots <- CombinePlots(
@@ -1819,7 +1835,7 @@ JackStrawPlot <- function(
 #' PlotClusterTree(object = pbmc_small)
 #'
 PlotClusterTree <- function(object, ...) {
-  
+
   if (is.null(x = Tool(object = object, slot = "BuildClusterTree"))) {
     stop("Phylogenetic tree does not exist, build using BuildClusterTree")
   }
@@ -2274,6 +2290,8 @@ HoverLocator <- function(
 #' @param id Name of variable used for coloring scatter plot
 #' @param clusters Vector of cluster ids to label
 #' @param labels Custom labels for the clusters
+#' @param split.by Split labels by some grouping label, useful when using
+#' \code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}
 #' @param repel Use \code{geom_text_repel} to create nicely-repelled labels
 #' @param ... Extra parameters to \code{\link[ggrepel]{geom_text_repel}}, such as \code{size}
 #'
@@ -2284,7 +2302,7 @@ HoverLocator <- function(
 #' @importFrom ggplot2 aes_string geom_text
 #' @export
 #'
-#' @seealso \code{\link[ggrepel]{geom_text_repel}}
+#' @seealso \code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 #'
 #' @examples
 #' plot <- DimPlot(object = pbmc_small)
@@ -2295,14 +2313,19 @@ LabelClusters <- function(
   id,
   clusters = NULL,
   labels = NULL,
+  split.by = NULL,
   repel = TRUE,
   ...
 ) {
-  xynames <- GetXYAesthetics(plot = plot)
+  xynames <- unlist(x = GetXYAesthetics(plot = plot), use.names = TRUE)
   if (!id %in% colnames(x = plot$data)) {
     stop("Cannot find variable ", id, " in plotting data")
   }
-  data <- plot$data[, c(unlist(x = xynames), id)]
+  if (!is.null(x = split.by) && !split.by %in% colnames(x = plot$data)) {
+    warning("Cannot find splitting variable ", id, " in plotting data")
+    split.by <- NULL
+  }
+  data <- plot$data[, c(xynames, id, split.by)]
   possible.clusters <- as.character(x = na.omit(object = unique(x = data[, id])))
   groups <- clusters %||% as.character(x = na.omit(object = unique(x = data[, id])))
   if (any(!groups %in% possible.clusters)) {
@@ -2311,21 +2334,50 @@ LabelClusters <- function(
   labels.loc <- lapply(
     X = groups,
     FUN = function(group) {
-      data.use <- data[data[, id] == group, unlist(x = xynames)]
-      return(apply(X = data.use, MARGIN = 2, FUN = median, na.rm = TRUE))
+      data.use <- data[data[, id] == group, , drop = FALSE]
+      data.medians <- if (!is.null(x = split.by)) {
+        do.call(
+          what = 'rbind',
+          args = lapply(
+            X = unique(x = data.use[, split.by]),
+            FUN = function(split) {
+              medians <- apply(
+                X = data.use[data.use[, split.by] == split, xynames, drop = FALSE],
+                MARGIN = 2,
+                FUN = median,
+                na.rm = TRUE
+              )
+              medians <- as.data.frame(x = t(x = medians))
+              medians[, split.by] <- split
+              return(medians)
+            }
+          )
+        )
+      } else {
+        as.data.frame(x = t(x = apply(
+          X = data.use[, xynames, drop = FALSE],
+          MARGIN = 2,
+          FUN = median,
+          na.rm = TRUE
+        )))
+      }
+      data.medians[, id] <- group
+      return(data.medians)
     }
   )
-  groups <- labels %||% groups
-  if (length(x = labels.loc) != length(x = groups)) {
-    stop("Length of labels (", length(x = groups),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
+  labels.loc <- do.call(what = 'rbind', args = labels.loc)
+  labels <- labels %||% groups
+  if (length(x = unique(x = labels.loc[, id])) != length(x = labels)) {
+    stop("Length of labels (", length(x = labels),  ") must be equal to the number of clusters being labeled (", length(x = labels.loc), ").")
   }
-  names(x = labels.loc) <- groups
-  labels.loc <- as.data.frame(x = t(x = as.data.frame(x = labels.loc)))
-  labels.loc[, colnames(x = data)[3]] <- groups
+  names(x = labels) <- groups
+  for (group in groups) {
+    labels.loc[labels.loc[, id] == group, id] <- labels[group]
+  }
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   plot <- plot + geom.use(
     data = labels.loc,
-    mapping = aes_string(x = xynames$x, y = xynames$y, label = id),
+    mapping = aes_string(x = xynames['x'], y = xynames['y'], label = id),
     ...
   )
   return(plot)
@@ -2380,20 +2432,11 @@ LabelPoints <- function(
   labels <- as.character(x = labels)
   label.data <- plot$data[points, ]
   label.data$labels <- labels
-  # plot$data$labels <- ''
-  # plot$data[points, 'labels'] <- labels
   geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
   if (repel) {
     if (!all(c(xnudge, ynudge) == 0)) {
       message("When using repel, set xnudge and ynudge to 0 for optimal results")
     }
-    # if (nrow(x = plot$data) > 1500) {
-    #   warning(
-    #     "repel is slow with a large number of points",
-    #     call. = FALSE,
-    #     immediate. = TRUE
-    #   )
-    # }
   }
   plot <- plot + geom.use(
     mapping = aes_string(x = xynames$x, y = xynames$y, label = 'labels'),
@@ -3029,6 +3072,24 @@ ExIPlot <- function(
   return(plots)
 }
 
+# Make a theme for facet plots
+#
+# @inheritParams SeuratTheme
+# @export
+#
+# @rdname SeuratTheme
+# @aliases FacetTheme
+#
+FacetTheme <- function(...) {
+  return(theme(
+    strip.background = element_blank(),
+    strip.text = element_text(face = 'bold'),
+    # Validate the theme
+    validate = TRUE,
+    ...
+  ))
+}
+
 # Convert a ggplot2 scatterplot to base R graphics
 #
 # @param plot A ggplot2 scatterplot
@@ -3079,7 +3140,7 @@ GetXYAesthetics <- function(plot, geom = 'GeomPoint', plot.first = TRUE) {
   geoms <- sapply(
     X = plot$layers,
     FUN = function(layer) {
-      return(class(layer$geom)[1])
+      return(class(x = layer$geom)[1])
     }
   )
   geoms <- which(x = geoms == geom)
