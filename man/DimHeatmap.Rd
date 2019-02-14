@@ -7,7 +7,7 @@
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   reduction = "pca", disp.min = -2.5, disp.max = NULL,
   balanced = TRUE, projected = FALSE, ncol = NULL, combine = TRUE,
-  fast = TRUE, slot = "scale.data", assays = NULL)
+  fast = TRUE, raster = TRUE, slot = "scale.data", assays = NULL)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -31,9 +31,14 @@ if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{ncol}{Number of columns to plot}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work 
+when plotting multiple dimensions}
 
 \item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
+
+\item{raster}{If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
+some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
+if you are encountering that issue (note that plots may take longer to produce/render).}
 
 \item{slot}{Data slot to use, choose from 'raw.data', 'data', or 'scale.data'}
 

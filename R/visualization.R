@@ -45,6 +45,7 @@ DimHeatmap <- function(
   ncol = NULL,
   combine = TRUE,
   fast = TRUE,
+  raster = TRUE,
   slot = 'scale.data',
   assays = NULL
 ) {
@@ -144,6 +145,7 @@ DimHeatmap <- function(
     } else {
       plots[[i]] <- SingleRasterMap(
         data = data.plot,
+        raster = raster,
         limits = data.limits,
         cell.order = dim.cells,
         feature.order = dim.features
@@ -183,7 +185,11 @@ DimHeatmap <- function(
 #' @param size Size of text above color bar
 #' @param hjust Horizontal justification of text above color bar
 #' @param angle Angle of text above color bar
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions
+#' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
+#' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
+#' if you are encountering that issue (note that plots may take longer to produce/render).
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work 
+#' when plotting multiple dimensions
 #'
 #' @return A ggplot object
 #'
@@ -209,6 +215,7 @@ DoHeatmap <- function(
   size = 5.5,
   hjust = 0,
   angle = 45,
+  raster = TRUE,
   combine = TRUE
 ) {
   cells <- cells %||% colnames(x = object)
@@ -255,6 +262,7 @@ DoHeatmap <- function(
     names(x = group.use) <- cells
     plot <- SingleRasterMap(
       data = data,
+      raster = raster,
       disp.min = disp.min,
       disp.max = disp.max,
       feature.order = features,
@@ -316,7 +324,9 @@ DoHeatmap <- function(
 #' @param assay Hashtag assay name.
 #' @param ncells Number of cells to plot. Default is to choose 5000 cells by random subsampling, to avoid having to draw exceptionally large heatmaps.
 #' @param singlet.names Namings for the singlets. Default is to use the same names as HTOs.
-#'
+#' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
+#' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
+#' if you are encountering that issue (note that plots may take longer to produce/render).
 #' @return Returns a ggplot2 plot object.
 #'
 #' @importFrom ggplot2 guides
@@ -336,7 +346,8 @@ HTOHeatmap <- function(
   classification = paste0(assay, '_classification'),
   global.classification = paste0(assay, '_classification.global'),
   ncells = 5000,
-  singlet.names = NULL
+  singlet.names = NULL,
+  raster = TRUE
 ) {
   DefaultAssay(object = object) <- assay
   Idents(object = object) <- object[[classification, drop = TRUE]]
@@ -364,6 +375,7 @@ HTOHeatmap <- function(
   data <- FetchData(object = object, vars = singlet.ids)
   plot <- SingleRasterMap(
     data = data,
+    raster = raster,
     feature.order = rev(x = singlet.ids),
     cell.order = names(x = sort(x = Idents(object = object))),
     group.by = Idents(object = object)
@@ -4034,6 +4046,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 # A single heatmap from ggplot2 using geom_raster
 #
 # @param data A matrix or data frame with data to plot
+# @param raster switch between geom_raster and geom_tile
 # @param cell.order ...
 # @param feature.order ...
 # @param cols A vector of colors to use
@@ -4047,6 +4060,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 #
 SingleRasterMap <- function(
   data,
+  raster = TRUE, 
   cell.order = NULL,
   feature.order = NULL,
   colors = PurpleAndYellow(),
@@ -4071,8 +4085,9 @@ SingleRasterMap <- function(
   if (length(x = limits) != 2 || !is.numeric(x = limits)) {
     stop("limits' must be a two-length numeric vector")
   }
+  my_geom <- ifelse(test = raster, yes = geom_raster, no = geom_tile)
   plot <- ggplot(data = data) +
-    geom_raster(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
+    my_geom(mapping = aes_string(x = 'Cell', y = 'Feature', fill = 'Expression')) +
     theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
     scale_fill_gradientn(limits = limits, colors = colors) +
     labs(x = NULL, y = NULL, fill = group.by %iff% 'Expression') +

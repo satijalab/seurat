@@ -7,7 +7,7 @@
 DoHeatmap(object, features = NULL, cells = NULL, group.by = "ident",
   group.bar = TRUE, disp.min = -2.5, disp.max = NULL,
   slot = "scale.data", assay = NULL, label = TRUE, size = 5.5,
-  hjust = 0, angle = 45, combine = TRUE)
+  hjust = 0, angle = 45, raster = TRUE, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -37,7 +37,12 @@ if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{angle}{Angle of text above color bar}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple dimensions}
+\item{raster}{If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
+some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
+if you are encountering that issue (note that plots may take longer to produce/render).}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work 
+when plotting multiple dimensions}
 }
 \value{
 A ggplot object
