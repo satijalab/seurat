@@ -1202,7 +1202,7 @@ VariableFeaturePlot <- function(
     )
   )
   hvf.info <- hvf.info[, vars]
-  log <- log %||% 'variance.standardized' %in% colnames(x = hvf.info)
+  log <- log %||% ('variance.standardized' %in% colnames(x = hvf.info))
   var.features <- VariableFeatures(object = object, assay = assay)
   var.status <- ifelse(
     test = rownames(x = hvf.info) %in% var.features,
