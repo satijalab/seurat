@@ -1581,7 +1581,6 @@ fftRtsne <- function(X,
   df = 1.0,
   ...
 ) {
-  version_number <- '1.1.0'
   if (is.null(x = data_path)) {
     data_path <- tempfile(pattern = 'fftRtsne_data_', fileext = '.dat')
   }
@@ -1600,13 +1599,21 @@ fftRtsne <- function(X,
   }
   # check fast_tsne version
   ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
-  if (!grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
-    message('First line of fast_tsne output is')
+  if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
+    version_number <- '1.1.0'
+  }else if(grepl(pattern = '= t-SNE v1.0', x = ft.out[1])){
+    version_number <- '1.0'
+  }else{
+    message("First line of fast_tsne output is")
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1.1.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
+
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
+  }
+  if (version_number == '1.0' && df !=1.0) {
+    stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
     stop("Incorrect theta.")
@@ -1685,16 +1692,25 @@ fftRtsne <- function(X,
   tX = c(t(X))
   writeBin(object = tX, con = f)
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
-  writeBin(object = as.numeric(x = df), con = f, size = 8)
+  if (version_number != "1.0") {
+    writeBin(object = as.numeric(x = df), con = f, size = 8)
+  }
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
   if (!is.null(x = initialization)) {
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
-  flag <- system2(
-    command = fast_tsne_path,
-    args = c(version_number, data_path, result_path, nthreads)
-  )
+  if (version_number == "1.0") {
+    flag <- system2(
+     command = fast_tsne_path,
+     args = c( data_path, result_path, nthreads)
+    )
+  }else{
+    flag <- system2(
+      command = fast_tsne_path,
+      args = c(version_number, data_path, result_path, nthreads)
+    )
+  }
   if (flag != 0) {
     stop('tsne call failed')
   }
