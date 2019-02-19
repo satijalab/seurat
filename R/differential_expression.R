@@ -93,6 +93,7 @@ FindAllMarkers <- function(
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
   genes.de <- list()
+  messages <- list()
   for (i in 1:length(x = idents.all)) {
     if (verbose) {
       message("Calculating cluster ", idents.all[i])
@@ -129,9 +130,13 @@ FindAllMarkers <- function(
         )
       },
       error = function(cond) {
-        return(NULL)
+        return(cond$message)
       }
     )
+    if (class(x = genes.de[[i]]) == "character") {
+      messages[[i]] <- genes.de[[i]]
+      genes.de[[i]] <- NULL
+    }
   }
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
@@ -163,7 +168,15 @@ FindAllMarkers <- function(
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
   if (nrow(x = gde.all) == 0) {
-    warning("No DE genes identified", call. = FALSE)
+    warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
+  }
+  if (length(x = messages) > 0) {
+    warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
+    for (i in 1:length(x = messages)) {
+      if (!is.null(x = messages[[i]])) {
+        warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
+      }
+    }
   }
   if (!is.null(x = node)) {
     gde.all$cluster <- MapVals(
@@ -590,6 +603,9 @@ FindMarkers.default <- function(
 #' use all other cells for comparison; if an object of class \code{phylo} or
 #' 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for
 #' @param assay Assay to use in differential expression testing
+#' @param reduction Reduction to use in differential expression testing - will test for DE on cell embeddings
+#' @param group.by Regroup cells into a different identity class prior to performing differential expression (see example)
+#' @param subset.ident Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)
 #'
 #' @importFrom methods is
 #'
@@ -601,7 +617,10 @@ FindMarkers.Seurat <- function(
   object,
   ident.1 = NULL,
   ident.2 = NULL,
+  group.by = NULL,
+  subset.ident = NULL,
   assay = NULL,
+  reduction = NULL, 
   features = NULL,
   logfc.threshold = 0.25,
   test.use = "wilcox",
@@ -617,13 +636,29 @@ FindMarkers.Seurat <- function(
   pseudocount.use = 1,
   ...
 ) {
-  assay <- assay %||% DefaultAssay(object = object)
+  if (!is.null(x = group.by)) {
+    if (!is.null(x = subset.ident)) {
+      object <- subset(x = object, idents = subset.ident)
+    }
+    Idents(object = object) <- group.by
+  }
+  if (!is.null(x = assay) & !is.null(x = reduction)) {
+    stop("Please only specify either assay or reduction.")
+  }
   data.slot <- ifelse(
     test = test.use %in% c("negbinom", "poisson", "DESeq2"),
     yes = 'counts',
     no = 'data'
   )
-  data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
+  if (is.null(x = reduction)) {
+    assay <- assay %||% DefaultAssay(object = object)
+    data.use <-  GetAssayData(object = object[[assay]], slot = data.slot)
+  } else {
+    if (data.slot == "counts") {
+      stop("The following tests cannot be used when specifying a reduction as they assume a count model: negbinom, poisson, DESeq2")
+    }
+    data.use <- t(x = Embeddings(object = object, reduction = reduction))
+  }
   if (is.null(x = ident.1)) {
     stop("Please provide ident.1")
   } else if (ident.1 == 'clustertree' || is(object = ident.1, class2 = 'phylo')) {

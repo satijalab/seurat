@@ -180,9 +180,9 @@ Embeddings <- function(object, ...) {
 #' van Eck (2013) \emph{The European Physical Journal B}. Thanks to Nigel
 #' Delaney (evolvedmicrobe@github) for the rewrite of the Java modularity
 #' optimizer code in Rcpp!
-#' 
+#'
 #' To run Leiden algorithm, you must first install the leidenalg python
-#' package (e.g. via pip install leidenalg), see Traag et al (2018). 
+#' package (e.g. via pip install leidenalg), see Traag et al (2018).
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
@@ -221,7 +221,7 @@ FindClusters <- function(object, ...) {
 #' Bioinformatics. 2013;29(4):461-467. doi:10.1093/bioinformatics/bts714
 #' @references Trapnell C, et al. The dynamics and regulators of cell fate
 #' decisions are revealed by pseudotemporal ordering of single cells. Nature
-#' Biotechnology volume 32, pages 381–386 (2014)
+#' Biotechnology volume 32, pages 381-386 (2014)
 #' @references Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
 #' Analysis of Single Cell Transcriptomics. R package version 1.2.1.
 #' https://github.com/RGLab/MAST/
@@ -236,6 +236,10 @@ FindClusters <- function(object, ...) {
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(x = markers)
 #'
+#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata variable 'group')
+#' markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
+#' head(x = markers)
+#' 
 #' # Pass 'clustertree' or an object of class phylo to ident.1 and
 #' # a node to ident.2 as a replacement for FindMarkersNode
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
@@ -321,7 +325,7 @@ GetAssay <- function(object, ...) {
 
 #' General accessor function for the Assay class
 #'
-#' This function can be used to pull information from any of the slots in the Assay class. For 
+#' This function can be used to pull information from any of the slots in the Assay class. For
 #' example, pull one of the data matrices("counts", "data", or "scale.data").
 #'
 #' @param object An object
@@ -679,7 +683,7 @@ RunICA <- function(object, ...) {
 #'
 #' @param object Seurat object
 #' @param ... Arguments passed to other methods
-#' 
+#'
 #' @rdname RunLSI
 #' @export RunLSI
 #'

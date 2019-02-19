@@ -17,7 +17,8 @@ FindMarkers(object, ...)
   pseudocount.use = 1, ...)
 
 \method{FindMarkers}{Seurat}(object, ident.1 = NULL, ident.2 = NULL,
-  assay = NULL, features = NULL, logfc.threshold = 0.25,
+  group.by = NULL, subset.ident = NULL, assay = NULL,
+  reduction = NULL, features = NULL, logfc.threshold = 0.25,
   test.use = "wilcox", min.pct = 0.1, min.diff.pct = -Inf,
   verbose = TRUE, only.pos = FALSE, max.cells.per.ident = Inf,
   random.seed = 1, latent.vars = NULL, min.cells.feature = 3,
@@ -114,7 +115,13 @@ passing 'clustertree' requires \code{\link{BuildClusterTree}} to have been run}
 use all other cells for comparison; if an object of class \code{phylo} or
 'clustertree' is passed to \code{ident.1}, must pass a node to find markers for}
 
+\item{group.by}{Regroup cells into a different identity class prior to performing differential expression (see example)}
+
+\item{subset.ident}{Subset a particular identity class prior to regrouping. Only relevant if group.by is set (see example)}
+
 \item{assay}{Assay to use in differential expression testing}
+
+\item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 }
 \value{
 Matrix containing a ranked list of putative markers, and associated
@@ -136,6 +143,10 @@ same genes tested for differential expression.
 markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 head(x = markers)
 
+# Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata variable 'group')
+markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
+head(x = markers)
+
 # Pass 'clustertree' or an object of class phylo to ident.1 and
 # a node to ident.2 as a replacement for FindMarkersNode
 pbmc_small <- BuildClusterTree(object = pbmc_small)
@@ -150,7 +161,7 @@ Bioinformatics. 2013;29(4):461-467. doi:10.1093/bioinformatics/bts714
 
 Trapnell C, et al. The dynamics and regulators of cell fate
 decisions are revealed by pseudotemporal ordering of single cells. Nature
-Biotechnology volume 32, pages 381–386 (2014)
+Biotechnology volume 32, pages 381-386 (2014)
 
 Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
 Analysis of Single Cell Transcriptomics. R package version 1.2.1.

@@ -1285,7 +1285,7 @@ RunUMAP.Graph <- function(
 #' used to combine local fuzzy simplicial sets to obtain a global fuzzy simplicial sets. Both fuzzy
 #' set operations use the product t-norm. The value of this parameter should be between 0.0 and
 #' 1.0; a value of 1.0 will use a pure fuzzy union, while 0.0 will use a pure fuzzy intersection.
-#' @param local.connectivity The local connectivity required – i.e. the number of nearest neighbors
+#' @param local.connectivity The local connectivity required - i.e. the number of nearest neighbors
 #' that should be assumed to be connected at a local level. The higher this value the more connected
 #' the manifold becomes locally. In practice this should be not more than the local intrinsic
 #' dimension of the manifold.
@@ -1703,9 +1703,9 @@ fftRtsne <- function(X,
   if (version_number == "1.0") {
     flag <- system2(
      command = fast_tsne_path,
-     args = c( data_path, result_path, nthreads)
+     args = c(data_path, result_path, nthreads)
     )
-  }else{
+  } else {
     flag <- system2(
       command = fast_tsne_path,
       args = c(version_number, data_path, result_path, nthreads)
