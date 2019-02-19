@@ -150,7 +150,7 @@ Bioinformatics. 2013;29(4):461-467. doi:10.1093/bioinformatics/bts714
 
 Trapnell C, et al. The dynamics and regulators of cell fate
 decisions are revealed by pseudotemporal ordering of single cells. Nature
-Biotechnology volume 32, pages 381–386 (2014)
+Biotechnology volume 32, pages 381-386 (2014)
 
 Andrew McDavid, Greg Finak and Masanao Yajima (2017). MAST: Model-based
 Analysis of Single Cell Transcriptomics. R package version 1.2.1.

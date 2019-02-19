@@ -53,55 +53,55 @@ general this parameter should often be in the range 5 to 50.}
 distance in the input space. A wide variety of metrics are already coded, and
 a user defined function can be passed as long as it has been JITd by numba.}
 
-\item{n.epochs}{he number of training epochs to be used in optimizing the low dimensional 
-embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will 
+\item{n.epochs}{he number of training epochs to be used in optimizing the low dimensional
+embedding. Larger values result in more accurate embeddings. If NULL is specified, a value will
 be selected based on the size of the input dataset (200 for large datasets, 500 for small).}
 
 \item{learning.rate}{The initial learning rate for the embedding optimization.}
 
-\item{min.dist}{This controls how tightly the embedding is allowed compress points together. 
-Larger values ensure embedded points are moreevenly distributed, while smaller values allow the 
-algorithm to optimise more accurately with regard to local structure. Sensible values are in 
+\item{min.dist}{This controls how tightly the embedding is allowed compress points together.
+Larger values ensure embedded points are moreevenly distributed, while smaller values allow the
+algorithm to optimise more accurately with regard to local structure. Sensible values are in
 the range 0.001 to 0.5.}
 
-\item{spread}{The effective scale of embedded points. In combination with min.dist this 
+\item{spread}{The effective scale of embedded points. In combination with min.dist this
 determines how clustered/clumped the embedded points are.}
 
 \item{set.op.mix.ratio}{Interpolate between (fuzzy) union and intersection as the set operation
 used to combine local fuzzy simplicial sets to obtain a global fuzzy simplicial sets. Both fuzzy
-set operations use the product t-norm. The value of this parameter should be between 0.0 and 
+set operations use the product t-norm. The value of this parameter should be between 0.0 and
 1.0; a value of 1.0 will use a pure fuzzy union, while 0.0 will use a pure fuzzy intersection.}
 
-\item{local.connectivity}{The local connectivity required – i.e. the number of nearest neighbors 
-that should be assumed to be connected at a local level. The higher this value the more connected 
-the manifold becomes locally. In practice this should be not more than the local intrinsic 
+\item{local.connectivity}{The local connectivity required - i.e. the number of nearest neighbors
+that should be assumed to be connected at a local level. The higher this value the more connected
+the manifold becomes locally. In practice this should be not more than the local intrinsic
 dimension of the manifold.}
 
-\item{repulsion.strength}{Weighting applied to negative samples in low dimensional embedding 
-optimization. Values higher than one will result in greater weight being given to negative 
+\item{repulsion.strength}{Weighting applied to negative samples in low dimensional embedding
+optimization. Values higher than one will result in greater weight being given to negative
 samples.}
 
-\item{negative.sample.rate}{The number of negative samples to select per positive sample in the 
-optimization process. Increasing this value will result in greater repulsive force being applied, 
+\item{negative.sample.rate}{The number of negative samples to select per positive sample in the
+optimization process. Increasing this value will result in greater repulsive force being applied,
 greater optimization cost, but slightly more accuracy.}
 
-\item{a}{More specific parameters controlling the embedding. If NULL, these values are set 
+\item{a}{More specific parameters controlling the embedding. If NULL, these values are set
 automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 right adjoint functor.}
 
-\item{b}{More specific parameters controlling the embedding. If NULL, these values are set 
+\item{b}{More specific parameters controlling the embedding. If NULL, these values are set
 automatically as determined by min. dist and spread. Parameter of differentiable approximation of
 right adjoint functor.}
 
 \item{seed.use}{Set a random seed. By default, sets the seed to 42. Setting
 NULL will not set a seed}
 
-\item{metric.kwds}{A dictionary of arguments to pass on to the metric, such as the p value for 
+\item{metric.kwds}{A dictionary of arguments to pass on to the metric, such as the p value for
 Minkowski distance. If NULL then no arguments are passed on.}
 
-\item{angular.rp.forest}{Whether to use an angular random projection forest to initialise the 
-approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that 
-use an angular style distance such as cosine, correlation etc. In the case of those metrics 
+\item{angular.rp.forest}{Whether to use an angular random projection forest to initialise the
+approximate nearest neighbor search. This can be faster, but is mostly on useful for metric that
+use an angular style distance such as cosine, correlation etc. In the case of those metrics
 angular forests will be chosen automatically.}
 
 \item{reduction.key}{dimensional reduction key, specifies the string before
