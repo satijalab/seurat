@@ -294,7 +294,7 @@ HTODemux <- function(
     slot = 'counts'
   )[, colnames(x = object)]
   counts <- as.matrix(x = counts)
-  ncenters <- init %||% nrow(x = data) + 1
+  ncenters <- init %||% (nrow(x = data) + 1)
   switch(
     EXPR = kfunc,
     'kmeans' = {

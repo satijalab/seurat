@@ -12,7 +12,7 @@ DimPlot(object, dims = c(1, 2), cells = NULL, cols = NULL,
   split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
   label.size = 4, repel = FALSE, cells.highlight = NULL,
   cols.highlight = "red", sizes.highlight = 1, na.value = "grey50",
-  combine = TRUE, ...)
+  combine = TRUE, ncol = NULL, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -61,6 +61,8 @@ groups in cells.highlight}
 \item{na.value}{Color value for NA points when using custom scale}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
+
+\item{ncol}{Number of columns for display when combining plots}
 
 \item{...}{Arguments passed on to \code{CombinePlots}
 \describe{

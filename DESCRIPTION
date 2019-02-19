@@ -47,12 +47,14 @@ Imports:
     RColorBrewer,
     Rcpp,
     reticulate,
+    rlang,
     ROCR,
     rsvd,
     Rtsne,
     scales,
     SDMTools,
     stats,
+    tools,
     tsne,
     utils
 LinkingTo: Rcpp (>= 0.11.0), RcppEigen, RcppProgress

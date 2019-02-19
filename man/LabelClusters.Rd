@@ -4,8 +4,8 @@
 \alias{LabelClusters}
 \title{Label clusters on a ggplot2-based scatter plot}
 \usage{
-LabelClusters(plot, id, clusters = NULL, labels = NULL, repel = TRUE,
-  ...)
+LabelClusters(plot, id, clusters = NULL, labels = NULL,
+  split.by = NULL, repel = TRUE, ...)
 }
 \arguments{
 \item{plot}{A ggplot2-based scatter plot}
@@ -15,6 +15,9 @@ LabelClusters(plot, id, clusters = NULL, labels = NULL, repel = TRUE,
 \item{clusters}{Vector of cluster ids to label}
 
 \item{labels}{Custom labels for the clusters}
+
+\item{split.by}{Split labels by some grouping label, useful when using
+\code{\link[ggplot2]{facet_wrap}} or \code{\link[ggplot2]{facet_grid}}}
 
 \item{repel}{Use \code{geom_text_repel} to create nicely-repelled labels}
 
@@ -32,5 +35,5 @@ LabelClusters(plot = plot, id = 'ident')
 
 }
 \seealso{
-\code{\link[ggrepel]{geom_text_repel}}
+\code{\link[ggrepel]{geom_text_repel}} \code{\link[ggplot2]{geom_text}}
 }
