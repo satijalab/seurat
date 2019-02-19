@@ -25,7 +25,7 @@ GetAssayData(object, ...)
 Returns info from requested slot
 }
 \description{
-This function can be used to pull information from any of the slots in the Assay class. For 
+This function can be used to pull information from any of the slots in the Assay class. For
 example, pull one of the data matrices("counts", "data", or "scale.data").
 }
 \examples{
