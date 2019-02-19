@@ -93,6 +93,7 @@ FindAllMarkers <- function(
     idents.all <- (tree$Nnode + 2):max(tree$edge)
   }
   genes.de <- list()
+  messages <- list()
   for (i in 1:length(x = idents.all)) {
     if (verbose) {
       message("Calculating cluster ", idents.all[i])
@@ -129,9 +130,13 @@ FindAllMarkers <- function(
         )
       },
       error = function(cond) {
-        return(NULL)
+        return(cond$message)
       }
     )
+    if (class(x = genes.de[[i]]) == "character") {
+      messages[[i]] <- genes.de[[i]]
+      genes.de[[i]] <- NULL
+    }
   }
   gde.all <- data.frame()
   for (i in 1:length(x = idents.all)) {
@@ -163,7 +168,15 @@ FindAllMarkers <- function(
   }
   rownames(x = gde.all) <- make.unique(names = as.character(x = gde.all$gene))
   if (nrow(x = gde.all) == 0) {
-    warning("No DE genes identified", call. = FALSE)
+    warning("No DE genes identified", call. = FALSE, immediate. = TRUE)
+  }
+  if (length(x = messages) > 0) {
+    warning("The following tests were not performed: ", call. = FALSE, immediate. = TRUE)
+    for (i in 1:length(x = messages)) {
+      if (!is.null(x = messages[[i]])) {
+        warning("When testing ", idents.all[i], " versus all:\n\t", messages[[i]], call. = FALSE, immediate. = TRUE)
+      }
+    }
   }
   if (!is.null(x = node)) {
     gde.all$cluster <- MapVals(
