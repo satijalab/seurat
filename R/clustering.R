@@ -207,7 +207,7 @@ FindClusters.Seurat <- function(
 FindNeighbors.default <- function(
   object,
   distance.matrix = FALSE,
-  k.param = 10,
+  k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
@@ -286,7 +286,7 @@ FindNeighbors.default <- function(
 FindNeighbors.Assay <- function(
   object,
   features = NULL,
-  k.param = 10,
+  k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
@@ -314,7 +314,7 @@ FindNeighbors.Assay <- function(
 #'
 FindNeighbors.dist <- function(
   object,
-  k.param = 10,
+  k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
@@ -355,7 +355,7 @@ FindNeighbors.Seurat <- function(
   dims = 1:10,
   assay = NULL,
   features = NULL,
-  k.param = 30,
+  k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
