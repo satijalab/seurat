@@ -1176,9 +1176,9 @@ MarkerTest <- function(
   verbose = TRUE
 ) {
   to.return <- AUCMarkerTest(
-    data1 = data.use[, cells.1],
-    data2 = data.use[, cells.2],
-    mygenes = rownames(data.use),
+    data1 = data.use[, cells.1, drop = FALSE],
+    data2 = data.use[, cells.2, drop = FALSE],
+    mygenes = rownames(x = data.use),
     print.bar = verbose
   )
   to.return$power <- abs(x = to.return$myAUC - 0.5) * 2
@@ -1434,7 +1434,7 @@ WilcoxDETest <- function(
   group.info[cells.1, "group"] <- "Group1"
   group.info[cells.2, "group"] <- "Group2"
   group.info[, "group"] <- factor(x = group.info[, "group"])
-  data.use <- data.use[, rownames(x = group.info)]
+  data.use <- data.use[, rownames(x = group.info), drop = FALSE]
   my.sapply <- ifelse(
     test = verbose && PlanThreads() == 1,
     yes = pbsapply,
