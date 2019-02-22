@@ -4056,7 +4056,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 # @param group.by A vector to group cells by, should be one grouping identity per cell
 #
 #' @importFrom ggplot2 ggplot aes_string geom_raster scale_fill_gradient
-#' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend
+#' scale_fill_gradientn theme element_blank labs geom_point guides guide_legend geom_tile
 #
 SingleRasterMap <- function(
   data,
