@@ -762,6 +762,47 @@ RunUMAP <- function(object, ...) {
   UseMethod(generic = 'RunUMAP', object = object)
 }
 
+#' Run PHATE
+#'
+#' PHATE is a data reduction method specifically designed for visualizing
+#' **high** dimensional data in **low** dimensional spaces.
+#' To run, you must first install the `phate` python
+#' package (e.g. via pip install phate). Details on this package can be
+#' found here: \url{https://github.com/KrishnaswamyLab/PHATE}. For a more in depth
+#' discussion of the mathematics underlying PHATE, see the bioRxiv paper here:
+#' \url{https://www.biorxiv.org/content/early/2017/12/01/120378}.
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods and PHATE
+#'
+#' @return Returns a Seurat object containing a PHATE representation
+#'
+#' @references Moon K, van Dijk D, Wang Z, Gigante S, 
+#' Burkhardt D, Chen W, van den Elzen A,
+#' Hirn M, Coifman R, Ivanova N, Wolf G and Krishnaswamy S (2017).
+#' "Visualizing Transitions and Structure for High Dimensional Data
+#' Exploration." _bioRxiv_, pp. 120378. doi: 10.1101/120378
+#' (URL: http://doi.org/10.1101/120378),
+#' <URL: https://www.biorxiv.org/content/early/2017/12/01/120378>.
+#'
+#' @export
+#'
+#' @examples
+#' if (reticulate::py_module_available("phate")) {
+#' pbmc_small
+#' # Run PHATE
+#' pbmc_small <- RunPHATE(object = pbmc_small)
+#' # Plot results
+#' DimPlot(object = pbmc_small, reduction = 'phate')
+#' }
+#'
+#' @rdname RunPHATE
+#' @export RunPHATE
+#'
+RunPHATE <- function(object, ...) {
+  UseMethod(generic = 'RunPHATE', object = object)
+}
+
 #' Scale and center the data.
 #'
 #' Scales and centers features in the dataset. If variables are provided in vars.to.regress,

@@ -1385,25 +1385,18 @@ RunUMAP.Seurat <- function(
   return(object)
 }
 
-
-
-#' @importFrom phateR phate
-#'
 #' @rdname RunPHATE
 #' @method RunPHATE default
 #' @export
 #'
 RunPHATE.default <- function(
   object,
-  dims = NULL,
-  reduction = 'pca',
-  features = NULL,
   assay = 'RNA',
   n.components = 2L,
   k = 15L,
   alpha = 10L,
   n.landmark=2000L,
-  potential.method = "log",
+  gamma = 1,
   t = "auto",
   knn.dist.method = "euclidean",
   mds.method = "metric",
@@ -1417,14 +1410,16 @@ RunPHATE.default <- function(
   reduction.key = "PHATE_",
   ...
 ) {
-  data.use <- t(data.use)
-  phate_output <- phate(
-    data.use,
-    ndim=n.components,
+  if (!PackageCheck('phateR', error = FALSE)) {
+    stop("Please install phateR - learn more at https://github.com/KrishnaswamyLab/phateR")
+  }
+  phate_output <- phateR::phate(
+    object,
+    ndim = n.components,
     k = k,
     alpha = alpha,
     n.landmark = n.landmark,
-    potential.method = potential.method,
+    gamma = gamma,
     t = t,
     knn.dist.method = knn.dist.method,
     init = NULL,
@@ -1462,13 +1457,12 @@ RunPHATE.default <- function(
 #' @param dims Which dimensions to use as input features, used only if
 #' \code{features} is NULL
 #' @param reduction Which dimensional reduction (PCA or ICA) to use for the
-#' UMAP input. Default is PCA
-#' @param features If set, run UMAP on this subset of features (instead of running on a
+#' PHATE input. Default is PCA
+#' @param features If set, run PHATE on this subset of features (instead of running on a
 #' set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 #' on features
-#' @param assay Assay to pull data for when using \code{features}, or assay used to construct Graph
-#' if running UMAP on a Graph
-#' @param max.dim Total number of dimensions to embed in PHATE.
+#' @param assay Assay to pull data for when using \code{features}
+#' @param n.components Total number of dimensions to embed in PHATE.
 #' @param k int, optional, default: 15
 #' number of nearest neighbors on which to build kernel
 #' @param alpha int, optional, default: 10
@@ -1522,11 +1516,11 @@ RunPHATE.default <- function(
 #' the object$dr list. phate by default
 #' @param reduction.key dimensional reduction key, specifies the string before
 #' the number for the dimension names. PHATE_ by default
-#' @param ... Additional arguments for `phateR::phate`
 #'
 #' @return Returns a Seurat object containing a PHATE representation
 #'
-#' @references Moon K, van Dijk D, Wang Z, Burkhardt D, Chen W, van den Elzen A,
+#' @references Moon K, van Dijk D, Wang Z, Gigante S, 
+#' Burkhardt D, Chen W, van den Elzen A,
 #' Hirn M, Coifman R, Ivanova N, Wolf G and Krishnaswamy S (2017).
 #' "Visualizing Transitions and Structure for High Dimensional Data
 #' Exploration." _bioRxiv_, pp. 120378. doi: 10.1101/120378
@@ -1549,11 +1543,14 @@ RunPHATE.default <- function(
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
 #'
 #' # For increased emphasis on local structure, use sqrt potential
-#' pbmc_small <- RunPHATE(object = pbmc_small, potential.method='sqrt')
+#' pbmc_small <- RunPHATE(object = pbmc_small, gamma = 0)
 #' # Plot results
 #' DimPlot(object = pbmc_small, reduction.use = 'phate')
 #'
 #' }
+#'
+#' @rdname RunPHATE
+#' @method RunPHATE Seurat
 #' @export
 #'
 RunPHATE.Seurat <- function(
@@ -1566,7 +1563,7 @@ RunPHATE.Seurat <- function(
   k = 15L,
   alpha = 10L,
   n.landmark=2000L,
-  potential.method = "log",
+  gamma = 1,
   t = "auto",
   knn.dist.method = "euclidean",
   mds.method = "metric",
@@ -1581,7 +1578,7 @@ RunPHATE.Seurat <- function(
   reduction.key = "PHATE_",
   ...
 ) {
-  if (sum(c(is.null(x = dims), is.null(x = features)) > 1) {
+  if (!is.null(x = dims) && !is.null(x = features)) {
       stop("Please specify only one of the following arguments: dims or features")
   }
   if (!is.null(x = features)) {
@@ -1590,7 +1587,8 @@ RunPHATE.Seurat <- function(
     data.use <- Embeddings(object[[reduction]])[, dims]
     assay <- DefaultAssay(object = object[[reduction]])
   } else {
-    stop("Please specify one of dims or features")
+    data.use <- Embeddings(object[[reduction]])
+    assay <- DefaultAssay(object = object[[reduction]])
   }
   object[[reduction.name]] <- RunPHATE(
     object = data.use,
@@ -1599,7 +1597,7 @@ RunPHATE.Seurat <- function(
     k = k,
     alpha = alpha,
     n.landmark = n.landmark,
-    potential.method = potential.method,
+    gamma = gamma,
     t = t,
     knn.dist.method = knn.dist.method,
     mds.method = mds.method,
