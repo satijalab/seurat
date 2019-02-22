@@ -8,9 +8,9 @@
 \usage{
 RunPHATE(object, ...)
 
-\method{RunPHATE}{default}(object, n.components = 2L, k = 15L,
-  alpha = 10L, n.landmark = 2000L, gamma = 1, t = "auto",
-  knn.dist.method = "euclidean", mds.method = "metric",
+\method{RunPHATE}{default}(object, assay = "RNA", n.components = 2L,
+  k = 15L, alpha = 10L, n.landmark = 2000L, gamma = 1,
+  t = "auto", knn.dist.method = "euclidean", mds.method = "metric",
   mds.dist.method = "euclidean", t.max = 100, npca = 100,
   plot.optimal.t = FALSE, verbose = 1, n.jobs = 1, seed.use = NA,
   reduction.key = "PHATE_", ...)
@@ -27,6 +27,8 @@ RunPHATE(object, ...)
 \item{object}{An object}
 
 \item{...}{Arguments passed to other methods and PHATE}
+
+\item{assay}{Assay to pull data for when using \code{features}}
 
 \item{n.components}{Total number of dimensions to embed in PHATE.}
 
@@ -105,8 +107,6 @@ PHATE input. Default is PCA}
 \item{features}{If set, run PHATE on this subset of features (instead of running on a
 set of reduced dimensions). Not set (NULL) by default; \code{dims} must be NULL to run
 on features}
-
-\item{assay}{Assay to pull data for when using \code{features}}
 
 \item{reduction.name}{dimensional reduction name, specifies the position in
 the object$dr list. phate by default}
