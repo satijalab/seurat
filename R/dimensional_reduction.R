@@ -1324,7 +1324,7 @@ RunUMAP.Seurat <- function(
   reduction = 'pca',
   features = NULL,
   graph = NULL,
-  assay = 'RNA',
+  assay = NULL,
   n.neighbors = 30L,
   n.components = 2L,
   metric = "correlation",
@@ -1346,6 +1346,7 @@ RunUMAP.Seurat <- function(
   reduction.key = "UMAP_",
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
   if (sum(c(is.null(x = dims), is.null(x = features), is.null(x = graph))) < 2) {
       stop("Please specify only one of the following arguments: dims, features, or graph")
   }
@@ -1353,7 +1354,7 @@ RunUMAP.Seurat <- function(
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
-    assay <- DefaultAssay(object = object[[reduction]])
+    assay <- assay %||% DefaultAssay(object = object[[reduction]])
   } else if (!is.null(x = graph)) {
     data.use <- object[[graph]]
   } else {
@@ -1391,7 +1392,7 @@ RunUMAP.Seurat <- function(
 #'
 RunPHATE.default <- function(
   object,
-  assay = 'RNA',
+  assay = NULL,
   n.components = 2L,
   k = 15L,
   alpha = 10L,
@@ -1578,6 +1579,7 @@ RunPHATE.Seurat <- function(
   reduction.key = "PHATE_",
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(x = dims) && !is.null(x = features)) {
       stop("Please specify only one of the following arguments: dims or features")
   }
@@ -1585,10 +1587,10 @@ RunPHATE.Seurat <- function(
     data.use <- t(x = GetAssayData(object = object, slot = 'data', assay = assay)[features, ])
   } else if (!is.null(x = dims)) {
     data.use <- Embeddings(object[[reduction]])[, dims]
-    assay <- DefaultAssay(object = object[[reduction]])
+    assay <- assay %||% DefaultAssay(object = object[[reduction]])
   } else {
     data.use <- Embeddings(object[[reduction]])
-    assay <- DefaultAssay(object = object[[reduction]])
+    assay <- assay %||% DefaultAssay(object = object[[reduction]])
   }
   object[[reduction.name]] <- RunPHATE(
     object = data.use,
