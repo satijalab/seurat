@@ -11,19 +11,19 @@
 FindNeighbors(object, ...)
 
 \method{FindNeighbors}{default}(object, distance.matrix = FALSE,
-  k.param = 10, compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0,
+  k.param = 20, compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0,
   verbose = TRUE, force.recalc = FALSE, ...)
 
-\method{FindNeighbors}{Assay}(object, features = NULL, k.param = 10,
+\method{FindNeighbors}{Assay}(object, features = NULL, k.param = 20,
   compute.SNN = TRUE, prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
-\method{FindNeighbors}{dist}(object, k.param = 10, compute.SNN = TRUE,
+\method{FindNeighbors}{dist}(object, k.param = 20, compute.SNN = TRUE,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, ...)
 
 \method{FindNeighbors}{Seurat}(object, reduction = "pca", dims = 1:10,
-  assay = NULL, features = NULL, k.param = 30, compute.SNN = TRUE,
+  assay = NULL, features = NULL, k.param = 20, compute.SNN = TRUE,
   prune.SNN = 1/15, nn.eps = 0, verbose = TRUE,
   force.recalc = FALSE, do.plot = FALSE, graph.name = NULL, ...)
 }
