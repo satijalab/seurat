@@ -1540,13 +1540,12 @@ EmpiricalP <- function(x, nullval) {
 
 # FIt-SNE helper function for calling fast_tsne from R
 #
-# Based on Kluger Lab code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
-# commit 7a5212e on Oct 27, 2018
+# Based on Kluger Lab FIt-SNE v1.1.0 code on https://github.com/KlugerLab/FIt-SNE/blob/master/fast_tsne.R
+# commit d2cf403 on Feb 8, 2019
 #
 #' @importFrom utils file_test
 #
-fftRtsne <- function(
-  X,
+fftRtsne <- function(X,
   dims = 2,
   perplexity = 30,
   theta = 0.5,
@@ -1579,6 +1578,7 @@ fftRtsne <- function(
   nthreads = getOption('mc.cores', default = 1),
   perplexity_list = NULL,
   get_costs = FALSE,
+  df = 1.0,
   ...
 ) {
   if (is.null(x = data_path)) {
@@ -1598,15 +1598,22 @@ fftRtsne <- function(
     stop("fast_tsne_path '", fast_tsne_path, "' does not exist or is not executable")
   }
   # check fast_tsne version
-  ft.out <- system2(command = fast_tsne_path, stdout = TRUE)
-  if (!grepl('= t-SNE v1.', ft.out[1])) {
-    message('First line of fast_tsne output is')
+  ft.out <- suppressWarnings(expr = system2(command = fast_tsne_path, stdout = TRUE))
+  if (grepl(pattern = '= t-SNE v1.1', x = ft.out[1])) {
+    version_number <- '1.1.0'
+  }else if(grepl(pattern = '= t-SNE v1.0', x = ft.out[1])){
+    version_number <- '1.0'
+  }else{
+    message("First line of fast_tsne output is")
     message(ft.out[1])
-    stop("Our FIt-SNE wrapper requires FIt-SNE v1, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
+    stop("Our FIt-SNE wrapper requires FIt-SNE v1.X.X, please install the appropriate version from github.com/KlugerLab/FIt-SNE and have fast_tsne_path point to it if it's not in your path")
   }
 
   is.wholenumber <- function(x, tol = .Machine$double.eps ^ 0.5) {
     return(abs(x = x - round(x = x)) < tol)
+  }
+  if (version_number == '1.0' && df !=1.0) {
+    stop("This version of FIt-SNE does not support df!=1. Please install the appropriate version from github.com/KlugerLab/FIt-SNE")
   }
   if (!is.numeric(x = theta) || (theta < 0.0) || (theta > 1.0) ) {
     stop("Incorrect theta.")
@@ -1630,17 +1637,15 @@ fftRtsne <- function(
     stop("Incorrect dimensionality.")
   }
   if (search_k == -1) {
-    if (perplexity>0) {
+    if (perplexity > 0) {
       search_k <- n_trees * perplexity * 3
-    } else if (perplexity==0) {
+    } else if (perplexity == 0) {
       search_k <- n_trees * max(perplexity_list) * 3
     } else {
       search_k <- n_trees * K * 3
     }
   }
-
   nbody_algo <- ifelse(test = fft_not_bh, yes = 2, no = 1)
-
   if (is.null(load_affinities)) {
     load_affinities <- 0
   } else {
@@ -1649,12 +1654,11 @@ fftRtsne <- function(
     } else if (load_affinities == 'save') {
       load_affinities <- 2
     } else {
-      load_affinities <- 0;
+      load_affinities <- 0
     }
   }
-
   knn_algo <- ifelse(test = ann_not_vptree, yes = 1, no = 2)
-  f <- file(data_path, "wb")
+  f <- file(description = data_path, open = "wb")
   n = nrow(x = X)
   D = ncol(x = X)
   writeBin(object = as.integer(x = n), con = f, size = 4)
@@ -1688,13 +1692,25 @@ fftRtsne <- function(
   tX = c(t(X))
   writeBin(object = tX, con = f)
   writeBin(object = as.integer(x = rand_seed), con = f, size = 4)
+  if (version_number != "1.0") {
+    writeBin(object = as.numeric(x = df), con = f, size = 8)
+  }
   writeBin(object = as.integer(x = load_affinities), con = f, size = 4)
   if (!is.null(x = initialization)) {
     writeBin(object = c(t(x = initialization)), con = f)
   }
   close(con = f)
-
-  flag <- system2(command = fast_tsne_path, args = c(data_path, result_path, nthreads))
+  if (version_number == "1.0") {
+    flag <- system2(
+     command = fast_tsne_path,
+     args = c(data_path, result_path, nthreads)
+    )
+  } else {
+    flag <- system2(
+      command = fast_tsne_path,
+      args = c(version_number, data_path, result_path, nthreads)
+    )
+  }
   if (flag != 0) {
     stop('tsne call failed')
   }
@@ -1704,9 +1720,10 @@ fftRtsne <- function(
   Y <- readBin(con = f, what = numeric(), n = n * d)
   Y <- t(x = matrix(Y, nrow = d))
   if (get_costs) {
+    tmp <- readBin(con = f, what = integer(), n = 1, size = 4)
     costs <- readBin(con = f, what = numeric(), n = max_iter, size = 8)
     Yout <- list(Y = Y, costs = costs)
-  }else {
+  } else {
     Yout <- Y
   }
   close(con = f)
@@ -1714,7 +1731,6 @@ fftRtsne <- function(
   file.remove(result_path)
   return(Yout)
 }
-
 
 #internal
 #
