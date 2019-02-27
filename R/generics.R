@@ -206,8 +206,14 @@ FindClusters <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods and to specific DE methods
 
-#' @return Matrix containing a ranked list of putative markers, and associated
-#' statistics (p-values, ROC score, etc.)
+#' @return data.frame with a ranked list of putative markers as rows, and associated
+#' statistics as columns (p-values, ROC score, etc., depending on the test used (\code{test.use})). The following columns are always present:
+#' \itemize{
+#'   \item \code{avg_logFC}: log fold-chage of the average expression between the two groups. Positive values indicate that the gene is more highly expressed in the first group
+#'   \item \code{pct.1}: The percentage of cells where the gene is detected in the first group
+#'   \item \code{pct.2}: The percentage of cells where the gene is detected in the second group
+#'   \item \code{p_val_adj}: Adjusted p-value, based on bonferroni correction using all genes in the dataset
+#' }
 #'
 #' @details p-value adjustment is performed using bonferroni correction based on
 #' the total number of genes in the dataset. Other correction methods are not
