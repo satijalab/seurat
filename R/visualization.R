@@ -351,10 +351,14 @@ HTOHeatmap <- function(
 ) {
   DefaultAssay(object = object) <- assay
   Idents(object = object) <- object[[classification, drop = TRUE]]
-  object <- subset(
-    x = object,
-    cells = sample(x = colnames(x = object), size = ncells)
-  )
+  if (ncells > ncol(x = object)) {
+    warning("ncells (", ncells, ") is larger than the number of cells present in the provided object (", ncol(x = object), "). Plotting heatmap for all cells.")
+  } else {
+    object <- subset(
+      x = object,
+      cells = sample(x = colnames(x = object), size = ncells)
+    )
+  }
   classification <- object[[classification]]
   singlets <- which(x = object[[global.classification]] == 'Singlet')
   singlet.ids <- sort(x = unique(x = as.character(x = classification[singlets, ])))
