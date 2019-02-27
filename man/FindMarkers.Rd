@@ -67,10 +67,10 @@ Increasing logfc.threshold speeds up the function, but can miss weaker signals.}
  expressed genes. Constructs a logistic regression model predicting group
  membership based on each feature individually and compares this to a null
  model with a likelihood ratio test.
- \item{"MAST} : Identifies differentially expressed genes between two groups
+ \item{"MAST"} : Identifies differentially expressed genes between two groups
  of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
  package to run the DE testing.
- \item{"DESeq2} : Identifies differentially expressed genes between two groups
+ \item{"DESeq2"} : Identifies differentially expressed genes between two groups
  of cells based on a model using DESeq2 which uses a negative binomial
  distribution (Love et al, Genome Biology, 2014).This test does not support
  pre-filtering of genes based on average difference (or percent detection rate)
@@ -124,8 +124,14 @@ use all other cells for comparison; if an object of class \code{phylo} or
 \item{reduction}{Reduction to use in differential expression testing - will test for DE on cell embeddings}
 }
 \value{
-Matrix containing a ranked list of putative markers, and associated
-statistics (p-values, ROC score, etc.)
+data.frame with a ranked list of putative markers as rows, and associated
+statistics as columns (p-values, ROC score, etc., depending on the test used (\code{test.use})). The following columns are always present:
+\itemize{
+  \item \code{avg_logFC}: log fold-chage of the average expression between the two groups. Positive values indicate that the gene is more highly expressed in the first group
+  \item \code{pct.1}: The percentage of cells where the gene is detected in the first group
+  \item \code{pct.2}: The percentage of cells where the gene is detected in the second group
+  \item \code{p_val_adj}: Adjusted p-value, based on bonferroni correction using all genes in the dataset
+}
 }
 \description{
 Finds markers (differentially expressed genes) for identity classes
