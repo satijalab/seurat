@@ -4235,7 +4235,8 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
             if (!IsMatrixEmpty(x = assay.data)) {
               assay.data <- assay.data[, colnames(x = x), drop = FALSE]
             }
-            value <- SetAssayData(object = value, slot = slot, new.data = assay.data)
+            # Use slot because SetAssayData is being weird
+            slot(object = value, name = slot) <- assay.data
           }
         }
         'assays'
