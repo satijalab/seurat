@@ -4173,14 +4173,16 @@ setMethod(
     meta.data <- x[[]]
     feature.names <- rownames(x = meta.data)
     if (length(x = i) > 1) {
+      # Add multiple bits of feature-level metadata
       value <- rep_len(x = value, length.out = length(x = i))
       for (index in 1:length(x = i)) {
         meta.data[i[index]] <- value[index]
       }
     } else {
+      # Add a single column to feature-level metadata
       if (length(x = intersect(x = names(x = value), y = feature.names)) > 0) {
         meta.data[, i] <- value[feature.names]
-      } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+      } else if (length(x = value) %in% c(nrow(x = meta.data), 1) || is.null(x = value)) {
         meta.data[, i] <- value
       } else {
         stop("Cannot add more or fewer meta.features information without values being named with feature names")
@@ -4203,7 +4205,11 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     }
     # Allow removing of other object
     if (is.null(x = value)) {
-      slot.use <- FindObject(object = x, name = i)
+      slot.use <- if (i %in% colnames(x = x[[]])) {
+        'meta.data'
+      } else {
+        FindObject(object = x, name = i)
+      }
       if (is.null(x = slot.use)) {
         stop("Cannot find object ", i, call. = FALSE)
       }
@@ -4251,36 +4257,45 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
       'NULL' = slot.use,
       'meta.data'
     )
-    if (slot.use == 'meta.data') { # Add data to object metadata
+    if (slot.use == 'meta.data') {
+      # Add data to object metadata
       meta.data <- x[[]]
       cell.names <- rownames(x = meta.data)
+      # If we have metadata with names, ensure they match our order
       if (is.data.frame(x = value) && !is.null(x = rownames(x = value))) {
-        meta.order <- match(rownames(x = meta.data), rownames(x = value))
+        meta.order <- match(x = rownames(x = meta.data), table = rownames(x = value))
         value <- value[meta.order, , drop = FALSE]
       }
       if (length(x = i) > 1) {
+        # Add multiple pieces of metadata
         value <- rep_len(x = value, length.out = length(x = i))
         for (index in 1:length(x = i)) {
           meta.data[i[index]] <- value[index]
         }
       } else {
+        # Add a single column to metadata
         if (length(x = intersect(x = names(x = value), y = cell.names)) > 0) {
           meta.data[, i] <- value[cell.names]
-        } else if (length(x = value) %in% c(nrow(x = meta.data), 1)) {
+        } else if (length(x = value) %in% c(nrow(x = meta.data), 1) || is.null(x = value)) {
           meta.data[, i] <- value
         } else {
-          stop("Cannot add more or fewer cell meta.data information without values being named with cell names")
+          stop("Cannot add more or fewer cell meta.data information without values being named with cell names", call. = FALSE)
         }
       }
+      # Check to ensure that we aren't adding duplicate names
       if (any(colnames(x = meta.data) %in% FilterObjects(object = x))) {
         bad.cols <- colnames(x = meta.data)[which(colnames(x = meta.data) %in% FilterObjects(object = x))]
-        stop(paste0(
-          "Cannot add a metadata column with the same name as an Assay or DimReduc - ",
-          paste(bad.cols, collapse = ", ")
-        ))
+        stop(
+          paste0(
+            "Cannot add a metadata column with the same name as an Assay or DimReduc - ",
+            paste(bad.cols, collapse = ", ")),
+          call. = FALSE
+        )
       }
+      # Store the revised metadata
       slot(object = x, name = 'meta.data') <- meta.data
-    } else { # Add other object to Seurat object
+    } else {
+      # Add other object to Seurat object
       # Ensure cells match in value and order
       if (!(class(x = value) %in% c('SeuratCommand', 'NULL')) && !all(colnames(x = value) == colnames(x = x))) {
         stop("All cells in the object being added must match the cells in this object", call. = FALSE)
