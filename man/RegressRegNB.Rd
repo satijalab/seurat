@@ -5,7 +5,7 @@
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
 RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
-  variable.features.rv.th = 1.3, variable.features.n = NULL,
+  variable.features.n = 2000, variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE, clip.range = c(-10, 10),
   do.scale = FALSE, do.center = TRUE, verbose = TRUE, ...)
 }
@@ -16,11 +16,12 @@ RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
 
-\item{variable.features.rv.th}{Features with residual variance greater or equal
-this value will be selected as variable features; default is 1.3}
-
 \item{variable.features.n}{Use this many features as variable features after
-ranking by residual variance}
+ranking by residual variance; default is 2000}
+
+\item{variable.features.rv.th}{Instead of setting a fixed number of variable features, 
+use this residual variance cutoff; this is only used when \code{variable.features.n}
+is set to NULL; default is 1.3}
 
 \item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
