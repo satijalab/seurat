@@ -40,7 +40,7 @@ This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
 Use this function as an alternative to the NormalizeData,
 FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-called sctransform with counts being (corrected) counts, data being log1p(counts),
+called SCT with counts being (corrected) counts, data being log1p(counts),
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
 }

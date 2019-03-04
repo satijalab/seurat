@@ -856,7 +856,7 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-#' called sctransform with counts being (corrected) counts, data being log1p(counts),
+#' called SCT with counts being (corrected) counts, data being log1p(counts),
 #' scale.data being pearson residuals; sctransform::vst intermediate results are saved
 #' in misc slot of new assay.
 #'
@@ -1015,11 +1015,11 @@ SCTransform <- function(
   vst.out$y <- NULL
   assay.out@misc <- list(vst.out = vst.out)
   
-  object[["sctransform"]] <- assay.out
+  object[["SCT"]] <- assay.out
   if (verbose) {
-    message("Setting default assay to sctransform")
+    message("Setting default assay to SCT")
   }
-  DefaultAssay(object = object) <- "sctransform"
+  DefaultAssay(object = object) <- "SCT"
   return(object)
 }
 
