@@ -855,22 +855,23 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData,
-#' FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
-#' data and scale.data slot, and sctransform::vst intermediate results are saved
-#' in misc slot of seurat object.
+#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
+#' called sctransform with counts being (corrected) counts, data being log1p(counts),
+#' scale.data being pearson residuals, and sctransform::vst intermediate results are saved
+#' in misc slot of new assay.
 #'
 #' @param object A seurat object
 #' @param assay Name of assay to use
-#' @param do.correct.umi Place corrected UMI matrix in assay data slot
+#' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 2000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features, 
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
+#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
@@ -881,13 +882,13 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 RegressRegNB <- function(
   object,
   assay = NULL,
-  do.correct.umi = FALSE,
+  do.correct.umi = TRUE,
   variable.features.n = 2000,
   variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE,
-  clip.range = c(-10, 10),
   do.scale = FALSE,
   do.center = TRUE,
+  clip.range = c(-10, 10),
   verbose = TRUE,
   ...
 ) {
@@ -925,18 +926,29 @@ RegressRegNB <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
   vst.out <- do.call(sctransform::vst, vst.args)
+  
+  # output will go into new assay
+  assay.out <- CreateAssayObject(counts = umi)
 
-  # put corrected umi counts in data slot
+  # put corrected umi counts in count slot
   if (do.correct.umi) {
     if (verbose) {
-      message('Placing corrected UMI matrix in data slot')
+      message('Placing corrected UMI matrix in counts slot')
     }
-    assay.obj <- SetAssayData(
-      object = assay.obj,
-      slot = 'data',
+    assay.out <- SetAssayData(
+      object = assay.out,
+      slot = 'counts',
       new.data = vst.out$umi_corrected
     )
   }
+  
+  # put log1p transformed counts in data
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'data',
+    new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
+  )
+  
   # set variable features
   if (verbose) {
     message('Determine variable features')
@@ -956,10 +968,11 @@ RegressRegNB <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  VariableFeatures(object = assay.obj) <- top.features
+  VariableFeatures(object = assay.out) <- top.features
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
+  
   scale.data <- vst.out$y
   if (return.dev.residuals) {
     if (verbose) {
@@ -967,9 +980,7 @@ RegressRegNB <- function(
     }
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
+  
   # re-scale the residuals
   if (do.scale || do.center) {
     if (verbose) {
@@ -989,15 +1000,26 @@ RegressRegNB <- function(
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-  assay.obj <- SetAssayData(
-    object = assay.obj,
+  
+  # clip the residuals
+  scale.data[scale.data < clip.range[1]] <- clip.range[1]
+  scale.data[scale.data > clip.range[2]] <- clip.range[2]
+  
+  assay.out <- SetAssayData(
+    object = assay.out,
     slot = 'scale.data',
     new.data = scale.data
   )
-  object[[assay]] <- assay.obj
+  
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
-  object@misc[['vst.out']] <- vst.out
+  assay.out@misc <- list(vst.out = vst.out)
+  
+  object[["sctransform"]] <- assay.out
+  if (verbose) {
+    message("Setting default assay to sctransform")
+  }
+  DefaultAssay(object = object) <- "sctransform"
   return(object)
 }
 

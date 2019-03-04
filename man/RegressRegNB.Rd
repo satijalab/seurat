@@ -4,17 +4,17 @@
 \alias{RegressRegNB}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-RegressRegNB(object, assay = NULL, do.correct.umi = FALSE,
+RegressRegNB(object, assay = NULL, do.correct.umi = TRUE,
   variable.features.n = 2000, variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE, clip.range = c(-10, 10),
-  do.scale = FALSE, do.center = TRUE, verbose = TRUE, ...)
+  return.dev.residuals = FALSE, do.scale = FALSE, do.center = TRUE,
+  clip.range = c(-10, 10), verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
 
 \item{assay}{Name of assay to use}
 
-\item{do.correct.umi}{Place corrected UMI matrix in assay data slot}
+\item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
 \item{variable.features.n}{Use this many features as variable features after
 ranking by residual variance; default is 2000}
@@ -25,11 +25,11 @@ is set to NULL; default is 1.3}
 
 \item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
-\item{clip.range}{Range to clip the residuals to; default is \code{c(-10, 10)}}
-
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 
 \item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
+
+\item{clip.range}{Range to clip the residuals to; default is \code{c(-10, 10)}}
 
 \item{verbose}{Whether to print messages and progress bars}
 
@@ -39,7 +39,8 @@ is set to NULL; default is 1.3}
 This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
 Use this function as an alternative to the NormalizeData,
-FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
-data and scale.data slot, and sctransform::vst intermediate results are saved
-in misc slot of seurat object.
+FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
+called sctransform with counts being (corrected) counts, data being log1p(counts),
+scale.data being pearson residuals, and sctransform::vst intermediate results are saved
+in misc slot of new assay.
 }
