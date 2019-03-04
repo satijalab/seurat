@@ -862,10 +862,11 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' @param object A seurat object
 #' @param assay Name of assay to use
 #' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.rv.th Features with residual variance greater or equal
-#' this value will be selected as variable features; default is 1.3
 #' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance
+#' ranking by residual variance; default is 2000
+#' @param variable.features.rv.th Instead of setting a fixed number of variable features, 
+#' use this residual variance cutoff; this is only used when \code{variable.features.n}
+#' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
@@ -881,8 +882,8 @@ RegressRegNB <- function(
   object,
   assay = NULL,
   do.correct.umi = FALSE,
+  variable.features.n = 2000,
   variable.features.rv.th = 1.3,
-  variable.features.n = NULL,
   return.dev.residuals = FALSE,
   clip.range = c(-10, 10),
   do.scale = FALSE,
@@ -972,7 +973,12 @@ RegressRegNB <- function(
   # re-scale the residuals
   if (do.scale || do.center) {
     if (verbose) {
-      message('Re-scale residuals')
+      if (do.center) {
+        message('Center residuals')
+      }
+      if (do.scale) {
+        message('Re-scale residuals')
+      }
     }
     scale.data <- FastRowScale(
       mat = scale.data,
