@@ -857,7 +857,7 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
 #' called sctransform with counts being (corrected) counts, data being log1p(counts),
-#' scale.data being pearson residuals, and sctransform::vst intermediate results are saved
+#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
 #' in misc slot of new assay.
 #'
 #' @param object A seurat object
@@ -879,7 +879,7 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #'
 #' @export
 #'
-RegressRegNB <- function(
+SCTransform <- function(
   object,
   assay = NULL,
   do.correct.umi = TRUE,
