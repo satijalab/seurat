@@ -748,11 +748,13 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
     # In cell ranger 3.0, a third column specifying the type of data was added
     # and we will return each type of data as a separate matrix
     if (ncol(x = feature.names) > 2){
-      if (length(x = full.data) ==0) {
-        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
-      }
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
+      
+      if (length(x = lvls) > 1 && length(x = full.data) == 0) {
+        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
+      }
+      
       expr_name <- "Gene Expression"
       if (expr_name %in% lvls) { # Return Gene Expression first
         lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
