@@ -872,6 +872,8 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
+#' @param return.only.var.genes If set to TRUE all data matrices in output assay are 
+#' subset to contain only the variable genes; default is FALSE
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
@@ -889,6 +891,7 @@ SCTransform <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-10, 10),
+  return.only.var.genes = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -1010,6 +1013,15 @@ SCTransform <- function(
     slot = 'scale.data',
     new.data = scale.data
   )
+  
+  if (return.only.var.genes) {
+    if (verbose) {
+      message("Output assay will contain only variable genes")
+    }
+    slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
+    slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
+    slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
+  }
   
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL

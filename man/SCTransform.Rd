@@ -7,7 +7,8 @@
 SCTransform(object, assay = NULL, do.correct.umi = TRUE,
   variable.features.n = 2000, variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE, do.scale = FALSE, do.center = TRUE,
-  clip.range = c(-10, 10), verbose = TRUE, ...)
+  clip.range = c(-10, 10), return.only.var.genes = FALSE,
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -30,6 +31,9 @@ is set to NULL; default is 1.3}
 \item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
 
 \item{clip.range}{Range to clip the residuals to; default is \code{c(-10, 10)}}
+
+\item{return.only.var.genes}{If set to TRUE all data matrices in output assay are 
+subset to contain only the variable genes; default is FALSE}
 
 \item{verbose}{Whether to print messages and progress bars}
 
