@@ -986,6 +986,10 @@ SCTransform <- function(
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
   
+  # clip the residuals
+  scale.data[scale.data < clip.range[1]] <- clip.range[1]
+  scale.data[scale.data > clip.range[2]] <- clip.range[2]
+  
   # re-scale the residuals
   if (do.scale || do.center) {
     if (verbose) {
@@ -1005,10 +1009,6 @@ SCTransform <- function(
     )
     dimnames(scale.data) <- dimnames(vst.out$y)
   }
-  
-  # clip the residuals
-  scale.data[scale.data < clip.range[1]] <- clip.range[1]
-  scale.data[scale.data > clip.range[2]] <- clip.range[2]
   
   assay.out <- SetAssayData(
     object = assay.out,
