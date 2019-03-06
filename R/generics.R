@@ -67,6 +67,28 @@ as.SingleCellExperiment <- function(x, ...) {
   UseMethod(generic = 'as.SingleCellExperiment', object = x)
 }
 
+# 
+# 
+# 
+# 
+# MICHAEL'S CODE
+# 
+# 
+# 
+# 
+# 
+#' Convert objects to SingleCellExperiment objects
+#'
+#' @param x An object to convert to class \code{CellDataSet}
+#'
+#' @rdname as.CellDataSet
+#' @export as.CellDataSet
+#'
+as.CellDataSet <- function(x, ...) {
+  UseMethod(generic = 'as.CellDataSet', object = x)
+}
+
+
 #' Convert between data frames and sparse matrices
 #'
 #' @param x An object
