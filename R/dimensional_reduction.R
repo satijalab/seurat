@@ -1150,6 +1150,9 @@ RunUMAP.default <- function(
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
   }
+  if (typeof(x = n.epochs) == "double") {
+    n.epochs <- as.integer(x = n.epochs)
+  }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
     n_neighbors = as.integer(x = n.neighbors),
@@ -1238,7 +1241,7 @@ RunUMAP.Graph <- function(
     b = b,
     gamma = repulsion.strength,
     negative_sample_rate = negative.sample.rate,
-    n_epochs = n.epochs,
+    n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
     init = "spectral",
     metric = metric,
