@@ -1848,10 +1848,15 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  Parenting(
-    parent.find = "ScaleData.Assay",
-    features = features,
-    min.cells.to.block = min.cells.to.block
+  tryCatch(
+    expr = Parenting(
+      parent.find = "ScaleData.Assay",
+      features = features,
+      min.cells.to.block = min.cells.to.block
+    ),
+    error = function(e) {
+      invisible(x = NULL)
+    }
   )
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
