@@ -6,9 +6,9 @@
 \usage{
 SCTransform(object, assay = NULL, do.correct.umi = TRUE,
   variable.features.n = 2000, variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE, do.scale = FALSE, do.center = TRUE,
-  clip.range = c(-10, 10), return.only.var.genes = FALSE,
-  verbose = TRUE, ...)
+  return.dev.residuals = FALSE, vars.to.regress = NULL,
+  do.scale = FALSE, do.center = TRUE, clip.range = c(-10, 10),
+  return.only.var.genes = FALSE, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -25,6 +25,9 @@ use this residual variance cutoff; this is only used when \code{variable.feature
 is set to NULL; default is 1.3}
 
 \item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
+
+\item{vars.to.regress}{Variables to regress out in a second non-regularized linear 
+regression. For example, percent.mito. Default is NULL}
 
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 

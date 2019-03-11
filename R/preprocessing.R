@@ -871,6 +871,8 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
+#' @param vars.to.regress Variables to regress out in a second non-regularized linear 
+#' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
@@ -890,6 +892,7 @@ SCTransform <- function(
   variable.features.n = 2000,
   variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE,
+  vars.to.regress = NULL,
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-10, 10),
@@ -990,25 +993,41 @@ SCTransform <- function(
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
   
+  # 2nd regression
+  scale.data <- ScaleData(
+    scale.data,
+    features = NULL,
+    vars.to.regress = NULL,
+    latent.data = cell.attr,
+    model.use = 'linear',
+    use.umi = FALSE,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = Inf,
+    block.size = 1000,
+    min.cells.to.block = 3000,
+    verbose = verbose
+  )
+  
   # re-scale the residuals
-  if (do.scale || do.center) {
-    if (verbose) {
-      if (do.center) {
-        message('Center residuals')
-      }
-      if (do.scale) {
-        message('Re-scale residuals')
-      }
-    }
-    scale.data <- FastRowScale(
-      mat = scale.data,
-      scale = do.scale,
-      center = do.center,
-      scale_max = Inf,
-      display_progress = FALSE
-    )
-    dimnames(scale.data) <- dimnames(vst.out$y)
-  }
+  # if (do.scale || do.center) {
+  #   if (verbose) {
+  #     if (do.center) {
+  #       message('Center residuals')
+  #     }
+  #     if (do.scale) {
+  #       message('Re-scale residuals')
+  #     }
+  #   }
+  #   scale.data <- FastRowScale(
+  #     mat = scale.data,
+  #     scale = do.scale,
+  #     center = do.center,
+  #     scale_max = Inf,
+  #     display_progress = FALSE
+  #   )
+  #   dimnames(scale.data) <- dimnames(vst.out$y)
+  # }
   
   assay.out <- SetAssayData(
     object = assay.out,
