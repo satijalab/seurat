@@ -997,7 +997,7 @@ SCTransform <- function(
   scale.data <- ScaleData(
     scale.data,
     features = NULL,
-    vars.to.regress = NULL,
+    vars.to.regress = vars.to.regress,
     latent.data = cell.attr,
     model.use = 'linear',
     use.umi = FALSE,
