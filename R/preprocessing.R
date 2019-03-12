@@ -989,6 +989,10 @@ SCTransform <- function(
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
   
+  if (return.only.var.genes) {
+    scale.data <- scale.data[top.features, , drop = FALSE]
+  }
+  
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
@@ -998,7 +1002,7 @@ SCTransform <- function(
     scale.data,
     features = NULL,
     vars.to.regress = vars.to.regress,
-    latent.data = cell.attr,
+    latent.data = cell.attr[, vars.to.regress, drop=FALSE],
     model.use = 'linear',
     use.umi = FALSE,
     do.scale = do.scale,
