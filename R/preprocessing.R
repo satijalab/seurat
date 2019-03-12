@@ -863,10 +863,10 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' in misc slot of new assay.
 #'
 #' @param object A seurat object
-#' @param assay Name of assay to use
+#' @param assay Name of assay to pull the count data from; default is 'RNA'
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance; default is 2000
+#' ranking by residual variance; default is 3000
 #' @param variable.features.rv.th Instead of setting a fixed number of variable features, 
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3
@@ -875,7 +875,8 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
+#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))}, 
+#' where n is the number of cells
 #' @param return.only.var.genes If set to TRUE all data matrices in output assay are 
 #' subset to contain only the variable genes; default is FALSE
 #' @param verbose Whether to print messages and progress bars
@@ -889,14 +890,14 @@ SCTransform <- function(
   object,
   assay = 'RNA',
   do.correct.umi = TRUE,
-  variable.features.n = 2000,
+  variable.features.n = 3000,
   variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE,
   vars.to.regress = NULL,
   do.scale = FALSE,
   do.center = TRUE,
-  clip.range = c(-10, 10),
-  return.only.var.genes = FALSE,
+  clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
+  return.only.var.genes = TRUE,
   verbose = TRUE,
   ...
 ) {

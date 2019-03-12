@@ -5,20 +5,22 @@
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
 SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
-  variable.features.n = 2000, variable.features.rv.th = 1.3,
+  variable.features.n = 3000, variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE, vars.to.regress = NULL,
-  do.scale = FALSE, do.center = TRUE, clip.range = c(-10, 10),
-  return.only.var.genes = FALSE, verbose = TRUE, ...)
+  do.scale = FALSE, do.center = TRUE,
+  clip.range = c(-sqrt(ncol(object[[assay]])/30),
+  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = TRUE,
+  verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
 
-\item{assay}{Name of assay to use}
+\item{assay}{Name of assay to pull the count data from; default is 'RNA'}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
 \item{variable.features.n}{Use this many features as variable features after
-ranking by residual variance; default is 2000}
+ranking by residual variance; default is 3000}
 
 \item{variable.features.rv.th}{Instead of setting a fixed number of variable features, 
 use this residual variance cutoff; this is only used when \code{variable.features.n}
@@ -33,7 +35,8 @@ regression. For example, percent.mito. Default is NULL}
 
 \item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
 
-\item{clip.range}{Range to clip the residuals to; default is \code{c(-10, 10)}}
+\item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))}, 
+where n is the number of cells}
 
 \item{return.only.var.genes}{If set to TRUE all data matrices in output assay are 
 subset to contain only the variable genes; default is FALSE}
