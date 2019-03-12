@@ -887,7 +887,7 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #'
 SCTransform <- function(
   object,
-  assay = NULL,
+  assay = 'RNA',
   do.correct.umi = TRUE,
   variable.features.n = 2000,
   variable.features.rv.th = 1.3,

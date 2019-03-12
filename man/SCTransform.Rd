@@ -4,7 +4,7 @@
 \alias{SCTransform}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-SCTransform(object, assay = NULL, do.correct.umi = TRUE,
+SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
   variable.features.n = 2000, variable.features.rv.th = 1.3,
   return.dev.residuals = FALSE, vars.to.regress = NULL,
   do.scale = FALSE, do.center = TRUE, clip.range = c(-10, 10),
