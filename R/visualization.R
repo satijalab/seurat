@@ -608,7 +608,7 @@ DimPlot <- function(
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
+  object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   for (group in group.by) {
