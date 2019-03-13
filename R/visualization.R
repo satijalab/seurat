@@ -2824,6 +2824,22 @@ WhiteBackground <- function(...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Automagically calculate a point size for ggplot2-based scatter plots
+#
+# It happens to look good
+#
+# @param data A data frame being passed to ggplot2
+#
+# @return The "optimal" point size for visualizing these data
+#
+# @examples
+# df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
+# AutoPointSize(data = df)
+#
+AutoPointSize <- function(data) {
+     return(min(1583 / nrow(x = data), 1))
+}
+
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
 #
 # Inspired by MASS::bandwidth.nrd and graphics:::.smoothScatterCalcDensity
@@ -3620,7 +3636,7 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   ...
 ) {
-  pt.size <- pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
+  pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -3754,7 +3770,7 @@ SingleDimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50'
 ) {
-  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
+  pt.size <- pt.size %||% AutoPointSize(data = data)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
