@@ -22,23 +22,23 @@ SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
 \item{variable.features.n}{Use this many features as variable features after
 ranking by residual variance; default is 3000}
 
-\item{variable.features.rv.th}{Instead of setting a fixed number of variable features, 
+\item{variable.features.rv.th}{Instead of setting a fixed number of variable features,
 use this residual variance cutoff; this is only used when \code{variable.features.n}
 is set to NULL; default is 1.3}
 
 \item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
-\item{vars.to.regress}{Variables to regress out in a second non-regularized linear 
+\item{vars.to.regress}{Variables to regress out in a second non-regularized linear
 regression. For example, percent.mito. Default is NULL}
 
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 
 \item{do.center}{Whether to center residuals to have mean zero; default is TRUE}
 
-\item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))}, 
+\item{clip.range}{Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 where n is the number of cells}
 
-\item{return.only.var.genes}{If set to TRUE all data matrices in output assay are 
+\item{return.only.var.genes}{If set to TRUE all data matrices in output assay are
 subset to contain only the variable genes; default is FALSE}
 
 \item{verbose}{Whether to print messages and progress bars}

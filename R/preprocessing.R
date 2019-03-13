@@ -154,11 +154,11 @@ CalculateBarcodeInflections <- function(
 }
 
 #' Convert a peak matrix to a gene activity matrix
-#' 
+#'
 #' This function will take in a peak matrix and an annotation file (gtf) and collapse the peak
 #' matrix to a gene activity matrix. It makes the simplifying assumption that all counts in the gene
-#' body plus X kb up and or downstream should be attributed to that gene. 
-#' 
+#' body plus X kb up and or downstream should be attributed to that gene.
+#'
 #' @param peak.matrix Matrix of peak counts
 #' @param annotation.file Path to GTF annotation file
 #' @param seq.levels Which seqlevels to keep (corresponds to chromosomes usually)
@@ -166,9 +166,9 @@ CalculateBarcodeInflections <- function(
 #' @param upstream Number of bases upstream to consider
 #' @param downstream Number of bases downstream to consider
 #' @param verbose Print progress/messages
-#' 
+#'
 #' @export
-#' 
+#'
 CreateGeneActivityMatrix <- function(
   peak.matrix,
   annotation.file,
@@ -184,20 +184,20 @@ CreateGeneActivityMatrix <- function(
   if (!PackageCheck('rtracklayer', error = FALSE)) {
     stop("Please install rtracklayer from Bioconductor.")
   }
-  
+
   # convert peak matrix to GRanges object
   peak.df <- rownames(x = peak.matrix)
   peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
   peak.df <- as.data.frame(x = peak.df)
   colnames(x = peak.df) <- c("chromosome", 'start', 'end')
   peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-  
+
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
   GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
   gtf.genes <- gtf[gtf$type == 'gene']
-  
+
   # Extend definition up/downstream
   if (include.body) {
     gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
@@ -213,11 +213,11 @@ CreateGeneActivityMatrix <- function(
   peak.ids$peak <- paste0(peak.ids$seqnames, ":", peak.ids$start, "-", peak.ids$end)
   annotations <- peak.ids[, c('peak', 'gene.name')]
   colnames(x = annotations) <- c('feature', 'new_feature')
-  
+
   # collapse into expression matrix
   peak.matrix <- as(object = peak.matrix, Class = 'matrix')
   all.features <- unique(x = annotations$new_feature)
-  
+
   if (PlanThreads() > 1) {
     mysapply <- future_sapply
   } else {
@@ -750,11 +750,11 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
     if (ncol(x = feature.names) > 2){
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
-      
+
       if (length(x = lvls) > 1 && length(x = full.data) == 0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
-      
+
       expr_name <- "Gene Expression"
       if (expr_name %in% lvls) { # Return Gene Expression first
         lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
@@ -867,17 +867,17 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
-#' @param variable.features.rv.th Instead of setting a fixed number of variable features, 
+#' @param variable.features.rv.th Instead of setting a fixed number of variable features,
 #' use this residual variance cutoff; this is only used when \code{variable.features.n}
 #' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
-#' @param vars.to.regress Variables to regress out in a second non-regularized linear 
+#' @param vars.to.regress Variables to regress out in a second non-regularized linear
 #' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))}, 
+#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
 #' where n is the number of cells
-#' @param return.only.var.genes If set to TRUE all data matrices in output assay are 
+#' @param return.only.var.genes If set to TRUE all data matrices in output assay are
 #' subset to contain only the variable genes; default is FALSE
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
@@ -908,7 +908,7 @@ SCTransform <- function(
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
   cell.attr <- slot(object = object, name = 'meta.data')
-  
+
   vst.args <- list(...)
   # check for batch_var in meta data
   if ('batch_var' %in% names(vst.args)) {
@@ -916,12 +916,12 @@ SCTransform <- function(
       stop('batch_var not found in seurat object meta data')
     }
   }
-  
+
   # check for latent_var in meta data
   if ('latent_var' %in% names(vst.args)) {
     known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
     if (!all(vst.args[['latent_var']] %in% c(colnames(cell.attr), known.attr))) {
-      stop('latent_var values are not from the set of cell attributes sctransform calculates 
+      stop('latent_var values are not from the set of cell attributes sctransform calculates
            by default and cannot be found in seurat object meta data')
     }
   }
@@ -935,7 +935,7 @@ SCTransform <- function(
   vst.args[['return_cell_attr']] <- TRUE
   vst.args[['return_corrected_umi']] <- do.correct.umi
   vst.out <- do.call(sctransform::vst, vst.args)
-  
+
   # output will go into new assay
   assay.out <- CreateAssayObject(counts = umi)
 
@@ -950,14 +950,14 @@ SCTransform <- function(
       new.data = vst.out$umi_corrected
     )
   }
-  
+
   # put log1p transformed counts in data
   assay.out <- SetAssayData(
     object = assay.out,
     slot = 'data',
     new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
   )
-  
+
   # set variable features
   if (verbose) {
     message('Determine variable features')
@@ -981,7 +981,7 @@ SCTransform <- function(
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
-  
+
   scale.data <- vst.out$y
   if (return.dev.residuals) {
     if (verbose) {
@@ -989,15 +989,15 @@ SCTransform <- function(
     }
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
-  
+
   if (return.only.var.genes) {
     scale.data <- scale.data[top.features, , drop = FALSE]
   }
-  
+
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
-  
+
   # 2nd regression
   scale.data <- ScaleData(
     scale.data,
@@ -1013,7 +1013,7 @@ SCTransform <- function(
     min.cells.to.block = 3000,
     verbose = verbose
   )
-  
+
   # re-scale the residuals
   # if (do.scale || do.center) {
   #   if (verbose) {
@@ -1033,13 +1033,13 @@ SCTransform <- function(
   #   )
   #   dimnames(scale.data) <- dimnames(vst.out$y)
   # }
-  
+
   assay.out <- SetAssayData(
     object = assay.out,
     slot = 'scale.data',
     new.data = scale.data
   )
-  
+
   if (return.only.var.genes) {
     if (verbose) {
       message("Output assay will contain only variable genes")
@@ -1048,11 +1048,11 @@ SCTransform <- function(
     slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
     slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
   }
-  
+
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
   assay.out@misc <- list(vst.out = vst.out)
-  
+
   object[["SCT"]] <- assay.out
   if (verbose) {
     message("Setting default assay to SCT")
@@ -1872,16 +1872,11 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  tryCatch(
-    expr = Parenting(
-      parent.find = "ScaleData.Assay",
-      features = features,
-      min.cells.to.block = min.cells.to.block
-    ),
-    error = function(e) {
-      invisible(x = NULL)
-    }
-  )
+  suppressWarnings(Parenting(
+    parent.find = "ScaleData.Assay",
+    features = features,
+    min.cells.to.block = min.cells.to.block
+  ))
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {
