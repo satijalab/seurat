@@ -1761,7 +1761,7 @@ JackRandom <- function(
   temp.object <- RunPCA(
     object = data.mod,
     assay = "temp",
-    pcs.compute = r2.use,
+    npcs = r2.use,
     features = rownames(x = data.mod),
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
