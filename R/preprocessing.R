@@ -897,7 +897,7 @@ SCTransform <- function(
   do.scale = FALSE,
   do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
-  return.only.var.genes = TRUE,
+  return.only.var.genes = FALSE,
   verbose = TRUE,
   ...
 ) {

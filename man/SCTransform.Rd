@@ -9,7 +9,7 @@ SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
   return.dev.residuals = FALSE, vars.to.regress = NULL,
   do.scale = FALSE, do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30),
-  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = TRUE,
+  sqrt(ncol(object[[assay]])/30)), return.only.var.genes = FALSE,
   verbose = TRUE, ...)
 }
 \arguments{
