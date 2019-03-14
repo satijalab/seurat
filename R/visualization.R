@@ -682,7 +682,13 @@ DimPlot <- function(
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
 #' @inheritParams DimPlot
-#' @param features Vector of features to plot
+#' @param features Vector of features to plot. Features can come from:
+#' \itemize{
+#'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
+#'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
+#'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
+#'     (e.g. the PC1 scores - "PC_1")
+#' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
