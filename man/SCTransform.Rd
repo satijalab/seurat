@@ -29,7 +29,7 @@ is set to NULL; default is 1.3}
 \item{return.dev.residuals}{Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE}
 
 \item{vars.to.regress}{Variables to regress out in a second non-regularized linear
-regression. For example, percent.mito. Default is NULL}
+regression. For example, fraction.mito. Default is NULL}
 
 \item{do.scale}{Whether to scale residuals to have unit variance; default is FALSE}
 

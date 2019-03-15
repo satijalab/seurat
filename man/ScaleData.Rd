@@ -34,7 +34,7 @@ ScaleData(object, ...)
 \item{features}{Vector of features names to scale/center. Default is all features}
 
 \item{vars.to.regress}{Variables to regress out (previously latent.vars in
-RegressOut). For example, nUMI, or percent.mito.}
+RegressOut). For example, nUMI, or fraction.mito.}
 
 \item{latent.data}{Extra data to regress out, should be cells x latent data}
 

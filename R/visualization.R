@@ -685,7 +685,7 @@ DimPlot <- function(
 #' @param features Vector of features to plot. Features can come from:
 #' \itemize{
 #'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
-#'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
+#'     \item A column name from meta.data (e.g. mitochondrial percentage - "fraction.mito")
 #'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
 #'     (e.g. the PC1 scores - "PC_1")
 #' }
@@ -2220,7 +2220,7 @@ FeatureLocator <- function(plot, ...) {
 #' @examples
 #' \dontrun{
 #' plot <- DimPlot(object = pbmc_small)
-#' HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
+#' HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'fraction.mito'))
 #' }
 #'
 HoverLocator <- function(

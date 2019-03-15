@@ -21,7 +21,7 @@ Get quick information from a scatterplot by hovering over points
 \examples{
 \dontrun{
 plot <- DimPlot(object = pbmc_small)
-HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'percent.mito'))
+HoverLocator(plot = plot, information = FetchData(object = pbmc_small, vars = 'fraction.mito'))
 }
 
 }

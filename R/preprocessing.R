@@ -872,7 +872,7 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
 #' @param vars.to.regress Variables to regress out in a second non-regularized linear
-#' regression. For example, percent.mito. Default is NULL
+#' regression. For example, fraction.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
 #' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
@@ -1829,7 +1829,7 @@ RunALRA.Seurat <- function(
 #'
 #' @param features Vector of features names to scale/center. Default is all features
 #' @param vars.to.regress Variables to regress out (previously latent.vars in
-#' RegressOut). For example, nUMI, or percent.mito.
+#' RegressOut). For example, nUMI, or fraction.mito.
 #' @param latent.data Extra data to regress out, should be cells x latent data
 #' @param model.use Use a linear model or generalized linear model
 #' (poisson, negative binomial) for the regression. Options are 'linear'
