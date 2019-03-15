@@ -31,7 +31,7 @@ if \code{slot} is 'scale.data', 6 otherwise}
 
 \item{ncol}{Number of columns to plot}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work 
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
 when plotting multiple dimensions}
 
 \item{fast}{If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable}
