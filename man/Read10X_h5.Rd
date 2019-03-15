@@ -4,12 +4,14 @@
 \alias{Read10X_h5}
 \title{Read 10X hdf5 file}
 \usage{
-Read10X_h5(filename, use.names = TRUE)
+Read10X_h5(filename, use.names = TRUE, unique.features = TRUE)
 }
 \arguments{
 \item{filename}{Path to h5 file}
 
 \item{use.names}{Label row names with feature names rather than ID numbers.}
+
+\item{unique.features}{Make feature names unique (default TRUE)}
 }
 \value{
 Returns a sparse matrix with rows and columns labeled. If multiple
