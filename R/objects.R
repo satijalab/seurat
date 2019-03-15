@@ -1523,20 +1523,6 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# MICHAEL'S CODE
-# 
-# 
-# 
-# 
 #' @param counts name of the CellDataSet assay to store as \code{counts}
 #' @param data name of the CellDataSet assay to slot as \code{data}
 #'
@@ -1661,16 +1647,6 @@ as.Seurat.SingleCellExperiment <- function(
   return(seurat.object)
 }
 
-#
-#
-#
-#
-#
-# MICHAEL'S CODE
-#
-#
-#
-#
 #' @param assay Assay to convert
 #'
 #' @rdname as.CellDataSet

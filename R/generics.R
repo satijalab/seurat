@@ -67,17 +67,7 @@ as.SingleCellExperiment <- function(x, ...) {
   UseMethod(generic = 'as.SingleCellExperiment', object = x)
 }
 
-# 
-# 
-# 
-# 
-# MICHAEL'S CODE
-# 
-# 
-# 
-# 
-# 
-#' Convert objects to SingleCellExperiment objects
+#' Convert objects to CellDataSet objects
 #'
 #' @param x An object to convert to class \code{CellDataSet}
 #'
