@@ -1523,6 +1523,79 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# MICHAEL'S CODE
+# 
+# 
+# 
+# 
+#' @param counts name of the CellDataSet assay to store as \code{counts}
+#' @param data name of the CellDataSet assay to slot as \code{data}
+#'
+#' @rdname as.Seurat
+#' @export
+#' @method as.Seurat CellDataSet
+#'
+as.Seurat.CellDataSet <- function(
+  x,
+  counts = "counts",
+  ...
+) {
+  if (!PackageCheck('monocle', error = FALSE)) {
+    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
+  }
+  counts <- tryCatch(
+    expr = exprs(x),
+    error = function(e) {
+      stop("No data in provided assay - ", counts)
+    }
+  )
+
+  meta.data <- as.data.frame(pData(x))
+  # if cell names are NULL, fill with cell_X
+  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
+    warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
+    cell.names <- paste0("cell_", 1:ncol(x = counts))
+    colnames(x = counts) <- cell.names
+    colnames(x = data) <- cell.names
+    rownames(x = meta.data) <- cell.names
+  }
+  # Creating the object
+  seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
+  # Adding dim reductions
+  if (length(x = x@dim_reduce_type) > 0) {
+    dr <- x@dim_reduce_type
+    embeddings <- x@normalized_data_projection
+    if (is.null(rownames(x = embeddings))) {
+      rownames(x = embeddings) <- cell.names
+    }
+    key <- gsub(
+      pattern = "[[:digit:]]",
+      replacement = "_",
+      x = colnames(x = x@normalized_data_projection)
+      )[1]
+    if (length(x = key) == 0) {
+      key <- paste0(dr, "_")
+    }
+    colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
+    seurat.object[[dr]] <- CreateDimReducObject(
+      embeddings = embeddings,
+      key = key,
+      assay = DefaultAssay(object = seurat.object)
+    )
+  }
+  return(seurat.object)
+}
+
+
 #' @param counts name of the SingleCellExperiment assay to store as \code{counts}
 #' @param data name of the SingleCellExperiment assay to slot as \code{data}
 #'
