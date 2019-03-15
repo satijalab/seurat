@@ -1661,6 +1661,70 @@ as.Seurat.SingleCellExperiment <- function(
   return(seurat.object)
 }
 
+#
+#
+#
+#
+#
+# MICHAEL'S CODE
+#
+#
+#
+#
+#' @param assay Assay to convert
+#'
+#' @rdname as.CellDataSet
+#' @export
+#' @method as.CellDataSet Seurat
+#'
+as.CellDataSet.Seurat <- function(x, assay = NULL, dim.res = NULL, ...) {
+  if (!PackageCheck('monocle', error = FALSE)) {
+    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
+  }
+  assay <- assay %||% DefaultAssay(object = x)
+  
+  # make variables, then run `newCellDataSet`
+  # create cellData counts
+  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  # create phenoData
+  pd <- tryCatch(
+    pd <- new("AnnotatedDataFrame", data = x@meta.data),
+    error = function(e) {
+      # If it doesn't exist, we have to create an empty df
+      pData <- data.frame(cell_id = colnames(counts), row.names = colnames(counts))
+      pd <- new("AnnotatedDataFrame", data=pData)
+      message("No metadata in provided assay - ", counts)
+      pd
+    }
+  )
+
+  # Since there is no analogous feature data in a Seurat object, we create empty `fd`
+  fData <- data.frame(gene_short_name = row.names(counts), row.names = row.names(counts))
+  fd <- new("AnnotatedDataFrame", data=fData)
+
+  # Now, determine the expressionFamily
+  if(!PackageCheck('VGAM', error = FALSE)) {
+    message("Please install VGAM to incorporate `expressionFamily` parameter in CDS.")
+  } else {
+    if(all(counts == floor(counts))) {
+      expressionFamily <- VGAM::negbinomial.size()
+    } else if(any(counts < 0)) {
+      expressionFamily <- VGAM::uninormal()
+    } else {
+      expressionFamily <- VGAM::tobit()
+    }
+  }
+
+  # no meaningful way to get the lower expression limit
+  cds <- monocle::newCellDataSet(cellData = counts,
+    phenoData = pd,
+    featureData = fd,
+    expressionFamily = expressionFamily
+  )
+  return(cds)
+}
+
+
 #' @param assay Assay to convert
 #'
 #' @rdname as.SingleCellExperiment
@@ -1672,10 +1736,10 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
     stop("Please install SingleCellExperiment from Bioconductor before converting to a SingeCellExperiment object")
   }
   assay <- assay %||% DefaultAssay(object = x)
-  sce <- SingleCellExperiment::SingleCellExperiment(assays = list(
-    counts = GetAssayData(object = x, assay = assay, slot = "counts"),
+  cds <- monocle::newCellDataSet(
+    cellData = GetAssayData(object = x, assay = assay, slot = "counts"),
     logcounts = GetAssayData(object = x, assay = assay, slot = "data")
-  ))
+  )
   metadata <- x[[]]
   metadata$ident <- Idents(object = x)
   SummarizedExperiment::colData(sce) <- S4Vectors::DataFrame(metadata)
