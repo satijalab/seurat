@@ -664,6 +664,7 @@ ReadAlevin <- function(base.path) {
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
+#' @param unique.features Make feature names unique (default TRUE)
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -689,7 +690,7 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2) {
+Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   full.data <- list()
   for (i in seq_along(data.dir)) {
     run <- data.dir[i]
@@ -744,7 +745,9 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
       header = FALSE,
       stringsAsFactors = FALSE
     )
-    rownames(x = data) <- make.unique(names = feature.names[, gene.column])
+    if (unique.features) {
+      rownames(x = data) <- make.unique(names = feature.names[, gene.column])
+    }
     # In cell ranger 3.0, a third column specifying the type of data was added
     # and we will return each type of data as a separate matrix
     if (ncol(x = feature.names) > 2){
@@ -796,13 +799,14 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
 #'
 #' @param filename Path to h5 file
 #' @param use.names Label row names with feature names rather than ID numbers.
+#' @param unique.features Make feature names unique (default TRUE)
 #'
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
-Read10X_h5 <- function(filename, use.names = TRUE) {
+Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
@@ -839,6 +843,9 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
       x = as.numeric(counts[]),
       dims = shp[], giveCsparse = FALSE
     )
+    if (unique.features) {
+      features <- make.unique(features)
+    }
     rownames(sparse.mat) <- features
     colnames(sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
