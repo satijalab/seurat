@@ -3750,6 +3750,12 @@ merge.Assay <- function(
 #' @export
 #' @method merge Seurat
 #'
+#' @examples 
+#' # merge two objects
+#' merge(x = pbmc_small, y = pbmc_small)
+#' # to merge more than two objects, pass one to x and a list of objects to y
+#' merge(x = pbmc_small, y = c(pbmc_small, pbmc_small))
+#' 
 merge.Seurat <- function(
   x = NULL,
   y = NULL,
