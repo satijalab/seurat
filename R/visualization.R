@@ -188,7 +188,7 @@ DimHeatmap <- function(
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work 
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
 #' @return A ggplot object
@@ -3814,7 +3814,8 @@ SingleDimPlot <- function(
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
     col.by <- NULL
   } else {
-    col.index <- grep(pattern = col.by, x = colnames(x = data), fixed = TRUE)
+    # col.index <- grep(pattern = col.by, x = colnames(x = data), fixed = TRUE)
+    col.index <- match(x = col.by, table = colnames(x = data))
     if (grepl(pattern = '^\\d', x = col.by)) {
       # Do something for numbers
       col.by <- paste0('x', col.by)
@@ -4086,7 +4087,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 #
 SingleRasterMap <- function(
   data,
-  raster = TRUE, 
+  raster = TRUE,
   cell.order = NULL,
   feature.order = NULL,
   colors = PurpleAndYellow(),
