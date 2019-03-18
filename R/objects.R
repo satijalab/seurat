@@ -4352,7 +4352,7 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
     }
     # Figure out where to store data
     slot.use <- switch(
-      EXPR = as.character(x = class(x = value)),
+      EXPR = as.character(x = class(x = value))[1],
       'Assay' = {
         # Ensure we have the same number of cells
         if (ncol(x = value) != ncol(x = x)) {

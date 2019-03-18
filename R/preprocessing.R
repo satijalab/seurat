@@ -154,11 +154,11 @@ CalculateBarcodeInflections <- function(
 }
 
 #' Convert a peak matrix to a gene activity matrix
-#' 
+#'
 #' This function will take in a peak matrix and an annotation file (gtf) and collapse the peak
 #' matrix to a gene activity matrix. It makes the simplifying assumption that all counts in the gene
-#' body plus X kb up and or downstream should be attributed to that gene. 
-#' 
+#' body plus X kb up and or downstream should be attributed to that gene.
+#'
 #' @param peak.matrix Matrix of peak counts
 #' @param annotation.file Path to GTF annotation file
 #' @param seq.levels Which seqlevels to keep (corresponds to chromosomes usually)
@@ -166,9 +166,9 @@ CalculateBarcodeInflections <- function(
 #' @param upstream Number of bases upstream to consider
 #' @param downstream Number of bases downstream to consider
 #' @param verbose Print progress/messages
-#' 
+#'
 #' @export
-#' 
+#'
 CreateGeneActivityMatrix <- function(
   peak.matrix,
   annotation.file,
@@ -184,20 +184,20 @@ CreateGeneActivityMatrix <- function(
   if (!PackageCheck('rtracklayer', error = FALSE)) {
     stop("Please install rtracklayer from Bioconductor.")
   }
-  
+
   # convert peak matrix to GRanges object
   peak.df <- rownames(x = peak.matrix)
   peak.df <- do.call(what = rbind, args = strsplit(x = gsub(peak.df, pattern = ":", replacement = "-"), split = "-"))
   peak.df <- as.data.frame(x = peak.df)
   colnames(x = peak.df) <- c("chromosome", 'start', 'end')
   peaks.gr <- GenomicRanges::makeGRangesFromDataFrame(df = peak.df)
-  
+
   # get annotation file, select genes
   gtf <- rtracklayer::import(con = annotation.file)
   gtf <- GenomeInfoDb::keepSeqlevels(x = gtf, value = seq.levels, pruning.mode = 'coarse')
   GenomeInfoDb::seqlevelsStyle(gtf) <- "UCSC"
   gtf.genes <- gtf[gtf$type == 'gene']
-  
+
   # Extend definition up/downstream
   if (include.body) {
     gtf.body_prom <- Extend(x = gtf.genes, upstream = upstream, downstream = downstream)
@@ -213,11 +213,11 @@ CreateGeneActivityMatrix <- function(
   peak.ids$peak <- paste0(peak.ids$seqnames, ":", peak.ids$start, "-", peak.ids$end)
   annotations <- peak.ids[, c('peak', 'gene.name')]
   colnames(x = annotations) <- c('feature', 'new_feature')
-  
+
   # collapse into expression matrix
   peak.matrix <- as(object = peak.matrix, Class = 'matrix')
   all.features <- unique(x = annotations$new_feature)
-  
+
   if (PlanThreads() > 1) {
     mysapply <- future_sapply
   } else {
@@ -664,6 +664,7 @@ ReadAlevin <- function(base.path) {
 #' several data directories. If a named vector is given, the cell barcode names
 #' will be prefixed with the name.
 #' @param gene.column Specify which column of genes.tsv or features.tsv to use for gene names; default is 2
+#' @param unique.features Make feature names unique (default TRUE)
 #'
 #' @return If features.csv indicates the data has multiple data types, a list
 #'   containing a sparse matrix of the data from each type will be returned.
@@ -689,7 +690,7 @@ ReadAlevin <- function(base.path) {
 #' seurat_object[['Protein']] = CreateAssayObject(counts = data$`Antibody Capture`)
 #' }
 #'
-Read10X <- function(data.dir = NULL, gene.column = 2) {
+Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   full.data <- list()
   for (i in seq_along(data.dir)) {
     run <- data.dir[i]
@@ -744,15 +745,19 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
       header = FALSE,
       stringsAsFactors = FALSE
     )
-    rownames(x = data) <- make.unique(names = feature.names[, gene.column])
+    if (unique.features) {
+      rownames(x = data) <- make.unique(names = feature.names[, gene.column])
+    }
     # In cell ranger 3.0, a third column specifying the type of data was added
     # and we will return each type of data as a separate matrix
     if (ncol(x = feature.names) > 2){
-      if (length(x = full.data) ==0) {
-        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
-      }
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
+
+      if (length(x = lvls) > 1 && length(x = full.data) == 0) {
+        message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
+      }
+
       expr_name <- "Gene Expression"
       if (expr_name %in% lvls) { # Return Gene Expression first
         lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
@@ -794,13 +799,14 @@ Read10X <- function(data.dir = NULL, gene.column = 2) {
 #'
 #' @param filename Path to h5 file
 #' @param use.names Label row names with feature names rather than ID numbers.
+#' @param unique.features Make feature names unique (default TRUE)
 #'
 #' @return Returns a sparse matrix with rows and columns labeled. If multiple
 #' genomes are present, returns a list of sparse matrices (one per genome).
 #'
 #' @export
 #'
-Read10X_h5 <- function(filename, use.names = TRUE) {
+Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!requireNamespace('hdf5r', quietly = TRUE)) {
     stop("Please install hdf5r to read HDF5 files")
   }
@@ -837,6 +843,9 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
       x = as.numeric(counts[]),
       dims = shp[], giveCsparse = FALSE
     )
+    if (unique.features) {
+      features <- make.unique(features)
+    }
     rownames(sparse.mat) <- features
     colnames(sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
@@ -855,21 +864,28 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #' This function calls sctransform::vst. The sctransform package is available at
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData,
-#' FindVariableFeatures, ScaleData workflow. Results are saved in the assay's
-#' data and scale.data slot, and sctransform::vst intermediate results are saved
-#' in misc slot of seurat object.
+#' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
+#' called SCT with counts being (corrected) counts, data being log1p(counts),
+#' scale.data being pearson residuals; sctransform::vst intermediate results are saved
+#' in misc slot of new assay.
 #'
 #' @param object A seurat object
-#' @param assay Name of assay to use
-#' @param do.correct.umi Place corrected UMI matrix in assay data slot
-#' @param variable.features.rv.th Features with residual variance greater or equal
-#' this value will be selected as variable features; default is 1.3
+#' @param assay Name of assay to pull the count data from; default is 'RNA'
+#' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param variable.features.n Use this many features as variable features after
-#' ranking by residual variance
+#' ranking by residual variance; default is 3000
+#' @param variable.features.rv.th Instead of setting a fixed number of variable features,
+#' use this residual variance cutoff; this is only used when \code{variable.features.n}
+#' is set to NULL; default is 1.3
 #' @param return.dev.residuals Place deviance residuals instead of Pearson residuals in scale.data slot; default is FALSE
-#' @param clip.range Range to clip the residuals to; default is \code{c(-10, 10)}
+#' @param vars.to.regress Variables to regress out in a second non-regularized linear
+#' regression. For example, percent.mito. Default is NULL
 #' @param do.scale Whether to scale residuals to have unit variance; default is FALSE
 #' @param do.center Whether to center residuals to have mean zero; default is TRUE
+#' @param clip.range Range to clip the residuals to; default is \code{c(-sqrt(n/30), sqrt(n/30))},
+#' where n is the number of cells
+#' @param return.only.var.genes If set to TRUE all data matrices in output assay are
+#' subset to contain only the variable genes; default is FALSE
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
@@ -877,16 +893,18 @@ Read10X_h5 <- function(filename, use.names = TRUE) {
 #'
 #' @export
 #'
-RegressRegNB <- function(
+SCTransform <- function(
   object,
-  assay = NULL,
-  do.correct.umi = FALSE,
+  assay = 'RNA',
+  do.correct.umi = TRUE,
+  variable.features.n = 3000,
   variable.features.rv.th = 1.3,
-  variable.features.n = NULL,
   return.dev.residuals = FALSE,
-  clip.range = c(-10, 10),
+  vars.to.regress = NULL,
   do.scale = FALSE,
   do.center = TRUE,
+  clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
+  return.only.var.genes = FALSE,
   verbose = TRUE,
   ...
 ) {
@@ -897,7 +915,7 @@ RegressRegNB <- function(
   assay.obj <- GetAssay(object = object, assay = assay)
   umi <- GetAssayData(object = assay.obj, slot = 'counts')
   cell.attr <- slot(object = object, name = 'meta.data')
-  
+
   vst.args <- list(...)
   # check for batch_var in meta data
   if ('batch_var' %in% names(vst.args)) {
@@ -905,12 +923,12 @@ RegressRegNB <- function(
       stop('batch_var not found in seurat object meta data')
     }
   }
-  
+
   # check for latent_var in meta data
   if ('latent_var' %in% names(vst.args)) {
     known.attr <- c('umi', 'gene', 'log_umi', 'log_gene', 'umi_per_gene', 'log_umi_per_gene')
     if (!all(vst.args[['latent_var']] %in% c(colnames(cell.attr), known.attr))) {
-      stop('latent_var values are not from the set of cell attributes sctransform calculates 
+      stop('latent_var values are not from the set of cell attributes sctransform calculates
            by default and cannot be found in seurat object meta data')
     }
   }
@@ -925,17 +943,28 @@ RegressRegNB <- function(
   vst.args[['return_corrected_umi']] <- do.correct.umi
   vst.out <- do.call(sctransform::vst, vst.args)
 
-  # put corrected umi counts in data slot
+  # output will go into new assay
+  assay.out <- CreateAssayObject(counts = umi)
+
+  # put corrected umi counts in count slot
   if (do.correct.umi) {
     if (verbose) {
-      message('Placing corrected UMI matrix in data slot')
+      message('Placing corrected UMI matrix in counts slot')
     }
-    assay.obj <- SetAssayData(
-      object = assay.obj,
-      slot = 'data',
+    assay.out <- SetAssayData(
+      object = assay.out,
+      slot = 'counts',
       new.data = vst.out$umi_corrected
     )
   }
+
+  # put log1p transformed counts in data
+  assay.out <- SetAssayData(
+    object = assay.out,
+    slot = 'data',
+    new.data = log1p(GetAssayData(object = assay.out, slot = 'counts'))
+  )
+
   # set variable features
   if (verbose) {
     message('Determine variable features')
@@ -955,10 +984,11 @@ RegressRegNB <- function(
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
-  VariableFeatures(object = assay.obj) <- top.features
+  VariableFeatures(object = assay.out) <- top.features
   if (verbose) {
     message('Set ', length(x = top.features), ' variable features')
   }
+
   scale.data <- vst.out$y
   if (return.dev.residuals) {
     if (verbose) {
@@ -966,32 +996,75 @@ RegressRegNB <- function(
     }
     scale.data <- sctransform::get_deviance_residuals(vst.out, umi)
   }
+
+  if (return.only.var.genes) {
+    scale.data <- scale.data[top.features, , drop = FALSE]
+  }
+
   # clip the residuals
   scale.data[scale.data < clip.range[1]] <- clip.range[1]
   scale.data[scale.data > clip.range[2]] <- clip.range[2]
+
+  # 2nd regression
+  scale.data <- ScaleData(
+    scale.data,
+    features = NULL,
+    vars.to.regress = vars.to.regress,
+    latent.data = cell.attr[, vars.to.regress, drop=FALSE],
+    model.use = 'linear',
+    use.umi = FALSE,
+    do.scale = do.scale,
+    do.center = do.center,
+    scale.max = Inf,
+    block.size = 1000,
+    min.cells.to.block = 3000,
+    verbose = verbose
+  )
+
   # re-scale the residuals
-  if (do.scale || do.center) {
-    if (verbose) {
-      message('Re-scale residuals')
-    }
-    scale.data <- FastRowScale(
-      mat = scale.data,
-      scale = do.scale,
-      center = do.center,
-      scale_max = Inf,
-      display_progress = FALSE
-    )
-    dimnames(scale.data) <- dimnames(vst.out$y)
-  }
-  assay.obj <- SetAssayData(
-    object = assay.obj,
+  # if (do.scale || do.center) {
+  #   if (verbose) {
+  #     if (do.center) {
+  #       message('Center residuals')
+  #     }
+  #     if (do.scale) {
+  #       message('Re-scale residuals')
+  #     }
+  #   }
+  #   scale.data <- FastRowScale(
+  #     mat = scale.data,
+  #     scale = do.scale,
+  #     center = do.center,
+  #     scale_max = Inf,
+  #     display_progress = FALSE
+  #   )
+  #   dimnames(scale.data) <- dimnames(vst.out$y)
+  # }
+
+  assay.out <- SetAssayData(
+    object = assay.out,
     slot = 'scale.data',
     new.data = scale.data
   )
-  object[[assay]] <- assay.obj
+
+  if (return.only.var.genes) {
+    if (verbose) {
+      message("Output assay will contain only variable genes")
+    }
+    slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
+    slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
+    slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
+  }
+
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
-  object@misc[['vst.out']] <- vst.out
+  assay.out@misc <- list(vst.out = vst.out)
+
+  object[["SCT"]] <- assay.out
+  if (verbose) {
+    message("Setting default assay to SCT")
+  }
+  DefaultAssay(object = object) <- "SCT"
   return(object)
 }
 
@@ -1806,11 +1879,11 @@ ScaleData.default <- function(
   object <- object[features, , drop = FALSE]
   object.names <- dimnames(x = object)
   min.cells.to.block <- min(min.cells.to.block, ncol(x = object))
-  Parenting(
+  suppressWarnings(Parenting(
     parent.find = "ScaleData.Assay",
     features = features,
     min.cells.to.block = min.cells.to.block
-  )
+  ))
   gc(verbose = FALSE)
   if (!is.null(x = vars.to.regress)) {
     if (is.null(x = latent.data)) {

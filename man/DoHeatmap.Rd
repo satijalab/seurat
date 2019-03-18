@@ -41,7 +41,7 @@ if \code{slot} is 'scale.data', 6 otherwise}
 some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 if you are encountering that issue (note that plots may take longer to produce/render).}
 
-\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work 
+\item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work
 when plotting multiple dimensions}
 }
 \value{

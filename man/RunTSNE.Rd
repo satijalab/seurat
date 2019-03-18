@@ -4,6 +4,7 @@
 \alias{RunTSNE}
 \alias{RunTSNE.matrix}
 \alias{RunTSNE.DimReduc}
+\alias{RunTSNE.dist}
 \alias{RunTSNE.Seurat}
 \title{Run t-distributed Stochastic Neighbor Embedding}
 \usage{
@@ -15,6 +16,10 @@ RunTSNE(object, ...)
 
 \method{RunTSNE}{DimReduc}(object, cells = NULL, dims = 1:5,
   seed.use = 1, tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
+  reduction.key = "tSNE_", ...)
+
+\method{RunTSNE}{dist}(object, assay = NULL, seed.use = 1,
+  tsne.method = "Rtsne", add.iter = 0, dim.embed = 2,
   reduction.key = "tSNE_", ...)
 
 \method{RunTSNE}{Seurat}(object, reduction = "pca", cells = NULL,

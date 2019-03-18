@@ -1152,7 +1152,7 @@ ExtractField <- function(string, field = 1, delim = "_") {
 
 # Resize GenomicRanges upstream and or downstream
 # from https://support.bioconductor.org/p/78652/
-# 
+#
 Extend <- function(x, upstream = 0, downstream = 0) {
   if (any(GenomicRanges::strand(x = x) == "*")) {
     warning("'*' ranges were treated as '+'")
@@ -1371,19 +1371,26 @@ Parenting <- function(parent.find = 'Seurat', ...) {
   )
   parent.index <- grep(pattern = parent.find, x = calls)
   if (length(x = parent.index) != 1) {
-    stop("Cannot find a parent environment called ", parent.find)
-  }
-  to.parent <- list(...)
-  if (length(x = to.parent) == 0) {
-    stop("Nothing to parent")
-  } else if (is.null(x = names(x = to.parent))) {
-    stop("All input must be in a key = value pair")
-  } else if (length(x = Filter(f = nchar, x = names(x = to.parent))) != length(x = to.parent)) {
-    stop("All inputs must be named")
-  }
-  parent.environ <- sys.frame(which = parent.index)
-  for (i in 1:length(x = to.parent)) {
-    parent.environ[[names(x = to.parent)[i]]] <- to.parent[[i]]
+    warning(
+      "Cannot find a parent environment called ",
+      parent.find,
+      immediate. = TRUE,
+      call. = FALSE
+    )
+  } else {
+    to.parent <- list(...)
+    if (length(x = to.parent) == 0) {
+      warning("Nothing to parent", immediate. = TRUE, call. = FALSE)
+    } else if (is.null(x = names(x = to.parent))) {
+      stop("All input must be in a key = value pair")
+    } else if (length(x = Filter(f = nchar, x = names(x = to.parent))) != length(x = to.parent)) {
+      stop("All inputs must be named")
+    } else {
+      parent.environ <- sys.frame(which = parent.index)
+      for (i in 1:length(x = to.parent)) {
+        parent.environ[[names(x = to.parent)[i]]] <- to.parent[[i]]
+      }
+    }
   }
 }
 

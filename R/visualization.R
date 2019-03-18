@@ -188,7 +188,7 @@ DimHeatmap <- function(
 #' @param raster If true, plot with geom_raster, else use geom_tile. geom_raster may look blurry on
 #' some viewing applications such as Preview due to how the raster is interpolated. Set this to FALSE
 #' if you are encountering that issue (note that plots may take longer to produce/render).
-#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work 
+#' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work
 #' when plotting multiple dimensions
 #'
 #' @return A ggplot object
@@ -608,7 +608,7 @@ DimPlot <- function(
   data <- Embeddings(object = object[[reduction]])[cells, dims]
   data <- as.data.frame(x = data)
   dims <- paste0(Key(object = object[[reduction]]), dims)
-  object <- suppressMessages(expr = StashIdent(object = object, save.name = 'ident'))
+  object[['ident']] <- Idents(object = object)
   group.by <- group.by %||% 'ident'
   data[, group.by] <- object[[group.by]][cells, , drop = FALSE]
   for (group in group.by) {
@@ -682,7 +682,13 @@ DimPlot <- function(
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
 #' @inheritParams DimPlot
-#' @param features Vector of features to plot
+#' @param features Vector of features to plot. Features can come from:
+#' \itemize{
+#'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
+#'     \item A column name from meta.data (e.g. mitochondrial percentage - "percent.mito")
+#'     \item A column name from a \code{DimReduc} object corresponding to the cell embedding values
+#'     (e.g. the PC1 scores - "PC_1")
+#' }
 #' @param cols The two colors to form the gradient over. Provide as string vector with
 #' the first color corresponding to low values, the second to high. Also accepts a Brewer
 #' color scale or vector of colors. Note: this will bin the data into number of colors provided.
@@ -2824,6 +2830,22 @@ WhiteBackground <- function(...) {
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# Automagically calculate a point size for ggplot2-based scatter plots
+#
+# It happens to look good
+#
+# @param data A data frame being passed to ggplot2
+#
+# @return The "optimal" point size for visualizing these data
+#
+# @examples
+# df <- data.frame(x = rnorm(n = 10000), y = runif(n = 10000))
+# AutoPointSize(data = df)
+#
+AutoPointSize <- function(data) {
+     return(min(1583 / nrow(x = data), 1))
+}
+
 # Calculate bandwidth for use in ggplot2-based smooth scatter plots
 #
 # Inspired by MASS::bandwidth.nrd and graphics:::.smoothScatterCalcDensity
@@ -3620,7 +3642,7 @@ SingleCorPlot <- function(
   na.value = 'grey50',
   ...
 ) {
-  pt.size <- pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
+  pt.size <- pt.size <- pt.size %||% AutoPointSize(data = data)
   orig.names <- colnames(x = data)
   names.plot <- colnames(x = data) <- gsub(
     pattern = '-',
@@ -3754,7 +3776,7 @@ SingleDimPlot <- function(
   sizes.highlight = 1,
   na.value = 'grey50'
 ) {
-  pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
+  pt.size <- pt.size %||% AutoPointSize(data = data)
   if (length(x = dims) != 2) {
     stop("'dims' must be a two-length vector")
   }
@@ -3792,7 +3814,8 @@ SingleDimPlot <- function(
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
     col.by <- NULL
   } else {
-    col.index <- grep(pattern = col.by, x = colnames(x = data), fixed = TRUE)
+    # col.index <- grep(pattern = col.by, x = colnames(x = data), fixed = TRUE)
+    col.index <- match(x = col.by, table = colnames(x = data))
     if (grepl(pattern = '^\\d', x = col.by)) {
       # Do something for numbers
       col.by <- paste0('x', col.by)
@@ -4064,7 +4087,7 @@ SinglePolyPlot <- function(data, group.by, ...) {
 #
 SingleRasterMap <- function(
   data,
-  raster = TRUE, 
+  raster = TRUE,
   cell.order = NULL,
   feature.order = NULL,
   colors = PurpleAndYellow(),

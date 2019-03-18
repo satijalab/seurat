@@ -1041,6 +1041,33 @@ RunTSNE.DimReduc <- function(
   return(tsne.reduction)
 }
 
+#' @rdname RunTSNE
+#' @export
+#' @method RunTSNE dist
+#'
+RunTSNE.dist <- function(
+  object,
+  assay = NULL,
+  seed.use = 1,
+  tsne.method = "Rtsne",
+  add.iter = 0,
+  dim.embed = 2,
+  reduction.key = "tSNE_",
+  ...
+) {
+  return(RunTSNE(
+    object = as.matrix(x = object),
+    assay = assay,
+    seed.use = seed.use,
+    tsne.method = tsne.method,
+    add.iter = add.iter,
+    dim.embed = dim.embed,
+    reduction.key = reduction.key,
+    is_distance = TRUE,
+    ...
+  ))
+}
+
 #' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
 #' the tSNE. Default is PCA
 #' @param features If set, run the tSNE on this subset of features
@@ -1071,7 +1098,7 @@ RunTSNE.Seurat <- function(
 ) {
   tsne.reduction <- if (!is.null(x = distance.matrix)) {
     RunTSNE(
-      object = as.matrix(x = distance.matrix),
+      object = distance.matrix,
       assay = DefaultAssay(object = object),
       seed.use = seed.use,
       tsne.method = tsne.method,
@@ -1113,7 +1140,6 @@ RunTSNE.Seurat <- function(
   return(object)
 }
 
-
 #' @importFrom reticulate py_module_available py_set_seed import
 #'
 #' @rdname RunUMAP
@@ -1149,6 +1175,9 @@ RunUMAP.default <- function(
   if (!is.null(x = seed.use)) {
     set.seed(seed = seed.use)
     py_set_seed(seed = seed.use)
+  }
+  if (typeof(x = n.epochs) == "double") {
+    n.epochs <- as.integer(x = n.epochs)
   }
   umap_import <- import(module = "umap", delay_load = TRUE)
   umap <- umap_import$UMAP(
@@ -1238,7 +1267,7 @@ RunUMAP.Graph <- function(
     b = b,
     gamma = repulsion.strength,
     negative_sample_rate = negative.sample.rate,
-    n_epochs = n.epochs,
+    n_epochs = as.integer(x = n.epochs),
     random_state = random.state,
     init = "spectral",
     metric = metric,
@@ -1758,7 +1787,7 @@ JackRandom <- function(
   temp.object <- RunPCA(
     object = data.mod,
     assay = "temp",
-    pcs.compute = r2.use,
+    npcs = r2.use,
     features = rownames(x = data.mod),
     rev.pca = rev.pca,
     weight.by.var = weight.by.var,
