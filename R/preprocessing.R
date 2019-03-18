@@ -1923,7 +1923,7 @@ ScaleData.default <- function(
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
+    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
     if (PlanThreads() > 1) {
       object <- future_lapply(
         X = 1:ncol(x = chunk.points),
