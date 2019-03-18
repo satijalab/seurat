@@ -33,8 +33,19 @@ AddMetaData <- function(object, metadata, col.name = NULL) {
   UseMethod(generic = 'AddMetaData', object = object)
 }
 
-#' Convert a matrix (or Matrix) to the Graph class.
+#' Convert objects to CellDataSet objects
+#'
+#' @param x An object to convert to class \code{CellDataSet}
+#'
+#' @rdname as.CellDataSet
+#' @export as.CellDataSet
+#'
+as.CellDataSet <- function(x, ...) {
+  UseMethod(generic = 'as.CellDataSet', object = x)
+}
 
+#' Convert a matrix (or Matrix) to the Graph class.
+#'
 #' @param x The matrix to convert
 #' @param ... Arguments passed to other methods (ignored for now)
 #'
@@ -66,18 +77,6 @@ as.Seurat <- function(x, ...) {
 as.SingleCellExperiment <- function(x, ...) {
   UseMethod(generic = 'as.SingleCellExperiment', object = x)
 }
-
-#' Convert objects to CellDataSet objects
-#'
-#' @param x An object to convert to class \code{CellDataSet}
-#'
-#' @rdname as.CellDataSet
-#' @export as.CellDataSet
-#'
-as.CellDataSet <- function(x, ...) {
-  UseMethod(generic = 'as.CellDataSet', object = x)
-}
-
 
 #' Convert between data frames and sparse matrices
 #'
@@ -254,11 +253,11 @@ FindClusters <- function(object, ...) {
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(x = markers)
 #'
-#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata 
+#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata
 #' # variable 'group')
 #' markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 #' head(x = markers)
-#' 
+#'
 #' # Pass 'clustertree' or an object of class phylo to ident.1 and
 #' # a node to ident.2 as a replacement for FindMarkersNode
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)

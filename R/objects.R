@@ -1484,6 +1484,66 @@ UpdateSeuratObject <- function(object) {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @param assay Assay to convert
+#'
+#' @rdname as.CellDataSet
+#' @export
+#' @method as.CellDataSet Seurat
+#'
+as.CellDataSet.Seurat <- function(x, assay = NULL, dim.res = NULL, ...) {
+  if (!PackageCheck('monocle', error = FALSE)) {
+    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
+  }
+  assay <- assay %||% DefaultAssay(object = x)
+  # make variables, then run `newCellDataSet`
+  # create cellData counts
+  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
+  # create phenoData
+  pd <- tryCatch(
+    pd <- new("AnnotatedDataFrame", data = x@meta.data),
+    error = function(e) {
+      # If it doesn't exist, we have to create an empty df
+      pData <- data.frame(
+        cell_id = colnames(x = counts),
+        row.names = colnames(x = counts)
+      )
+      pd <- new(Class = "AnnotatedDataFrame", data = pData)
+      message("No metadata in provided assay - ", counts)
+      return(pd)
+    }
+  )
+  # Since there is no analogous feature data in a Seurat object, we create empty `fd`
+  fData <- data.frame(
+    gene_short_name = row.names(x = counts),
+    row.names = row.names(x = counts)
+  )
+  fd <- new(Class = "AnnotatedDataFrame", data = fData)
+  # Now, determine the expressionFamily
+  if (!PackageCheck('VGAM', error = FALSE)) {
+    message("Please install VGAM to incorporate `expressionFamily` parameter in CDS.")
+  } else {
+    if (all(counts == floor(x = counts))) {
+      expressionFamily <- VGAM::negbinomial.size()
+    } else if (any(counts < 0)) {
+      expressionFamily <- VGAM::uninormal()
+    } else {
+      expressionFamily <- VGAM::tobit()
+    }
+  }
+  # no meaningful way to get the lower expression limit
+  cds <- monocle::newCellDataSet(
+    cellData = counts,
+    phenoData = pd,
+    featureData = fd,
+    expressionFamily = expressionFamily
+  )
+  # adding dimensionality reduction data to the CDS
+  for (dr in names(x = x@reductions)) {
+    cds@auxClusteringData[[dr]] <- x@reductions[[dr]]@cell.embeddings
+  }
+  return(cds)
+}
+
 #' @rdname as.Graph
 #' @export
 #' @method as.Graph Matrix
@@ -1530,11 +1590,7 @@ as.Graph.matrix <- function(x, ...) {
 #' @export
 #' @method as.Seurat CellDataSet
 #'
-as.Seurat.CellDataSet <- function(
-  x,
-  counts = "counts",
-  ...
-) {
+as.Seurat.CellDataSet <- function(x, counts = "counts", ...) {
   if (!PackageCheck('monocle', error = FALSE)) {
     stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
   }
@@ -1544,9 +1600,7 @@ as.Seurat.CellDataSet <- function(
       stop("No data in provided assay - ", counts)
     }
   )
-
-  meta.data <- as.data.frame(pData(x))
-  
+  meta.data <- as.data.frame(x = pData(x))
   # if cell names are NULL, fill with cell_X
   if (is.null(x = colnames(x = counts))) {
     warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
@@ -1554,35 +1608,28 @@ as.Seurat.CellDataSet <- function(
     colnames(x = counts) <- cell.names
     rownames(x = meta.data) <- cell.names
   }
-
   # Creating the object
   seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-  
   # Adding dim reductions if there are any
-  for (dr in slotNames(x)) {
-
+  for (dr in slotNames(x = x)) {
     # reasonable expectation that this corresponds to dim red
-    if(typeof(slot(x, dr)) == 'double') {
-      embeddings <- slot(x, dr)
-      embeddings <- as.data.frame(embeddings)
-      
-      if (dim(embeddings)[2] == length(cell.names)) {
+    if (typeof(x = slot(object = x, name = dr)) == 'double') {
+      embeddings <- slot(object = x, name = dr)
+      embeddings <- as.data.frame(x = embeddings)
+      if (dim(x = embeddings)[2] == length(x = cell.names)) {
         # Flip so columns are coordinates
-        embeddings <- t(embeddings)
-        
+        embeddings <- t(x = embeddings)
         # Make sure the cell/row names match.
         # rownames(x = embeddings) <- cell.names
-        rownames(x = embeddings) <- colnames(seurat.object)
+        rownames(x = embeddings) <- colnames(x = seurat.object)
         key <- gsub(
           pattern = "[[:digit:]]",
           replacement = "_",
-          x = colnames(x@auxClusteringData[[dr]])[1]
-          )
-        
+          x = colnames(x = x@auxClusteringData[[dr]])[1]
+        )
         if (length(x = key) == 0) {
           key <- paste0(dr, "_")
         }
-
         # Create DimReducObject
         colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
         seurat.object[[dr]] <- CreateDimReducObject(
@@ -1595,7 +1642,6 @@ as.Seurat.CellDataSet <- function(
   }
   return(seurat.object)
 }
-
 
 #' @param counts name of the SingleCellExperiment assay to store as \code{counts}
 #' @param data name of the SingleCellExperiment assay to slot as \code{data}
@@ -1661,65 +1707,6 @@ as.Seurat.SingleCellExperiment <- function(
   }
   return(seurat.object)
 }
-
-#' @param assay Assay to convert
-#'
-#' @rdname as.CellDataSet
-#' @export
-#' @method as.CellDataSet Seurat
-#'
-as.CellDataSet.Seurat <- function(x, assay = NULL, dim.res = NULL, ...) {
-  if (!PackageCheck('monocle', error = FALSE)) {
-    stop("Please install monocle from Bioconductor before converting to a CellDataSet object")
-  }
-  assay <- assay %||% DefaultAssay(object = x)
-  
-  # make variables, then run `newCellDataSet`
-  # create cellData counts
-  counts <- GetAssayData(object = x, assay = assay, slot = "counts")
-  # create phenoData
-  pd <- tryCatch(
-    pd <- new("AnnotatedDataFrame", data = x@meta.data),
-    error = function(e) {
-      # If it doesn't exist, we have to create an empty df
-      pData <- data.frame(cell_id = colnames(counts), row.names = colnames(counts))
-      pd <- new("AnnotatedDataFrame", data=pData)
-      message("No metadata in provided assay - ", counts)
-      pd
-    }
-  )
-
-  # Since there is no analogous feature data in a Seurat object, we create empty `fd`
-  fData <- data.frame(gene_short_name = row.names(counts), row.names = row.names(counts))
-  fd <- new("AnnotatedDataFrame", data=fData)
-
-  # Now, determine the expressionFamily
-  if(!PackageCheck('VGAM', error = FALSE)) {
-    message("Please install VGAM to incorporate `expressionFamily` parameter in CDS.")
-  } else {
-    if(all(counts == floor(counts))) {
-      expressionFamily <- VGAM::negbinomial.size()
-    } else if(any(counts < 0)) {
-      expressionFamily <- VGAM::uninormal()
-    } else {
-      expressionFamily <- VGAM::tobit()
-    }
-  }
-
-  # no meaningful way to get the lower expression limit
-  cds <- monocle::newCellDataSet(cellData = counts,
-    phenoData = pd,
-    featureData = fd,
-    expressionFamily = expressionFamily
-  )
-
-  # adding dimensionality reduction data to the CDS
-  for (dr in names(x@reductions)) {
-    cds@auxClusteringData[[dr]] <- x@reductions[[dr]]@cell.embeddings
-  }
-  return(cds)
-}
-
 
 #' @param assay Assay to convert
 #'
