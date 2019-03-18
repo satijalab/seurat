@@ -1222,6 +1222,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
   #capture function arguments
   argnames <- names(x = formals(fun = sys.function(which = sys.parent(n = 1))))
   argnames <- grep(pattern = "object", x = argnames, invert = TRUE, value = TRUE)
+  argnames <- grep(pattern = "anchorset", x = argnames, invert = TRUE, value = TRUE)
   argnames <- grep(pattern = "\\.\\.\\.", x = argnames, invert = TRUE, value = TRUE)
   params <- list()
   p.env <- parent.frame(n = 1)
@@ -1239,12 +1240,11 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     reduction = 'DimReduc'
   }
   # rename function name to include Assay/DimReduc info
-  command.name <- paste(command.name, assay, reduction, sep = '.')
+  if (length(x = assay) == 1) {
+    command.name <- paste(command.name, assay, reduction, sep = '.')
+  }
   command.name <- sub(pattern = "[\\.]+$", replacement = "", x = command.name, perl = TRUE)
   command.name <- sub(pattern = "\\.\\.", replacement = "\\.", x = command.name, perl = TRUE)
-  if (return.command) {
-    return(command.name)
-  }
   # store results
   seurat.command <- new(
     Class = 'SeuratCommand',
@@ -1253,6 +1253,9 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
     time.stamp = time.stamp,
     call.string = call.string
   )
+  if (return.command) {
+    return(seurat.command)
+  }
   object[[command.name]] <- seurat.command
   return(object)
 }

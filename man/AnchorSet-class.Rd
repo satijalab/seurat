@@ -27,5 +27,7 @@ the anchor.}
 \item{\code{offsets}}{The offsets used to enable cell look up in downstream functions}
 
 \item{\code{anchor.features}}{The features used when performing anchor finding.}
+
+\item{\code{command}}{Store log of parameters that were used}
 }}
 
