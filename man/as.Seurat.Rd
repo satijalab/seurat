@@ -2,16 +2,23 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{as.Seurat}
 \alias{as.Seurat}
+\alias{as.Seurat.CellDataSet}
 \alias{as.Seurat.SingleCellExperiment}
 \title{Convert objects to Seurat objects}
 \usage{
 as.Seurat(x, ...)
+
+\method{as.Seurat}{CellDataSet}(x, counts = "counts", ...)
 
 \method{as.Seurat}{SingleCellExperiment}(x, counts = "counts",
   data = "logcounts", ...)
 }
 \arguments{
 \item{x}{An object to convert to class \code{Seurat}}
+
+\item{counts}{name of the CellDataSet assay to store as \code{counts}}
+
+\item{data}{name of the CellDataSet assay to slot as \code{data}}
 
 \item{counts}{name of the SingleCellExperiment assay to store as \code{counts}}
 
