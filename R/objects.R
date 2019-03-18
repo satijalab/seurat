@@ -1697,6 +1697,11 @@ as.CellDataSet.Seurat <- function(x, assay = NULL, dim.res = NULL, ...) {
     featureData = fd,
     expressionFamily = expressionFamily
   )
+
+  # adding dimensionality reduction data to the CDS
+  for (dr in names(x@reductions)) {
+    cds@auxClusteringData[[dr]] <- x@reductions[[dr]]@cell.embeddings
+  }
   return(cds)
 }
 
