@@ -148,11 +148,13 @@ FindIntegrationAnchors <- function(
   all.anchors <- do.call(what = 'rbind', args = all.anchors)
   all.anchors <- rbind(all.anchors, all.anchors[, c(2, 1, 3)])
   all.anchors <- AddDatasetID(anchor.df = all.anchors, offsets = offsets, obj.lengths = objects.ncell)
+  command <- LogSeuratCommand(object = object.list[[1]], return.command = TRUE)
   anchor.set <- new(Class = "AnchorSet",
                     object.list = object.list,
                     anchors = all.anchors,
                     offsets = offsets,
-                    anchor.features = anchor.features
+                    anchor.features = anchor.features,
+                    command = command
   )
   return(anchor.set)
 }
@@ -314,13 +316,15 @@ FindTransferAnchors <- function(
     eps = eps,
     verbose = verbose
   )
+  command <- LogSeuratCommand(object = combined.ob, return.command = TRUE)
   anchor.set <- new(
     Class = "AnchorSet",
     object.list = list(combined.ob),
     reference.cells = colnames(x = reference),
     query.cells = colnames(x = query),
     anchors = anchors,
-    anchor.features = features
+    anchor.features = features,
+    command = command
   )
   return(anchor.set)
 }
@@ -576,6 +580,8 @@ IntegrateData <- function(
     slot = "sample.tree",
     new.data = sample.tree
   )
+  unintegrated[["FindIntegrationAnchors"]] <- slot(object = anchorset, name = "command")
+  unintegrated <- LogSeuratCommand(object = unintegrated)
   return(unintegrated)
 }
 
@@ -1357,8 +1363,6 @@ FindAnchorPairs <- function(
   if (verbose) {
     message(paste0("\tFound ", nrow(x = anchors), " anchors"))
   }
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }
 
@@ -1405,8 +1409,6 @@ FindIntegrationMatrix <- function(
     slot = 'integration.matrix',
     new.data = integration.matrix
   )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }
 
@@ -1481,8 +1483,6 @@ FindNN <- function(
     slot = 'neighbors',
     new.data = list('nnaa' = nnaa, 'nnab' = nnab, 'nnba' = nnba, 'nnbb' = nnbb, 'cells1' = cells1, 'cells2' = cells2)
   )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }
 
@@ -1578,8 +1578,6 @@ FindWeights <- function(
     slot = 'weights',
     new.data = weights
   )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }
 
@@ -1774,8 +1772,6 @@ ScoreAnchors <- function(
     slot = 'anchors',
     new.data = anchor.new
   )
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }
 
@@ -1869,7 +1865,5 @@ TransformDataMatrix <- function(
     misc = NULL
   )
   object[[new.assay.name]] <- new.assay
-  object <- LogSeuratCommand(object = object)
-  command.name <- LogSeuratCommand(object = object, return.command = TRUE)
   return(object)
 }

@@ -30,6 +30,7 @@ setClassUnion(name = 'AnyMatrix', c("matrix", "dgCMatrix"))
 #' the anchor.
 #' @slot offsets The offsets used to enable cell look up in downstream functions
 #' @slot anchor.features The features used when performing anchor finding.
+#' @slot command Store log of parameters that were used
 #'
 #' @name AnchorSet-class
 #' @rdname AnchorSet-class
@@ -43,7 +44,8 @@ AnchorSet <- setClass(
     query.cells = "vector",
     anchors = "ANY",
     offsets = "ANY",
-    anchor.features = "ANY"
+    anchor.features = "ANY",
+    command = "ANY"
   )
 )
 
@@ -3870,6 +3872,12 @@ merge.Assay <- function(
 #' @export
 #' @method merge Seurat
 #'
+#' @examples 
+#' # merge two objects
+#' merge(x = pbmc_small, y = pbmc_small)
+#' # to merge more than two objects, pass one to x and a list of objects to y
+#' merge(x = pbmc_small, y = c(pbmc_small, pbmc_small))
+#' 
 merge.Seurat <- function(
   x = NULL,
   y = NULL,

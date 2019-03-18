@@ -44,3 +44,10 @@ and preserve the cell identities that were active in the objects pre-merge.
 The merge will not preserve reductions, graphs, logged commands, or feature-level metadata
 that were present in the original objects.
 }
+\examples{
+# merge two objects
+merge(x = pbmc_small, y = pbmc_small)
+# to merge more than two objects, pass one to x and a list of objects to y
+merge(x = pbmc_small, y = c(pbmc_small, pbmc_small))
+
+}

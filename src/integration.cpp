@@ -56,7 +56,7 @@ Eigen::SparseMatrix<double> FindWeightsC(
   if(min_dist == 0){
     Eigen::SparseMatrix<double> dist_weights(integration_matrix.rows(), cells2.size());
     dist_weights.setFromTriplets(tripletList.begin(), tripletList.end(), [] (const double&, const double &b) { return b; });
-    Eigen::VectorXd colSums = dist_weights.transpose() * Eigen::VectorXd::Ones(dist_weights.cols());
+    Eigen::VectorXd colSums = dist_weights.transpose() * Eigen::VectorXd::Ones(dist_weights.rows());
     for (int k=0; k < dist_weights.outerSize(); ++k){
       for (Eigen::SparseMatrix<double>::InnerIterator it(dist_weights, k); it; ++it){
         it.valueRef() = it.value()/colSums[k];

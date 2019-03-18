@@ -692,18 +692,22 @@ ReadAlevin <- function(base.path) {
 #'
 Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
   full.data <- list()
-  for (i in seq_along(data.dir)) {
+  for (i in seq_along(along.with = data.dir)) {
     run <- data.dir[i]
-    if (! dir.exists(run)){
+    if (!dir.exists(paths = run)) {
       stop("Directory provided does not exist")
     }
-    if(!grepl("\\/$", run)){
-      run <- paste(run, "/", sep = "")
-    }
-    barcode.loc <- paste0(run, "barcodes.tsv")
-    gene.loc <- paste0(run, "genes.tsv")
-    features.loc <- paste0(run, "features.tsv.gz")
-    matrix.loc <- paste0(run, "matrix.mtx")
+    # if (!grepl(pattern = "\\/$", x = run)) {
+    #   run <- paste0(run, "/")
+    # }
+    # barcode.loc <- paste0(run, "barcodes.tsv")
+    barcode.loc <- file.path(run, 'barcodes.tsv')
+    # gene.loc <- paste0(run, "genes.tsv")
+    gene.loc <- file.path(run, 'genes.tsv')
+    # features.loc <- paste0(run, "features.tsv.gz")
+    features.loc <- file.path(run, 'features.tsv.gz')
+    # matrix.loc <- paste0(run, "matrix.mtx")
+    matrix.loc <- file.path(run, 'matrix.mtx')
     # Flag to indicate if this data is from CellRanger >= 3.0
     pre_ver_3 <- file.exists(gene.loc)
     if (!pre_ver_3) {
@@ -716,7 +720,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     if (!file.exists(barcode.loc)) {
       stop("Barcode file missing")
     }
-    if (!pre_ver_3 && !file.exists(features.loc) ){
+    if (!pre_ver_3 && !file.exists(features.loc) ) {
       stop("Gene name or features file missing")
     }
     if (!file.exists(matrix.loc)) {
@@ -727,12 +731,13 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     if (all(grepl(pattern = "\\-1$", x = cell.names))) {
       cell.names <- as.vector(x = as.character(x = sapply(
         X = cell.names,
-        FUN = ExtractField, field = 1,
+        FUN = ExtractField,
+        field = 1,
         delim = "-"
       )))
     }
     if (is.null(x = names(x = data.dir))) {
-      if (i < 2){
+      if (i < 2) {
         colnames(x = data) <- cell.names
       } else {
         colnames(x = data) <- paste0(i, "_", cell.names)
@@ -750,14 +755,12 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
     }
     # In cell ranger 3.0, a third column specifying the type of data was added
     # and we will return each type of data as a separate matrix
-    if (ncol(x = feature.names) > 2){
+    if (ncol(x = feature.names) > 2) {
       data_types <- factor(x = feature.names$V3)
       lvls <- levels(x = data_types)
-
       if (length(x = lvls) > 1 && length(x = full.data) == 0) {
         message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
       }
-
       expr_name <- "Gene Expression"
       if (expr_name %in% lvls) { # Return Gene Expression first
         lvls <- c(expr_name, lvls[-which(x = lvls == expr_name)])
@@ -765,7 +768,7 @@ Read10X <- function(data.dir = NULL, gene.column = 2, unique.features = TRUE) {
       data <- lapply(
         X = lvls,
         FUN = function(l) {
-          return(data[data_types == l,])
+          return(data[data_types == l, ])
         }
       )
       names(x = data) <- lvls
@@ -813,22 +816,21 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
   if (!file.exists(filename)) {
     stop("File not found")
   }
-  infile <- hdf5r::H5File$new(filename)
-  genomes <- names(infile)
+  infile <- hdf5r::H5File$new(filename = filename, mode = 'r')
+  genomes <- names(x = infile)
   output <- list()
-  if(!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
+  if (!infile$attr_exists("PYTABLES_FORMAT_VERSION")) {
     # cellranger version 3
     if (use.names) {
       feature_slot <- 'features/name'
     } else {
       feature_slot <- 'features/id'
     }
-
   } else {
     if (use.names) {
       feature_slot <- 'gene_names'
     } else {
-      feature_slot = 'genes'
+      feature_slot <- 'genes'
     }
   }
   for (genome in genomes) {
@@ -839,20 +841,38 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     features <- infile[[paste0(genome, '/', feature_slot)]][]
     barcodes <- infile[[paste0(genome, '/barcodes')]]
     sparse.mat <- sparseMatrix(
-      i = indices[] + 1, p = indptr[],
-      x = as.numeric(counts[]),
-      dims = shp[], giveCsparse = FALSE
+      i = indices[] + 1,
+      p = indptr[],
+      x = as.numeric(x = counts[]),
+      dims = shp[],
+      giveCsparse = FALSE
     )
     if (unique.features) {
-      features <- make.unique(features)
+      features <- make.unique(names = features)
     }
-    rownames(sparse.mat) <- features
-    colnames(sparse.mat) <- barcodes[]
+    rownames(x = sparse.mat) <- features
+    colnames(x = sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
+    # Split v3 multimodal
+    if (infile$exists(name = paste0(genome, '/features/feature_type'))) {
+      types <- infile[[paste0(genome, '/features/feature_type')]][]
+      types.unique <- unique(x = types)
+      if (length(x = types.unique) > 1) {
+        message("Genome ", genome, " has multiple modalities, returning a list of matrices for this genome")
+        sparse.mat <- sapply(
+          X = types.unique,
+          FUN = function(x) {
+            return(sparse.mat[which(x = types == x), ])
+          },
+          simplify = FALSE,
+          USE.NAMES = TRUE
+        )
+      }
+    }
     output[[genome]] <- sparse.mat
   }
   infile$close_all()
-  if (length(output) == 1) {
+  if (length(x = output) == 1) {
     return(output[[genome]])
   } else{
     return(output)
@@ -1065,6 +1085,7 @@ SCTransform <- function(
     message("Setting default assay to SCT")
   }
   DefaultAssay(object = object) <- "SCT"
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
