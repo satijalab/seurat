@@ -1065,6 +1065,7 @@ SCTransform <- function(
     message("Setting default assay to SCT")
   }
   DefaultAssay(object = object) <- "SCT"
+  object <- LogSeuratCommand(object = object)
   return(object)
 }
 
