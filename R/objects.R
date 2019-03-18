@@ -1546,37 +1546,52 @@ as.Seurat.CellDataSet <- function(
   )
 
   meta.data <- as.data.frame(pData(x))
+  
   # if cell names are NULL, fill with cell_X
-  if (is.null(x = colnames(x = counts)) & is.null(x = colnames(x = data))) {
+  if (is.null(x = colnames(x = counts))) {
     warning("The column names of the 'counts' and 'data' matrices are NULL. Setting cell names to cell_columnidx (e.g 'cell_1').")
     cell.names <- paste0("cell_", 1:ncol(x = counts))
     colnames(x = counts) <- cell.names
-    colnames(x = data) <- cell.names
     rownames(x = meta.data) <- cell.names
   }
+
   # Creating the object
   seurat.object <- CreateSeuratObject(counts = counts, meta.data = meta.data)
-  # Adding dim reductions
-  if (length(x = x@dim_reduce_type) > 0) {
-    dr <- x@dim_reduce_type
-    embeddings <- x@normalized_data_projection
-    if (is.null(rownames(x = embeddings))) {
-      rownames(x = embeddings) <- cell.names
+  
+  # Adding dim reductions if there are any
+  for (dr in slotNames(x)) {
+
+    # reasonable expectation that this corresponds to dim red
+    if(typeof(slot(x, dr)) == 'double') {
+      embeddings <- slot(x, dr)
+      embeddings <- as.data.frame(embeddings)
+      
+      if (dim(embeddings)[2] == length(cell.names)) {
+        # Flip so columns are coordinates
+        embeddings <- t(embeddings)
+        
+        # Make sure the cell/row names match.
+        # rownames(x = embeddings) <- cell.names
+        rownames(x = embeddings) <- colnames(seurat.object)
+        key <- gsub(
+          pattern = "[[:digit:]]",
+          replacement = "_",
+          x = colnames(x@auxClusteringData[[dr]])[1]
+          )
+        
+        if (length(x = key) == 0) {
+          key <- paste0(dr, "_")
+        }
+
+        # Create DimReducObject
+        colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
+        seurat.object[[dr]] <- CreateDimReducObject(
+          embeddings = embeddings,
+          key = key,
+          assay = DefaultAssay(object = seurat.object)
+        )
+      }
     }
-    key <- gsub(
-      pattern = "[[:digit:]]",
-      replacement = "_",
-      x = colnames(x = x@normalized_data_projection)
-      )[1]
-    if (length(x = key) == 0) {
-      key <- paste0(dr, "_")
-    }
-    colnames(x = embeddings) <- paste0(key, 1:ncol(x = embeddings))
-    seurat.object[[dr]] <- CreateDimReducObject(
-      embeddings = embeddings,
-      key = key,
-      assay = DefaultAssay(object = seurat.object)
-    )
   }
   return(seurat.object)
 }
