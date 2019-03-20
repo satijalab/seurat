@@ -1036,7 +1036,7 @@ SCTransform <- function(
     do.scale = do.scale,
     do.center = do.center,
     scale.max = Inf,
-    block.size = 1000,
+    block.size = 256,
     min.cells.to.block = 3000,
     verbose = verbose
   )
