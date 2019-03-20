@@ -1006,7 +1006,7 @@ SCTransform <- function(
   }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
   if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:variable.features.n]
+    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(feature.variance))]
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
