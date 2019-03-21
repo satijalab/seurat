@@ -1055,16 +1055,11 @@ RunTSNE.dist <- function(
   reduction.key = "tSNE_",
   ...
 ) {
-  return(RunTSNE(
-    object = as.matrix(x = object),
-    assay = assay,
-    seed.use = seed.use,
-    tsne.method = tsne.method,
-    add.iter = add.iter,
-    dim.embed = dim.embed,
-    reduction.key = reduction.key,
-    ...
-  ))
+  args <- as.list(x = sys.frame(which = sys.nframe()))
+  args <- c(args, list(...))
+  args$object <- as.matrix(x = args$object)
+  args$is_distance = TRUE
+  return(do.call(what = 'RunTSNE', args = args))
 }
 
 #' @param reduction Which dimensional reduction (e.g. PCA, ICA) to use for
