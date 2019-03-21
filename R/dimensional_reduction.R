@@ -1063,7 +1063,6 @@ RunTSNE.dist <- function(
     add.iter = add.iter,
     dim.embed = dim.embed,
     reduction.key = reduction.key,
-    is_distance = TRUE,
     ...
   ))
 }
@@ -1105,7 +1104,6 @@ RunTSNE.Seurat <- function(
       add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      is_distance = TRUE,
       ...
     )
   } else if (!is.null(x = dims)) {
