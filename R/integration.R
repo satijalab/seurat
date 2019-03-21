@@ -57,6 +57,13 @@ FindIntegrationAnchors <- function(
     yes = pblapply,
     no = future_lapply
   )
+  object.ncells <- sapply(X = object.list, FUN = function(x) dim(x)[2])
+  if (any(object.ncells <= max(dims))) {
+    bad.obs <- which(x = object.ncells <= max(dims))
+    stop("Max dimension too large: objects ", paste(bad.obs, collapse = ", "), " contain fewer than ", max(dims), " cells. \n",
+         "Please specify a maximum dimensions that is less than the number of cells in any ", 
+         "object (", min(object.ncells), ").")
+  }
   if (!is.null(x = assay)) {
     if (length(x = assay) != length(x = object.list)) {
       stop("If specifying the assay, please specify one assay per object in the object.list")
