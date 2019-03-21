@@ -906,6 +906,8 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' where n is the number of cells
 #' @param return.only.var.genes If set to TRUE all data matrices in output assay are
 #' subset to contain only the variable genes; default is FALSE
+#' @param seed.use Set a random seed. By default, sets the seed to 1448145. Setting
+#' NULL will not set a seed.
 #' @param verbose Whether to print messages and progress bars
 #' @param ... Additional parameters passed to \code{sctransform::vst}
 #'
@@ -925,9 +927,13 @@ SCTransform <- function(
   do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30), sqrt(ncol(object[[assay]])/30)),
   return.only.var.genes = FALSE,
+  seed.use = 1448145,
   verbose = TRUE,
   ...
 ) {
+  if (!is.null(x = seed.use)) {
+    set.seed(seed = seed.use)
+  }
   if (!PackageCheck('sctransform', error = FALSE)) {
     stop('Install sctransform package from https://github.com/ChristophH/sctransform to use regularized negative binomial regression models.')
   }
@@ -1000,7 +1006,7 @@ SCTransform <- function(
   }
   feature.variance <- sort(x = feature.variance, decreasing = TRUE)
   if (!is.null(x = variable.features.n)) {
-    top.features <- names(x = feature.variance)[1:variable.features.n]
+    top.features <- names(x = feature.variance)[1:min(variable.features.n, length(feature.variance))]
   } else {
     top.features <- names(x = feature.variance)[feature.variance >= variable.features.rv.th]
   }
@@ -1036,7 +1042,7 @@ SCTransform <- function(
     do.scale = do.scale,
     do.center = do.center,
     scale.max = Inf,
-    block.size = 1000,
+    block.size = 256,
     min.cells.to.block = 3000,
     verbose = verbose
   )
@@ -1923,7 +1929,7 @@ ScaleData.default <- function(
     if (verbose) {
       message("Regressing out ", paste(vars.to.regress, collapse = ', '))
     }
-    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = 200)
+    chunk.points <- ChunkPoints(dsize = nrow(x = object), csize = block.size)
     if (PlanThreads() > 1) {
       object <- future_lapply(
         X = 1:ncol(x = chunk.points),

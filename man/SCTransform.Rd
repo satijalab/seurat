@@ -10,7 +10,7 @@ SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
   do.scale = FALSE, do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30),
   sqrt(ncol(object[[assay]])/30)), return.only.var.genes = FALSE,
-  verbose = TRUE, ...)
+  seed.use = 1448145, verbose = TRUE, ...)
 }
 \arguments{
 \item{object}{A seurat object}
@@ -40,6 +40,9 @@ where n is the number of cells}
 
 \item{return.only.var.genes}{If set to TRUE all data matrices in output assay are
 subset to contain only the variable genes; default is FALSE}
+
+\item{seed.use}{Set a random seed. By default, sets the seed to 1448145. Setting
+NULL will not set a seed.}
 
 \item{verbose}{Whether to print messages and progress bars}
 
