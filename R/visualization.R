@@ -3739,9 +3739,14 @@ SingleCorPlot <- function(
 # @param dims A two-length numeric vector with dimensions to use
 # @param pt.size Adjust point size for plotting
 # @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot assigns colors.
-# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute (that can be pulled with FetchData) allowing for both different colors and different shapes on cells.
-# @param order Specify the order of plotting for the idents. This can be useful for crowded plots if points of interest are being buried. Provide either a full list of valid idents or a subset to be plotted last (on top).
+# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot 
+# assigns colors.
+# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute 
+# (that can be pulled with FetchData) allowing for both different colors and different shapes on 
+# cells.
+# @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
+# points of interest are being buried. Provide either a full list of valid idents or a subset to be 
+# plotted last (on top).
 # @param label Whether to label the clusters
 # @param repel Repel labels
 # @param label.size Sets size of labels
@@ -3809,6 +3814,9 @@ SingleDimPlot <- function(
       setdiff(x = unique(x = data[, col.by]), y = order)
     ))
     data[, col.by] <- factor(x = data[, col.by], levels = order)
+    new.order <- order(x = data[, col.by])
+    data <- data[new.order, ]
+    pt.size <- pt.size[new.order]
   }
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
