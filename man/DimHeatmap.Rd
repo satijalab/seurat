@@ -45,7 +45,7 @@ if you are encountering that issue (note that plots may take longer to produce/r
 \item{assays}{A vector of assays to pull data from}
 }
 \value{
-A ggplot object
+No return value by default. If using fast = FALSE, will return a ggplot object.
 }
 \description{
 Draws a heatmap focusing on a principal component. Both cells and genes are sorted by their

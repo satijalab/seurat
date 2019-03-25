@@ -23,7 +23,7 @@ NULL
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
 #'
-#' @return A ggplot object
+#' @return No return value by default. If using fast = FALSE, will return a ggplot object. 
 #'
 #' @export
 #'
