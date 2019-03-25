@@ -164,6 +164,8 @@ DefaultAssay <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
+#' @aliases SetDimReduction
+#'
 #' @rdname Embeddings
 #' @export Embeddings
 #'
@@ -242,11 +244,11 @@ FindClusters <- function(object, ...) {
 #' markers <- FindMarkers(object = pbmc_small, ident.1 = 2)
 #' head(x = markers)
 #'
-#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata 
+#' # Take all cells in cluster 2, and find markers that separate cells in the 'g1' group (metadata
 #' # variable 'group')
 #' markers <- FindMarkers(pbmc_small, ident.1 = "g1", group.by = 'groups', subset.ident = "2")
 #' head(x = markers)
-#' 
+#'
 #' # Pass 'clustertree' or an object of class phylo to ident.1 and
 #' # a node to ident.2 as a replacement for FindMarkersNode
 #' pbmc_small <- BuildClusterTree(object = pbmc_small)
@@ -456,6 +458,8 @@ Key <- function(object, ...) {
 #'
 #' @param object An object
 #' @param ... Arguments passed to other methods
+#'
+#' @aliases SetDimReduction
 #'
 #' @rdname Loadings
 #' @export Loadings

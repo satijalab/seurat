@@ -2,6 +2,7 @@
 % Please edit documentation in R/objects.R
 \name{CreateDimReducObject}
 \alias{CreateDimReducObject}
+\alias{SetDimReduction}
 \title{Create a DimReduc object}
 \usage{
 CreateDimReducObject(embeddings = new(Class = "matrix"),
@@ -34,7 +35,12 @@ Create a DimReduc object
 \examples{
 data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
 pcs <- prcomp(x = data)
-pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x,
-            stdev = pcs$sdev, key = "PC", assay = "RNA")
+pca.dr <- CreateDimReducObject(
+  embeddings = pcs$rotation,
+  loadings = pcs$x,
+  stdev = pcs$sdev,
+  key = "PC",
+  assay = "RNA"
+)
 
 }
