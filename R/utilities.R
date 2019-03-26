@@ -874,6 +874,49 @@ MinMax <- function(data, min, max) {
   return(data2)
 }
 
+#' Calculate the proportion of all counts that belong to a given set of features
+#' 
+#' This function enables you to easily calculate the proportion of all the counts belonging to a 
+#' subset of the possible features for each cell. This is useful when trying to compute the fraction 
+#' of transcripts that map to mitochondrial genes for example. The calculation here is simply the 
+#' column sum of the matrix present in the counts slot for features belonging to the set divided by
+#' the column sum for all features. 
+#' 
+#' @param object A Seurat object
+#' @param pattern A regex pattern to match features against
+#' @param features A defined feature set. If features provided, will ignore the pattern matching
+#' @param assay Assay to use
+#' @param metadata.name Name of metadata column to store info in
+#' 
+#' @return Returns a Seurat object with the proportion of the feature set stored in metadata.
+#' 
+#' @importFrom Matrix colSums
+#' 
+#' @examples 
+#' # Calculate the proportion of transcripts mapping to mitochondrial genes 
+#' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
+#' # system of interest
+#' pbmc_small <- PropFeatureSet(object = pbmc_small, pattern = "^MT-", metadata.name = "prop.mito")
+#' 
+PropFeatureSet <- function(
+  object, 
+  pattern = NULL, 
+  features = NULL, 
+  assay = NULL, 
+  metadata.name = NULL
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!is.null(x = features) && !is.null(x = pattern)) {
+    warning("Both pattern and features provided. Pattern is being ignored.")
+  }
+  features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
+  prop.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, ])/
+    object[[paåste0("nCount_", assay)]]
+  metadata.name <- metadata.name %||% paste0("prop.", assay, ".pattern")
+  object[[metadata.name]] <- prop.featureset
+  return(object)
+}
+
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
