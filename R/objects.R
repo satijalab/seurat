@@ -449,13 +449,20 @@ CreateAssayObject <- function(
 #' @param misc list for the user to store any additional information associated
 #' with the dimensional reduction
 #'
+#' @aliases SetDimReduction
+#'
 #' @export
 #'
 #' @examples
 #' data <- GetAssayData(pbmc_small[["RNA"]], slot = "scale.data")
 #' pcs <- prcomp(x = data)
-#' pca.dr <- CreateDimReducObject(embeddings = pcs$rotation, loadings = pcs$x,
-#'             stdev = pcs$sdev, key = "PC", assay = "RNA")
+#' pca.dr <- CreateDimReducObject(
+#'   embeddings = pcs$rotation,
+#'   loadings = pcs$x,
+#'   stdev = pcs$sdev,
+#'   key = "PC",
+#'   assay = "RNA"
+#' )
 #'
 CreateDimReducObject <- function(
   embeddings = new(Class = 'matrix'),
@@ -3752,12 +3759,12 @@ merge.Assay <- function(
 #' @export
 #' @method merge Seurat
 #'
-#' @examples 
+#' @examples
 #' # merge two objects
 #' merge(x = pbmc_small, y = pbmc_small)
 #' # to merge more than two objects, pass one to x and a list of objects to y
 #' merge(x = pbmc_small, y = c(pbmc_small, pbmc_small))
-#' 
+#'
 merge.Seurat <- function(
   x = NULL,
   y = NULL,

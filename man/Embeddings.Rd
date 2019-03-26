@@ -2,6 +2,7 @@
 % Please edit documentation in R/generics.R, R/objects.R
 \name{Embeddings}
 \alias{Embeddings}
+\alias{SetDimReduction}
 \alias{Embeddings.DimReduc}
 \alias{Embeddings.Seurat}
 \title{Get cell embeddings}
