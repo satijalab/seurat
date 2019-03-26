@@ -6,11 +6,11 @@
 \title{Visualize 'features' on a dimensional reduction plot}
 \usage{
 FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
-  cols = c("lightgrey", "blue"), pt.size = NULL, min.cutoff = NA,
-  max.cutoff = NA, reduction = NULL, split.by = NULL,
-  shape.by = NULL, blend = FALSE, blend.threshold = 0.5,
-  order = NULL, label = FALSE, label.size = 4, ncol = NULL,
-  combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
+  cols = c("lightgrey", "blue"), pt.size = NULL, order = FALSE,
+  min.cutoff = NA, max.cutoff = NA, reduction = NULL,
+  split.by = NULL, shape.by = NULL, blend = FALSE,
+  blend.threshold = 0.5, label = FALSE, label.size = 4,
+  ncol = NULL, combine = TRUE, coord.fixed = FALSE, by.col = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,6 +33,9 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{pt.size}{Adjust point size for plotting}
 
+\item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if 
+cells expressing given feature are getting buried.}
+
 \item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,
 may specify quantile in the form of 'q##' where '##' is the quantile (eg, 'q1', 'q10')}
 
@@ -48,10 +51,6 @@ different colors and different shapes on cells}
 \item{blend}{Scale and blend expression values to visualize coexpression of two features}
 
 \item{blend.threshold}{The color cutoff from weak signal to strong signal; ranges from 0 to 1.}
-
-\item{order}{Specify the order of plotting for the idents. This can be
-useful for crowded plots if points of interest are being buried. Provide
-either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{label}{Whether to label the clusters}
 
