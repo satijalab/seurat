@@ -911,7 +911,7 @@ PropFeatureSet <- function(
   }
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
   prop.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, ])/
-    object[[paåste0("nCount_", assay)]]
+    object[[paste0("nCount_", assay)]]
   metadata.name <- metadata.name %||% paste0("prop.", assay, ".pattern")
   object[[metadata.name]] <- prop.featureset
   return(object)
