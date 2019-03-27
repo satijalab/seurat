@@ -874,6 +874,45 @@ MinMax <- function(data, min, max) {
   return(data2)
 }
 
+#' Calculate the percentage of all counts that belong to a given set of features
+#' 
+#' This function enables you to easily calculate the percentage of all the counts belonging to a 
+#' subset of the possible features for each cell. This is useful when trying to compute the percentage 
+#' of transcripts that map to mitochondrial genes for example. The calculation here is simply the 
+#' column sum of the matrix present in the counts slot for features belonging to the set divided by
+#' the column sum for all features times 100. 
+#' 
+#' @param object A Seurat object
+#' @param pattern A regex pattern to match features against
+#' @param features A defined feature set. If features provided, will ignore the pattern matching
+#' @param assay Assay to use
+#' 
+#' @return Returns a Seurat object with the proportion of the feature set stored in metadata.
+#' @importFrom Matrix colSums
+#' @export
+#' 
+#' @examples 
+#' # Calculate the proportion of transcripts mapping to mitochondrial genes 
+#' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
+#' # system of interest
+#' pbmc_small[["percent.mito"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
+#' 
+PercentageFeatureSet <- function(
+  object, 
+  pattern = NULL, 
+  features = NULL, 
+  assay = NULL
+) {
+  assay <- assay %||% DefaultAssay(object = object)
+  if (!is.null(x = features) && !is.null(x = pattern)) {
+    warning("Both pattern and features provided. Pattern is being ignored.")
+  }
+  features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
+  percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, ])/
+    object[[paste0("nCount_", assay)]] * 100
+  return(percent.featureset)
+}
+
 #' Stop Cellbrowser web server
 #'
 #' @importFrom reticulate py_module_available
