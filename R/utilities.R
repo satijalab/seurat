@@ -555,7 +555,7 @@ ExpMean <- function(x) {
 ExportToCellbrowser <- function(
   object,
   dir,
-  dataset.name = slot(object = object, name = 'project.name'),
+  dataset.name = Project(object = object),
   reductions = "tsne",
   markers.file = NULL,
   cluster.field = "Cluster",

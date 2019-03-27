@@ -4,8 +4,8 @@
 \alias{ExportToCellbrowser}
 \title{Export Seurat object for UCSC cell browser}
 \usage{
-ExportToCellbrowser(object, dir, dataset.name = slot(object = object,
-  name = "project.name"), reductions = "tsne", markers.file = NULL,
+ExportToCellbrowser(object, dir, dataset.name = Project(object = object),
+  reductions = "tsne", markers.file = NULL,
   cluster.field = "Cluster", cb.dir = NULL, port = NULL,
   skip.expr.matrix = FALSE, skip.metadata = FALSE,
   skip.reductions = FALSE, ...)
