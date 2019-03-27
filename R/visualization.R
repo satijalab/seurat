@@ -682,6 +682,8 @@ DimPlot <- function(
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
 #' @inheritParams DimPlot
+#' @param order Boolean determining whether to plot cells in order of expression. Can be useful if 
+#' cells expressing given feature are getting buried.
 #' @param features Vector of features to plot. Features can come from:
 #' \itemize{
 #'     \item An \code{Assay} feature (e.g. a gene name - "MS4A1")
@@ -702,6 +704,7 @@ DimPlot <- function(
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param coord.fixed Plot cartesian coordinates with fixed aspect ratio
 #' @param by.col If splitting by a factor, plot the splits per column with the features as rows.
+
 #'
 #' @return A ggplot object
 #'
@@ -731,6 +734,7 @@ FeaturePlot <- function(
   cells = NULL,
   cols = c("lightgrey",  "blue"),
   pt.size = NULL,
+  order = FALSE,
   min.cutoff = NA,
   max.cutoff = NA,
   reduction = NULL,
@@ -738,7 +742,6 @@ FeaturePlot <- function(
   shape.by = NULL,
   blend = FALSE,
   blend.threshold = 0.5,
-  order = NULL,
   label = FALSE,
   label.size = 4,
   ncol = NULL,
@@ -884,6 +887,7 @@ FeaturePlot <- function(
         data = data.plot[, c(dims, feature, shape.by)],
         dims = dims,
         col.by = feature,
+        order = order,
         pt.size = pt.size,
         cols = cols.use,
         shape.by = shape.by,
@@ -3809,14 +3813,22 @@ SingleDimPlot <- function(
     cols <- highlight.info$color
   }
   if (!is.null(x = order) && !is.null(x = col.by)) {
-    order <- rev(x = c(
-      order,
-      setdiff(x = unique(x = data[, col.by]), y = order)
-    ))
-    data[, col.by] <- factor(x = data[, col.by], levels = order)
-    new.order <- order(x = data[, col.by])
-    data <- data[new.order, ]
-    pt.size <- pt.size[new.order]
+    if (typeof(x = order) == "logical"){
+      if (order) {
+        data <- data[order(data[, col.by]), ] 
+      }
+    } else {
+      order <- rev(x = c(
+        order,
+        setdiff(x = unique(x = data[, col.by]), y = order)
+      ))
+      data[, col.by] <- factor(x = data[, col.by], levels = order)
+      new.order <- order(x = data[, col.by])
+      data <- data[new.order, ]
+      if (length(x = pt.size) == length(x = new.order)) {
+        pt.size <- pt.size[new.order]
+      }
+    }
   }
   if (!is.null(x = col.by) && !col.by %in% colnames(x = data)) {
     warning("Cannot find ", col.by, " in plotting data, not coloring plot")
