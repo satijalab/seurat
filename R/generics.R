@@ -45,6 +45,29 @@ as.Graph <- function(x, ...) {
   UseMethod(generic = "as.Graph", object = x)
 }
 
+#' Convert objects to loom objects
+#'
+#' @param x An object to convert to class \code{loom}
+#' @inheritParams loomR::create
+#'
+#' @seealso \code{\link[loomR]{create}}
+#'
+#' @rdname as.loom
+#' @export as.loom
+#'
+as.loom <- function(
+  x,
+  filename = NULL,
+  max.size = '400mb',
+  chunk.dims = NULL,
+  chunk.size = NULL,
+  overwrite = FALSE,
+  verbose = TRUE,
+  ...
+) {
+  UseMethod(generic = 'as.loom', object = x)
+}
+
 #' Convert objects to Seurat objects
 #'
 #' @param x An object to convert to class \code{Seurat}
@@ -112,25 +135,6 @@ Cells <- function(object, ...) {
 #'
 Command <- function(object, ...) {
   UseMethod(generic = 'Command', object = object)
-}
-
-#' Convert Seurat objects to other classes and vice versa
-#'
-#' Defunct, please use other converters to convert to and from \code{Seurat} objects
-#'
-#' @param from Object to convert from
-#' @param to Class of object to convert to
-#' @param ... Arguments passed to other methods
-#'
-#' @return An object of class \code{to}
-#'
-#' @seealso \code{\link{WriteH5AD}} \code{\link{as.Seurat}} \code{\link{as.SingleCellExperiment}}
-#'
-#' @rdname Convert
-#' @export Convert
-#'
-Convert <- function(from, ...) {
-  UseMethod(generic = 'Convert', object = from)
 }
 
 #' Get and set the default assay
@@ -542,6 +546,31 @@ NormalizeData <- function(object, ...) {
 #'
 OldWhichCells <- function(object, ...) {
   UseMethod(generic = 'OldWhichCells', object = object)
+}
+
+#' Get and set project information
+#'
+#' @param object An object
+#' @param ... Arguments passed to other methods
+#'
+#' @return Project information
+#'
+#' @rdname Project
+#' @export Project
+#'
+Project <- function(object, ...) {
+  UseMethod(generic = 'Project', object = object)
+}
+
+#' @param value Project information to set
+#'
+#' @return An object with project information added
+#'
+#' @rdname Project
+#' @export Project<-
+#'
+"Project<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Project<-', object = object)
 }
 
 #' @inheritParams Idents

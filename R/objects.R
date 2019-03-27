@@ -1532,6 +1532,513 @@ as.Graph.matrix <- function(x, ...) {
   return(as.Graph.Matrix(x = as(object = x, Class = 'Matrix')))
 }
 
+#' @details
+#' The Seurat method for \code{as.loom} will try to automatically fill in datasets based on data presence.
+#' For example, if an assay's scaled data slot isn't filled, then dimensional reduction and graph information
+#' will not be filled, since those depend on scaled data. The following is a list of how datasets will be filled
+#' \itemize{
+#'   \item \code{counts} will be stored in \code{matrix}
+#'   \item Cell names will be stored in \code{col_attrs/CellID}; feature names will be stored in \code{row_attrs/Gene}
+#'   \item \code{data} will be stored in \code{layers/norm_data}
+#'   \item \code{scale.data} will be stored in \code{layers/scale_data}
+#'   \item Cell-level metadata will be stored in \code{col_attrs}; all periods '.' in metadata will be replaced with underscores '_'
+#'   \item Clustering information from \code{Idents(object = x)} will be stored in \code{col_attrs/ClusterID} and \code{col_attrs/ClusterName}
+#'   for the numeric and string representation of the factor, respectively
+#'   \item Feature-level metadata will be stored in \code{Feature_attrs}; all periods '.' in metadata will be replaced with underscores '_'
+#'   \item Variable features, if set, will be stored in \code{row_attrs/Selected}; features declared as variable will be stored as '1',
+#'   others will be stored as '0'
+#'   \item Dimensional reduction information for the assay provided will be stored in \code{col_attrs} for cell embeddings and \code{row_attrs}
+#'    for feature loadings; datasets will be named as \code{name_type} where \code{name} is the name within the Seurat object
+#'    and \code{type} is \code{cell_embeddings} or \code{feature_loadings}; if feature loadings have been projected for all features,
+#'    then projected loadings will be stored instead and \code{type} will be \code{feature_loadings_projected}
+#'   \item Nearest-neighbor graphs that start with the name of the assay will be stored in \code{col_graphs}
+#'   \item Assay information will be stored as an HDF5 attribute called \code{assay} at the root level
+#' }
+#'
+#' @param assay Assay to store in loom file
+#'
+#' @rdname as.loom
+#' @export
+#' @method as.loom Seurat
+#'
+as.loom.Seurat <- function(
+  x,
+  assay = NULL,
+  filename = file.path(getwd(), paste0(Project(object = x), '.loom')),
+  max.size = '400mb',
+  chunk.dims = NULL,
+  chunk.size = NULL,
+  overwrite = FALSE,
+  verbose = TRUE,
+  ...
+) {
+  if (!PackageCheck('loomR', error = FALSE)) {
+    stop("Please install loomR from GitHub before converting to a loom object")
+  }
+  # Set the default assay to make life easy
+  assay <- assay %||% DefaultAssay(object = x)
+  DefaultAssay(object = x) <- assay
+  # Pull ordering information
+  cell.order <- colnames(x = x)
+  feature.order <- rownames(x = x)
+  # Get cell- and feature-level metadata
+  meta.data <- x[[]][cell.order, ]
+  colnames(x = meta.data) <- gsub(
+    pattern = '\\.',
+    replacement = '_',
+    x = colnames(x = meta.data)
+  )
+  meta.data$ClusterID <- as.integer(x = Idents(object = x)[rownames(x = meta.data)])
+  meta.data$ClusterName <- as.character(x = Idents(object = x)[rownames(x = meta.data)])
+  meta.feature <- x[[assay]][[]][feature.order, ]
+  colnames(x = meta.feature) <- gsub(
+    pattern = '\\.',
+    replacement = '_',
+    x = colnames(x = meta.feature)
+  )
+  if (length(x = VariableFeatures(object = x)) > 0) {
+    meta.feature[VariableFeatures(object = x), 'Selected'] <- 1
+    meta.feature[is.na(x = meta.feature$Selected), 'Selected'] <- 0
+  }
+  # Make the initial loom object
+  lfile <- loomR::create(
+    filename = filename,
+    data = GetAssayData(object = x, slot = 'counts')[feature.order, cell.order], # Raw counts matrix
+    feature.attrs = as.list(x = meta.feature), # Feature-level metadata
+    cell.attrs = as.list(x = meta.data), # Cell-level metadata
+    layers = list('norm_data' = GetAssayData(object = x)[feature.order, cell.order]), # Add data slot as norm_data
+    transpose = TRUE,
+    calc.count = FALSE,
+    max.size = max.size,
+    chunk.size = chunk.size,
+    chunk.dims = chunk.dims,
+    overwrite = overwrite,
+    verbose = verbose,
+    ...
+  )
+  # Add scale.data
+  if (!IsMatrixEmpty(x = GetAssayData(object = x, slot = 'scale.data'))) {
+    if (verbose) {
+      message("Adding scaled data matrix to /layers/scale_data")
+    }
+    lfile$add.layer(
+      layers = list(
+        'scale_data' = as.matrix(
+          x = t(
+            x = as.data.frame(
+              x = GetAssayData(object = x, slot = 'scale.data')
+            )[feature.order, cell.order]
+          )
+        )
+      ),
+      verbose = verbose
+    )
+    dim.reducs <- FilterObjects(object = x, classes.keep = 'DimReduc')
+    dim.reducs <- Filter(
+      f = function(d) {
+        return(DefaultAssay(object = x[[d]]) == assay)
+      },
+      x = dim.reducs
+    )
+    # Add dimensional reduction information
+    for (dr in dim.reducs) {
+      if (verbose) {
+        message("Adding dimensional reduction information for ", dr)
+      }
+      embeddings <- Embeddings(object = x, reduction = dr)[cell.order, ]
+      embeddings <- list(embeddings)
+      names(x = embeddings) <- paste0(dr, '_cell_embeddings')
+      if (verbose) {
+        message("Adding cell embedding information for ", dr)
+      }
+      lfile$add.col.attribute(attributes = embeddings)
+      loadings <- Loadings(
+        object = x,
+        reduction = dr,
+        projected = Projected(object = x[[dr]])
+      )
+      # Add feature loading information
+      if (!IsMatrixEmpty(x = loadings)) {
+        if (verbose) {
+          message("Adding feature loading information for ", dr)
+        }
+        loadings <- as.matrix(x = as.data.frame(x = loadings)[feature.order, ])
+        loadings <- list(loadings)
+        names(x = loadings) <- paste0(dr, '_feature_loadings')
+        if (Projected(object = x[[dr]])) {
+          names(x = loadings) <- paste0(names(x = loadings), '_projected')
+        }
+        lfile$add.row.attribute(attributes = loadings)
+      } else if (verbose) {
+        message("No feature loading information for ", dr)
+      }
+    }
+    # Add graph information
+    graphs <- FilterObjects(object = x, classes.keep = 'Graph')
+    graphs <- grep(pattern = paste0('^', assay), x = graphs, value = TRUE)
+    for (gr in graphs) {
+      if (verbose) {
+        message("Adding graph ", gr)
+      }
+      lfile$add.graph.matrix(mat = x[[gr]], name = gr, MARGIN = 2)
+    }
+  } else if (verbose) {
+    message("No scaled data present, not adding scaled data, dimensional reduction information, or neighbor graphs")
+  }
+  # Store assay
+  hdf5r::h5attr(x = lfile, which = 'assay') <- assay
+  return(lfile)
+}
+
+#' @details
+#' The \code{loom} method for \code{as.Seurat} will try to automatically fill in a Seurat object based on data presence.
+#' For example, if no normalized data is present, then scaled data, dimensional reduction informan, and neighbor graphs
+#' will not be pulled as these depend on normalized data. The following is a list of how the Seurat object will be constructed
+#' \itemize{
+#'   \item If no assay information is provided, will default to an assay name in a root-level HDF5 attribute called \code{assay};
+#'   if no attribute is present, will default to "RNA"
+#'   \item Cell-level metadata will consist of all one-dimensional datasets in \code{col_attrs} \strong{except} datasets named "ClusterID", "ClusterName",
+#'   and whatever is passed to \code{cells}
+#'   \item Identity classes will be set if either \code{col_attrs/ClusterID} or \code{col_attrs/ClusterName} are present; if both are present, then
+#'   the values in \code{col_attrs/ClusterID} will set the order (numeric value of a factor) for values in \code{col_attrs/ClusterName}
+#'   (charater value of a factor)
+#'   \item Feature-level metadata will consist of all one-dimensional datasets in \code{row_attrs} \strong{except} datasets named "Selected" and whatever
+#'   is passed to \code{features}; any feature-level metadata named "variance_standardized", "variance_expected", or "dispersion_scaled" will have
+#'   underscores "_" replaced with a period "."
+#'   \item Variable features will be set if \code{row_attrs/Selected} exists and it is a numeric type
+#'   \item If a dataset is passed to \code{normalized}, stored as a sparse matrix in \code{data};
+#'   if no dataset provided, \code{scaled} will be set to \code{NULL}
+#'   \item If a dataset is passed to \code{scaled}, stored as a dense matrix in \code{scale.data}; all rows entirely consisting of \code{NA}s
+#'   will be removed
+#'   \item If a dataset is passed to \code{scaled}, dimensional reduction information will assembled from cell embedding information
+#'   stored in \code{col_attrs}; cell embeddings will be pulled from two-dimensional datasets ending with "_cell_embeddings"; priority will
+#'   be given to cell embeddings that have the name of \code{assay} in their name; feature loadings will be added from two-dimensional
+#'   datasets in \code{row_attrs} that start with the name of the dimensional reduction and end with either "feature_loadings" or
+#'   "feature_loadings_projected" (priority given to the latter)
+#'   \item If a dataset is passed to \code{scaled}, neighbor graphs will be pulled from \code{col_graphs}, provided the name starts
+#'   with the value of \code{assay}
+#' }
+#'
+#' @param cells The name of the dataset within \code{col_attrs} containing cell names
+#' @param features The name of the dataset within \code{row_attrs} containing feature names
+#' @param normalized The name of the dataset within \code{layers} containing the normalized expression matrix
+#' @param scaled The name of the dataset within \code{layers} containing the scaled expression matrix
+#' @param assay Name of the assay to create
+#' @param verbose Display progress updates
+#'
+#' @importFrom Matrix sparseMatrix
+#'
+#' @rdname as.Seurat
+#' @export
+#' @method as.Seurat loom
+#'
+as.Seurat.loom <- function(
+  x,
+  cells = 'CellID',
+  features = 'Gene',
+  normalized = NULL,
+  scaled = NULL,
+  assay = NULL,
+  verbose = TRUE,
+  ...
+) {
+  # Shouldn't be necessary but ¯\_(ツ)_/¯
+  if (!PackageCheck('loomR', error = FALSE)) {
+    stop("Please install loomR")
+  }
+  # Check prerequisite datasets
+  if (!x[['col_attrs']]$exists(name = cells)) {
+    stop("Cannot find provided cell name attribute in the loom file")
+  }
+  if (!x[['row_attrs']]$exists(name = features)) {
+    stop("Cannot find provided feature name attribute in the loom file")
+  }
+  assay <- assay %||% hdf5r::h5attributes(x = x)$assay %||% 'RNA'
+  # Read in the counts matrix
+  if (verbose) {
+    message("Pulling counts matrix")
+  }
+  counts <- x$get.sparse(
+    dataset = 'matrix',
+    feature.names = features,
+    cell.names = cells,
+    verbose = verbose
+  )
+  object <- CreateSeuratObject(
+    counts = counts,
+    assay = assay
+  )
+  # Read in normalized and scaled data
+  if (!is.null(x = normalized)) {
+    normalized <- basename(path = normalized)
+    if (!x[['layers']]$exists(name = normalized)) {
+      warning(
+        "Cannot find provided normalized data in the loom file",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      scaled <- NULL
+    } else {
+      if (verbose) {
+        message("Adding normalized data")
+      }
+      norm.data <- x$get.sparse(
+        dataset = paste0('layers/', normalized),
+        feature.names = features,
+        cell.names = cells
+      )
+      object <- SetAssayData(object = object, slot = 'data', new.data = norm.data)
+    }
+  } else {
+    if (verbose) {
+      message("No normalized data provided, not adding scaled data")
+    }
+    scaled <- NULL
+  }
+  if (!is.null(x = scaled)) {
+    scaled <- basename(path = scaled)
+    if (!x[['layers']]$exists(name = scaled)) {
+      warning(
+        "Cannot find provided scaled data in the loom file",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      scaled <- NULL
+    } else {
+      if (verbose) {
+        message("Adding scaled data")
+      }
+      scale.data <- t(x = x[['layers']][[scaled]][, ])
+      rownames(x = scale.data) <- x[['row_attrs']][[features]][]
+      colnames(x = scale.data) <- x[['col_attrs']][[cells]][]
+      row.drop <- apply(
+        X = scale.data,
+        MARGIN = 1,
+        FUN = function(row) {
+          return(all(is.na(x = row)))
+        }
+      )
+      scale.data <- scale.data[!row.drop, , drop = FALSE]
+      object <- SetAssayData(
+        object = object,
+        slot = 'scale.data',
+        new.data = scale.data
+      )
+    }
+  } else if (verbose) {
+    message("No scaled data provided")
+  }
+  # Read in cell-level metadata
+  meta.data <- hdf5r::list.datasets(
+    object = x,
+    path = 'col_attrs',
+    full.names = FALSE,
+    recursive = FALSE
+  )
+  meta.data <- meta.data[-which(x = meta.data %in% c(cells, 'ClusterID', 'ClusterName'))]
+  meta.data <- Filter(
+    f = function(m) {
+      return(length(x = x[['col_attrs']][[m]]$dims) == 1)
+    },
+    x = meta.data
+  )
+  meta.data <- sapply(
+    X = meta.data,
+    FUN = function(m) {
+      return(x[['col_attrs']][[m]][])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  meta.data <- as.data.frame(x = meta.data)
+  rownames(x = meta.data) <- x[['col_attrs']][[cells]][]
+  colnames(x = meta.data) <- gsub(
+    pattern = 'orig_ident',
+    replacement = 'orig.ident',
+    x = colnames(x = meta.data)
+  )
+  object[[colnames(x = meta.data)]] <- meta.data
+  # Set clustering information
+  idents <- if (x[['col_attrs']]$exists(name = 'ClusterID')) {
+    x[['col_attrs/ClusterID']][]
+  } else {
+    NULL
+  }
+  if (x[['col_attrs']]$exists(name = 'ClusterName')) {
+    ident.order <- idents
+    idents <- x[['col_attrs/ClusterName']][]
+  } else {
+    ident.order <- NULL
+  }
+  if (!is.null(x = idents)) {
+    if (verbose) {
+      message("Setting cluster IDs")
+    }
+    names(x = idents) <- x[['col_attrs']][[cells]][]
+    levels <- if (is.null(x = ident.order)) {
+      idents
+    } else {
+      idents[order(ident.order)]
+    }
+    levels <- unique(x = levels)
+    idents <- factor(x = idents, levels = levels)
+    Idents(object = object) <- idents
+  } else if (verbose) {
+    message("No clustering information present")
+  }
+  # Read in feature-level metadata
+  meta.features <- hdf5r::list.datasets(
+    object = x,
+    path = 'row_attrs',
+    full.names = FALSE,
+    recursive = FALSE
+  )
+  meta.features <- meta.features[-which(x = meta.features %in% c(features, 'Selected'))]
+  meta.features <- Filter(
+    f = function(m) {
+      return(length(x = x[['row_attrs']][[m]]$dims) == 1)
+    },
+    x = meta.features
+  )
+  meta.features <- sapply(
+    X = meta.features,
+    FUN = function(m) {
+      return(x[['row_attrs']][[m]][])
+    },
+    simplify = FALSE,
+    USE.NAMES = TRUE
+  )
+  meta.features <- as.data.frame(x = meta.features)
+  rownames(x = meta.features) <- x[['row_attrs']][[features]][]
+  colnames(x = meta.features) <- gsub(
+    pattern = 'variance_standardized',
+    replacement = 'variance.standardized',
+    x = colnames(x = meta.features)
+  )
+  colnames(x = meta.features) <- gsub(
+    pattern = 'variance_expected',
+    replacement = 'variance.expected',
+    x = colnames(x = meta.features)
+  )
+  colnames(x = meta.features) <- gsub(
+    pattern = 'dispersion_scaled',
+    replacement = 'dispersion.scaled',
+    x = colnames(x = meta.features)
+  )
+  object[[assay]][[colnames(x = meta.features)]] <- meta.features
+  # Look for variable features
+  if (x[['row_attrs']]$exists(name = 'Selected')) {
+    if (inherits(x = x[['row_attrs/Selected']]$get_type(), what = c('H5T_FLOAT', 'H5T_INTEGER'))) {
+      var.features <- which(x = x[['row_attrs/Selected']][] == 1)
+      VariableFeatures(object = object) <- rownames(x = meta.features)[var.features]
+    } else if (verbose) {
+      message("'Selected' must be a dataset of floats or integers, with '1' signifiying variable")
+    }
+  }
+  # If scaled, look for dimensional reduction information
+  if (!is.null(x = scaled)) {
+    reductions <- hdf5r::list.datasets(
+      object = x,
+      path = 'col_attrs',
+      full.names = FALSE,
+      recursive = FALSE
+    )
+    reductions <- grep(
+      pattern = '_cell_embeddings$',
+      x = reductions,
+      value = TRUE
+    )
+    reductions <- Filter(
+      f = function(r) {
+        return(length(x = x[['col_attrs']][[r]]$dims) == 2)
+      },
+      x = reductions
+    )
+    reduc.names <- sapply(
+      X = strsplit(x = reductions, split = '_'),
+      FUN = '[',
+      1
+    )
+    reductions <- sapply(
+      X = reduc.names,
+      FUN = function(r) {
+        reducs <- grep(pattern = paste0('^', r), x = reductions, value = TRUE)
+        if (sum(grepl(pattern = assay, x = reducs)) == 1) {
+          return(grep(pattern = assay, x = reducs, value = TRUE))
+        }
+        return(reducs[which.min(x = nchar(x = reducs))])
+      },
+      USE.NAMES = FALSE
+    )
+    all.loadings <- grep(
+      pattern = '_feature_loadings[_projected]',
+      x = names(x = x[['row_attrs']]),
+      value = TRUE,
+      perl = TRUE
+    )
+    for (reduc in reductions) {
+      dim.name <- gsub(pattern = '_cell_embeddings', replacement = '', x = reduc)
+      if (verbose) {
+        message("Adding ", dim.name, " dimensional reduction information")
+      }
+      key <- switch(
+        EXPR = dim.name,
+        'pca' = 'PC',
+        'tsne' = 'tSNE',
+        toupper(x = dim.name)
+      )
+      key <- paste0(key, '_')
+      embeddings <- t(x = x[['col_attrs']][[reduc]][, ])
+      rownames(x = embeddings) <- x[['col_attrs']][[cells]][]
+      dr <- CreateDimReducObject(
+        embeddings = embeddings,
+        assay = assay,
+        key = key
+      )
+      loadings <- grep(pattern = dim.name, x = all.loadings, value = TRUE)
+      if (length(x = loadings) == 1) {
+        if (verbose) {
+          message("Pulling feature loadings for ", dim.name)
+        }
+        projected <- grepl(pattern = '_projected$', x = loadings)
+        loadings <- t(x = x[['row_attrs']][[loadings]][, ])
+        rownames(x = loadings) <- if (projected) {
+          x[['row_attrs']][[features]][]
+        } else {
+          rownames(x = GetAssayData(object = object, slot = 'scale.data'))
+        }
+        Loadings(object = dr, projected = projected) <- loadings
+      } else if (verbose) {
+        message("No loadings present for ", dim.name)
+      }
+      object[[dim.name]] <- dr
+    }
+  } else if (verbose) {
+    message("No scaled data, not searching for dimensional reduction information")
+  }
+  # If scaled, look for graphs
+  if (!is.null(x = scaled)) {
+    for (gname in names(x = x[['col_graphs']])) {
+      if (!grepl(pattern = paste0('^', assay), x = gname)) {
+        next
+      }
+      if (verbose) {
+        message("Loading graph ", gname)
+      }
+      graph <- sparseMatrix(
+        i = x[['col_graphs']][[gname]][['a']][] + 1,
+        j = x[['col_graphs']][[gname]][['b']][],
+        x = x[['col_graphs']][[gname]][['w']][]
+      )
+      rownames(x = graph) <- colnames(x = graph) <- x[['col_attrs']][[cells]][]
+      object[[gname]] <- as.Graph(x = graph)
+    }
+  } else if (verbose) {
+    message("No scaled data, not searching for nearest neighbor graphs")
+  }
+  return(object)
+}
+
 #' @param counts name of the SingleCellExperiment assay to store as \code{counts}
 #' @param data name of the SingleCellExperiment assay to slot as \code{data}
 #'
@@ -1673,147 +2180,6 @@ Command.Seurat <- function(object, command = NULL, value = NULL, ...) {
     stop(value, " is not a valid parameter for ", slot(object = command, name = "name"))
   }
   return(params[[value]])
-}
-
-#' @rdname Convert
-#' @export
-#' @method Convert anndata.base.AnnData
-#'
-Convert.anndata.base.AnnData <- function(...) {
-  .Defunct(new = 'ReadH5AD')
-}
-
-#' @param filename Filename for writing files
-#' @param chunk.dims Internal HDF5 chunk size
-#' @param chunk.size Number of cells to stream to loom file at a time
-#' @param overwrite Overwrite existing file at \code{filename}?
-#' @param display.progress Display a progress bar
-#' @param anndata.raw Name of matrix (raw.data, data) to put in the anndata raw slot
-#' @param anndata.X Name of matrix (data, scale.data) to put in the anndata X slot
-#'
-#' @importFrom methods as slot
-#' @importFrom reticulate import np_array tuple dict r_to_py
-#'
-#' @rdname Convert
-#' @export
-#' @method Convert seurat
-#'
-Convert.seurat <- function(
-  from,
-  to,
-  filename,
-  chunk.dims = 'auto',
-  chunk.size = 1000,
-  overwrite = FALSE,
-  display.progress = TRUE,
-  anndata.raw = "raw.data",
-  anndata.X = "data",
-  ...
-) {
-  object.to <- switch(
-    EXPR = to,
-    'loom' = {
-      stop("Converting to and from loom files is currently unavailable; we are working on restoring this functionality")
-      # if (!PackageCheck('loomR', error = FALSE)) {
-      #   stop("Please install loomR from GitHub before converting to a loom object")
-      # }
-      # # cell.order <- from@cell.names
-      # cell.order <- colnames(x = from)
-      # gene.order <- rownames(x = from)
-      # loomfile <- loomR::create(
-      #   filename = filename,
-      #   data = GetAssayData(object = from, slot = 'counts')[, cell.order],
-      #   cell.attrs = from[[]][cell.order, ],
-      #   layers = list('norm_data' = t(x = GetAssayData(object = from)[, cell.order])),
-      #   chunk.dims = chunk.dims,
-      #   chunk.size = chunk.size,
-      #   overwrite = overwrite,
-      #   display.progress = display.progress
-      # )
-      # if (nrow(x = HVFInfo(object = from)) > 0) {
-      #   hvg.info <- HVFInfo(object = from)
-      #   colnames(x = hvg.info) <- gsub(
-      #     pattern = '.',
-      #     replacement = '_',
-      #     x = colnames(x = hvg.info),
-      #     fixed = TRUE
-      #   )
-      #   loomfile$add.row.attribute(hvg.info[gene.order, ])
-      # }
-      # if (length(x = VariableFeatures(object = from)) > 0) {
-      #   loomfile$add.row.attribute(list('var_genes' = gene.order %in% VariableFeatures(object = from)))
-      # }
-      # if (!IsMatrixEmpty(x = GetAssayData(object = from, slot = 'scale.data'))) {
-      #   loomfile$add.layer(list(
-      #     'scale_data' = as.matrix(x = t(x = as.data.frame(x = GetAssayData(object = from, slot = 'scale.data'))[gene.order, cell.order]))
-      #   ))
-      # }
-      # for (dim.reduc in FilterObjects(object = from, classes.keep = 'DimReduc')) {
-      #   cell.embeddings <- Embeddings(object = from[[dim.reduc]])
-      #   ce.dims <- unique(x = dim(x = cell.embeddings))
-      #   if (length(x = ce.dims) != 1 || ce.dims != 0) {
-      #     if (nrow(x = cell.embeddings) < ncol(x = from@raw.data)) {
-      #       cell.embeddings.padded <- matrix(
-      #         nrow = ncol(x = from),
-      #         ncol = ncol(x = cell.embeddings)
-      #       )
-      #       if (is.null(x = rownames(x = cell.embeddings)) || is.null(x = colnames(x = from))) {
-      #         pad.order <- 1:nrow(x = cell.embeddings)
-      #       } else {
-      #         pad.order <- match(
-      #           x = rownames(x = cell.embeddings),
-      #           table = colnames(x = from)
-      #         )
-      #       }
-      #       cell.embeddings.padded[pad.order, ] <- cell.embeddings
-      #     } else if (nrow(x = cell.embeddings) > ncol(x = from)) {
-      #       stop("Cannot have more cells in the dimmensional reduction than in the dataset")
-      #     } else {
-      #       cell.embeddings.padded <- cell.embeddings
-      #     }
-      #     cell.embeddings.padded <- list(cell.embeddings.padded)
-      #     names(x = cell.embeddings.padded) <- paste0(dim.reduc, '_cell_embeddings')
-      #     loomfile$add.col.attribute(cell.embeddings.padded)
-      #   }
-      #   gene.loadings <- Loadings(object = from[[dim.reduc]])
-      #   gl.dims <- unique(x = dim(x = gene.loadings))
-      #   if (length(x = gl.dims) == 1 && gl.dims == 0) {
-      #     gene.loadings <- Loadings(object = from[[dim.reduc]], projected = TRUE)
-      #   }
-      #   gl.dims <- unique(x = dim(x = gene.loadings))
-      #   if (length(x = gl.dims) != 1 || gl.dims != 0) {
-      #     if (nrow(x = gene.loadings) < nrow(x = from@raw.data)) {
-      #       gene.loadings.padded <- matrix(
-      #         nrow = nrow(x = from),
-      #         ncol = ncol(x = gene.loadings)
-      #       )
-      #       if (is.null(x = rownames(x = gene.loadings)) || is.null(x = rownames(x = from))) {
-      #         pad.order <- seq_len(nrow(x = gene.loadings))
-      #       } else {
-      #         pad.order <- match(
-      #           x = rownames(x = gene.loadings),
-      #           table = rownames(x = from)
-      #         )
-      #       }
-      #       gene.loadings.padded[pad.order, ] <- gene.loadings
-      #     } else if (nrow(x = gene.loadings) > nrow(x = from)) {
-      #       stop("Cannot have more genes in the dimmensional reduction than in the dataset")
-      #     } else {
-      #       gene.loadings.padded <- gene.loadings
-      #     }
-      #     gene.loadings.padded <- list(gene.loadings.padded)
-      #     names(x = gene.loadings.padded) <- paste0(dim.reduc, '_gene_loadings')
-      #     loomfile$add.row.attribute(gene.loadings.padded)
-      #   }
-      # }
-      # loomfile
-    },
-    'anndata' = {
-      .Defunct(new = 'WriteH5AD', msg = "Use WriteH5AD to store Seurat objects as h5ad")
-    },
-    stop(paste0("Cannot convert Seurat objects to class '", to, "'"))
-  )
-  return(object.to)
 }
 
 #' @rdname DefaultAssay
@@ -2464,6 +2830,22 @@ OldWhichCells.Seurat <- function(
   return(cells)
 }
 
+#' @rdname Project
+#' @export
+#' @method Project Seurat
+#'
+Project.Seurat <- function(object, ...) {
+  return(slot(object = object, name = 'project.name'))
+}
+
+#' @rdname Project
+#' @export
+#' @method Project<- Seurat
+#'
+"Project<-.Seurat" <- function(object, ..., value) {
+  slot(object = object, name = 'project.name') <- as.character(x = value)
+  return(object)
+}
 
 #' @param reverse Reverse ordering
 #' @param afxn Function to evaluate each identity class based on; default is
