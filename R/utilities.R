@@ -888,8 +888,8 @@ MinMax <- function(data, min, max) {
 #' @param assay Assay to use
 #' 
 #' @return Returns a Seurat object with the proportion of the feature set stored in metadata.
-#' 
 #' @importFrom Matrix colSums
+#' @export
 #' 
 #' @examples 
 #' # Calculate the proportion of transcripts mapping to mitochondrial genes 
