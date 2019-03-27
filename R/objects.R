@@ -1153,6 +1153,22 @@ UpdateSeuratObject <- function(object) {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Assay
+#'
+AddMetaData.Assay <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
+#' @rdname AddMetaData
+#' @export
+#' @method AddMetaData Seurat
+#'
+AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
+  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
+}
+
 #' @rdname as.Graph
 #' @export
 #' @method as.Graph Matrix
@@ -4170,22 +4186,6 @@ WriteH5AD.Seurat <- function(
     data.return <- slot(object = x, name = slot.use)[[i]]
   }
   return(data.return)
-}
-
-#' @rdname AddMetaData
-#' @export
-#' @method AddMetaData Assay
-#'
-AddMetaData.Assay <- function(object, metadata, col.name = NULL) {
-  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
-}
-
-#' @rdname AddMetaData
-#' @export
-#' @method AddMetaData Seurat
-#'
-AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
-  return(.AddMetaData(object = object, metadata = metadata, col.name = col.name))
 }
 
 #' @export
