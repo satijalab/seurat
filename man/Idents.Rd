@@ -3,9 +3,9 @@
 \name{Idents}
 \alias{Idents}
 \alias{Idents<-}
-\alias{ReorderIdent}
 \alias{RenameIdents}
 \alias{RenameIdent}
+\alias{ReorderIdent}
 \alias{SetIdent}
 \alias{StashIdent}
 \alias{Idents.Seurat}
@@ -22,9 +22,9 @@ Idents(object, ...)
 
 Idents(object, ...) <- value
 
-ReorderIdent(object, var, ...)
-
 RenameIdents(object, ...)
+
+ReorderIdent(object, var, ...)
 
 SetIdent(object, ...)
 
@@ -39,6 +39,9 @@ StashIdent(object, save.name, ...)
   afxn = mean, reorder.numeric = FALSE, ...)
 
 \method{RenameIdents}{Seurat}(object, ...)
+
+\method{ReorderIdent}{Seurat}(object, var, reverse = FALSE,
+  afxn = mean, reorder.numeric = FALSE, ...)
 
 \method{SetIdent}{Seurat}(object, cells = NULL, value, ...)
 
@@ -72,15 +75,23 @@ passed on to \code{\link{FetchData}}}
 starting from 1 (default is FALSE)}
 
 \item{x, object}{An object}
+
+\item{reverse}{Reverse ordering}
+
+\item{afxn}{Function to evaluate each identity class based on; default is
+\code{\link[base]{mean}}}
+
+\item{reorder.numeric}{Rename all identity classes to be increasing numbers
+starting from 1 (default is FALSE)}
 }
 \value{
 \code{Idents}: The cell identies
 
 \code{Idents<-}: An object with the cell identites changed
 
-\code{ReorderIdent}: An object with
-
 \code{RenameIdents}: An object with selected identity classes renamed
+
+\code{ReorderIdent}: An object with
 
 \code{SetIdent}: An object with new identity classes set
 
@@ -103,17 +114,17 @@ pbmc_small$groups <- sample(x = c('g1', 'g2'), size = ncol(x = pbmc_small), repl
 Idents(object = pbmc_small) <- 'groups'
 levels(x = pbmc_small)
 
-\dontrun{
-head(x = Idents(object = pbmc_small))
-pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
-head(x = Idents(object = pbmc_small))
-}
-
 # Rename cell identity classes
 # Can provide an arbitrary amount of idents to rename
 levels(x = pbmc_small)
 pbmc_small <- RenameIdents(object = pbmc_small, 'g1' = 'clusterA', 'g2' = 'clusterB')
 levels(x = pbmc_small)
+
+\dontrun{
+head(x = Idents(object = pbmc_small))
+pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+head(x = Idents(object = pbmc_small))
+}
 
 # Set cell identity classes using SetIdent
 ident.levels <- levels(x = pbmc_small)

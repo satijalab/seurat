@@ -562,6 +562,17 @@ Project <- function(object, ...) {
   UseMethod(generic = 'Project', object = object)
 }
 
+#' @param value Project information to set
+#'
+#' @return An object with project information added
+#'
+#' @rdname Project
+#' @export Project<-
+#'
+"Project<-" <- function(object, ..., value) {
+  UseMethod(generic = 'Project<-', object = object)
+}
+
 #' Read from and write to h5ad files
 #'
 #' Utilize the Anndata h5ad file format for storing and sharing single-cell expression
@@ -613,37 +624,6 @@ ReadH5AD <- function(file, ...) {
   UseMethod(generic = 'ReadH5AD', object = file)
 }
 
-#' @param value Project information to set
-#'
-#' @return An object with project information added
-#'
-#' @rdname Project
-#' @export Project<-
-#'
-"Project<-" <- function(object, ..., value) {
-  UseMethod(generic = 'Project<-', object = object)
-}
-
-#' @inheritParams Idents
-#' @param var Feature or variable to order on
-#'
-#' @return \code{ReorderIdent}: An object with
-#'
-#' @rdname Idents
-#' @export ReorderIdent
-#' @aliases ReorderIdent
-#'
-#' @examples
-#' \dontrun{
-#' head(x = Idents(object = pbmc_small))
-#' pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
-#' head(x = Idents(object = pbmc_small))
-#' }
-#'
-ReorderIdent <- function(object, var, ...) {
-  UseMethod(generic = 'ReorderIdent', object = object)
-}
-
 #' Rename cells
 #'
 #' Change the cell names in all the different parts of an object. Can
@@ -678,6 +658,26 @@ RenameCells <- function(object, ...) {
 #'
 RenameIdents <- function(object, ...) {
   UseMethod(generic = 'RenameIdents', object = object)
+}
+
+#' @inheritParams Idents
+#' @param var Feature or variable to order on
+#'
+#' @return \code{ReorderIdent}: An object with
+#'
+#' @rdname Idents
+#' @export ReorderIdent
+#' @aliases ReorderIdent
+#'
+#' @examples
+#' \dontrun{
+#' head(x = Idents(object = pbmc_small))
+#' pbmc_small <- ReorderIdent(object = pbmc_small, vars = 'PC_1')
+#' head(x = Idents(object = pbmc_small))
+#' }
+#'
+ReorderIdent <- function(object, var, ...) {
+  UseMethod(generic = 'ReorderIdent', object = object)
 }
 
 #' Run Adaptively-thresholded Low Rank Approximation (ALRA)

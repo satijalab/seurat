@@ -938,17 +938,6 @@ StopCellbrowser <- function() {
 # Methods for Seurat-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-#' @importFrom methods as
-#' @importClassesFrom Matrix dgCMatrix
-#'
-#' @rdname as.sparse
-#' @export
-#' @method as.sparse data.frame
-#'
-as.sparse.data.frame <- function(x, ...) {
-  return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
-}
-
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Methods for R-defined generics
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
