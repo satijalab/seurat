@@ -1691,7 +1691,6 @@ ProjectCellEmbeddings <- function(
     feature.sd[is.na(x = feature.sd)] <- 1
     feature.mean[is.na(x = feature.mean)] <- 1
   }
-  query.feature.mean <- rowMeans(x = query.data)
   proj.data <- GetAssayData(
     object = query,
     assay = query.assay,
