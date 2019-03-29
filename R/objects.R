@@ -1235,6 +1235,11 @@ as.Graph.matrix <- function(x, ...) {
 #' @export
 #' @method as.loom Seurat
 #'
+#' @examples
+#' \dontrun{
+#' lfile <- as.loom(x = pbmc_small)
+#' }
+#'
 as.loom.Seurat <- function(
   x,
   assay = NULL,
@@ -1405,6 +1410,12 @@ as.loom.Seurat <- function(
 #' @rdname as.Seurat
 #' @export
 #' @method as.Seurat loom
+#'
+#' @examples
+#' \dontrun{
+#' lfile <- as.loom(x = pbmc_small)
+#' pbmc <- as.Seurat(x = lfile)
+#' }
 #'
 as.Seurat.loom <- function(
   x,

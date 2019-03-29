@@ -59,6 +59,12 @@ will not be filled, since those depend on scaled data. The following is a list o
   \item Assay information will be stored as an HDF5 attribute called \code{assay} at the root level
 }
 }
+\examples{
+\dontrun{
+lfile <- as.loom(x = pbmc_small)
+}
+
+}
 \seealso{
 \code{\link[loomR]{create}}
 }

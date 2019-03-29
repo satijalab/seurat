@@ -66,3 +66,10 @@ will not be pulled as these depend on normalized data. The following is a list o
   with the value of \code{assay}
 }
 }
+\examples{
+\dontrun{
+lfile <- as.loom(x = pbmc_small)
+pbmc <- as.Seurat(x = lfile)
+}
+
+}

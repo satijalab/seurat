@@ -1099,7 +1099,7 @@ RunTSNE.Seurat <- function(
       add.iter = add.iter,
       dim.embed = dim.embed,
       reduction.key = reduction.key,
-      is_distance = TRUE, 
+      is_distance = TRUE,
       ...
     )
   } else if (!is.null(x = dims)) {
@@ -1500,6 +1500,10 @@ ScoreJackStraw.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Methods for R-defined generics
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
