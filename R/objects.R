@@ -1416,7 +1416,7 @@ as.Seurat.loom <- function(
   verbose = TRUE,
   ...
 ) {
-  # Shouldn't be necessary but ¯\_(ツ)_/¯
+  # Shouldn't be necessary but shrug
   if (!PackageCheck('loomR', error = FALSE)) {
     stop("Please install loomR")
   }
