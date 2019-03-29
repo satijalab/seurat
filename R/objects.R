@@ -1181,9 +1181,7 @@ AddMetaData.Seurat <- function(object, metadata, col.name = NULL) {
 #' g <- as.Graph(x = mat)
 #'
 as.Graph.Matrix <- function(x, ...) {
-  if (!inherits(x = x, what = 'dgCMatrix')) {
-    x <- as(object = x, Class = 'dgCMatrix')
-  }
+  x <- as.sparse(x = x)
   if (is.null(x = rownames(x = x))) {
     stop("Please provide rownames to the matrix before converting to a Graph.")
   }
@@ -1813,6 +1811,17 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
   return(sce)
 }
 
+#' @importFrom methods as
+#' @importClassesFrom Matrix dgCMatrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse data.frame
+#'
+as.sparse.data.frame <- function(x, ...) {
+  return(as(object = as.matrix(x = x), Class = 'dgCMatrix'))
+}
+
 #' @importFrom methods is
 #' @importFrom Matrix sparseMatrix
 #'
@@ -1822,7 +1831,7 @@ as.SingleCellExperiment.Seurat <- function(x, assay = NULL, ...) {
 #'
 as.sparse.H5Group <- function(x, ...) {
   for (i in c('data', 'indices', 'indptr')) {
-    if (!x$exists(name = i) && is(object = x[[i]], class2 = 'H5D')) {
+    if (!x$exists(name = i) || !is(object = x[[i]], class2 = 'H5D')) {
       stop("Invalid H5Group specification for a sparse matrix, missing dataset ", i)
     }
   }
@@ -1831,6 +1840,25 @@ as.sparse.H5Group <- function(x, ...) {
     p = x[['indptr']][],
     x = x[['data']][]
   ))
+}
+
+#' @importFrom methods as
+#' @importClassesFrom Matrix dgCMatrix
+#'
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse Matrix
+#'
+as.sparse.Matrix <- function(x, ...) {
+  return(as(object = x, Class = 'dgCMatrix'))
+}
+
+#' @rdname as.sparse
+#' @export
+#' @method as.sparse matrix
+#'
+as.sparse.matrix <- function(x, ...) {
+  return(as.sparse.Matrix(x = x, ...))
 }
 
 #' @rdname Cells
@@ -2902,29 +2930,38 @@ ReorderIdent.Seurat <- function(
     },
     no = Same
   )
-  new.levels <- names(x = rfxn(x = sort(x = tapply(
-    X = data.use,
-    INDEX = Idents(object = object),
-    FUN = afxn
-  ))))
-  new.idents <- factor(
-    x = Idents(object = object),
-    levels = new.levels,
-    ordered = TRUE
+  object <- new(
+    Class = 'Seurat',
+    assays = assays,
+    meta.data = obs,
+    version = packageVersion(pkg = 'Seurat'),
+    project.name = project
   )
-  if (reorder.numeric) {
-    new.idents <- rfxn(x = rank(x = tapply(
-      X = data.use,
-      INDEX = as.numeric(x = new.idents),
-      FUN = mean
-    )))[as.numeric(x = new.idents)]
-    new.idents <- factor(
-      x = new.idents,
-      levels = 1:length(x = new.idents),
-      ordered = TRUE
-    )
+  # Set default assay and identity information
+  DefaultAssay(object = object) <- assay
+  Idents(object = object) <- project
+  # Add dimensional reduction infrom
+  if (scaled && length(x = dim.reducs) >= 1) {
+    for (r in names(x = dim.reducs)) {
+      object[[r]] <- dim.reducs[[r]]
+    }
   }
-  Idents(object = object) <- new.idents
+  # Get graph information
+  if (scaled && file$exists(name = 'uns') && file$exists(name = 'uns/neighbors')) {
+    if (verbose) {
+      message("Finding nearest neighbor graph")
+    }
+    graph <- as.sparse(x = file[['uns/neighbors/distances']])
+    colnames(x = graph) <- rownames(x = graph) <- colnames(x = object)
+    method <- ifelse(
+      test = file[['uns/neighbors/params']]$exists(name = 'method'),
+      yes = file[['uns/neighbors/params/method']][],
+      no = 'adata'
+    )
+    object[[paste(assay, method, sep = '_')]] <- as.Graph(x = graph)
+  } else if (verbose) {
+    message("No nearest-neighbor graph")
+  }
   return(object)
 }
 
@@ -3080,6 +3117,58 @@ RenameIdents.Seurat <- function(object, ...) {
     }
     Idents(object = object, cells = cells.idents[[i]]) <- ident.pairs[[i]]
   }
+  return(object)
+}
+
+#' @param reverse Reverse ordering
+#' @param afxn Function to evaluate each identity class based on; default is
+#' \code{\link[base]{mean}}
+#' @param reorder.numeric Rename all identity classes to be increasing numbers
+#' starting from 1 (default is FALSE)
+#'
+#' @rdname Idents
+#' @export
+#' @method ReorderIdent Seurat
+#'
+ReorderIdent.Seurat <- function(
+  object,
+  var,
+  reverse = FALSE,
+  afxn = mean,
+  reorder.numeric = FALSE,
+  ...
+) {
+  data.use <- FetchData(object = object, vars = var, ...)[, 1]
+  rfxn <- ifelse(
+    test = reverse,
+    yes = function(x) {
+      return(max(x) + 1 - x)
+    },
+    no = Same
+  )
+  new.levels <- names(x = rfxn(x = sort(x = tapply(
+    X = data.use,
+    INDEX = Idents(object = object),
+    FUN = afxn
+  ))))
+  new.idents <- factor(
+    x = Idents(object = object),
+    levels = new.levels,
+    ordered = TRUE
+  )
+  if (reorder.numeric) {
+    new.idents <- rfxn(x = rank(x = tapply(
+      X = data.use,
+      INDEX = as.numeric(x = new.idents),
+      FUN = mean
+    )))[as.numeric(x = new.idents)]
+    new.idents <- factor(
+      x = new.idents,
+      levels = 1:length(x = new.idents),
+      ordered = TRUE
+    )
+  }
+  Idents(object = object) <- new.idents
   return(object)
 }
 

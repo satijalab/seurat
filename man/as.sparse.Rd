@@ -2,16 +2,22 @@
 % Please edit documentation in R/generics.R, R/objects.R, R/utilities.R
 \name{as.sparse}
 \alias{as.sparse}
-\alias{as.sparse.H5Group}
 \alias{as.sparse.data.frame}
+\alias{as.sparse.H5Group}
+\alias{as.sparse.Matrix}
+\alias{as.sparse.matrix}
 \alias{as.data.frame.Matrix}
 \title{Convert between data frames and sparse matrices}
 \usage{
 as.sparse(x, ...)
 
+\method{as.sparse}{data.frame}(x, ...)
+
 \method{as.sparse}{H5Group}(x, ...)
 
-\method{as.sparse}{data.frame}(x, ...)
+\method{as.sparse}{Matrix}(x, ...)
+
+\method{as.sparse}{matrix}(x, ...)
 
 \method{as.data.frame}{Matrix}(x, row.names = NULL, optional = FALSE,
   ..., stringsAsFactors = default.stringsAsFactors())
