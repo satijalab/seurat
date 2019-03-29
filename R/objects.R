@@ -1536,13 +1536,21 @@ as.Seurat.loom <- function(
   object[[colnames(x = meta.data)]] <- meta.data
   # Set clustering information
   idents <- if (x[['col_attrs']]$exists(name = 'ClusterID')) {
-    x[['col_attrs/ClusterID']][]
+    if (length(x = x[['col_attrs/ClusterID']]$dims) == 1) {
+      x[['col_attrs/ClusterID']][]
+    } else {
+      NULL
+    }
   } else {
     NULL
   }
   if (x[['col_attrs']]$exists(name = 'ClusterName')) {
-    ident.order <- idents
-    idents <- x[['col_attrs/ClusterName']][]
+    if (length(x = x[['col_attrs/ClusterName']]$dims) == 1) {
+      ident.order <- idents
+      idents <- x[['col_attrs/ClusterName']][]
+    } else {
+      ident.order <- NULL
+    }
   } else {
     ident.order <- NULL
   }
