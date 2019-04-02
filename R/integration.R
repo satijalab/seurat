@@ -1288,6 +1288,7 @@ FindAnchors <- function(
       object = object.pair,
       assay = DefaultAssay(object = object.pair),
       integration.name = "integrated",
+      verbose = verbose,
       k.score = k.score
     )
   }
