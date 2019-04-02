@@ -696,13 +696,14 @@ DietSeurat <- function(
         if (data) {
           slot(object = object[[assay]], name = 'data') <- slot(object = object[[assay]], name = 'data')[features.assay, ]
         } else {
-          slot(object = object[[assay]], name = 'data') <- new(class = 'matrix')
+          stop('data = FALSE currently not supported')
+          slot(object = object[[assay]], name = 'data') <- new(Class = 'matrix')
         }
         features.scaled <- features.assay[features.assay %in% rownames(x = slot(object = object[[assay]], name = 'scale.data'))]
         if (scale.data && length(x = features.scaled) > 0) {
           slot(object = object[[assay]], name = 'scale.data') <-  slot(object = object[[assay]], name = 'scale.data')[features.scaled, ]
         } else {
-          slot(object = object[[assay]], name = 'scale.data') <- new(class = 'matrix')
+          slot(object = object[[assay]], name = 'scale.data') <- new(Class = 'matrix')
         }
       }
     }
