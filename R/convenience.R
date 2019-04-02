@@ -10,19 +10,10 @@ NULL
 #' @rdname DimHeatmap
 #' @export
 #'
-PCAHeatmap <- function(object, ...) {
-  name <- as.character(x = sys.calls()[[1]])[1]
-  name <- tolower(x = gsub(pattern = 'Heatmap', replacement = '', x = name))
+PCHeatmap <- function(object, ...) {
   args <- list('object' = object)
   args <- c(args, list(...))
-  reduc <- grep(
-    pattern = name,
-    x = names(x = object),
-    value = TRUE,
-    ignore.case = TRUE
-  )
-  reduc <- grep(pattern = DefaultAssay(object = object), x = reduc, value = TRUE)
-  args$reduction <- ifelse(test = length(x = reduc) == 1, yes = reduc, no = name)
+  args$reduction <- "pca"
   return(do.call(what = 'DimHeatmap', args = args))
 }
 

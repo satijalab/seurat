@@ -2,7 +2,7 @@
 % Please edit documentation in R/visualization.R, R/convenience.R
 \name{DimHeatmap}
 \alias{DimHeatmap}
-\alias{PCAHeatmap}
+\alias{PCHeatmap}
 \title{Dimensional reduction heatmap}
 \usage{
 DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
@@ -10,7 +10,7 @@ DimHeatmap(object, dims = 1, nfeatures = 30, cells = NULL,
   balanced = TRUE, projected = FALSE, ncol = NULL, combine = TRUE,
   fast = TRUE, raster = TRUE, slot = "scale.data", assays = NULL)
 
-PCAHeatmap(object, ...)
+PCHeatmap(object, ...)
 }
 \arguments{
 \item{object}{Seurat object}
