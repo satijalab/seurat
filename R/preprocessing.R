@@ -885,12 +885,13 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 #' https://github.com/ChristophH/sctransform.
 #' Use this function as an alternative to the NormalizeData,
 #' FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-#' called SCT with counts being (corrected) counts, data being log1p(counts),
+#' (named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 #' scale.data being pearson residuals; sctransform::vst intermediate results are saved
 #' in misc slot of new assay.
 #'
 #' @param object A seurat object
 #' @param assay Name of assay to pull the count data from; default is 'RNA'
+#' @param new.assay.name Name for the new assay containing the normalized data
 #' @param do.correct.umi Place corrected UMI matrix in assay counts slot; default is TRUE
 #' @param variable.features.n Use this many features as variable features after
 #' ranking by residual variance; default is 3000
@@ -918,6 +919,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
 SCTransform <- function(
   object,
   assay = 'RNA',
+  new.assay.name = 'SCT',
   do.correct.umi = TRUE,
   variable.features.n = 3000,
   variable.features.rv.th = 1.3,
@@ -1086,11 +1088,11 @@ SCTransform <- function(
   vst.out$y <- NULL
   assay.out@misc <- list(vst.out = vst.out)
 
-  object[["SCT"]] <- assay.out
+  object[[new.assay.name]] <- assay.out
   if (verbose) {
     message("Setting default assay to SCT")
   }
-  DefaultAssay(object = object) <- "SCT"
+  DefaultAssay(object = object) <- new.assay.name
   object <- LogSeuratCommand(object = object)
   return(object)
 }
