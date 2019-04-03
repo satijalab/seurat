@@ -1958,7 +1958,17 @@ ScaleData.default <- function(
     gc(verbose = FALSE)
   }
   if (verbose) {
-    message("Scaling data matrix")
+    if (do.scale) {
+      if (do.center) {
+        message("Centering and scaling data matrix")
+      } else {
+        message("Scaling data matrix")
+      }
+    } else {
+      if (do.center) {
+        message("Centering data matrix")
+      }
+    }
   }
   if (inherits(x = object, what = c('dgCMatrix', 'dgTMatrix'))) {
     scale.function <- FastSparseRowScale
