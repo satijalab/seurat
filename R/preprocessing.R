@@ -1090,7 +1090,7 @@ SCTransform <- function(
 
   object[[new.assay.name]] <- assay.out
   if (verbose) {
-    message("Setting default assay to SCT")
+    message(paste("Setting default assay to", new.assay.name))
   }
   DefaultAssay(object = object) <- new.assay.name
   object <- LogSeuratCommand(object = object)
