@@ -359,10 +359,20 @@ CreateAssayObject <- function(
   } else if (!missing(x = counts)) {
     # check that dimnames of input counts are unique
     if (anyDuplicated(rownames(x = counts))) {
-      stop("Non-unique features (rownames) present in the input matrix")
+      warning(
+        "Non-unique features (rownames) present in the input matrix, making unique",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      rownames(x = counts) <- make.unique(names = rownames(x = counts))
     }
     if (anyDuplicated(colnames(x = counts))) {
-      stop("Non-unique cell names (colnames) present in the input matrix")
+      warning(
+        "Non-unique cell names (colnames) present in the input matrix, making unique",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      colnames(x = counts) <- make.unique(names = colnames(x = counts))
     }
     if (is.null(x = colnames(x = counts))) {
       stop("No cell names (colnames) names present in the input matrix")
@@ -387,9 +397,20 @@ CreateAssayObject <- function(
   } else if (!missing(x = data)) {
     # check that dimnames of input data are unique
     if (anyDuplicated(rownames(x = data))) {
-      stop("Non-unique features (rownames) present in the input matrix")
+      warning(
+        "Non-unique features (rownames) present in the input matrix, making unique",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      rownames(x = data) <- make.unique(names = rownames(x = data))
     }
     if (anyDuplicated(colnames(x = data))) {
+      warning(
+        "Non-unique cell names (colnames) present in the input matrix, making unique",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+      colnames(x = data) <- make.unique(names = colnames(x = data))
       stop("Non-unique cell names (colnames) present in the input matrix")
     }
     if (is.null(x = colnames(x = data))) {
@@ -1537,7 +1558,7 @@ as.Seurat.loom <- function(
     USE.NAMES = TRUE
   )
   meta.data <- as.data.frame(x = meta.data)
-  rownames(x = meta.data) <- x[['col_attrs']][[cells]][]
+  rownames(x = meta.data) <- make.unique(names = x[['col_attrs']][[cells]][])
   colnames(x = meta.data) <- gsub(
     pattern = 'orig_ident',
     replacement = 'orig.ident',
@@ -1603,7 +1624,7 @@ as.Seurat.loom <- function(
     USE.NAMES = TRUE
   )
   meta.features <- as.data.frame(x = meta.features)
-  rownames(x = meta.features) <- x[['row_attrs']][[features]][]
+  rownames(x = meta.features) <- make.unique(names = x[['row_attrs']][[features]][])
   colnames(x = meta.features) <- gsub(
     pattern = 'variance_standardized',
     replacement = 'variance.standardized',

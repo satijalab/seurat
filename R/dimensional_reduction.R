@@ -554,7 +554,6 @@ RunICA.default <- function(
   return(reduction.data)
 }
 
-
 #' @param features Features to compute ICA on
 #'
 #' @rdname RunICA
@@ -770,7 +769,6 @@ RunLSI.Seurat <- function(
   object <- LogSeuratCommand(object = object)
   return(object)
 }
-
 
 #' @param assay Name of Assay PCA is being run on
 #' @param npcs Total Number of PCs to compute and store (50 by default)
