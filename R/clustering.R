@@ -213,6 +213,7 @@ FindNeighbors.default <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  method='RANN',
   ...
 ) {
   if (is.null(x = dim(x = object))) {
@@ -238,12 +239,20 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
-    my.knn <- nn2(
+    if (method=='RANN') {
+      my.knn <- nn2(
       data = object,
       k = k.param,
       searchtype = 'standard',
       eps = nn.eps)
-    nn.ranked <- my.knn$nn.idx
+      nn.ranked <- my.knn$nn.idx
+    }
+    if (method=='Annoy') {
+      my.knn <- uwot:::find_nn(
+        X = object,
+        k = k.param,include_self = T,method = 'annoy',...)
+      nn.ranked <- my.knn$idx
+    }
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -292,6 +301,7 @@ FindNeighbors.Assay <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  method = 'RANN',
   ...
 ) {
   features <- features %||% VariableFeatures(object = object)
@@ -303,7 +313,8 @@ FindNeighbors.Assay <- function(
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
     verbose = verbose,
-    force.recalc = force.recalc
+    force.recalc = force.recalc,
+    method = method
   )
   return(neighbor.graphs)
 }
@@ -320,6 +331,7 @@ FindNeighbors.dist <- function(
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
+  method = 'RANN',
   ...
 ) {
   return(FindNeighbors(
@@ -331,6 +343,7 @@ FindNeighbors.dist <- function(
     nn.eps = nn.eps,
     verbose = verbose,
     force.recalc = force.recalc,
+    method = method,
     ...
   ))
 }
@@ -363,6 +376,7 @@ FindNeighbors.Seurat <- function(
   force.recalc = FALSE,
   do.plot = FALSE,
   graph.name = NULL,
+  method = "RANN",
   ...
 ) {
   if (!is.null(x = dims)) {
@@ -379,7 +393,9 @@ FindNeighbors.Seurat <- function(
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      method = method,
+      ...
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
@@ -392,7 +408,9 @@ FindNeighbors.Seurat <- function(
       prune.SNN = prune.SNN,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc
+      force.recalc = force.recalc,
+      method = method,
+      ...
     )
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
