@@ -411,7 +411,6 @@ CreateAssayObject <- function(
         immediate. = TRUE
       )
       colnames(x = data) <- make.unique(names = colnames(x = data))
-      stop("Non-unique cell names (colnames) present in the input matrix")
     }
     if (is.null(x = colnames(x = data))) {
       stop("No cell names (colnames) names present in the input matrix")
