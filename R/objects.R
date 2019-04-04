@@ -2670,7 +2670,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     x.var <- x.var[, -which(x = colnames(x = x.var) %in% colnames(x = raw.var))]
     meta.features <- merge(x = raw.var, y = x.var, by = 0, all = TRUE)
     rownames(x = meta.features) <- meta.features$Row.names
-    meta.features <- meta.features[, -which(x = colnames(x = meta.features) == 'Row.names')]
+    meta.features <- meta.features[, -which(x = colnames(x = meta.features) == 'Row.names'), drop = FALSE]
     rm(raw.var)
   } else {
     meta.features <- x.var
@@ -2761,7 +2761,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     hvf.info <- hvf.info[order(hvf.info$dispersion, decreasing = TRUE), , drop = FALSE]
     means.use <- (hvf.info$mean > 0.1) & (hvf.info$mean < 8)
     dispersions.use <- (hvf.info$dispersion.scaled > 1) & (hvf.info$dispersion.scaled < Inf)
-    top.features <- rownames(x = hvf.info)[which(means.use & dispersions.use)]
+    top.features <- rownames(x = hvf.info)[which(x = means.use & dispersions.use)]
     VariableFeatures(object = assays[[assay]]) <- top.features
   } else if (verbose) {
     message("No variable feature expression found in h5ad file")
