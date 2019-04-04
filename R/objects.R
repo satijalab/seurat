@@ -2627,10 +2627,11 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   if (verbose) {
     message("Pulling expression matrices and metadata")
   }
-  x <- if (is(object = file[['X']], class2 = 'H5Group')) {
-    as.sparse(x = file[['X']])
+  if (is(object = file[['X']], class2 = 'H5Group')) {
+    x <- as.sparse(x = file[['X']])
+    slot(object = x, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
   } else {
-    file[['X']][, ]
+    x <- file[['X']][, ]
   }
   # x will be an S3 matrix if X was scaled, otherwise will be a dgCMatrix
   scaled <- is.matrix(x = x)
@@ -2645,6 +2646,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   # Pull raw expression matrix and feature-level metadata
   if (file$exists(name = 'raw.X')) {
     raw <- as.sparse(x = file[['raw.X']])
+    slot(object = raw, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
     raw.var <- file[['raw.var']][]
     rownames(x = raw) <- rownames(x = raw.var) <- raw.var$index
     colnames(x = raw) <- obs$index
