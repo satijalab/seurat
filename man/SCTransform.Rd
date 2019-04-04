@@ -4,10 +4,10 @@
 \alias{SCTransform}
 \title{Use regularized negative binomial regression to normalize UMI count data}
 \usage{
-SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
-  variable.features.n = 3000, variable.features.rv.th = 1.3,
-  return.dev.residuals = FALSE, vars.to.regress = NULL,
-  do.scale = FALSE, do.center = TRUE,
+SCTransform(object, assay = "RNA", new.assay.name = "SCT",
+  do.correct.umi = TRUE, variable.features.n = 3000,
+  variable.features.rv.th = 1.3, return.dev.residuals = FALSE,
+  vars.to.regress = NULL, do.scale = FALSE, do.center = TRUE,
   clip.range = c(-sqrt(ncol(object[[assay]])/30),
   sqrt(ncol(object[[assay]])/30)), return.only.var.genes = FALSE,
   seed.use = 1448145, verbose = TRUE, ...)
@@ -16,6 +16,8 @@ SCTransform(object, assay = "RNA", do.correct.umi = TRUE,
 \item{object}{A seurat object}
 
 \item{assay}{Name of assay to pull the count data from; default is 'RNA'}
+
+\item{new.assay.name}{Name for the new assay containing the normalized data}
 
 \item{do.correct.umi}{Place corrected UMI matrix in assay counts slot; default is TRUE}
 
@@ -53,7 +55,7 @@ This function calls sctransform::vst. The sctransform package is available at
 https://github.com/ChristophH/sctransform.
 Use this function as an alternative to the NormalizeData,
 FindVariableFeatures, ScaleData workflow. Results are saved in a new assay
-called SCT with counts being (corrected) counts, data being log1p(counts),
+(named SCT by default) with counts being (corrected) counts, data being log1p(counts),
 scale.data being pearson residuals; sctransform::vst intermediate results are saved
 in misc slot of new assay.
 }

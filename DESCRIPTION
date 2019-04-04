@@ -64,6 +64,8 @@ Collate:
     'RcppExports.R'
     'generics.R'
     'clustering.R'
+    'visualization.R'
+    'convenience.R'
     'data.R'
     'differential_expression.R'
     'dimensional_reduction.R'
@@ -72,7 +74,6 @@ Collate:
     'preprocessing.R'
     'tree.R'
     'utilities.R'
-    'visualization.R'
 RoxygenNote: 6.1.1
 Encoding: UTF-8
 Suggests:
