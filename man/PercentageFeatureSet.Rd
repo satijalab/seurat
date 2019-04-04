@@ -5,7 +5,7 @@
 \title{Calculate the percentage of all counts that belong to a given set of features}
 \usage{
 PercentageFeatureSet(object, pattern = NULL, features = NULL,
-  assay = NULL)
+  col.name = NULL, assay = NULL)
 }
 \arguments{
 \item{object}{A Seurat object}
@@ -14,10 +14,14 @@ PercentageFeatureSet(object, pattern = NULL, features = NULL,
 
 \item{features}{A defined feature set. If features provided, will ignore the pattern matching}
 
+\item{col.name}{Name in meta.data column to assign. If this is not null, returns a Seurat object 
+with the proportion of the feature set stored in metadata.}
+
 \item{assay}{Assay to use}
 }
 \value{
-Returns a Seurat object with the proportion of the feature set stored in metadata.
+Returns a vector with the proportion of the feature set or if md.name is set, returns a 
+Seurat object with the proportion of the feature set stored in metadata.
 }
 \description{
 This function enables you to easily calculate the percentage of all the counts belonging to a 
@@ -30,6 +34,6 @@ the column sum for all features times 100.
 # Calculate the proportion of transcripts mapping to mitochondrial genes 
 # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 # system of interest
-pbmc_small[["percent.mito"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
+pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
 
 }
