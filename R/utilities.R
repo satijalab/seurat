@@ -885,9 +885,12 @@ MinMax <- function(data, min, max) {
 #' @param object A Seurat object
 #' @param pattern A regex pattern to match features against
 #' @param features A defined feature set. If features provided, will ignore the pattern matching
+#' @param col.name Name in meta.data column to assign. If this is not null, returns a Seurat object 
+#' with the proportion of the feature set stored in metadata.
 #' @param assay Assay to use
 #' 
-#' @return Returns a Seurat object with the proportion of the feature set stored in metadata.
+#' @return Returns a vector with the proportion of the feature set or if md.name is set, returns a 
+#' Seurat object with the proportion of the feature set stored in metadata.
 #' @importFrom Matrix colSums
 #' @export
 #' 
@@ -895,12 +898,13 @@ MinMax <- function(data, min, max) {
 #' # Calculate the proportion of transcripts mapping to mitochondrial genes 
 #' # NOTE: The pattern provided works for human gene names. You may need to adjust depending on your
 #' # system of interest
-#' pbmc_small[["percent.mito"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
+#' pbmc_small[["percent.mt"]] <- PercentageFeatureSet(object = pbmc_small, pattern = "^MT-")
 #' 
 PercentageFeatureSet <- function(
   object, 
   pattern = NULL, 
   features = NULL, 
+  col.name = NULL,
   assay = NULL
 ) {
   assay <- assay %||% DefaultAssay(object = object)
@@ -910,6 +914,10 @@ PercentageFeatureSet <- function(
   features <- features %||% grep(pattern = pattern, x = rownames(x = object[[assay]]), value = TRUE)
   percent.featureset <- colSums(x = GetAssayData(object = object, slot = "counts")[features, ])/
     object[[paste0("nCount_", assay)]] * 100
+  if (!is.null(x = col.name)) {
+    object <- AddMetaData(object = object, metadata = percent.featureset, col.name = col.name)
+    return(object)
+  }
   return(percent.featureset)
 }
 
