@@ -1075,14 +1075,14 @@ SCTransform <- function(
     new.data = scale.data
   )
 
-  if (return.only.var.genes) {
-    if (verbose) {
-      message("Output assay will contain only variable genes")
-    }
-    slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
-  }
+  #if (return.only.var.genes) {
+  #  if (verbose) {
+  #    message("Output assay will contain only variable genes")
+  #  }
+    #slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
+    #slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
+    #slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
+  #}
 
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL
