@@ -4978,7 +4978,10 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
         }
-        # TODO: Ensure Assay that DimReduc is associated with is present in the Seurat object
+        # Ensure Assay that DimReduc is associated with is present in the Seurat object
+        if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+          stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+        }
         # Ensure DimReduc object is in order
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
