@@ -52,8 +52,9 @@ Specify the ABSOLUTE path.}
 \item{graph.name}{Name of graph to use for the clustering algorithm}
 }
 \value{
-Returns a Seurat object and optionally the SNN matrix,
-        object idents have been updated with new cluster info
+Returns a Seurat object where the idents have been updated with new cluster info;
+latest clustering results will be stored in object metadata under 'seurat_clusters'.
+Note that 'seurat_clusters' will be overwritten everytime FindClusters is run
 }
 \description{
 Identify clusters of cells by a shared nearest neighbor (SNN) modularity
