@@ -2628,8 +2628,10 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     message("Pulling expression matrices and metadata")
   }
   if (is(object = file[['X']], class2 = 'H5Group')) {
-    x <- as.sparse(x = file[['X']])
-    slot(object = x, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
+    x <- Matrix::sparseMatrix(i = file[["X"]][["indices"]][],
+                     p = file[["X"]][["indptr"]][],
+                     x = file[["X"]][["data"]][],
+                     dims = h5attr(file[['X']], 'h5sparse_shape')[c(2, 1)])
   } else {
     x <- file[['X']][, ]
   }
