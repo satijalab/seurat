@@ -854,7 +854,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     colnames(x = sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
     # Split v3 multimodal
-    if (infile$exists(name = paste0(genome, '/features/feature_type'))) {
+    if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
@@ -1075,14 +1075,14 @@ SCTransform <- function(
     new.data = scale.data
   )
 
-  if (return.only.var.genes) {
-    if (verbose) {
-      message("Output assay will contain only variable genes")
-    }
-    slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
-    slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
-  }
+  #if (return.only.var.genes) {
+  #  if (verbose) {
+  #    message("Output assay will contain only variable genes")
+  #  }
+    #slot(object = assay.out, name = "counts") <- GetAssayData(object = assay.out, slot = "counts")[top.features, , drop = FALSE]
+    #slot(object = assay.out, name = "data") <- GetAssayData(object = assay.out, slot = "data")[top.features, , drop = FALSE]
+    #slot(object = assay.out, name = "scale.data") <- GetAssayData(object = assay.out, slot = "scale.data")[top.features, , drop = FALSE]
+  #}
 
   # save vst output (except y) in @misc slot
   vst.out$y <- NULL

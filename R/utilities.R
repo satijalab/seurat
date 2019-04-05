@@ -119,8 +119,8 @@ AddModuleScore <- function(
   pool <- pool %||% rownames(x = object)
   data.avg <- Matrix::rowMeans(x = assay.data[pool, ])
   data.avg <- data.avg[order(data.avg)]
-  data.cut <- cut_number(x = data.avg, n = nbin, labels = FALSE, right = FALSE)
-  # data.cut <- as.numeric(x = Hmisc::cut2(x = data.avg, m = round(x = length(x = data.avg) / (nbin + 1))))
+  data.cut <- cut_number(x = data.avg + rnorm(n = length(data.avg))/1e30, n = nbin, labels = FALSE, right = FALSE)
+  #data.cut <- as.numeric(x = Hmisc::cut2(x = data.avg, m = round(x = length(x = data.avg) / (nbin + 1))))
   names(x = data.cut) <- names(x = data.avg)
   ctrl.use <- vector(mode = "list", length = cluster.length)
   for (i in 1:cluster.length) {
