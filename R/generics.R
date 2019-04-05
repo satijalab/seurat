@@ -193,8 +193,9 @@ Embeddings <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return Returns a Seurat object and optionally the SNN matrix,
-#'         object idents have been updated with new cluster info
+#' @return Returns a Seurat object where the idents have been updated with new cluster info;
+#' latest clustering results will be stored in object metadata under 'seurat_clusters'.
+#' Note that 'seurat_clusters' will be overwritten everytime FindClusters is run
 #'
 #' @export
 #'

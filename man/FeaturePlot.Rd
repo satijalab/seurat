@@ -33,7 +33,7 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{pt.size}{Adjust point size for plotting}
 
-\item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if 
+\item{order}{Boolean determining whether to plot cells in order of expression. Can be useful if
 cells expressing given feature are getting buried.}
 
 \item{min.cutoff, max.cutoff}{Vector of minimum and maximum cutoff values for each feature,

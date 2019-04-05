@@ -737,7 +737,7 @@ DietSeurat <- function(
 #' of cells in a Seurat object
 #'
 #' @param object Seurat object
-#' @param vars List of all variables to fetch
+#' @param vars List of all variables to fetch, use keyword 'ident' to pull identity classes
 #' @param cells Cells to collect data for (default is all cells)
 #' @param slot Slot to pull feature data for
 #'
@@ -748,6 +748,7 @@ DietSeurat <- function(
 #' @examples
 #' pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
 #' head(x = pc1)
+#' head(x = FetchData(object = pbmc_small, vars = c('groups', 'ident')))
 #'
 FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   cells <- cells %||% colnames(x = object)
@@ -2627,10 +2628,11 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   if (verbose) {
     message("Pulling expression matrices and metadata")
   }
-  x <- if (is(object = file[['X']], class2 = 'H5Group')) {
-    as.sparse(x = file[['X']])
+  if (is(object = file[['X']], class2 = 'H5Group')) {
+    x <- as.sparse(x = file[['X']])
+    slot(object = x, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
   } else {
-    file[['X']][, ]
+    x <- file[['X']][, ]
   }
   # x will be an S3 matrix if X was scaled, otherwise will be a dgCMatrix
   scaled <- is.matrix(x = x)
@@ -2646,6 +2648,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   if (file$exists(name = 'raw.X')) {
     raw <- as.sparse(x = file[['raw.X']])
     raw.var <- file[['raw.var']][]
+    slot(object = raw, name = 'Dim') <- c(nrow(x = raw.var), nrow(x = obs))
     rownames(x = raw) <- rownames(x = raw.var) <- raw.var$index
     colnames(x = raw) <- obs$index
     raw.var <- raw.var[, -which(x = colnames(x = raw.var) == 'index'), drop = FALSE]
@@ -3669,6 +3672,7 @@ WhichCells.Assay <- function(
 }
 
 #' @param idents A vector of identity classes to keep
+#' @param slot Slot to pull feature data for
 #' @param downsample Maximum number of cells per identity class, default is \code{Inf};
 #' downsampling will happen after all other operations, including inverting the
 #' cell selection
@@ -3685,6 +3689,7 @@ WhichCells.Seurat <- function(
   cells = NULL,
   idents = NULL,
   expression,
+  slot = 'data',
   invert = FALSE,
   downsample = Inf,
   seed = 1,
@@ -3750,7 +3755,8 @@ WhichCells.Seurat <- function(
     data.subset <- FetchData(
       object = object,
       vars = expr.char[vars.use],
-      cells = cells
+      cells = cells,
+      slot = slot
     )
     data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
     cells <- rownames(x = data.subset)
@@ -4784,12 +4790,13 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 
 #' Subset a Seurat object
 #'
-#' @inheritParams WhichCells
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
 #' @param i,features A vector of features to keep
 #' @param j,cells A vector of cells to keep
-#' @param ... Arguments passed to \code{\link{WhichCells}}
+#' @param idents A vector of identity classes to keep
+#' @param ... Extra parameters passed to \code{\link{WhichCells}},
+#' such as \code{slot}, \code{invert}, or \code{downsample}
 #'
 #' @return A subsetted Seurat object
 #'
@@ -4802,22 +4809,15 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @examples
 #' subset(x = pbmc_small, subset = MS4A1 > 4)
+#' subset(x = pbmc_small, subset = `DLGAP1-AS1` > 2)
+#' subset(x = pbmc_small, idents = '0', invert = TRUE)
+#' subset(x = pbmc_small, subset = MS4A1 > 3, slot = 'counts')
 #' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
     subset <- deparse(expr = substitute(expr = subset))
   }
-  # cells <- select %iff% if (any(select %in% colnames(x = x))) {
-  #   select[select %in% colnames(x = x)]
-  # } else {
-  #   NULL
-  # }
-  # idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
-  #   select[select %in% levels(x = Idents(object = x))]
-  # } else {
-  #   NULL
-  # }
   cells <- WhichCells(
     object = x,
     cells = cells,
@@ -4832,28 +4832,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     return(x)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
-  # assay.keys <- sapply(
-  #   X = assays,
-  #   FUN = function(i) {
-  #     return(Key(object = x[[i]]))
-  #   }
-  # )
-  # assay.features <- unlist(
-  #   x = lapply(
-  #     X = assays,
-  #     FUN = function(i) {
-  #       return(rownames(x = x[[i]]))
-  #     }
-  #   ),
-  #   use.names = FALSE
-  # )
-  # assay.features <- unique(x = assay.features)
-  # key.patterns <- paste0('^', assay.keys, collapse = '|')
-  # features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
-  #   select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
-  # } else {
-  #   NULL
-  # }
   # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])
@@ -5000,7 +4978,10 @@ setMethod( # because R doesn't allow S3-style [[<- for S4 classes
         if (is.null(x = DefaultAssay(object = value))) {
           stop("Cannot add a DimReduc without an assay associated with it", call. = FALSE)
         }
-        # TODO: Ensure Assay that DimReduc is associated with is present in the Seurat object
+        # Ensure Assay that DimReduc is associated with is present in the Seurat object
+        if (!DefaultAssay(object = value) %in% FilterObjects(object = x, classes.keep = 'Assay')) {
+          stop("Cannot find assay '", DefaultAssay(object = value), "' in this Seurat object", call. = FALSE)
+        }
         # Ensure DimReduc object is in order
         if (all(colnames(x = value) %in% colnames(x = x)) && !all(colnames(x = value) == colnames(x = x))) {
           slot(object = value, name = 'cell.embeddings') <- value[[colnames(x = x), ]]
@@ -5254,14 +5235,26 @@ setMethod(
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = VariableFeatures(object = object)) > 0) {
       top.ten <- head(x = VariableFeatures(object = object), n = 10L)
-      cat(
-        "Top",
-        length(x = top.ten),
-        paste0("variable feature", if (length(x = top.ten) > 1) {'s'}, ":\n"),
-        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n '),
-        '\n'
-      )
+      top <- 'Top'
+      variable <- 'variable'
+    } else {
+      top.ten <- head(x = rownames(x = object), n = 10L)
+      top <- 'First'
+      variable <- ''
     }
+    features <- paste0(
+      variable,
+      ' feature',
+      if (length(x = top.ten) > 1) {'s'}, ":\n"
+    )
+    features <- gsub(pattern = '^\\s+', replacement = '', x = features)
+    cat(
+      top,
+      length(x = top.ten),
+      features,
+      paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n'),
+      '\n'
+    )
   }
 )
 
@@ -5338,6 +5331,22 @@ setMethod(
       DefaultAssay(object = object),
       paste0('(', nrow(x = object), ' features)')
     )
+    other.assays <- grep(
+      pattern = DefaultAssay(object = object),
+      x = assays,
+      invert = TRUE,
+      value = TRUE
+    )
+    if (length(x = other.assays) > 0) {
+      cat(
+        '\n',
+        length(x = other.assays),
+        'other',
+        ifelse(test = length(x = other.assays) == 1, yes = 'assay', no = 'assays'),
+        'present:',
+        strwrap(x = paste(other.assays, collapse = ', '))
+      )
+    }
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(

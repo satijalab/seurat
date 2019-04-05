@@ -18,7 +18,8 @@
 
 \item{j, cells}{A vector of cells to keep}
 
-\item{...}{Arguments passed to \code{\link{WhichCells}}}
+\item{...}{Extra parameters passed to \code{\link{WhichCells}},
+such as \code{slot}, \code{invert}, or \code{downsample}}
 
 \item{subset}{Logical expression indicating features/variables to keep}
 
@@ -35,6 +36,9 @@ pbmc_small[VariableFeatures(object = pbmc_small), ]
 pbmc_small[, 1:10]
 
 subset(x = pbmc_small, subset = MS4A1 > 4)
+subset(x = pbmc_small, subset = `DLGAP1-AS1` > 2)
+subset(x = pbmc_small, idents = '0', invert = TRUE)
+subset(x = pbmc_small, subset = MS4A1 > 3, slot = 'counts')
 subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 
 }

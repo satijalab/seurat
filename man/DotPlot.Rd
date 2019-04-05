@@ -32,7 +32,8 @@ gene will have no dot drawn.}
 
 \item{group.by}{Factor to group the cells by}
 
-\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)}
+\item{split.by}{Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+see \code{\link{FetchData}} for more details}
 
 \item{scale.by}{Scale the size of the points by 'size' or by 'radius'}
 

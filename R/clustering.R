@@ -178,6 +178,7 @@ FindClusters.Seurat <- function(
   colnames(x = clustering.results) <- paste0(graph.name, "_", colnames(x = clustering.results))
   object <- AddMetaData(object = object, metadata = clustering.results)
   Idents(object = object) <- colnames(x = clustering.results)[ncol(x = clustering.results)]
+  object[['seurat_clusters']] <- Idents(object = object)
   object <- LogSeuratCommand(object)
   return(object)
 }

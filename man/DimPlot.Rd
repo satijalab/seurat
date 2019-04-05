@@ -37,7 +37,8 @@ UMAPPlot(object, ...)
 \item{group.by}{Name of one or more metadata columns to group (color) cells by
 (for example, orig.ident); pass 'ident' to group by identity class}
 
-\item{split.by}{Name of a metadata column to split plot by}
+\item{split.by}{Name of a metadata column to split plot by;
+see \code{\link{FetchData}} for more details}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
@@ -94,9 +95,10 @@ For the old \code{do.hover} and \code{do.identify} functionality, please see
 }
 \examples{
 DimPlot(object = pbmc_small)
+DimPlot(object = pbmc_small, split.by = 'ident')
 
 }
 \seealso{
 \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-\code{\link{FeatureLocator}}
+\code{\link{FeatureLocator}} \code{link{FetchData}}
 }
