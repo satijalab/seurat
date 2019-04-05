@@ -5232,14 +5232,26 @@ setMethod(
     cat('Assay data with', nrow(x = object), 'features for', ncol(x = object), 'cells\n')
     if (length(x = VariableFeatures(object = object)) > 0) {
       top.ten <- head(x = VariableFeatures(object = object), n = 10L)
-      cat(
-        "Top",
-        length(x = top.ten),
-        paste0("variable feature", if (length(x = top.ten) > 1) {'s'}, ":\n"),
-        paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n '),
-        '\n'
-      )
+      top <- 'Top'
+      variable <- 'variable'
+    } else {
+      top.ten <- head(x = rownames(x = object), n = 10L)
+      top <- 'First'
+      variable <- ''
     }
+    features <- paste0(
+      variable,
+      ' feature',
+      if (length(x = top.ten) > 1) {'s'}, ":\n"
+    )
+    features <- gsub(pattern = '^\\s+', replacement = '', x = features)
+    cat(
+      top,
+      length(x = top.ten),
+      features,
+      paste(strwrap(x = paste(top.ten, collapse = ', ')), collapse = '\n'),
+      '\n'
+    )
   }
 )
 
