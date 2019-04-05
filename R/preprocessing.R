@@ -854,7 +854,7 @@ Read10X_h5 <- function(filename, use.names = TRUE, unique.features = TRUE) {
     colnames(x = sparse.mat) <- barcodes[]
     sparse.mat <- as(object = sparse.mat, Class = 'dgCMatrix')
     # Split v3 multimodal
-    if (infile$exists(name = paste0(genome, '/features/feature_type'))) {
+    if (infile$exists(name = paste0(genome, '/features'))) {
       types <- infile[[paste0(genome, '/features/feature_type')]][]
       types.unique <- unique(x = types)
       if (length(x = types.unique) > 1) {
