@@ -486,6 +486,10 @@ AnnoyNN <- function(data, query = NULL, metric = "euclidean", n.trees = 50, k, s
   dist <- matrix(nrow = n, ncol = k)
   res <- future_lapply(X = 1:n, FUN = function(x) {
     res <- a$getNNsByVectorList(query[x, ], k, search.k, TRUE)
+    # Convert from Angular to Cosine distance
+    if (methods::is(a, "Rcpp_AnnoyAngular")) {
+      res$dist <- 0.5 * (res$dist * res$dist)
+    }
     list(res$item + 1, res$distance)
   })
   for (i in 1:n) {
