@@ -5328,6 +5328,22 @@ setMethod(
       DefaultAssay(object = object),
       paste0('(', nrow(x = object), ' features)')
     )
+    other.assays <- grep(
+      pattern = DefaultAssay(object = object),
+      x = assays,
+      invert = TRUE,
+      value = TRUE
+    )
+    if (length(x = other.assays) > 0) {
+      cat(
+        '\n',
+        length(x = other.assays),
+        'other',
+        ifelse(test = length(x = other.assays) == 1, yes = 'assay', no = 'assays'),
+        'present:',
+        strwrap(x = paste(other.assays, collapse = ', '))
+      )
+    }
     reductions <- FilterObjects(object = object, classes.keep = 'DimReduc')
     if (length(x = reductions) > 0) {
       cat(
