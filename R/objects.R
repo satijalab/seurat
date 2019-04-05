@@ -2646,8 +2646,8 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
   # Pull raw expression matrix and feature-level metadata
   if (file$exists(name = 'raw.X')) {
     raw <- as.sparse(x = file[['raw.X']])
-    slot(object = raw, name = 'Dim') <- c(length(file[["var"]][]$index), length(file[["obs"]][]$index))
     raw.var <- file[['raw.var']][]
+    slot(object = raw, name = 'Dim') <- c(nrow(x = raw.var), nrow(x = obs))
     rownames(x = raw) <- rownames(x = raw.var) <- raw.var$index
     colnames(x = raw) <- obs$index
     raw.var <- raw.var[, -which(x = colnames(x = raw.var) == 'index'), drop = FALSE]
