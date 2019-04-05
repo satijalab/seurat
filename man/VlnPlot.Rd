@@ -28,7 +28,8 @@ expression of the attribute being potted, can also pass 'increasing' or 'decreas
 
 \item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
 
-\item{split.by}{A variable to split the violin plots by}
+\item{split.by}{A variable to split the violin plots by,
+see \code{\link{FetchData}} for more details}
 
 \item{adjust}{Adjust parameter for geom_violin}
 
@@ -55,5 +56,9 @@ scores, etc.)
 }
 \examples{
 VlnPlot(object = pbmc_small, features = 'PC1')
+VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 
+}
+\seealso{
+\code{\link{FetchData}}
 }

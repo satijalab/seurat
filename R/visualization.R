@@ -23,7 +23,7 @@ NULL
 #' @param fast If true, use \code{image} to generate plots; faster than using ggplot2, but not customizable
 #' @param assays A vector of assays to pull data from
 #'
-#' @return No return value by default. If using fast = FALSE, will return a ggplot object. 
+#' @return No return value by default. If using fast = FALSE, will return a ggplot object.
 #'
 #' @export
 #'
@@ -462,15 +462,19 @@ RidgePlot <- function(
 #'
 #' @inheritParams RidgePlot
 #' @param pt.size Point size for geom_violin
-#' @param split.by A variable to split the violin plots by
+#' @param split.by A variable to split the violin plots by,
+#' see \code{\link{FetchData}} for more details
 #' @param adjust Adjust parameter for geom_violin
 #'
 #' @return A ggplot object
 #'
 #' @export
 #'
+#' @seealso \code{\link{FetchData}}
+#'
 #' @examples
 #' VlnPlot(object = pbmc_small, features = 'PC1')
+#' VlnPlot(object = pbmc_small, features = 'LYZ', split.by = 'groups')
 #'
 VlnPlot <- function(
   object,
@@ -532,7 +536,8 @@ VlnPlot <- function(
 #' @param reduction Which dimensionality reduction to use. If not specified, first searches for umap, then tsne, then pca
 #' @param group.by Name of one or more metadata columns to group (color) cells by
 #' (for example, orig.ident); pass 'ident' to group by identity class
-#' @param split.by Name of a metadata column to split plot by
+#' @param split.by Name of a metadata column to split plot by;
+#' see \code{\link{FetchData}} for more details
 #' @param shape.by If NULL, all points are circles (default). You can specify any
 #' cell attribute (that can be pulled with FetchData) allowing for both
 #' different colors and different shapes on cells
@@ -568,10 +573,11 @@ VlnPlot <- function(
 #'
 #' @aliases TSNEPlot PCAPlot ICAPlot
 #' @seealso \code{\link{FeaturePlot}} \code{\link{HoverLocator}}
-#' \code{\link{FeatureLocator}}
+#' \code{\link{FeatureLocator}} \code{link{FetchData}}
 #'
 #' @examples
 #' DimPlot(object = pbmc_small)
+#' DimPlot(object = pbmc_small, split.by = 'ident')
 #'
 DimPlot <- function(
   object,
@@ -682,7 +688,7 @@ DimPlot <- function(
 #' (i.e. gene expression, PC scores, number of genes detected, etc.)
 #'
 #' @inheritParams DimPlot
-#' @param order Boolean determining whether to plot cells in order of expression. Can be useful if 
+#' @param order Boolean determining whether to plot cells in order of expression. Can be useful if
 #' cells expressing given feature are getting buried.
 #' @param features Vector of features to plot. Features can come from:
 #' \itemize{
@@ -1560,7 +1566,8 @@ BarcodeInflectionsPlot <- function(object) {
 #' gene will have no dot drawn.
 #' @param dot.scale Scale the size of the points, similar to cex
 #' @param group.by Factor to group the cells by
-#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG)
+#' @param split.by Factor to split the groups by (replicates the functionality of the old SplitDotPlotGG);
+#' see \code{\link{FetchData}} for more details
 #' @param scale.by Scale the size of the points by 'size' or by 'radius'
 #' @param scale.min Set lower limit for scaling, use NA for default
 #' @param scale.max Set upper limit for scaling, use NA for default
@@ -3743,13 +3750,13 @@ SingleCorPlot <- function(
 # @param dims A two-length numeric vector with dimensions to use
 # @param pt.size Adjust point size for plotting
 # @param col.by ...
-# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot 
+# @param cols Vector of colors, each color corresponds to an identity class. By default, ggplot
 # assigns colors.
-# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute 
-# (that can be pulled with FetchData) allowing for both different colors and different shapes on 
+# @param shape.by If NULL, all points are circles (default). You can specify any cell attribute
+# (that can be pulled with FetchData) allowing for both different colors and different shapes on
 # cells.
 # @param order Specify the order of plotting for the idents. This can be useful for crowded plots if
-# points of interest are being buried. Provide either a full list of valid idents or a subset to be 
+# points of interest are being buried. Provide either a full list of valid idents or a subset to be
 # plotted last (on top).
 # @param label Whether to label the clusters
 # @param repel Repel labels
@@ -3815,7 +3822,7 @@ SingleDimPlot <- function(
   if (!is.null(x = order) && !is.null(x = col.by)) {
     if (typeof(x = order) == "logical"){
       if (order) {
-        data <- data[order(data[, col.by]), ] 
+        data <- data[order(data[, col.by]), ]
       }
     } else {
       order <- rev(x = c(

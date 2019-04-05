@@ -737,7 +737,7 @@ DietSeurat <- function(
 #' of cells in a Seurat object
 #'
 #' @param object Seurat object
-#' @param vars List of all variables to fetch
+#' @param vars List of all variables to fetch, use keyword 'ident' to pull identity classes
 #' @param cells Cells to collect data for (default is all cells)
 #' @param slot Slot to pull feature data for
 #'
@@ -748,6 +748,7 @@ DietSeurat <- function(
 #' @examples
 #' pc1 <- FetchData(object = pbmc_small, vars = 'PC1')
 #' head(x = pc1)
+#' head(x = FetchData(object = pbmc_small, vars = c('groups', 'ident')))
 #'
 FetchData <- function(object, vars, cells = NULL, slot = 'data') {
   cells <- cells %||% colnames(x = object)
