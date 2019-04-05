@@ -192,6 +192,10 @@ FindClusters.Seurat <- function(
 #' values less than or equal to this will be set to 0 and removed from the SNN
 #' graph. Essentially sets the strigency of pruning (0 --- no pruning, 1 ---
 #' prune everything).
+#' @param nn.method Method for nearest neighbor finding. Options include: rann,
+#' annoy
+#' @param annoy.metric Distance metric for annoy. Options include: euclidean,
+#' cosine, manhattan, and hamming
 #' @param nn.eps Error bound when performing nearest neighbor seach using RANN;
 #' default of 0.0 implies exact nearest neighbor search
 #' @param verbose Whether or not to print output to the console
@@ -210,11 +214,11 @@ FindNeighbors.default <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = 'rann',
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
-  method='RANN',
-  ...
+  force.recalc = FALSE
 ) {
   if (is.null(x = dim(x = object))) {
     warning(
@@ -239,20 +243,27 @@ FindNeighbors.default <- function(
     if (verbose) {
       message("Computing nearest neighbor graph")
     }
-    if (method=='RANN') {
-      my.knn <- nn2(
-      data = object,
-      k = k.param,
-      searchtype = 'standard',
-      eps = nn.eps)
-      nn.ranked <- my.knn$nn.idx
-    }
-    if (method=='Annoy') {
-      my.knn <- uwot:::find_nn(
-        X = object,
-        k = k.param,include_self = T,method = 'annoy',...)
-      nn.ranked <- my.knn$idx
-    }
+    nn.ranked <- switch(
+      EXPR = nn.method,
+      "rann" = {
+        my.knn <- nn2(
+          data = object,
+          k = k.param,
+          searchtype = 'standard',
+          eps = nn.eps
+        )
+        my.knn$nn.idx
+      },
+      "annoy" = {
+        my.knn <- AnnoyNN(
+          data = object,
+          k = k.param,
+          metric = annoy.metric
+        )
+        my.knn$idx
+      },
+      stop("Unknown nn.method")
+    )
   } else {
     if (verbose) {
       message("Building SNN based on a provided distance matrix")
@@ -298,11 +309,11 @@ FindNeighbors.Assay <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = 'rann',
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
-  force.recalc = FALSE,
-  method = 'RANN',
-  ...
+  force.recalc = FALSE
 ) {
   features <- features %||% VariableFeatures(object = object)
   data.use <- t(x = GetAssayData(object = object, slot = "data")[features, ])
@@ -311,10 +322,11 @@ FindNeighbors.Assay <- function(
     k.param = k.param,
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
     nn.eps = nn.eps,
     verbose = verbose,
-    force.recalc = force.recalc,
-    method = method
+    force.recalc = force.recalc
   )
   return(neighbor.graphs)
 }
@@ -329,10 +341,10 @@ FindNeighbors.dist <- function(
   compute.SNN = TRUE,
   prune.SNN = 1/15,
   nn.eps = 0,
+  nn.method = "rann",
+  annoy.metric = "euclidean",
   verbose = TRUE,
-  force.recalc = FALSE,
-  method = 'RANN',
-  ...
+  force.recalc = FALSE
 ) {
   return(FindNeighbors(
     object = as.matrix(x = object),
@@ -341,10 +353,10 @@ FindNeighbors.dist <- function(
     compute.SNN = compute.SNN,
     prune.SNN = prune.SNN,
     nn.eps = nn.eps,
+    nn.method = nn.method,
+    annoy.metric = annoy.metric,
     verbose = verbose,
     force.recalc = force.recalc,
-    method = method,
-    ...
   ))
 }
 
@@ -371,13 +383,13 @@ FindNeighbors.Seurat <- function(
   k.param = 20,
   compute.SNN = TRUE,
   prune.SNN = 1/15,
+  nn.method = "rann",
+  annoy.metric = "euclidean",
   nn.eps = 0,
   verbose = TRUE,
   force.recalc = FALSE,
   do.plot = FALSE,
-  graph.name = NULL,
-  method = "RANN",
-  ...
+  graph.name = NULL
 ) {
   if (!is.null(x = dims)) {
     assay <- assay %||% DefaultAssay(object = object)
@@ -391,11 +403,11 @@ FindNeighbors.Seurat <- function(
       k.param = k.param,
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
+      nn.method = nn.method,
+      annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
       force.recalc = force.recalc,
-      method = method,
-      ...
     )
   } else {
     assay <- assay %||% DefaultAssay(object = object)
@@ -406,11 +418,11 @@ FindNeighbors.Seurat <- function(
       k.param = k.param,
       compute.SNN = compute.SNN,
       prune.SNN = prune.SNN,
+      nn.method = nn.method,
+      annoy.metric = annoy.metric,
       nn.eps = nn.eps,
       verbose = verbose,
-      force.recalc = force.recalc,
-      method = method,
-      ...
+      force.recalc = force.recalc
     )
   }
   graph.name <- graph.name %||% paste0(assay, "_", names(x = neighbor.graphs))
@@ -447,6 +459,41 @@ FindNeighbors.Seurat <- function(
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Run annoy 
+
+AnnoyNN <- function(data, query = NULL, metric = "euclidean", n.trees = 50, k, search.k = 100 * k) {
+  PackageCheck("RcppAnnoy")
+  f <- ncol(x = data)
+  n <- nrow(x = data)
+  a <- switch(
+    EXPR = metric,
+    "euclidean" =  new(Class = RcppAnnoy::AnnoyEuclidean, f),
+    "cosine" = new(Class = RcppAnnoy::AnnoyAngular, f),
+    "manhattan" = new(Class = RcppAnnoy::AnnoyManhattan, f),
+    "hamming" = new(Class = RcppAnnoy::AnnoyHamming, f),
+    stop ("Invalid metric")
+  )
+  for (ii in seq(n)) {
+    a$addItem(ii - 1, data[ii, ])
+  }
+  a$build(n.trees)
+  
+  query <- query %||% data
+  n <- nrow(x = query)
+  idx <- matrix(nrow = n,  ncol = k)
+  dist <- matrix(nrow = n, ncol = k)
+  res <- future_lapply(X = 1:n, FUN = function(x) {
+    res <- a$getNNsByVectorList(query[x, ], k, search.k, TRUE)
+    list(res$item + 1, res$distance)
+  })
+  for (i in 1:n) {
+    idx[i, ] <- res[[i]][[1]]
+    dist[i, ] <- res[[i]][[2]]
+  }
+  return(list(idx = idx, dist = dist))
+}
+
 
 # Group single cells that make up their own cluster in with the cluster they are
 # most connected to.
