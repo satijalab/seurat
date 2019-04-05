@@ -3671,6 +3671,7 @@ WhichCells.Assay <- function(
 }
 
 #' @param idents A vector of identity classes to keep
+#' @param slot Slot to pull feature data for
 #' @param downsample Maximum number of cells per identity class, default is \code{Inf};
 #' downsampling will happen after all other operations, including inverting the
 #' cell selection
@@ -3687,6 +3688,7 @@ WhichCells.Seurat <- function(
   cells = NULL,
   idents = NULL,
   expression,
+  slot = 'data',
   invert = FALSE,
   downsample = Inf,
   seed = 1,
@@ -3752,7 +3754,8 @@ WhichCells.Seurat <- function(
     data.subset <- FetchData(
       object = object,
       vars = expr.char[vars.use],
-      cells = cells
+      cells = cells,
+      slot = slot
     )
     data.subset <- subset.data.frame(x = data.subset, subset = eval(expr = expr))
     cells <- rownames(x = data.subset)
@@ -4786,12 +4789,13 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 
 #' Subset a Seurat object
 #'
-#' @inheritParams WhichCells
 #' @param x Seurat object to be subsetted
 #' @param subset Logical expression indicating features/variables to keep
 #' @param i,features A vector of features to keep
 #' @param j,cells A vector of cells to keep
-#' @param ... Arguments passed to \code{\link{WhichCells}}
+#' @param idents A vector of identity classes to keep
+#' @param ... Extra parameters passed to \code{\link{WhichCells}},
+#' such as \code{slot}, \code{invert}, or \code{downsample}
 #'
 #' @return A subsetted Seurat object
 #'
@@ -4804,22 +4808,15 @@ subset.DimReduc <- function(x, cells = NULL, features = NULL, ...) {
 #'
 #' @examples
 #' subset(x = pbmc_small, subset = MS4A1 > 4)
+#' subset(x = pbmc_small, subset = `DLGAP1-AS1` > 2)
+#' subset(x = pbmc_small, idents = '0', invert = TRUE)
+#' subset(x = pbmc_small, subset = MS4A1 > 3, slot = 'counts')
 #' subset(x = pbmc_small, features = VariableFeatures(object = pbmc_small))
 #'
 subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NULL, ...) {
   if (!missing(x = subset)) {
     subset <- deparse(expr = substitute(expr = subset))
   }
-  # cells <- select %iff% if (any(select %in% colnames(x = x))) {
-  #   select[select %in% colnames(x = x)]
-  # } else {
-  #   NULL
-  # }
-  # idents <- select %iff% if (any(select %in% levels(x = Idents(object = x)))) {
-  #   select[select %in% levels(x = Idents(object = x))]
-  # } else {
-  #   NULL
-  # }
   cells <- WhichCells(
     object = x,
     cells = cells,
@@ -4834,28 +4831,6 @@ subset.Seurat <- function(x, subset, cells = NULL, features = NULL, idents = NUL
     return(x)
   }
   assays <- FilterObjects(object = x, classes.keep = 'Assay')
-  # assay.keys <- sapply(
-  #   X = assays,
-  #   FUN = function(i) {
-  #     return(Key(object = x[[i]]))
-  #   }
-  # )
-  # assay.features <- unlist(
-  #   x = lapply(
-  #     X = assays,
-  #     FUN = function(i) {
-  #       return(rownames(x = x[[i]]))
-  #     }
-  #   ),
-  #   use.names = FALSE
-  # )
-  # assay.features <- unique(x = assay.features)
-  # key.patterns <- paste0('^', assay.keys, collapse = '|')
-  # features <- select %iff% if (any(grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features)) {
-  #   select[grepl(pattern = key.patterns, x = select, perl = TRUE) | select %in% assay.features]
-  # } else {
-  #   NULL
-  # }
   # Filter Assay objects
   for (assay in assays) {
     assay.features <- features %||% rownames(x = x[[assay]])

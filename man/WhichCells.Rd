@@ -12,7 +12,8 @@ WhichCells(object, ...)
   invert = FALSE, ...)
 
 \method{WhichCells}{Seurat}(object, cells = NULL, idents = NULL,
-  expression, invert = FALSE, downsample = Inf, seed = 1, ...)
+  expression, slot = "data", invert = FALSE, downsample = Inf,
+  seed = 1, ...)
 }
 \arguments{
 \item{object}{An object}
@@ -29,6 +30,8 @@ are present in the feature name}
 \item{invert}{Invert the selection of cells}
 
 \item{idents}{A vector of identity classes to keep}
+
+\item{slot}{Slot to pull feature data for}
 
 \item{downsample}{Maximum number of cells per identity class, default is \code{Inf};
 downsampling will happen after all other operations, including inverting the
