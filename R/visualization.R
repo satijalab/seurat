@@ -3063,6 +3063,7 @@ ExIPlot <- function(
     no = min(length(x = features), 3)
   )
   data <- FetchData(object = object, vars = features, slot = slot)
+  features <- colnames(x = data)
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
   } else {
