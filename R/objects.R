@@ -2631,7 +2631,7 @@ ReadH5AD.H5File <- function(file, assay = 'RNA', verbose = TRUE, ...) {
     x <- Matrix::sparseMatrix(i = file[["X"]][["indices"]][],
                      p = file[["X"]][["indptr"]][],
                      x = file[["X"]][["data"]][],
-                     dims = hdf5r::h5attr(file[['X']], 'h5sparse_shape')[c(2, 1)])
+                     dims = hdf5r::h5attr(x = file[['X']], which = 'h5sparse_shape')[c(2, 1)])
   } else {
     x <- file[['X']][, ]
   }
